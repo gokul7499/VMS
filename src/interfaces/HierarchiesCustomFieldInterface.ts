@@ -1,0 +1,6 @@
+export interface HierarchyCustomFieldInterface {
+    program_id: string;
+    customfield_id: string;
+    value?: string; 
+    hierarchy_id: string;
+  }

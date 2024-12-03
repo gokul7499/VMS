@@ -1,0 +1,140 @@
+
+import countyModel from "../models/countyModel";
+import { countyInterface } from "../interfaces/countyInterface";
+import { FastifyReply, FastifyRequest } from "fastify";
+import generateCustomUUID from "../utility/genrateTraceId";
+import { Op } from "sequelize";
+
+export async function createCounty(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    try {
+        const county = request.body as countyInterface;
+        const county_data: any = await countyModel.create({ ...county });
+        reply.status(201).send({
+            status_code: 201,
+            message: "county created succesfully",
+            county_data: county_data?.id,
+            trace_id: generateCustomUUID(),
+        });
+    } catch (error) {
+        reply.status(500).send({
+            message: 'An error occurred while creating county',
+            error
+        });
+    }
+}
+export async function getCountyById(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) {
+    try {
+        const { id } = request.params;
+        console.log("Params:", id);
+        const county = await countyModel.findOne({
+            where: {
+                id,
+                is_deleted: false,
+            },
+            attributes: { exclude: ["ref_id",] },
+        });
+        if (county) {
+            reply.status(201).send({
+                status_code: 201,
+                message: "county get succesfully",
+                county: county,
+                trace_id: generateCustomUUID(),
+            });
+        } else {
+            reply.status(200).send({
+                status_code: 200,
+                message: "county data not found",
+                county: []
+            });
+        }
+    } catch (error) {
+        reply.status(500).send({ message: "An error occurred while fetching county", error });
+    }
+}
+export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const updates = request.body as Partial<countyInterface>;
+    try {
+        const [county] = await countyModel.update(updates, {
+            where: { id }
+        });
+        if (county === 0) {
+            return reply.status(200).send({ message: "county data not found", trace_id: generateCustomUUID(), county: [] });
+        }
+        return reply.status(201).send({
+            status_code: 201,
+            message: "county updated successfully",
+            county: id,
+            trace_id: generateCustomUUID()
+        });
+    } catch (error) {
+        return reply.status(500).send({ message: "Internal Server Error", trace_id: generateCustomUUID(), error });
+    }
+}
+
+export async function deleteCountyById(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) {
+    try {
+        const { id } = request.params;
+        const [county] = await countyModel.update(
+            {
+                is_deleted: true,
+                is_enabled: false,
+                modified_on: Date.now(),
+            },
+            { where: { id } }
+        );
+        if (county > 0) {
+            reply.status(200).send({
+                status_code: 200,
+                message: "county deleted successfully",
+                county: id,
+                trace_id: generateCustomUUID(),
+            });
+        } else {
+            reply.status(200).send({ message: "county not found", trace_id: generateCustomUUID(), county: [] });
+        }
+    } catch (error) {
+        reply.status(500).send({ message: "An error occurred while deleting county", error });
+    }
+}
+export async function getAllCounty(request: FastifyRequest<{ Querystring: { name?: string; state_id?: string[] } }>, reply: FastifyReply) {
+    const { name, state_id } = request.query;
+    let whereClause: any = {};
+
+    if (name) {
+        whereClause.name = { [Op.like]: `%${name}%` };
+    }
+
+    if (state_id) {
+        const stateIds: string[] = Array.isArray(state_id)
+            ? state_id
+            : (state_id as string).split(',');
+        whereClause.state_id = { [Op.in]: stateIds };
+    }
+
+    try {
+        const counties = await countyModel.findAll({ where: whereClause });
+        if (counties.length > 0) {
+            reply.status(201).send({
+                status_code: 201,
+                message: "Counties retrieved successfully",
+                data: counties,
+                trace_id: generateCustomUUID(),
+            });
+        } else {
+            reply.status(200).send({ status_code: 200, message: "No counties found for the given state_id(s)", counties: [], trace_id: generateCustomUUID(), });
+        }
+    } catch (error) {
+        console.error(error);
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error" });
+    }
+}

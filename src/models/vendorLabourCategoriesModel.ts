@@ -1,0 +1,76 @@
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../config/instance';
+import { Programs } from './programsModel';
+import IndustriesModel from './industriesModel';
+
+class vendorLabourCategoriesModel extends Model { }
+vendorLabourCategoriesModel.init({
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        primaryKey: true,
+    },
+    labour_category_name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    program_vendor_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'program_vendors',
+            key: 'id',
+        },
+    },
+    labour_category_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'industries',
+            key: 'id',
+        },
+    },
+    program_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'programs',
+            key: 'id',
+        },
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: Date.now(),
+    },
+    modified_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: Date.now(),
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: true,
+    },
+    modified_by: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: true,
+    }
+}, {
+    sequelize,
+    modelName: 'vendor_labour_categories',
+});
+sequelize.sync();
+vendorLabourCategoriesModel.belongsTo(Programs, {
+    foreignKey: "program_id",
+    as: "programs",
+});
+
+vendorLabourCategoriesModel.belongsTo(IndustriesModel, {
+    foreignKey: 'labour_category_id',
+    as: 'industries'
+});
+export default vendorLabourCategoriesModel;

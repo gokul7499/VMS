@@ -1,0 +1,31 @@
+export default interface candidateInterface {
+    id: string;
+    program_id: string;
+    avatar: JSON;
+    name_prefix: string;
+    user_name: string;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    name_suffix: string;
+    country_id: string;
+    vendor_id: string;
+    unique_id: string;
+    resume_url: string;
+    contacts: JSON;
+    email: string;
+    addresses: JSON;
+    websites: JSON;
+    qualifications: JSON;
+    job_level: string;
+    npi: number;
+    job_category_id: string;
+    worker_type_id: string;
+    title: string;
+    custom_fields?: JSON;
+    preferences: JSON;
+    is_active: boolean;
+    is_deleted: boolean;
+    birth_date?: number;
+    candidate_source?:string
+}

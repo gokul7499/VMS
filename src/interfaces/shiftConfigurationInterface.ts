@@ -1,0 +1,15 @@
+export interface ShiftConfigurationAttributes {
+  shift_configuration_name: string;
+  id: string;
+  name: string;
+  hierarchy_ids: any;
+  job_template_ids: any;
+  shift_type_ids: any;
+  is_enabled: boolean;
+  is_deleted: boolean;
+  created_on: Date;
+  modified_on: Date;
+  created_by?: string;
+  modified_by?: string;
+  program_id: string;
+}
