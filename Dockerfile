@@ -5,6 +5,7 @@ WORKDIR /service
 COPY package*.json ./
 
 RUN npm install -g npm@8.11.0 && npm i core-util-is && npm install
+EXPOSE $PORT 3001
 
 COPY config/default.json.sample config/default.json
 
