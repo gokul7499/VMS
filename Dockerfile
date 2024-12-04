@@ -11,7 +11,6 @@ ENV NODE_ENV=development
 # Copy package.json, tsconfig.json, and install dependencies
 COPY package*.json $DIR
 COPY tsconfig*.json $DIR
-COPY tsconfig-build*.json $DIR
 RUN npm install
 
 # Copy source code
@@ -24,4 +23,4 @@ RUN npm run build
 EXPOSE 8000
 
 # Command to run the app in development mode using npm script
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]
