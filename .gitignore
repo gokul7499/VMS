@@ -6,7 +6,6 @@
 # Node artifact files
 .env
 node_modules
-src/config/db.ts
 dist
 src/config/index.ts
 
