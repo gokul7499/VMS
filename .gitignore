@@ -4,10 +4,9 @@
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
 # Node artifact files
-.env
 node_modules
 dist
-src/config/index.ts
+
 
 # Compiled Java class files
 *.class
