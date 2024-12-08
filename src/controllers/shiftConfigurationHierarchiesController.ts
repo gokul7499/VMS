@@ -1,5 +1,4 @@
-import { FastifyRequest, FastifySchema } from "fastify";
-import { FastifyReply } from "fastify";
+import { FastifyRequest, FastifySchema, FastifyReply } from "fastify";
 import generateCustomUUID from '../utility/genrateTraceId';
 import shiftConfigurationHierarchies from "../models/shiftConfigurationHierarchiesModel";
 import ShiftType from "../models/shiftTypeModel";
@@ -257,7 +256,7 @@ export async function postRateTypesByShiftType(
                             program_id: program_id,
                             is_enabled: true
                         },
-                        attributes: ["id", "name", "shift_category", "is_shift_rate", "shift_rate", "type", "expense_rate","bill_rate","pay_rate"]
+                        attributes: ["id", "name", "shift_category", "is_shift_rate", "shift_rate", "type", "expense_rate", "bill_rate", "pay_rate"]
                     });
 
                     const uniqueTypes = new Set<string>();

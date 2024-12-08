@@ -22,7 +22,7 @@ class VendorGroup extends Model implements vendorGroupInterface {
   is_deleted!: boolean;
   vendor_id?: string;
   program_vendor?: any;
-    vendor_name: any;
+  vendor_name: any;
 }
 
 VendorGroup.init(

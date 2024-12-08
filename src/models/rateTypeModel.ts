@@ -133,7 +133,4 @@ rateType.init(
 );
 
 sequelize.sync();
-
-//rateType.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-
 export { rateType };

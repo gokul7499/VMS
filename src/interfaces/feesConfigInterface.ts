@@ -1,6 +1,6 @@
 import { Json } from "sequelize/types/utils";
 
-export interface feesConfigurationInterface {
+export interface FeesConfigurationInterface {
   title: string;
   program_id: string
   hierarchy_levels: Json;

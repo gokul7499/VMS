@@ -14,7 +14,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 
   const authHeader = request.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ message: 'Unauthorized - Token not found' });
   }
 
@@ -144,7 +144,7 @@ export async function getAllRateType(
 ) {
   try {
     const params = request.params as CreateRateTypeData;
-    const query: any = request.query as CreateRateTypeData;
+    const query: any = request.query;
 
     const page = parseInt(query.page ?? "1");
     const limit = parseInt(query.limit ?? "10");
@@ -161,6 +161,19 @@ export async function getAllRateType(
       searchConditions.is_shift_rate = query.is_shift_rate === "false" ? false : true;
     }
 
+    if (query.start_date && query.end_date) {
+      searchConditions.modified_on = {
+        [Op.between]: [query.start_date, query.end_date],
+      };
+    } else if (query.start_date) {
+      searchConditions.modified_on = {
+        [Op.gte]: query.start_date,
+      };
+    } else if (query.end_date) {
+      searchConditions.modified_on = {
+        [Op.lte]: query.end_date,
+      };
+    }
     if (query.name) {
       searchConditions.name = { [Op.like]: `%${query.name}%` };
     }

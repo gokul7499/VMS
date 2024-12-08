@@ -27,7 +27,7 @@ vendorLabourCategoriesModel.init({
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-            model: 'industries',
+            model: 'labour_category',
             key: 'id',
         },
     },
@@ -71,6 +71,6 @@ vendorLabourCategoriesModel.belongsTo(Programs, {
 
 vendorLabourCategoriesModel.belongsTo(IndustriesModel, {
     foreignKey: 'labour_category_id',
-    as: 'industries'
+    as: 'labour_category'
 });
 export default vendorLabourCategoriesModel;

@@ -68,8 +68,4 @@ qualificationTypeModel.init({
   timestamps: false,
 });
 
-
-
-//qualificationTypeModel.belongsTo(Programs, { foreignKey: 'program_id' });
-
 export default qualificationTypeModel;

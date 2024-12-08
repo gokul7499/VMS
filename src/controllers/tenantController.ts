@@ -10,45 +10,43 @@ import { logger } from '../utility/loggerService';
 import { UserInterface } from "../interfaces/userInterface";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import { decodeToken } from '../middlewares/verifyToken';
+import CountryModel from "../models/countriesModel";
 
 export async function getTenants(
-  request: FastifyRequest<{ Querystring: TenantData }>,
-  reply: FastifyReply
+    request: FastifyRequest<{ Querystring: TenantData }>,
+    reply: FastifyReply
 ) {
-  const { name, type, created_on, is_enabled } = request.query as TenantData;
-  try {
-    const whereClause: any = { is_deleted: false };
+    const { is_enabled } = request.query;
+    try {
+        const whereClause: any = { is_deleted: false };
 
-    // Convert is_enabled from string to boolean if it's defined
-    if (is_enabled !== undefined) {
-      whereClause.is_enabled = is_enabled.toString() === "true";
+        // Convert is_enabled from string to boolean if it's defined
+        if (is_enabled !== undefined) {
+            whereClause.is_enabled = is_enabled.toString() === "true";
+        }
+
+        const tenants = await Tenant.findAll({
+            where: whereClause,
+            attributes: ["id", "name", "contacts", "created_on", "is_enabled", "vendor_industry"],
+            order: [["created_on", "DESC"]],
+        });
+
+        if (tenants.length === 0) {
+            return reply.status(200).send({ message: "Tenants not found", tenants: [] });
+        }
+
+        reply.status(200).send({
+            status_code: 200,
+            items_per_page: tenants.length,
+            total_records: tenants.length,
+            trace_id: generateCustomUUID(),
+            tenant_data: tenants,
+        });
+    } catch (error) {
+        console.error(error);
+        reply.status(500).send({ message: "Internal Server Error" });
     }
-
-    const tenants = await Tenant.findAll({
-      where: whereClause,
-      attributes: ["id", "name", "contacts", "created_on", "is_enabled", "vendor_industry"],
-      order: [["created_on", "DESC"]],
-    });
-
-    if (tenants.length === 0) {
-      return reply.status(200).send({ message: "Tenants not found", tenants: [] });
-    }
-
-    reply.status(200).send({
-      status_code: 200,
-      items_per_page: tenants.length,
-      total_records: tenants.length,
-      trace_id: generateCustomUUID(),
-      tenant_data: tenants,
-    });
-  } catch (error) {
-    console.error(error);
-    reply.status(500).send({ message: "Internal Server Error" });
-  }
 }
-
-
-
 
 export async function getTenantById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
@@ -72,6 +70,21 @@ export async function getTenantById(request: FastifyRequest, reply: FastifyReply
             });
             const tenantData = tenant.toJSON();
             tenantData.program_count = programCount;
+
+            if (Array.isArray(tenantData.addresses)) {
+                for (const address of tenantData.addresses) {
+                    if (address.country) {
+                        const country = await CountryModel.findOne({
+                            where: { id: address.country, is_deleted: false },
+                            attributes: ["id", "name"],
+                        });
+
+                        if (country) {
+                            address.country = country.toJSON();
+                        }
+                    }
+                }
+            }
             reply.status(200).send({
                 status_code: 200,
                 tenant_data: tenantData,
@@ -91,7 +104,7 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
     const trace_id = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
 
@@ -192,7 +205,7 @@ export async function createTenantAndUser(request: FastifyRequest, reply: Fastif
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
 
@@ -287,7 +300,7 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
 
 export async function searchTenantsWithProgramCount(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ["id", "name", "contacts", "created_on", "is_enabled", "type"];
-    const responseFields = ["id", "name", "contacts", "created_on", "is_enabled", "type","logo"];
+    const responseFields = ["id", "name", "contacts", "created_on", "is_enabled", "type", "logo"];
 
     try {
         const query = request.query as Record<string, string>;

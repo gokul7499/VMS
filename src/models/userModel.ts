@@ -108,7 +108,7 @@ User.init(
       allowNull: true
     },
     country_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       references: {
         model: 'countries',
@@ -124,11 +124,11 @@ User.init(
       allowNull: true
     },
     supervisor: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true
     },
     time_zone_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       references: {
         model: 'time_zones',
@@ -136,7 +136,7 @@ User.init(
       },
     },
     language_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       references: {
         model: 'language',
@@ -195,7 +195,7 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    is_allow_unlimited_autherity: {
+    is_allow_unlimited_authority: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
@@ -257,6 +257,6 @@ User.belongsTo(TimeZone, { foreignKey: "time_zone_id", as: "time_zone" });
 User.belongsTo(Language, { foreignKey: "language_id", as: "language" });
 User.belongsToMany(hierarchies, { through: 'user_hierarchies', foreignKey: 'user_Id' });
 User.belongsToMany(WorkLocationModel, { through: 'user_work_locations', foreignKey: 'user_Id' });
-
+User.belongsTo(User, { foreignKey: "supervisor", as: "supervisor_id" });
 
 export default User;

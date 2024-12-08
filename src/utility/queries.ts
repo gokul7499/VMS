@@ -1,6 +1,7 @@
 import { MinMaxRateQueryParams } from "../interfaces/rateCardConfigurationInterface";
 
-export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
+export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
+    endDate: number | undefined) => {
     let hierarchyIdCondition = hierarchyIdCount > 0
         ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
         : '';
@@ -8,7 +9,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
         ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
         : '';
     return `
-        SELECT 
+        SELECT
             rcc.*,
             GROUP_CONCAT(DISTINCT JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies,
             GROUP_CONCAT(DISTINCT JSON_OBJECT('id', j.id, 'name', j.template_name)) AS job_templates,
@@ -17,32 +18,34 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
                     'rate', ex.rate,
                     'max_limit', ex.max_limit,
                     'unit_of_measure', ex.unit_of_measure,
+                    'unit_lable', ex.unit_lable,
                     'expense_type', JSON_OBJECT('id', ex.expense_type_id, 'name', ec.expense_type)
                 )
             ) AS expenses
-        FROM 
-            rate_card_configuration rcc
-        LEFT JOIN 
+        FROM
+            rate_type_configurations rcc
+        LEFT JOIN
             JSON_TABLE(rcc.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
             ON hj.hierarchy_id IS NOT NULL
-        LEFT JOIN 
+        LEFT JOIN
             hierarchies h ON h.id = hj.hierarchy_id
-        LEFT JOIN 
+        LEFT JOIN
             JSON_TABLE(rcc.job_templates, '$[*]' COLUMNS (job_template_id CHAR(36) PATH '$')) AS jt
             ON jt.job_template_id IS NOT NULL
-        LEFT JOIN 
+        LEFT JOIN
             job_templates j ON j.id = jt.job_template_id
-        LEFT JOIN 
+        LEFT JOIN
             JSON_TABLE(rcc.expenses, '$[*]' COLUMNS (
                 expense_type_id CHAR(36) PATH '$.expense_type_id',
                 rate DECIMAL(10,2) PATH '$.rate',
                 max_limit DECIMAL(10,2) PATH '$.max_limit',
+                unit_lable VARCHAR(255) PATH '$.unit_lable',
                 unit_of_measure VARCHAR(255) PATH '$.unit_of_measure'
-            )) AS ex 
+            )) AS ex
             ON ex.expense_type_id IS NOT NULL
-        LEFT JOIN 
+        LEFT JOIN
             expense_type ec ON ec.id = ex.expense_type_id
-        WHERE 
+        WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = :program_id
             AND (:name IS NULL OR rcc.name LIKE :name)
@@ -50,26 +53,42 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-        GROUP BY 
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+        GROUP BY
             rcc.id
-        ORDER BY 
+        ORDER BY
             rcc.created_on DESC
         LIMIT :limit OFFSET :offset;
     `;
 };
 
 export const fetchProgramConfigValues = `
-  SELECT 
-                COALESCE(MAX(CASE WHEN programs_config.key = 'default_currency' THEN programs_config.value END), 'INR') AS defaultCurrency,
-                COALESCE(MAX(CASE WHEN programs_config.key = 'time_zone' THEN programs_config.value END), 'UTC') AS timeZone,
-                COALESCE(MAX(CASE WHEN programs_config.key = 'rate_model_for_program' THEN programs_config.value END), "Bill Rate (No Markup)") AS rateModel
-            FROM programs_config
-            WHERE program_id = :programId
-            OR programs_config.key='default_currency'
-            OR programs_config.key='time_zone'
-            OR programs_config.key='rate_model_for_program'
- `
-export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
+   SELECT
+
+    COALESCE(MAX(CASE WHEN programs_config.key = 'default_currency' THEN programs_config.value END)) AS defaultCurrency,
+
+    COALESCE(MAX(CASE WHEN programs_config.key = 'time_zone' THEN programs_config.value END)) AS timeZone,
+
+    COALESCE(MAX(CASE WHEN programs_config.key = 'rate_model_for_program' THEN programs_config.value END)) AS rateModel,
+     COALESCE(MAX(CASE WHEN programs_config.key = 'default_date_format' THEN programs_config.value END)) AS preferredDateFormat,
+    programs_config.program_id
+
+FROM programs_config
+
+WHERE 
+
+    programs_config.program_id =:programId
+
+    AND programs_config.key IN ('default_currency', 'time_zone', 'rate_model_for_program','default_date_format')
+
+GROUP BY programs_config.program_id
+
+LIMIT 0, 1000;
+
+
+`;
+export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
+    endDate: number | undefined) => {
     let hierarchyIdCondition = hierarchyIdCount > 0
         ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
         : '';
@@ -78,14 +97,14 @@ export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: numb
         : '';
     return `
         SELECT COUNT(DISTINCT rcc.id) AS total
-        FROM rate_card_configuration rcc
-        LEFT JOIN 
-            JSON_TABLE(rcc.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj 
+        FROM rate_type_configurations rcc
+        LEFT JOIN
+            JSON_TABLE(rcc.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
             ON hj.hierarchy_id IS NOT NULL
-        LEFT JOIN 
-            JSON_TABLE(rcc.job_templates, '$[*]' COLUMNS (job_template_id CHAR(36) PATH '$')) AS jt 
+        LEFT JOIN
+            JSON_TABLE(rcc.job_templates, '$[*]' COLUMNS (job_template_id CHAR(36) PATH '$')) AS jt
             ON jt.job_template_id IS NOT NULL
-        WHERE 
+        WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = :program_id
             AND (:name IS NULL OR rcc.name LIKE :name)
@@ -93,11 +112,12 @@ export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: numb
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
     `;
 };
 
 export const rateCardQuery = `
-SELECT 
+SELECT
     rcc.*,
     IF(rcc.is_shift_rate = 1, true, false) AS is_shift_rate,
     GROUP_CONCAT(DISTINCT JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies,
@@ -106,10 +126,11 @@ SELECT
         'rate', ex.rate,
         'max_limit', ex.max_limit,
         'unit_of_measure', ex.unit_of_measure,
+        'unit_lable', ex.unit_lable,
         'expense_type', JSON_OBJECT('id', ec.id, 'name', ec.expense_type)
     )) AS expenses
-FROM 
-    rate_card_configuration rcc
+FROM
+    rate_type_configurations rcc
 LEFT JOIN JSON_TABLE(
     COALESCE(rcc.hierarchies, '[]'), '$[*]'
     COLUMNS (
@@ -130,32 +151,33 @@ LEFT JOIN JSON_TABLE(
         expense_type_id CHAR(36) PATH '$.expense_type_id',
         rate DECIMAL(10,2) PATH '$.rate',
         max_limit DECIMAL(10,2) PATH '$.max_limit',
+        unit_lable VARCHAR(255) PATH '$.unit_lable',
         unit_of_measure VARCHAR(255) PATH '$.unit_of_measure'
     )
 ) AS ex ON ex.expense_type_id IS NOT NULL
 LEFT JOIN expense_type ec ON ec.id = ex.expense_type_id
-WHERE 
+WHERE
     rcc.is_deleted = 0
     AND rcc.id = :id
-GROUP BY 
+GROUP BY
     rcc.id;
 `;
 
 
 
 export const programVendorQuery = (hasUserId: boolean, hasVendorId: boolean) => `
-SELECT 
+SELECT
   *
-FROM 
-  program_vendors 
-WHERE 
+FROM
+  program_vendors
+WHERE
   program_vendors.program_id = :program_id
   ${hasUserId ? 'AND program_vendors.user_id = :user_id' : ''}
   ${hasVendorId ? 'AND program_vendors.id = :vendor_id' : ''};
 `;
 
 export const complianceDocumentGetByUserId = `
-    SELECT 
+    SELECT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -169,7 +191,7 @@ export const complianceDocumentGetByUserId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
-        vcrm.next_expiry_on, 
+        vcrm.next_expiry_on,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -181,21 +203,21 @@ export const complianceDocumentGetByUserId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location
-    FROM 
+    FROM
         program_vendors pv
-    JOIN 
+    JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-    LEFT JOIN 
+    LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-    LEFT JOIN 
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id 
-    WHERE 
-        pv.program_id = :program_id 
+    LEFT JOIN
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+    WHERE
+        pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
 `;
 
 export const complianceDocumentGetByUserAndDocumentId = `
-    SELECT 
+    SELECT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -209,7 +231,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
-        vcrm.next_expiry_on, 
+        vcrm.next_expiry_on,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -221,22 +243,22 @@ export const complianceDocumentGetByUserAndDocumentId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location
-    FROM 
+    FROM
         program_vendors pv
-    JOIN 
+    JOIN
       vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-    LEFT JOIN 
+    LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-    LEFT JOIN 
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id 
-    WHERE 
-        pv.program_id = :program_id 
+    LEFT JOIN
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+    WHERE
+        pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
 export const complianceDocumentGetByVendorId = `
-    SELECT 
+    SELECT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -251,7 +273,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcd.uploaded_document,
-        vcrm.next_expiry_on,  
+        vcrm.next_expiry_on,
         (
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
@@ -262,23 +284,23 @@ export const complianceDocumentGetByVendorId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.vendor_name  
-    FROM 
+        pv.vendor_name
+    FROM
         program_vendors pv
-    JOIN 
+    JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
-    LEFT JOIN 
+    LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-    LEFT JOIN 
+    LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  -- Joining with mapping table
-    WHERE 
-        pv.program_id = :program_id 
+    WHERE
+        pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
         -- Added name filter condition
         AND (:name IS NULL OR vcd.name LIKE :name)
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
-    GROUP BY 
+    GROUP BY
         vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
         vcd.upload_document_days, vcd.attached_doc_url,
         vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
@@ -287,21 +309,21 @@ export const complianceDocumentGetByVendorId = `
 `;
 
 export const complianceDocumentCountByVendorId = `
-    SELECT 
+    SELECT
         COUNT(DISTINCT vcd.id) AS total_count
-    FROM 
+    FROM
         program_vendors pv
-    JOIN 
+    JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
-    LEFT JOIN 
+    LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-    WHERE 
-        pv.program_id = :program_id 
+    WHERE
+        pv.program_id = :program_id
         AND (:vendor_id IS NULL OR pv.id = :vendor_id)
 `;
 
 export const complianceDocumentGetByVendorAndDocumentId = `
-    SELECT 
+    SELECT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -315,7 +337,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
-        vcrm.next_expiry_on, 
+        vcrm.next_expiry_on,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -327,74 +349,74 @@ export const complianceDocumentGetByVendorAndDocumentId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.vendor_name 
-    FROM 
+        pv.vendor_name
+    FROM
         program_vendors pv
-    JOIN 
+    JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-    LEFT JOIN 
-        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id)) 
-    LEFT JOIN 
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  
-    WHERE 
-        pv.program_id = :program_id 
+    LEFT JOIN
+        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
+    LEFT JOIN
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+    WHERE
+        pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
 export const complianceGroupQueryWithUserId = `
-  SELECT 
+  SELECT
     vcd.id AS document_id,
-    vcd.* 
-  FROM 
+    vcd.*
+  FROM
     program_vendors pv
-  JOIN 
+  JOIN
     vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-  LEFT JOIN 
+  LEFT JOIN
     vendor_compliance_documents vcd ON vcd.id = :document_id
-  WHERE 
-    pv.program_id = :program_id 
+  WHERE
+    pv.program_id = :program_id
     AND pv.user_id = :user_id
    AND (vcd.id IS NULL OR vcd.id = :document_id)
   LIMIT 1;
 `;
 
 export const complianceGroupQueryWithVendorId = `
-  SELECT 
+  SELECT
     vcd.id AS document_id,
-    vcd.* 
-  FROM 
+    vcd.*
+  FROM
     program_vendors pv
-  JOIN 
+  JOIN
     vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-  LEFT JOIN 
+  LEFT JOIN
     vendor_compliance_documents vcd ON vcd.id = :document_id
-  WHERE 
-    pv.program_id = :program_id 
+  WHERE
+    pv.program_id = :program_id
     AND pv.id = :vendor_id
    AND (vcd.id IS NULL OR vcd.id = :document_id)
   LIMIT 1;
 `;
 
 export const getComplianceDocuments = `
-  SELECT 
+  SELECT
     vcd.*
-  FROM 
+  FROM
     program_vendors pv
-  JOIN 
+  JOIN
    vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
-  LEFT JOIN 
+  LEFT JOIN
     vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-  WHERE 
-    pv.program_id = :program_id 
+  WHERE
+    pv.program_id = :program_id
     AND pv.user_id = :user_id
 `;
 
 export const getHierarchieWithChildren = `
 WITH RECURSIVE hierarchy_cte AS (
-  SELECT 
-    h.id, 
-    h.parent_hierarchy_id, 
+  SELECT
+    h.id,
+    h.parent_hierarchy_id,
     h.name,
     h.is_enabled,
     h.preferred_date_format,
@@ -407,12 +429,12 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
-  
+
   UNION ALL
-  
-  SELECT 
-    h.id, 
-    h.parent_hierarchy_id, 
+
+  SELECT
+    h.id,
+    h.parent_hierarchy_id,
     h.name,
     h.is_enabled,
     h.preferred_date_format,
@@ -431,32 +453,32 @@ FROM hierarchy_cte;
 
 export const getAllHierarchies = (hasName: boolean, hasIsEnabled: boolean, startDate?: number, endDate?: number) => `
 WITH hierarchy_cte AS (
-  SELECT 
-    h.id, 
-    h.name, 
-    h.code, 
-    h.parent_hierarchy_id, 
-    h.is_enabled, 
+  SELECT
+    h.id,
+    h.name,
+    h.code,
+    h.parent_hierarchy_id,
+    h.is_enabled,
     h.modified_on,
     h.program_id,
     h.is_deleted,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
-  LEFT JOIN hierarchies ph 
+  LEFT JOIN hierarchies ph
     ON h.parent_hierarchy_id = ph.id -- Self-join to get parent name
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
-    ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''} 
+    ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined ? 'AND h.modified_on BETWEEN :startDate AND :endDate' : ''}
 )
 
 SELECT *
 FROM hierarchy_cte
-ORDER BY 
-  CASE 
-    WHEN parent_hierarchy_id IS NULL THEN 0 
-    ELSE 1 
+ORDER BY
+  CASE
+    WHEN parent_hierarchy_id IS NULL THEN 0
+    ELSE 1
   END, -- Sort parent hierarchies first
   id;
 `;
@@ -475,7 +497,7 @@ ORDER BY
 //                 'name', i.name
 //             )
 //         )
-//         FROM industries i
+//         FROM labour_category i
 //         WHERE JSON_CONTAINS(pv.program_industry, JSON_QUOTE(i.id))
 //     ) AS program_industry,
 //     (
@@ -498,19 +520,19 @@ ORDER BY
 //         FROM hierarchies h
 //         WHERE JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id))
 //     ) AS hierarchies,
-//        CASE 
+//        CASE
 //        WHEN pv.is_labour_category = 1 THEN TRUE
 //         ELSE FALSE
-//        END AS is_labour_category, 
-//     CASE 
+//        END AS is_labour_category,
+//     CASE
 //        WHEN pv.all_work_locations = 1 THEN TRUE
 //         ELSE FALSE
-//        END AS all_work_locations, 
-//     CASE 
+//        END AS all_work_locations,
+//     CASE
 //         WHEN pv.all_hierarchy = 1 THEN TRUE
 //         ELSE FALSE
 //        END AS all_hierarchy,
-//     CASE 
+//     CASE
 //         WHEN pv.all_job_type = 1 THEN TRUE
 //         ELSE FALSE
 //          END AS all_job_type,
@@ -559,7 +581,7 @@ ORDER BY
 //                         'name', wl.name
 //                     )
 //                     FROM work_locations wl
-//                     WHERE wl.id = vmc.work_locations  
+//                     WHERE wl.id = vmc.work_locations
 //                 ),
 //                 'hierarchy', (
 //                     SELECT JSON_OBJECT(
@@ -567,15 +589,15 @@ ORDER BY
 //                         'name', h.name
 //                     )
 //                     FROM hierarchies h
-//                     WHERE h.id = vmc.hierarchy 
+//                     WHERE h.id = vmc.hierarchy
 //                 ),
 //                 'program_industry', (
 //                      SELECT JSON_OBJECT(
 //                         'id', i.id,
 //                         'name', i.name
 //                     )
-//                     FROM industries i
-//                     WHERE i.id = vmc.program_industry 
+//                     FROM labour_category i
+//                     WHERE i.id = vmc.program_industry
 //                 ),
 //                 'is_enabled', vmc.is_enabled
 //             )
@@ -605,7 +627,7 @@ SELECT
                 'name', i.name
             )
         )
-        FROM industries i
+        FROM labour_category i
         WHERE JSON_CONTAINS(pv.program_industry, JSON_QUOTE(i.id))
     ) AS program_industry,
     (
@@ -628,19 +650,19 @@ SELECT
         FROM hierarchies h
         WHERE JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id))
     ) AS hierarchies,
-    CASE 
+    CASE
        WHEN pv.is_labour_category = 1 THEN TRUE
         ELSE FALSE
-       END AS is_labour_category, 
-    CASE 
+       END AS is_labour_category,
+    CASE
        WHEN pv.all_work_locations = 1 THEN TRUE
         ELSE FALSE
-       END AS all_work_locations, 
-    CASE 
+       END AS all_work_locations,
+    CASE
         WHEN pv.all_hierarchy = 1 THEN TRUE
         ELSE FALSE
        END AS all_hierarchy,
-    CASE 
+    CASE
         WHEN pv.all_job_type = 1 THEN TRUE
         ELSE FALSE
          END AS all_job_type,
@@ -691,7 +713,7 @@ SELECT
                         'name', wl.name
                     )
                     FROM work_locations wl
-                    WHERE wl.id = vmc.work_locations  
+                    WHERE wl.id = vmc.work_locations
                 ),
                 'hierarchy', (
                     SELECT JSON_OBJECT(
@@ -699,15 +721,15 @@ SELECT
                         'name', h.name
                     )
                     FROM hierarchies h
-                    WHERE h.id = vmc.hierarchy 
+                    WHERE h.id = vmc.hierarchy
                 ),
                 'program_industry', (
                      SELECT JSON_OBJECT(
                         'id', i.id,
                         'name', i.name
                     )
-                    FROM industries i
-                    WHERE i.id = vmc.program_industry 
+                    FROM labour_category i
+                    WHERE i.id = vmc.program_industry
                 ),
                 'is_enabled', vmc.is_enabled
             )
@@ -725,70 +747,70 @@ WHERE pv.id = :id
 
 export const foundationDataQuery = `
 SELECT
-    fd.id,
-    fd.program_id,
-    fd.name,
-    fd.is_enabled,
-    fd.modified_on,
-    fd.code,
-    fd.foundational_data_type_id,
-    fd.depended_fields,
+    md.id,
+    md.program_id,
+    md.name,
+    md.is_enabled,
+    md.modified_on,
+    md.code,
+    md.foundational_data_type_id,
+    md.depended_fields,
     t.id AS manager_id,
     t.name AS owner_name,
-    fdt.name AS foundational_data_type_name
+    mdt.name AS foundational_data_type_name
 FROM
-    foundationalData AS fd
+    master_data AS md
 LEFT JOIN
     tenant AS t
-    ON fd.manager_id = t.id
+    ON md.manager_id = t.id
 LEFT JOIN
-    foundational_datatypes AS fdt
-    ON fd.foundational_data_type_id = fdt.id
+    master_data_type AS mdt
+    ON md.foundational_data_type_id = mdt.id
 WHERE
-    fd.program_id = :program_id
-    AND fd.is_deleted = 0
-    AND (:id IS NULL OR fd.id = :id)
-    AND (:name IS NULL OR fd.name LIKE :name)
-    AND (:is_enabled IS NULL OR fd.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR fd.modified_on BETWEEN :modified_on_start AND :modified_on_end)
-    AND (:manager_id IS NULL OR fd.manager_id = :manager_id)
-    AND (:code IS NULL OR fd.code LIKE :code)
-    AND (:foundational_data_type_id IS NULL OR fd.foundational_data_type_id = :foundational_data_type_id)
+    md.program_id = :program_id
+    AND md.is_deleted = 0
+    AND (:id IS NULL OR md.id = :id)
+    AND (:name IS NULL OR md.name LIKE :name)
+    AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:manager_id IS NULL OR md.manager_id = :manager_id)
+    AND (:code IS NULL OR md.code LIKE :code)
+    AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
     AND (:owner_name IS NULL OR t.name LIKE :owner_name)
 ORDER BY
-    fd.created_on DESC
+    md.created_on DESC
 LIMIT
     :limit OFFSET :offset;
 `;
 
 export const countFoundationDataQuery = `
-SELECT COUNT(DISTINCT fd.id) AS total
+SELECT COUNT(DISTINCT md.id) AS total
 FROM
-    foundationalData AS fd
+    master_data AS md
 LEFT JOIN
     tenant AS t
-    ON fd.manager_id = t.id
+    ON md.manager_id = t.id
 LEFT JOIN
-    foundational_datatypes AS fdt
-    ON fd.foundational_data_type_id = fdt.id
+    master_data_type AS mdt
+    ON md.foundational_data_type_id = mdt.id
 WHERE
-    fd.program_id = :program_id
-    AND fd.is_deleted = 0
-    AND (:id IS NULL OR fd.id = :id)
-    AND (:name IS NULL OR fd.name LIKE :name)
-    AND (:is_enabled IS NULL OR fd.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR fd.modified_on BETWEEN :modified_on_start AND :modified_on_end)
-    AND (:manager_id IS NULL OR fd.manager_id = :manager_id)
-    AND (:code IS NULL OR fd.code LIKE :code)
-    AND (:foundational_data_type_id IS NULL OR fd.foundational_data_type_id = :foundational_data_type_id)
+    md.program_id = :program_id
+    AND md.is_deleted = 0
+    AND (:id IS NULL OR md.id = :id)
+    AND (:name IS NULL OR md.name LIKE :name)
+    AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:manager_id IS NULL OR md.manager_id = :manager_id)
+    AND (:code IS NULL OR md.code LIKE :code)
+    AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
     AND (:owner_name IS NULL OR t.name LIKE :owner_name)
 `;
 
 export const existingPairQuery = `
-    SELECT rate_card_configuration.id
-    FROM rate_card_configuration,
-         JSON_TABLE(rate_card_configuration.hierarchies, '$[*]' COLUMNS (hierarchy_id VARCHAR(255) PATH '$')) AS h,
-         JSON_TABLE(rate_card_configuration.job_templates, '$[*]' COLUMNS (job_template_id VARCHAR(255) PATH '$')) AS j
+    SELECT rate_type_configurations.id
+    FROM rate_type_configurations,
+         JSON_TABLE(rate_type_configurations.hierarchies, '$[*]' COLUMNS (hierarchy_id VARCHAR(255) PATH '$')) AS h,
+         JSON_TABLE(rate_type_configurations.job_templates, '$[*]' COLUMNS (job_template_id VARCHAR(255) PATH '$')) AS j
     WHERE program_id = :program_id
       AND h.hierarchy_id IN (:hierarchies)
       AND j.job_template_id IN (:jobTemplates)
@@ -830,15 +852,15 @@ export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount
     return `
         SELECT DISTINCT
             REPLACE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(rcc.rate_configuration, '$[*].rate_type_name')), '[', ''), ']', '') AS rate_type_name
-        FROM 
-            rate_card_configuration rcc
-        LEFT JOIN 
+        FROM
+            rate_type_configurations rcc
+        LEFT JOIN
             JSON_TABLE(rcc.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
             ON hj.hierarchy_id IS NOT NULL
-        LEFT JOIN 
+        LEFT JOIN
             JSON_TABLE(rcc.job_templates, '$[*]' COLUMNS (job_template_id CHAR(36) PATH '$')) AS jt
             ON jt.job_template_id IS NOT NULL
-        WHERE 
+        WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = :program_id
             AND (COALESCE(:is_enabled, rcc.is_enabled) = rcc.is_enabled OR rcc.is_enabled IS NULL)
@@ -860,15 +882,15 @@ export const shiftTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCoun
     return `
         SELECT DISTINCT
             JSON_UNQUOTE(JSON_EXTRACT(rcc.rate_configuration, '$[0].shift_type')) AS shift_type
-        FROM 
-            rate_card_configuration rcc
-        LEFT JOIN 
+        FROM
+            rate_type_configurations rcc
+        LEFT JOIN
             JSON_TABLE(rcc.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
             ON hj.hierarchy_id IS NOT NULL
-        LEFT JOIN 
+        LEFT JOIN
             JSON_TABLE(rcc.job_templates, '$[*]' COLUMNS (job_template_id CHAR(36) PATH '$')) AS jt
             ON jt.job_template_id IS NOT NULL
-        WHERE 
+        WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = '0025d61f-1b53-43fc-951f-e8d19a4e1388'
             AND (COALESCE(NULL, rcc.is_enabled) = rcc.is_enabled OR rcc.is_enabled IS NULL)
@@ -893,12 +915,12 @@ export const minMaxRateQuery = ({
         : hierarchyIdsJSON;
     const isShiftRateValue = is_shift_rate ? '1' : '0';
     return `
-    SELECT 
+    SELECT
         r.unit_of_measure,
         r.currency,
         MIN(r.min_rate) AS min_rate,
         MAX(r.max_rate) AS max_rate
-    FROM rate_card_configuration rcc
+    FROM rate_type_configurations rcc
     JOIN JSON_TABLE(
         rcc.rate_configuration,
         '$[*].rates[*].rate[*]' COLUMNS (
@@ -908,12 +930,12 @@ export const minMaxRateQuery = ({
             max_rate DECIMAL(10, 2) PATH '$.max_rate'
         )
     ) AS r
-    WHERE r.unit_of_measure = '${unit_of_measure}' 
-      AND r.currency = '${currency}' 
+    WHERE r.unit_of_measure = '${unit_of_measure}'
+      AND r.currency = '${currency}'
       AND JSON_OVERLAPS(rcc.hierarchies, JSON_ARRAY(${hierarchyIdsArray.map((id: string) => `"${id}"`).join(',')}))
       AND JSON_CONTAINS(rcc.job_templates, '"${jobTemplateId}"')
       AND rcc.program_id = '${programId}'
-      AND rcc.is_shift_rate='${isShiftRateValue}' 
+      AND rcc.is_shift_rate='${isShiftRateValue}'
     GROUP BY r.unit_of_measure, r.currency;
     `;
 };
@@ -921,28 +943,28 @@ export const minMaxRateQuery = ({
 export const rateModelQuery = `
 WITH RECURSIVE hierarchy_tree AS (
   -- Base case: Start with the selected hierarchies (including parent and child hierarchies)
-  SELECT 
-    h.id, 
-    h.parent_hierarchy_id, 
+  SELECT
+    h.id,
+    h.parent_hierarchy_id,
     h.rate_model
-  FROM 
+  FROM
     hierarchies h
-  WHERE 
-    h.id IN (:hierarchyIds) 
+  WHERE
+    h.id IN (:hierarchyIds)
     AND h.program_id = :programId
 
   UNION ALL
-  
+
   -- Recursive case: Climb up the hierarchy by joining parents recursively
-  SELECT 
-    parent_h.id, 
-    parent_h.parent_hierarchy_id, 
+  SELECT
+    parent_h.id,
+    parent_h.parent_hierarchy_id,
     parent_h.rate_model
-  FROM 
+  FROM
     hierarchies parent_h
-  JOIN 
+  JOIN
     hierarchy_tree ht ON parent_h.id = ht.parent_hierarchy_id
-  WHERE 
+  WHERE
     parent_h.program_id = :programId
 )
 
@@ -996,7 +1018,7 @@ export const getChildWorkflowsQuery = (hierarchyIdCount: number) => {
            m.id AS module_id,
            m.name AS module_name,
            JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
-    FROM workflow wf
+    FROM workflow_config wf
     LEFT JOIN event e ON wf.event_id = e.id
     LEFT JOIN module m ON wf.module = m.id
     LEFT JOIN JSON_TABLE(wf.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
@@ -1031,7 +1053,7 @@ export const getparentWorkflowsQuery = (hierarchyIdCount: number) => {
            m.id AS module_id,
            m.name AS module_name,
            JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
-    FROM workflow wf
+    FROM workflow_config wf
     LEFT JOIN event e ON wf.event_id = e.id
     LEFT JOIN module m ON wf.module = m.id
     LEFT JOIN JSON_TABLE(wf.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
@@ -1055,7 +1077,7 @@ export const countChildWorkflowsQuery = (hierarchyIdCount: number) => {
         : '';
     return `
     SELECT COUNT(DISTINCT wf.id) AS total_workflows
-    FROM workflow wf
+    FROM workflow_config wf
     LEFT JOIN module m ON wf.module = m.id
     LEFT JOIN JSON_TABLE(wf.hierarchies, '$[*]' COLUMNS (hierarchy_id CHAR(36) PATH '$')) AS hj
       ON hj.hierarchy_id IS NOT NULL
@@ -1111,12 +1133,12 @@ export const programVendorAdvancedFilter = (
         FROM
             program_vendors
         LEFT JOIN
-            hierarchies ON JSON_VALID(program_vendors.hierarchies) 
+            hierarchies ON JSON_VALID(program_vendors.hierarchies)
             AND JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(CAST(hierarchies.id AS CHAR)))
         WHERE
             program_vendors.is_deleted = false
             AND program_vendors.program_id = :program_id
-            ${hasQueryName ? 'AND program_vendors.vendor_name LIKE :vendor_name' : ''} 
+            ${hasQueryName ? 'AND program_vendors.vendor_name LIKE :vendor_name' : ''}
             ${hierarchyIdsClause}
             ${laborCategoryIdsClause}
             ${workLocationIdsClause}
@@ -1167,18 +1189,18 @@ export const vendorFilterQueryBuilder = (
 
 
 export const hierarchyDetailsQuery = `
-SELECT 
-  h.id, 
-  h.name, 
-  h.parent_hierarchy_id, 
+SELECT
+  h.id,
+  h.name,
+  h.parent_hierarchy_id,
   parent_h.name AS parent_name,
   h.rate_model AS rate
-FROM 
+FROM
   hierarchies h
-LEFT JOIN 
+LEFT JOIN
   hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
-WHERE 
-  h.id IN (:hierarchyIds) 
+WHERE
+  h.id IN (:hierarchyIds)
   AND h.program_id = :programId
 `;
 
@@ -1191,7 +1213,7 @@ export const parentRateModelQuery = `
         `;
 
 export const getWorkLocationTimeZoneByUserId = `
-        SELECT 
+        SELECT
           JSON_ARRAYAGG(
                JSON_OBJECT(
                   'work_location_id', work_locations.id,
@@ -1204,15 +1226,15 @@ export const getWorkLocationTimeZoneByUserId = `
                   'time_zone_name', time_zones.name
               )
           ) AS time_zone
-        FROM 
+        FROM
           user
-        LEFT JOIN 
+        LEFT JOIN
           work_locations ON (
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
-        LEFT JOIN  
+        LEFT JOIN
           time_zones ON user.time_zone_id = time_zones.id
-        WHERE 
+        WHERE
           user.id IN (:user_ids) AND user.program_id = :program_id
       `;
 
@@ -1231,21 +1253,24 @@ export const getMasterDataForHeirarchiesQuery = () => {
                                     'name', fd.name
                                 )
                             )
-                            FROM foundationalData fd
-                            WHERE fd.foundational_data_type_id = hmd.foundation_data_type_id
-                        )
+                            FROM master_data fd
+                            WHERE fd.foundational_data_type_id = hmd.foundation_data_type_id AND fd.is_enabled = 1
+                        ),
+                        'hierarchy_name', h.name,
+                        'hierarchy_id', h.id
                     )
                 ) AS master_data
-            FROM hierarchy_master_data hmd
-            LEFT JOIN foundational_datatypes fdt ON hmd.foundation_data_type_id = fdt.id
-            WHERE hmd.hierarchy_id IN (:hierarchy_ids)
-            GROUP BY hmd.foundation_data_type_id, fdt.name
+            FROM hierarchies_master_data hmd
+            LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
+            LEFT JOIN hierarchies h ON h.id = hmd.hierarchy_id
+            WHERE hmd.hierarchy_id IN (:hierarchy_ids) AND fdt.is_enabled = 1
+            GROUP BY hmd.foundation_data_type_id, fdt.name, h.name, h.id
         `;
 };
 
 export const masterDataQuery = `
-    SELECT 
-      h.*, 
+    SELECT
+      h.*,
       JSON_ARRAYAGG(
         JSON_OBJECT(
           'id', fdt.id,
@@ -1253,20 +1278,20 @@ export const masterDataQuery = `
         )
       ) AS foundational_data,
       ph.name AS parent_hierarchy_name
-    FROM 
+    FROM
       hierarchies h
-    LEFT JOIN 
-      hierarchy_master_data hmd
+    LEFT JOIN
+      hierarchies_master_data hmd
       ON h.id = hmd.hierarchy_id
-    LEFT JOIN 
-      foundational_datatypes fdt
+    LEFT JOIN
+      master_data_type fdt
       ON hmd.foundation_data_type_id = fdt.id
-    LEFT JOIN 
+    LEFT JOIN
       hierarchies ph
       ON h.parent_hierarchy_id = ph.id
-    WHERE 
+    WHERE
       h.id = :hierarchy_id
-    GROUP BY 
+    GROUP BY
       h.id, ph.name;
 `;
 
@@ -1352,3 +1377,20 @@ export const getAllExpenseTypeByHierarchies = (
       WHERE et.program_id = :program_id;
     `;
 };
+
+export const resonCode = `
+SELECT 
+    reason_codes.id,
+    reason_codes.program_id,
+    reason_codes.event_id,
+    reason_codes.module_id,
+    reason_codes.reason,
+    event.name AS event_name,
+    module.name AS module_name
+FROM reason_codes
+INNER JOIN event ON reason_codes.event_id = event.id
+INNER JOIN module ON reason_codes.module_id = module.id
+WHERE reason_codes.program_id = :program_id
+AND (:module_name IS NULL OR module.name LIKE :module_name)
+AND (:event_name IS NULL OR event.name LIKE :event_name);
+`;

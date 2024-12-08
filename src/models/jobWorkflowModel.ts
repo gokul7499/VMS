@@ -11,7 +11,7 @@ class JobWorkFlowModel extends Model {
     flow_count!: number
     workflow_id: any;
     program_id!: string;
-    code!: string
+    code!: string;
     hierarchies: any;
 }
 
@@ -124,7 +124,7 @@ JobWorkFlowModel.init(
     },
     {
         sequelize,
-        tableName: "job_workflow",
+        tableName: "workflow",
         timestamps: false,
         hooks: {
             beforeValidate: async (instance) => {

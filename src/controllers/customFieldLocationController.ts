@@ -1,6 +1,6 @@
 
 import customFieldLocation from '../models/customFieldLocationModel';
-import { customFieldLocationInterface } from '../interfaces/customFieldLocationInterface';
+import { CustomFieldLocationInterface } from '../interfaces/customFieldLocationInterface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch } from '../utility/baseService'
 import generateCustomUUID from '../utility/genrateTraceId';
@@ -10,7 +10,7 @@ export async function createCustomFieldLocation(
   reply: FastifyReply,
 ) {
   try {
-    const custom_Field_Location = request.body as customFieldLocationInterface;
+    const custom_Field_Location = request.body as CustomFieldLocationInterface;
     const custom_field_loc: any = await customFieldLocation.create({ ...custom_Field_Location });
     reply.status(201).send({
       status_code: 201,
@@ -63,7 +63,7 @@ export async function getCustomFieldLocationById(
 
 export async function updateCustomFieldLocationById(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
-  const updates = request.body as Partial<customFieldLocationInterface>;
+  const updates = request.body as Partial<CustomFieldLocationInterface>;
   try {
     const [custom_field_loc] = await customFieldLocation.update(updates, {
       where: { id, program_id }

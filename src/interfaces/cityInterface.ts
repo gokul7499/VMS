@@ -1,4 +1,4 @@
-export interface cityData {
+export interface CityData {
   id?: string;
   resources_state_id?: string;
   name?: string;
@@ -8,7 +8,7 @@ export interface cityData {
   created_by?: string;
   modified_by?: string;
   is_deleted?: boolean;
-  state_id?:string,
-  county_id?:string;
+  state_id?: string,
+  county_id?: string;
   ref_id?: string;
 }

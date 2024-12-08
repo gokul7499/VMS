@@ -29,37 +29,41 @@ export const createProgramModule = async (record: Model) => {
 //create hierarchy for program
 export const createHierarchy = async (record: Model) => {
     const { id: programId, name } = record as any;
+    console.log("program", programId);
+
     const code = generateSlug(name, {
         trim: true,
         removedspecial: true,
     });
-    const result: any[] = await sequelize.query(
-        fetchProgramConfigValues,
-        {
-            replacements: { programId },
-            type: QueryTypes.SELECT,
-        }
-    );
-    const defaultCurrency = result[0]?.defaultCurrency ? JSON.parse(result[0].defaultCurrency).name : 'INR';
-    const timeZone = result[0]?.timeZone ? JSON.parse(result[0].timeZone).name : 'UTC';
-    const rateModel = result[0]?.rateModel 
-    ? JSON.parse(result[0].rateModel)[0]?.value  
-    : 'Bill Rate (No Markup)';
+
+    const result: any[] = await sequelize.query(fetchProgramConfigValues, {
+        replacements: { programId },
+        type: QueryTypes.SELECT,
+    });
+    if (result.length === 0) {
+        console.log("No configuration data found for this program. No hierarchy record will be created.");
+        return null;
+    }
+    const defaultCurrency = result[0]?.defaultCurrency?.id || 'INR';
+    const timeZone = result[0]?.timeZone?.id || 'UTC';
+    const rateModel = result[0]?.rateModel?.[0] || 'Bill Rate';
+    const preferredDateFormat = result[0]?.preferredDateFormat || 'DD/MM/YYYY';
     const hierarchy = await hierarchies.create({
         program_id: programId,
         name,
-        code,
+        code: "--",
         hierarchy_level: 1,
         hierarchy_order: 1,
         is_enabled: true,
         rate_model:rateModel,
-        preferred_date_format: "DD/MM/YYYY",
+        preferred_date_format: preferredDateFormat,
         is_vendor_neutral: false,
         is_rate_card_enforced: false,
         is_hidden: false,
-        is_default_currency: defaultCurrency,
+        currency_id: defaultCurrency,
         is_default_timezone: timeZone,
     });
+
     return hierarchy;
 };
 

@@ -4,7 +4,11 @@ import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import User from "../models/userModel";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Tenant from "../models/tenantModel";
-
+import hierarchies from "../models/hierarchiesModel";
+import WorkLocationModel from "../models/workLocationModel";
+import Language from "../models/languageModel";
+import TimeZone from "../models/timeZoneModel";
+import CountryModel from "../models/countriesModel";
 
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -143,25 +147,27 @@ export const deleteUserMappingById = async (request: FastifyRequest, reply: Fast
 };
 
 export const getUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { program_id, id } = request.params as { program_id: string; id: string };
     const queryParams = request.query as { [key: string]: string | boolean };
     const traceId = generateCustomUUID();
+
     try {
         const whereClause: any = {};
-
-        if (queryParams.id) {
-            whereClause.id = queryParams.id;
+        if (program_id) {
+            whereClause.program_id = program_id;
         }
-
+        if (id) {
+            whereClause.id = id;
+        }
         if (queryParams.tenant_id) {
             whereClause.tenant_id = queryParams.tenant_id;
         }
-
         if (queryParams.user_id) {
             whereClause.user_id = queryParams.user_id;
         }
 
         Object.entries(queryParams).forEach(([key, value]) => {
-            if (key !== "tenant_id" && key !== "user_id" && key !== "id") {
+            if (key !== "tenant_id" && key !== "user_id" && key !== "id" && key !== "program_id") {
                 if (value === "true") {
                     whereClause[key] = true;
                 } else if (value === "false") {
@@ -183,33 +189,96 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             include: [
                 {
                     model: User,
-                    as: "user"
+                    as: "user",
+                    include: [
+                        {
+                            model: Language,
+                            as: 'language',
+                            attributes: ["id", "name"]
+                        },
+                        {
+                            model: TimeZone,
+                            as: 'time_zone',
+                            attributes: ["id", "name", "code"]
+                        },
+                        {
+                            model: CountryModel,
+                            as: 'countries',
+                            attributes: ["id", "name"]
+                        },
+                        {
+                            model: Language,
+                            as: 'language',
+                            attributes: ["id", "name"]
+                        },
+                        {
+                            model: User,
+                            as: 'supervisor_id',
+                            attributes: ["id", "first_name", "last_name"]
+                        },
+                    ],
                 },
                 {
                     model: Tenant,
                     as: "tenant",
-                    attributes: ['id', 'name', 'type']
+                    attributes: ["id", "name", "type"]
                 }
             ],
         });
 
-        if (userMappings.length > 0) {
-            reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "User mappings records fetched successfully.",
-                items_per_page: userMappings.length,
-                total_records: userMappings.length,
-                data: userMappings
-            });
-        } else {
-            reply.status(200).send({
+        if (userMappings.length === 0) {
+            return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
                 message: "No User Mappings found for the given criteria",
-                user_mappings: []
+                user_mappings: [],
             });
         }
+
+        const hierarchyIds = [userMappings.flatMap(mapping => mapping.user?.associate_hierarchy_ids || [])];
+        const workLocationIds = [userMappings.flatMap(mapping => mapping.user?.work_location_ids || [])];
+        const hierarchie = hierarchyIds.length > 0
+            ? await hierarchies.findAll({
+                where: { id: hierarchyIds },
+                attributes: ["id", "name"]
+            }) : [];
+
+        const workLocation = workLocationIds.length > 0
+            ? await WorkLocationModel.findAll({
+                where: { id: workLocationIds },
+                attributes: ["id", "name"]
+            }) : [];
+
+        const enrichedMappings = userMappings.map(mapping => {
+            const user = mapping.user?.toJSON();
+            if (user && user.associate_hierarchy_ids) {
+                const userHierarchies = hierarchie.filter(hierarchy =>
+                    user.associate_hierarchy_ids.includes(hierarchy.id)
+                );
+                const userWorkLocation = workLocation.filter(wl =>
+                    user.work_location_ids.includes(wl.id)
+                );
+                user.associate_hierarchy_ids = userHierarchies.map(hierarchy => ({
+                    id: hierarchy.id,
+                    name: hierarchy.name
+                }));
+                user.work_location_ids = userWorkLocation.map(wl => ({
+                    id: wl.id,
+                    name: wl.name
+                }));
+            }
+            return {
+                ...mapping.toJSON(),
+                user
+            };
+        });
+
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: "User mappings records fetched successfully.",
+            user_mappings: enrichedMappings
+        });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,

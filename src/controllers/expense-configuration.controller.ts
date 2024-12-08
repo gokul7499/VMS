@@ -392,15 +392,15 @@ export async function expenseConfigurationAdvancedFilter(
         const { program_id } = request.params;
         const { config_name, status, modified_on, hierarchy_ids, page, limit } = request.body;
 
-        const hasConfigName = !!config_name;
-        const hasStatus = !!status;
-        const hasModifiedOn = !!modified_on;
-        const hasPage = !!page;
-        const hasLimit = !!limit;
+        const hasConfigName = config_name !== undefined;
+        const hasStatus = status !== undefined;
+        const hasModifiedOn = modified_on !== undefined;
+        const hasPage = page !== undefined;
+        const hasLimit = limit !== undefined;
         const hierarchyIdsArray = hierarchy_ids || [];
 
-        const pageNumber = hasPage ? parseInt(page, 100) : 1;
-        const limitNumber = hasLimit ? parseInt(limit, 100) : 100;
+        const pageNumber = hasPage ? parseInt(page, 10) : 1;
+        const limitNumber = hasLimit ? parseInt(limit, 10) : 10;
         const offset = (pageNumber - 1) * limitNumber;
 
         const query = configAdvancedFilter(
@@ -419,6 +419,10 @@ export async function expenseConfigurationAdvancedFilter(
             offset,
         };
 
+        if (status !== undefined) {
+            replacements.status = status === "true" ? "1" : "0";
+        }
+
         hierarchyIdsArray.forEach((id, index) => {
             replacements[`hierarchy_ids${index}`] = id;
         });
@@ -427,6 +431,7 @@ export async function expenseConfigurationAdvancedFilter(
             replacements,
             type: QueryTypes.SELECT,
         });
+
         const transformedData = data.map((item: any) => ({
             ...item,
             status: item.status === "1"
@@ -451,6 +456,7 @@ export async function expenseConfigurationAdvancedFilter(
         return reply.status(500).send({ message: 'Internal Server Error', trace_id, error: error.message });
     }
 }
+
 
 
 

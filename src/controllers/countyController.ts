@@ -1,6 +1,6 @@
 
 import countyModel from "../models/countyModel";
-import { countyInterface } from "../interfaces/countyInterface";
+import { CountyInterface } from "../interfaces/countyInterface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
@@ -10,7 +10,7 @@ export async function createCounty(
     reply: FastifyReply,
 ) {
     try {
-        const county = request.body as countyInterface;
+        const county = request.body as CountyInterface;
         const county_data: any = await countyModel.create({ ...county });
         reply.status(201).send({
             status_code: 201,
@@ -59,7 +59,7 @@ export async function getCountyById(
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    const updates = request.body as Partial<countyInterface>;
+    const updates = request.body as Partial<CountyInterface>;
     try {
         const [county] = await countyModel.update(updates, {
             where: { id }

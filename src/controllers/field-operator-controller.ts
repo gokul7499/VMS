@@ -96,7 +96,7 @@ export async function getAllFieldOperator(
 ) {
     const trace_id = generateCustomUUID();
     try {
-        const query: any = request.query as FieldOperatorData;
+        const query: any = request.query;
 
         const page = parseInt(query.page ?? "1");
         const limit = parseInt(query.limit ?? "10");

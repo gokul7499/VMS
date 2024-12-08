@@ -6,6 +6,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 
 class RateCardModel extends Model {
     id!: string;
+    program_id!: string;
 }
 
 RateCardModel.init(
@@ -57,8 +58,8 @@ RateCardModel.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
-        expenses:{
-            type:DataTypes.JSON
+        expenses: {
+            type: DataTypes.JSON
         },
         created_by: {
             type: DataTypes.UUID,
@@ -77,7 +78,7 @@ RateCardModel.init(
     },
     {
         sequelize,
-        tableName: "rate_card_configuration",
+        tableName: "rate_type_configurations",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

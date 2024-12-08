@@ -1,6 +1,6 @@
 
 import feesConfiguration from '../models/feesConfigModel';
-import { feesConfigurationInterface } from '../interfaces/feesConfigInterface';
+import { FeesConfigurationInterface } from '../interfaces/feesConfigInterface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch, BaseService } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
@@ -16,7 +16,7 @@ export async function createFeesConfiguration(
   request: FastifyRequest<{ Params: { program_id: string } }>,
   reply: FastifyReply,
 ) {
-  const feesConfig = request.body as feesConfigurationInterface;
+  const feesConfig = request.body as FeesConfigurationInterface;
   const traceId = generateCustomUUID()
   const { program_id } = request.params;
 
@@ -201,7 +201,7 @@ export async function getFeesConfigurationById(
 
 export async function updateFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
-  const updates = request.body as Partial<feesConfigurationInterface>;
+  const updates = request.body as Partial<FeesConfigurationInterface>;
   try {
     const feesConfigData = await feesConfiguration.findByPk(id);
     if (!feesConfigData) {
@@ -288,21 +288,23 @@ export async function advancedSearchFeesConfiguration(
   }
 }
 
+
 export async function getFeesConfig(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { hierarchy_levels?: string; vendors?: string; labor_category?: string; source_model?: string };
+    Querystring: { hierarchy_levels?: string; vendors?: string; labor_category?: string; source_model?: string; is_enabled?: string };
   }>,
   reply: FastifyReply
 ) {
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { hierarchy_levels, vendors, labor_category, source_model } = request.query;
+    const { hierarchy_levels, vendors, labor_category, source_model, is_enabled } = request.query;
     const hierarchyLevelsArray = Array.isArray(hierarchy_levels) ? hierarchy_levels : (hierarchy_levels ?? '').split(',');
 
     const whereConditions: any = {
       program_id,
+      is_enabled: is_enabled ? is_enabled === "true" : undefined,
       [Op.and]: [
         Sequelize.where(
           Sequelize.fn('JSON_CONTAINS', Sequelize.col('hierarchy_levels'), JSON.stringify(hierarchyLevelsArray)),
@@ -341,6 +343,10 @@ export async function getFeesConfig(
       ]
     };
 
+    if (whereConditions.is_enabled === undefined) {
+      delete whereConditions.is_enabled;
+    }
+
     const data = await feesConfiguration.findAll({
       where: whereConditions,
     });
@@ -350,7 +356,7 @@ export async function getFeesConfig(
       fees: data,
       trace_id,
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
@@ -358,3 +364,4 @@ export async function getFeesConfig(
     });
   }
 }
+

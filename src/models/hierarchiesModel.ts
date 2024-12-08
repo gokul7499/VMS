@@ -110,13 +110,9 @@ hierarchies.init(
       defaultValue: true,
     },
     is_default_timezone: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
-    },
-    is_default_currency: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
+    }
   },
   {
     sequelize,
@@ -134,7 +130,6 @@ hierarchies.init(
 );
 
 sequelize.sync();
-// hierarchies.belongsTo(Programs, { foreignKey: 'program_id' });
 hierarchies.belongsToMany(TimeZone, {
   through: "hierarchies_time_zone",
   as: "time_zones",

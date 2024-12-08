@@ -52,8 +52,8 @@ HierarchyCustomFieldModel.init(
   },
   {
     sequelize,
-    modelName: 'HierarchyCustomFieldModel',
-    tableName: 'hierarchy_customfields',
+    modelName: 'hierarchies_custom_field',
+    tableName: 'hierarchies_custom_field',
     timestamps: false,
   }
 );

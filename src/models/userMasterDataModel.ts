@@ -7,6 +7,8 @@ class UserMasterDataModel extends Model {
     user_id: string | undefined;
     foundation_data_type_id: any;
     foundation_data_ids: any;
+    default_master_data: any;
+    is_associated: any;
 }
 
 UserMasterDataModel.init({

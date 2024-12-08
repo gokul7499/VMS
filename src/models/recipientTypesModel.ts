@@ -88,7 +88,7 @@ RecipientType.init(
     },
     {
         sequelize,
-        tableName: "recipientType",
+        tableName: "recipient_type",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

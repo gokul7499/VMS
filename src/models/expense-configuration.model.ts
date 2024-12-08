@@ -1,4 +1,4 @@
-import { Model, DataTypes, Optional } from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 import { sequelize } from "../config/instance";
 import { Programs } from './programsModel';
 

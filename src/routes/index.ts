@@ -21,16 +21,12 @@ import supportingTextRoutes from './supportingTextRoutes'
 import holidayCalendarRoutes from "./holidayCalendarRoutes";
 import feesConfigurationRoute from "./feesConfigRoute";
 import picklistRoutes from "./picklistRoutes";
-import ruleBuilderRoutes from "./ruleBuildderRoutes";
 import foundationalDataRoutes from "./foundationalDataRoutes";
 import WorkflowRoutes from "./workflowRoutes";
 import customFieldsRoutes from "./customFieldsRoutes";
 import reasoncodeRoute from "./reasoncodeRoutes";
 import EventRoutes from "./eventRoutes";
 import passwordPolicyRoutes from "./passwordPolicyRoutes";
-import costComponentGroupRoutes from "./costComponentGroupRoutes";
-import costComponentMappingRoutes from "./costComponentMappingRoutes";
-import costcomponentRoute from "./costcomponentRoutes";
 import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./customFieldHierarchieRoutes";
@@ -48,10 +44,6 @@ import vendorMarkupConfigRoutes from "./vendorMarkupConfigRoutes";
 import vendorLabourCategoryRoutes from "./vendorLabourCategoriesRoutes";
 import vendorWorkLocationMappingRoutes from "./vendorWorkLocationMappingRoutes";
 import vendorHieararchyMappingRoutes from "./vendorHieararchyMappingRoutes";
-import timeSheetConfigRoutes from "./timeSheetConfigRoutes";
-import ruleBuilderHeirarchyMappingRoutes from "./ruleBuilderHierarchyMappingRoutes"
-import ruleBuilderDecisionTableRoutes from "./ruleBuilderDecisionTableRoutes";
-import timesheetRuleRoutes from "./timesheetruleconfigRoute";
 import countyRoutes from "./countyRoutes";
 import stateRoutes from "./stateRoutes";
 import resourceCityRoutes from "./cityRoute";
@@ -64,8 +56,6 @@ import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shiftConfigurationRoutes';
 import RateTypeCategoryRoutes from "./rateTypeCategoryRoutes";
 import WorkflowApproverRoutes from "./workflowApproversRoutes";
-import WorkflowInstanceRoutes from "./workflowInstanceRoutes";
-import WorkflowInstanceLogRoutes from "./workflowInstanceLogRoutes";
 import shiftConfigurationHierarchiesRoutes from "./shiftConfigurationHierarchiesRoute";
 import vendorComplianceReqDocMappingRoutes from "./vendorComplianceReqDocMappingRoute";
 import fieldOperatorRoutes from "./field-operator-routes";
@@ -75,6 +65,7 @@ import WorkflowFieldRoutes from "./workflowFieldRoute"
 import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
 import JobWorkFlowRoutes from "./jobWorkflowRoutes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
+import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -88,12 +79,12 @@ export default async function (app: FastifyInstance) {
   app.register(timeZoneRoutes, { prefix: `${basePrefix}` });
   app.register(userMappingRoutes, { prefix: `${basePrefix}` });
   app.register(configurationRoutes, { prefix: `${basePrefix}/configuration` });
-  app.register(countriesRoutes, { prefix: `${basePrefix}/countries`});
+  app.register(countriesRoutes, { prefix: `${basePrefix}/countries` });
   app.register(userRoutes, { prefix: `${basePrefix}/user` });
   app.register(timeZoneRoutes, { prefix: `${basePrefix}/time-zone` });
   app.register(userMappingRoutes, { prefix: `${basePrefix}/usermapping` });
   app.register(configurationRoutes, { prefix: `${basePrefix}` });
-  app.register(countriesRoutes, { prefix: `${basePrefix}`});
+  app.register(countriesRoutes, { prefix: `${basePrefix}` });
   app.register(hierarchiesRoutes, { prefix: `${basePrefix}` });
   app.register(rateTypeRouter, { prefix: `${basePrefix}` });
   app.register(moduleRouter, { prefix: `${basePrefix}` });
@@ -107,7 +98,6 @@ export default async function (app: FastifyInstance) {
   app.register(picklistRoutes, { prefix: `${basePrefix}` });
   app.register(qualificationTypeRouter, { prefix: `${basePrefix}` });
   app.register(feesConfigurationRoute, { prefix: `${basePrefix}` });
-  app.register(ruleBuilderRoutes, { prefix: `${basePrefix}` });
   app.register(programsConfigRoutes, { prefix: `${basePrefix}` });
   app.register(foundationalDataRoutes, { prefix: `${basePrefix}` });
   app.register(reasoncodeRoute, { prefix: `${basePrefix}` });
@@ -115,9 +105,6 @@ export default async function (app: FastifyInstance) {
   app.register(WorkflowRoutes, { prefix: `${basePrefix}` });
   app.register(EventRoutes, { prefix: `${basePrefix}` });
   app.register(passwordPolicyRoutes, { prefix: `${basePrefix}` });
-  app.register(costComponentGroupRoutes, { prefix: `${basePrefix}` });
-  app.register(costComponentMappingRoutes, { prefix: `${basePrefix}` });
-  app.register(costcomponentRoute, { prefix: `${basePrefix}` });
   app.register(vendorDistributionScheduleRoutes, { prefix: `${basePrefix}` });
   app.register(vendorComplianceDocumentRoutes, { prefix: `${basePrefix}` });
   app.register(customFieldsHierarchieRoutes, { prefix: `${basePrefix}` });
@@ -132,11 +119,6 @@ export default async function (app: FastifyInstance) {
   app.register(vendorLabourCategoryRoutes, { prefix: `${basePrefix}` });
   app.register(vendorWorkLocationMappingRoutes, { prefix: `${basePrefix}` });
   app.register(vendorHieararchyMappingRoutes, { prefix: `${basePrefix}` });
-  // app.register(timeSheetConfigRoutes, { prefix: `${basePrefix}` });
-  app.register(timeSheetConfigRoutes, { prefix: `${basePrefix}` });
-  app.register(ruleBuilderHeirarchyMappingRoutes, { prefix: `${basePrefix}` });
-  app.register(ruleBuilderDecisionTableRoutes, { prefix: `${basePrefix}` });
-  app.register(timesheetRuleRoutes, { prefix: `${basePrefix}` });
   app.register(countyRoutes, { prefix: `${basePrefix}` });
   app.register(stateRoutes, { prefix: `${basePrefix}` });
   app.register(resourceCityRoutes, { prefix: `${basePrefix}` });
@@ -150,8 +132,6 @@ export default async function (app: FastifyInstance) {
   app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
   app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
   app.register(WorkflowApproverRoutes, { prefix: `${basePrefix}` });
-  app.register(WorkflowInstanceRoutes, { prefix: `${basePrefix}` });
-  app.register(WorkflowInstanceLogRoutes, { prefix: `${basePrefix}` });
   app.register(vendorComplianceReqDocMappingRoutes, { prefix: `${basePrefix}` });
   app.register(fieldOperatorRoutes, { prefix: `${basePrefix}` });
   app.register(WorkflowFieldConfigRoutes, { prefix: `${basePrefix}` });
@@ -160,4 +140,5 @@ export default async function (app: FastifyInstance) {
   app.register(hierarchyCustomFieldRoutes, { prefix: `${basePrefix}` });
   app.register(JobWorkFlowRoutes, { prefix: `${basePrefix}` });
   app.register(expenseConfigurationRoutes, { prefix: `${basePrefix}` });
+  app.register(TimesheetExpenseRuleRoutes, { prefix: `${basePrefix}` });
 }

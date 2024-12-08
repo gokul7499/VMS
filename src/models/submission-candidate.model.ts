@@ -3,8 +3,6 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
 import jobModel from './job.model';
 import Candidate from './candidateModel';
-// import jobCandidateModel from './job-candidate.model';
-
 
 class SubmissionCandidateModel extends Model {
     id: any;
@@ -127,7 +125,7 @@ SubmissionCandidateModel.init(
     },
     {
         sequelize,
-        tableName: 'submission_candidate',
+        tableName: 'job_submission_candidate',
         timestamps: false,
     }
 );

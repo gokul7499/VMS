@@ -30,10 +30,11 @@ export interface UserInterface {
   default_cost_center_id?: string;
   is_all_spend_category_associate?: boolean;
   default_spend_category_id?: string;
-  is_allow_unlimited_autherity?: boolean;
+  is_allow_unlimited_authority?: boolean;
   credentials: any;
   role_id: string;
   tenant_id: string;
+  status: string;
   associate_hierarchy_ids: any;
   associate_cost_ids: any;
   work_location_ids: any;

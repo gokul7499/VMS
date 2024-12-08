@@ -46,7 +46,7 @@ Currencies.init(
   },
   {
     sequelize,
-    modelName: 'currencies',
+    tableName: 'currencies',
     timestamps: false,
     hooks: {
       beforeValidate: (instance) => {

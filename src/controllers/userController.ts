@@ -200,9 +200,6 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       newUser = await User.create({ ...user, user_type: userType }, { transaction });
     }
 
-   
-
-
     const foundationalData = user.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
       await Promise.all(
@@ -212,8 +209,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
               user_id: user.id,
               foundation_data_type_id: data.foundation_data_type_id,
               foundation_data_ids: data.foundation_data_ids,
-              default_master_data:data.default_master_data || null,
-              is_associated:data.is_associated || false
+              default_master_data: data.default_master_data || null,
+              is_associated: data.is_associated || false
             },
             { transaction }
           );
@@ -245,8 +242,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
     return reply.status(500).send({
+      status_code: 500,
       message: "Internal server error",
-      error:error.message,
+      error: error.message,
       trace_id: traceId,
     });
   }
@@ -255,29 +253,51 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
+
   try {
-    const [user] = await User.update(updates, {
+    const user = await User.findOne({
       where: { id, program_id }
     });
 
-    if (user === 0) {
-      return reply.status(200).send({
+    if (!user) {
+      return reply.status(404).send({
         message: "User not found",
         user: []
       });
     }
 
-    return reply.status(201).send({
-      status_code: 201,
+    await user.update(updates);
+
+    const foundationalData = updates.foundational_data;
+    if (Array.isArray(foundationalData) && foundationalData.length > 0) {
+      await UserMasterDataModel.destroy({
+        where: { user_id: id }
+      });
+
+      const createPromises = foundationalData.map((data) =>
+        UserMasterDataModel.create({
+          user_id: id,
+          foundation_data_type_id: data.foundation_data_type_id,
+          foundation_data_ids: data.foundation_data_ids,
+          default_master_data: data.default_master_data || null,
+          is_associated: data.is_associated || false
+        })
+      );
+
+      await Promise.all(createPromises);
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: generateCustomUUID(),
       message: "User updated successfully",
-      id: id,
-      trace_id: generateCustomUUID()
+      id,
     });
-  } catch (error) {
+  } catch (error: any) {
     return reply.status(500).send({
       message: "Internal Server Error",
       trace_id: generateCustomUUID(),
-      error
+      error: error.message
     });
   }
 }
@@ -312,42 +332,24 @@ export async function getAllUserIDAndUserId(
 ) {
   const { program_id } = request.params;
   const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email } = request.query;
- 
+
   try {
     const whereClause: any = {
       is_deleted: false,
       program_id,
     };
- 
-    if (user_type) {
-      whereClause.user_type = user_type;
-    }
- 
-    if (user_id) {
-      whereClause.id = user_id;
-    }
+
+    if (user_type) whereClause.user_type = user_type;
+    if (user_id) whereClause.id = user_id;
     if (typeof is_activated === 'string') {
-      if (is_activated === 'true') {
-        whereClause.is_activated = true;
-      } else if (is_activated === 'false') {
-        whereClause.is_activated = false;
-      }
+      whereClause.is_activated = is_activated === 'true';
     }
-    if (role_id) {
-      whereClause.role_id = role_id;
-    }
- 
-    if (tenant_id) {
-      whereClause.tenant_id = tenant_id;
-    }
-    if (email) {
-      whereClause.email = email;
-    }
-    if (first_name) {
-      whereClause.first_name = first_name;
-    }
-    // Define attributes based on info_level
-    let attributes: string[] | undefined = [
+    if (role_id) whereClause.role_id = role_id;
+    if (tenant_id) whereClause.tenant_id = tenant_id;
+    if (email) whereClause.email = email;
+    if (first_name) whereClause.first_name = first_name;
+
+    const attributes = info_level === "detail" ? undefined : [
       "id", "name_prefix", "first_name", "middle_name", "last_name", "username",
       "name_suffix", "program_id", "email", "avatar", "country_id",
       "tenant_id", "language_id", "time_zone_id",
@@ -355,53 +357,39 @@ export async function getAllUserIDAndUserId(
       "associate_hierarchy_ids", "work_location_ids",
       "default_hierarchy_id", "default_work_location_id", "user_type"
     ];
- 
-    if (info_level === "detail") {
-      attributes = undefined; // Fetch all attributes if info_level is "detail"
-    }
- 
-    // Fetch users
+
     const users = await User.findAll({
       where: whereClause,
       attributes,
       order: [['created_on', 'DESC']],
     });
- 
-    const foundationalDataDetails: { user_id: string | undefined; foundation_data_type: { id: any; name: any; } | null; foundation_data_items: { id: any; name: any; }[]; }[] = [];
-   
-    for (const user of users) {
-      try {
-        const userMasterData = await UserMasterDataModel.findAll({
-          where: { user_id: user.id },
-          attributes: ["foundation_data_type_id", "foundation_data_ids"],
+
+    const foundationalDataDetails = await Promise.all(users.map(async user => {
+      const userMasterData = await UserMasterDataModel.findAll({
+        where: { user_id: user.id },
+        attributes: ["foundation_data_type_id", "foundation_data_ids", "default_master_data", "is_associated"],
+      });
+
+      return Promise.all(userMasterData.map(async data => {
+        const foundationType = await FoundationalDataTypes.findOne({
+          where: { id: data.foundation_data_type_id },
+          attributes: ["id", "name"],
         });
-   
-        for (const data of userMasterData) {
-          const foundationType = await FoundationalDataTypes.findOne({
-            where: { id: data.foundation_data_type_id },
-            attributes: ["id", "name"],
-          });
-   
-          const foundationDataItems = await foundationalData.findAll({
-            where: { id: { [Op.in]: data.foundation_data_ids } },
-            attributes: ["id", "name"],
-          });
-   
-          foundationalDataDetails.push({
-            user_id: user.id,
-            foundation_data_type: foundationType
-              ? { id: foundationType.id, name: foundationType.name }
-              : null,
-            foundation_data_items: foundationDataItems.map((item) => ({
-              id: item.id,
-              name: item.name,
-            })),
-          });
-        }
-      } catch (err) {
-        console.error(`Error processing foundational data for user ${user.id}:`, err);
-      }
-    }
+
+        const foundationDataItems = await foundationalData.findAll({
+          where: { id: { [Op.in]: data.foundation_data_ids } },
+          attributes: ["id", "name"],
+        });
+
+        return {
+          user_id: user.id,
+          default_master_data: data.default_master_data,
+          is_associated: data.is_associated,
+          foundation_data_type: foundationType ? { id: foundationType.id, name: foundationType.name } : null,
+          foundation_data_items: foundationDataItems.map(item => ({ id: item.id, name: item.name })),
+        };
+      }));
+    }));
 
     const hierarchyIds = users.flatMap(user => user.associate_hierarchy_ids || []);
     const workLocationIds = users.flatMap(user => user.work_location_ids || []);
@@ -411,59 +399,29 @@ export async function getAllUserIDAndUserId(
     const tenantIds = users.flatMap(user => user.tenant_id ? [user.tenant_id] : []);
     const languageIds = users.flatMap(user => user.language_id ? [user.language_id] : []);
     const timeZoneIds = users.flatMap(user => user.time_zone_id ? [user.time_zone_id] : []);
- 
-    const hierarchie = hierarchyIds.length > 0 ? await hierarchies.findAll({
-      where: { id: hierarchyIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const workLocations = workLocationIds.length > 0 ? await WorkLocationModel.findAll({
-      where: { id: workLocationIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const defaultHierarchies = defaultHierarchyIds.length > 0 ? await hierarchies.findAll({
-      where: { id: defaultHierarchyIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const defaultWorkLocations = defaultWorkLocationIds.length > 0 ? await WorkLocationModel.findAll({
-      where: { id: defaultWorkLocationIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const countries = countryIds.length > 0 ? await CountryModel.findAll({
-      where: { id: countryIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const tenants = tenantIds.length > 0 ? await Tenant.findAll({
-      where: { id: tenantIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const languages = languageIds.length > 0 ? await Language.findAll({
-      where: { id: languageIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
-    const timeZones = timeZoneIds.length > 0 ? await TimeZone.findAll({
-      where: { id: timeZoneIds },
-      attributes: ['id', 'name']
-    }) : [];
- 
+
+    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, languagesData, timeZonesData] = await Promise.all([
+      hierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
+      workLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: workLocationIds }, attributes: ['id', 'name'] }) : [],
+      defaultHierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: defaultHierarchyIds }, attributes: ['id', 'name'] }) : [],
+      defaultWorkLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: defaultWorkLocationIds }, attributes: ['id', 'name'] }) : [],
+      countryIds.length > 0 ? CountryModel.findAll({ where: { id: countryIds }, attributes: ['id', 'name'] }) : [],
+      tenantIds.length > 0 ? Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name'] }) : [],
+      languageIds.length > 0 ? Language.findAll({ where: { id: languageIds }, attributes: ['id', 'name'] }) : [],
+      timeZoneIds.length > 0 ? TimeZone.findAll({ where: { id: timeZoneIds }, attributes: ['id', 'name'] }) : [],
+    ]);
+
     const enrichedUsers = users.map(user => {
-      const userHierarchies = hierarchie.filter(hierarchy => user.associate_hierarchy_ids?.includes(hierarchy.id));
-      const userWorkLocations = workLocations.filter(location => user.work_location_ids?.includes(location.id));
-      const defaultHierarchy = defaultHierarchies.find(hierarchy => hierarchy.id === user.default_hierarchy_id);
-      const defaultWorkLocation = defaultWorkLocations.find(location => location.id === user.default_work_location_id);
-      const country = countries.find(country => country.id === user.country_id);
-      const tenant = tenants.find(tenant => tenant.id === user.tenant_id);
-      const language = languages.find(language => language.id === user.language_id);
-      const timeZone = timeZones.find(timeZone => timeZone.id === user.time_zone_id);
-      const userFoundationalData = foundationalDataDetails.filter(
-        (data) => data.user_id === user.id
-      );
+      const userHierarchies = hierarchiesData.filter(hierarchy => user.associate_hierarchy_ids?.includes(hierarchy.id));
+      const userWorkLocations = workLocationsData.filter(location => user.work_location_ids?.includes(location.id));
+      const defaultHierarchy = defaultHierarchiesData.find(hierarchy => hierarchy.id === user.default_hierarchy_id);
+      const defaultWorkLocation = defaultWorkLocationsData.find(location => location.id === user.default_work_location_id);
+      const country = countriesData.find(country => country.id === user.country_id);
+      const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
+      const language = languagesData.find(language => language.id === user.language_id);
+      const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
+      const userFoundationalData = foundationalDataDetails.flat().filter(data => data.user_id === user.id);
+
       return {
         ...user.toJSON(),
         associate_hierarchy_ids: userHierarchies.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
@@ -477,31 +435,24 @@ export async function getAllUserIDAndUserId(
         foundational_data: userFoundationalData,
       };
     });
- 
-    const totalCount = await User.count({
-      where: whereClause,
-    });
- 
+
+    const totalCount = await User.count({ where: whereClause });
+
     reply.status(200).send({
       status_code: 200,
       trace_id: generateCustomUUID(),
       users: enrichedUsers,
       total_count: totalCount,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
+      trace_id: generateCustomUUID(),
       message: "Internal Server Error",
       error: error.message,
-      trace_id: generateCustomUUID(),
     });
   }
 }
- 
-
-
-
-
 
 export async function searchUser(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'program_id', 'first_name'];

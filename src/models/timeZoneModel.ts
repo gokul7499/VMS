@@ -37,10 +37,6 @@ TimeZone.init({
     type: DataTypes.CHAR(255),
     allowNull: false,
   },
-  num: {
-    type: DataTypes.CHAR(255),
-    allowNull: false,
-  },
 }, {
   sequelize,
   tableName: 'time_zones', // Custom table name

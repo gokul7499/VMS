@@ -40,6 +40,10 @@ jobModel.init(
         job_manager_id: {
             type: DataTypes.UUID,
             allowNull: true,
+            references: {
+                model: 'user',
+                key: 'id',
+            },
         },
         job_type: {
             type: DataTypes.STRING,
@@ -61,7 +65,7 @@ jobModel.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'work_location',
+                model: 'work_locations',
                 key: 'id',
             },
         },
@@ -134,11 +138,11 @@ jobModel.init(
             allowNull: true
         },
         shifts_per_week: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.INTEGER,
             allowNull: true
         },
         estimated_hours_per_shift: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.INTEGER,
             allowNull: true
         },
         shift: {
@@ -150,7 +154,7 @@ jobModel.init(
             allowNull: true
         },
         adjustment_value: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.INTEGER,
             allowNull: true
         },
         budgets: {
@@ -221,7 +225,6 @@ sequelize.sync()
 jobModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
 jobModel.belongsTo(jobTemplateModel, { foreignKey: 'job_template_id', as: 'job_templates' });
 jobModel.belongsTo(WorkLocationModel, { foreignKey: 'work_location_id', as: 'work_location' });
-jobModel.belongsTo(qualificationTypeModel, { foreignKey: 'qualifications', as: 'qualification_types' });
 jobModel.belongsTo(userModel, {
     foreignKey: 'job_manager_id',
     as: 'jobManager'

@@ -10,6 +10,7 @@ class FoundationalData extends Model {
     id: any;
     foundational_data_type_id: any;
     name: any;
+    manager_id: any;
 }
 
 FoundationalData.init({
@@ -43,7 +44,7 @@ FoundationalData.init({
     modified_on: {
         type: DataTypes.DOUBLE,
         defaultValue: Date.now(),
-        allowNull: false,
+        allowNull:false,
     },
     created_by: {
         type: DataTypes.UUID,
@@ -57,7 +58,7 @@ FoundationalData.init({
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-            model: 'foundational_datatypes',
+            model: 'master_data_type',
             key: 'id',
         },
     },
@@ -87,7 +88,7 @@ FoundationalData.init({
     }
 }, {
     sequelize,
-    modelName: 'foundationalData',
+    modelName: 'master_data',
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
@@ -99,7 +100,7 @@ FoundationalData.init({
 });
 
 FoundationalData.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-FoundationalData.belongsTo(FoundationalDataTypes, { foreignKey: 'foundational_data_type_id', as: 'foundational_datatypes' });
+FoundationalData.belongsTo(FoundationalDataTypes, { foreignKey: 'foundational_data_type_id', as: 'master_data_type' });
 FoundationalData.belongsTo(Tenant, { foreignKey: 'manager_id', as: 'owner' });
 sequelize.sync();
 

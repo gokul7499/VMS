@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import foundationalData from "../models/foundationalDataModel";
-import foundationalDataInterface from "../interfaces/foundationalDataInterface";
+import { FoundationalDataInterface } from "../interfaces/foundationalDataInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -152,7 +152,7 @@ export async function getFoundationalDataById(
 }
 
 export async function createFoundationalData(request: FastifyRequest, reply: FastifyReply) {
-    const foundational_data = request.body as foundationalDataInterface;
+    const foundational_data = request.body as FoundationalDataInterface;
     const program_id = foundational_data.program_id;
     const name = foundational_data.name;
     const trace_id = generateCustomUUID();
@@ -197,7 +197,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
                 statusCode: 400,
-                message: "Value With The Same Name Already Exists.",
+                message: "Master Data Already Exist.",
                 trace_id
             });
         }
@@ -278,12 +278,12 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
                 statusCode: 400,
-                message: "Value With The Same Name Already Exists.",
+                message: "Master Data Already Exist.",
                 trace_id,
             });
         }
 
-        const [updatedCount] = await foundationalData.update(request.body as foundationalDataInterface, { where: { program_id, id } });
+        const [updatedCount] = await foundationalData.update(request.body as FoundationalDataInterface, { where: { program_id, id } });
         if (updatedCount > 0) {
             reply.send({
                 statusCode: 201,

@@ -8,6 +8,7 @@ import CountryModel from "../models/countriesModel";
 import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { Op } from "sequelize";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -129,7 +130,6 @@ export async function createWorkLocation(
   }
 }
 
-
 export async function getAllWorkLocations(
   request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
   reply: FastifyReply
@@ -143,19 +143,30 @@ export async function getAllWorkLocations(
     delete query.page;
     delete query.limit;
 
+    const country_ids = query.country_id ? query.country_id.split(",").map((id: string) => id.trim()) : [];
+    delete query.country_id;
     if (query.is_enabled) {
       query.is_enabled = query.is_enabled !== "false";
     }
-
     let order: [string, string][] = [["modified_on", "DESC"]];
     if (query.sort === "1") {
       order = [["modified_on", "ASC"]];
     } else if (query.sort === "-1") {
       order = [["modified_on", "DESC"]];
     }
-
+    const whereClause: any = {
+      ...query,
+      program_id: params.program_id,
+      is_deleted: false
+    };
+    if (country_ids.length > 0) {
+      whereClause.country_id = { [Op.in]: country_ids };
+    }
+    if (query.state_name) {
+      whereClause.state_name = { [Op.like]: `%${query.state_name}%` };
+    }
     const workLocations = await WorkLocationModel.findAll({
-      where: { ...query, program_id: params.program_id, is_deleted: false },
+      where: whereClause,
       limit,
       offset,
       order,
@@ -172,7 +183,6 @@ export async function getAllWorkLocations(
         }
       ]
     });
-
     for (const location of workLocations) {
       const currencyIds = location.currency_id as string[] || [];
       if (currencyIds.length > 0) {
@@ -185,8 +195,9 @@ export async function getAllWorkLocations(
         location.dataValues.currencies = [];
       }
     }
+
     const count = await WorkLocationModel.count({
-      where: { ...query, program_id: params.program_id, is_deleted: false },
+      where: whereClause,
     });
     if (workLocations.length === 0) {
       return reply.status(200).send({
@@ -198,6 +209,7 @@ export async function getAllWorkLocations(
         work_locations: [],
       });
     }
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: generateCustomUUID(),
@@ -415,58 +427,78 @@ export async function deleteWorkLocationById(
 
 
 export async function getAllWorkLocationsCountry(
-  request: FastifyRequest<{ Params: { program_id: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { isCountry?: string; isStates?: string } }>,
   reply: FastifyReply
 ) {
+
   const traceId = generateCustomUUID();
   const { program_id } = request.params;
+  const { isCountry, isStates } = request.query;
 
   try {
-    const { rows: workLocations, count } = await WorkLocationModel.findAndCountAll({
+    const includeOptions = [];
+    const response: {
+      status_code: number;
+      trace_id: string;
+      message: string;
+      work_location_country?: { id: string; name: string }[];
+      work_location_states?: { id: string; name: string }[];
+    } = {
+      status_code: 200,
+      trace_id: traceId,
+      message: "Work locations retrieved successfully",
+    };
+
+    if (isCountry === "true") {
+      includeOptions.push({
+        model: CountryModel,
+        as: "countries",
+        attributes: ["id", "name"],
+      });
+    }
+
+    const workLocations = await WorkLocationModel.findAll({
       where: {
         program_id,
         is_deleted: false,
       },
-      include: [
-        {
-          model: CountryModel,
-          as: 'countries',
-          attributes: ['id', 'name'],
-        },
-      ],
-      attributes: ['id', 'name'],
+      include: includeOptions,
+      attributes: ["id", "name", "state_name"],
     });
 
     if (!workLocations || workLocations.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: "Work location countries not found",
-      });
+      response.message = "Work locations not found";
+      return reply.status(200).send(response);
     }
 
-    const workLocationCountry = workLocations
-      .map(location => location.countries)
-      .filter(Boolean)
-      .map(country => ({
-        id: country.id,
-        name: country.name,
+    if (isCountry === "true") {
+      const workLocationCountry = workLocations
+        .map(location => location.countries).filter(Boolean).flat()
+        .map((country: any) => ({
+          id: country.id,
+          name: country.name,
+        }));
+
+      response.work_location_country = workLocationCountry;
+
+    }
+
+    if (isStates === "true") {
+      const workLocationStates = workLocations.map(location => ({
+        id: location.id,
+        name: location.state_name,
       }));
 
-    return reply.status(200).send({
-      status_code: 200,
-      total_count: workLocationCountry.length,
-      trace_id: traceId,
-      work_location_country: workLocationCountry,
-    });
+      response.work_location_states = workLocationStates;
+    }
 
+    return reply.status(200).send(response);
   } catch (error) {
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
-      message: "Failed to retrieve work location countries",
-      error: error
+      message: "Failed to retrieve work locations",
+      error
     });
   }
 }
-

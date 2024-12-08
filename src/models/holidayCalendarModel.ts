@@ -80,6 +80,7 @@ holidayCalendar.init({
 }, {
     sequelize,
     modelName: 'holiday_calendar',
+    tableName: 'holiday_calendar'
 });
 sequelize.sync();
 ProgramModule.belongsTo(ProgramModule, { foreignKey: 'program_id', as: 'programs' });

@@ -2,10 +2,11 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import ReasoncodeModel from '../models/reasoncodeModel';
 import { ReasonCode, ReasonCodeResponse } from '../interfaces/reasoncodeInterface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import SupportingTextEvent from '../models/eventModel';
 import { Module } from '../models/moduleModel';
-import { Op, Sequelize } from 'sequelize';
+import { Op, QueryTypes, Sequelize } from 'sequelize';
 import Event from '../models/eventModel';
+import { resonCode } from '../utility/queries';
+import { sequelize } from '../config/instance';
 
 export async function createReasoncode(
     request: FastifyRequest,
@@ -177,7 +178,7 @@ export async function getReasoncodeId(
             attributes: { exclude: ['ref_id', 'entity_ref', 'code', 'program_id', 'event_id', 'module_id', 'is_deleted', 'created_on', 'reasons_count', 'created_by', 'modified_by', 'reason_code_limit', 'modified_on'] },
             include: [
                 {
-                    model: SupportingTextEvent,
+                    model: Event,
                     as: 'supporting_text_event',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
@@ -329,3 +330,47 @@ export async function deleteReasoncode(
         reply.status(500).send({ message: 'An error occurred while deleting', error });
     }
 }
+
+export const getReasonCodeByModuleEventName = async (
+    request: FastifyRequest<{
+        Params: { program_id: string },
+        Querystring: { module_name?: string, event_name?: string }
+    }>,
+    reply: FastifyReply
+) => {
+    const { program_id } = request.params;
+    const { module_name, event_name } = request.query;
+
+    try {
+        const data = await sequelize.query(resonCode, {
+            replacements: {
+                program_id,
+                module_name: module_name ? `%${module_name}%` : null,
+                event_name: event_name ? `%${event_name}%` : null,
+            },
+            type: QueryTypes.SELECT,
+        });
+
+        const transformedData = data.map((item: any) => ({
+            module_name:module_name,
+            event_name:event_name,
+            reason_name: item?.reason?.[0]?.name || null,
+            reason_label: item?.reason?.[0]?.label || null, 
+          }));
+
+        reply.status(200).send({
+            status_code: 200,
+            message: "Reason codes retrieved successfully",
+            data: transformedData,
+            trace_id: generateCustomUUID(),
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            trace_id: generateCustomUUID(),
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+

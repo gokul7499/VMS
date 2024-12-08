@@ -48,7 +48,8 @@ IndustriesModel.init(
   },
   {
     sequelize,
-    modelName: 'industries',
+    modelName: 'labour_category',
+    tableName: 'labour_category',
     timestamps: false,
     hooks: {
       beforeValidate: (instance) => {

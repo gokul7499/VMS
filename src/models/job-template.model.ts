@@ -12,9 +12,8 @@ class jobTemplateModel extends Model {
     program_id: any;
     program_industry: any;
     template_name: any;
-    job_submitted_count: number | undefined | 0;
+    job_submitted_count: number | undefined ;
     custom_field_id: any;
-
 }
 
 jobTemplateModel.init(
@@ -69,7 +68,7 @@ jobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: 'industries',
+                model: 'labour_category',
                 key: 'id'
             }
         },
@@ -99,11 +98,7 @@ jobTemplateModel.init(
         },
         user_roles: {
             type: DataTypes.JSON,
-            allowNull: true,
-            references: {
-                model: 'user',
-                key: 'id'
-            }
+            allowNull: true
         },
         is_onboarding_checklist: {
             type: DataTypes.BOOLEAN,
@@ -228,7 +223,7 @@ sequelize.sync();
 
 jobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
 jobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'industries' });
+jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'labour_category' });
 jobTemplateModel.belongsTo(User, { foreignKey: 'user_roles', as: 'user' });
 
 export default jobTemplateModel;

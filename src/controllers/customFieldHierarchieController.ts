@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import customFieldHierarchie from '../models/customFieldHierarchieModel';
-import { customFieldHierarchieInterface } from '../interfaces/customFieldHierarchieInterface';
+import { CustomFieldHierarchieInterface } from '../interfaces/customFieldHierarchieInterface';
 import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
 import CustomField from '../models/customFieldsModel';
@@ -8,7 +8,7 @@ import CustomField from '../models/customFieldsModel';
 export const saveCustomFieldsHierarchie = async (
   request: FastifyRequest<{}>,
   reply: FastifyReply) => {
-  const { ...customFieldData } = request.body as customFieldHierarchieInterface;
+  const { ...customFieldData } = request.body as CustomFieldHierarchieInterface;
 
   try {
 
@@ -77,7 +77,7 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
 };
 
 export const updateCustomFieldById = async (
-  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: customFieldHierarchieInterface }>,
+  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFieldHierarchieInterface }>,
   reply: FastifyReply
 ) => {
   const { id, program_id } = request.params;
@@ -204,11 +204,12 @@ export const getCustomFieldsByHierarchyIds = async (
       });
 
       if (!customFields.length) {
-        return reply.status(404).send({
-          status_code: 404,
+        return reply.status(200).send({
+          status_code: 200,
           message: `No Custom fields found for module name: ${module_name}`,
           trace_id: traceId,
           custom_fields: [],
+          is_status:false,
         });
       }
 

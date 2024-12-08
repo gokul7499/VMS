@@ -48,7 +48,7 @@ GlobalConfigModel.init(
   },
   {
     sequelize,
-    modelName: 'global_config',
+    tableName: 'global_config',
     timestamps: false,
     hooks: {
       beforeValidate: (instance) => {

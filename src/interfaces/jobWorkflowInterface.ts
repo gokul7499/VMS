@@ -1,3 +1,5 @@
+import { Json } from "sequelize/types/utils";
+
 export interface JobWorkFlow {
   id: string,
   name: string,
@@ -38,16 +40,20 @@ export interface Level {
   level_id: string;
   level_status: string;
   placement_order: number;
+  // is_bypassed:string;
+ 
   recipients: Recipient[];
 }
 
 export interface Workflow {
   status:string;
+  // program_id:string,
   job_workflow_id:string;
   workflow_id: string;
   workflow_name: string;
   workflow_type: string;
   levels: Level[];
+  config:any
 }
 
 export interface Users {

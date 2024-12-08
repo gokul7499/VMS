@@ -63,7 +63,7 @@ WorkflowRecipientType.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: "recipientType",
+                model: "recipient_type",
                 key: "id",
             },
         },

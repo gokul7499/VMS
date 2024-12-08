@@ -10,7 +10,7 @@ export async function createIndustries(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const industries = request.body as IndustriesInterface;
+  const labour_categories = request.body as IndustriesInterface;
   const { name, program_id } = request.body as { name: string, program_id: string };
   const trace_id = generateCustomUUID();
   const authHeader = request.headers.authorization;
@@ -34,9 +34,9 @@ export async function createIndustries(
         user_id: user?.sub,
       },
       data: request.body,
-      eventname: "creating industries",
+      eventname: "creating labour categories",
       status: "success",
-      description: `Creating industries for ${program_id}`,
+      description: `Creating labour categories for ${program_id}`,
       level: 'info',
       action: request.method,
       url: request.url,
@@ -62,7 +62,7 @@ export async function createIndustries(
       });
     }
 
-    const item = await IndustriesModel.create({ ...industries });
+    const item = await IndustriesModel.create({ ...labour_categories });
     reply.status(201).send({
       statusCode: 201,
       data: item.id,
@@ -77,9 +77,9 @@ export async function createIndustries(
           user_id: user?.sub,
         },
         data: request.body,
-        eventname: "creat industries",
+        eventname: "creat labour categories",
         status: "success",
-        description: `Creat industries for ${program_id} successfully: ${item.id}`,
+        description: `Creat labour categories for ${program_id} successfully: ${item.id}`,
         level: 'success',
         action: request.method,
         url: request.url,
@@ -97,9 +97,9 @@ export async function createIndustries(
           user_id: user?.sub,
         },
         data: request.body,
-        eventname: "creat industries",
+        eventname: "create labour categories",
         status: "error",
-        description: `error to creat industries for ${program_id}`,
+        description: `error to create labour categories for ${program_id}`,
         level: 'error',
         action: request.method,
         url: request.url,
@@ -150,30 +150,31 @@ export const getIndustries = async (
       }
     }
 
-    const { rows: industries, count } = await IndustriesModel.findAndCountAll({
+    const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll({
       where: whereCondition,
       attributes: ['id', 'name', 'is_enabled', 'created_on', 'modified_on'],
       limit: pageSize,
       offset,
+      order:[['modified_on','DESC']]
     });
 
-    if (industries.length === 0) {
+    if (labour_categories.length === 0) {
       return reply.status(200).send({
         statusCode: 200,
         trace_id: traceId,
-        message: 'No industries found',
-        industries: [],
+        message: 'No labour categories found',
+        labour_categories: [],
       });
     }
 
     reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
-      message: 'Industries retrieved successfully',
+      message: 'labour categories retrieved successfully',
       items_per_page: pageSize,
       current_page: pageNumber,
       total_records: count,
-      industries
+      labour_categories
     });
   } catch (error) {
     reply.status(500).send({
@@ -199,13 +200,13 @@ export async function getIndustriesById(
     if (item) {
       reply.status(200).send({
         statusCode: 200,
-        industry_data: item,
+        labour_category_data: item,
         trace_id
       });
     } else {
       reply.status(200).send({
-        message: 'Industries not found',
-        industry: [],
+        message: 'labour category not found',
+        labour_category: [],
         trace_id
       });
     }
@@ -225,7 +226,7 @@ export async function updateIndustries(
   const trace_id = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
-    const industries = request.body as IndustriesInterface;
+    const labour_categories = request.body as IndustriesInterface;
     const { name, program_id } = request.body as { name: string, program_id: string };
 
     const existingIndustryWithSameName = await IndustriesModel.findOne({
@@ -245,18 +246,18 @@ export async function updateIndustries(
     }
 
     const [numRowsUpdated] = await IndustriesModel.update(
-      { ...industries, modified_on: Date.now() },
+      { ...labour_categories, modified_on: Date.now() },
       { where: { id, program_id } }
     );
 
     if (numRowsUpdated > 0) {
       reply.status(200).send({
         statusCode: 200,
-        industry_id: id,
+        labour_category_id: id,
         trace_id,
       });
     } else {
-      reply.status(404).send({ message: 'Industries not found' });
+      reply.status(404).send({ message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
@@ -285,11 +286,11 @@ export async function deleteIndustries(
     if (numRowsDeleted > 0) {
       reply.status(200).send({
         statusCode: 200,
-        industry_id: id,
+        labour_category_id: id,
         trace_id,
       });
     } else {
-      reply.status(404).send({ message: 'Industries not found' });
+      reply.status(404).send({ message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
@@ -303,18 +304,18 @@ export async function deleteIndustries(
 export const bulkUploadIndustries = async (request: FastifyRequest, reply: FastifyReply) => {
   const trace_id = generateCustomUUID();
   try {
-    const Industries = request.body as any[];
-    const createdIndustries = await IndustriesModel.bulkCreate(Industries);
+    const labour_categories = request.body as any[];
+    const createdLabourCategories = await IndustriesModel.bulkCreate(labour_categories);
     reply.status(201).send({
       status_code: 201,
-      data: createdIndustries,
-      message: 'Industries Created successfully',
+      data: createdLabourCategories,
+      message: 'labour categories Created successfully',
       trace_id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      message: 'Failed to create Industries',
+      message: 'Failed to create labour categories',
       trace_id,
       error: error,
     });

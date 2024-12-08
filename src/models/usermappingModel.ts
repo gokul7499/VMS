@@ -6,7 +6,12 @@ import { Programs } from './programsModel';
 import User from './userModel';
 import Tenant from './tenantModel';
 
-class UserMapping extends Model { }
+class UserMapping extends Model {
+    user_id: any;
+    user: any;
+    language_id: any;
+    time_zone_id: any;
+}
 
 UserMapping.init({
     id: {
@@ -72,7 +77,7 @@ UserMapping.init({
     }
 }, {
     sequelize,
-    tableName: 'usermappings',
+    tableName: 'user_mappings',
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);

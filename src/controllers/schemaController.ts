@@ -3,37 +3,11 @@ import SchemaModel from '../models/schemaModel';
 import { SchemaData } from '../interfaces/schemaInterface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
-import RuleFieldInputConfig from '../models/ruleFieldInputConfig';
-import RuleFieldOutputConfig from '../models/ruleFieldOutputConfig';
 
 export const createSchema = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
 
         const SchemaDataPayload = request.body as Omit<SchemaData, '_id'>;
-        const { ruleFieldInputConfigs, ruleFieldOutputConfigs } = request.body as {
-            ruleFieldInputConfigs: any[];
-            ruleFieldOutputConfigs: any[];
-        };
-
-        if (Array.isArray(ruleFieldInputConfigs) && ruleFieldInputConfigs.length > 0) {
-            for (const ruleFieldInputConfig of ruleFieldInputConfigs) {
-                await RuleFieldInputConfig.create({
-                    ruleFieldInputConfig,
-                    module_id: SchemaDataPayload.module_id,
-                    event_id: SchemaDataPayload.event_id,
-                });
-            }
-        }
-
-        if (Array.isArray(ruleFieldOutputConfigs) && ruleFieldOutputConfigs.length > 0) {
-            for (const ruleFieldOutputConfig of ruleFieldOutputConfigs) {
-                await RuleFieldOutputConfig.create({
-                    ruleFieldOutputConfig,
-                    module_id: SchemaDataPayload.module_id,
-                    event_id: SchemaDataPayload.event_id,
-                });
-            }
-        }
 
         const SchemaData: any = await SchemaModel.create({ ...SchemaDataPayload });
         reply.status(201).send({
@@ -101,7 +75,7 @@ export async function getAllSchema(
 ) {
     try {
 
-        const query = request.query as SchemaData | any;
+        const query = request.query as any;
 
         const page = parseInt(query.page ?? "1");
         const limit = parseInt(query.limit ?? "10");
@@ -160,7 +134,7 @@ export async function getAllSchemas(
     reply: FastifyReply
 ) {
     try {
-        const query = request.query as SchemaData | any;
+        const query = request.query as any;
 
         const page = parseInt(query.page ?? "1");
         const limit = parseInt(query.limit ?? "10");

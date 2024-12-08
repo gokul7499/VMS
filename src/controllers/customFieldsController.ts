@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { customFields, getQueryInterface } from '../interfaces/customFieldsInterface';
+import { CustomFields, GetQueryInterface } from '../interfaces/customFieldsInterface';
 import WorkLocationModel from '../models/workLocationModel';
 import hierarchies from '../models/hierarchiesModel';
 import generateCustomUUID from '../utility/genrateTraceId';
@@ -202,7 +202,7 @@ export const createCustomField = async (data: any) => {
 export async function getAllCustomFields(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: getQueryInterface
+    Querystring: GetQueryInterface
   }>,
   reply: FastifyReply
 ) {
@@ -370,7 +370,7 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
 };
 
 export const updateCustomFieldById = async (
-  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: customFields }>,
+  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFields }>,
   reply: FastifyReply
 ) => {
   const { id, program_id } = request.params;
@@ -433,7 +433,7 @@ const detectChanges = async (updates: any, customFieldRecord: any) => {
   delete otherFieldsUpdates.work_location_ids;
 
   return Object.keys(otherFieldsUpdates).some((key) => {
-    const k = key as keyof customFields;
+    const k = key as keyof CustomFields;
     if (Array.isArray(updates[k])) {
       return JSON.stringify(updates[k]) !== JSON.stringify(recordData[k]);
     }
@@ -625,7 +625,7 @@ export async function updateCustomFieldsIsdisable(
 }
 
 export async function searchCustomFields(
-  request: FastifyRequest<{ Querystring: getQueryInterface, Params: { program_id: string } }>,
+  request: FastifyRequest<{ Querystring: GetQueryInterface, Params: { program_id: string } }>,
   reply: FastifyReply
 ) {
   try {

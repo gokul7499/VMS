@@ -43,7 +43,7 @@ RateCardMapping.init(
     },
     {
         sequelize,
-        tableName: "rate_card_mapping",
+        tableName: "rate_type_configuration_hierarchies",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

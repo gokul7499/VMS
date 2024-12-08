@@ -6,7 +6,6 @@ import ShiftConfiguration from "../models/shiftConfigurationModel";
 import shiftConfigurationHierarchies from "../models/shiftConfigurationHierarchiesModel";
 import hierarchies from "../models/hierarchiesModel"
 import { sequelize } from '../config/instance';
-import ShiftConfigJobTemplate from "../models/ShiftConfigJobTemplatesModels";
 import { Op } from 'sequelize';
 import shiftTypeConfiguration from "../models/shiftTypeConfigurationModel";
 
@@ -17,15 +16,19 @@ export const getAllshiftConfiguration = async (
       name?: string;
       is_enabled?: boolean;
       modified_on?: string;
+      hierarchy_names?: string;
+      shift_type_name?: string;
       page?: string;
       limit?: string;
+      start_date?:number;
+      end_date?:number
     };
   }>,
   reply: FastifyReply
 ) => {
   const trace_id = generateCustomUUID();
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+  const { name, is_enabled, start_date,end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query;
 
   if (!program_id) {
     reply.status(400).send({
@@ -67,17 +70,61 @@ export const getAllshiftConfiguration = async (
     }
 
     if (is_enabled !== undefined) {
-      searchFilters.is_enabled = is_enabled
+      searchFilters.is_enabled = is_enabled;
     }
 
-    if (modified_on) {
-      searchFilters.modified_on = { [Op.gte]: new Date(modified_on) };
+    if (start_date && end_date) {
+      searchFilters.modified_on = {
+        [Op.between]: [start_date,end_date],
+      };
+    } else if (start_date) {
+      searchFilters.modified_on = {
+        [Op.gte]:start_date,
+      };
+    } else if (end_date) {
+      searchFilters.modified_on = {
+        [Op.lte]:end_date,
+      };
+    }
+
+    let shiftConfigIds: string[] = [];
+    if (hierarchy_names) {
+      const hierarchyRecords = await hierarchies.findAll({
+        where: { name: { [Op.like]: `%${hierarchy_names}%` } },
+        attributes: ['id'],
+      });
+      const hierarchyIds = hierarchyRecords.map(record => record.id);
+      const shiftConfigurationHierarchyRecords = await shiftConfigurationHierarchies.findAll({
+        where: { hierarchy_id: hierarchyIds },
+        attributes: ['shift_config_id'],
+      });
+      shiftConfigIds = shiftConfigurationHierarchyRecords.map(record => record.shift_config_id);
+      searchFilters.id = { [Op.in]: shiftConfigIds };
+    }
+
+    if (shift_type_name) {
+      const shiftTypeRecords = await ShiftType.findAll({
+        where: { shift_type_name: { [Op.like]: `%${shift_type_name}%` } },
+        attributes: ['id'],
+      });
+      const shiftTypeIds = shiftTypeRecords.map(record => record.id);
+      const shiftTypeConfigRecords = await shiftTypeConfiguration.findAll({
+        where: { shift_type_id: shiftTypeIds },
+        attributes: ['shift_config_id'],
+      });
+      const configIdsByShiftType = shiftTypeConfigRecords.map(record => record.shift_config_id);
+      if (shiftConfigIds.length > 0) {
+        searchFilters.id = { [Op.in]: shiftConfigIds.filter(id => configIdsByShiftType.includes(id)) };
+      } else {
+        searchFilters.id = { [Op.in]: configIdsByShiftType };
+      }
     }
 
     const { count, rows: shiftConfigData } = await ShiftConfiguration.findAndCountAll({
       where: searchFilters,
       limit: pageSize,
-      offset
+      offset,
+      order:[["modified_on","DESC"]]
     });
 
     if (shiftConfigData.length > 0) {
@@ -106,24 +153,6 @@ export const getAllshiftConfiguration = async (
 
       const shiftConfigsWithDetails = await Promise.all(
         shiftConfigIds.map(async (shiftConfigId) => {
-          const jobTemplateRecords = await ShiftConfigJobTemplate.findAll({
-            where: { shift_config_id: shiftConfigId },
-            attributes: ['job_template_id'],
-          });
-
-          const jobTemplateIds = jobTemplateRecords.map(record => record.job_template_id);
-
-          let jobTemplates: unknown[] = [];
-          if (jobTemplateIds.length > 0) {
-            const jobTemplateIdsString = jobTemplateIds.map(id => `'${id}'`).join(', ');
-
-            const [jobTemplatesData] = await sequelize.query(
-              `SELECT id, template_name, description FROM job_templates WHERE id IN (${jobTemplateIdsString})`
-            );
-
-            jobTemplates = jobTemplatesData;
-          }
-
           const shiftTypesForConfig = shiftTypeRecords
             .filter(record => record.shift_config_id === shiftConfigId)
             .map(record => shiftTypesList.find(shiftType => shiftType.id === record.shift_type_id));
@@ -136,7 +165,6 @@ export const getAllshiftConfiguration = async (
             ...shiftConfigData.find(config => config.id === shiftConfigId)?.toJSON(),
             hierarchies: hierarchyConfig,
             shift_types: shiftTypesForConfig,
-            job_templates: jobTemplates,
           };
         })
       );
@@ -166,6 +194,9 @@ export const getAllshiftConfiguration = async (
     });
   }
 };
+
+
+
 
 export async function getShiftConfigurationById(request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) {
   const trace_id = generateCustomUUID();
@@ -201,22 +232,6 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
       attributes: ['id', 'name'],
     });
 
-    const jobTemplateRecords = await ShiftConfigJobTemplate.findAll({
-      where: { shift_config_id: shiftConfigId },
-      attributes: ['job_template_id'],
-    });
-    const jobTemplateIds = jobTemplateRecords.map((record) => record.job_template_id);
-
-    let jobTemplates: unknown[] = [];
-    if (jobTemplateIds.length > 0) {
-      const [jobTemplatesData] = await sequelize.query(
-        `SELECT id, template_name, description FROM job_templates WHERE id IN (:jobTemplateIds)`,
-        { replacements: { jobTemplateIds } }
-      );
-
-      jobTemplates = jobTemplatesData;
-    }
-
     const shiftTypeRecords = await shiftTypeConfiguration.findAll({
       where: { shift_config_id: shiftConfigId },
       attributes: ['shift_type_id'],
@@ -239,7 +254,6 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
       shiftConfiguration: {
         ...item.toJSON(),
         hierarchies: hierarchiesList,
-        job_templates: jobTemplates,
         shift_types: shiftTypesList,
       },
     });
@@ -257,7 +271,7 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
   const trace_id = generateCustomUUID();
   try {
     const shiftTypeData = request.body as ShiftConfigurationAttributes;
-    const { hierarchy_ids, job_template_ids, shift_type_ids, name, ...rest } = shiftTypeData;
+    const { hierarchy_ids, shift_type_ids, name, ...rest } = shiftTypeData;
     const existingShiftConfig = await ShiftConfiguration.findOne({
       where: { name, program_id: shiftTypeData.program_id },
     });
@@ -292,17 +306,6 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
       });
       await Promise.all(shifttypePromises);
     }
-
-    if (Array.isArray(job_template_ids)) {
-      const jobTemplatePromises = job_template_ids.map((job_template_id: any) => {
-        return ShiftConfigJobTemplate.create({
-          shift_config_id: shiftType.id,
-          job_template_id,
-        }, { transaction });
-      });
-      await Promise.all(jobTemplatePromises);
-    }
-
     await transaction.commit();
     reply.status(201).send({
       statusCode: 201,
@@ -322,9 +325,11 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
 }
 
 export async function updateShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
-  const { id, program_id } = request.params as { id: string, program_id: string };
+  const { id, program_id } = request.params as { id: string; program_id: string };
   const shiftTypeData = request.body as ShiftConfigurationAttributes;
+  const { hierarchy_ids, shift_type_ids, ...rest } = shiftTypeData;
   const trace_id = generateCustomUUID();
+
   try {
     const shiftType = await ShiftConfiguration.findOne({
       where: {
@@ -333,35 +338,95 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
         is_deleted: false,
       },
     });
-    if (shiftType) {
-      const existingShiftTypeConfigWithSameName = await ShiftConfiguration.findOne({
-        where: {
-          name: sequelize.where(sequelize.fn('lower', sequelize.col('name')), sequelize.fn('lower', shiftTypeData.name)),
-          id: { [Op.ne]: id },
-          program_id,
-          is_deleted: false,
-        },
-      });
-      if (existingShiftTypeConfigWithSameName) {
-        return reply.status(400).send({
-          statusCode: 400,
-          message: `Shift configuration with the name ${shiftTypeData.name} already exists`,
-          trace_id,
-        });
-      }
-      await shiftType.update(shiftTypeData);
-      reply.status(200).send({
-        statusCode: 200,
-        message: 'Shift configuration updated successfully.',
-        trace_id,
-      });
-    } else {
-      reply.status(200).send({
-        statusCode: 200,
+
+    if (!shiftType) {
+      return reply.status(404).send({
+        statusCode: 404,
         message: 'Shift configuration not found.',
         trace_id,
       });
     }
+
+    const existingShiftTypeConfigWithSameName = await ShiftConfiguration.findOne({
+      where: {
+        name: sequelize.where(sequelize.fn('lower', sequelize.col('name')), sequelize.fn('lower', shiftTypeData.name)),
+        id: { [Op.ne]: id },
+        program_id,
+        is_deleted: false,
+      },
+    });
+
+    if (existingShiftTypeConfigWithSameName) {
+      return reply.status(400).send({
+        statusCode: 400,
+        message: `Shift configuration with the name ${shiftTypeData.name} already exists.`,
+        trace_id,
+      });
+    }
+
+    await shiftType.update(rest);
+
+    if (Array.isArray(hierarchy_ids)) {
+      const existingHierarchies = await shiftConfigurationHierarchies.findAll({
+        where: { shift_config_id: id },
+        attributes: ['hierarchy_id'],
+      });
+
+      const existingHierarchyIds = existingHierarchies.map((h) => h.hierarchy_id);
+      const hierarchiesToAdd = hierarchy_ids.filter((id) => !existingHierarchyIds.includes(id));
+      const hierarchiesToRemove = existingHierarchyIds.filter((id) => !hierarchy_ids.includes(id));
+
+      if (hierarchiesToRemove.length > 0) {
+        await shiftConfigurationHierarchies.destroy({
+          where: {
+            shift_config_id: id,
+            hierarchy_id: hierarchiesToRemove,
+          },
+        });
+      }
+
+      if (hierarchiesToAdd.length > 0) {
+        const newHierarchies = hierarchiesToAdd.map((hierarchy_id) => ({
+          shift_config_id: id,
+          hierarchy_id,
+        }));
+        await shiftConfigurationHierarchies.bulkCreate(newHierarchies);
+      }
+    }
+
+    if (Array.isArray(shift_type_ids)) {
+      const existingShiftTypes = await shiftTypeConfiguration.findAll({
+        where: { shift_config_id: id },
+        attributes: ['shift_type_id'],
+      });
+
+      const existingShiftTypeIds = existingShiftTypes.map((st) => st.shift_type_id);
+      const shiftTypesToAdd = shift_type_ids.filter((id) => !existingShiftTypeIds.includes(id));
+      const shiftTypesToRemove = existingShiftTypeIds.filter((id) => !shift_type_ids.includes(id));
+
+      if (shiftTypesToRemove.length > 0) {
+        await shiftTypeConfiguration.destroy({
+          where: {
+            shift_config_id: id,
+            shift_type_id: shiftTypesToRemove,
+          },
+        });
+      }
+
+      if (shiftTypesToAdd.length > 0) {
+        const newShiftTypes = shiftTypesToAdd.map((shift_type_id) => ({
+          shift_config_id: id,
+          program_id: shiftType.program_id,
+          shift_type_id,
+        }));
+        await shiftTypeConfiguration.bulkCreate(newShiftTypes);
+      }
+    }
+    reply.status(200).send({
+      statusCode: 200,
+      message: 'Shift configuration updated successfully.',
+      trace_id,
+    });
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
@@ -370,6 +435,8 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
     });
   }
 }
+
+
 
 export async function deleteShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };

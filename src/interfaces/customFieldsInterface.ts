@@ -1,4 +1,4 @@
-export interface customFields {
+export interface CustomFields {
   hierarchy_ids: never[];
   id: string;
   program_id: string;
@@ -22,22 +22,19 @@ export interface customFields {
   job_type: JSON;
   is_linked: boolean;
   work_location_ids?: string[];
-
   linked_module: JSON;
 }
 
-
-
-export interface getQueryInterface {
+export interface GetQueryInterface {
   limit: string;
-  page?: string; 
-      is_enabled?: string;
-      name?: string;
-      module_name?: string;
-      label?: string;
-      field_type?: string;
-      is_required?: string;
-      modified_on?: string;
-      slug?: string;
-      program_id?: string;
+  page?: string;
+  is_enabled?: string;
+  name?: string;
+  module_name?: string;
+  label?: string;
+  field_type?: string;
+  is_required?: string;
+  modified_on?: string;
+  slug?: string;
+  program_id?: string;
 }

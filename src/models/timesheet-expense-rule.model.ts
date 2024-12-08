@@ -1,0 +1,107 @@
+import { DataTypes, Model } from "sequelize";
+import { sequelize } from "../config/instance";
+import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import { beforeSave } from '../hooks/timeFormatHook';
+import { Programs } from "./programsModel";
+
+class TimesheetExpenseRuleModel extends Model {
+    id: any;
+}
+
+TimesheetExpenseRuleModel.init({
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        primaryKey: true,
+    },
+    rule_name: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    rule_type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    rule_duration: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    break_type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    is_paid_break: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    is_break_mandatory: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    weekend_days: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    conditions: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    penalty_rules: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    apply_rate_type: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    modified_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    is_enabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+    },
+    is_deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+    },
+    modified_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+    },
+    program_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: 'programs',
+            key: 'id',
+        },
+    },
+},
+    {
+        sequelize,
+        modelName: 'timesheet_expense_rule',
+        timestamps: false,
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
+        },
+    });
+
+sequelize.sync();
+TimesheetExpenseRuleModel.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
+export default TimesheetExpenseRuleModel;

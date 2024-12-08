@@ -170,7 +170,7 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     const trace_id = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
 

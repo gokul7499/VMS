@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import city from "../models/cityModel";
-import { cityData } from "../interfaces/cityInterface";
+import { CityData } from "../interfaces/cityInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { handleError } from "../utility/errorHandler";
 import { sequelize } from "../config/instance";
@@ -130,7 +130,7 @@ export async function updateCity(
     reply: FastifyReply
 ) {
     const { id, state_id } = request.params;
-    const cityData = request.body as cityData;
+    const cityData = request.body as CityData;
     try {
         const City: city | null = await city.findOne({
             where: { id, state_id, is_deleted: false, }

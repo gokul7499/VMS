@@ -1,10 +1,12 @@
 import { FastifyInstance } from 'fastify';
-import { getHierarchiesById, createHierarchies, updateHierarchies, deleteHierarchies, advancedSearchHierarchies,searchHierarchies,
-    getHierarchiesByProgram,getHierarchies,getRateModel,getMasterDataForHeirarchies} from '../controllers/hierarchiesController';
+import {
+    getHierarchiesById, createHierarchies, updateHierarchies, deleteHierarchies, advancedSearchHierarchies, searchHierarchies,
+    getHierarchiesByProgram, getHierarchies, getRateModel, getMasterDataForHeirarchies
+} from '../controllers/hierarchiesController';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/hierarchies/:id', getHierarchiesById);
-    fastify.post('/hierarchies',createHierarchies);
+    fastify.post('/hierarchies', createHierarchies);
     fastify.put('/hierarchies/:id', updateHierarchies);
     fastify.delete('/hierarchies/:id', deleteHierarchies);
     fastify.get('/program/:program_id/hierarchies/', searchHierarchies);

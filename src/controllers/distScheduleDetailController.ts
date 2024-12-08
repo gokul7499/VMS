@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import DistScheduleDetail from "../models/distScheduleDetailModel";
-import { distScheduleDetail } from "../interfaces/distScheduleDetailInterface";
+import { DistScheduleDetailInterface } from "../interfaces/distScheduleDetailInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import { logger } from '../utility/loggerService';
@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 export const createDistScheduleDetails = async (request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply) => {
     const { program_id } = request.params;
-    const distScheduleDetailsData = request.body as distScheduleDetail[];
+    const distScheduleDetailsData = request.body as DistScheduleDetailInterface[];
     const trace_id = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -191,7 +191,7 @@ export const updateDistScheduleDetail = async (
     const { program_id, id } = request.params;
 
     try {
-        const [updatedCount] = await DistScheduleDetail.update(request.body as distScheduleDetail, {
+        const [updatedCount] = await DistScheduleDetail.update(request.body as DistScheduleDetailInterface, {
             where: { program_id, id },
         });
 

@@ -16,7 +16,7 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
   fastify.put("/program/:program_id/program-config", updateConfiguration);
   fastify.delete("/program/:program_id/program-config/:id", deleteConfiguration);
   fastify.get("/program/:program_id/program-config", getProgramConfigurations);
-  fastify.get("/program/:program_id/program-configuration/:id", getTransformedConfig);
+  fastify.get("/program/:program_id/program-configuration", getTransformedConfig);
 }
 
 export default programsConfigRoutes;

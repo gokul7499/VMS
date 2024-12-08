@@ -67,7 +67,7 @@ RateTypeHierarchy.init({
   }
 }, {
   sequelize,
-  tableName: 'rate_type_hierarchy',
+  tableName: 'rate_type_hierarchies',
   timestamps: false,
   hooks: {
     beforeValidate: (instance) => {

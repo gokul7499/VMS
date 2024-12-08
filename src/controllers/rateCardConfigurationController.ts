@@ -15,36 +15,90 @@ import {
 } from '../utility/queries';
 import hierarchies from '../models/hierarchiesModel';
 
-export async function getAllRateCard(request: FastifyRequest<{ Params: RateCardInterface, Querystring: RateCardInterface }>, reply: FastifyReply) {
+export async function getAllRateCard(
+    request: FastifyRequest<{
+        Params: RateCardInterface;
+        Querystring: RateCardInterface;
+    }>,
+    reply: FastifyReply
+) {
     const trace_id = generateCustomUUID();
     try {
         const params = request.params as Partial<RateCardInterface>;
         const query = request.query as any;
 
-        const page = parseInt(query.page ?? '1', 10);
-        const limit = parseInt(query.limit ?? '10', 10);
+        const page = parseInt(query.page ?? "1", 10);
+        const limit = parseInt(query.limit ?? "10", 10);
         const offset = (page - 1) * limit;
-
         const filters: Record<string, any> = {
             program_id: params.program_id,
             limit,
             offset,
-            is_enabled: query.is_enabled === 'true' ? true : (query.is_enabled === 'false' ? false : null),
-            is_shift_rate: query.is_shift_rate === 'true' ? true : (query.is_shift_rate === 'false' ? false : null),
+            is_enabled:
+                query.is_enabled === "true"
+                    ? true
+                    : query.is_enabled === "false"
+                        ? false
+                        : null,
+            is_shift_rate:
+                query.is_shift_rate === "true"
+                    ? true
+                    : query.is_shift_rate === "false"
+                        ? false
+                        : null,
             name: query.name ? `%${query.name}%` : null,
         };
-        addArrayFilters(query.hierarchy_id, 'hierarchy_id', filters);
-        addArrayFilters(query.job_template_id, 'job_template_id', filters);
+        let startDate: number | undefined;
+        let endDate: number | undefined;
 
-        const hierarchyIdCount = Object.keys(filters).filter(key => key.startsWith('hierarchy_id_')).length;
-        const jobTemplateIdCount = Object.keys(filters).filter(key => key.startsWith('job_template_id_')).length;
+        if (query.modified_on) {
+            const dateRange = query.modified_on.split(",");
+            if (dateRange.length === 2) {
+                startDate = parseInt(dateRange[0], 10) || undefined;
+                endDate = parseInt(dateRange[1], 10) || undefined;
+            }
+        }
 
-        const rateCardQuery = getAllRateCardQuery(hierarchyIdCount, jobTemplateIdCount);
-        const countQuery = getCountQuery(hierarchyIdCount, jobTemplateIdCount);
+        addArrayFilters(query.hierarchy_id, "hierarchy_id", filters);
+        addArrayFilters(query.job_template_id, "job_template_id", filters);
+
+        const hierarchyIdCount = Object.keys(filters).filter((key) =>
+            key.startsWith("hierarchy_id_")
+        ).length;
+        const jobTemplateIdCount = Object.keys(filters).filter((key) =>
+            key.startsWith("job_template_id_")
+        ).length;
+
+        const rateCardQuery = getAllRateCardQuery(
+            hierarchyIdCount,
+            jobTemplateIdCount,
+            startDate,
+            endDate
+        );
+        const countQuery = getCountQuery(
+            hierarchyIdCount,
+            jobTemplateIdCount,
+            startDate,
+            endDate
+        );
 
         const [rateCardResult, countResult] = await Promise.all([
-            sequelize.query(rateCardQuery, { replacements: filters, type: QueryTypes.SELECT }),
-            sequelize.query(countQuery, { replacements: filters, type: QueryTypes.SELECT })
+            sequelize.query(rateCardQuery, {
+                replacements: {
+                    ...filters,
+                    ...(startDate !== undefined && { startDate }),
+                    ...(endDate !== undefined && { endDate }),
+                },
+                type: QueryTypes.SELECT,
+            }),
+            sequelize.query(countQuery, {
+                replacements: {
+                    ...filters,
+                    ...(startDate !== undefined && { startDate }),
+                    ...(endDate !== undefined && { endDate }),
+                },
+                type: QueryTypes.SELECT,
+            }),
         ]);
 
         const totalRecords = (countResult[0] as { total: number })?.total ?? 0;
@@ -52,9 +106,9 @@ export async function getAllRateCard(request: FastifyRequest<{ Params: RateCardI
         if (rateCardResult.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
-                message: 'Rate configs not found',
+                message: "Rate configs not found",
                 rate_card: [],
-                trace_id
+                trace_id,
             });
         }
 
@@ -81,8 +135,10 @@ export async function getAllRateCard(request: FastifyRequest<{ Params: RateCardI
                 ...row,
                 is_shift_rate: !!row.is_shift_rate,
                 hierarchies: row.hierarchies ? JSON.parse(`[${row.hierarchies}]`) : [],
-                job_templates: row.job_templates ? JSON.parse(`[${row.job_templates}]`) : [],
-                expenses: uniqueExpenses
+                job_templates: row.job_templates
+                    ? JSON.parse(`[${row.job_templates}]`)
+                    : [],
+                expenses: uniqueExpenses,
             };
         });
 
@@ -95,13 +151,12 @@ export async function getAllRateCard(request: FastifyRequest<{ Params: RateCardI
     } catch (error: any) {
         reply.status(500).send({
             statusCode: 500,
-            message: 'Internal server error',
+            message: "Internal server error",
             error: error.message,
             trace_id,
         });
     }
 }
-
 
 
 function addArrayFilters(queryValue: string | undefined, filterKey: string, filters: Record<string, any>) {
@@ -171,81 +226,72 @@ function adjustRatesForShift(rateDetails: any, standardMin: number, standardMax:
 
 export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const trace_id = generateCustomUUID();
+    const RateCardConfigurationPayload = request.body as RateCardInterface;
     const transaction = await sequelize.transaction();
-    try {
-        const { program_id } = request.params as { program_id: string };
-        const RateCardConfigurationPayload = request.body as Omit<RateCardInterface, '_id'>;
+    const { program_id } = request.params as { program_id: string };
 
-        if (!Array.isArray(RateCardConfigurationPayload.hierarchies) || RateCardConfigurationPayload.hierarchies.length === 0 ||
-            !Array.isArray(RateCardConfigurationPayload.job_templates) || RateCardConfigurationPayload.job_templates.length === 0) {
+    try {
+        if (!RateCardConfigurationPayload.name || !RateCardConfigurationPayload.hierarchies || !RateCardConfigurationPayload.job_templates) {
             return reply.status(400).send({
-                status_code: 400,
-                message: "Hierarchies and Job templates are required.",
-                trace_id,
+                message: 'Invalid request body',
+                trace_id
             });
         }
 
-        const existingConfig = await RateCardModel.findOne({
+        const existingRateCardByName = await RateCardModel.findOne({
+            where: { program_id, name: RateCardConfigurationPayload.name, is_deleted: false },
+            transaction
+        });
+
+        if (existingRateCardByName) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: `A rate configuration named ${RateCardConfigurationPayload.name} already exists`,
+                trace_id
+            });
+        }
+
+        const existingRateCardByHierarchiesAndTemplates = await RateCardModel.findOne({
             where: {
                 program_id,
-                is_deleted: false,
-                name: RateCardConfigurationPayload.name,
+                hierarchies: { [Op.eq]: JSON.stringify(RateCardConfigurationPayload.hierarchies) },
+                job_templates: { [Op.eq]: JSON.stringify(RateCardConfigurationPayload.job_templates) },
+                is_deleted: false
             },
-            transaction,
+            transaction
         });
 
-        if (existingConfig) {
-            return reply.status(409).send({
-                status_code: 409,
-                message: `A rate configuration named "${RateCardConfigurationPayload.name}" already exists.`,
-                trace_id,
-            });
-        }
-        const [existingPairs] = await sequelize.query(existingPairQuery, {
-            replacements: { program_id, hierarchies: RateCardConfigurationPayload.hierarchies, jobTemplates: RateCardConfigurationPayload.job_templates },
-            transaction,
-        });
-
-        if (existingPairs.length > 0) {
+        if (existingRateCardByHierarchiesAndTemplates) {
             return reply.status(400).send({
                 status_code: 400,
-                message: "A rate configuration with the same hierarchies and job templates already exists.",
-                trace_id,
+                message: 'A rate configuration with the same hierarchies and job templates already exists',
+                trace_id
             });
         }
 
-        const RateCardConfigurationData = await RateCardModel.create(
-            { ...RateCardConfigurationPayload, program_id },
-            { transaction }
-        );
+        const newRateCard = await RateCardModel.create({ ...RateCardConfigurationPayload, program_id }, { transaction });
 
-        if (Array.isArray(RateCardConfigurationPayload.hierarchies)) {
-            await Promise.all(
-                RateCardConfigurationPayload.hierarchies.map(hierarchy_id =>
-                    RateCardMapping.create({
-                        program_id,
-                        rate_card_config_id: RateCardConfigurationData.id,
-                        hierarchy_id,
-                    }, { transaction })
-                )
-            );
-        }
+        const newMappings = RateCardConfigurationPayload.hierarchies.map((id: string) => ({
+            program_id: newRateCard.program_id,
+            rate_card_config_id: newRateCard.id,
+            hierarchy_id: id,
+        }));
+        await RateCardMapping.bulkCreate(newMappings, { transaction });
 
         await transaction.commit();
+
         reply.status(201).send({
             status_code: 201,
-            rate_card_config_id: RateCardConfigurationData.id,
-            trace_id,
+            success: true,
+            message: 'Rate card configuration saved successfully',
+            rate_card_config_id: newRateCard.id,
+            trace_id
         });
-    } catch (error: any) {
+    } catch (error) {
         await transaction.rollback();
-        if (error.name === "SequelizeUniqueConstraintError") {
-            const field = error.errors[0].path;
-            return reply.status(409).send({ error: `${field} already in use.` });
-        }
         reply.status(500).send({
-            error: error.message || 'Error while creating rate config.',
-            trace_id,
+            message: 'An error occurred while saving the rate card configuration',
+            trace_id
         });
     }
 };
@@ -268,7 +314,7 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
                 }
             );
         }
-        const UpdatedRateCardConfiguration = await data.update(RateCardConfigurationData);
+        const UpdatedRateCardConfiguration = await data.update({RateCardConfigurationData,modified_on:Date.now()});
         const { hierarchies } = UpdatedRateCardConfiguration as any;
         if (hierarchies) {
             const existingMappings = await RateCardMapping.findAll({

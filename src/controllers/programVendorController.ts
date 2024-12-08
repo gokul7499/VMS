@@ -49,6 +49,8 @@ interface VendorDetails {
     status: any;
     compliance_documents: any;
 }
+
+
 export async function getProgramVendors(
     request: FastifyRequest<{
         Params: { program_id: string };
@@ -114,24 +116,19 @@ export async function getProgramVendors(
             });
         });
 
-        if (countryIds.size === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'ProgramVendors fetched successfully.',
-                trace_id: traceId,
-                items_per_page: limit,
-                total_records: totalItems,
-                program_vendors: program_vendors,
-            });
+        const countryIdsArray = Array.from(countryIds);
+        let countries: any[] = [];
+        
+        if (countryIdsArray.length > 0) {
+            countries = await sequelize.query(
+                `SELECT * FROM countries WHERE id IN (:countryIds)`,
+                {
+                    replacements: { countryIds: countryIdsArray },
+                    type: QueryTypes.SELECT,
+                }
+            );
         }
-
-        const countries = await sequelize.query(
-            `SELECT * FROM countries WHERE id IN (:countryIds)`,
-            {
-                replacements: { countryIds: Array.from(countryIds) },
-                type: QueryTypes.SELECT,
-            }
-        );
+        
 
         const countryMap: { [key: string]: any } = countries.reduce((acc: { [key: string]: any }, country: any) => {
             acc[country.id] = country;
@@ -155,14 +152,18 @@ export async function getProgramVendors(
 
                     const required_documents = await VendorComplianceDocumentModel.findAll({
                         where: {
-                            id: required_documentsIds
-                        }
+                            id: required_documentsIds,
+                        },
                     });
 
                     let allDocumentsCompliant = true;
 
                     for (const doc of required_documents) {
-                        if (!doc.uploaded_document || doc.uploaded_document.status !== 'Compliant') {
+                        if (
+                            !doc.uploaded_document ||
+                            !doc.uploaded_document.status ||
+                            doc.uploaded_document.status.toLowerCase() !== 'compliant'
+                        ) {
                             allDocumentsCompliant = false;
                             break;
                         }
@@ -228,7 +229,7 @@ export async function getProgramVendors(
         reply.status(500).send({
             message: 'An error occurred while fetching ProgramVendors.',
             trace_id: traceId,
-            error: (error as any).message
+            error: (error as any).message,
         });
     }
 }

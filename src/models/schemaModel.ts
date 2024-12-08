@@ -82,7 +82,7 @@ Schema.init(
     },
     {
         sequelize,
-        tableName: "schema",
+        tableName: "workflow_field_conditions",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

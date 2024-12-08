@@ -38,11 +38,7 @@ VendorComplianceDocumentModel.init({
   },
   work_locations: {
     type: DataTypes.JSON,
-    allowNull: true,
-    references: {
-      model: WorkLocationModel,
-      key: 'id',
-    },
+    allowNull: true
   },
   hierarchies: {
     type: DataTypes.JSON,
@@ -126,5 +122,4 @@ VendorComplianceDocumentModel.init({
 
 sequelize.sync();
 VendorComplianceDocumentModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-VendorComplianceDocumentModel.belongsTo(WorkLocationModel, { foreignKey: 'work_locations', as: 'work_location' });
 export default VendorComplianceDocumentModel;

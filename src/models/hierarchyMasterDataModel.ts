@@ -24,7 +24,8 @@ HierarchyMasterData.init(
     },
     {
         sequelize,
-        modelName: 'hierarchy_master_data',
+        modelName: 'hierarchies_master_data',
+        tableName: 'hierarchies_master_data',
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

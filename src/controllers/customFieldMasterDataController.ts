@@ -1,20 +1,20 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import customFieldMaterData from '../models/customFieldMasterDataModel'
-import {customFieldmasterDataInterface} from '../interfaces/customFieldMasterDataInterface'
+import { CustomFieldmasterDataInterface } from '../interfaces/customFieldMasterDataInterface'
 import generateCustomUUID from '../utility/genrateTraceId';
- 
+
 export const saveCustomFieldsHierarchie = async (
   request: FastifyRequest<{}>,
   reply: FastifyReply
 ) => {
-  const {...customFieldData } = request.body as customFieldmasterDataInterface;
+  const { ...customFieldData } = request.body as CustomFieldmasterDataInterface;
 
   try {
- 
+
     const item: any = await customFieldMaterData.create({
       ...customFieldData
     });
- 
+
     reply.status(201).send({
       status_code: 201,
       customfield_data: {
@@ -32,10 +32,10 @@ export const saveCustomFieldsHierarchie = async (
     });
   }
 };
- 
+
 export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
- 
+
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
@@ -44,13 +44,13 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
     });
     return;
   }
- 
+
   try {
     const customfiedData = await customFieldMaterData.findOne({
       where: { id, program_id: program_id },
-      attributes: ['id', 'customField_id', 'program_id', 'is_enabled','hierarchie_id'],
+      attributes: ['id', 'customField_id', 'program_id', 'is_enabled', 'hierarchie_id'],
     });
- 
+
     if (customfiedData) {
       reply.status(200).send({
         status_code: 200,
@@ -74,14 +74,14 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
     });
   }
 };
- 
+
 export const updateCustomFieldById = async (
-  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: customFieldmasterDataInterface }>,
+  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFieldmasterDataInterface }>,
   reply: FastifyReply
 ) => {
   const { id, program_id } = request.params;
   const updates = request.body;
- 
+
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
@@ -90,12 +90,12 @@ export const updateCustomFieldById = async (
     });
     return;
   }
- 
+
   try {
     const [updatedCount] = await customFieldMaterData.update(updates, {
       where: { id, program_id: program_id },
     });
- 
+
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,
@@ -105,7 +105,7 @@ export const updateCustomFieldById = async (
     } else {
       reply.status(200).send({
         status_code: 200,
-        message: 'Custom Fields masterData not found', customField:[],
+        message: 'Custom Fields masterData not found', customField: [],
         trace_id: generateCustomUUID(),
       });
     }
@@ -117,7 +117,7 @@ export const updateCustomFieldById = async (
     });
   }
 };
- 
+
 export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   const { id } = request.params;
   try {
@@ -127,7 +127,7 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
         is_enabled: false,
         is_deleted: true,
       });
- 
+
       reply.status(204).send({
         status_code: 204,
         message: 'custom Field masterData Deleted Successfully',
@@ -150,17 +150,16 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
   }
 };
 export const saveCustomFieldsMasterData = async (custom_field_id: string, master_data_id: string) => {
-    try {
-      const customFieldHierarchieData = await customFieldMaterData.create({
-        custom_field_id,
-        master_data_id,
-      });
-      return customFieldHierarchieData;
-    } catch (error) {
-      console.error('Error during custom field hierarchie creation:', error);
-      throw error;
-    }
-  };
- 
- 
- 
+  try {
+    const customFieldHierarchieData = await customFieldMaterData.create({
+      custom_field_id,
+      master_data_id,
+    });
+    return customFieldHierarchieData;
+  } catch (error) {
+    console.error('Error during custom field hierarchie creation:', error);
+    throw error;
+  }
+};
+
+

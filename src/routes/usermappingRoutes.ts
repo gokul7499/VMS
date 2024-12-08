@@ -7,7 +7,7 @@ export async function userMappingRoutes(fastify: FastifyInstance) {
     fastify.post('/usermapping/', async (request, reply) => createUserMappings(request.body as UserMappingAttributes, reply));
     fastify.put('/usermapping/:id', updateUserMappingById);
     fastify.delete('/usermapping/:id', deleteUserMappingById);
-    fastify.get('/usermapping/getall-usermapping',getUserMappings);
+    fastify.get('/program/:program_id/usermapping/:id',getUserMappings);
 }
 
 export default userMappingRoutes;

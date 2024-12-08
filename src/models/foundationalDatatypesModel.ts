@@ -65,7 +65,7 @@ FoundationalDataTypes.init(
   },
   {
     sequelize,
-    tableName: "foundational_datatypes",
+    tableName: "master_data_type",
     timestamps: false,
     hooks: {
       beforeValidate: (instance) => {

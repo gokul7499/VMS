@@ -73,7 +73,6 @@ export async function getAllWorkflowDataSource(
 ) {
   const traceId=generateCustomUUID();
     try {
-        const params = request.params as WorkflowDataSourceData;
         const query = request.query as WorkflowDataSourceData | any;
 
         const page = parseInt(query.page ?? "1");

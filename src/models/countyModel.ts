@@ -65,7 +65,7 @@ CountyModel.init({
 },
     {
         sequelize,
-        modelName: 'county',
+        tableName: 'counties',
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

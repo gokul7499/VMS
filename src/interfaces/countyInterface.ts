@@ -1,4 +1,4 @@
-export interface countyInterface {
+export interface CountyInterface {
     id: string;
     name?: string;
     region?: string;

@@ -235,8 +235,6 @@ export async function getHierarchiesById(
   }
 }
 
-
-
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const hierarchie = request.body as hierarchiesData;
   const program_id = hierarchie.program_id;
@@ -279,7 +277,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       await transaction.rollback();
       return reply.status(409).send({
         status_code: 409,
-        message: "Hierarchy name is already in use",
+        message: "Hierarchy name is already exist",
       });
     }
 
@@ -360,7 +358,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
-
 const setAssociations = async (newItem: any, hierarchies: hierarchiesData, transaction: any) => {
   if (hierarchies.timezone_id && Array.isArray(hierarchies.timezone_id)) {
     await newItem.setTime_zones(hierarchies.timezone_id, { transaction });
@@ -394,13 +391,25 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       if (hierarchiesData.timezone_id) {
         await setAssociations(hierarchy, hierarchiesData, transaction);
       }
+
+      const foundationalData = hierarchiesData.foundational_data;
+      if (Array.isArray(foundationalData)) {
+        await HierarchyMasterData.destroy({ where: { hierarchy_id: hierarchy.id }, transaction });
+        await Promise.all(
+          foundationalData.map(async (foundation: any) => {
+            await HierarchyMasterData.create({
+              hierarchy_id: hierarchy.id,
+              foundation_data_type_id: foundation
+            }, { transaction });
+          })
+        );
+      }
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,
         message: "Hierarchy updated successfully",
         trace_id: traceId,
       });
-
     } catch (error) {
       await transaction.rollback();
       console.error(error);
@@ -496,10 +505,6 @@ export async function advancedSearchHierarchies(
     responseFields
   );
 }
-interface ParentRateModelResult {
-  rate_model: string;
-}
-
 interface Hierarchy {
   rate_model: string;
   id: string;
@@ -543,19 +548,16 @@ export const getRateModel = async (
       parent_hierarchy_id: item.parent_hierarchy_id,
       parent_name: item.parent_name,
       rate_model: item.rate,
-      hierarchies: []
+      hierarchies: [],
     }));
-    const finalRateModel = hierarchyDetails[0].rate_model;
+
     const hierarchyTree = buildHierarchyTree(hierarchyDetails);
-    if (hierarchyTree.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Rate model found but no hierarchies associated!',
-        trace_id: traceId,
-        rate_model: finalRateModel || "No Rate Model Available",
-        hierarchies: [],
-      });
-    }
+    const rateModels = hierarchyDetails.map(h => h.rate_model);
+    const uniqueRateModels = Array.from(new Set(rateModels));
+
+    const finalRateModel = uniqueRateModels.length === 1
+      ? uniqueRateModels[0]
+      : findParentRateModel(hierarchyTree) || "No Rate Model Available";
 
     return reply.status(200).send({
       status_code: 200,
@@ -575,30 +577,42 @@ export const getRateModel = async (
   }
 };
 
+function findParentRateModel(hierarchyTree: Hierarchy[]): string | null {
+  let parentRateModel: string | null = null;
+
+  const traverse = (node: Hierarchy) => {
+    if (node.rate_model) {
+      if (!parentRateModel) {
+        parentRateModel = node.rate_model;
+      }
+    }
+    node.hierarchies.forEach(traverse);
+  };
+
+  hierarchyTree.forEach(traverse);
+  return parentRateModel;
+}
+
 function buildHierarchyTree(hierarchies: Hierarchy[]): Hierarchy[] {
   const map: { [key: string]: Hierarchy } = {};
   const roots: Hierarchy[] = [];
   hierarchies.forEach(hierarchy => {
     map[hierarchy.id] = { ...hierarchy, hierarchies: [] };
   });
-
   hierarchies.forEach(hierarchy => {
     if (hierarchy.parent_hierarchy_id) {
       const parent = map[hierarchy.parent_hierarchy_id];
       if (parent) {
         parent.hierarchies.push(map[hierarchy.id]);
       } else {
-        console.warn(`Parent hierarchy ID ${hierarchy.parent_hierarchy_id} not found. Adding ${hierarchy.id} as root.`);
         roots.push(map[hierarchy.id]);
       }
     } else {
       roots.push(map[hierarchy.id]);
     }
   });
-
   return roots;
 }
-
 
 export const getMasterDataForHeirarchies = async (
   request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,

@@ -99,7 +99,7 @@ export const updateWorkflowMethod = async (request: FastifyRequest, reply: Fasti
     const WorkflowMethodData = request.body as WorkflowMethodData;
     try {
         const data = await WorkflowMethod.findOne({
-            where: { id, is_deleted: false}
+            where: { id, is_deleted: false }
         });
         if (data) {
             await data.update(WorkflowMethodData);
@@ -119,7 +119,7 @@ export const updateWorkflowMethod = async (request: FastifyRequest, reply: Fasti
 
 export const deleteWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { id,  } = request.params as { id: string };
+        const { id, } = request.params as { id: string };
         const data = await WorkflowMethod.findOne({
             where: { id, is_deleted: false },
         });
@@ -145,7 +145,6 @@ export async function getAllWorkflowMethods(
     reply: FastifyReply
 ) {
     try {
-        const params = request.params as WorkflowMethodData;
         const query = request.query as WorkflowMethodData | any;
 
         const page = parseInt(query.page ?? "1");
@@ -168,7 +167,7 @@ export async function getAllWorkflowMethods(
             searchConditions.event_id = query.event_id;
         }
         const { rows: workflow_method, count } = await WorkflowMethod.findAndCountAll({
-            where: { ...query, ...searchConditions, is_deleted: false},
+            where: { ...query, ...searchConditions, is_deleted: false },
             attributes: { exclude: ["program_id"] },
             limit: limit,
             order: [["created_on", "DESC"]],
@@ -189,7 +188,7 @@ export async function getAllWorkflowMethods(
         });
     } catch (error) {
         console.log(error);
-        
+
         reply.status(500).send({
             statusCode: 500,
             message: "Internal Server Error",
@@ -274,12 +273,20 @@ export async function getWorkflowMethodById(request: FastifyRequest, reply: Fast
         reply.status(500).send({ message: 'An Error Occurred While Fetching Workflow Method Data.', error });
     }
 }
+
 export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyReply) {
     try {
-        const { module_id, event_id } = request.params as { module_id: string, event_id: string };
-        const item = await WorkflowMethod.findAll({
-            where: { module_id:"1711799f-710f-4cad-b464-086265bad8ff", event_id:"bfb880d7-cd0f-4871-b0e1-b260754ce9f8" }
-        });
+        const { module } = request.query as { module: string };
+        let item;
+        if (module === 'job') {
+            item = await WorkflowMethod.findAll({
+                where: { module_id: "1711799f-710f-4cad-b464-086265bad8ff", event_id: "bfb880d7-cd0f-4871-b0e1-b260754ce9f8" }
+            })
+        } else {
+            item = await WorkflowMethod.findAll({
+                where: { module_id: "1eceb989-3edc-4db2-9224-f00cddc4b5ea", event_id: "f652903c-3608-453b-bb0c-1d91c39b13f7" }
+            });
+        }
         if (item) {
             reply.status(200).send({
                 statusCode: 200,

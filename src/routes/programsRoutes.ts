@@ -8,9 +8,8 @@ import {
   advancedFilter,
 } from "../controllers/programsController";
 
-
 async function programsRoutes(fastify: FastifyInstance) {
-  fastify.post("/program", saveProgram);
+  fastify.post("/program/", saveProgram);
   fastify.get("/program/get-all", getAllProgram);
   fastify.get("/program/getbyid/:id", getProgramById);
   fastify.put("/program/:id", updateProgramById);

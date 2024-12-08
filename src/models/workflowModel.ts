@@ -131,7 +131,7 @@ Workflow.init(
     },
     {
         sequelize,
-        tableName: "workflow",
+        tableName: "workflow_config",
         timestamps: false,
         hooks: {
             beforeValidate: async (instance) => {

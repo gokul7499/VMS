@@ -33,7 +33,6 @@ import picklistModel from '../models/picklistModel';
 import jobTemplateModel from '../models/job-template.model';
 import foundationalData from '../models/foundationalDataModel';
 
-
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
     const { name, levels } = request.body as WorkflowData;
@@ -91,7 +90,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 flow_type: workflowDataPayload.flow_type,
                 is_deleted: false,
                 program_id,
-                event_id: workflowDataPayload.event_id
+                event_id: workflowDataPayload.event_id,
+                workflow_id: null
             }
         });
         if (grouped) {
@@ -111,7 +111,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 program_id,
                 placement_order: 0,
                 flow_count: 1,
-                type: "parent"
+                type: "parent",
+                workflow_id: null
             });
         }
         for (const level of levels) {
@@ -326,8 +327,6 @@ export const updateReorder = async (
     }
 };
 
-
-
 export async function deleteWorkflow(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
@@ -391,6 +390,9 @@ export async function getAllWorkflows(
         }
         if (query.type) {
             searchConditions.type = query.type;
+        }
+        if (query.flow_type) {
+            searchConditions.flow_type = query.flow_type;
         }
 
         const { rows: workflows, count } = await WorkFlow.findAndCountAll({
@@ -512,7 +514,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             });
         });
 
-        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails] = await Promise.all([
+        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails] = await Promise.all([
             FieldConfigModel.findAll({
                 where: { id: { [Op.in]: Array.from(metaFieldConfigIds) } },
                 attributes: ['id', 'config', 'field_id', 'placement_order'],
@@ -563,6 +565,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(targetValues) } },
                 attributes: ['id', 'template_name']
             }),
+            User.findAll({
+                where: { id: { [Op.in]: Array.from(targetValues) } },
+                attributes: ['id', 'first_name', 'last_name']
+            }),
         ]);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
@@ -609,6 +615,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             acc[item.id] = item;
             return acc;
         }, {});
+        const userMap = userDetails.reduce((acc: any, item: any) => {
+            acc[item.id] = item;
+            return acc;
+        }, {});
         const levelsWithDetails = await Promise.all(
             item.levels.map(async (level: { recipient_types: any[], conditions: any[] }) => {
                 if (Array.isArray(level.recipient_types)) {
@@ -650,7 +660,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
                         if (["Top of Financial Authority Chain", "Financial Authority Chain", "Managerial Chain", "Manager of"].includes(recipientType?.name)) {
                             const specificRecipientType = await RecipientTypeModel.findOne({
-                                where: { name: recipientType?.name, program_id }
+                                where: { name: recipientType?.name }
                             });
 
                             if (specificRecipientType) {
@@ -705,13 +715,13 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                         id: value.id,
                                         name: getName(value)
                                     }));
+                                } else if (input_value) {
+                                    populatedMetaData[fieldConfigId].input_value = [{
+                                        id: input_value.id,
+                                        name: getName(input_value)
+                                    }];
                                 } else {
-                                    populatedMetaData[fieldConfigId].input_value = input_value
-                                        ? input_value.id ? [{
-                                            id: input_value.id,
-                                            name: getName(input_value)
-                                        }] : input_value
-                                        : [];
+                                    populatedMetaData[fieldConfigId].input_value = [];
                                 }
                             } else if (index === 1) {
                                 populatedMetaData[fieldConfigId].input_value = input_val;
@@ -726,7 +736,6 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         };
                     }));
                 }
-
 
                 if (Array.isArray(level.conditions)) {
                     level.conditions = level.conditions.map(condition => {
@@ -756,10 +765,9 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 condition.source_field_meta = {
                                     id: masterDataItem.id,
                                     name: masterDataItem.name
-
                                 };
-                            } delete condition.source_field_meta.selected_item;
-
+                            }
+                            delete condition.source_field_meta.selected_item;
                         }
 
                         const targetMaps = [
@@ -768,6 +776,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             { map: masterDataMap, key: 'masterDataItem' },
                             { map: createOrgItemMap, key: 'createOrgItem' },
                             { map: jobTemplateMap, key: 'jobTemplateItem', nameField: 'template_name' },
+                            { map: userMap, key: 'userItem', username: ['first_name', 'last_name'] },
                         ];
 
                         if (condition.target_field_value?.values) {
@@ -776,32 +785,40 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 : [condition.target_field_value.values];
 
                             condition.target_field_obj = values.flatMap((value: string | number) => {
-                                for (const { map, nameField } of targetMaps) {
+                                for (const { map, nameField, username } of targetMaps) {
                                     const item = map[value];
                                     if (item) {
+                                        if (username && Array.isArray(username)) {
+                                            const fullName = username.map(field => item[field]).filter(Boolean).join(' ');
+                                            return {
+                                                id: item.id ?? item[nameField ?? 'name'],
+                                                name: fullName || item[nameField ?? 'name'],
+                                            };
+                                        }
+
                                         return {
                                             id: item.id ?? item[nameField ?? 'name'],
-                                            name: item[nameField ?? 'name']
+                                            name: item[nameField ?? 'name'],
                                         };
                                     }
                                 }
                                 return {
                                     id: `${value}`,
-                                    name: `${value}`
+                                    name: `${value}`,
                                 };
                             }).filter(Boolean);
                         } else {
                             condition.target_field_obj = null;
                         }
 
-
-
                         return condition;
-                    })
+
+                    });
                 }
                 return level;
             })
         );
+
 
         const workflow = {
             ...item.toJSON(),
@@ -824,7 +841,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
         console.log(error);
         reply.status(500).send({
             statusCode: 500,
-            error: (error as any).message,
+            error: (error).message,
             message: 'An error occurred while fetching workflow data.',
             trace_id
         });
@@ -846,6 +863,7 @@ export async function getChildWorkflows(request: FastifyRequest, reply: FastifyR
             program_id: params.program_id,
             flow_type: params.flow_type,
             is_enabled: query.is_enabled !== undefined ? (query.is_enabled === 'true' ? 1 : 0) : null,
+
             name: query.name ? `%${query.name}%` : null,
         };
 
@@ -901,7 +919,7 @@ export async function getChildWorkflows(request: FastifyRequest, reply: FastifyR
         reply.status(500).send({
             statusCode: 500,
             message: "An error occurred while fetching workflow data.",
-            error: (error as any).message,
+            error: (error).message,
             trace_id
         });
     }

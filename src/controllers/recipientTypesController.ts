@@ -23,7 +23,7 @@ export const createRecipientType = async (request: FastifyRequest, reply: Fastif
 };
 
 export const updateRecipientType = async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string};
+    const { id } = request.params as { id: string };
     const RecipientTypesData = request.body as RecipientTypesData;
     try {
         const data = await RecipientType.findOne({
@@ -73,7 +73,7 @@ export async function getAllRecipientTypes(
     reply: FastifyReply
 ) {
     try {
-        const query:any = request.query as RecipientTypesData;
+        const query: any = request.query;
 
         const page = parseInt(query.page ?? "1");
         const limit = parseInt(query.limit ?? "10");
@@ -89,7 +89,7 @@ export async function getAllRecipientTypes(
             query.is_enabled == "false" ? searchConditions.is_enabled = false : searchConditions.is_enabled = true;
         }
         const { rows: Receipient_type, count } = await RecipientType.findAndCountAll({
-            where: { ...query, ...searchConditions, is_deleted: false},
+            where: { ...query, ...searchConditions, is_deleted: false },
             attributes: { exclude: ["program_id"] },
             limit: limit,
             order: [["name", "ASC"]],
@@ -123,7 +123,7 @@ export async function getRecipientTypes(
     reply: FastifyReply
 ) {
     try {
-        const query:any = request.query as RecipientTypesData;
+        const query: any = request.query;
 
         const page = parseInt(query.page ?? "1");
         const limit = parseInt(query.limit ?? "10");

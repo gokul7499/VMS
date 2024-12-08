@@ -1,4 +1,4 @@
-export default interface foundationalDataInterface {
+export interface FoundationalDataInterface {
     id: string;
     name: string;
     code: string;

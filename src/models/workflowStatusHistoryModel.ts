@@ -75,7 +75,7 @@ WorkflowStatusHistory.init(
     },
     {
         sequelize,
-        tableName: "workflow_status_history",
+        tableName: "workflow_history",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {

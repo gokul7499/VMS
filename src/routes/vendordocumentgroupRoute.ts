@@ -3,7 +3,6 @@ import { createVendordocumentsgroup, deleteVendordocumentsgroup, getVendorDocume
 
 async function vendordocumentsgroup(fastify: FastifyInstance) {
     fastify.post('/vendor-documents-group', createVendordocumentsgroup);
-    // fastify.get('/program/:program_id/vendor-documents-groups', getVendordocumentsgroup);
     fastify.get('/program/:program_id/vendor-documents-group/:id', getVendordocumentsgroupId);
     fastify.put('/program/:program_id/vendor-documents-group/:id', updateVendordocumentsgroup);
     fastify.get('/program/:program_id/vendor-group/:id', getVendorDocumentsGroupByIdAndDoc);

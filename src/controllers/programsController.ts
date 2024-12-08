@@ -13,6 +13,7 @@ import Configuration from "../models/configurationModel";
 import ProgramModule from "../models/programModuleModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { createHierarchy } from "../hooks/afterProgramSave";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -91,6 +92,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         });
 
         await ProgramConfig.bulkCreate(programConfigs);
+        await createHierarchy(item); 
       } catch (error) {
         console.error("Error in async configuration setup:", error);
 

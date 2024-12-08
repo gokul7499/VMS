@@ -1,22 +1,55 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import { Programs } from "./programsModel";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
+import { Programs } from "./programsModel";
+import Workflow from "./workflowModel";
 
-class CostComponentGroup extends Model { }
 
-CostComponentGroup.init(
+class ImporsonateLevel extends Model { }
+
+ImporsonateLevel.init(
     {
         id: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: false,
+        program_id: {
+            type: DataTypes.UUID,
+            references: {
+                model: "programs",
+                key: "id",
+            },
         },
+        workflow_id: {
+            type: DataTypes.UUID,
+            references: {
+                model: "workflow",
+                key: "id",
+            },
+        },
+        resone:{
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        user_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        notes: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        placement_order: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        status: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+      
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
@@ -35,30 +68,14 @@ CostComponentGroup.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
-        program_id: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            references: {
-                model: "programs",
-                key: "id",
-            },
-        },
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
-        },
-        cost_component_ids: {
-            type: DataTypes.JSON,
-            allowNull: true
-        },
-        meta_data: {
-            type: DataTypes.JSON,
-            allowNull: true,
         }
     },
     {
         sequelize,
-        tableName: "cost_component_group",
+        tableName: "imporsonate_level_mapping",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
@@ -72,9 +89,13 @@ CostComponentGroup.init(
 );
 
 sequelize.sync();
-CostComponentGroup.belongsTo(Programs, {
+ImporsonateLevel.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
 
-export default CostComponentGroup;
+ImporsonateLevel.belongsTo(Workflow, {
+    foreignKey: "workflow_id",
+    as: "workflow",
+});
+export default ImporsonateLevel;

@@ -12,7 +12,7 @@ class jobTemplateModel extends Model {
     program_id: any;
     program_industry: any;
     template_name: any;
-    job_submitted_count: number | undefined | 0;
+    job_submitted_count: number | undefined ;
     custom_field_id: any;
 
 }
@@ -69,7 +69,7 @@ jobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: 'industries',
+                model: 'labour_category',
                 key: 'id'
             }
         },
@@ -228,7 +228,7 @@ sequelize.sync();
 
 jobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
 jobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'industries' });
+jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'labour_category' });
 jobTemplateModel.belongsTo(User, { foreignKey: 'user_roles', as: 'user' });
 
 export default jobTemplateModel;

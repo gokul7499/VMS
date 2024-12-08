@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
+import IndustriesModel from "./industriesModel";
 
 class vendorWorkLocationMapping extends Model { }
 
@@ -23,7 +24,7 @@ vendorWorkLocationMapping.init(
         labour_category_id: {
             type: DataTypes.UUID,
             references: {
-                model: "industries",
+                model: "labour_category",
                 key: "id",
             },
             allowNull: true,
@@ -78,6 +79,7 @@ vendorWorkLocationMapping.init(
     }
 );
 
-vendorWorkLocationMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' })
+vendorWorkLocationMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
+vendorWorkLocationMapping.belongsTo(IndustriesModel, { foreignKey: 'labour_category_id', as: 'labour_categorys' })
 
 export default vendorWorkLocationMapping;

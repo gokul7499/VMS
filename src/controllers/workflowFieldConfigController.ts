@@ -74,7 +74,6 @@ export async function getAllWorkflowFieldConfig(
 ) {
   const traceId=generateCustomUUID();
     try {
-        const params = request.params as WorkflowFieldConfigAttributes;
         const query = request.query as WorkflowFieldConfigAttributes | any;
 
         const page = parseInt(query.page ?? "1");

@@ -60,7 +60,4 @@ ProgramModule.init(
 );
 
 sequelize.sync();
-
-// ProgramModule.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
-
 export default ProgramModule;

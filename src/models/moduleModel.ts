@@ -81,6 +81,6 @@ Module.init(
 
 sequelize.sync();
 
-// Module.hasMany(Module, { foreignKey: 'parent_module_id', as: 'Modules' });
+
 
 export { Module };

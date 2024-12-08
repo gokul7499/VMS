@@ -1,4 +1,4 @@
-export interface distScheduleDetail {
+export interface DistScheduleDetailInterface {
     id: string;
     duration: number;
     vendor_distrubution_id:any;

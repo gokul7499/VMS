@@ -1,4 +1,4 @@
-export default interface candidateInterface {
+export default interface CandidateInterface {
     id: string;
     program_id: string;
     avatar: JSON;
@@ -27,5 +27,5 @@ export default interface candidateInterface {
     is_active: boolean;
     is_deleted: boolean;
     birth_date?: number;
-    candidate_source?:string
+    candidate_source?: string
 }
