@@ -2,7 +2,7 @@ import fastify from "fastify";
 import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
-import { checkDatabaseConnection } from "./config/instance";
+import { checkDatabaseConnection, syncDatabase } from "./config/instance";
 import formBodyPlugin from '@fastify/formbody';
 
 dotenv.config();
@@ -30,6 +30,8 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
+
+    await syncDatabase();
 
     app.listen({ port: port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
