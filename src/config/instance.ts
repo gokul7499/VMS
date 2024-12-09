@@ -8,24 +8,9 @@ const sequelize = new Sequelize(
   {
     host: databaseConfig.config.host,
     dialect: 'mysql',
-    dialectOptions: {
-      connectTimeout: 60000 // Increase timeout to 60 seconds
-    }
+    
   }
 );
-
-// const sequelize2 = new Sequelize(
-//   databaseConfig.sourcing.database ?? '',
-//   databaseConfig.sourcing.user ?? '',
-//   databaseConfig.sourcing.password,
-//   {
-//     host: databaseConfig.sourcing.host,
-//     dialect: 'mysql',
-//     dialectOptions: {
-//       connectTimeout: 60000 // Increase timeout to 60 seconds
-//     }
-//   }
-// );
 
 const checkDatabaseConnection = async () => {
   try {
