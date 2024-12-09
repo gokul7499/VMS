@@ -73,4 +73,6 @@ vendorLabourCategoriesModel.belongsTo(IndustriesModel, {
     foreignKey: 'labour_category_id',
     as: 'labour_category'
 });
+vendorLabourCategoriesModel.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
+
 export default vendorLabourCategoriesModel;

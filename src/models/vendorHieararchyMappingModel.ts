@@ -73,5 +73,6 @@ VendorHierarchyMapping.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
+Candidate.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
 
 export default VendorHierarchyMapping;
