@@ -1,5 +1,5 @@
 import { DataTypes, Model } from "sequelize";
-import { sequelize, sequelize2 } from "../config/instance";
+import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "../models/programsModel"
 import countriesModel from "../models/countriesModel";
@@ -335,7 +335,7 @@ Candidate.init(
         }
     },
     {
-        sequelize: sequelize2,
+        sequelize,
         tableName: "candidates",
         timestamps: true,
         hooks: {
