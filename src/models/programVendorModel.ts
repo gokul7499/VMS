@@ -5,8 +5,9 @@ import Tenant from "./tenantModel";
 import { Programs } from "./programsModel";
 import { createVendorWorkLocationMapping, createVendorHierarchyMapping, createVendorLabourCategories } from "../hooks/afterProgramVendorSave"
 import { beforeSave } from "../hooks/timeFormatHook";
+import Tenant from "./tenantModel";
 
-class programVendor extends Model {
+class ProgramVendor extends Model {
     program_id: any;
     vendor_type: any;
     program_industry: any;
@@ -43,7 +44,7 @@ class programVendor extends Model {
     diversity_details: any;
     vendor_id: any;
 }
-programVendor.init(
+ProgramVendor.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -239,17 +240,17 @@ programVendor.init(
 );
 sequelize.sync()
 
-programVendor.belongsTo(Programs, {
+ProgramVendor.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "program",
 });
-programVendor.belongsTo(User, {
+ProgramVendor.belongsTo(User, {
     foreignKey: "user_id",
     as: "user",
 });
-programVendor.belongsTo(Tenant, {
+ProgramVendor.belongsTo(Tenant, {
     foreignKey: "tenant_id",
     as: "tenant",
 });
 
-export { programVendor };
+export { ProgramVendor };

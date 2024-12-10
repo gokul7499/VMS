@@ -2,11 +2,11 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import ProgramModule from './programModuleModel';
 
-class holidayCalendar extends Model {
+class HolidayCalendar extends Model {
     hierarchy_units_ids: any;
     work_locations_ids: any;
 }
-holidayCalendar.init({
+HolidayCalendar.init({
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -83,5 +83,5 @@ holidayCalendar.init({
     tableName: 'holiday_calendar'
 });
 sequelize.sync();
-ProgramModule.belongsTo(ProgramModule, { foreignKey: 'program_id', as: 'programs' });
-export default holidayCalendar;
+HolidayCalendar.belongsTo(ProgramModule, { foreignKey: 'program_id', as: 'programs' });
+export default HolidayCalendar;

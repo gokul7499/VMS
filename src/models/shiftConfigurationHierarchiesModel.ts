@@ -3,13 +3,13 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { Model, DataTypes } from "sequelize";
 
-class shiftConfigurationHierarchies extends Model {
+class ShiftConfigurationHierarchies extends Model {
   hierarchy_id: any;
   shift_config_id!: string;
   id: any;
 
 }
-shiftConfigurationHierarchies.init({
+ShiftConfigurationHierarchies.init({
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -38,4 +38,4 @@ shiftConfigurationHierarchies.init({
 );
 sequelize.sync();
 
-export default shiftConfigurationHierarchies;
+export default ShiftConfigurationHierarchies;

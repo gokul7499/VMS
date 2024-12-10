@@ -1,14 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import picklistModel from './picklistModel';
 import { Programs } from './programsModel';
 
-class picklistItemModel extends Model {
+class PicklistItemModel extends Model {
   id: any;
-  // Define any instance methods or custom logic here if needed
 }
 
-picklistItemModel.init({
+PicklistItemModel.init({
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -24,11 +22,7 @@ picklistItemModel.init({
   },
   picklist_id: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: picklistModel,
-      key: 'id',
-    },
+    allowNull: true
   },
   label: {
     type: DataTypes.STRING(255),
@@ -91,12 +85,6 @@ picklistItemModel.init({
   timestamps: false,
 });
 
-// Associations should be defined here if not already done
-// PicklistItemModel.belongsTo(picklistModel, {
-//   foreignKey: 'parent_id',
-//   as: 'picklist'
-// });
+PicklistItemModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
 
-picklistItemModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-
-export default picklistItemModel;
+export default PicklistItemModel;

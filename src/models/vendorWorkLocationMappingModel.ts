@@ -81,6 +81,5 @@ vendorWorkLocationMapping.init(
 
 vendorWorkLocationMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 vendorWorkLocationMapping.belongsTo(IndustriesModel, { foreignKey: 'labour_category_id', as: 'labour_categorys' })
-// vendorWorkLocationMapping.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
 
 export default vendorWorkLocationMapping;

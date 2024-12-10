@@ -6,13 +6,13 @@ import { Programs } from './programsModel';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 
-interface picklistCreationAttributes extends Optional<picklistAttributes, 'id'> { }
+interface PicklistCreationAttributes extends Optional<picklistAttributes, 'id'> { }
 
-class picklistModel extends Model<picklistAttributes, picklistCreationAttributes> implements picklistAttributes {
+class PicklistModel extends Model<picklistAttributes, PicklistCreationAttributes> implements picklistAttributes {
   public id!: string;
   public picklist_id!: string | null;
   public name!: string;
-  public program_id!: string;  // This will be replaced by program_id in the future. For now, it's kept for compatibility with existing data.  // TODO: Remove this field when we have program_id in place.  // TODO: Make sure this field is not nullable when program_id is added.  // TODO: Add validation to ensure program_id exists in programs table.  // TODO: Add validation to ensure program_id is a valid UUID
+  public program_id!: string;  
   public description!: string | null;
   public is_enabled!: boolean;
   public is_deleted!: boolean;
@@ -32,7 +32,7 @@ class picklistModel extends Model<picklistAttributes, picklistCreationAttributes
   }
 }
 
-picklistModel.init({
+PicklistModel.init({
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -118,17 +118,17 @@ picklistModel.init({
 });
 
 // Define the relationship
-picklistModel.hasMany(picklistItemModel, {
+PicklistModel.hasMany(picklistItemModel, {
   foreignKey: 'picklist_id',
   as: 'picklistItems'
 });
 
-picklistItemModel.belongsTo(picklistModel, {
+picklistItemModel.belongsTo(PicklistModel, {
   foreignKey: 'picklist_id',
   as: 'picklist'
 });
 
 sequelize.sync()
 
-picklistModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-export default picklistModel;
+PicklistModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+export default PicklistModel;

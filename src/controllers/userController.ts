@@ -13,7 +13,7 @@ import Language from "../models/languageModel";
 import Tenant from "../models/tenantModel";
 import CountryModel from "../models/countriesModel";
 import candidateModel from "../models/candidateModel";
-import { programVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/programVendorModel";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";
@@ -192,7 +192,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_type: userType }, { transaction });
-        await programVendor.create({ ...user, user_id: user.id }, { transaction });
+        await ProgramVendor.create({ ...user, user_id: user.id }, { transaction });
       } else {
         newUser = await User.create({ ...user, user_type: userType }, { transaction });
       }

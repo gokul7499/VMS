@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import { sequelize } from '../config/instance'; // Import the Sequelize instance
+import { sequelize } from '../config/instance'; 
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 
@@ -8,7 +8,6 @@ class TimeZone extends Model {
   name: any;
 }
 
-// Define the TimeZone model
 TimeZone.init({
   id: {
     type: DataTypes.UUID,
@@ -31,7 +30,7 @@ TimeZone.init({
   utc_offset: {
     type: DataTypes.CHAR(255),
     allowNull: false,
-    defaultValue: '', // Add a default value for utc_offset
+    defaultValue: '', 
   },
   region: {
     type: DataTypes.CHAR(255),
@@ -39,8 +38,8 @@ TimeZone.init({
   },
 }, {
   sequelize,
-  tableName: 'time_zones', // Custom table name
-  timestamps: false, // Disable createdAt and updatedAt fields
+  tableName: 'time_zones',
+  timestamps: false, 
   hooks: {
     beforeValidate: (instance) => {
       convertEmptyStringsToNull(instance);
@@ -51,6 +50,5 @@ TimeZone.init({
   },
 });
 
-// Synchronize the model with the database
 sequelize.sync();
 export default TimeZone;

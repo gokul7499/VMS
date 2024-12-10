@@ -21,7 +21,11 @@ UserMapping.init({
     },
     tenant_id: {
         type: DataTypes.UUID,
-        allowNull: true
+        allowNull: true,
+        references: {
+            model: 'tenant',
+            key: 'id',
+        },
     },
     role_id: {
         type: DataTypes.UUID,
@@ -29,7 +33,11 @@ UserMapping.init({
     },
     user_id: {
         type: DataTypes.UUID,
-        allowNull: true
+        allowNull: true,
+        references: {
+            model: 'user',
+            key: 'id',
+        },
     },
     program_id: {
         type: DataTypes.UUID,

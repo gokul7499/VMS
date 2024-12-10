@@ -1,4 +1,4 @@
-import { programVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/programVendorModel";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { programVendorInterface, programVendorQueryInterface } from "../interfaces/programVendorInterface";
@@ -104,7 +104,7 @@ export async function getProgramVendors(
             ];
         }
 
-        const { rows: program_vendors, count: totalItems } = await programVendor.findAndCountAll(queryOptions);
+        const { rows: program_vendors, count: totalItems } = await ProgramVendor.findAndCountAll(queryOptions);
 
         const countryIds = new Set();
         program_vendors.forEach(vendor => {
@@ -281,7 +281,7 @@ export async function saveProgramVendor(
             entity_id: program_id,
             is_deleted: false
         },
-        programVendor
+        ProgramVendor
     );
     try {
         if (!tenant || !user) {
@@ -311,10 +311,10 @@ export async function saveProgramVendor(
         ]
 
         const tenantData = await Tenant.create({ ...tenant });
-        const programVendors = await programVendor.create({ ...vendor, program_id, id: tenantData.id });
+        const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
         const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: "pending", program_id, vendor_id: programVendors.id });
         await UserMapping.create({ tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
-        await programVendor.update(
+        await ProgramVendor.update(
             { user_id: userData.id, contact },
             { where: { id: programVendors.id, program_id } }
 
@@ -345,7 +345,7 @@ export async function saveProgramVendor(
                 entity_id: program_id,
                 is_deleted: false
             },
-            programVendor
+            ProgramVendor
         );
 
     } catch (error) {
@@ -366,7 +366,7 @@ export async function saveProgramVendor(
                 entity_id: program_id,
                 is_deleted: false
             },
-            programVendor
+            ProgramVendor
         );
         reply.status(500).send({
             message: 'An error occurred while saving ProgramVendor.',
@@ -384,7 +384,7 @@ export const updateProgramVendor = async (
     const programVendorData = request.body as Partial<programVendorInterface>;
 
     try {
-        const existingProgramVendor = await programVendor.findOne({ where: { program_id, id } });
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id } });
 
         if (!existingProgramVendor) {
             return reply.status(200).send({
@@ -462,9 +462,9 @@ export async function deleteProgramVendor(
 ) {
     try {
         const { program_id, id } = request.params;
-        const program_vendor = await programVendor.findOne({ where: { program_id, id } });
+        const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
-            await programVendor.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
+            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
             reply.status(204).send({
                 status_code: 204,
                 message: 'ProgramVendor deleted successfully.',
@@ -491,7 +491,7 @@ export const getProgramVendorById = async (
 ) => {
     const { program_id, id } = request.params;
     try {
-        const vendorData = await sequelize.query<programVendor>(vendorDataQuery, {
+        const vendorData = await sequelize.query<ProgramVendor>(vendorDataQuery, {
             replacements: { id, program_id },
             type: QueryTypes.SELECT
         });
@@ -505,7 +505,7 @@ export const getProgramVendorById = async (
             });
         }
 
-        const programVendor: programVendor = vendorData[0];
+        const programVendor: ProgramVendor = vendorData[0];
 
         return reply.status(200).send({
             status_code: 200,
@@ -605,7 +605,7 @@ export async function updateProgramVendorByUserId(
     const { program_id, user_id } = request.params;
     const programVendorData = request.body as Partial<programVendorInterface>;
     try {
-        const existingProgramVendor = await programVendor.findOne({ where: { program_id, user_id } });
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, user_id } });
 
         if (!existingProgramVendor) {
             return reply.status(200).send({
@@ -630,7 +630,7 @@ export async function updateProgramVendorByUserId(
             }
         }
 
-        const updatedVendor = await programVendor.findOne({ where: { program_id, user_id } });
+        const updatedVendor = await ProgramVendor.findOne({ where: { program_id, user_id } });
 
         reply.status(200).send({
             status_code: 200,

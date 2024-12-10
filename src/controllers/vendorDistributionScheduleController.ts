@@ -6,7 +6,7 @@ import { baseSearch } from "../utility/baseService";
 import DistScheduleDetail from "../models/distScheduleDetailModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { programVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/programVendorModel";
 
 export const createVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -399,7 +399,7 @@ export const getVendorDistributionScheduleByIds = async (
         }
 
         // Step 2: Fetch all program vendors
-        const allProgramVendors = await programVendor.findAll({
+        const allProgramVendors = await ProgramVendor.findAll({
             attributes: ['id', 'program_industry', 'work_locations', 'hierarchies'],
         });
 

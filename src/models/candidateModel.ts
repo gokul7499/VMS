@@ -3,7 +3,8 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "../models/programsModel"
 import countriesModel from "../models/countriesModel";
-import { programVendor } from "./programVendorModel";
+import { ProgramVendor } from "./programVendorModel";
+import Tenant from "./tenantModel";
 class Candidate extends Model {
     id: any;
 }
@@ -179,5 +180,6 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
+Candidate.belongsTo(ProgramVendor, { foreignKey: 'vendor_id', as: 'vendor' });
+Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;

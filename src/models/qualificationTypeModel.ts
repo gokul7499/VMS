@@ -1,12 +1,13 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
+import { Programs } from './programsModel';
 
-class qualificationTypeModel extends Model {
+class QualificationTypeModel extends Model {
   id: any;
   name: any;
 }
 
-qualificationTypeModel.init({
+QualificationTypeModel.init({
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -68,4 +69,4 @@ qualificationTypeModel.init({
   timestamps: false,
 });
 
-export default qualificationTypeModel;
+export default QualificationTypeModel;

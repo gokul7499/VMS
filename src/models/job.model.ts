@@ -3,9 +3,8 @@ import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
 import jobTemplateModel from "./job-template.model";
 import WorkLocationModel from "./workLocationModel";
-import qualificationTypeModel from "./qualificationTypeModel";
 import userModel from "./userModel";
-class jobModel extends Model {
+class JobModel extends Model {
     id: any;
     work_location_id: any;
     hierarchy_ids: any;
@@ -17,7 +16,7 @@ class jobModel extends Model {
     hierarchies: any;
 }
 
-jobModel.init(
+JobModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -222,13 +221,13 @@ jobModel.init(
 );
 
 sequelize.sync()
-jobModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobModel.belongsTo(jobTemplateModel, { foreignKey: 'job_template_id', as: 'job_templates' });
-jobModel.belongsTo(WorkLocationModel, { foreignKey: 'work_location_id', as: 'work_location' });
-jobModel.belongsTo(userModel, {
+JobModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+JobModel.belongsTo(jobTemplateModel, { foreignKey: 'job_template_id', as: 'job_templates' });
+JobModel.belongsTo(WorkLocationModel, { foreignKey: 'work_location_id', as: 'work_location' });
+JobModel.belongsTo(userModel, {
     foreignKey: 'job_manager_id',
     as: 'jobManager'
 });
 
 
-export default jobModel;
+export default JobModel;

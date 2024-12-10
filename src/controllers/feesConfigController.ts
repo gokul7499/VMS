@@ -9,7 +9,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, Sequelize } from 'sequelize';
 import IndustriesModel from '../models/industriesModel';
-import { programVendor } from '../models/programVendorModel';
+import { ProgramVendor } from '../models/programVendorModel';
 const baseService = new BaseService(feesConfiguration);
 
 export async function createFeesConfiguration(
@@ -160,7 +160,7 @@ export async function getFeesConfigurationById(
         },
         attributes: ['id', 'name'],
       });
-      const vendors = await programVendor.findAll({
+      const vendors = await ProgramVendor.findAll({
         where: {
           id: vendorIds
         },
