@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
+// import { programVendor } from "./programVendorModel";
 
 class VendorHierarchyMapping extends Model { }
 
@@ -73,6 +74,5 @@ VendorHierarchyMapping.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
-Candidate.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
 
 export default VendorHierarchyMapping;

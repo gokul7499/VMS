@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import User from "./userModel";
+import Tenant from "./tenantModel";
 import { Programs } from "./programsModel";
 import { createVendorWorkLocationMapping, createVendorHierarchyMapping, createVendorLabourCategories } from "../hooks/afterProgramVendorSave"
 import { beforeSave } from "../hooks/timeFormatHook";
@@ -246,7 +247,7 @@ programVendor.belongsTo(User, {
     foreignKey: "user_id",
     as: "user",
 });
-programVendor.belongsTo(User, {
+programVendor.belongsTo(Tenant, {
     foreignKey: "tenant_id",
     as: "tenant",
 });

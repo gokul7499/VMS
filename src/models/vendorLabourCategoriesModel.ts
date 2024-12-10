@@ -1,6 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
+// import { programVendor } from './programVendorModel';
 import IndustriesModel from './industriesModel';
 
 class vendorLabourCategoriesModel extends Model { }
@@ -73,6 +74,6 @@ vendorLabourCategoriesModel.belongsTo(IndustriesModel, {
     foreignKey: 'labour_category_id',
     as: 'labour_category'
 });
-vendorLabourCategoriesModel.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
+// vendorLabourCategoriesModel.belongsTo(programVendor, { foreignKey: 'vendor_id', as: 'vendor' });
 
 export default vendorLabourCategoriesModel;
