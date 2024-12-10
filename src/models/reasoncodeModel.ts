@@ -6,14 +6,14 @@ import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Module } from './moduleModel';
 import Event from './eventModel';
 
-class reasoncodeModel extends Model {
+class ReasoncodeModel extends Model {
     id: any;
     program_id: any;
     module_id: any;
     event_id: any;
 }
 
-reasoncodeModel.init(
+ReasoncodeModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -97,8 +97,8 @@ reasoncodeModel.init(
 );
 
 sequelize.sync();
-reasoncodeModel.belongsTo(Programs, { foreignKey: 'program_id' });
-reasoncodeModel.belongsTo(Module, { foreignKey: 'module_id', as: 'module' });
-reasoncodeModel.belongsTo(Event, { foreignKey: 'event_id', as: 'supporting_text_event' });
+ReasoncodeModel.belongsTo(Programs, { foreignKey: 'program_id' });
+ReasoncodeModel.belongsTo(Module, { foreignKey: 'module_id', as: 'module' });
+ReasoncodeModel.belongsTo(Event, { foreignKey: 'event_id', as: 'supporting_text_event' });
 
-export default reasoncodeModel;
+export default ReasoncodeModel;

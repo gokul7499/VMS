@@ -81,6 +81,10 @@ FoundationalData.init({
     manager_id: {
         type: DataTypes.UUID,
         allowNull: true,
+        references: {
+            model: 'tenant',
+            key: 'id',
+        },
     },
     depended_fields: {
         type: DataTypes.JSON,

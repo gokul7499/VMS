@@ -80,7 +80,5 @@ Module.init(
 );
 
 sequelize.sync();
-
-
-
+Module.belongsTo(Module, { foreignKey: 'parent_module_id', as: 'modules' });
 export { Module };

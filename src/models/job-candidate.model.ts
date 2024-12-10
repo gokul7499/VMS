@@ -3,11 +3,11 @@ import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
 import jobModel from "./job.model";
 
-class jobCandidateModel extends Model {
+class JobCandidateModel extends Model {
   vendor: any;
 }
 
-jobCandidateModel.init(
+JobCandidateModel.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -100,6 +100,6 @@ jobCandidateModel.init(
 );
 
 sequelize.sync()
-jobCandidateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobCandidateModel.belongsTo(jobModel, { foreignKey: 'job_id', as: 'jobs' });
-export default jobCandidateModel;
+JobCandidateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+JobCandidateModel.belongsTo(jobModel, { foreignKey: 'job_id', as: 'jobs' });
+export default JobCandidateModel;

@@ -4,7 +4,6 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 
-
 class Tenant extends Model {
   password_policy: any;
   id: any;
@@ -100,7 +99,7 @@ Tenant.init({
 }, {
   sequelize,
   tableName: 'tenant',
-  timestamps: false, // Disable createdAt and updatedAt fields
+  timestamps: false, 
   hooks: {
     beforeValidate: (instance) => {
       convertEmptyStringsToNull(instance);
@@ -111,7 +110,5 @@ Tenant.init({
     },
   },
 });
-
-
 
 export default Tenant;

@@ -3,10 +3,10 @@ import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import CountryModel from "./countriesModel";
-class stateModel extends Model {
+class StateModel extends Model {
     id: any;
 }
-stateModel.init({
+StateModel.init({
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -75,5 +75,5 @@ stateModel.init({
     });
 
 sequelize.sync();
-stateModel.belongsTo(CountryModel, { foreignKey: 'country_id', as: 'countries' });
-export default stateModel;
+StateModel.belongsTo(CountryModel, { foreignKey: 'country_id', as: 'countries' });
+export default StateModel;

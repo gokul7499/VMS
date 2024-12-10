@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
+import VendorDistributionSchedule from './vendorDistributionScheduleModel';
 
 class DistScheduleDetail extends Model {
     id: any;
@@ -69,5 +70,5 @@ DistScheduleDetail.init({
     modelName: 'dist_schedule_detail',
     timestamps: false,
 });
-
+DistScheduleDetail.belongsTo(VendorDistributionSchedule, { foreignKey: 'vendor_distrubution_id', as: 'vendor_distrubution' });
 export default DistScheduleDetail;

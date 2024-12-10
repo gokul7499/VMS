@@ -79,7 +79,6 @@ CountyModel.init({
 
 sequelize.sync();
 
-CountyModel.belongsTo(stateModel, { foreignKey: 'state_id' });
-
+CountyModel.belongsTo(stateModel, { foreignKey: 'state_id',as:'state' });
 
 export default CountyModel;

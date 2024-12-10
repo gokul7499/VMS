@@ -6,7 +6,7 @@ import { baseSearch } from "../utility/baseService";
 import countriesModel from "../models/countriesModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { programVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/programVendorModel";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { sequelize } from "../config/instance";
@@ -201,7 +201,7 @@ export async function getAllCandidate(
 
         const includeClause = [
             {
-                model: programVendor,
+                model: ProgramVendor,
                 as: 'vendor',
                 attributes: ['id', 'vendor_name'],
                 where: vendor_name ? { vendor_name: { [Op.like]: `%${vendor_name}%` } } : undefined
@@ -283,7 +283,7 @@ export async function getCandidateByIdAndProgramId(
             },
             include: [
                 {
-                    model: programVendor,
+                    model: ProgramVendor,
                     as: 'vendor',
                     attributes: ['id', 'vendor_name'],
                 },

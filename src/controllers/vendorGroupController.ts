@@ -7,7 +7,7 @@ import { baseSearch } from '../utility/baseService';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import VendorGroup from '../models/vendorGroupModel';
-import { programVendor } from '../models/programVendorModel';
+import { ProgramVendor } from '../models/programVendorModel';
 
 export const createVendorGroup = async (
   request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -73,7 +73,7 @@ export const createVendorGroup = async (
     const vendorIdsToUpdate = vendorGroup.vendors.filter((id:any) => id); 
 
     if (vendorIdsToUpdate.length > 0) {
-      await programVendor.update(
+      await ProgramVendor.update(
         { vendor_group_id: createdVendorGroup.id },
         { where: { id: vendorIdsToUpdate, program_id } }
       );
@@ -152,7 +152,7 @@ const traceId= generateCustomUUID();
             where: { id, program_id, is_deleted: false },
             include: [
                 {
-                    model: programVendor,
+                    model: ProgramVendor,
                     as: 'program_vendor',
                     attributes: ['id', 'vendor_name'],
                 },
@@ -167,7 +167,7 @@ const traceId= generateCustomUUID();
             });
         }
         const vendorIds = vendorGroup.vendors || [];
-        const detailedVendors = await programVendor.findAll({
+        const detailedVendors = await ProgramVendor.findAll({
             where: { id: vendorIds },
             attributes: ['id', 'vendor_name'],
         });

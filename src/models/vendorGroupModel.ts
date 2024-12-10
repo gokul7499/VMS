@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { programVendor } from './programVendorModel';
+import { ProgramVendor } from './programVendorModel';
 import { vendorGroupInterface } from '../interfaces/vendorGroupInterface';
 import { Json } from 'sequelize/types/utils';
 
@@ -104,7 +104,7 @@ VendorGroup.belongsTo(Programs, {
   as: 'programs',
 });
 
-VendorGroup.belongsToMany(programVendor, {
+VendorGroup.belongsToMany(ProgramVendor, {
   through: "vendor_groups_mapping",
   as: "program_vendor",
   foreignKey: "program_id",
