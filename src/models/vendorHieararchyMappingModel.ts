@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
+// import { programVendor } from "./programVendorModel";
 
 class VendorHierarchyMapping extends Model { }
 
