@@ -5,7 +5,7 @@ import Tenant from "./tenantModel";
 import { Programs } from "./programsModel";
 import { createVendorWorkLocationMapping, createVendorHierarchyMapping, createVendorLabourCategories } from "../hooks/afterProgramVendorSave"
 import { beforeSave } from "../hooks/timeFormatHook";
-import Tenant from "./tenantModel";
+
 
 class ProgramVendor extends Model {
     program_id: any;
