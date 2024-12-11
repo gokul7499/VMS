@@ -69,42 +69,37 @@ import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
-  // app.register(shiftConfigurationHierarchiesRoutes, { prefix: `${basePrefix}` });
-  // app.register(globalConfigRoutes, { prefix: `${basePrefix}` });
-  app.register(programsRoutes, { prefix: `${basePrefix}` });
-  app.register(tenantRoutes, { prefix: `${basePrefix}` });
-  app.register(currenciesRoutes, { prefix: `${basePrefix}` });
-  app.register(industriesRoutes, { prefix: `${basePrefix}` });
-  // app.register(userRoutes, { prefix: `${basePrefix}` });
   app.register(timeZoneRoutes, { prefix: `${basePrefix}` });
+  app.register(countriesRoutes, { prefix: `${basePrefix}/countries` });
+  app.register(currenciesRoutes, { prefix: `${basePrefix}` });
+  app.register(globalConfigRoutes, { prefix: `${basePrefix}` });
+  app.register(languageRoutes, { prefix: `${basePrefix}` });
+  app.register(moduleRouter, { prefix: `${basePrefix}` });
+  app.register(tenantRoutes, { prefix: `${basePrefix}` });
+  app.register(programsRoutes, { prefix: `${basePrefix}` });
+  app.register(industriesRoutes, { prefix: `${basePrefix}` });
+  app.register(programModuleRoutes, { prefix: `${basePrefix}` });
+  app.register(EventRoutes, { prefix: `${basePrefix}` });
+  app.register(programsConfigRoutes, { prefix: `${basePrefix}` });
+  app.register(supportingTextRoutes, { prefix: `${basePrefix}` });
+  app.register(passwordPolicyRoutes, { prefix: `${basePrefix}` });
+  app.register(hierarchiesRoutes, { prefix: `${basePrefix}` });
+  // app.register(shiftConfigurationHierarchiesRoutes, { prefix: `${basePrefix}` });
+  // app.register(userRoutes, { prefix: `${basePrefix}` });
   // app.register(userMappingRoutes, { prefix: `${basePrefix}` });
   // app.register(configurationRoutes, { prefix: `${basePrefix}/configuration` });
-  // app.register(countriesRoutes, { prefix: `${basePrefix}/countries` });
- 
-  
-  
-  
-
-  // app.register(hierarchiesRoutes, { prefix: `${basePrefix}` });
   // app.register(rateTypeRouter, { prefix: `${basePrefix}` });
-  app.register(moduleRouter, { prefix: `${basePrefix}` });
-  // app.register(programModuleRoutes, { prefix: `${basePrefix}` });
   // app.register(workLocationRoutes, { prefix: `${basePrefix}` });
-  app.register(languageRoutes, { prefix: `${basePrefix}` });
-  // app.register(supportingTextRoutes, { prefix: `${basePrefix}` });
   // app.register(holidayCalendarRoutes, { prefix: `${basePrefix}` });
   // app.register(foundationalDataTypeRoutes, { prefix: `${basePrefix}` });
   // app.register(QualificationsRoutes, { prefix: `${basePrefix}` });
   // app.register(picklistRoutes, { prefix: `${basePrefix}` });
   // app.register(qualificationTypeRouter, { prefix: `${basePrefix}` });
   // app.register(feesConfigurationRoute, { prefix: `${basePrefix}` });
-  // app.register(programsConfigRoutes, { prefix: `${basePrefix}` });
   // app.register(foundationalDataRoutes, { prefix: `${basePrefix}` });
   // app.register(reasoncodeRoute, { prefix: `${basePrefix}` });
   // app.register(customFieldsRoutes, { prefix: `${basePrefix}` });
   // app.register(WorkflowRoutes, { prefix: `${basePrefix}` });
-  app.register(EventRoutes, { prefix: `${basePrefix}` });
-  // app.register(passwordPolicyRoutes, { prefix: `${basePrefix}` });
   // app.register(vendorDistributionScheduleRoutes, { prefix: `${basePrefix}` });
   // app.register(vendorComplianceDocumentRoutes, { prefix: `${basePrefix}` });
   // app.register(customFieldsHierarchieRoutes, { prefix: `${basePrefix}` });
