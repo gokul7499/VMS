@@ -9,5 +9,11 @@ export const databaseConfig = {
     password: "Tg6gL225gF6hvF9V",
     database: "qa_vms_configurator",
     port : 3306   
+  
+    // host: "13.203.44.227",
+    // user: "svms_v4_dev",
+    // password: "fe2w#1Dq1r@i5w4",
+    // database: "test",
+    // port : 3000   
   }
 };

@@ -31,7 +31,7 @@ const start = async () => {
       throw new Error(dbStatus.message);
     }
 
-    app.listen({ port: port, host: "localhost" }, (err) => {
+    app.listen({ port: port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
     });
 
