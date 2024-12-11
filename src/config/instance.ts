@@ -8,6 +8,8 @@ const sequelize = new Sequelize(
   {
     host: databaseConfig.config.host,
     dialect: 'mysql',
+    logging: false,
+    port : 3306
     
   }
 );
