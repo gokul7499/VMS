@@ -134,13 +134,13 @@ export default async function (app: FastifyInstance) {
   app.register(WorkflowDataSourceRoute, { prefix: `${basePrefix}` });
   app.register(WorkflowFieldRoutes, { prefix: `${basePrefix}` });
   app.register(JobWorkFlowRoutes, { prefix: `${basePrefix}` });
-  
-  // app.register(rateTypeRouter, { prefix: `${basePrefix}` });
-  // app.register(rateCardRoutes, { prefix: `${basePrefix}` });
-  // app.register(rateTypeHierarchyRoutes, { prefix: `${basePrefix}` });
-  // app.register(rateTypeJobTemplateRoutes, { prefix: `${basePrefix}` });
-  // app.register(recipientTypeRoute, { prefix: `${basePrefix}` });
-  // app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
-  // app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
-  // app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
+
+  app.register(rateTypeRouter, { prefix: `${basePrefix}` });
+  app.register(rateCardRoutes, { prefix: `${basePrefix}` });
+  app.register(rateTypeHierarchyRoutes, { prefix: `${basePrefix}` });
+  app.register(rateTypeJobTemplateRoutes, { prefix: `${basePrefix}` });
+  app.register(recipientTypeRoute, { prefix: `${basePrefix}` });
+  app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
+  app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
+  app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
 }
