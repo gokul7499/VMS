@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import ModuleData from '../interfaces/moduleInterface';
-import { Module } from '../models/moduleModel';
+import ModuleData from '../interfaces/module.interface';
+import { Module } from '../models/module.model';
 
 
 export async function getModule(

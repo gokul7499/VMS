@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import { Module } from "./moduleModel";
+import { Module } from "./module.model";
 import Event from "./event.model";
 
 class Schema extends Model {
