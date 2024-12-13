@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import  generateCustomUUID  from '../utility/genrateTraceId';
-import HierarchyCustomFieldModel from '../models/HierarchiesCustomFieldModel'; // assuming this is the path of your model
-import { HierarchyCustomFieldInterface } from '../interfaces/HierarchiesCustomFieldInterface'; // assuming interface is defined
+import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model'; // assuming this is the path of your model
+import { HierarchyCustomFieldInterface } from '../interfaces/hierarchies-custom-field.interface'; // assuming interface is defined
 
 export async function createHierarchyCustomField(
   request: FastifyRequest,

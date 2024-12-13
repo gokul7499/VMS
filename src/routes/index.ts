@@ -62,7 +62,7 @@ import fieldOperatorRoutes from "./field-operator-routes";
 import WorkflowFieldConfigRoutes from "./workflowFieldConfigRoute";
 import WorkflowDataSourceRoute from "./workflowDataSourceRoute";
 import WorkflowFieldRoutes from "./workflowFieldRoute";
-import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
+import hierarchyCustomFieldRoutes from "./hierarchies-custom-field.route";
 import JobWorkFlowRoutes from "./jobWorkflowRoutes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
