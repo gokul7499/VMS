@@ -5,7 +5,7 @@ saveCustomFieldsHierarchie,
   updateCustomFieldById,
   deleteCustomField,
   searchCustomFields
-} from '../controllers/customFieldHierarchieController';
+} from '../controllers/custom_field_hierarchie.controller';
 async function customFieldsMasterDataRoutes(fastify: FastifyInstance) {
   fastify.post('/custom-fields-master-data', saveCustomFieldsHierarchie);
   fastify.get('/program/:program_id/custom-fields--master-data/:id', getCustomFieldById);

@@ -3,13 +3,13 @@ import { CustomFields, GetQueryInterface } from '../interfaces/customFieldsInter
 import WorkLocationModel from '../models/workLocationModel';
 import hierarchies from '../models/hierarchiesModel';
 import generateCustomUUID from '../utility/genrateTraceId';
-import customFieldsHierarchie from '../models/customFieldHierarchieModel';
+import customFieldsHierarchie from '../models/custom_field_hierarchie.model';
 import customFieldMasterData from '../models/customFieldMasterDataModel';
 import customFieldLocations from '../models/customFieldLocationModel';
 import CustomField from '../models/customFieldsModel'
 import { saveCustomFieldsMasterData } from './customFieldMasterDataController';
 import { createCustomFieldLocations } from './customFieldLocationController';
-import { saveCustomFieldsHierarchies } from './customFieldHierarchieController';
+import { saveCustomFieldsHierarchies } from './custom_field_hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
