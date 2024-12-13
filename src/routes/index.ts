@@ -18,7 +18,7 @@ import foundationalDataTypeRoutes from "./foundationaldatatypesRoutes";
 import workLocationRoutes from './workLocationRoute';
 import languageRoutes from './languageRoutes';
 import supportingTextRoutes from './supportingTextRoutes';
-import holidayCalendarRoutes from "./holidayCalendarRoutes";
+import holidayCalendarRoutes from "./holiday-calendar-routes";
 import feesConfigurationRoute from "./feesConfigRoute";
 import picklistRoutes from "./picklistRoutes";
 import foundationalDataRoutes from "./foundational-data-routes";
