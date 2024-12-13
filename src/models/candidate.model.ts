@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from "./programsModel"
+import { Programs } from "../models/programsModel"
 import countriesModel from "./countries.model";
 import { ProgramVendor } from "./programVendorModel";
 import Tenant from "./tenantModel";
