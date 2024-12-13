@@ -8,6 +8,7 @@ import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industriesRoute";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
+import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
 import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./programConfigRoutes";
 import programModuleRoutes from "./programModuleRoutes";
@@ -143,4 +144,5 @@ export default async function (app: FastifyInstance) {
   app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
   app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
   app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
+  app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
 }
