@@ -2,8 +2,8 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import FoundationalData from './foundationalDataModel';
-import FoundationalDataTypes from './foundationalDatatypesModel';
+import FoundationalData from './foundational-data.model';
+import FoundationalDataTypes from './foundational-datatypes.model';
 import hierarchies from './hierarchiesModel';
 
 class UserMasterDataModel extends Model {

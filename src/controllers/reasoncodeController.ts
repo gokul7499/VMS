@@ -2,9 +2,9 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import ReasoncodeModel from '../models/reasoncodeModel';
 import { ReasonCode, ReasonCodeResponse } from '../interfaces/reasoncodeInterface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Module } from '../models/moduleModel';
+import { Module } from '../models/module.model';
 import { Op, QueryTypes, Sequelize } from 'sequelize';
-import Event from '../models/eventModel';
+import Event from '../models/event.model';
 import { resonCode } from '../utility/queries';
 import { sequelize } from '../config/instance';
 
