@@ -14,7 +14,7 @@ import programsConfigRoutes from "./program-config.routes";
 import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./module.routes";
 import qualificationTypeRouter from "./qualification-type.routes";
-import rateTypeRouter from "./rateTypeRoutes";
+import rateTypeRouter from "./rate-type.routes";
 import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
 import workLocationRoutes from './workLocationRoute';
 import languageRoutes from './language.routes';
@@ -51,11 +51,11 @@ import resourceCityRoutes from "./city.route";
 import customFieldsMasterDataRoutes from "./custom-field-master-data.routes";
 import recipientTypeRoute from "./recipientTypesRoutes";
 import SchemaRoutes from "./schemaRoutes";
-import RateCardmappingRoutes from "./rateCardMappingRoutes";
+import RateCardmappingRoutes from "./rate-card-mapping.routes";
 import candidateRoutes from "./candidate.routes";
 import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shiftConfigurationRoutes';
-import RateTypeCategoryRoutes from "./rateTypeCategoryRoutes";
+import RateTypeCategoryRoutes from "./rate-type-category.routes";
 import WorkflowApproverRoutes from "./workflowApproversRoutes";
 import shiftConfigurationHierarchiesRoutes from "./shiftConfigurationHierarchiesRoute";
 import vendorComplianceReqDocMappingRoutes from "./vendorComplianceReqDocMappingRoute";
@@ -67,6 +67,8 @@ import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
 import JobWorkFlowRoutes from "./job-workflow.routes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
+import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
+import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -144,5 +146,7 @@ export default async function (app: FastifyInstance) {
   app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
   app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
   app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
+  app.register(timesheetTypeConfigRoutes, { prefix: `${basePrefix}/program/:program_id`});
+  app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
   app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
 }

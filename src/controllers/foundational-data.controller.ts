@@ -5,9 +5,9 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
-import Tenant from "../models/tenantModel";
 import { sequelize } from "../config/instance";
 import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
+import User from "../models/userModel";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
@@ -22,7 +22,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             manager_id?: string;
             code?: string;
             foundational_data_type_id?: string;
-            owner_name?: string;
+            first_name: string;
             page?: string;
             limit?: string;
         };
@@ -52,7 +52,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             manager_id: query.manager_id ?? null,
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,
-            owner_name: query.owner_name ? `%${query.owner_name}%` : null,
+            first_name: query.first_name ? `%${query.first_name}%` : null,
             limit,
             offset
         };
@@ -72,6 +72,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
 
         const foundationalDataArray = foundationalDataResult.map((row: any) => ({
             ...row,
+            slug: row.slug,
             depended_fields: typeof row.depended_fields === 'string' ? JSON.parse(row.depended_fields) : row.depended_fields
         }));
 
@@ -122,9 +123,9 @@ export async function getFoundationalDataById(
             {
                 where: { program_id, id },
                 include: [{
-                    model: Tenant,
+                    model: User,
                     as: 'owner',
-                    attributes: ['id', 'name']
+                    attributes: ['id', 'first_name', 'last_name']
                 }]
             }
         );

@@ -2,6 +2,9 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import FoundationalData from './foundational-data.model';
+import FoundationalDataTypes from './foundational-datatypes.model';
+import hierarchies from './hierarchiesModel';
 
 class UserMasterDataModel extends Model {
     user_id: string | undefined;
@@ -9,6 +12,10 @@ class UserMasterDataModel extends Model {
     foundation_data_ids: any;
     default_master_data: any;
     is_associated: any;
+    default_master_datas: any
+    foundation_data_type: any;
+    hierarchy_id: any;
+    hierarchies: any;
 }
 
 UserMasterDataModel.init({
@@ -23,20 +30,36 @@ UserMasterDataModel.init({
     },
     foundation_data_type_id: {
         type: DataTypes.UUID,
-        allowNull: true
+        allowNull: true,
+        references: {
+            model: 'master_data_type',
+            key: 'id'
+        }
     },
     foundation_data_ids: {
         type: DataTypes.JSON,
         allowNull: true
     },
     default_master_data: {
-        type: DataTypes.STRING,
-        allowNull: true
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'master_data',
+            key: 'id'
+        }
     },
     is_associated: {
         type: DataTypes.BOOLEAN,
         allowNull: true
-    }
+    },
+    hierarchy_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'hierarchies',
+            key: 'id'
+        }
+    },
 }, {
     sequelize,
     tableName: 'user_master_data',
@@ -51,5 +74,8 @@ UserMasterDataModel.init({
 });
 
 sequelize.sync();
+UserMasterDataModel.belongsTo(FoundationalData, { foreignKey: 'default_master_data', as: 'default_master_datas' });
+UserMasterDataModel.belongsTo(FoundationalDataTypes, { foreignKey: 'foundation_data_type_id', as: 'foundation_data_type' });
+UserMasterDataModel.belongsTo(hierarchies, { foreignKey: 'hierarchy_id', as: 'hierarchies' });
 
 export default UserMasterDataModel;
