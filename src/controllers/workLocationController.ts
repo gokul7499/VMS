@@ -4,7 +4,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import TimeZone from "../models/timeZoneModel";
 import Currencies from "../models/currenciesModel";
-import CountryModel from "../models/countriesModel";
+import CountryModel from "../models/countries.model";
 import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

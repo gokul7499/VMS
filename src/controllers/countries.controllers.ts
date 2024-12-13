@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import CountryModel from '../models/countriesModel';
+import CountryModel from '../models/countries.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 
 export const createCountry = async (request: FastifyRequest, reply: FastifyReply) => {

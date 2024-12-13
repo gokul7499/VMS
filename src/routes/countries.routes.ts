@@ -6,7 +6,7 @@ import {
   getCountriesById,
   updateCountry,
   deleteCountry
-} from '../controllers/countriesControllers';
+} from '../controllers/countries.controllers';
 
 export default async function countriesRoutes(fastify: FastifyInstance) {
   fastify.post('/countries/',createCountry);
