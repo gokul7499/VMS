@@ -4,7 +4,7 @@ import globalConfigRoutes from "./globalConfigRoutes";
 import tenantRoutes from "./tenantRoutes";
 import userMappingRoutes from "./usermappingRoutes";
 import hierarchiesRoutes from "./hierarchiesRoutes";
-import currenciesRoutes from "./currenciesRoutes";
+import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industriesRoute";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
