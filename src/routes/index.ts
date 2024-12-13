@@ -3,7 +3,7 @@ import configurationRoutes from "./configuration.routes";
 import globalConfigRoutes from "./global-config.routes";
 import tenantRoutes from "./tenantRoutes";
 import userMappingRoutes from "./usermappingRoutes";
-import hierarchiesRoutes from "./hierarchiesRoutes";
+import hierarchiesRoutes from "./hierarchies.routes";
 import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industries.route";
 import userRoutes from "./userRoutes";

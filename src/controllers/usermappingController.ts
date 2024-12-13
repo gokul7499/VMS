@@ -4,7 +4,7 @@ import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import User from "../models/userModel";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Tenant from "../models/tenantModel";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/workLocationModel";
 import Language from "../models/languageModel";
 import TimeZone from "../models/timeZoneModel";

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CustomFields, GetQueryInterface } from '../interfaces/custom-fields.interface';
 import WorkLocationModel from '../models/workLocationModel';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/customFieldHierarchieModel';
 import customFieldMasterData from '../models/custom-field-master-data.model';
