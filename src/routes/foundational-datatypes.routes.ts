@@ -5,7 +5,7 @@ import {
     deleteFoundationalDataTypes,
     getAllFoundationalDataTypes,
     getFoundationalDataTypeById
-} from '../controllers/foundationaldatatypesController';
+} from '../controllers/foundational_datatypes.controller';
 
 async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
     fastify.post('/foundational-datatypes', async (request, reply) => {

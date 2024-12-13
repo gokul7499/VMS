@@ -18,7 +18,7 @@ import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/userMasterDataModel";
-import FoundationalDataTypes from "../models/foundationalDatatypesModel";
+import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import foundationalData from "../models/foundational-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {

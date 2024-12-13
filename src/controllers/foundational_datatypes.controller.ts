@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import foundationalDataTypes from '../models/foundationalDatatypesModel';
-import { FoundationalDataTypesInterface } from '../interfaces/foundationaldatatypesInterface';
+import foundationalDataTypes from '../models/foundational-datatypes.model';
+import { FoundationalDataTypesInterface } from '../interfaces/foundational-datatypes.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import foundationalDataModel from '../models/foundational-data.model';
