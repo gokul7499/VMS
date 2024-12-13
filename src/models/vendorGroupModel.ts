@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { ProgramVendor } from './programVendorModel';
+import { ProgramVendor } from './program-vendor.model';
 import { vendorGroupInterface } from '../interfaces/vendorGroupInterface';
 import { Json } from 'sequelize/types/utils';
 

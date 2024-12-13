@@ -12,7 +12,7 @@ import {
     updateComplianceDocument,
     getComplianceDocument,
     advanceFilter
-} from "../controllers/programVendorController";
+} from "../controllers/program-vendor.controller";
 
 export default async function programVendorRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/program-vendor', getProgramVendors);  
