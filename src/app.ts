@@ -23,7 +23,7 @@ app.get("/", async (request, reply) => {
 
 app.register(registerRoutes);
 app.register(formBodyPlugin);
-let port = 3002;
+let port = 3306;
 const start = async () => {
   try {
     const dbStatus = await checkDatabaseConnection();

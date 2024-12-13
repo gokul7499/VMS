@@ -7,7 +7,7 @@ import {
   deleteCustomField,
   searchCustomFields,
   updateCustomFieldsIsdisable
-} from '../controllers/customFieldsController';
+} from '../controllers/custom-fields.controller';
 
 async function customFieldsRoutes(fastify: FastifyInstance) {
   fastify.post('/custom-fields', saveCustomFields);
