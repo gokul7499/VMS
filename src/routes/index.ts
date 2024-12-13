@@ -5,7 +5,7 @@ import tenantRoutes from "./tenantRoutes";
 import userMappingRoutes from "./usermappingRoutes";
 import hierarchiesRoutes from "./hierarchiesRoutes";
 import currenciesRoutes from "./currencies.routes";
-import industriesRoutes from "./industriesRoute";
+import industriesRoutes from "./industries.route";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
 import countriesRoutes from "./countries.routes";
