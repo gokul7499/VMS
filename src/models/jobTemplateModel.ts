@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import jobCategoryModel from "./job-category.model";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 import IndustriesModel from "./industriesModel";
 import User from "../models/userModel";
 

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import Tenant from "../models/tenantModel";
-import { Programs } from "../models/programsModel"
+import { Programs } from "../models/programs.model"
 import { TenantData } from "../interfaces/tenantInterface";
 import { createUser } from "../controllers/userController"
 import { Op, Sequelize } from "sequelize";

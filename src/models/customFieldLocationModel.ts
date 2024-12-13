@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
-import { Programs } from '../models/programsModel';
+import { Programs } from './programs.model';
 class CustomFieldLocation extends Model {
     work_location_id: any;
     custom_field_id: any;

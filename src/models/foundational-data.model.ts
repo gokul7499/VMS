@@ -1,7 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import FoundationalDataTypes from './foundationalDatatypesModel';
-import { Programs } from './programsModel';
+import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import Tenant from './tenantModel';

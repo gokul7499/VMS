@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 import WorkflowMethod from "./workflowMethodsModel";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 import { Module } from "./moduleModel";
 import Event from "./eventModel";
 import Workflow from "./workflowModel";

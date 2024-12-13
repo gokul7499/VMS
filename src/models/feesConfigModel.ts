@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 class FeesConfigurationModel extends Model {
   hierarchy_levels!: never[];
   id: any;

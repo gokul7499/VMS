@@ -2,7 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/instance';
 import picklistAttributes from '../interfaces/picklistInterface';
 import picklistItemModel from './picklistItemModel';
-import { Programs } from './programsModel';
+import { Programs } from './programs.model';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 

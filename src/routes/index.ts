@@ -1,4 +1,4 @@
-import programsRoutes from "./programsRoutes";
+import programsRoutes from "./programs.routes";
 import configurationRoutes from "./configuration.routes";
 import globalConfigRoutes from "./globalConfigRoutes";
 import tenantRoutes from "./tenantRoutes";
