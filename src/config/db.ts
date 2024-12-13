@@ -10,10 +10,6 @@ export const databaseConfig = {
     database: "qa_vms_configurator",
     port : 3306   
   
-    // host: "nonprod-v4-mysql-master-nv.c7su4okqw673.us-east-1.rds.amazonaws.com",
-    // user: "oneday",
-    // password: "test#123",
-    // database: "qa_vms_configurator",
-    // port : 3306     
+       
   }
 };
