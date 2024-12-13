@@ -13,7 +13,7 @@ import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./program-config.routes";
 import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./module.routes";
-import qualificationTypeRouter from "./qualificationTypeRoutes";
+import qualificationTypeRouter from "./qualification-type.routes";
 import rateTypeRouter from "./rateTypeRoutes";
 import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
 import workLocationRoutes from './workLocationRoute';
