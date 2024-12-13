@@ -7,7 +7,7 @@ import {
     deleteEvent,
     getEventSchemaById,
     getEvents
-} from '../controllers/eventController';
+} from '../controllers/event.controller';
 
 async function EventRoutes(fastify: FastifyInstance) {
     fastify.post('/supporting-text-event', createEvent);
