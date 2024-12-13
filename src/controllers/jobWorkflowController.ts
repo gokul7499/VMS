@@ -5,7 +5,7 @@ import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/jobWorkfl
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
 import FoundationalDataTypes from '../models/foundationalDatatypesModel';
-import CustomField from '../models/customFieldsModel';
+import CustomField from '../models/custom-fields.model';
 import RecipientType from '../models/recipientTypesModel';
 import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
 import jobModel from '../models/job.model';

@@ -4,7 +4,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Module } from './moduleModel';
-import Event from './eventModel';
+import Event from './event.model';
 
 class ReasoncodeModel extends Model {
     id: any;

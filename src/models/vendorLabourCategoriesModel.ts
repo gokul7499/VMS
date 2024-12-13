@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
 // import { programVendor } from './programVendorModel';
-import IndustriesModel from './industriesModel';
+import IndustriesModel from './industries.model';
 
 class vendorLabourCategoriesModel extends Model { }
 vendorLabourCategoriesModel.init({

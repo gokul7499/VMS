@@ -4,7 +4,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import { supportingTextAttributes } from "../interfaces/supportingTextInterface";
 import { Programs } from "./programs.model";
 import { Module } from "./moduleModel";
-import Event from "./eventModel";
+import Event from "./event.model";
 
 interface SupportingTextCreationAttributes
   extends Optional<supportingTextAttributes, "id"> { }
