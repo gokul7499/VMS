@@ -1,5 +1,5 @@
 import programsRoutes from "./programsRoutes";
-import configurationRoutes from "./configurationRotues";
+import configurationRoutes from "./configuration.routes";
 import globalConfigRoutes from "./globalConfigRoutes";
 import tenantRoutes from "./tenantRoutes";
 import userMappingRoutes from "./usermappingRoutes";
