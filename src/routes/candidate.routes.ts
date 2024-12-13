@@ -6,7 +6,7 @@ import {
     updateCandidateByIdAndProgramId,
     deleteCandidateByIdAndProgramId,
     candidateSearch
-} from '../controllers/candidateController'
+} from '../controllers/candidate.controller'
 
 export default async function candidateRoutes(fastify: FastifyInstance) {
     fastify.post('/candidate', createCandidate)
@@ -14,5 +14,5 @@ export default async function candidateRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/candidate/:id', getCandidateByIdAndProgramId)
     fastify.put('/program/:program_id/candidate/:id', updateCandidateByIdAndProgramId);
     fastify.delete('/program/:program_id/candidate/:id', deleteCandidateByIdAndProgramId);
-    fastify.get('/search',candidateSearch);
+    fastify.get('/search', candidateSearch);
 }

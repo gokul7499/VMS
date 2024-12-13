@@ -51,7 +51,7 @@ import customFieldsMasterDataRoutes from "./customFieldMasterDataRoutes";
 import recipientTypeRoute from "./recipientTypesRoutes";
 import SchemaRoutes from "./schemaRoutes";
 import RateCardmappingRoutes from "./rateCardMappingRoutes";
-import candidateRoutes from "./candidateRoute";
+import candidateRoutes from "./candidate.routes";
 import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shiftConfigurationRoutes';
 import RateTypeCategoryRoutes from "./rateTypeCategoryRoutes";

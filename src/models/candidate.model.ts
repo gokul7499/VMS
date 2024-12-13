@@ -1,8 +1,8 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from "../models/programsModel"
-import countriesModel from "../models/countriesModel";
+import { Programs } from "./programsModel"
+import countriesModel from "./countriesModel";
 import { ProgramVendor } from "./programVendorModel";
 import Tenant from "./tenantModel";
 class Candidate extends Model {
