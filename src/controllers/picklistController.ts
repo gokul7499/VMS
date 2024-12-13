@@ -455,8 +455,23 @@ export const getPicklistAndPicklistItem = async (
   }
 };
 
-export async function getAllPickListByProgramId(request: FastifyRequest<{ Querystring: { name?: string, picklist_id?: string, program_id?: string, label?: string, slug?: string, defined_by: string } }>, reply: FastifyReply) {
-  const { name, picklist_id, program_id, label, slug, defined_by } = request.query;
+
+export async function getAllPickListByProgramId(
+  request: FastifyRequest<{
+    Querystring: {
+      name?: string;
+      picklist_id?: string;
+      program_id?: string;
+      label?: string;
+      slug?: string;
+      defined_by: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const { name, picklist_id, program_id, label, slug, defined_by } =
+    request.query;
+  let picklistData;
   try {
     const whereCondition: any = {};
     if (slug) {
@@ -474,7 +489,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest<{ Querys
     if (picklist_id) {
       whereCondition.id = picklist_id;
     }
-    const picklistData = await picklist_model.findAll({
+    picklistData = await picklist_model.findAll({
       where: whereCondition,
       include: [
         {
@@ -489,7 +504,14 @@ export async function getAllPickListByProgramId(request: FastifyRequest<{ Querys
           required: false,
           attributes: {
             exclude: ["created_on", "modified_on", "created_by", "modified_by"],
-            include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
+            include: [
+              "picklist_id",
+              "label",
+              "value",
+              "is_deleted",
+              "is_enabled",
+              "defined_by",
+            ],
           },
         },
       ],
@@ -501,11 +523,29 @@ export async function getAllPickListByProgramId(request: FastifyRequest<{ Querys
         message: "Pick list data not found",
         picklist_data: [],
       });
-
-
     }
-
-    const responseData = picklistData.map(picklist => ({
+    let responseData;
+    if(slug && slug=="rate type category"){
+      const customOrder = ["Standard", "Over Time", "Double Time", "Holiday", "Weekend", "Other"];
+      const orderMap = Object.fromEntries(customOrder.map((value, index) => [value, index]));
+       responseData = picklistData.map(picklist => ({
+        id: picklist.id,
+        program_id: picklist.program_id,
+        name: picklist.name,
+        is_enabled: picklist.is_enabled,
+        is_deleted: picklist.is_deleted,
+        is_visible: picklist.is_visible,
+        defined_by: picklist.defined_by,
+        created_on: picklist.created_on,
+        picklistItems: picklist.picklistItems.sort(
+          (a: { value: string }, b: { value: string }) =>
+            (orderMap[a.value] ?? Infinity) - (orderMap[b.value] ?? Infinity)
+        ),
+      }));
+      
+    }
+    else{
+    responseData = picklistData.map((picklist) => ({
       id: picklist.id,
       program_id: picklist.program_id,
       name: picklist.name,
@@ -514,28 +554,32 @@ export async function getAllPickListByProgramId(request: FastifyRequest<{ Querys
       is_visible: picklist.is_visible,
       defined_by: picklist.defined_by,
       created_on: picklist.created_on,
-      picklistItems: picklist.picklistItems.map((item: any) => ({
-        picklist_id: item.picklist_id,
-        label: item.label,
-        value: item.value,
-        is_deleted: item.is_deleted,
-        is_enabled: item.is_enabled,
-        defined_by: item.defined_by,
-        meta_data: item.meta_data,
-        slug: item.slug,
-      })).sort((a: { label: string; }, b: { label: any; }) => a.label.localeCompare(b.label)),
-
+      picklistItems: picklist.picklistItems
+        .map((item: any) => ({
+          picklist_id: item.picklist_id,
+          label: item.label,
+          value: item.value,
+          is_deleted: item.is_deleted,
+          is_enabled: item.is_enabled,
+          defined_by: item.defined_by,
+          meta_data: item.meta_data,
+          slug: item.slug,
+        }))
+        .sort((a: { label: string }, b: { label: any }) =>
+          a.label.localeCompare(b.label)
+        ),
     }));
-
+  }
     return reply.status(200).send({
       status_code: 200,
       message: "Pick list data retrieved successfully",
       picklist_data: responseData,
     });
-  } catch (error) {
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
       message: "An error occurred while retrieving pick list data",
+      error: error.message,
     });
   }
 }
