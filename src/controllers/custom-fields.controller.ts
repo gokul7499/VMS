@@ -1,12 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { CustomFields, GetQueryInterface } from '../interfaces/customFieldsInterface';
+import { CustomFields, GetQueryInterface } from '../interfaces/custom-fields.interface';
 import WorkLocationModel from '../models/workLocationModel';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/customFieldHierarchieModel';
 import customFieldMasterData from '../models/custom-field-master-data.model';
 import customFieldLocations from '../models/customFieldLocationModel';
-import CustomField from '../models/customFieldsModel'
+import CustomField from '../models/custom-fields.model'
 import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
 import { createCustomFieldLocations } from './customFieldLocationController';
 import { saveCustomFieldsHierarchies } from './customFieldHierarchieController';

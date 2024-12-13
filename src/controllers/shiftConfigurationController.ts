@@ -4,7 +4,7 @@ import ShiftType from '../models/shiftTypeModel'
 import { ShiftConfigurationAttributes } from "../interfaces/shiftConfigurationInterface";
 import ShiftConfiguration from "../models/shiftConfigurationModel";
 import shiftConfigurationHierarchies from "../models/shiftConfigurationHierarchiesModel";
-import hierarchies from "../models/hierarchiesModel"
+import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
 import shiftTypeConfiguration from "../models/shiftTypeConfigurationModel";

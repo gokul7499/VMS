@@ -3,7 +3,7 @@ import User from "../models/userModel";
 import { UserInterface } from "../interfaces/userInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import UserMapping from "../models/usermappingModel";
 import { sequelize } from "../config/instance";
@@ -19,7 +19,7 @@ import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/userMasterDataModel";
 import FoundationalDataTypes from "../models/foundationalDatatypesModel";
-import foundationalData from "../models/foundationalDataModel";
+import foundationalData from "../models/foundational-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({

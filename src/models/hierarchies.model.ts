@@ -4,7 +4,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import TimeZone from "./timeZoneModel";
 import Currencies from "./currencies.model";
-import { hierarchiesData } from "../interfaces/hierarchiesInterface";
+import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
 }
