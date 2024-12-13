@@ -6,7 +6,7 @@ import {
     deleteCustomFieldLocationById,
     updateCustomFieldLocationById,
     getAllCustomFieldLocation,
-} from '../controllers/customFieldLocationController';
+} from '../controllers/custom-field-location.controller';
 async function customFieldLocationRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/custom_field_location/:id', getCustomFieldLocationById);
     fastify.post('/custom_field_location', createCustomFieldLocation);
