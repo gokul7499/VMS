@@ -6,7 +6,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import Tenant from "../models/tenantModel";
 import hierarchies from "../models/hierarchiesModel";
 import WorkLocationModel from "../models/workLocationModel";
-import Language from "../models/languageModel";
+import Language from "../models/language.model";
 import TimeZone from "../models/timeZoneModel";
 import CountryModel from "../models/countries.model";
 
