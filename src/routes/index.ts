@@ -63,7 +63,7 @@ import WorkflowFieldConfigRoutes from "./workflowFieldConfigRoute";
 import WorkflowDataSourceRoute from "./workflowDataSourceRoute";
 import WorkflowFieldRoutes from "./workflowFieldRoute";
 import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
-import JobWorkFlowRoutes from "./jobWorkflowRoutes";
+import JobWorkFlowRoutes from "./job-workflow.routes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 const basePrefix = "/config/v1/api";
