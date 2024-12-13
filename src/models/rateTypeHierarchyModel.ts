@@ -4,7 +4,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Programs } from './programsModel';
 import { rateType } from './rateTypeModel';
-import hierarchies from './hierarchiesModel';
+import hierarchies from './hierarchies.model';
 
 class RateTypeHierarchy extends Model { }
 

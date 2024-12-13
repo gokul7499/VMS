@@ -11,7 +11,7 @@ import {
     rejectLevel,
     getUpdateWorkflowApprovals,
     imporsonateLevel
-} from '../controllers/jobWorkflowController';
+} from '../controllers/job-workflow.controller';
 
 async function JobWorkFlowRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/job-workflow', getAllJobWorkFlow);

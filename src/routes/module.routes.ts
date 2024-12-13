@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import {
   getModule,
   createModule,
-} from '../controllers/moduleController';
+} from '../controllers/module.controller';
 
 async function moduleRouter(fastify: FastifyInstance) {
   fastify.get('/module', getModule);
