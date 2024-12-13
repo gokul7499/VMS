@@ -4,7 +4,7 @@ import { WorkflowData } from '../interfaces/workflowInterface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
 import { Module } from '../models/moduleModel';
-import EventModel from '../models/eventModel';
+import EventModel from '../models/event.model';
 import WorkflowMethod from '../models/workflowMethodsModel';
 import hierarchies from '../models/hierarchiesModel';
 import { logger } from '../utility/loggerService';
@@ -25,13 +25,13 @@ import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';
 import User from '../models/userModel';
 import FoundationalModel from '../models/foundationalDatatypesModel';
-import CustomField from '../models/customFieldsModel';
+import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundationalDatatypesModel';
 import WorkLocationModel from '../models/workLocationModel';
 import IndustriesModel from '../models/industriesModel';
 import picklistModel from '../models/picklistModel';
 import jobTemplateModel from '../models/job-template.model';
-import foundationalData from '../models/foundationalDataModel';
+import foundationalData from '../models/foundational-data.model';
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
