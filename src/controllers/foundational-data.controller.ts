@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import foundationalData from "../models/foundationalDataModel";
-import { FoundationalDataInterface } from "../interfaces/foundationalDataInterface";
+import foundationalData from "../models/foundational-data.model";
+import { FoundationalDataInterface } from "../interfaces/foundational-data.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
