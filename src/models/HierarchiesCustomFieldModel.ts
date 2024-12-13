@@ -1,7 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
-import CustomField from './customFieldsModel';
+import CustomField from './custom-fields.model';
 import hierarchies from './hierarchies.model';
 
 class HierarchyCustomFieldModel extends Model {

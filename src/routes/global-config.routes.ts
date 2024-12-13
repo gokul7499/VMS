@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getGlobalConfig, getGlobalConfigById, createGlobalConfig,updateGlobalConfigFlags, updateGlobalConfig, deleteGlobalConfig,bulkUploadGlobalConfig } from '../controllers/globalConfigController';
+import { getGlobalConfig, getGlobalConfigById, createGlobalConfig,updateGlobalConfigFlags, updateGlobalConfig, deleteGlobalConfig,bulkUploadGlobalConfig } from '../controllers/global-config.controller';
 
 async function globalConfigRoutes(fastify: FastifyInstance) {
     fastify.get('/global-config/get-all', getGlobalConfig);
