@@ -10,7 +10,7 @@ import { logger } from '../utility/loggerService';
 import { UserInterface } from "../interfaces/userInterface";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import { decodeToken } from '../middlewares/verifyToken';
-import CountryModel from "../models/countriesModel";
+import CountryModel from "../models/countries.model";
 
 export async function getTenants(
     request: FastifyRequest<{ Querystring: TenantData }>,

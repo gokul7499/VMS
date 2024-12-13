@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import TimeZone from "./timeZoneModel";
-import Currencies from "./currenciesModel";
+import Currencies from "./currencies.model";
 import { hierarchiesData } from "../interfaces/hierarchiesInterface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;

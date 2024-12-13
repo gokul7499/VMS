@@ -6,7 +6,7 @@ import {
     updateCurrencies,
     deleteCurrencies,
     bulkUploadCurrencies
-} from '../controllers/currenciesController';
+} from '../controllers/currencies.controller';
 
 async function currenciesRoutes(fastify: FastifyInstance) {
     fastify.post('/currencies', createCurrencies);

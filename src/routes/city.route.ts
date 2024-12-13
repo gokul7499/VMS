@@ -5,7 +5,7 @@ import {
     updateCity,
     deleteCity,
     getCityById
-} from "../controllers/cityController";
+} from "../controllers/city.controller";
 
 export default async function resourceCityRoutes(fastify: FastifyInstance) {
     fastify.get("/citys", getCity);
