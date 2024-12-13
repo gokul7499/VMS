@@ -4,11 +4,11 @@ import { FeesConfigurationInterface } from '../interfaces/feesConfigInterface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch, BaseService } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
-import Hierarchy from '../models/hierarchiesModel';
+import Hierarchy from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, Sequelize } from 'sequelize';
-import IndustriesModel from '../models/industriesModel';
+import IndustriesModel from '../models/industries.model';
 import { ProgramVendor } from '../models/programVendorModel';
 const baseService = new BaseService(feesConfiguration);
 

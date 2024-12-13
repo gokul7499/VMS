@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { getHolidayCalendar, getHolidayCalendarById, createHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar } from "../controllers/holidayCalendarController"
+import { getHolidayCalendar, getHolidayCalendarById, createHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar } from "../controllers/holiday-calendar.controller"
 
 async function holidayCalendarRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/holiday-calendar', getHolidayCalendar);

@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import {
     getHierarchiesById, createHierarchies, updateHierarchies, deleteHierarchies, advancedSearchHierarchies, searchHierarchies,
     getHierarchiesByProgram, getHierarchies, getRateModel, getMasterDataForHeirarchies
-} from '../controllers/hierarchiesController';
+} from '../controllers/hierarchies.controller';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/hierarchies/:id', getHierarchiesById);

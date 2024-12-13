@@ -1,18 +1,18 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import JobWorkFlowModel from '../models/jobWorkflowModel';
+import JobWorkFlowModel from '../models/job-workflow.model';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/jobWorkflowInterface';
+import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
 import FoundationalDataTypes from '../models/foundationalDatatypesModel';
-import CustomField from '../models/customFieldsModel';
+import CustomField from '../models/custom-fields.model';
 import RecipientType from '../models/recipientTypesModel';
 import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
 import jobModel from '../models/job.model';
 import workflowLevelReplace from '../models/workflowLevelReplaceModel'
 import UserMapping from '../models/usermappingModel';
 import User from '../models/userModel';
-import FoundationalData from '../models/foundationalDataModel';
+import FoundationalData from '../models/foundational-data.model';
 import { levels } from 'pino';
 
 

@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { hierarchiesData } from '../interfaces/hierarchiesInterface';
+import { hierarchiesData } from '../interfaces/hierarchies.interface';
 import { baseSearch, advanceSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
-import HierarchiesModel from '../models/hierarchiesModel';
+import HierarchiesModel from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
