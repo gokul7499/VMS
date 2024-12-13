@@ -5,7 +5,7 @@ import {
     deleteRateTypeCategory,
     getAllRateTypeCategory,
     getRateTypeCategoryById
-} from '../controllers/rateTypeCategoryController';
+} from '../controllers/rate-type-category.controller';
 
 async function RateTypeCategoryRoutes(fastify: FastifyInstance) {
     fastify.post('/rate-type-category', async (request, reply) => { await createRateTypeCategory(request, reply); });

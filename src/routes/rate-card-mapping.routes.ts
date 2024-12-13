@@ -5,7 +5,7 @@ import {
     deleteRateCardMapping,
     getAllRateCardMappings,
     getRateCardMappingById
-} from '../controllers/rateCardMappingController';
+} from '../controllers/rate-card-mapping.controller';
 
 async function RateCardmappingRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/rate-card-mapping', async (request, reply) => {
