@@ -13,7 +13,7 @@ import Language from "../models/languageModel";
 import Tenant from "../models/tenantModel";
 import CountryModel from "../models/countries.model";
 import candidateModel from "../models/candidateModel";
-import { ProgramVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";

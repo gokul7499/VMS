@@ -31,7 +31,7 @@ import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./customFieldHierarchieRoutes";
 import customFieldLocationRoutes from "./coustomFieldLocationRoutes";
-import programVendorRoutes from "./programVendorRoutes";
+import programVendorRoutes from "./program-vendor.routes";
 import vendordocumentsgroup from "./vendordocumentgroupRoute";
 import QualificationsRoutes from "./qualificationsRoutes";
 import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
