@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import Configuration from "../models/configurationModel";
-import { ConfigurationAttributes } from "../interfaces/configurationInterface";
+import Configuration from "../models/configuration.model";
+import { ConfigurationAttributes } from "../interfaces/configuration.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

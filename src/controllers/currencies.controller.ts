@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import Currencies from '../models/currenciesModel';
-import currenciesData from '../interfaces/currenciesInterface';
+import Currencies from '../models/currencies.model';
+import currenciesData from '../interfaces/currencies.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
 
