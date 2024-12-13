@@ -3,7 +3,7 @@ import customFieldHierarchie from '../models/customFieldHierarchieModel';
 import { CustomFieldHierarchieInterface } from '../interfaces/customFieldHierarchieInterface';
 import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
-import CustomField from '../models/customFieldsModel';
+import CustomField from '../models/custom-fields.model';
 
 export const saveCustomFieldsHierarchie = async (
   request: FastifyRequest<{}>,
