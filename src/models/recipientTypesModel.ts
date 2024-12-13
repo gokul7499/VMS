@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import Event from "./eventModel";
+import Event from "./event.model";
 import { Module } from "./moduleModel";
 
 class RecipientType extends Model {

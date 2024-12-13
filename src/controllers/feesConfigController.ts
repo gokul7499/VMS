@@ -8,7 +8,7 @@ import Hierarchy from '../models/hierarchiesModel';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, Sequelize } from 'sequelize';
-import IndustriesModel from '../models/industriesModel';
+import IndustriesModel from '../models/industries.model';
 import { ProgramVendor } from '../models/programVendorModel';
 const baseService = new BaseService(feesConfiguration);
 

@@ -19,7 +19,7 @@ import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/userMasterDataModel";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
-import foundationalData from "../models/foundationalDataModel";
+import foundationalData from "../models/foundational-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({

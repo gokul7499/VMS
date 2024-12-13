@@ -3,7 +3,7 @@ import foundationalDataTypes from '../models/foundational-datatypes.model';
 import { FoundationalDataTypesInterface } from '../interfaces/foundational-datatypes.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
-import foundationalDataModel from '../models/foundationalDataModel';
+import foundationalDataModel from '../models/foundational-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
