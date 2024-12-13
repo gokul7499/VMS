@@ -8,7 +8,7 @@ import currenciesRoutes from "./currenciesRoutes";
 import industriesRoutes from "./industriesRoute";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
-import countriesRoutes from "./countriesRoutes";
+import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./programConfigRoutes";
 import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./moduleRoutes";
