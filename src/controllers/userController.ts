@@ -3,7 +3,7 @@ import User from "../models/userModel";
 import { UserInterface } from "../interfaces/userInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import UserMapping from "../models/usermappingModel";
 import { sequelize } from "../config/instance";

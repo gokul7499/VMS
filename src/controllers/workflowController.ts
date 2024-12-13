@@ -6,7 +6,7 @@ import { Op, QueryTypes } from 'sequelize';
 import { Module } from '../models/moduleModel';
 import EventModel from '../models/eventModel';
 import WorkflowMethod from '../models/workflowMethodsModel';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import RecipientTypeModel from '../models/recipientTypesModel';

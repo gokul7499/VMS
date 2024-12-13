@@ -4,7 +4,7 @@ import { FeesConfigurationInterface } from '../interfaces/feesConfigInterface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch, BaseService } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
-import Hierarchy from '../models/hierarchiesModel';
+import Hierarchy from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, Sequelize } from 'sequelize';

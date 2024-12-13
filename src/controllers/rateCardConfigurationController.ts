@@ -13,7 +13,7 @@ import {
     rateTypeConfigQuery,
     existingPairQuery
 } from '../utility/queries';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 
 export async function getAllRateCard(
     request: FastifyRequest<{
