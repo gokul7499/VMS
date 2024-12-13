@@ -214,3 +214,40 @@ export async function getShiftTypesByHierarchies(
         reply.status(500).send({ trace_id: traceId, error: "Internal Server Error" });
     }
 }
+
+export async function getShiftCategories(request: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { program_id } = request.params as { program_id: string };
+        const categories = await ShiftTypeModel.findAll({
+            where: {
+                program_id,
+                is_deleted: false,
+            },
+            attributes: [[sequelize.fn('DISTINCT', sequelize.col('shift_type_category')), 'shift_type_category']]
+        });
+    
+        if (categories) {
+            const categoryValues = categories.map((category: any) => category.shift_type_category);
+            reply.status(200).send({
+                status_code: 200,
+                message: 'Shift categories found successfully!',
+                trace_id: generateCustomUUID(),
+                shift_categories: categoryValues
+            });
+        } else {
+            reply.status(200).send({
+                status_code: 200,
+                trace_id: generateCustomUUID(),
+                shift_categories: [],
+                message: 'Shift categories not found.',
+            });
+        }
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            trace_id: generateCustomUUID(),
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+}

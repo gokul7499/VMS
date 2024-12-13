@@ -7,7 +7,7 @@ import {
   getProgramConfigurations,
   getTransformedConfig,
   getConfigByProgramIdAndTitles
-} from "../controllers/programConfigController";
+} from "../controllers/program-config.controller";
 
 async function programsConfigRoutes(fastify: FastifyInstance) {
   fastify.get("/program/:program_id/program-config/:id", getConfigurationById);

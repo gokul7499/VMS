@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import customFieldHierarchie from '../models/customFieldHierarchieModel';
-import { CustomFieldHierarchieInterface } from '../interfaces/customFieldHierarchieInterface';
+import customFieldHierarchie from '../models/custom-field-hierarchie.model';
+import { CustomFieldHierarchieInterface } from '../interfaces/custom-field-hierarchie.interface';
 import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
 import CustomField from '../models/custom-fields.model';
