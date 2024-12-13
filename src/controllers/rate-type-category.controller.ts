@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import RateTypeCategory from '../models/rateTypeCategoryModel';
-import { RateTypeCategoryData } from '../interfaces/rateTypeCategoryInterface';
+import RateTypeCategory from '../models/rate-type-category.model';
+import { RateTypeCategoryData } from '../interfaces/rate-type-category.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 

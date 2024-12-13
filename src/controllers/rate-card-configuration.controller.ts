@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { RateCardModel } from '../models/rateCardConfigurationModel';
-import { MinMaxRateResult, RateCardInterface } from '../interfaces/rateCardConfigurationInterface';
+import { RateCardModel } from '../models/rate-card-configuration.model';
+import { MinMaxRateResult, RateCardInterface } from '../interfaces/rate-card-configuration.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import RateCardMapping from '../models/RateCardMappingModel';
+import RateCardMapping from '../models/rate-card-mapping.model';
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
 import {
