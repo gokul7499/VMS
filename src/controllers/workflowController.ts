@@ -4,7 +4,7 @@ import { WorkflowData } from '../interfaces/workflowInterface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
 import { Module } from '../models/moduleModel';
-import EventModel from '../models/eventModel';
+import EventModel from '../models/event.model';
 import WorkflowMethod from '../models/workflowMethodsModel';
 import hierarchies from '../models/hierarchiesModel';
 import { logger } from '../utility/loggerService';

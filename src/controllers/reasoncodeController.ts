@@ -4,7 +4,7 @@ import { ReasonCode, ReasonCodeResponse } from '../interfaces/reasoncodeInterfac
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Module } from '../models/moduleModel';
 import { Op, QueryTypes, Sequelize } from 'sequelize';
-import Event from '../models/eventModel';
+import Event from '../models/event.model';
 import { resonCode } from '../utility/queries';
 import { sequelize } from '../config/instance';
 
