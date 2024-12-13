@@ -756,12 +756,13 @@ SELECT
     md.foundational_data_type_id,
     md.depended_fields,
     t.id AS manager_id,
-    t.name AS owner_name,
+    t.first_name AS first_name,
+    t.last_name AS last_name,
     mdt.name AS foundational_data_type_name
 FROM
     master_data AS md
 LEFT JOIN
-    tenant AS t
+    user AS t
     ON md.manager_id = t.id
 LEFT JOIN
     master_data_type AS mdt
@@ -776,7 +777,7 @@ WHERE
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
-    AND (:owner_name IS NULL OR t.name LIKE :owner_name)
+    AND (:first_name IS NULL OR t.first_name LIKE :first_name)
 ORDER BY
     md.created_on DESC
 LIMIT
@@ -788,7 +789,7 @@ SELECT COUNT(DISTINCT md.id) AS total
 FROM
     master_data AS md
 LEFT JOIN
-    tenant AS t
+    user AS t
     ON md.manager_id = t.id
 LEFT JOIN
     master_data_type AS mdt
@@ -803,7 +804,7 @@ WHERE
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
-    AND (:owner_name IS NULL OR t.name LIKE :owner_name)
+    AND (:first_name IS NULL OR t.first_name LIKE :first_name)
 `;
 
 export const existingPairQuery = `
