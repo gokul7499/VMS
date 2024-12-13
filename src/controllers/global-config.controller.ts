@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import GlobalConfigModel from '../models/globalConfigModel';
-import GlobalConfigInterface from '../interfaces/globalConfigInterface';
+import GlobalConfigModel from '../models/global-config.model';
+import GlobalConfigInterface from '../interfaces/global-config.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 
 

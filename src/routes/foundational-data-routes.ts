@@ -5,7 +5,7 @@ import {
     createFoundationalData,
     updateFoundationalData,
     deleteFoundationalData
-} from "../controllers/foundationalDataController";
+} from "../controllers/foundational-data.controller";
 
 async function foundationalDataRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/foundational_data', getFoundationalData);

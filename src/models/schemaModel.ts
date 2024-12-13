@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { Module } from "./module.model";
-import Event from "./eventModel";
+import Event from "./event.model";
 
 class Schema extends Model {
     id?: string;
