@@ -1,4 +1,4 @@
-import CustomField from "../models/customFieldsModel";
+import CustomField from "../models/custom-fields.model";
 
 export interface CustomFieldHierarchieInterface {
   id?: string;

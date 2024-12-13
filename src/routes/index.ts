@@ -1,6 +1,6 @@
 import programsRoutes from "./programsRoutes";
 import configurationRoutes from "./configuration.routes";
-import globalConfigRoutes from "./globalConfigRoutes";
+import globalConfigRoutes from "./global-config.routes";
 import tenantRoutes from "./tenantRoutes";
 import userMappingRoutes from "./usermappingRoutes";
 import hierarchiesRoutes from "./hierarchiesRoutes";
@@ -24,7 +24,7 @@ import feesConfigurationRoute from "./feesConfigRoute";
 import picklistRoutes from "./picklistRoutes";
 import foundationalDataRoutes from "./foundational-data-routes";
 import WorkflowRoutes from "./workflowRoutes";
-import customFieldsRoutes from "./customFieldsRoutes";
+import customFieldsRoutes from "./custom-fields.routes";
 import reasoncodeRoute from "./reasoncodeRoutes";
 import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./passwordPolicyRoutes";
