@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { searchLanguage, deleteLanguage, updateLanguage, createLanguage, getLanguageById, getLanguages, bulkUploadLanguage } from '../controllers/languageController';
+import { searchLanguage, deleteLanguage, updateLanguage, createLanguage, getLanguageById, getLanguages, bulkUploadLanguage } from '../controllers/language.controller';
 
 async function languageRoutes(fastify: FastifyInstance) {
     fastify.post('/language', createLanguage);

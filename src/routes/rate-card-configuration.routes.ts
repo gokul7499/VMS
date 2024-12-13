@@ -8,7 +8,7 @@ import {
     getMinMaxRatesByParams,
     getShiftTypes,
     getRateType,
-} from '../controllers/rateCardConfigurationController';
+} from '../controllers/rate-card-configuration.controller';
 
 async function rateCardRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/rate_config', saveRateCard);

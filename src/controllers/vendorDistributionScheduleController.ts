@@ -6,7 +6,7 @@ import { baseSearch } from "../utility/baseService";
 import DistScheduleDetail from "../models/dist-schedule-detail.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { ProgramVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/program-vendor.model";
 
 export const createVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,

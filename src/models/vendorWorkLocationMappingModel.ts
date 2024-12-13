@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programsModel";
-import IndustriesModel from "./industriesModel";
+import IndustriesModel from "./industries.model";
 
 class vendorWorkLocationMapping extends Model { }
 

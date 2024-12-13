@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from './programsModel';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { Module } from './moduleModel';
+import { Module } from './module.model';
 import Event from './event.model';
 
 class ReasoncodeModel extends Model {

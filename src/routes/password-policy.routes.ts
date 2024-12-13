@@ -5,7 +5,7 @@ import {
     getPasswordPolicyById,
     updatePasswordPolicy,
     deletePasswordPolicy
-} from "../controllers/passwordPolicyController";
+} from "../controllers/password-policy.controller";
 
 export default async function (app: FastifyInstance) {
     app.get('/program/:program_id/password-policy', getPasswordPolicy);

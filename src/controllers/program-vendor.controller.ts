@@ -1,7 +1,7 @@
-import { ProgramVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/program-vendor.model";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { programVendorInterface, programVendorQueryInterface } from "../interfaces/programVendorInterface";
+import { programVendorInterface, programVendorQueryInterface } from "../interfaces/program-vendor.interface";
 import UserMapping from "../models/usermappingModel";
 import Tenant from "../models/tenantModel";
 import vendorMarkupConfig from "../models/vendorMarkupConfigModel";

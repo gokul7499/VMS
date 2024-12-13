@@ -5,7 +5,7 @@ import {
   createQualificationTypes,
   updateQualificationTypes,
   deleteQualificationTypes,
-} from "../controllers/qualificationTypeController";
+} from "../controllers/qualification-type.controller";
 
 async function qualificationTypeRouter(fastify: FastifyInstance) {
   fastify.get('/program/:program_id/qualification-type', getQualificationTypes);

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import qualificationTypeModel from '../models/qualificationTypeModel';
+import qualificationTypeModel from '../models/qualification-type-model';
 import Qualifications from '../models/qualificationsModel';
-import qualificationType from '../interfaces/qualificationTypeInterface';
+import qualificationType from '../interfaces/qualification-type.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { sequelize } from '../config/instance';
