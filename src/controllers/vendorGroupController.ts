@@ -7,7 +7,7 @@ import { baseSearch } from '../utility/baseService';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import VendorGroup from '../models/vendorGroupModel';
-import { ProgramVendor } from '../models/programVendorModel';
+import { ProgramVendor } from '../models/program-vendor.model';
 
 export const createVendorGroup = async (
   request: FastifyRequest<{ Params: { program_id: string } }>,

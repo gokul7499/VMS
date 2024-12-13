@@ -5,7 +5,8 @@ import {
     createShiftType,
     getShiftTypeById,
     getALLShiftType,
-    getShiftTypesByHierarchies
+    getShiftTypesByHierarchies,
+    getShiftCategories
 } from '../controllers/shiftTypeController';
 
 export default async function shiftTypeRoutes(fastify: FastifyInstance) {
@@ -15,4 +16,5 @@ export default async function shiftTypeRoutes(fastify: FastifyInstance) {
     fastify.put('/program/:program_id/shift-type/:id', updateShiftType);
     fastify.delete('/program/:program_id/shift-type/:id', deleteShiftType);
     fastify.get('/program/:program_id/shift-types-by-hierarchies', getShiftTypesByHierarchies);
+    fastify.get('/program/:program_id/shift-category', getShiftCategories);
 }
