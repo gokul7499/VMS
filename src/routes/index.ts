@@ -25,7 +25,7 @@ import foundationalDataRoutes from "./foundationalDataRoutes";
 import WorkflowRoutes from "./workflowRoutes";
 import customFieldsRoutes from "./customFieldsRoutes";
 import reasoncodeRoute from "./reasoncodeRoutes";
-import EventRoutes from "./eventRoutes";
+import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./passwordPolicyRoutes";
 import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
