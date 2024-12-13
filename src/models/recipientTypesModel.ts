@@ -4,7 +4,7 @@ import { Programs } from "./programs.model";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 import Event from "./event.model";
-import { Module } from "./moduleModel";
+import { Module } from "./module.model";
 
 class RecipientType extends Model {
     id: any;

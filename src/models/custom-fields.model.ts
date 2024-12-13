@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from './programs.model';
-import { Module } from './moduleModel';
+import { Module } from './module.model';
 
 
 class CustomField extends Model {

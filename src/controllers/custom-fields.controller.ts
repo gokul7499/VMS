@@ -1,15 +1,15 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CustomFields, GetQueryInterface } from '../interfaces/custom-fields.interface';
 import WorkLocationModel from '../models/workLocationModel';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
-import customFieldsHierarchie from '../models/customFieldHierarchieModel';
+import customFieldsHierarchie from '../models/custom-field-hierarchie.model';
 import customFieldMasterData from '../models/custom-field-master-data.model';
 import customFieldLocations from '../models/customFieldLocationModel';
 import CustomField from '../models/custom-fields.model'
 import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
 import { createCustomFieldLocations } from './customFieldLocationController';
-import { saveCustomFieldsHierarchies } from './customFieldHierarchieController';
+import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
