@@ -4,10 +4,10 @@ import WorkLocationModel from '../models/workLocationModel';
 import hierarchies from '../models/hierarchiesModel';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/customFieldHierarchieModel';
-import customFieldMasterData from '../models/customFieldMasterDataModel';
+import customFieldMasterData from '../models/custom-field-master-data.model';
 import customFieldLocations from '../models/custom.fieldlocation.model';
 import CustomField from '../models/customFieldsModel'
-import { saveCustomFieldsMasterData } from './customFieldMasterDataController';
+import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
 import { createCustomFieldLocations } from './custom.fieldlocation.controller';
 import { saveCustomFieldsHierarchies } from './customFieldHierarchieController';
 import { logger } from '../utility/loggerService';

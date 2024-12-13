@@ -12,7 +12,7 @@ import jobModel from '../models/job.model';
 import workflowLevelReplace from '../models/workflowLevelReplaceModel'
 import UserMapping from '../models/usermappingModel';
 import User from '../models/userModel';
-import FoundationalData from '../models/foundationalDataModel';
+import FoundationalData from '../models/foundational-data.model';
 import { levels } from 'pino';
 
 

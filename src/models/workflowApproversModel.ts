@@ -5,7 +5,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import WorkflowMethod from "./workflowMethodsModel";
 import { Programs } from "./programsModel";
 import { Module } from "./moduleModel";
-import Event from "./eventModel";
+import Event from "./event.model";
 import Workflow from "./workflowModel";
 
 class WorkFlowApprover extends Model { }

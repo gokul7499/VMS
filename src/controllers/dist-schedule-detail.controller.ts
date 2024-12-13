@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import DistScheduleDetail from "../models/distScheduleDetailModel";
-import { DistScheduleDetailInterface } from "../interfaces/distScheduleDetailInterface";
+import DistScheduleDetail from "../models/dist-schedule-detail.model";
+import { DistScheduleDetailInterface } from "../interfaces/dist-schedule-detail.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import { logger } from '../utility/loggerService';

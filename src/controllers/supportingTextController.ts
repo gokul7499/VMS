@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import supportingTextModel from '../models/supportingTextModel';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { supportingTextAttributes } from '../interfaces/supportingTextInterface';
-import Event from '../models/eventModel';
+import Event from '../models/event.model';
 import { Module } from '../models/moduleModel';
 import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';

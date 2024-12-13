@@ -9,7 +9,7 @@ import { baseSearch } from "../utility/baseService";
 import { Op } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";
 import ProgramConfig from "../models/programsConfigModel";
-import Configuration from "../models/configurationModel";
+import Configuration from "../models/configuration.model";
 import ProgramModule from "../models/programModuleModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
