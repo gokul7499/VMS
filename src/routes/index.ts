@@ -47,7 +47,7 @@ import vendorHieararchyMappingRoutes from "./vendorHieararchyMappingRoutes";
 import countyRoutes from "./county.routes";
 import stateRoutes from "./stateRoutes";
 import resourceCityRoutes from "./city.route";
-import customFieldsMasterDataRoutes from "./customFieldMasterDataRoutes";
+import customFieldsMasterDataRoutes from "./custom-field-master-data.routes";
 import recipientTypeRoute from "./recipientTypesRoutes";
 import SchemaRoutes from "./schemaRoutes";
 import RateCardmappingRoutes from "./rateCardMappingRoutes";
