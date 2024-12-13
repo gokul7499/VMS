@@ -55,7 +55,7 @@ import RateCardmappingRoutes from "./rateCardMappingRoutes";
 import candidateRoutes from "./candidateRoute";
 import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shiftConfigurationRoutes';
-import RateTypeCategoryRoutes from "./rateTypeCategoryRoutes";
+import RateTypeCategoryRoutes from "./rate-type-category.routes";
 import WorkflowApproverRoutes from "./workflowApproversRoutes";
 import shiftConfigurationHierarchiesRoutes from "./shiftConfigurationHierarchiesRoute";
 import vendorComplianceReqDocMappingRoutes from "./vendorComplianceReqDocMappingRoute";
