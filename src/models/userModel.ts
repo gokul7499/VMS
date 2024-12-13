@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programsModel';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import CountryModel from './countriesModel';
+import CountryModel from './countries.model';
 import TimeZone from "./timeZoneModel";
 import Language from "./languageModel";
 import hierarchies from "./hierarchiesModel";

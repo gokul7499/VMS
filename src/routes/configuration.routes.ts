@@ -6,7 +6,7 @@ import {
   createConfiguration,
   updateConfiguration,
   deleteConfiguration,
-} from "../controllers/configurationController";
+} from "../controllers/configuration.controller";
 
 async function configurationRoutes(fastify: FastifyInstance) {
 

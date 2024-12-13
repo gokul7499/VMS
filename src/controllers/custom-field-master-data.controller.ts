@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import customFieldMaterData from '../models/customFieldMasterDataModel'
-import { CustomFieldmasterDataInterface } from '../interfaces/customFieldMasterDataInterface'
+import customFieldMaterData from '../models/custom-field-master-data.model'
+import { CustomFieldmasterDataInterface } from '../interfaces/custom-field-master-data.interface'
 import generateCustomUUID from '../utility/genrateTraceId';
 
 export const saveCustomFieldsHierarchie = async (

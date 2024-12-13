@@ -9,7 +9,7 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
 import TimeZone from '../models/timeZoneModel';
-import Currencies from '../models/currenciesModel';
+import Currencies from '../models/currencies.model';
 import HierarchyMasterData from '../models/hierarchyMasterDataModel';
 
 interface HierarchyItem {

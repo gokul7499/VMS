@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "./programsModel"
-import countriesModel from "./countriesModel";
+import countriesModel from "./countries.model";
 import { ProgramVendor } from "./programVendorModel";
 import Tenant from "./tenantModel";
 class Candidate extends Model {
