@@ -30,7 +30,7 @@ import passwordPolicyRoutes from "./passwordPolicyRoutes";
 import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./customFieldHierarchieRoutes";
-import customFieldLocationRoutes from "./coustomFieldLocationRoutes";
+import customFieldLocationRoutes from "./coustom-field-location.routes";
 import programVendorRoutes from "./programVendorRoutes";
 import vendordocumentsgroup from "./vendordocumentgroupRoute";
 import QualificationsRoutes from "./qualificationsRoutes";
