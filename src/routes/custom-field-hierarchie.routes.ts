@@ -6,7 +6,7 @@ saveCustomFieldsHierarchie,
   deleteCustomField,
   searchCustomFields,
   getCustomFieldsByHierarchyIds
-} from '../controllers/custom_field_hierarchie.controller';
+} from '../controllers/custom-field-hierarchie.controller';
 
 async function customFieldsHierarchieRoutes(fastify: FastifyInstance) {
   fastify.post('/custom-fields-hierarchie', saveCustomFieldsHierarchie);
