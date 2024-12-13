@@ -2,8 +2,8 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { Programs } from './programsModel';
-import { Module } from './moduleModel';
+import { Programs } from '../models/programsModel';
+import { Module } from './module.model';
 
 
 class CustomField extends Model {

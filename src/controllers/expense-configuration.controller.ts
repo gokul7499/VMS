@@ -3,7 +3,7 @@ import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import ExpenseType from "../models/expense-type.model";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import { QueryTypes , Op } from 'sequelize';
 import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies } from "../utility/queries";
 import { sequelize } from "../config/instance";
