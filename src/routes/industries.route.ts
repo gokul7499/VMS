@@ -6,7 +6,7 @@ import {
     updateIndustries,
     deleteIndustries,
     bulkUploadIndustries
-} from '../controllers/industriesController';
+} from '../controllers/industries.controller';
 
 async function industriesRoutes(fastify: FastifyInstance) {
     fastify.post('/industries', createIndustries);
