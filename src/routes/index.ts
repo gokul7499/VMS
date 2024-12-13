@@ -14,7 +14,7 @@ import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./moduleRoutes";
 import qualificationTypeRouter from "./qualificationTypeRoutes";
 import rateTypeRouter from "./rateTypeRoutes";
-import foundationalDataTypeRoutes from "./foundationaldatatypesRoutes";
+import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
 import workLocationRoutes from './workLocationRoute';
 import languageRoutes from './languageRoutes';
 import supportingTextRoutes from './supportingTextRoutes';

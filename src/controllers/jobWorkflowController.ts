@@ -4,7 +4,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/jobWorkflowInterface';
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
-import FoundationalDataTypes from '../models/foundationalDatatypesModel';
+import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import CustomField from '../models/customFieldsModel';
 import RecipientType from '../models/recipientTypesModel';
 import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
