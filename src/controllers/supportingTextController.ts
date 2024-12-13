@@ -3,7 +3,7 @@ import supportingTextModel from '../models/supportingTextModel';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { supportingTextAttributes } from '../interfaces/supportingTextInterface';
 import Event from '../models/eventModel';
-import { Module } from '../models/moduleModel';
+import { Module } from '../models/module.model';
 import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

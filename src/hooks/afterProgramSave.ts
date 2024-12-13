@@ -1,6 +1,6 @@
 import { Model, QueryTypes } from 'sequelize';
 import ProgramModule from '../models/programModuleModel';
-import { Module } from '../models/moduleModel';
+import { Module } from '../models/module.model';
 import hierarchies from '../models/hierarchiesModel';
 import generateSlug from '../plugins/slugGenerate';
 import qualificationTypeModel from '../models/qualificationTypeModel'

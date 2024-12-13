@@ -11,7 +11,7 @@ import timeZoneRoutes from "./timeZonesRoutes";
 import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./programConfigRoutes";
 import programModuleRoutes from "./programModuleRoutes";
-import moduleRouter from "./moduleRoutes";
+import moduleRouter from "./module.routes";
 import qualificationTypeRouter from "./qualificationTypeRoutes";
 import rateTypeRouter from "./rateTypeRoutes";
 import foundationalDataTypeRoutes from "./foundationaldatatypesRoutes";
