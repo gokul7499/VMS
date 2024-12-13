@@ -9,5 +9,7 @@ export const databaseConfig = {
     password: "Tg6gL225gF6hvF9V",
     database: "qa_vms_configurator",
     port : 3306   
+  
+       
   }
 };
