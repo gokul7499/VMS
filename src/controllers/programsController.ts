@@ -8,7 +8,7 @@ import Tenant from "../models/tenantModel";
 import { baseSearch } from "../utility/baseService";
 import { Op } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";
-import ProgramConfig from "../models/programsConfigModel";
+import ProgramConfig from "../models/programs-config.model";
 import Configuration from "../models/configuration.model";
 import ProgramModule from "../models/programModuleModel";
 import { logger } from '../utility/loggerService';

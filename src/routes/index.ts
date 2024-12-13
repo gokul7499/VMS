@@ -9,7 +9,7 @@ import industriesRoutes from "./industriesRoute";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
 import countriesRoutes from "./countries.routes";
-import programsConfigRoutes from "./programConfigRoutes";
+import programsConfigRoutes from "./program-config.routes";
 import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./moduleRoutes";
 import qualificationTypeRouter from "./qualificationTypeRoutes";

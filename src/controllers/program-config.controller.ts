@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import ProgramsConfig from "../models/programsConfigModel";
-import { ProgramConfigAttributes } from "../interfaces/programConfigInterface";
+import ProgramsConfig from "../models/programs-config.model";
+import { ProgramConfigAttributes } from "../interfaces/program-config.interface";
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from "sequelize";
 
