@@ -20,7 +20,7 @@ import languageRoutes from './languageRoutes';
 import supportingTextRoutes from './supportingTextRoutes';
 import holidayCalendarRoutes from "./holidayCalendarRoutes";
 import feesConfigurationRoute from "./feesConfigRoute";
-import picklistRoutes from "./picklistRoutes";
+import picklistRoutes from "./picklist.routes";
 import foundationalDataRoutes from "./foundationalDataRoutes";
 import WorkflowRoutes from "./workflowRoutes";
 import customFieldsRoutes from "./customFieldsRoutes";

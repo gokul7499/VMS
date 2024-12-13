@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import picklist_model from '../models/picklistModel';
-import { picklist, PicklistItem } from '../interfaces/picklistInterface';
+import picklist_model from '../models/picklist.model';
+import { picklist, PicklistItem } from '../interfaces/picklist.interface';
 import { Programs } from "../models/programsModel"
 import picklist_item_model from '../models/picklistItemModel';
 import generateCustomUUID from '../utility/genrateTraceId';

@@ -6,7 +6,7 @@ import {
   getPicklistById,
   getPicklistAndPicklistItem,
   getAllPickListByProgramId
-} from '../controllers/picklistController';
+} from '../controllers/picklist.controller';
 
 async function picklistRoutes(fastify: FastifyInstance) {
   fastify.get('/program/:program_id/picklist', getPicklistById);

@@ -29,7 +29,7 @@ import CustomField from '../models/customFieldsModel';
 import FoundationalDataTypes from '../models/foundationalDatatypesModel';
 import WorkLocationModel from '../models/workLocationModel';
 import IndustriesModel from '../models/industriesModel';
-import picklistModel from '../models/picklistModel';
+import picklistModel from '../models/picklist.model';
 import jobTemplateModel from '../models/job-template.model';
 import foundationalData from '../models/foundationalDataModel';
 
