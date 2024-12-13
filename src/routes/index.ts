@@ -66,6 +66,8 @@ import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
 import JobWorkFlowRoutes from "./jobWorkflowRoutes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
+import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
+import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -143,4 +145,6 @@ export default async function (app: FastifyInstance) {
   app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
   app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
   app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
+  app.register(timesheetTypeConfigRoutes, { prefix: `${basePrefix}/program/:program_id`});
+  app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
 }
