@@ -46,7 +46,7 @@ import vendorWorkLocationMappingRoutes from "./vendorWorkLocationMappingRoutes";
 import vendorHieararchyMappingRoutes from "./vendorHieararchyMappingRoutes";
 import countyRoutes from "./countyRoutes";
 import stateRoutes from "./stateRoutes";
-import resourceCityRoutes from "./cityRoute";
+import resourceCityRoutes from "./city.route";
 import customFieldsMasterDataRoutes from "./customFieldMasterDataRoutes";
 import recipientTypeRoute from "./recipientTypesRoutes";
 import SchemaRoutes from "./schemaRoutes";

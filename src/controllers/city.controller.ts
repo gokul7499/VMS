@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import city from "../models/cityModel";
-import { CityData } from "../interfaces/cityInterface";
+import city from "../models/city.model";
+import { CityData } from "../interfaces/city.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { handleError } from "../utility/errorHandler";
 import { sequelize } from "../config/instance";
