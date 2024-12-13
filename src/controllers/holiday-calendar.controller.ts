@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import holidayCalendar from "../models/holidayCalendarModel";
-import { holidayCalendarData } from "../interfaces/holidayCalendarInterface";
+import holidayCalendar from "../models/holiday-calendar.model";
+import { holidayCalendarData } from "../interfaces/holiday-calendar.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
