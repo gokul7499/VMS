@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import Language from '../models/languageModel';
-import { LanguageData } from '../interfaces/languageInterface';
+import Language from '../models/language.model';
+import { LanguageData } from '../interfaces/language.interface';
 import { Op } from 'sequelize';
 import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId'
