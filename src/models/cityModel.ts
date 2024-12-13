@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import stateModel from "./stateModel";
-import countyModel from "./countyModel";
+import countyModel from "./county.model";
 
 class CityModel extends Model {
   [x: string]: any;
