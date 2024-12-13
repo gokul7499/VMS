@@ -31,7 +31,7 @@ import WorkLocationModel from '../models/workLocationModel';
 import IndustriesModel from '../models/industriesModel';
 import picklistModel from '../models/picklistModel';
 import jobTemplateModel from '../models/job-template.model';
-import foundationalData from '../models/foundationalDataModel';
+import foundationalData from '../models/foundational-data.model';
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
