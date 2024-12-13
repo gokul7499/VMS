@@ -4,11 +4,11 @@ import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import User from "../models/userModel";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Tenant from "../models/tenantModel";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/workLocationModel";
-import Language from "../models/languageModel";
+import Language from "../models/language.model";
 import TimeZone from "../models/timeZoneModel";
-import CountryModel from "../models/countriesModel";
+import CountryModel from "../models/countries.model";
 
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
