@@ -25,7 +25,7 @@ import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';
 import User from '../models/userModel';
 import FoundationalModel from '../models/foundationalDatatypesModel';
-import CustomField from '../models/customFieldsModel';
+import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundationalDatatypesModel';
 import WorkLocationModel from '../models/workLocationModel';
 import IndustriesModel from '../models/industriesModel';

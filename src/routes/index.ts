@@ -23,7 +23,7 @@ import feesConfigurationRoute from "./feesConfigRoute";
 import picklistRoutes from "./picklistRoutes";
 import foundationalDataRoutes from "./foundationalDataRoutes";
 import WorkflowRoutes from "./workflowRoutes";
-import customFieldsRoutes from "./customFieldsRoutes";
+import customFieldsRoutes from "./custom-fields.routes";
 import reasoncodeRoute from "./reasoncodeRoutes";
 import EventRoutes from "./eventRoutes";
 import passwordPolicyRoutes from "./passwordPolicyRoutes";
