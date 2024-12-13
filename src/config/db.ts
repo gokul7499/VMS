@@ -10,6 +10,5 @@ export const databaseConfig = {
     database: "qa_vms_configurator",
     port : 3306   
   
-       
   }
 };
