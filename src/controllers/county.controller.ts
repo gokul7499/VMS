@@ -1,6 +1,6 @@
 
-import countyModel from "../models/countyModel";
-import { CountyInterface } from "../interfaces/countyInterface";
+import countyModel from "../models/county.model";
+import { CountyInterface } from "../interfaces/county.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";

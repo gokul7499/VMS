@@ -6,7 +6,7 @@ import {
     updateCountyById,
     deleteCountyById,
     getAllCounty,
-} from "../controllers/countyController";
+} from "../controllers/county.controller";
 async function countyRoutes(fastify: FastifyInstance) {
     fastify.get("/county/:id", getCountyById);
     fastify.post("/county", createCounty);
