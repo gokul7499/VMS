@@ -1,4 +1,4 @@
-import { MinMaxRateQueryParams } from "../interfaces/rateCardConfigurationInterface";
+import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
     endDate: number | undefined) => {

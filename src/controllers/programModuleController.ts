@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import ProgramModule from '../models/programModuleModel';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Module } from '../models/moduleModel';
+import { Module } from '../models/module.model';
 import { Op } from 'sequelize';
 
 export const getProgramModuleById = async (request: FastifyRequest, reply: FastifyReply) => {

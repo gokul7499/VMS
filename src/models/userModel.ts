@@ -5,8 +5,8 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import CountryModel from './countries.model';
 import TimeZone from "./timeZoneModel";
-import Language from "./languageModel";
-import hierarchies from "./hierarchiesModel";
+import Language from "./language.model";
+import hierarchies from "./hierarchies.model";
 import WorkLocationModel from "./workLocationModel";
 
 class User extends Model {

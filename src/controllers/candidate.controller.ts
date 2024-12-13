@@ -6,7 +6,7 @@ import { baseSearch } from "../utility/baseService";
 import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { ProgramVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { sequelize } from "../config/instance";
