@@ -6,7 +6,7 @@ import WorkflowMethod from "./workflowMethodsModel";
 import { Programs } from "./programs.model";
 import { Module } from "./module.model";
 import Event from "./event.model";
-import Workflow from "./workflowModel";
+import Workflow from "./workflow.model";
 
 class WorkFlowApprover extends Model { }
 

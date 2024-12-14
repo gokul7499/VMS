@@ -23,7 +23,7 @@ import holidayCalendarRoutes from "./holiday-calendar-routes";
 import feesConfigurationRoute from "./fees-config.route";
 import picklistRoutes from "./picklist.routes";
 import foundationalDataRoutes from "./foundational-data-routes";
-import WorkflowRoutes from "./workflowRoutes";
+import WorkflowRoutes from "./workflow.routes";
 import customFieldsRoutes from "./custom-fields.routes";
 import reasoncodeRoute from "./reason-code.routes";
 import EventRoutes from "./event.routes";
