@@ -1,10 +1,10 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import FoundationalDataTypes from './foundationalDatatypesModel';
+import FoundationalDataTypes from './foundational-datatypes.model';
 import { Programs } from './programsModel';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import Tenant from './tenantModel';
+import User from './userModel';
 
 class FoundationalData extends Model {
     id: any;
@@ -44,7 +44,7 @@ FoundationalData.init({
     modified_on: {
         type: DataTypes.DOUBLE,
         defaultValue: Date.now(),
-        allowNull:false,
+        allowNull: false,
     },
     created_by: {
         type: DataTypes.UUID,
@@ -105,7 +105,7 @@ FoundationalData.init({
 
 FoundationalData.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
 FoundationalData.belongsTo(FoundationalDataTypes, { foreignKey: 'foundational_data_type_id', as: 'master_data_type' });
-FoundationalData.belongsTo(Tenant, { foreignKey: 'manager_id', as: 'owner' });
+FoundationalData.belongsTo(User, { foreignKey: 'manager_id', as: 'owner' });
 sequelize.sync();
 
 export default FoundationalData;

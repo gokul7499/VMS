@@ -1,6 +1,6 @@
-import passwordPolicyModel from "../models/passwordPolicyModel";
+import passwordPolicyModel from "../models/password-policy.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { passwordPolicyData } from "../interfaces/passwordPolicyInterface";
+import { passwordPolicyData } from "../interfaces/password-policy.interface";
 import { baseSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId";
 

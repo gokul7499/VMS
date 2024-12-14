@@ -8,13 +8,14 @@ import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industries.route";
 import userRoutes from "./userRoutes";
 import timeZoneRoutes from "./timeZonesRoutes";
+import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
 import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./program-config.routes";
 import programModuleRoutes from "./programModuleRoutes";
 import moduleRouter from "./module.routes";
-import qualificationTypeRouter from "./qualificationTypeRoutes";
-import rateTypeRouter from "./rateTypeRoutes";
-import foundationalDataTypeRoutes from "./foundationaldatatypesRoutes";
+import qualificationTypeRouter from "./qualification-type.routes";
+import rateTypeRouter from "./rate-type.routes";
+import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
 import workLocationRoutes from './workLocationRoute';
 import languageRoutes from './language.routes';
 import supportingTextRoutes from './supportingTextRoutes';
@@ -26,7 +27,7 @@ import WorkflowRoutes from "./workflowRoutes";
 import customFieldsRoutes from "./custom-fields.routes";
 import reasoncodeRoute from "./reasoncodeRoutes";
 import EventRoutes from "./event.routes";
-import passwordPolicyRoutes from "./passwordPolicyRoutes";
+import passwordPolicyRoutes from "./password-policy.routes";
 import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./custom-field-hierarchie.routes";
@@ -36,7 +37,7 @@ import vendordocumentsgroup from "./vendordocumentgroupRoute";
 import QualificationsRoutes from "./qualificationsRoutes";
 import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
 import { FastifyInstance } from "fastify";
-import rateCardRoutes from "./rateCardConfigurationRoutes";
+import rateCardRoutes from "./rate-card-configuration.routes";
 import rateTypeHierarchyRoutes from "./rateTypeHierarchyRoutes";
 import rateTypeJobTemplateRoutes from "./rateTypeJobTemplateRoutes";
 import VendorGroupRoutes from "./venodrGroupRoutes";
@@ -50,11 +51,11 @@ import resourceCityRoutes from "./city.route";
 import customFieldsMasterDataRoutes from "./custom-field-master-data.routes";
 import recipientTypeRoute from "./recipientTypesRoutes";
 import SchemaRoutes from "./schemaRoutes";
-import RateCardmappingRoutes from "./rateCardMappingRoutes";
+import RateCardmappingRoutes from "./rate-card-mapping.routes";
 import candidateRoutes from "./candidateRoute";
 import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shiftConfigurationRoutes';
-import RateTypeCategoryRoutes from "./rateTypeCategoryRoutes";
+import RateTypeCategoryRoutes from "./rate-type-category.routes";
 import WorkflowApproverRoutes from "./workflowApproversRoutes";
 import shiftConfigurationHierarchiesRoutes from "./shiftConfigurationHierarchiesRoute";
 import vendorComplianceReqDocMappingRoutes from "./vendorComplianceReqDocMappingRoute";
@@ -71,6 +72,8 @@ import JobWorkFlowRoutes from "./job-workflow.routes";
 >>>>>>> be25787e2516e81595ecd5d69ef6d180f5437bdf
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
+import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
+import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -148,4 +151,7 @@ export default async function (app: FastifyInstance) {
   app.register(RateCardmappingRoutes, { prefix: `${basePrefix}` });
   app.register(shiftTypeRoutes, { prefix: `${basePrefix}` });
   app.register(RateTypeCategoryRoutes, { prefix: `${basePrefix}` });
+  app.register(timesheetTypeConfigRoutes, { prefix: `${basePrefix}/program/:program_id`});
+  app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
+  app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
 }

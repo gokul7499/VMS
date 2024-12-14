@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import RateCardMappingModel from '../models/RateCardMappingModel';
-import { RateCardMappingData } from '../interfaces/rateCardMappingInterdface';
+import RateCardMappingModel from '../models/rate-card-mapping.model';
+import { RateCardMappingData } from '../interfaces/rate-card-mapping.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
