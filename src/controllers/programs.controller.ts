@@ -4,7 +4,7 @@ import {
   CreateProgramData,
   ProgramQuery,
 } from "../interfaces/programs.interface";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import { baseSearch } from "../utility/baseService";
 import { Op } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";

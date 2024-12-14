@@ -3,7 +3,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { programVendorInterface, programVendorQueryInterface } from "../interfaces/program-vendor.interface";
 import UserMapping from "../models/usermappingModel";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import vendorMarkupConfig from "../models/vendorMarkupConfigModel";
 import VendorGroup from "../models/vendorGroupModel";
 import { logger } from '../utility/loggerService';
@@ -13,7 +13,7 @@ import { Op, QueryTypes } from "sequelize";
 import { complianceDocumentCountByVendorId, complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendorComplianceDocumentInterface";
 import VendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
-import VendorComplianceReqDocMappingModel from "../models/vendorComplianceReqDocMappingModel";
+import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
