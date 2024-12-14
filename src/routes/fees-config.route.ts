@@ -8,7 +8,7 @@ import {
     getAllFeesConfigByProgramId,
     advancedSearchFeesConfiguration,
     getFeesConfig
-} from '../controllers/feesConfigController';
+} from '../controllers/fees-config.controller';
 async function feesConfigurationRoute(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/fees/:id', getFeesConfigurationById);
     fastify.post('/program/:program_id/fees', createFeesConfiguration);
