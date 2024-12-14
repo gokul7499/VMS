@@ -3,7 +3,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { programVendorInterface, programVendorQueryInterface } from "../interfaces/program-vendor.interface";
 import UserMapping from "../models/usermappingModel";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import vendorMarkupConfig from "../models/vendorMarkupConfigModel";
 import VendorGroup from "../models/vendorGroupModel";
 import { logger } from '../utility/loggerService';
