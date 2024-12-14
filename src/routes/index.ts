@@ -42,7 +42,7 @@ import rateTypeHierarchyRoutes from "./rate-type-hierarchy.routes";
 import rateTypeJobTemplateRoutes from "./rate-type-job-template.routes";
 import VendorGroupRoutes from "./venodrGroupRoutes";
 import vendorMarkupConfigRoutes from "./vendorMarkupConfigRoutes";
-import vendorLabourCategoryRoutes from "./vendorLabourCategoriesRoutes";
+import vendorLabourCategoryRoutes from "./vendor-labour-categories.routes";
 import vendorWorkLocationMappingRoutes from "./vendorWorkLocationMappingRoutes";
 import vendorHieararchyMappingRoutes from "./vendorHieararchyMappingRoutes";
 import countyRoutes from "./county.routes";
