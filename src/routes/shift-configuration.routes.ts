@@ -5,7 +5,7 @@ import {
     createShiftConfiguration,
     getShiftConfigurationById,
     getAllshiftConfiguration
-} from "../controllers/shiftConfigurationController";
+} from "../controllers/shift-configuration.controller";
 
 export default async function shiftConfigurationRoutes(fastify: FastifyInstance) {
     fastify.post("/shift-configuration", createShiftConfiguration);
