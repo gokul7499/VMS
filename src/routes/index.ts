@@ -7,7 +7,7 @@ import hierarchiesRoutes from "./hierarchies.routes";
 import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industries.route";
 import userRoutes from "./userRoutes";
-import timeZoneRoutes from "./timeZonesRoutes";
+import timeZoneRoutes from "./time-zones.routes";
 import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
 import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./program-config.routes";

@@ -4,7 +4,7 @@ import { Programs } from './programsModel';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import CountryModel from './countries.model';
-import TimeZone from "./timeZoneModel";
+import TimeZone from "./time-zone.model";
 import Language from "./language.model";
 import hierarchies from "./hierarchies.model";
 import WorkLocationModel from "./workLocationModel";
