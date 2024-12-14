@@ -6,7 +6,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import WorkLocationModel from "../models/workLocationModel";
 import { logger } from "../utility/loggerService";
 import { decodeToken } from "../middlewares/verifyToken";
-import VendorComplianceReqDocMappingModel from "../models/vendorComplianceReqDocMappingModel";
+import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 const baseService = new BaseService(VendorComplianceDocumentModel);
 
 const vendorComplianceDocumentService = new BaseService(VendorComplianceDocumentModel);

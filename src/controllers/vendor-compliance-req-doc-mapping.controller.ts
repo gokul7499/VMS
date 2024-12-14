@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import VendorComplianceReqDocMappingModel from "../models/vendorComplianceReqDocMappingModel";
-import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendorComplianceReqDocMappingInterface';
+import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
+import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendor-compliance-req-doc-mapping.interface';
 import { baseSearch } from "../utility/baseService";
 
 export async function createVendorComplianceReqDoc(
