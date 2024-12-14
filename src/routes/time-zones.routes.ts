@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getAllTimeZones, getTimeZoneById, createTimeZone, updateTimeZone, deleteTimeZone, bulkUploadTimeZone} from '../controllers/timeZonesController';
+import { getAllTimeZones, getTimeZoneById, createTimeZone, updateTimeZone, deleteTimeZone, bulkUploadTimeZone} from '../controllers/time-zones.controller';
 
 async function timeZoneRoutes(fastify: FastifyInstance) {
   fastify.get('/time-zone', getAllTimeZones);

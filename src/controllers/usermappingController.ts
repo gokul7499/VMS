@@ -7,7 +7,7 @@ import Tenant from "../models/tenantModel";
 import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/workLocationModel";
 import Language from "../models/language.model";
-import TimeZone from "../models/timeZoneModel";
+import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
