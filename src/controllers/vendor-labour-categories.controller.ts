@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import vendorLabourCategoriesModel from "../models/vendorLabourCategoriesModel";
-import {vendorLabourCategoriesInterface } from '../interfaces/vendorLabourCateInterface'
+import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
+import {vendorLabourCategoriesInterface } from '../interfaces/vendor-labour-categories.interface'
 import { baseSearch } from "../utility/baseService";
 
 export async function createVendorLabourCategories(
