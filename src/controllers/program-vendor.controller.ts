@@ -15,7 +15,7 @@ import { VendorComplianceDocumentInterface } from "../interfaces/vendorComplianc
 import VendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
 import VendorComplianceReqDocMappingModel from "../models/vendorComplianceReqDocMappingModel";
 import VendorDocumentGroupModel from "../models/vendordocumentgroupModel";
-import UserModel from "../models/userModel";
+import UserModel from "../models/user.model";
 interface VendorDetails {
     document_number: any;
     regain_compliance_days: null;

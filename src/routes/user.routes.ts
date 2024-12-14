@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getUser, getUserById,getAllUserIDAndUserId, createUser, updateUser, deleteUser, searchUser ,getUserHierarchiesByProgram,getUserWorkLocationAndTimeZone} from '../controllers/userController';
+import { getUser, getUserById,getAllUserIDAndUserId, createUser, updateUser, deleteUser, searchUser ,getUserHierarchiesByProgram,getUserWorkLocationAndTimeZone} from '../controllers/user.controller';
 
 async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/user/', getUser);

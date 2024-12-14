@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import jobCategoryModel from "./job-category.model";
 import { Programs } from "./programs.model";
 import IndustriesModel from "./industries.model";
-import User from "../models/userModel";
+import User from "./user.model";
 
 class JobTemplateModel extends Model {
     id: any;
