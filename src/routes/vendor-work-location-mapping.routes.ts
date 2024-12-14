@@ -5,7 +5,7 @@ import {
     createVendorWorkLocationMapping,
     updateVendorWorkLocationMapping,
     deleteVendorWorkLocationMapping,
-} from "../controllers/vendorWorkLocationMappingController";
+} from "../controllers/vendor-work-location-mapping.controller";
 
 export default async function vendorWorkLocationMappingRoutes(fastify: FastifyInstance) {
     fastify.get("/program/:program_id/vendor-work-location-mappings", getVendorWorkLocationMappings);

@@ -1,5 +1,5 @@
 import { Model } from "sequelize";
-import vendorWorkLocationMapping from "../models/vendorWorkLocationMappingModel";
+import vendorWorkLocationMapping from "../models/vendor-work-location-mapping.model";
 import VendorHierarchyMapping from "../models/vendorHieararchyMappingModel";
 import vendorLabourCategoriesModel from "../models/vendorLabourCategoriesModel";
 import IndustriesModel from "../models/industries.model";
