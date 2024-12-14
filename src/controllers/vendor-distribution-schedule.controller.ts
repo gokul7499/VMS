@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import vendorDistributionScheduleModel from "../models/vendorDistributionScheduleModel";
-import { updateVendorDistributionScheduleDetail, VendorDistributionSchedule } from "../interfaces/vendorDistributionScheduleInterface"
+import vendorDistributionScheduleModel from "../models/vendor-distribution-schedule.model";
+import { updateVendorDistributionScheduleDetail, VendorDistributionSchedule } from "../interfaces/vendor-distribution-schedule.interface"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import DistScheduleDetail from "../models/dist-schedule-detail.model";
