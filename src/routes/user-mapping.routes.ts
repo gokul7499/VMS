@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { getAllUserMappings, getUserMappingById, createUserMappings, updateUserMappingById, deleteUserMappingById, getUserMappings } from '../controllers/usermappingController';
-import { UserMappingAttributes } from '../interfaces/usermappingInterface'
+import { getAllUserMappings, getUserMappingById, createUserMappings, updateUserMappingById, deleteUserMappingById, getUserMappings } from '../controllers/user-mapping.controller';
+import { UserMappingAttributes } from '../interfaces/user-mapping.interface'
 export async function userMappingRoutes(fastify: FastifyInstance) {
     fastify.get('/usermapping/', getAllUserMappings);
     fastify.get('/usermapping/:id', getUserMappingById);
