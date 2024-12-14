@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import stateModel from "./stateModel";
+import stateModel from "./state.model";
 
 class CountyModel extends Model {
     id: any;
