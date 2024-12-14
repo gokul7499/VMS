@@ -1,7 +1,7 @@
 
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import Tenant from "./tenantModel";
+import Tenant from "./tenant.model";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { createProgramModule, createHierarchy, createQualificationTypes, createRateTypes } from "../hooks/afterProgramSave";

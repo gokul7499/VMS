@@ -4,7 +4,7 @@ import FoundationalDataTypes from './foundational-datatypes.model';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import User from './userModel';
+import User from './user.model';
 
 class FoundationalData extends Model {
     id: any;

@@ -8,7 +8,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
-import TimeZone from '../models/timeZoneModel';
+import TimeZone from '../models/time-zone.model';
 import Currencies from '../models/currencies.model';
 import HierarchyMasterData from '../models/hierarchyMasterDataModel';
 

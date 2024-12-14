@@ -7,7 +7,7 @@ import {
   getShiftConfigurationHierarchiesById,
   postRateTypesByShiftType,
   postRateTypesByShiftTypeSchema
-} from '../controllers/shiftConfigurationHierarchiesController';
+} from '../controllers/shift-configuration-hierarchies.controller';
 
 async function shiftConfigurationHierarchiesRoutes(fastify: FastifyInstance) {
   fastify.post('/shift-hierarchy/shift-configuration-hierarchie', createShiftConfigurationHierarchies);

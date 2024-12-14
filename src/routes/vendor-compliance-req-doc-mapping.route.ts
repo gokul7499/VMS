@@ -6,7 +6,7 @@ import {
     updateVendorComplianceReqDoc,
     deleteVendorComplianceReqDoc
 
-} from '../controllers/vendorComplianceReqDocMappingController';
+} from '../controllers/vendor-compliance-req-doc-mapping.controller';
 
 async function vendorComplianceReqDocMappingRoutes(fastify: FastifyInstance) {
     fastify.post('/vendor_compliance_req_doc', createVendorComplianceReqDoc);

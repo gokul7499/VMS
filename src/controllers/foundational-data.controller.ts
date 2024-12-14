@@ -8,7 +8,7 @@ import { Op, QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
-import User from "../models/userModel";
+import User from "../models/user.model";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();

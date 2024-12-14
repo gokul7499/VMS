@@ -1,13 +1,13 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import UserMapping from "../models/user-mapping.model";
 import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
-import User from "../models/userModel";
+import User from "../models/user.model";
 import generateCustomUUID from "../utility/genrateTraceId";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/workLocationModel";
 import Language from "../models/language.model";
-import TimeZone from "../models/timeZoneModel";
+import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {

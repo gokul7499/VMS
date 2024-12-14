@@ -3,8 +3,8 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Programs } from './programs.model';
-import User from './userModel';
-import Tenant from './tenantModel';
+import User from './user.model';
+import Tenant from './tenant.model';
 
 class UserMapping extends Model {
     user_id: any;
