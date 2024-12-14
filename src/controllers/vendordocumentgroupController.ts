@@ -4,7 +4,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
 import { baseSearch } from "../utility/baseService";
 import vendordocumentgroupModel from "../models/vendordocumentgroupModel";
-import vendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
+import vendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 

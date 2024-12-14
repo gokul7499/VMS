@@ -29,7 +29,7 @@ import reasoncodeRoute from "./reason-code.routes";
 import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./password-policy.routes";
 import vendorDistributionScheduleRoutes from "./vendor-distribution-schedule.routes";
-import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
+import vendorComplianceDocumentRoutes from "./vendor-compliance-document.routes";
 import customFieldsHierarchieRoutes from "./custom-field-hierarchie.routes";
 import customFieldLocationRoutes from "./coustom-field-location.routes";
 import programVendorRoutes from "./program-vendor.routes";
