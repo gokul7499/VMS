@@ -7,7 +7,7 @@ import {
     getWorkflowById,
     getChildWorkflows,
     updateReorder
-} from '../controllers/workflowController';
+} from '../controllers/workflow.controller';
 
 async function WorkflowRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/workflow', async (request, reply) => {

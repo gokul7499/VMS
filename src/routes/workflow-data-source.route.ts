@@ -5,7 +5,7 @@ import {
   deleteWorkflowDataSource,
   getAllWorkflowDataSource,
   getWorkflowDataSourceById
-} from '../controllers/workflowDataSourceController';
+} from '../controllers/workflow-data-source.controller';
 
 async function WorkflowDataSourceRoute(fastify: FastifyInstance) {
     fastify.post('/workflow-data-source', async (request, reply) => { await createWorkflowDataSource(request, reply); });

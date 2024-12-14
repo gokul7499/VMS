@@ -6,7 +6,7 @@ import {
     updateVendorLabourCategory,
     deleteVendorLabourCategory
 
-} from '../controllers/vendorLabourCategoriesController'
+} from '../controllers/vendor-labour-categories.controller'
 
 async function vendorLabourCategoryRoutes(fastify: FastifyInstance) {
     fastify.post('/vendor-labour-category', createVendorLabourCategories);

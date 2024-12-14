@@ -6,7 +6,7 @@ import {
     deleteVendorComplianceDocumentById,
     updateVendorComplianceDocumentById,
     getAllVendorCompDocummentByProgramId,
-} from '../controllers/vendorComplianceDocumentController';
+} from '../controllers/vendor-compliance-document.controller';
 async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/vendor-comp-doc/:id', vendorComplianceDocumentById);
     fastify.post('/program/:program_id/vendor-comp-doc', createVendorComplianceDocument);

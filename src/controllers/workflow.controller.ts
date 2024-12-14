@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import WorkFlow from '../models/workflowModel';
-import { WorkflowData } from '../interfaces/workflowInterface';
+import WorkFlow from '../models/workflow.model';
+import { WorkflowData } from '../interfaces/workflow.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
 import { Module } from '../models/module.model';
@@ -10,7 +10,7 @@ import hierarchies from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import RecipientTypeModel from '../models/recipient-types.model';
-import DataSourceModel from '../models/workflowDataSourceModel'
+import DataSourceModel from '../models/workflow-data-source.model'
 import { sequelize } from '../config/instance';
 import {
     countChildWorkflowsQuery,
