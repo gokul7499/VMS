@@ -44,7 +44,7 @@ import VendorGroupRoutes from "./venodr-group.routes";
 import vendorMarkupConfigRoutes from "./vendorMarkupConfigRoutes";
 import vendorLabourCategoryRoutes from "./vendorLabourCategoriesRoutes";
 import vendorWorkLocationMappingRoutes from "./vendorWorkLocationMappingRoutes";
-import vendorHieararchyMappingRoutes from "./vendorHieararchyMappingRoutes";
+import vendorHieararchyMappingRoutes from "./vendor-hieararchy.mapping.routes";
 import countyRoutes from "./county.routes";
 import stateRoutes from "./state.routes";
 import resourceCityRoutes from "./city.route";
