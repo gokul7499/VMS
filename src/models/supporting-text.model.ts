@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
-import { supportingTextAttributes } from "../interfaces/supportingTextInterface";
+import { supportingTextAttributes } from "../interfaces/supporting-text.interface";
 import { Programs } from "./programs.model";
 import { Module } from "./module.model";
 import Event from "./event.model";
