@@ -8,7 +8,6 @@ export const databaseConfig = {
     user: "configuratorqauser",
     password: "Tg6gL225gF6hvF9V",
     database: "qa_vms_configurator",
-    port : 3306   
-  
+    port : 3306
   }
 };
