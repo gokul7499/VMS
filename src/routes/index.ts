@@ -28,7 +28,7 @@ import customFieldsRoutes from "./custom-fields.routes";
 import reasoncodeRoute from "./reason-code.routes";
 import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./password-policy.routes";
-import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
+import vendorDistributionScheduleRoutes from "./vendor-distribution-schedule.routes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./custom-field-hierarchie.routes";
 import customFieldLocationRoutes from "./coustom-field-location.routes";
