@@ -6,7 +6,7 @@ import {
     getAllRecipientTypes,
     getRecipientTypeById,
     getRecipientTypes
-} from '../controllers/recipientTypesController';
+} from '../controllers/recipient-types.controller';
 
 async function recipientTypeRoute(fastify: FastifyInstance) {
     fastify.post('/recipient-type', async (request, reply) => {

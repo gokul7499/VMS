@@ -49,7 +49,7 @@ import countyRoutes from "./county.routes";
 import stateRoutes from "./stateRoutes";
 import resourceCityRoutes from "./city.route";
 import customFieldsMasterDataRoutes from "./custom-field-master-data.routes";
-import recipientTypeRoute from "./recipientTypesRoutes";
+import recipientTypeRoute from "./recipient-types.routes";
 import SchemaRoutes from "./schemaRoutes";
 import RateCardmappingRoutes from "./rate-card-mapping.routes";
 import candidateRoutes from "./candidateRoute";
