@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { createVendordocumentsgroup, deleteVendordocumentsgroup, getVendorDocumentsGroupByIdAndDoc, getVendordocumentsgroupId, updateVendordocumentsgroup, getAllVendorCompDocummentGroupByProgramId } from '../controllers/vendordocumentgroupController';
+import { createVendordocumentsgroup, deleteVendordocumentsgroup, getVendorDocumentsGroupByIdAndDoc, getVendordocumentsgroupId, updateVendordocumentsgroup, getAllVendorCompDocummentGroupByProgramId } from '../controllers/vendor-document-group.controller';
 
 async function vendordocumentsgroup(fastify: FastifyInstance) {
     fastify.post('/vendor-documents-group', createVendordocumentsgroup);
