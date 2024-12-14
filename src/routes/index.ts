@@ -33,7 +33,7 @@ import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./custom-field-hierarchie.routes";
 import customFieldLocationRoutes from "./coustom-field-location.routes";
 import programVendorRoutes from "./program-vendor.routes";
-import vendordocumentsgroup from "./vendordocumentgroupRoute";
+import vendordocumentsgroup from "./vendor-document-group.route";
 import QualificationsRoutes from "./qualifications.routes";
 import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
 import { FastifyInstance } from "fastify";

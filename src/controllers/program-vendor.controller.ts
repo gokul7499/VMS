@@ -14,7 +14,7 @@ import { complianceDocumentCountByVendorId, complianceDocumentGetByUserAndDocume
 import { VendorComplianceDocumentInterface } from "../interfaces/vendorComplianceDocumentInterface";
 import VendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
-import VendorDocumentGroupModel from "../models/vendordocumentgroupModel";
+import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
     document_number: any;
