@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import VendorHierarchyMapping from '../models/vendorHieararchyMappingModel';
-import { VendorHierarchyMappingData } from '../interfaces/vendorHieararchyMappingInterface';
+import VendorHierarchyMapping from '../models/vendor-hieararchy-mapping.model';
+import { VendorHierarchyMappingData } from '../interfaces/vendor-hieararchy-mapping.interface';
 import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
 
