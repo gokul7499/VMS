@@ -2,7 +2,7 @@ import { FastifyRequest, FastifySchema, FastifyReply } from "fastify";
 import generateCustomUUID from '../utility/genrateTraceId';
 import shiftConfigurationHierarchies from "../models/shift-configuration-hierarchies.model";
 import ShiftType from "../models/shiftTypeModel";
-import ShiftConfiguration from "../models/shiftConfigurationModel";
+import ShiftConfiguration from "../models/shift-configuration.model";
 import { ShiftConfigurationHierarchiesAttributes } from "../interfaces/shift-configuration-hierarchies.interfaces";
 import { rateType } from "../models/rate-type.model"
 import { CreateRateTypeData } from "../interfaces/rate-type-interface"

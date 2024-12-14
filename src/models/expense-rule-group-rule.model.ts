@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import TimesheetExpenseRuleModel from "./timesheet-expense-rule.model";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 
 class ExpenseRuleGroupRuleModel extends Model {
     timesheet_expense_rule: any;
