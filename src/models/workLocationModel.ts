@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import CountryModel from "./countries.model";
 import { beforeSave } from "../hooks/timeFormatHook";
-import TimeZone from "./timeZoneModel";
+import TimeZone from "./time-zone.model";
 import WorkLocationCurrency from "./WorkLocationCurrencyModel";
 
 class WorkLocationModel extends Model {

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import User from "../models/userModel";
-import { UserInterface } from "../interfaces/userInterface";
+import User from "../models/user.model";
+import { UserInterface } from "../interfaces/user.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import hierarchies from "../models/hierarchies.model";
@@ -8,7 +8,7 @@ import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import UserMapping from "../models/usermappingModel";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/workLocationModel";
-import TimeZone from "../models/timeZoneModel";
+import TimeZone from "../models/time-zone.model";
 import Language from "../models/language.model";
 import Tenant from "../models/tenant.model";
 import CountryModel from "../models/countries.model";

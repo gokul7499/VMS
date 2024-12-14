@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import TimeZone from '../models/timeZoneModel';
+import TimeZone from '../models/time-zone.model';
 import generateCustomUUID from "../utility/genrateTraceId"
 import { Op } from 'sequelize';
 export const getAllTimeZones = async (request: FastifyRequest, reply: FastifyReply) => {

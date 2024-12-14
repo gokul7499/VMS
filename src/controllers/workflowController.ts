@@ -23,7 +23,7 @@ import FieldModel from '../models/workflowFieldModel'
 import WorkflowLevel from '../models/workflowLevelModel';
 import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';
-import User from '../models/userModel';
+import User from '../models/user.model';
 import FoundationalModel from '../models/foundational-datatypes.model';
 import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';

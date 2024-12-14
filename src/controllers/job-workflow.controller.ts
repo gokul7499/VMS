@@ -11,7 +11,7 @@ import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
 import jobModel from '../models/job.model';
 import workflowLevelReplace from '../models/workflowLevelReplaceModel'
 import UserMapping from '../models/usermappingModel';
-import User from '../models/userModel';
+import User from '../models/user.model';
 import FoundationalData from '../models/foundational-data.model';
 import { levels } from 'pino';
 
