@@ -31,7 +31,7 @@ import passwordPolicyRoutes from "./password-policy.routes";
 import vendorDistributionScheduleRoutes from "./vendorDistributionScheduleRoutes";
 import vendorComplianceDocumentRoutes from "./vendorComplianceDocumentRoutes";
 import customFieldsHierarchieRoutes from "./custom-field-hierarchie.routes";
-import customFieldLocationRoutes from "./coustomFieldLocationRoutes";
+import customFieldLocationRoutes from "./coustom-field-location.routes";
 import programVendorRoutes from "./program-vendor.routes";
 import vendordocumentsgroup from "./vendordocumentgroupRoute";
 import QualificationsRoutes from "./qualificationsRoutes";
@@ -63,13 +63,8 @@ import fieldOperatorRoutes from "./field-operator-routes";
 import WorkflowFieldConfigRoutes from "./workflowFieldConfigRoute";
 import WorkflowDataSourceRoute from "./workflowDataSourceRoute";
 import WorkflowFieldRoutes from "./workflowFieldRoute";
-<<<<<<< HEAD
 import hierarchyCustomFieldRoutes from "./hierarchies-custom-field.route";
-import JobWorkFlowRoutes from "./jobWorkflowRoutes";
-=======
-import hierarchyCustomFieldRoutes from "./HierarchiesCustomFieldRoute";
 import JobWorkFlowRoutes from "./job-workflow.routes";
->>>>>>> be25787e2516e81595ecd5d69ef6d180f5437bdf
 import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
