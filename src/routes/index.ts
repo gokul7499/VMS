@@ -38,7 +38,7 @@ import QualificationsRoutes from "./qualificationsRoutes";
 import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
 import { FastifyInstance } from "fastify";
 import rateCardRoutes from "./rate-card-configuration.routes";
-import rateTypeHierarchyRoutes from "./rateTypeHierarchyRoutes";
+import rateTypeHierarchyRoutes from "./rate-type-hierarchy.routes";
 import rateTypeJobTemplateRoutes from "./rateTypeJobTemplateRoutes";
 import VendorGroupRoutes from "./venodrGroupRoutes";
 import vendorMarkupConfigRoutes from "./vendorMarkupConfigRoutes";

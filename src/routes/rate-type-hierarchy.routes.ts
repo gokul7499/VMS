@@ -1,12 +1,12 @@
 import { FastifyInstance } from "fastify";
-import { RateTypeHierarchyData } from "../interfaces/rateTypeHierarchyInterface";
+import { RateTypeHierarchyData } from "../interfaces/rate-type-hierarchy.interface";
 import {
   getDataById,
   createData,
   updateData,
   deleteData,
   searchData
-} from "../controllers/rateTypeHierarchyController";
+} from "../controllers/rate-type-hierarchy.controller";
 
 async function rateTypeHierarchyRoutes(fastify: FastifyInstance) {
   fastify.get("/rate-type-heirarchy/", searchData);
