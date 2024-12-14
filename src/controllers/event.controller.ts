@@ -3,7 +3,7 @@ import Event from '../models/event.model';
 import EventInterface from '../interfaces/event.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
-import Schema from '../models/schemaModel';
+import Schema from '../models/schema.model';
 import { Op } from 'sequelize';
 
 export async function getAllEvents(request: FastifyRequest, reply: FastifyReply) {

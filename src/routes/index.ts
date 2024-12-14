@@ -50,7 +50,7 @@ import stateRoutes from "./state.routes";
 import resourceCityRoutes from "./city.route";
 import customFieldsMasterDataRoutes from "./custom-field-master-data.routes";
 import recipientTypeRoute from "./recipient-types.routes";
-import SchemaRoutes from "./schemaRoutes";
+import SchemaRoutes from "./schema.routes";
 import RateCardmappingRoutes from "./rate-card-mapping.routes";
 import candidateRoutes from "./candidateRoute";
 import shiftTypeRoutes from './shiftTypeRoutes';
