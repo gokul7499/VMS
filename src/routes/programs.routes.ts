@@ -6,7 +6,7 @@ import {
   updateProgramById,
   deleteProgramById,
   advancedFilter,
-} from "../controllers/programsController";
+} from "../controllers/programs.controller";
 
 async function programsRoutes(fastify: FastifyInstance) {
   fastify.post("/program/", saveProgram);
