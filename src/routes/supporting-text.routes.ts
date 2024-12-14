@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { createSupportingText, getAllSupportingTexts, getSupportingText, updateSupportingText, deleteSupportingText } from '../controllers/supportingTextController';
+import { createSupportingText, getAllSupportingTexts, getSupportingText, updateSupportingText, deleteSupportingText } from '../controllers/supporting-text.controller';
 
 async function supportingTextRoutes(fastify: FastifyInstance) {
   fastify.post('/supporting-text', createSupportingText);

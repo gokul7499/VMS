@@ -18,7 +18,7 @@ import rateTypeRouter from "./rate-type.routes";
 import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
 import workLocationRoutes from './workLocationRoute';
 import languageRoutes from './language.routes';
-import supportingTextRoutes from './supportingTextRoutes';
+import supportingTextRoutes from './supporting-text.routes';
 import holidayCalendarRoutes from "./holiday-calendar-routes";
 import feesConfigurationRoute from "./fees-config.route";
 import picklistRoutes from "./picklist.routes";

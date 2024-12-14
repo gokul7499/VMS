@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import supportingTextModel from '../models/supportingTextModel';
+import supportingTextModel from '../models/supporting-text.model';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { supportingTextAttributes } from '../interfaces/supportingTextInterface';
+import { supportingTextAttributes } from '../interfaces/supporting-text.interface';
 import Event from '../models/event.model';
 import { Module } from '../models/module.model';
 import { Op } from 'sequelize';
