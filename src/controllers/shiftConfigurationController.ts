@@ -3,7 +3,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import ShiftType from '../models/shiftTypeModel'
 import { ShiftConfigurationAttributes } from "../interfaces/shiftConfigurationInterface";
 import ShiftConfiguration from "../models/shiftConfigurationModel";
-import shiftConfigurationHierarchies from "../models/shiftConfigurationHierarchiesModel";
+import shiftConfigurationHierarchies from "../models/shift-configuration-hierarchies.model";
 import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
