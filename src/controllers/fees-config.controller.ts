@@ -1,6 +1,6 @@
 
-import feesConfiguration from '../models/feesConfigModel';
-import { FeesConfigurationInterface } from '../interfaces/feesConfigInterface';
+import feesConfiguration from '../models/fees-config.model';
+import { FeesConfigurationInterface } from '../interfaces/fees-config.interface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch, BaseService } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
