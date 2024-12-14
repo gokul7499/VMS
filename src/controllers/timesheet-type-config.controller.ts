@@ -4,10 +4,10 @@ import TimesheetTypeLaborCategorys from '../models/timesheet-type-labor-category
 import { TimesheetTypeConfigInterface } from '../interfaces/timesheet-config.interface';
 import TimesheetTypeHierarchies from '../models/timesheet-type-hierarchies.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
-import hierarchies from '../models/hierarchiesModel';
-import IndustriesModel from '../models/industriesModel';
+import hierarchies from '../models/hierarchies.model';
+import IndustriesModel from '../models/industries.model';
 import TimesheetMasterData from '../models/timesheet-type-master-data.Model';
-import FoundationalDataTypes from '../models/foundationalDatatypesModel';
+import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import { sequelize } from '../config/instance';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
