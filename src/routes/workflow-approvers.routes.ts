@@ -5,7 +5,7 @@ import {
     deleteWorkflowApprover,
     getAllWorkflowApprover,
     getWorkflowApproverById
-} from '../controllers/workflowApproversController';
+} from '../controllers/workflow-approvers.controller';
 
 async function WorkflowApproverRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/workflow-approver', async (request, reply) => { await createWorkflowApprover(request, reply); });

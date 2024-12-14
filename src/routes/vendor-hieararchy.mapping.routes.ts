@@ -5,7 +5,7 @@ import {
     deleteVendorHierarchyMapping,
     getAllVendorHierarchyMappings,
     getVendorHierarchyMappingById
-} from '../controllers/vendorHieararchyMappingController'
+} from '../controllers/vendor-hieararchy-mapping.controller'
 
 async function VendorHierarchyMappingRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/vendor-hierarchy-mapping', createVendorHierarchyMapping);

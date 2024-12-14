@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import WorkFlowApproverModel from '../models/workflowApproversModel';
-import { WorkflowApproversData } from '../interfaces/workflowApproversInterface';
+import WorkFlowApproverModel from '../models/workflow-approvers.model';
+import { WorkflowApproversData } from '../interfaces/workflow-approvers.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 

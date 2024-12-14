@@ -1,10 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { VendorDocumentGroup } from "../interfaces/vendordocumentgroupInterface";
+import { VendorDocumentGroup } from "../interfaces/vendor-document-group.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
 import { baseSearch } from "../utility/baseService";
-import vendordocumentgroupModel from "../models/vendordocumentgroupModel";
-import vendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
+import vendordocumentgroupModel from "../models/vendor-document-group.model";
+import vendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 

@@ -1,5 +1,5 @@
-import VendorComplianceDocumentModel from "../models/vendorComplianceDocumentModel";
-import { VendorComplianceDocumentInterface } from "../interfaces/vendorComplianceDocumentInterface";
+import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
+import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { baseSearch, BaseService } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId";

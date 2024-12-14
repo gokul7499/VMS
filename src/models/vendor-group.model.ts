@@ -4,7 +4,7 @@ import { Programs } from './programs.model';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { ProgramVendor } from './program-vendor.model';
-import { vendorGroupInterface } from '../interfaces/vendorGroupInterface';
+import { vendorGroupInterface } from '../interfaces/vendor-group.interface';
 import { Json } from 'sequelize/types/utils';
 
 class VendorGroup extends Model implements vendorGroupInterface {
