@@ -6,7 +6,7 @@ import {
     getAllSchema,
     getSchemaById,
     getAllSchemas
-} from '../controllers/schemaController';
+} from '../controllers/schema.controller';
 
 async function SchemaRoutes(fastify: FastifyInstance) {
     fastify.post('/schema', async (request, reply) => {

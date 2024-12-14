@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from '../utility/genrateTraceId';
 import ShiftType from '../models/shiftTypeModel'
-import { ShiftConfigurationAttributes } from "../interfaces/shiftConfigurationInterface";
-import ShiftConfiguration from "../models/shiftConfigurationModel";
+import { ShiftConfigurationAttributes } from "../interfaces/shift-configuration.interface";
+import ShiftConfiguration from "../models/shift-configuration.model";
 import shiftConfigurationHierarchies from "../models/shiftConfigurationHierarchiesModel";
 import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';

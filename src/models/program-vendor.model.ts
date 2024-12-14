@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import User from "./user.model";
 import Tenant from "./tenantModel";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 import { createVendorWorkLocationMapping, createVendorHierarchyMapping, createVendorLabourCategories } from "../hooks/afterProgramVendorSave"
 import { beforeSave } from "../hooks/timeFormatHook";
 
