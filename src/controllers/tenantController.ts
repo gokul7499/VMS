@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import Tenant from "../models/tenantModel";
 import { Programs } from "../models/programs.model"
 import { TenantData } from "../interfaces/tenantInterface";
-import { createUser } from "./user.controller"
+import { createUser } from "../controllers/user.controller"
 import { Op, Sequelize } from "sequelize";
 import { advanceSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"
