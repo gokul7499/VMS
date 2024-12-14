@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from './programsModel';
-import hierarchies from './hierarchiesModel';
+import hierarchies from './hierarchies.model';
 
 class TimesheetTypeHierarchies extends Model {
   id: any;

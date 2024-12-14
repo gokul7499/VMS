@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import FoundationalDataTypes from './foundationalDatatypesModel';
+import FoundationalDataTypes from './foundational-datatypes.model';
 
 class TimesheetMasterData extends Model {
     id!: string;
