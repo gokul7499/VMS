@@ -7,7 +7,7 @@ import {
     getQualificationById,
     bulkCreateQualifications,
     getQualificationCode
-} from '../controllers/qualificationsController';
+} from '../controllers/qualifications.controller';
 
 async function QualificationsRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/qualifications', async (request, reply) => {
