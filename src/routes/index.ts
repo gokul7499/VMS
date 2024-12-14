@@ -33,7 +33,7 @@ import customFieldsHierarchieRoutes from "./customFieldHierarchieRoutes";
 import customFieldLocationRoutes from "./coustomFieldLocationRoutes";
 import programVendorRoutes from "./programVendorRoutes";
 import vendordocumentsgroup from "./vendordocumentgroupRoute";
-import QualificationsRoutes from "./qualificationsRoutes";
+import QualificationsRoutes from "./qualifications.routes";
 import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
 import { FastifyInstance } from "fastify";
 import rateCardRoutes from "./rateCardConfigurationRoutes";

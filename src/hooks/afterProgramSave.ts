@@ -1,7 +1,7 @@
 import { Model, QueryTypes } from 'sequelize';
 import ProgramModule from '../models/programModuleModel';
 import { Module } from '../models/moduleModel';
-import hierarchies from '../models/hierarchiesModel';
+import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';
 import qualificationTypeModel from '../models/qualificationTypeModel'
 import { rateType } from '../models/rateTypeModel';
