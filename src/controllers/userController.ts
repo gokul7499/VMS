@@ -3,22 +3,22 @@ import User from "../models/userModel";
 import { UserInterface } from "../interfaces/userInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-import hierarchies from "../models/hierarchiesModel";
+import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import UserMapping from "../models/usermappingModel";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/workLocationModel";
 import TimeZone from "../models/timeZoneModel";
-import Language from "../models/languageModel";
+import Language from "../models/language.model";
 import Tenant from "../models/tenantModel";
 import CountryModel from "../models/countries.model";
 import candidateModel from "../models/candidateModel";
-import { ProgramVendor } from "../models/programVendorModel";
+import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
 import { Op, QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/userMasterDataModel";
-import FoundationalDataTypes from "../models/foundationalDatatypesModel";
+import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import foundationalData from "../models/foundational-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -63,6 +63,7 @@ export async function getUserById(
     });
   }
 }
+
 export async function getUserHierarchiesByProgram(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
@@ -192,7 +193,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_type: userType }, { transaction });
-        await ProgramVendor.create({ ...user, user_id: user.id }, { transaction });
+        const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
+        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName }, { transaction });
       } else {
         newUser = await User.create({ ...user, user_type: userType }, { transaction });
       }
@@ -210,7 +212,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
               foundation_data_type_id: data.foundation_data_type_id,
               foundation_data_ids: data.foundation_data_ids,
               default_master_data: data.default_master_data || null,
-              is_associated: data.is_associated || false
+              is_associated: data.is_associated || false,
+              hierarchy_id: data.hierarchy_id,
             },
             { transaction }
           );
@@ -280,7 +283,8 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
           foundation_data_type_id: data.foundation_data_type_id,
           foundation_data_ids: data.foundation_data_ids,
           default_master_data: data.default_master_data || null,
-          is_associated: data.is_associated || false
+          is_associated: data.is_associated || false,
+          hierarchy_id: data.hierarchy_id
         })
       );
 
@@ -367,25 +371,38 @@ export async function getAllUserIDAndUserId(
     const foundationalDataDetails = await Promise.all(users.map(async user => {
       const userMasterData = await UserMasterDataModel.findAll({
         where: { user_id: user.id },
-        attributes: ["foundation_data_type_id", "foundation_data_ids", "default_master_data", "is_associated"],
+        attributes: ["foundation_data_type_id", "foundation_data_ids", "default_master_data", "is_associated", "hierarchy_id"],
+        include: [
+          {
+            model: foundationalData,
+            as: 'default_master_datas',
+            attributes: ["id", "name"]
+          },
+          {
+            model: FoundationalDataTypes,
+            as: 'foundation_data_type',
+            attributes: ["id", "name"]
+          },
+          {
+            model: hierarchies,
+            as: 'hierarchies',
+            attributes: ["id", "name"]
+          }
+        ]
       });
 
       return Promise.all(userMasterData.map(async data => {
-        const foundationType = await FoundationalDataTypes.findOne({
-          where: { id: data.foundation_data_type_id },
-          attributes: ["id", "name"],
-        });
-
         const foundationDataItems = await foundationalData.findAll({
-          where: { id: { [Op.in]: data.foundation_data_ids } },
+          where: { id: { [Op.in]: data.foundation_data_ids || [] } },
           attributes: ["id", "name"],
         });
 
         return {
           user_id: user.id,
-          default_master_data: data.default_master_data,
+          default_master_data: data.default_master_data ? data.default_master_datas : null,
           is_associated: data.is_associated,
-          foundation_data_type: foundationType ? { id: foundationType.id, name: foundationType.name } : null,
+          foundation_data_type: data.foundation_data_type_id ? data.foundation_data_type : null,
+          hierarchy_id: data.hierarchy_id ? data.hierarchies : null,
           foundation_data_items: foundationDataItems.map(item => ({ id: item.id, name: item.name })),
         };
       }));
@@ -445,6 +462,8 @@ export async function getAllUserIDAndUserId(
       total_count: totalCount,
     });
   } catch (error: any) {
+    console.log("Error:", error.stack);
+
     reply.status(500).send({
       status_code: 500,
       trace_id: generateCustomUUID(),

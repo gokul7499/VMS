@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "../models/programsModel"
 import countriesModel from "./countries.model";
-import { ProgramVendor } from "./programVendorModel";
+import { ProgramVendor } from "./program-vendor.model";
 import Tenant from "./tenantModel";
 class Candidate extends Model {
     id: any;

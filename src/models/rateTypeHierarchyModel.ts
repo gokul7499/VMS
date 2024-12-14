@@ -3,8 +3,8 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Programs } from './programsModel';
-import { rateType } from './rateTypeModel';
-import hierarchies from './hierarchiesModel';
+import { rateType } from './rate-type.model';
+import hierarchies from './hierarchies.model';
 
 class RateTypeHierarchy extends Model { }
 

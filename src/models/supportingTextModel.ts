@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { supportingTextAttributes } from "../interfaces/supportingTextInterface";
 import { Programs } from "./programsModel";
-import { Module } from "./moduleModel";
+import { Module } from "./module.model";
 import Event from "./event.model";
 
 interface SupportingTextCreationAttributes

@@ -2,8 +2,8 @@ import { Model } from "sequelize";
 import vendorWorkLocationMapping from "../models/vendorWorkLocationMappingModel";
 import VendorHierarchyMapping from "../models/vendorHieararchyMappingModel";
 import vendorLabourCategoriesModel from "../models/vendorLabourCategoriesModel";
-import IndustriesModel from "../models/industriesModel";
-import hierarchies from "../models/hierarchiesModel";
+import IndustriesModel from "../models/industries.model";
+import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/workLocationModel";
 
 export const createVendorWorkLocationMapping = async (record: Model) => {
