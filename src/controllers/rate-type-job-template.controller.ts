@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import RateTypeJobTemplate from "../models/rateTypeJobTemplateModel"
-import { RateTypeJobTemplateData } from "../interfaces/rateTypeJobTemplateInterface";
+import RateTypeJobTemplate from "../models/rate-type-job-template.model"
+import { RateTypeJobTemplateData } from "../interfaces/rate-type-job-template.interface";
 import { baseSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"
 

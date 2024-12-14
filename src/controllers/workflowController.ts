@@ -9,7 +9,7 @@ import WorkflowMethod from '../models/workflowMethodsModel';
 import hierarchies from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import RecipientTypeModel from '../models/recipientTypesModel';
+import RecipientTypeModel from '../models/recipient-types.model';
 import DataSourceModel from '../models/workflowDataSourceModel'
 import { sequelize } from '../config/instance';
 import {

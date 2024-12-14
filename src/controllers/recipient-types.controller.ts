@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import RecipientType from '../models/recipientTypesModel';
-import { RecipientTypesData } from '../interfaces/recipientTypesInterface';
+import RecipientType from '../models/recipient-types.model';
+import { RecipientTypesData } from '../interfaces/recipient-types.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
