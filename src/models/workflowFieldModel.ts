@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import WorkflowDataSource from "../models/workflowDataSourceModel";
+import WorkflowDataSource from "./workflow-data-source.model";
 
 class WorkflowField extends Model { }
 
