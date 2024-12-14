@@ -56,7 +56,7 @@ import candidateRoutes from "./candidateRoute";
 import shiftTypeRoutes from './shiftTypeRoutes';
 import shiftConfigurationRoutes from './shift-configuration.routes';
 import RateTypeCategoryRoutes from "./rate-type-category.routes";
-import WorkflowApproverRoutes from "./workflowApproversRoutes";
+import WorkflowApproverRoutes from "./workflow-approvers.routes";
 import shiftConfigurationHierarchiesRoutes from "./shift-configuration-hierarchies.route";
 import vendorComplianceReqDocMappingRoutes from "./vendor-compliance-req-doc-mapping.route";
 import fieldOperatorRoutes from "./field-operator-routes";
