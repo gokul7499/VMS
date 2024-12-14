@@ -61,7 +61,7 @@ import shiftConfigurationHierarchiesRoutes from "./shift-configuration-hierarchi
 import vendorComplianceReqDocMappingRoutes from "./vendor-compliance-req-doc-mapping.route";
 import fieldOperatorRoutes from "./field-operator-routes";
 import WorkflowFieldConfigRoutes from "./workflowFieldConfigRoute";
-import WorkflowDataSourceRoute from "./workflowDataSourceRoute";
+import WorkflowDataSourceRoute from "./workflow-data-source.route";
 import WorkflowFieldRoutes from "./workflowFieldRoute";
 import hierarchyCustomFieldRoutes from "./hierarchies-custom-field.route";
 import JobWorkFlowRoutes from "./job-workflow.routes";
