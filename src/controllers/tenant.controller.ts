@@ -8,7 +8,7 @@ import { advanceSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"
 import { logger } from '../utility/loggerService';
 import { UserInterface } from "../interfaces/user.interface";
-import { UserMappingAttributes } from "../interfaces/usermappingInterface";
+import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import { decodeToken } from '../middlewares/verifyToken';
 import CountryModel from "../models/countries.model";
 

@@ -2,10 +2,10 @@ import { ProgramVendor } from "../models/program-vendor.model";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { programVendorInterface, programVendorQueryInterface } from "../interfaces/program-vendor.interface";
-import UserMapping from "../models/usermappingModel";
+import UserMapping from "../models/user-mapping.model";
 import Tenant from "../models/tenant.model";
 import vendorMarkupConfig from "../models/vendorMarkupConfigModel";
-import VendorGroup from "../models/vendorGroupModel";
+import VendorGroup from "../models/vendor-group.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
@@ -14,7 +14,7 @@ import { complianceDocumentCountByVendorId, complianceDocumentGetByUserAndDocume
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
-import VendorDocumentGroupModel from "../models/vendordocumentgroupModel";
+import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
     document_number: any;

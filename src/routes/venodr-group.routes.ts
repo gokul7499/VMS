@@ -5,7 +5,7 @@ import {
     createVendorGroup,
     updateVendorGroup,
     deleteVendorGroup,
-} from '../controllers/vendorGroupController';
+} from '../controllers/vendor-group.controller';
 
 async function VendorGroupRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/vendor-groups', createVendorGroup);

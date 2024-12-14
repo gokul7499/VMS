@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import UserMapping from "../models/usermappingModel";
-import { UserMappingAttributes } from "../interfaces/usermappingInterface";
+import UserMapping from "../models/user-mapping.model";
+import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import User from "../models/user.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Tenant from "../models/tenant.model";
