@@ -5,7 +5,7 @@ import { programVendorInterface, programVendorQueryInterface } from "../interfac
 import UserMapping from "../models/user-mapping.model";
 import Tenant from "../models/tenant.model";
 import vendorMarkupConfig from "../models/vendorMarkupConfigModel";
-import VendorGroup from "../models/vendorGroupModel";
+import VendorGroup from "../models/vendor-group.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";

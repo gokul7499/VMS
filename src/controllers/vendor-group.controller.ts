@@ -1,12 +1,12 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { vendorGroupInterface } from '../interfaces/vendorGroupInterface';
+import { vendorGroupInterface } from '../interfaces/vendor-group.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { baseSearch } from '../utility/baseService';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import VendorGroup from '../models/vendorGroupModel';
+import VendorGroup from '../models/vendor-group.model';
 import { ProgramVendor } from '../models/program-vendor.model';
 
 export const createVendorGroup = async (
