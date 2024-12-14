@@ -10,7 +10,7 @@ import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/workLocationModel";
 import TimeZone from "../models/timeZoneModel";
 import Language from "../models/language.model";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import CountryModel from "../models/countries.model";
 import candidateModel from "../models/candidateModel";
 import { ProgramVendor } from "../models/program-vendor.model";

@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import Tenant from "../models/tenantModel";
+import Tenant from "../models/tenant.model";
 import { Programs } from "../models/programsModel"
-import { TenantData } from "../interfaces/tenantInterface";
-import { createUser } from "../controllers/userController"
+import { TenantData } from "../interfaces/tenant.interface";
+import { createUser } from "./userController"
 import { Op, Sequelize } from "sequelize";
 import { advanceSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"

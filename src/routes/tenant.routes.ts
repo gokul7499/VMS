@@ -9,7 +9,7 @@ import {
   searchTenantsWithProgramCount,
   advancedSearchTenants,
   getPasswordPolicy
-} from "../controllers/tenantController";
+} from "../controllers/tenant.controller";
 
 async function tenantRoutes(fastify: FastifyInstance) {
   fastify.get("/tenant/", getTenants);

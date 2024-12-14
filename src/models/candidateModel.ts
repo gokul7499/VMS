@@ -4,7 +4,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "../models/programsModel"
 import countriesModel from "./countries.model";
 import { ProgramVendor } from "./program-vendor.model";
-import Tenant from "./tenantModel";
+import Tenant from "./tenant.model";
 class Candidate extends Model {
     id: any;
 }
