@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getReasoncode,getReasoncodeId,getReasoncodeByEventName, updateReasoncode,createReasoncode, deleteReasoncode,getReasonCodeByModuleEventName  } from '../controllers/reasoncodeController';
+import { getReasoncode,getReasoncodeId,getReasoncodeByEventName, updateReasoncode,createReasoncode, deleteReasoncode,getReasonCodeByModuleEventName  } from '../controllers/reason-code.controller';
 
 async function reasoncodeRoute(fastify: FastifyInstance) {
     fastify.post('/reason-code', createReasoncode);

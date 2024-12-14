@@ -6,7 +6,7 @@ import {
   getHierarchyCustomFieldById,
   updateHierarchyCustomFieldById,
   deleteHierarchyCustomFieldById
-} from '../controllers/Hierarchies-custom-field.controller';
+} from '../controllers/hierarchies-custom-field.controller';
 
 export default async function hierarchyCustomFieldRoutes(fastify: FastifyInstance) {
   fastify.post('/hierarchy-custom-fields', createHierarchyCustomField);
