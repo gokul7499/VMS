@@ -3,7 +3,7 @@ import Qualifications from '../models/qualificationsModel';
 import { QualificationData } from '../interfaces/qualifications.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
-import qualificationTypeModel from '../models/qualificationTypeModel';
+import qualificationTypeModel from '../models/qualification-type-model';
 import { generateQualificationCode } from '../plugins/qualificationCodeGenerate';
 
 export const createQualification = async (request: FastifyRequest, reply: FastifyReply) => {
