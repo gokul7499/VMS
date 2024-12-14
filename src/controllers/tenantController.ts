@@ -2,12 +2,12 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import Tenant from "../models/tenantModel";
 import { Programs } from "../models/programsModel"
 import { TenantData } from "../interfaces/tenantInterface";
-import { createUser } from "../controllers/userController"
+import { createUser } from "./user.controller"
 import { Op, Sequelize } from "sequelize";
 import { advanceSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"
 import { logger } from '../utility/loggerService';
-import { UserInterface } from "../interfaces/userInterface";
+import { UserInterface } from "../interfaces/user.interface";
 import { UserMappingAttributes } from "../interfaces/usermappingInterface";
 import { decodeToken } from '../middlewares/verifyToken';
 import CountryModel from "../models/countries.model";

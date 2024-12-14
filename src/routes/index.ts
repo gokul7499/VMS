@@ -6,7 +6,7 @@ import userMappingRoutes from "./usermappingRoutes";
 import hierarchiesRoutes from "./hierarchies.routes";
 import currenciesRoutes from "./currencies.routes";
 import industriesRoutes from "./industries.route";
-import userRoutes from "./userRoutes";
+import userRoutes from "./user.routes";
 import timeZoneRoutes from "./timeZonesRoutes";
 import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
 import countriesRoutes from "./countries.routes";

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import User from "../models/userModel";
-import { UserInterface } from "../interfaces/userInterface";
+import User from "../models/user.model";
+import { UserInterface } from "../interfaces/user.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import hierarchies from "../models/hierarchies.model";
