@@ -1,7 +1,7 @@
 
 
-import stateModel from "../models/stateModel";
-import { stateInterface, StatePayload } from "../interfaces/stateInterface";
+import stateModel from "../models/state.model";
+import { stateInterface, StatePayload } from "../interfaces/state.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";

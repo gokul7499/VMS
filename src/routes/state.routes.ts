@@ -7,7 +7,7 @@ import {
     updateStateById,
     getAllStatesByProgramId,
     createStateBulk
-} from "../controllers/stateController";
+} from "../controllers/state.controller";
 async function stateRoutes(fastify: FastifyInstance) {
     fastify.get("/state/:id", getStateById);
     fastify.post("/state", createState);

@@ -1,9 +1,9 @@
-import { Programs } from "../models/programsModel";
+import { Programs } from "../models/programs.model";
 import { FastifyRequest, FastifyReply } from "fastify";
 import {
   CreateProgramData,
   ProgramQuery,
-} from "../interfaces/programsInterface";
+} from "../interfaces/programs.interface";
 import Tenant from "../models/tenant.model";
 import { baseSearch } from "../utility/baseService";
 import { Op } from "sequelize";

@@ -1,6 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import { sequelize } from "../config/instance";
-import { Programs } from './programsModel';
+import { Programs } from './programs.model';
 
 class ExpenseConfigurationModel extends Model {
   id: any;

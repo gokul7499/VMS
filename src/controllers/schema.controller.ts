@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import SchemaModel from '../models/schemaModel';
-import { SchemaData } from '../interfaces/schemaInterface';
+import SchemaModel from '../models/schema.model';
+import { SchemaData } from '../interfaces/schema.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
