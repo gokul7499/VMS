@@ -4,7 +4,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import FoundationalData from './foundational-data.model';
 import FoundationalDataTypes from './foundational-datatypes.model';
-import hierarchies from './hierarchiesModel';
+import hierarchies from './hierarchies.model';
 
 class UserMasterDataModel extends Model {
     user_id: string | undefined;

@@ -2,7 +2,7 @@ import WorkLocationModel from "../models/workLocationModel";
 import { WorkLocationInterface } from "../interfaces/workLocationInterface";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import TimeZone from "../models/timeZoneModel";
+import TimeZone from "../models/time-zone.model";
 import Currencies from "../models/currencies.model";
 import CountryModel from "../models/countries.model";
 import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";

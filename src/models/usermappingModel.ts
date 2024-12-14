@@ -2,8 +2,8 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { Programs } from './programsModel';
-import User from './userModel';
+import { Programs } from './programs.model';
+import User from './user.model';
 import Tenant from './tenantModel';
 
 class UserMapping extends Model {

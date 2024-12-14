@@ -9,7 +9,7 @@ import WorkflowMethod from '../models/workflowMethodsModel';
 import hierarchies from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import RecipientTypeModel from '../models/recipientTypesModel';
+import RecipientTypeModel from '../models/recipient-types.model';
 import DataSourceModel from '../models/workflowDataSourceModel'
 import { sequelize } from '../config/instance';
 import {
@@ -23,13 +23,13 @@ import FieldModel from '../models/workflowFieldModel'
 import WorkflowLevel from '../models/workflowLevelModel';
 import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';
-import User from '../models/userModel';
+import User from '../models/user.model';
 import FoundationalModel from '../models/foundational-datatypes.model';
 import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import WorkLocationModel from '../models/workLocationModel';
 import IndustriesModel from '../models/industries.model';
-import picklistModel from '../models/picklistModel';
+import picklistModel from '../models/picklist.model';
 import jobTemplateModel from '../models/job-template.model';
 import foundationalData from '../models/foundational-data.model';
 

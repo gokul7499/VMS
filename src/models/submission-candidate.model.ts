@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { Programs } from './programsModel';
+import { Programs } from './programs.model';
 import jobModel from './job.model';
 import Candidate from './candidate.model';
 
