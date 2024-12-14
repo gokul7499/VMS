@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import RateTypeHierarchy from "../models/rateTypeHierarchyModel"
-import { RateTypeHierarchyData } from "../interfaces/rateTypeHierarchyInterface";
+import RateTypeHierarchy from "../models/rate-type-hierarchy.model"
+import { RateTypeHierarchyData } from "../interfaces/rate-type-hierarchy.interface";
 import { baseSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId"
 
