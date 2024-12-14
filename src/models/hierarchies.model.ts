@@ -8,7 +8,7 @@ import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
 }
-class hierarchies extends Model {
+class Hierarchies extends Model {
   parent_hierarchy_id: any;
   name: any;
   id: any;
@@ -16,7 +16,7 @@ class hierarchies extends Model {
   rate_model!: any;
   program_id!: string;
 }
-hierarchies.init(
+Hierarchies.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -47,10 +47,13 @@ hierarchies.init(
       allowNull: false,
       defaultValue: false,
     },
-
     rate_model: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: DataTypes.ENUM(
+        'Bill Rate (No Markup)',
+        'Bill Rate (Markup)',
+        'Pay Rate (Markup)'
+      ),
+      allowNull: true
     },
     created_on: {
       type: DataTypes.DOUBLE,
@@ -130,7 +133,7 @@ hierarchies.init(
 );
 
 sequelize.sync();
-hierarchies.belongsToMany(TimeZone, {
+Hierarchies.belongsToMany(TimeZone, {
   through: "hierarchies_time_zone",
   as: "time_zones",
   foreignKey: "hierarchies_id",
@@ -138,14 +141,14 @@ hierarchies.belongsToMany(TimeZone, {
   timestamps: false,
 });
 
-hierarchies.belongsTo(Currencies, {
+Hierarchies.belongsTo(Currencies, {
   foreignKey: "currency_id",
   as: "currency",
 });
 
-hierarchies.belongsTo(TimeZone, {
+Hierarchies.belongsTo(TimeZone, {
   foreignKey: "is_default_timezone",
   as: "default_timezone",
 });
 
-export default hierarchies;
+export default Hierarchies;

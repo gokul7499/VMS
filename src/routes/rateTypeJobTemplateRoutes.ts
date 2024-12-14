@@ -6,7 +6,7 @@ import {
   updateData,
   deleteData,
   searchData
-} from "../controllers/rateTypeHierarchyController";
+} from "../controllers/rate-type-hierarchy.controller";
 
 async function rateTypeJobTemplateRoutes(fastify: FastifyInstance) {
   fastify.get("/rate-type-job-template/", searchData);

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import ReasoncodeModel from '../models/reasoncodeModel';
-import { ReasonCode, ReasonCodeResponse } from '../interfaces/reasoncodeInterface';
+import ReasoncodeModel from '../models/reason-code.model';
+import { ReasonCode, ReasonCodeResponse } from '../interfaces/reason-code.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Module } from '../models/module.model';
 import { Op, QueryTypes, Sequelize } from 'sequelize';

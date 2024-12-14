@@ -5,10 +5,10 @@ import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/custom-field-hierarchie.model';
 import customFieldMasterData from '../models/custom-field-master-data.model';
-import customFieldLocations from '../models/customFieldLocationModel';
+import customFieldLocations from '../models/custom.fieldlocation.model';
 import CustomField from '../models/custom-fields.model'
 import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
-import { createCustomFieldLocations } from './customFieldLocationController';
+import { createCustomFieldLocations } from './custom-field-location.controller';
 import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
