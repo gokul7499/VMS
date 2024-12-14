@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { RateTypeJobTemplateData } from "../interfaces/rateTypeJobTemplateInterface";
+import { RateTypeJobTemplateData } from "../interfaces/rate-type-job-template.interface";
 import {
   getDataById,
   createData,
