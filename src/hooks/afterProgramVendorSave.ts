@@ -4,7 +4,7 @@ import VendorHierarchyMapping from "../models/vendor-hieararchy-mapping.model";
 import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
 import IndustriesModel from "../models/industries.model";
 import hierarchies from "../models/hierarchies.model";
-import WorkLocationModel from "../models/workLocationModel";
+import WorkLocationModel from "../models/work-location.model";
 
 export const createVendorWorkLocationMapping = async (record: Model) => {
     if (Array.isArray((record as any).work_locations)) {

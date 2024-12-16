@@ -1,5 +1,5 @@
-import WorkLocationModel from "../models/workLocationModel";
-import { WorkLocationInterface } from "../interfaces/workLocationInterface";
+import WorkLocationModel from "../models/work-location.model";
+import { WorkLocationInterface } from "../interfaces/work-location.interface";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import TimeZone from "../models/time-zone.model";

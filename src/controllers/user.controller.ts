@@ -7,7 +7,7 @@ import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
-import WorkLocationModel from "../models/workLocationModel";
+import WorkLocationModel from "../models/work-location.model";
 import TimeZone from "../models/time-zone.model";
 import Language from "../models/language.model";
 import Tenant from "../models/tenant.model";

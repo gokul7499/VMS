@@ -7,7 +7,7 @@ import CountryModel from './countries.model';
 import TimeZone from "./time-zone.model";
 import Language from "./language.model";
 import hierarchies from "./hierarchies.model";
-import WorkLocationModel from "./workLocationModel";
+import WorkLocationModel from "./work-location.model";
 
 class User extends Model {
   id: string | undefined;

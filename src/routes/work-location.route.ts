@@ -6,7 +6,7 @@ import {
     deleteWorkLocationById,
     getAllWorkLocations,
     getAllWorkLocationsCountry
-} from '../controllers/workLocationController';
+} from '../controllers/work-location.controller';
 
 async function workLocationRoutes(fastify: FastifyInstance) {
     fastify.post('/work-location', createWorkLocation);

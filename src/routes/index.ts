@@ -16,7 +16,7 @@ import moduleRouter from "./module.routes";
 import qualificationTypeRouter from "./qualification-type.routes";
 import rateTypeRouter from "./rate-type.routes";
 import foundationalDataTypeRoutes from "./foundational-datatypes.routes";
-import workLocationRoutes from './workLocationRoute';
+import workLocationRoutes from './work-location.route';
 import languageRoutes from './language.routes';
 import supportingTextRoutes from './supporting-text.routes';
 import holidayCalendarRoutes from "./holiday-calendar-routes";
