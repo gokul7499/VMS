@@ -1,6 +1,6 @@
 
-import customFieldLocation from '../models/custom.fieldlocation.model';
-import { CustomFieldLocationInterface } from '../interfaces/custom-field-location.interface';
+import customFieldLocation from '../models/custom-field-location.model';
+import { CustomFieldLocationInterface } from '../interfaces/custom-field-location-interface';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch } from '../utility/baseService'
 import generateCustomUUID from '../utility/genrateTraceId';
