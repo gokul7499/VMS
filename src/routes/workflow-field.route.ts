@@ -5,7 +5,7 @@ import {
   deleteWorkflowField,
   getAllWorkflowField,
   getWorkflowFieldById
-} from '../controllers/workflowFieldController';
+} from '../controllers/workflow-field.controller';
 
 async function WorkflowFieldRoutes(fastify: FastifyInstance) {
     fastify.post('/workflow-field', async (request, reply) => { await createWorkflowField(request, reply); });

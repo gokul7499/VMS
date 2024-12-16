@@ -19,7 +19,7 @@ import {
 } from '../utility/queries';
 import FieldOperatorModel from '../models/field-operator-model'
 import FieldConfigModel from '../models/workflow-field-config.model'
-import FieldModel from '../models/workflowFieldModel'
+import FieldModel from '../models/workflow-field.model'
 import WorkflowLevel from '../models/workflowLevelModel';
 import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';

@@ -62,7 +62,7 @@ import vendorComplianceReqDocMappingRoutes from "./vendor-compliance-req-doc-map
 import fieldOperatorRoutes from "./field-operator-routes";
 import WorkflowFieldConfigRoutes from "./workflow-field-config.route";
 import WorkflowDataSourceRoute from "./workflow-data-source.route";
-import WorkflowFieldRoutes from "./workflowFieldRoute";
+import WorkflowFieldRoutes from "./workflow-field.route";
 import hierarchyCustomFieldRoutes from "./hierarchies-custom-field.route";
 import JobWorkFlowRoutes from "./job-workflow.routes";
 import expenseConfigurationRoutes from "./expense-configuration.routes";
