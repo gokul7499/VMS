@@ -7,7 +7,7 @@ import {
     getWorkflowMethodById,
     getWorkflowMethods,
     getWorkflowMethod
-} from '../controllers/workflowMethodsController';
+} from '../controllers/workflow-methods.controller';
 
 async function WorkflowMethodRoutes(fastify: FastifyInstance) {
     fastify.post('/workflow-method', async (request, reply) => {
