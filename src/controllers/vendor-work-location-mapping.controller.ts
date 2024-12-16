@@ -1,8 +1,8 @@
-import vendorWorkLocationMappingModel from "../models/vendorWorkLocationMappingModel";
+import vendorWorkLocationMappingModel from "../models/vendor-work-location-mapping.model";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { baseSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { vendorWorkLocationMappingInterface } from "../interfaces/vendorWorkLocationMappingInterface";
+import { vendorWorkLocationMappingInterface } from "../interfaces/vendor-work-location-mapping.interface";
 
 export async function getVendorWorkLocationMappings(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id', 'program_vendor_id', 'labour_category_id', 'vendor_work_location_name', 'is_enabled', 'modified_on'];
