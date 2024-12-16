@@ -155,6 +155,7 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
         reply.status(201).send({
             status_code: 201,
             id: newItem?.id,
+            message: 'Tenant created successfully.',
             trace_id,
         });
         logger(
