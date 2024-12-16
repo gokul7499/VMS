@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
 import jobModel from './job.model';
-import Candidate from './candidateModel';
+import Candidate from './candidate.model';
 
 class SubmissionCandidateModel extends Model {
     id: any;

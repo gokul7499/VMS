@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import candidateModel from "../models/candidateModel";
-import candidateInterface from '../interfaces/candidateInterface'
+import candidateModel from "../models/candidate.model";
+import candidateInterface from "../interfaces/candidate.Interface"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import countriesModel from "../models/countries.model";

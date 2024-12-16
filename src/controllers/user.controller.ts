@@ -12,7 +12,7 @@ import TimeZone from "../models/time-zone.model";
 import Language from "../models/language.model";
 import Tenant from "../models/tenant.model";
 import CountryModel from "../models/countries.model";
-import candidateModel from "../models/candidateModel";
+import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
