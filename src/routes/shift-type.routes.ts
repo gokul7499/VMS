@@ -7,7 +7,7 @@ import {
     getALLShiftType,
     getShiftTypesByHierarchies,
     getShiftCategories
-} from '../controllers/shiftTypeController';
+} from '../controllers/shift-type.controller';
 
 export default async function shiftTypeRoutes(fastify: FastifyInstance) {
     fastify.post('/shift-type', createShiftType);

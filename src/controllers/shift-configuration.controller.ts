@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from '../utility/genrateTraceId';
-import ShiftType from '../models/shiftTypeModel'
+import ShiftType from '../models/shift-type.model'
 import { ShiftConfigurationAttributes } from "../interfaces/shift-configuration.interface";
 import ShiftConfiguration from "../models/shift-configuration.model";
 import shiftConfigurationHierarchies from "../models/shift-configuration-hierarchies.model";

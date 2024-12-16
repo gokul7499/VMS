@@ -53,7 +53,7 @@ import recipientTypeRoute from "./recipient-types.routes";
 import SchemaRoutes from "./schema.routes";
 import RateCardmappingRoutes from "./rate-card-mapping.routes";
 import candidateRoutes from "./candidate.routes";
-import shiftTypeRoutes from './shiftTypeRoutes';
+import shiftTypeRoutes from './shift-type.routes';
 import shiftConfigurationRoutes from './shift-configuration.routes';
 import RateTypeCategoryRoutes from "./rate-type-category.routes";
 import WorkflowApproverRoutes from "./workflow-approvers.routes";
