@@ -1,14 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CustomFields, GetQueryInterface } from '../interfaces/custom-fields.interface';
-import WorkLocationModel from '../models/workLocationModel';
+import WorkLocationModel from '../models/work-location.model';
 import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/custom-field-hierarchie.model';
 import customFieldMasterData from '../models/custom-field-master-data.model';
-import customFieldLocations from '../models/customFieldLocationModel';
+import customFieldLocations from '../models/custom-field-location.model';
 import CustomField from '../models/custom-fields.model'
 import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
-import { createCustomFieldLocations } from './customFieldLocationController';
+import { createCustomFieldLocations } from './custom-field-location.controller';
 import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -319,7 +319,7 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
           attributes: ["work_location_id"],
         });
 
-        const locationIds = locationRecords.map((record) => record.work_location_id);
+        const locationIds = locationRecords.map((record: { work_location_id: any; }) => record.work_location_id);
 
         workLocations = await WorkLocationModel.findAll({
           where: { id: locationIds },
@@ -464,16 +464,16 @@ const processWorkLocationIds = async (work_location_ids: string[] | undefined, c
   if (!work_location_ids || work_location_ids.length === 0) return;
 
   const existingWorkLocationRecords = await customFieldLocations.findAll({ where: { custom_field_id: customFieldId } });
-  const existingWorkLocationIds = existingWorkLocationRecords.map((record) => record.work_location_id);
+  const existingWorkLocationIds = existingWorkLocationRecords.map((record: { work_location_id: any; }) => record.work_location_id);
 
   await Promise.all(work_location_ids.map(async (work_location_id) => {
-    const existingRecord = existingWorkLocationRecords.find((record) => record.work_location_id === work_location_id);
+    const existingRecord = existingWorkLocationRecords.find((record: { work_location_id: string; }) => record.work_location_id === work_location_id);
     if (!existingRecord) {
       await customFieldLocations.create({ custom_field_id: customFieldId, work_location_id });
     }
   }));
 
-  const workLocationIdsToDelete = existingWorkLocationIds.filter(existingId => !work_location_ids.includes(existingId));
+  const workLocationIdsToDelete = existingWorkLocationIds.filter((existingId: string) => !work_location_ids.includes(existingId));
   if (workLocationIdsToDelete.length > 0) {
     await customFieldLocations.destroy({ where: { custom_field_id: customFieldId, work_location_id: workLocationIdsToDelete } });
   }

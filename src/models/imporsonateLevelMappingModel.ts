@@ -2,8 +2,8 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import { Programs } from "./programsModel";
-import Workflow from "./workflowModel";
+import { Programs } from "./programs.model";
+import Workflow from "./workflow.model";
 
 
 class ImporsonateLevel extends Model { }
