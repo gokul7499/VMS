@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import WorkflowMethod from "./workflowMethodsModel";
+import WorkflowMethod from "./workflow-methods.model";
 import { Programs } from "./programs.model";
 import { Module } from "./module.model";
 import Event from "./event.model";

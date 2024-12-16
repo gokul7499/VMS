@@ -5,7 +5,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 import Event from "./event.model";
 import { Module } from "./module.model";
-import WorkflowMethod from "./workflowMethodsModel";
+import WorkflowMethod from "./workflow-methods.model";
 
 class Workflow extends Model {
     event_id: any;

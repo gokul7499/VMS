@@ -35,7 +35,7 @@ import customFieldLocationRoutes from "./coustom-field-location.routes";
 import programVendorRoutes from "./program-vendor.routes";
 import vendordocumentsgroup from "./vendor-document-group.route";
 import QualificationsRoutes from "./qualifications.routes";
-import WorkflowMethodRoutes from "./workFlowMethodsRoutes";
+import WorkflowMethodRoutes from "./workflow-methods.routes";
 import { FastifyInstance } from "fastify";
 import rateCardRoutes from "./rate-card-configuration.routes";
 import rateTypeHierarchyRoutes from "./rate-type-hierarchy.routes";

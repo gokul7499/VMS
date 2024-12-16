@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import WorkflowMethod from '../models/workflowMethodsModel';
-import { WorkflowMethodData } from '../interfaces/workflowMethodsInterface';
+import WorkflowMethod from '../models/workflow-methods.model';
+import { WorkflowMethodData } from '../interfaces/workflow-methods.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
