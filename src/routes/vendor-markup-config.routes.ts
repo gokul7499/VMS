@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getAllVendorMarkupConfig, getVendorMarkupConfigById, createVendorMarkupConfig, calculateAverageVendorMarkupConfig, updateVendorMarkupConfig, deleteVendorMarkupConfig } from '../controllers/vendorMarkupConfigController';
+import { getAllVendorMarkupConfig, getVendorMarkupConfigById, createVendorMarkupConfig, calculateAverageVendorMarkupConfig, updateVendorMarkupConfig, deleteVendorMarkupConfig } from '../controllers/vendor-markup-config.controller';
 
 async function vendorMarkupConfigRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/vendor-markup-config', createVendorMarkupConfig);

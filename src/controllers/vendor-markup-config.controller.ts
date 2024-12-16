@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import vendorMarkupConfig from '../models/vendorMarkupConfigModel';
-import vendorMarkupConfigInterface from '../interfaces/vendorMarkupConfigInterface';
+import vendorMarkupConfig from '../models/vendor-markup-config.model';
+import vendorMarkupConfigInterface from '../interfaces/vendor-markup-config.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
 import { Sequelize } from 'sequelize';

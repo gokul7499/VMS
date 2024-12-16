@@ -4,7 +4,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { programVendorInterface, programVendorQueryInterface } from "../interfaces/program-vendor.interface";
 import UserMapping from "../models/user-mapping.model";
 import Tenant from "../models/tenant.model";
-import vendorMarkupConfig from "../models/vendorMarkupConfigModel";
+import vendorMarkupConfig from "../models/vendor-markup-config.model";
 import VendorGroup from "../models/vendor-group.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

@@ -41,7 +41,7 @@ import rateCardRoutes from "./rate-card-configuration.routes";
 import rateTypeHierarchyRoutes from "./rate-type-hierarchy.routes";
 import rateTypeJobTemplateRoutes from "./rate-type-job-template.routes";
 import VendorGroupRoutes from "./venodr-group.routes";
-import vendorMarkupConfigRoutes from "./vendorMarkupConfigRoutes";
+import vendorMarkupConfigRoutes from "./vendor-markup-config.routes";
 import vendorLabourCategoryRoutes from "./vendor-labour-categories.routes";
 import vendorWorkLocationMappingRoutes from "./vendor-work-location-mapping.routes";
 import vendorHieararchyMappingRoutes from "./vendor-hieararchy.mapping.routes";
