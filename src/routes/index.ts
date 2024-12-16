@@ -11,7 +11,7 @@ import timeZoneRoutes from "./time-zones.routes";
 import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
 import countriesRoutes from "./countries.routes";
 import programsConfigRoutes from "./program-config.routes";
-import programModuleRoutes from "./programModuleRoutes";
+import programModuleRoutes from "./program-module.routes";
 import moduleRouter from "./module.routes";
 import qualificationTypeRouter from "./qualification-type.routes";
 import rateTypeRouter from "./rate-type.routes";

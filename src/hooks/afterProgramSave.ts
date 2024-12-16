@@ -1,5 +1,5 @@
 import { Model, QueryTypes } from 'sequelize';
-import ProgramModule from '../models/programModuleModel';
+import ProgramModule from '../models/program-module.model';
 import { Module } from '../models/module.model';
 import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';

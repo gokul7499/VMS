@@ -4,7 +4,7 @@ import {
   getProgramModuleByIdAndQuery,
   getProgramModuleByProgramId,
   getProgramModuleByIdAndQueryForWorkFlow
-} from '../controllers/programModuleController';
+} from '../controllers/program-module.controller';
 
 async function programModuleRoutes(fastify: FastifyInstance) {
   fastify.get('/program-module/:id', getProgramModuleById);
