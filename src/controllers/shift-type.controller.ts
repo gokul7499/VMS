@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from "../utility/baseService";
-import ShiftTypeModel from "../models/shiftTypeModel";
-import { ShiftTypeAttributes } from "../interfaces/shiftTypeInterface";
+import ShiftTypeModel from "../models/shift-type.model";
+import { ShiftTypeAttributes } from "../interfaces/shift-type.interface";
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
 import { getShiftTypesByHierarchiesQuery } from "../utility/queries";
