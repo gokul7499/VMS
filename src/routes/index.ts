@@ -73,7 +73,7 @@ const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
   app.register(timeZoneRoutes, { prefix: `${basePrefix}` });
-  app.register(countriesRoutes, { prefix: `${basePrefix}/countries` });
+  app.register(countriesRoutes, { prefix: `${basePrefix}` });
   app.register(currenciesRoutes, { prefix: `${basePrefix}` });
   app.register(globalConfigRoutes, { prefix: `${basePrefix}` });
   app.register(languageRoutes, { prefix: `${basePrefix}` });
