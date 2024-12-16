@@ -10,7 +10,7 @@ import { Op } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";
 import ProgramConfig from "../models/programs-config.model";
 import Configuration from "../models/configuration.model";
-import ProgramModule from "../models/programModuleModel";
+import ProgramModule from "../models/program-module.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { createHierarchy } from "../hooks/afterProgramSave";

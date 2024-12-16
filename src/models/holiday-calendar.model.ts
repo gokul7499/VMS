@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import ProgramModule from './programModuleModel';
+import ProgramModule from './program-module.model';
 
 class HolidayCalendar extends Model {
     hierarchy_units_ids: any;
