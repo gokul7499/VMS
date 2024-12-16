@@ -27,7 +27,7 @@ import User from '../models/user.model';
 import FoundationalModel from '../models/foundational-datatypes.model';
 import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
-import WorkLocationModel from '../models/workLocationModel';
+import WorkLocationModel from '../models/work-location.model';
 import IndustriesModel from '../models/industries.model';
 import picklistModel from '../models/picklist.model';
 import jobTemplateModel from '../models/job-template.model';

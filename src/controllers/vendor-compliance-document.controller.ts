@@ -3,7 +3,7 @@ import { VendorComplianceDocumentInterface } from "../interfaces/vendor-complian
 import { FastifyReply, FastifyRequest } from "fastify";
 import { baseSearch, BaseService } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId";
-import WorkLocationModel from "../models/workLocationModel";
+import WorkLocationModel from "../models/work-location.model";
 import { logger } from "../utility/loggerService";
 import { decodeToken } from "../middlewares/verifyToken";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
