@@ -1,8 +1,8 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import jobCategoryModel from "./job-category.model";
-import { Programs } from "./programsModel";
-import IndustriesModel from "./industriesModel";
+import { Programs } from "./programs.model";
+import IndustriesModel from "./industries.model";
 
 class JobTemplateModel extends Model {
     id: any;

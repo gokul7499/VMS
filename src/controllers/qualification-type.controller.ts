@@ -1,0 +1,250 @@
+import { FastifyRequest, FastifyReply } from 'fastify';
+import qualificationTypeModel from '../models/qualification-type-model';
+import Qualifications from '../models/qualificationsModel';
+import qualificationType from '../interfaces/qualification-type.interface';
+import generateCustomUUID from '../utility/genrateTraceId';
+import { Op } from 'sequelize';
+import { sequelize } from '../config/instance';
+
+export async function getQualificationTypes(
+  request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
+  reply: FastifyReply
+) {
+  try {
+    const params = request.params as Partial<qualificationType>;
+    const query = request.query as any;
+
+    const page = parseInt(query.page ?? '1');
+    const limit = parseInt(query.limit ?? '10');
+    const offset = (page - 1) * limit;
+    query.page && delete query.page;
+    query.limit && delete query.limit;
+
+    const searchConditions: any = {};
+
+    if (query.type) {
+      searchConditions.type = query.type;
+    } else {
+      if (query.name) {
+        searchConditions.name = { [Op.like]: `%${query.name}%` };
+      }
+      if (query.is_enabled !== undefined) {
+        searchConditions.is_enabled = query.is_enabled === "true" ? true : query.is_enabled === "false" ? false : null;
+      }
+      searchConditions.program_id = params.program_id;
+    }
+
+    const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
+      where: { ...searchConditions, is_deleted: false },
+      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'created_on', 'created_by', 'type'],
+      order: [['created_on', 'DESC']],
+      limit: limit,
+      offset: offset,
+    });
+
+    if (qualificationTypes.length === 0) {
+      return reply.status(200).send({
+        message: "Qualification type not found",
+        qualificationTypes: []
+      });
+    }
+
+    const qualificationCounts = await Promise.all(
+      qualificationTypes.map(async (type) => {
+        const count = await Qualifications.count({
+          where: {
+            qualification_type_id: type.id,
+            is_deleted: false,
+          },
+        });
+        return { qualification_type_id: type.id, count };
+      })
+    );
+
+    const qualificationType = qualificationTypes.map(type => {
+      const countData = qualificationCounts.find(count => count.qualification_type_id === type.id);
+      return {
+        ...type.toJSON(),
+        qualifications_count: countData ? countData.count : 0
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      items_per_page: limit,
+      total_records: count,
+      qualification_type: qualificationType,
+      trace_id: generateCustomUUID(),
+    });
+  } catch (error) {
+    reply.status(500).send({
+      statusCode: 500,
+      message: 'Internal Server Error',
+      trace_id: generateCustomUUID(),
+    });
+  }
+}
+
+export async function createQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  try {
+    const { name } = request.body as qualificationType;
+    const existingQualificationType = await qualificationTypeModel.findOne({
+      where: { name, program_id }
+    });
+
+    if (existingQualificationType) {
+      return reply.status(409).send({
+        status_code: 409,
+        message: 'Qualification type with the same name already exists.',
+        trace_id: generateCustomUUID(),
+      });
+    }
+
+    const qualification_types = request.body as qualificationType;
+    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id });
+    reply.status(201).send({
+      status_code: 201,
+      qualification_type: {
+        id: qualificationType?.id,
+        qualificationType_name: qualificationType?.qualificationType_name
+      },
+      trace_id: generateCustomUUID(),
+    });
+  } catch (error) {
+    reply.status(500).send({
+      message: 'An error occurred while creating the qualification type',
+      error,
+    })
+  }
+}
+
+export const getQualificationTypeById = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id, program_id } = request.params as { id: string, program_id: string };
+
+  if (!program_id) {
+    reply.status(400).send({
+      status_code: 400,
+      message: 'Program Id is required',
+      trace_id: generateCustomUUID(),
+    });
+    return;
+  }
+
+  try {
+    const qualificationTypeData = await qualificationTypeModel.findOne({
+      where: { id, program_id },
+      attributes: ['id', 'name', 'code', 'description', 'is_enabled', "type"],
+    });
+
+    if (qualificationTypeData) {
+      reply.status(200).send({
+        status_code: 200,
+        qualificationType: qualificationTypeData,
+        trace_id: generateCustomUUID(),
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: 'Qualification type not found',
+        trace_id: generateCustomUUID(),
+        qualificationType: []
+      });
+    }
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: generateCustomUUID(),
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const updateQualificationTypes = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id, program_id } = request.params as { id: string, program_id: string };
+  const updates = request.body as qualificationType;
+  let { name } = request.body as qualificationType;
+
+  name = name.trim();
+  if (!program_id) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Program Id is required',
+      trace_id: generateCustomUUID(),
+    });
+  }
+  try {
+    const existingQualificationTypeWithSameName = await qualificationTypeModel.findOne({
+      where: {
+        name: sequelize.where(sequelize.fn('lower', sequelize.col('name')), sequelize.fn('lower', name)),
+        id: { [Op.ne]: id },
+        program_id,
+        is_deleted: false,
+      }
+    });
+
+    if (existingQualificationTypeWithSameName) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "Qualification type with same name already exists.",
+        trace_id: generateCustomUUID(),
+      });
+    }
+    const data = await qualificationTypeModel.findOne({
+      where: { id, program_id, is_deleted: false },
+    });
+
+    if (!data) {
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'Qualification type not found.',
+        trace_id: generateCustomUUID(),
+      });
+    }
+    await data.update(updates);
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: 'Qualification type updated successfully.',
+      trace_id: generateCustomUUID(),
+    });
+  } catch (error) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error: Failed to update qualification type',
+      trace_id: generateCustomUUID(),
+    });
+  }
+};
+
+export async function deleteQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { id } = request.params as { id: string };
+    const qualificationType = await qualificationTypeModel.findByPk(id);
+    if (qualificationType) {
+      await qualificationType.update({
+        is_enabled: false,
+        is_deleted: true,
+      })
+      reply.status(200).send({
+        status_code: 200,
+        message: 'Qualification type deleted successfully',
+        trace_id: generateCustomUUID(),
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: 'Qualification type not found',
+        trace_id: generateCustomUUID(),
+      });
+    }
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error: Failed to delete qualification type',
+      trace_id: generateCustomUUID(),
+      error: error as Error,
+    });
+  }
+}

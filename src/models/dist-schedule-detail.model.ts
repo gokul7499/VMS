@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import VendorDistributionSchedule from './vendorDistributionScheduleModel';
+import VendorDistributionSchedule from './vendor-distribution-schedule.model';
 
 class DistScheduleDetail extends Model {
     id: any;

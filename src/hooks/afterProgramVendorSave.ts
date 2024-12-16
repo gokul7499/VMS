@@ -1,10 +1,10 @@
 import { Model } from "sequelize";
-import vendorWorkLocationMapping from "../models/vendorWorkLocationMappingModel";
-import VendorHierarchyMapping from "../models/vendorHieararchyMappingModel";
-import vendorLabourCategoriesModel from "../models/vendorLabourCategoriesModel";
-import IndustriesModel from "../models/industriesModel";
-import hierarchies from "../models/hierarchiesModel";
-import WorkLocationModel from "../models/workLocationModel";
+import vendorWorkLocationMapping from "../models/vendor-work-location-mapping.model";
+import VendorHierarchyMapping from "../models/vendor-hieararchy-mapping.model";
+import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
+import IndustriesModel from "../models/industries.model";
+import hierarchies from "../models/hierarchies.model";
+import WorkLocationModel from "../models/work-location.model";
 
 export const createVendorWorkLocationMapping = async (record: Model) => {
     if (Array.isArray((record as any).work_locations)) {

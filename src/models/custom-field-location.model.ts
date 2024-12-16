@@ -3,13 +3,13 @@ import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
-import { Programs } from './programsModel';
-class CustomFieldLocation extends Model {
+import { Programs } from './programs.model';
+class custom_fields_location extends Model {
     work_location_id: any;
     custom_field_id: any;
     id: any;
 }
-CustomFieldLocation.init({
+custom_fields_location.init({
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -46,7 +46,7 @@ CustomFieldLocation.init({
             },
         },
     });
-CustomFieldLocation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
+custom_fields_location.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 
 sequelize.sync();
-export default CustomFieldLocation;
+export default custom_fields_location;

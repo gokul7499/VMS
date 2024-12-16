@@ -1,9 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import qualificationTypeModel from "./qualificationTypeModel";
+import qualificationTypeModel from "./qualification-type-model";
 
 class Qualifications extends Model {
     code: any;

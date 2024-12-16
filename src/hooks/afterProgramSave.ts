@@ -1,10 +1,10 @@
 import { Model, QueryTypes } from 'sequelize';
-import ProgramModule from '../models/programModuleModel';
-import { Module } from '../models/moduleModel';
-import hierarchies from '../models/hierarchiesModel';
+import ProgramModule from '../models/program-module.model';
+import { Module } from '../models/module.model';
+import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';
-import qualificationTypeModel from '../models/qualificationTypeModel'
-import { rateType } from '../models/rateTypeModel';
+import qualificationTypeModel from '../models/qualification-type-model'
+import { rateType } from '../models/rate-type.model';
 import { sequelize } from '../config/instance';
 import { fetchProgramConfigValues } from '../utility/queries';
 
