@@ -5,7 +5,7 @@ import {
   deleteWorkflowFieldConfig,
   getAllWorkflowFieldConfig,
   getWorkflowFieldConfigById
-} from '../controllers/workflowFieldConfigController';
+} from '../controllers/workflow-field-config.controller';
 
 async function WorkflowFieldConfigRoutes(fastify: FastifyInstance) {
     fastify.post('/field-config', async (request, reply) => { await createWorkflowFieldConfig(request, reply); });
