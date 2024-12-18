@@ -31,6 +31,10 @@ TimesheetExpenseRuleModel.init({
         type: DataTypes.STRING,
         allowNull: true
     },
+    rule_category: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     is_paid_break: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
