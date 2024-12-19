@@ -27,6 +27,8 @@ app.get("/", async (request, reply) => {
 });
 
 app.register(registerRoutes);
+app.register(formBodyPlugin);
+let port = 8000;
 
 app.post("/store", async (request, reply) => {
   const { key, value } = request.body as { key: string; value: any };
@@ -54,7 +56,6 @@ app.get("/fetch/:key", async (request, reply) => {
   }
 });
 
-let port = 3200;
 const start = async () => {
   try {
     const dbStatus = await checkDatabaseConnection();

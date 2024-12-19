@@ -8,16 +8,8 @@ const sequelize = new Sequelize(
   {
     host: databaseConfig.config.host,
     dialect: 'mysql',
-  }
-);
-
-const sequelize2 = new Sequelize(
-  databaseConfig.sourcing.database ?? '',
-  databaseConfig.sourcing.user ?? '',
-  databaseConfig.sourcing.password,
-  {
-    host: databaseConfig.sourcing.host,
-    dialect: 'mysql',
+    port : 3306
+    
   }
 );
 
@@ -32,4 +24,4 @@ const checkDatabaseConnection = async () => {
   }
 };
 
-export { sequelize, sequelize2, checkDatabaseConnection };
+export { sequelize, checkDatabaseConnection };

@@ -1,11 +1,10 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import jobCategoryModel from "./job-category.model";
-import { Programs } from "./programsModel";
-import IndustriesModel from "./industriesModel";
-import User from "./userModel";
+import { Programs } from "./programs.model";
+import IndustriesModel from "./industries.model";
 
-class jobTemplateModel extends Model {
+class JobTemplateModel extends Model {
     id: any;
     job_id: any;
     job_category: any;
@@ -16,7 +15,7 @@ class jobTemplateModel extends Model {
     custom_field_id: any;
 }
 
-jobTemplateModel.init(
+JobTemplateModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -221,9 +220,8 @@ jobTemplateModel.init(
 
 sequelize.sync();
 
-jobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
-jobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'labour_category' });
-jobTemplateModel.belongsTo(User, { foreignKey: 'user_roles', as: 'user' });
+JobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
+JobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+JobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'labour_category' });
 
-export default jobTemplateModel;
+export default JobTemplateModel;

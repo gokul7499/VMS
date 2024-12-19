@@ -1,0 +1,84 @@
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../config/instance';
+import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import { beforeSave } from '../hooks/timeFormatHook';
+
+class Module extends Model { }
+
+Module.init(
+    {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            allowNull: false,
+            primaryKey: true,
+        },
+        parent_module_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'module',
+                key: "id",
+            }
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        description: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        is_workflow: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+            allowNull: true,
+        },
+        is_enabled: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+            allowNull: true,
+        },
+        is_deleted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            allowNull: true,
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+        },
+        modified_on: {
+            type: DataTypes.DOUBLE,
+        },
+        ref_order: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        is_rule: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        },
+        module_linking: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: []
+        },
+    },
+    {
+        sequelize,
+        tableName: 'module',
+        timestamps: false,
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
+        },
+    }
+);
+
+sequelize.sync();
+Module.belongsTo(Module, { foreignKey: 'parent_module_id', as: 'modules' });
+export { Module };

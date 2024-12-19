@@ -2,9 +2,9 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 import WorkflowLevel from "./workflowLevelModel";
-import RecipientType from "./recipientTypesModel";
+import RecipientType from "./recipient-types.model";
 
 class WorkflowRecipientType extends Model { }
 

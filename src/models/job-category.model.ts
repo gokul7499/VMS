@@ -2,11 +2,11 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 
-class jobCategoryModel extends Model {
+class JobCategoryModel extends Model {
     id: any;
 }
 
-jobCategoryModel.init(
+JobCategoryModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -52,4 +52,4 @@ jobCategoryModel.init(
 
 sequelize.sync();
 
-export default jobCategoryModel;
+export default JobCategoryModel;
