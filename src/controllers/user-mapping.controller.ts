@@ -11,13 +11,14 @@ import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const userMappings = await UserMapping.findAll();
         if (userMappings.length === 0) {
             return reply.status(200).send({
                 message: "User mappings not found",
                 user_mapping: [],
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
         reply.status(200).send(userMappings);
@@ -25,7 +26,7 @@ export const getAllUserMappings = async (request: FastifyRequest, reply: Fastify
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };
@@ -33,6 +34,7 @@ export const getAllUserMappings = async (request: FastifyRequest, reply: Fastify
 
 export const getUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const userMapping = await UserMapping.findByPk(id);
         if (userMapping) {
@@ -52,7 +54,7 @@ export const getUserMappingById = async (request: FastifyRequest, reply: Fastify
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };
@@ -61,6 +63,7 @@ export async function createUserMappings(
     request_payload: Omit<UserMappingAttributes, "id">,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { tenant_id, user_id, role_id, program_id } = request_payload;
 
@@ -82,14 +85,14 @@ export async function createUserMappings(
         return reply.status(201).send({
             message: "User Mapping created successfully",
             user_mapping: newUserMapping,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
 
     } catch (error) {
         return reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
@@ -97,13 +100,14 @@ export async function createUserMappings(
 export const updateUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<UserMappingAttributes>;
+    const traceId=generateCustomUUID();
     try {
         const [updatedCount] = await UserMapping.update(updates, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
                 message: "User Mapping updated successfully",
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -115,7 +119,7 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };
@@ -123,13 +127,14 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
 
 export const deleteUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const deletedCount = await UserMapping.destroy({ where: { id: id } });
         if (deletedCount > 0) {
             reply.status(204).send({
                 status_code: 204,
                 message: "User Mapping deleted successfully",
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -141,7 +146,7 @@ export const deleteUserMappingById = async (request: FastifyRequest, reply: Fast
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };

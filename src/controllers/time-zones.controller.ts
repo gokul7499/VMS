@@ -22,6 +22,7 @@ export const getAllTimeZones = async (request: FastifyRequest, reply: FastifyRep
 };
 
 export const bulkUploadTimeZone = async (request: FastifyRequest, reply: FastifyReply) => {
+  const traceId=generateCustomUUID();
   try {
     const timeZoneData = request.body as any[];
     const createdTimeZone = await TimeZone.bulkCreate(timeZoneData);
@@ -29,13 +30,13 @@ export const bulkUploadTimeZone = async (request: FastifyRequest, reply: Fastify
       status_code: 201,
       data: createdTimeZone,
       message: 'time_zone Created successfully',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create time_zone',
-      trace_id: generateCustomUUID(),
+      trace_id:traceId,
       error: error,
     });
   }
