@@ -2,14 +2,16 @@ import { rateType } from "../models/rateTypeModel";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CreateRateTypeData } from "../interfaces/rateTypeInterface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { sequelize } from "../config/instance";
+import { getAllRateTypes } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
   const { program_id } = request.params as { program_id: string };
-  const { name } = request.body as CreateRateTypeData;
+  const { name, rate } = request.body as CreateRateTypeData;
   const trace_id = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -24,6 +26,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   if (!user) {
     return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
   }
+
   logger(
     {
       trace_id,
@@ -43,6 +46,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     },
     rateType
   );
+
   try {
     const existingRateTypeWithSameName = await rateType.findOne({
       where: { name, program_id },
@@ -76,7 +80,50 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       });
     }
 
-    const item: any = await rateType.create({ ...data, program_id });
+    if (rate?.base_differential_on) {
+      const existingRateTypeWithSameBaseDifferential = await rateType.findOne({
+        where: {
+          rate_type_category: data.rate_type_category,
+          'rate.base_differential_on': rate.base_differential_on,
+          program_id,
+        },
+      });
+
+      if (existingRateTypeWithSameBaseDifferential) {
+        logger(
+          {
+            trace_id,
+            actor: {
+              user_name: user?.preferred_username,
+              user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating rate type",
+            status: "error",
+            description: `Rate type with the same base_differential_on already exists for program ${program_id}`,
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false
+          },
+          rateType
+        );
+
+        return reply.status(400).send({
+          status_code: 400,
+          message: "A rate type with the same base differential already exists.",
+          trace_id,
+        });
+      }
+    }
+
+    const item: any = await rateType.create({
+      ...data,
+      program_id,
+      created_by: user.sub,
+      modified_by: user.sub
+    });
 
     logger(
       {
@@ -101,7 +148,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     reply.status(201).send({
       status_code: 201,
       id: item.id,
-      message: "Data created successfully",
+      message: "Rate Type created successfully.",
       trace_id,
     });
   } catch (error: any) {
@@ -139,83 +186,86 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 };
 
 export async function getAllRateType(
-  request: FastifyRequest<{ Querystring: CreateRateTypeData }>,
+  request: FastifyRequest<{ Querystring: { id?: string; name?: string; is_enabled?: boolean | string; modified_on?: string; is_shift_rate?: boolean | string; is_base_rate?: string | boolean; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) {
+  const { program_id } = request.params as CreateRateTypeData;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, page = "1", limit = "10" } = request.query;
+  const traceId = generateCustomUUID();
+
   try {
-    const params = request.params as CreateRateTypeData;
-    const query: any = request.query;
+    const hasName = !!name;
+    const hasId = !!id;
+    const isEnabledValue =
+      typeof is_enabled === "string" ? (is_enabled === "true" ? 1 : 0) : (is_enabled === true ? 1 : is_enabled === false ? 0 : undefined);
 
-    const page = parseInt(query.page ?? "1");
-    const limit = parseInt(query.limit ?? "10");
-    const offset = (page - 1) * limit;
-    query.page && delete query.page;
-    query.limit && delete query.limit;
+    const isShiftRateValue =
+      typeof is_shift_rate === "string" ? (is_shift_rate === "true" ? 1 : 0) : (is_shift_rate === true ? 1 : is_shift_rate === false ? 0 : undefined);
 
-    const searchConditions: any = { program_id: params.program_id, is_deleted: false };
-    if (query.is_enabled) {
-      searchConditions.is_enabled = query.is_enabled === "false" ? false : true;
-    }
+    const isBaseRate =
+      typeof is_base_rate === "string" ? (is_base_rate === "true" ? 1 : 0) : (is_base_rate === true ? 1 : is_base_rate === false ? 0 : undefined);
 
-    if (query.is_shift_rate) {
-      searchConditions.is_shift_rate = query.is_shift_rate === "false" ? false : true;
-    }
+    let startDate;
+    let endDate;
 
-    if (query.start_date && query.end_date) {
-      searchConditions.modified_on = {
-        [Op.between]: [query.start_date, query.end_date],
-      };
-    } else if (query.start_date) {
-      searchConditions.modified_on = {
-        [Op.gte]: query.start_date,
-      };
-    } else if (query.end_date) {
-      searchConditions.modified_on = {
-        [Op.lte]: query.end_date,
-      };
-    }
-    if (query.name) {
-      searchConditions.name = { [Op.like]: `%${query.name}%` };
-    }
-    if (query.shift_category) {
-      searchConditions.shift_category = { [Op.like]: `%${query.shift_category}%` };
-    }
-    if (query.type) {
-      searchConditions.type = { [Op.like]: `%${query.type}%` };
+    if (modified_on) {
+      const dateRange = modified_on.split(',');
+      if (dateRange.length === 2) {
+        startDate = parseInt(dateRange[0], 10);
+        endDate = parseInt(dateRange[1], 10);
+      }
     }
 
-    let order: [string, string][] = [["modified_on", "DESC"]];
-    if (query.sort === "1") {
-      order = [["modified_on", "ASC"]];
-    } else if (query.sort === "-1") {
-      order = [["modified_on", "DESC"]];
-    }
+    const pageNumber = parseInt(page, 10);
+    const pageSize = parseInt(limit, 10);
+    const offset = (pageNumber - 1) * pageSize;
 
-    const rateTypeResponse = await rateType.findAll({
-      where: searchConditions,
-      limit,
-      offset,
-      order,
-      attributes: {
-        exclude: ["is_deleted", "program_id", "ref_id"],
+    const rateType = await sequelize.query<{ total_records: any }>(getAllRateTypes(hasName, hasId, !!is_enabled, !!is_shift_rate, !!is_base_rate, startDate, endDate, pageSize, offset), {
+      replacements: {
+        program_id,
+        ...(hasId && { id }),
+        ...(hasName && { name: `%${name}%` }),
+        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+        ...(isShiftRateValue !== undefined && { is_shift_rate: isShiftRateValue }),
+        ...(isBaseRate !== undefined && { is_base_rate: isBaseRate }),
+        ...(startDate !== undefined && { startDate }),
+        ...(endDate !== undefined && { endDate }),
+        limit: pageSize,
+        offset: offset,
       },
+      type: QueryTypes.SELECT,
     });
 
-    const count = await rateType.count({ where: searchConditions });
+    if (rateType.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "No rate type found for the given program",
+        total_records: 0,
+        page: pageNumber,
+        limit: pageSize,
+        rate_types: [],
+      });
+    }
+
+    const totalRecords = rateType[0]?.total_records || 0;
+    const rateTypes = rateType.map(({ total_records, ...rest }) => rest);
 
     return reply.status(200).send({
       status_code: 200,
-      items_per_page: limit,
-      total_records: count,
-      rate_type: rateTypeResponse,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
+      message: "Rate type fetched successfully.",
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: pageSize,
+      rate_types: rateTypes,
     });
-  } catch (error) {
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
       trace_id: generateCustomUUID(),
       message: "Internal server error",
-      error,
+      error: error.message,
     });
   }
 }
@@ -241,9 +291,6 @@ export async function getRateTypeById(
         id,
         program_id,
         is_deleted: false,
-      },
-      attributes: {
-        exclude: ["is_deleted", "program_id", "ref_id"],
       }
     });
     if (rateTypes) {
@@ -271,7 +318,7 @@ export async function getRateTypeById(
 
 export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string, program_id: string };
-  const updates = request.body as Partial<CreateRateTypeData>;
+  const updates = request.body as CreateRateTypeData;
   const { name } = request.body as CreateRateTypeData;
   try {
     const existingRateTypeWithSameName = await rateType.findOne({
@@ -353,74 +400,63 @@ export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id:
   }
 };
 
-export async function getRateTBYId(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params as {
-    program_id: string;
-  };
-  const { shift_category } = request.query as {
-    shift_category?: string;
-  };
-
-  if (!program_id) {
-    return reply.status(400).send({
-      status_code: 400,
-      trace_id: generateCustomUUID(),
-      message: "program_id is required",
-    });
-  }
-
-  if (shift_category !== undefined) {
-    if (shift_category.trim() === "") {
-      return reply.status(400).send({
-        status_code: 400,
-        trace_id: generateCustomUUID(),
-        message: "Shift category has no value. Please provide a valid value.",
-      });
-    }
-  }
-
+export async function getDifferentialOnForRateType(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const { is_shift_rate } = request.query as { is_shift_rate?: string };
+  const traceId = generateCustomUUID();
   try {
     const whereConditions: any = {
       program_id,
-      type: "standard",
       is_deleted: false,
     };
 
-    if (shift_category) {
-      whereConditions.shift_category = shift_category;
-    }
-
     const rateTypes = await rateType.findAll({
       where: whereConditions,
-      attributes: {
-        exclude: ["is_deleted", "program_id", "ref_id"],
-      },
+      attributes: ["id", "name", "is_base_rate", "is_shift_rate"],
     });
 
-    if (rateTypes && rateTypes.length > 0) {
+    let standard = null;
+    const shift: { id: string; name: string }[] = [];
+
+    rateTypes.forEach((rate: any) => {
+      if (rate.is_base_rate && !rate.is_shift_rate) {
+        standard = {
+          id: rate.id,
+          name: rate.name,
+        };
+      } else if (rate.is_base_rate && rate.is_shift_rate) {
+        shift.push({
+          id: rate.id,
+          name: rate.name,
+        });
+      }
+    });
+
+    if (is_shift_rate === "false") {
       return reply.status(200).send({
         status_code: 200,
-        rate_type: rateTypes,
-        trace_id: generateCustomUUID(),
-      });
-    } else {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: generateCustomUUID(),
-        message: "Rate type not found",
-        rate_type: []
+        trace_id: traceId,
+        differential_on: {
+          standard
+        },
       });
     }
-  } catch (error) {
-    console.error("Error retrieving rate type:", error);
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      differential_on: {
+        standard,
+        shift,
+      },
+    });
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "Failed to retrieve rate type",
-      error,
+      error: error.message,
     });
   }
 }
+

@@ -523,21 +523,23 @@ export const getProgramVendorById = async (
 
 export async function getVendorAndVendorGroup(request: FastifyRequest, reply: FastifyReply) {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids, labor_category_id, work_location_id } = request.query as {
+    const { hierarchy_ids, labor_category_id, work_location_id, search } = request.query as {
         hierarchy_ids?: string;
         labor_category_id?: string;
         work_location_id?: string;
+        search?: string; 
     };
     try {
         const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(',').map(id => id.trim()) : [];
         const laborCategoryIdsArray = labor_category_id ? labor_category_id.split(',').map(id => id.trim()) : [];
         const workLocationIdsArray = work_location_id ? work_location_id.split(',').map(id => id.trim()) : [];
 
-        const vendorFilterQuery = vendorFilterQueryBuilder(
+        let vendorFilterQuery = vendorFilterQueryBuilder(
             hierarchyIdsArray,
             laborCategoryIdsArray,
             workLocationIdsArray
         );
+        
         const vendorReplacements: Record<string, any> = {
             program_id,
         };
@@ -550,41 +552,51 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         workLocationIdsArray.forEach((id, index) => {
             vendorReplacements[`work_location_id${index}`] = id;
         });
+
+        if (search) {
+            vendorFilterQuery += ` AND vendor_name LIKE :search`;
+            vendorReplacements['search'] = `%${search}%`;
+        }
+
         const filteredVendors = await sequelize.query<VendorDetails>(vendorFilterQuery, {
             replacements: vendorReplacements,
             type: QueryTypes.SELECT,
         });
-        const filteredVendorIds = filteredVendors.map(vendor => vendor.id);
 
-        const vendorGroups = await VendorGroup.findAll({
-            where: { program_id, is_deleted: false },
-            attributes: ['id', 'vendor_group_name', 'vendors'],
-        });
+        const vendorGroupQuery: {
+            where: Record<string, any>; 
+            attributes: any;
+        } = {
+            where: {
+                program_id,
+                is_deleted: false,
+            },
+            attributes: ['id', 'vendor_group_name'],
+        };
 
-        const filteredVendorGroups = vendorGroups
-            .map(group => {
-                const matchingVendors = Array.isArray(group.vendors)
-                ? group.vendors.filter((vendorId: string) => filteredVendorIds.includes(vendorId))
-                : [];    
+        if (search) {
+            vendorGroupQuery.where.vendor_group_name = { [Op.like]: `%${search}%` };
+        }
 
-                if (matchingVendors.length > 0) {
-                    return {
-                        id: group.id,
-                        vendor_group_name: group.vendor_group_name,
-                        vendors: matchingVendors,
-                    };
-                }
-                return null;
-            })
-            .filter(group => group !== null);
+        const vendorGroups = await VendorGroup.findAll(vendorGroupQuery);
+
+        const responseVendors = filteredVendors.map(vendor => ({
+            id: vendor.id,
+            vendor: vendor.vendor_name,
+        }));
+
+        const combinedResponse = [
+            ...responseVendors,
+            ...vendorGroups.map(group => ({
+                id: group.id,
+                vendor: group.vendor_group_name,
+                is_group: true,
+            })),
+        ];
 
         reply.status(200).send({
             status_code: 200,
-            // vendor_groups: filteredVendorGroups,
-            vendors: filteredVendors.map(vendor => ({
-                id: vendor.id,
-                vendor: vendor.vendor_name,
-            })),
+            vendors: combinedResponse,
             trace_id: generateCustomUUID(),
         });
 

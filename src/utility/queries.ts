@@ -756,12 +756,13 @@ SELECT
     md.foundational_data_type_id,
     md.depended_fields,
     t.id AS manager_id,
-    t.name AS owner_name,
+    t.first_name AS first_name,
+    t.last_name AS last_name,
     mdt.name AS foundational_data_type_name
 FROM
     master_data AS md
 LEFT JOIN
-    tenant AS t
+    user AS t
     ON md.manager_id = t.id
 LEFT JOIN
     master_data_type AS mdt
@@ -776,7 +777,7 @@ WHERE
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
-    AND (:owner_name IS NULL OR t.name LIKE :owner_name)
+    AND (:first_name IS NULL OR t.first_name LIKE :first_name)
 ORDER BY
     md.created_on DESC
 LIMIT
@@ -788,7 +789,7 @@ SELECT COUNT(DISTINCT md.id) AS total
 FROM
     master_data AS md
 LEFT JOIN
-    tenant AS t
+    user AS t
     ON md.manager_id = t.id
 LEFT JOIN
     master_data_type AS mdt
@@ -803,7 +804,7 @@ WHERE
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
-    AND (:owner_name IS NULL OR t.name LIKE :owner_name)
+    AND (:first_name IS NULL OR t.first_name LIKE :first_name)
 `;
 
 export const existingPairQuery = `
@@ -1181,6 +1182,7 @@ export const vendorFilterQueryBuilder = (
         WHERE
             program_vendors.is_deleted = false
             AND program_vendors.program_id = :program_id
+            AND status = 'Active'
             ${hierarchyIdsClause}
             ${laborCategoryIdsClause}
             ${workLocationIdsClause}
@@ -1240,34 +1242,33 @@ export const getWorkLocationTimeZoneByUserId = `
 
 export const getMasterDataForHeirarchiesQuery = () => {
     return `
-            SELECT
-                JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', hmd.foundation_data_type_id,
-                        'name', fdt.name,
-                        'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
-                        'value', (
-                            SELECT JSON_ARRAYAGG(
-                                JSON_OBJECT(
-                                    'id', fd.id,
-                                    'name', fd.name
-                                )
+        SELECT
+            h.id AS hierarchy_id,
+            h.name AS hierarchy_name,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', fdt.id,
+                    'name', fdt.name,
+                    'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
+                    'value', (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', fd.id,
+                                'name', fd.name
                             )
-                            FROM master_data fd
-                            WHERE fd.foundational_data_type_id = hmd.foundation_data_type_id AND fd.is_enabled = 1
-                        ),
-                        'hierarchy_name', h.name,
-                        'hierarchy_id', h.id
+                        )
+                        FROM master_data fd
+                        WHERE fd.foundational_data_type_id = fdt.id AND fd.is_enabled = 1
                     )
-                ) AS master_data
-            FROM hierarchies_master_data hmd
-            LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-            LEFT JOIN hierarchies h ON h.id = hmd.hierarchy_id
-            WHERE hmd.hierarchy_id IN (:hierarchy_ids) AND fdt.is_enabled = 1
-            GROUP BY hmd.foundation_data_type_id, fdt.name, h.name, h.id
-        `;
+                )
+            ) AS master_data
+        FROM hierarchies h
+        LEFT JOIN hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
+        LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
+        WHERE h.id IN (:hierarchy_ids) AND fdt.is_enabled = 1
+        GROUP BY h.id, h.name
+    `;
 };
-
 export const masterDataQuery = `
     SELECT
       h.*,
@@ -1394,3 +1395,119 @@ WHERE reason_codes.program_id = :program_id
 AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
+
+export const getMasterData = `
+SELECT 
+ JSON_OBJECT(
+     'id',hierarchies.id,
+     'name',hierarchies.name
+     )AS hierarchy,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'master_data_type', JSON_OBJECT(
+                'id', master_data_type.id,
+                'name', master_data_type.name
+            ),
+            'foundational_data_ids', (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', md1.id,
+                        'name', md1.name
+                    )
+                )
+                FROM master_data AS md1
+                WHERE JSON_CONTAINS(user_master_data.foundation_data_ids, JSON_QUOTE(md1.id), '$')
+            ),
+            'default_master_data', JSON_OBJECT(
+                'id', md2.id,
+                'name', md2.name
+            ),
+            'is_associated', TRUE
+        )
+    ) AS master_data
+FROM 
+    user_master_data
+LEFT JOIN 
+    master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
+LEFT JOIN 
+    hierarchies ON user_master_data.hierarchy_id = hierarchies.id
+LEFT JOIN 
+    master_data AS md2 ON user_master_data.default_master_data = md2.id
+WHERE 
+    user_master_data.user_id = :id
+GROUP BY 
+    hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
+`;
+
+export const getAllRateTypes = (
+    hasName: boolean,
+    hasId:boolean,
+    hasIsEnabled: boolean,
+    isShiftRateValue:boolean,
+    isBaseRate:boolean,
+    startDate?: number,
+    endDate?: number,
+    limit?: number,
+    offset?: number
+) => `
+    WITH rate_type AS (
+      SELECT
+        rt.id,
+        rt.name,
+        rt.program_id,
+        rt.is_enabled,
+        rt.is_shift_rate,
+        rt.abbreviation,
+        rt.is_base_rate,
+        rt.rate,
+        rt.modified_on,
+        COUNT(*) OVER() AS total_records,
+        CASE 
+          WHEN shift_types.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+              'id', shift_types.id,
+              'name', shift_types.shift_type_name
+          )
+        END AS shift_type,
+        CASE 
+          WHEN picklistitems.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+            'id', picklistitems.picklist_id,
+            'label', picklistitems.label,
+            'value', picklistitems.value
+          )
+        END AS rate_type_category
+      FROM rate_type rt
+      LEFT JOIN shift_types 
+        ON rt.shift_type=shift_types.id
+      LEFT JOIN picklistitems 
+        ON rt.rate_type_category = picklistitems.id
+      WHERE rt.program_id = :program_id
+        AND rt.is_deleted = false
+        ${hasId ? "AND rt.id = :id" : ""}
+        ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
+        ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
+        ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
+        ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
+        ${startDate !== undefined && endDate !== undefined
+        ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+        : ""
+    }
+      GROUP BY 
+        rt.id, 
+        rt.name, 
+        rt.program_id, 
+        rt.is_enabled, 
+        rt.is_shift_rate, 
+        rt.abbreviation, 
+        rt.is_base_rate, 
+        rt.rate, 
+        rt.modified_on, 
+        picklistitems.picklist_id, 
+        picklistitems.label, 
+        picklistitems.value
+    )
+    SELECT *
+    FROM rate_type
+    LIMIT :limit OFFSET :offset;
+  `;
