@@ -12,6 +12,7 @@ export async function getAllVendorMarkupConfig(request: FastifyRequest, reply: F
 }
 
 export async function getVendorMarkupConfigById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await vendorMarkupConfig.findOne({
@@ -24,13 +25,13 @@ export async function getVendorMarkupConfigById(request: FastifyRequest, reply: 
         if (item) {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 vendor_markup_config: item
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 vendor_markup_config: [],
                 message: 'vendorMarkupConfig not found.',
             });
@@ -38,7 +39,7 @@ export async function getVendorMarkupConfigById(request: FastifyRequest, reply: 
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: "Internal Server Error",
             error
         });
@@ -49,6 +50,7 @@ export async function createVendorMarkupConfig(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params;
         const vendor = request.body as vendorMarkupConfigInterface;
@@ -56,7 +58,7 @@ export async function createVendorMarkupConfig(
         if (!program_id) {
             return reply.status(400).send({
                 status_code: 400,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 message: 'Program id is required.',
             });
         }
@@ -72,7 +74,7 @@ export async function createVendorMarkupConfig(
             await existingVendor.update({ ...vendor, program_id });
             return reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 message: 'VendorMarkupConfig updated successfully.',
                 vendor: existingVendor
             });
@@ -80,7 +82,7 @@ export async function createVendorMarkupConfig(
             const newVendor = await vendorMarkupConfig.create({ ...vendor, program_id });
             return reply.status(201).send({
                 status_code: 201,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 message: 'VendorMarkupConfig created successfully.',
                 vendor: newVendor
             });
@@ -88,7 +90,7 @@ export async function createVendorMarkupConfig(
     } catch (error) {
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: "Internal Server Error",
             error: error
         });
@@ -96,6 +98,7 @@ export async function createVendorMarkupConfig(
 }
 
 export async function updateVendorMarkupConfig(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = request.body as vendorMarkupConfigInterface;
@@ -106,7 +109,7 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
 
         if (!vendorData) {
             return reply.status(200).send({
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 message: 'vendorMarkupConfig data not found.',
                 vendor_markup_config: [],
             });
@@ -115,17 +118,18 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
         reply.status(201).send({
             status_code: 201,
             message: 'vendorMarkupConfig updated successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Internal Server Error',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 }
 
 export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const vendorData = await vendorMarkupConfig.findOne({
@@ -137,13 +141,13 @@ export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params:
         await vendorData.update({ is_enabled: false, is_deleted: true });
         reply.status(204).send({
             status_code: 204,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: 'vendorMarkupConfig Deleted Successfully.'
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: "Internal Server Error",
             error
         });
