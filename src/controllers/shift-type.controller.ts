@@ -54,6 +54,7 @@ export async function createShiftType(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
+    const traceId=generateCustomUUID();
     try {
         const shiftType = request.body as ShiftTypeAttributes;
         const existingShiftType = await ShiftTypeModel.findOne({
@@ -63,20 +64,21 @@ export async function createShiftType(
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Shift type with the name already exists.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
         const state_data: any = await ShiftTypeModel.create({ ...shiftType });
         reply.status(201).send({
             status_code: 201,
-            message: "shiftType created succesfully",
+            message: "shift type created succesfully",
             id: state_data.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
-            message: 'An error occurred while creating fees configuration',
-            error
+            message: 'Internal server error',
+            trace_id:traceId,
+            error:error.message
         });
     }
 }
