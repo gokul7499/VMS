@@ -9,6 +9,7 @@ export async function createCounty(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
+    const trace_id = generateCustomUUID();
     try {
         const county = request.body as CountyInterface;
         const county_data: any = await countyModel.create({ ...county });
@@ -16,7 +17,7 @@ export async function createCounty(
             status_code: 201,
             message: "county created succesfully",
             county_data: county_data?.id,
-            trace_id: generateCustomUUID(),
+            trace_id,
         });
     } catch (error) {
         reply.status(500).send({
@@ -29,6 +30,7 @@ export async function getCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
+    const trace_id = generateCustomUUID();
     try {
         const { id } = request.params;
         console.log("Params:", id);
@@ -44,7 +46,7 @@ export async function getCountyById(
                 status_code: 201,
                 message: "county get succesfully",
                 county: county,
-                trace_id: generateCustomUUID(),
+                trace_id,
             });
         } else {
             reply.status(200).send({
@@ -58,6 +60,7 @@ export async function getCountyById(
     }
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
+    const trace_id = generateCustomUUID();
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<CountyInterface>;
     try {
@@ -71,7 +74,7 @@ export async function updateCountyById(request: FastifyRequest, reply: FastifyRe
             status_code: 201,
             message: "county updated successfully",
             county: id,
-            trace_id: generateCustomUUID()
+            trace_id,
         });
     } catch (error) {
         return reply.status(500).send({ message: "Internal Server Error", trace_id: generateCustomUUID(), error });
@@ -82,6 +85,7 @@ export async function deleteCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
+    const trace_id = generateCustomUUID();
     try {
         const { id } = request.params;
         const [county] = await countyModel.update(
@@ -97,7 +101,7 @@ export async function deleteCountyById(
                 status_code: 200,
                 message: "county deleted successfully",
                 county: id,
-                trace_id: generateCustomUUID(),
+                trace_id,
             });
         } else {
             reply.status(200).send({ message: "county not found", trace_id: generateCustomUUID(), county: [] });
@@ -108,6 +112,7 @@ export async function deleteCountyById(
 }
 export async function getAllCounty(request: FastifyRequest<{ Querystring: { name?: string; state_id?: string[] } }>, reply: FastifyReply) {
     const { name, state_id } = request.query;
+    const trace_id = generateCustomUUID();
     let whereClause: any = {};
 
     if (name) {
@@ -128,7 +133,7 @@ export async function getAllCounty(request: FastifyRequest<{ Querystring: { name
                 status_code: 201,
                 message: "Counties retrieved successfully",
                 data: counties,
-                trace_id: generateCustomUUID(),
+                trace_id,
             });
         } else {
             reply.status(200).send({ status_code: 200, message: "No counties found for the given state_id(s)", counties: [], trace_id: generateCustomUUID(), });
