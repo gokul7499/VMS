@@ -27,6 +27,11 @@ ShiftType.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    shift_format:{
+      type: DataTypes.ENUM,
+      values:["duration","split","time"],
+      allowNull: true,
+    },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
