@@ -17,6 +17,7 @@ export async function getTenants(
     reply: FastifyReply
 ) {
     const { is_enabled } = request.query;
+    const traceId=generateCustomUUID();
     try {
         const whereClause: any = { is_deleted: false };
 
@@ -39,7 +40,7 @@ export async function getTenants(
             status_code: 200,
             items_per_page: tenants.length,
             total_records: tenants.length,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             tenant_data: tenants,
         });
     } catch (error) {
@@ -50,6 +51,7 @@ export async function getTenants(
 
 export async function getTenantById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
 
         const tenant = await Tenant.findOne({
@@ -88,7 +90,7 @@ export async function getTenantById(request: FastifyRequest, reply: FastifyReply
             reply.status(200).send({
                 status_code: 200,
                 tenant_data: tenantData,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Tenant not found", tenant: [] });
@@ -280,6 +282,7 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
 
 export async function deleteTenant(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const tenant = await Tenant.findByPk(id);
         if (tenant) {
@@ -287,7 +290,7 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
             reply.status(200).send({
                 status_code: 200,
                 id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Tenant not found", tenants: [] });
@@ -370,6 +373,7 @@ export async function advancedSearchTenants(request: FastifyRequest, reply: Fast
 }
 
 export async function getPasswordPolicy(request: FastifyRequest<{ Params: { client_id: string } }>, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { client_id } = request.params;
         const tenant: Tenant | null = await Tenant.findOne({
@@ -380,7 +384,7 @@ export async function getPasswordPolicy(request: FastifyRequest<{ Params: { clie
             reply.status(200).send({
                 status_code: 200,
                 password_policy: tenant.password_policy,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -392,7 +396,7 @@ export async function getPasswordPolicy(request: FastifyRequest<{ Params: { clie
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while fetching password_policy.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: error,
         });
     }
