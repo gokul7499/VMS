@@ -2,7 +2,6 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { beforeSave } from "../hooks/timeFormatHook";
 
 class FoundationalDataTypes extends Model {
   id: any;
@@ -70,10 +69,7 @@ FoundationalDataTypes.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
-      },
-      beforeSave: (instance) => {
-        beforeSave(instance);
-      },
+      }
     },
   }
 );
