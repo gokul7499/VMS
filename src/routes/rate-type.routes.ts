@@ -6,7 +6,7 @@ import {
     updateRateTypeById,
     deleteRateTypeById,
     getDifferentialOnForRateType
-} from '../controllers/rateTypeController';
+} from '../controllers/rate-type.controller';
 
 async function rateTypeRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/rate_type', saveRateType);

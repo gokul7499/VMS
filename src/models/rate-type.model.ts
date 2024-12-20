@@ -2,14 +2,14 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-class rateType extends Model {
+class RateType extends Model {
   id!: string;
   type!: string
   is_base_rate: any;
   name: any;
   is_shift_rate: any;
 }
-rateType.init(
+RateType.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -97,4 +97,4 @@ rateType.init(
 );
 
 sequelize.sync();
-export { rateType };
+export default RateType;

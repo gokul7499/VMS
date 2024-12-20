@@ -1,4 +1,4 @@
-import { rateType } from "../models/rate-type.model";
+import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CreateRateTypeData } from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
