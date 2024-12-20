@@ -8,7 +8,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 export const getConfigurations = async (
   request: FastifyRequest,
   reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const trace_Id = generateCustomUUID();
   try {
     const configurations = await Configuration.findAll({ order: [["sr_Number", "ASC"]] });
     if (configurations.length === 0) {
@@ -16,20 +16,20 @@ export const getConfigurations = async (
         status_code: 200,
         message: "Configuration data not found",
         configurations: [],
-        trace_id,
+        trace_id:trace_Id,
       });
     }
     reply.status(200).send({
       status_code: 200,
       message: "Data fetch successfully",
       configurations: configurations,
-      trace_id,
+      trace_id:trace_Id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Failed to fetch configurations",
-      trace_id,
+      trace_id:trace_Id,
     });
   }
 };
@@ -38,7 +38,7 @@ export const getConfigurationById = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   const { id } = request.params as { id: string };
   const configuration = await Configuration.findByPk(id);
   if (configuration) {
@@ -46,14 +46,14 @@ export const getConfigurationById = async (
       status_code: 200,
       message: "Data fetch successfully",
       configurations: configuration,
-      trace_id,
+      trace_id:trace_Id,
     });
   } else {
     reply.status(200).send({
       status_code: 200,
       message: "Configuration data not found",
       configuration: [],
-      trace_id,
+      trace_id:trace_Id,
     });
   }
 };
@@ -63,7 +63,7 @@ export const createConfiguration = async (
   reply: FastifyReply) => {
   const configData = request.body as Partial<ConfigurationAttributes>;
   const { program_id } = request.body as { program_id: string };
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
@@ -81,7 +81,7 @@ export const createConfiguration = async (
 
   logger(
     {
-      trace_id,
+      trace_id:trace_Id,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -112,7 +112,7 @@ export const createConfiguration = async (
 
     logger(
       {
-        trace_id,
+        trace_id:trace_Id,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -132,7 +132,7 @@ export const createConfiguration = async (
   } catch (error) {
     logger(
       {
-        trace_id,
+        trace_id:trace_Id,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -153,7 +153,7 @@ export const createConfiguration = async (
     reply.status(500).send({
       status_code: 500,
       message: "Failed to create configuration",
-      trace_id,
+      trace_id:trace_Id,
       error: error,
     });
   }
@@ -163,7 +163,7 @@ export const updateConfiguration = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const configData = request.body as Partial<ConfigurationAttributes>;
@@ -174,20 +174,20 @@ export const updateConfiguration = async (
         status_code: 201,
         message: "Configuration data update successfully",
         configuration: configuration?.id,
-        trace_id,
+        trace_id:trace_Id,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Configuration not found",
-        trace_id,
+        trace_id:trace_Id,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Failed to update configuration",
-      trace_id,
+      trace_id:trace_Id,
       error: error,
     });
   }
@@ -197,7 +197,7 @@ export const deleteConfiguration = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const configuration = await Configuration.findByPk(id);
@@ -209,20 +209,20 @@ export const deleteConfiguration = async (
       reply.status(204).send({
         status_code: 204,
         message: "Configuration data deleted successfully",
-        trace_id,
+        trace_id:trace_Id,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Configuration not found",
-        trace_id,
+        trace_id:trace_Id,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Failed to delete configuration",
-      trace_id,
+      trace_id:trace_Id,
       error: error,
     });
   }

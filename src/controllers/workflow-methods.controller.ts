@@ -97,6 +97,7 @@ export const createWorkflowMethod = async (request: FastifyRequest, reply: Fasti
 export const updateWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const WorkflowMethodData = request.body as WorkflowMethodData;
+    const trace_id=generateCustomUUID();
     try {
         const data = await WorkflowMethod.findOne({
             where: { id, is_deleted: false }
@@ -106,18 +107,20 @@ export const updateWorkflowMethod = async (request: FastifyRequest, reply: Fasti
             reply.status(201).send({
                 status_code: 201,
                 workflow_method_id: id,
-                trace_id: generateCustomUUID(),
+                trace_id,
                 message: 'Workflow Method Updated Successfully.',
             });
         } else {
             reply.status(200).send({ message: 'Workflow Method Data Not Found.' });
         }
     } catch (error) {
-        reply.status(500).send({ message: ' An Error Occurred While Updating The Workflow Method.', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: ' An Error Occurred While Updating The Workflow Method.', error ,trace_id});
     }
 }
 
 export const deleteWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_id=generateCustomUUID();
+
     try {
         const { id, } = request.params as { id: string };
         const data = await WorkflowMethod.findOne({
@@ -132,11 +135,11 @@ export const deleteWorkflowMethod = async (request: FastifyRequest, reply: Fasti
         reply.status(200).send({
             status_code: 200,
             Workflow_method_id: id,
-            trace_id: generateCustomUUID(),
+            trace_id,
             message: 'Workflow Method Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Workflow Method Data', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error Deleting Workflow Method Data', error, trace_id });
     }
 }
 
@@ -144,6 +147,8 @@ export async function getAllWorkflowMethods(
     request: FastifyRequest<{ Params: WorkflowMethodData, Querystring: WorkflowMethodData }>,
     reply: FastifyReply
 ) {
+    const trace_id=generateCustomUUID();
+
     try {
         const query = request.query as WorkflowMethodData | any;
 
@@ -184,7 +189,7 @@ export async function getAllWorkflowMethods(
             items_per_page: limit,
             total_records: count,
             workflow_method: workflow_method,
-            trace_id: generateCustomUUID(),
+            trace_id,
         });
     } catch (error) {
         console.log(error);
@@ -193,7 +198,7 @@ export async function getAllWorkflowMethods(
             statusCode: 500,
             message: "Internal Server Error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id,
         });
     }
 }
@@ -202,6 +207,7 @@ export async function getWorkflowMethods(
     request: FastifyRequest<{ Params: WorkflowMethodData, Querystring: WorkflowMethodData }>,
     reply: FastifyReply
 ) {
+    const trace_id=generateCustomUUID();
     try {
         const query = request.query as WorkflowMethodData | any;
 
@@ -242,19 +248,20 @@ export async function getWorkflowMethods(
             items_per_page: limit,
             total_records: count,
             workflow_method: workflow_method,
-            trace_id: generateCustomUUID(),
+            trace_id,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: "Internal Server Error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id,
         });
     }
 }
 
 export async function getWorkflowMethodById(request: FastifyRequest, reply: FastifyReply) {
+    const trace_id=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await WorkflowMethod.findOne({
@@ -264,7 +271,7 @@ export async function getWorkflowMethodById(request: FastifyRequest, reply: Fast
             reply.status(200).send({
                 statusCode: 200,
                 workflow_method: item,
-                trace_id: generateCustomUUID(),
+                trace_id,
             });
         } else {
             reply.status(200).send({ message: 'Workflow Method Data Not Found', workflow: [] });
@@ -275,6 +282,7 @@ export async function getWorkflowMethodById(request: FastifyRequest, reply: Fast
 }
 
 export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyReply) {
+    const trace_id=generateCustomUUID();
     try {
         const { module } = request.query as { module: string };
         let item;
@@ -291,7 +299,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             reply.status(200).send({
                 statusCode: 200,
                 workflow_method: item,
-                trace_id: generateCustomUUID(),
+                trace_id,
             });
         } else {
             reply.status(200).send({ message: 'Workflow Method Data Not Found', workflow: [] });

@@ -134,6 +134,7 @@ export async function getAllWorkLocations(
   request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   try {
     const params = request.params as WorkLocationInterface;
     const query = request.query as WorkLocationInterface | any;
@@ -204,7 +205,7 @@ export async function getAllWorkLocations(
         status_code: 200,
         items_per_page: limit,
         total_records: count,
-        trace_id: generateCustomUUID(),
+        trace_id:traceId,
         message: "Worklocation not found.",
         work_locations: [],
       });
@@ -222,7 +223,7 @@ export async function getAllWorkLocations(
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id:traceId,
       message: "Internal Server Error",
       error,
     });
@@ -389,6 +390,7 @@ export async function deleteWorkLocationById(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const [numRowsDeleted] = await WorkLocationModel.update(
@@ -404,13 +406,13 @@ export async function deleteWorkLocationById(
       reply.status(200).send({
         status_code: 200,
         work_location_id: id,
-        trace_id: generateCustomUUID(),
+        trace_id:traceId,
         message: "Work Location Deleted Successfully",
       });
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: generateCustomUUID(),
+        trace_id:traceId,
         message: "Work Location Not Found"
       });
     }
@@ -418,7 +420,7 @@ export async function deleteWorkLocationById(
     console.error("Error Deleting Work Location:", error);
     reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id:traceId,
       message: "Internal Server Error",
       error
     });
