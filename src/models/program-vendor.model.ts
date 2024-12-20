@@ -1,9 +1,10 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import User from "./userModel";
-import { Programs } from "./programsModel";
+import User from "./user.model";
+import { Programs } from "./programs.model";
 import { createVendorWorkLocationMapping, createVendorHierarchyMapping, createVendorLabourCategories } from "../hooks/afterProgramVendorSave"
 import { beforeSave } from "../hooks/timeFormatHook";
+import Tenant from "./tenant.model";
 
 
 class ProgramVendor extends Model {
@@ -31,7 +32,6 @@ class ProgramVendor extends Model {
     markup_config: any;
     tenant_id: any;
     all_work_locations: any;
-    
     addresses: any;
     contact: any;
     description: any;
