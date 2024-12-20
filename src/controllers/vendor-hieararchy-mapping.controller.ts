@@ -5,6 +5,7 @@ import { baseSearch } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
 
 export const createVendorHierarchyMapping = async (request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { hierarchy_name } = request.body as VendorHierarchyMappingData;
         const program_id = request.params.program_id
@@ -17,7 +18,7 @@ export const createVendorHierarchyMapping = async (request: FastifyRequest<{ Par
             return reply.status(400).send({
                 status_code: 400,
                 message: 'A mapping with the same labour category name already exists',
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         }
 
@@ -27,16 +28,17 @@ export const createVendorHierarchyMapping = async (request: FastifyRequest<{ Par
         reply.status(201).send({
             status_code: 201,
             id: mappingData.id,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error while creating mapping', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error while creating mapping', error, trace_id:traceId });
     }
 };
 
 export const updateVendorHierarchyMapping = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const mappingData = request.body as VendorHierarchyMappingData;
+    const traceId=generateCustomUUID();
     try {
         const data = await VendorHierarchyMapping.findOne({ where: { id, program_id } });
         if (data) {
@@ -44,7 +46,7 @@ export const updateVendorHierarchyMapping = async (request: FastifyRequest, repl
             reply.status(201).send({
                 status_code: 201,
                 mapping: { id: id },
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 message: 'Mapping updated successfully.',
             });
         } else {
@@ -54,11 +56,12 @@ export const updateVendorHierarchyMapping = async (request: FastifyRequest, repl
             });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while updating the mapping', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'An error occurred while updating the mapping', error, trace_id:traceId});
     }
 };
 
 export const deleteVendorHierarchyMapping = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
         const data = await VendorHierarchyMapping.findOne({
@@ -73,7 +76,7 @@ export const deleteVendorHierarchyMapping = async (request: FastifyRequest, repl
         reply.status(200).send({
             status_code: 200,
             mapping_id: id,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: 'Mapping deleted successfully'
         });
     } catch (error) {
@@ -94,6 +97,7 @@ export async function getVendorHierarchyMappingById(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const item = await VendorHierarchyMapping.findOne({
@@ -103,7 +107,7 @@ export async function getVendorHierarchyMappingById(
             reply.status(200).send({
                 statusCode: 200,
                 mapping: item,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
