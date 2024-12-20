@@ -5,6 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
 export const createWorkflowApprover = async (request: FastifyRequest, reply: FastifyReply) => {
+      const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const workflowApproverPayload = request.body as Omit<WorkflowApproversData, '_id'>;
@@ -12,13 +13,13 @@ export const createWorkflowApprover = async (request: FastifyRequest, reply: Fas
         reply.status(201).send({
             status_code: 201,
             workflow_approver_id: WorkflowApproversData?.id,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Error While Creating Workflow Approver.',
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 };
@@ -26,6 +27,7 @@ export const createWorkflowApprover = async (request: FastifyRequest, reply: Fas
 export const updateWorkflowApprover = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const WorkflowApproversData = request.body as WorkflowApproversData;
+    const traceId=generateCustomUUID();
     try {
         const data = await WorkFlowApproverModel.findOne({
             where: { id, program_id, is_deleted: false },
@@ -39,11 +41,12 @@ export const updateWorkflowApprover = async (request: FastifyRequest, reply: Fas
             reply.send({ success: true, message: 'Workflow Approver Updated Successfully.' });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Updating The Workflow Approver', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'An Error Occurred While Updating The Workflow Approver', error, trace_id:traceId});
     }
 }
 
 export const deleteWorkflowApprover = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = await WorkFlowApproverModel.findOne({
@@ -57,11 +60,11 @@ export const deleteWorkflowApprover = async (request: FastifyRequest, reply: Fas
         reply.status(200).send({
             status_code: 200,
             workflow_approver_id: id,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: 'Workflow Approver Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Workflow Approver', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error Deleting Workflow Approver', error, trace_id:traceId});
     }
 }
 
@@ -69,6 +72,7 @@ export async function getAllWorkflowApprover(
     request: FastifyRequest<{ Params: WorkflowApproversData, Querystring: WorkflowApproversData }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const params = request.params as WorkflowApproversData;
         const query = request.query as WorkflowApproversData | any;
@@ -119,19 +123,20 @@ export async function getAllWorkflowApprover(
             items_per_page: limit,
             total_records: count,
             workflowApprover: workflowApprover,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: "Internal Server Error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 }
 
 export async function getWorkflowApproverById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string }
         const item = await WorkFlowApproverModel.findOne({
@@ -141,7 +146,7 @@ export async function getWorkflowApproverById(request: FastifyRequest, reply: Fa
             reply.status(200).send({
                 statusCode: 200,
                 workflowApprover: item,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({ message: 'Workflow Approver Not Found', workflowApprover: [] });
