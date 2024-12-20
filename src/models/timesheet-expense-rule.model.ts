@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from "./programsModel";
+import { Programs } from "./programs.model";
 
 class TimesheetExpenseRuleModel extends Model {
     id: any;
@@ -28,6 +28,10 @@ TimesheetExpenseRuleModel.init({
         allowNull: true
     },
     break_type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    rule_category: {
         type: DataTypes.STRING,
         allowNull: true
     },

@@ -1,5 +1,5 @@
-import { Programs } from '../models/programsModel';
-import Candidate from '../models/candidateModel';
+import { Programs } from '../models/programs.model';
+import Candidate from '../models/candidate.model';
 
 export const generateCandidateCode = async (program_id: string): Promise<string> => {
     const program = await Programs.findOne({
