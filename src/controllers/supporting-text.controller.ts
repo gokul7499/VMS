@@ -9,6 +9,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 
 export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { program_id: string, page?: number, limit?: number }; Querystring: { performed_by?: string, event_slug: string, date_range?: string, module_name?: string, event_name?: string, page?: number, limit?: number } }>, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, page = 1, limit = 10 } = request.params;
         const { performed_by, event_slug, date_range, event_name, module_name } = request.query;
@@ -94,7 +95,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
             total_records: count,
             total_pages: Math.ceil(count / limit),
             current_page: page,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             support_text_data: responseData,
         });
     } catch (error) {
@@ -107,6 +108,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
 
 
 export const getSupportingText = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const supportingText = await supportingTextModel.findOne({
@@ -155,7 +157,7 @@ export const getSupportingText = async (request: FastifyRequest<{ Params: { id: 
             statusCode: 200,
             message: 'Supporting Text retrieved successfully.',
             support_text_data: responseData,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
@@ -267,6 +269,7 @@ export const updateSupportingText = async (
     request: FastifyRequest<{ Params: { id: string }; Body: Partial<supportingTextModel> }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     const { id } = request.params;
     const {
         performed_by,
@@ -306,7 +309,7 @@ export const updateSupportingText = async (
         reply.send({
             statusCode: 200,
             support_text_data: supportingText,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({ statusCode: 500, message: 'Internal Server Error' });
@@ -314,6 +317,7 @@ export const updateSupportingText = async (
 };
 
 export const deleteSupportingText = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const supportingText = await supportingTextModel.findByPk(request.params.id);
 
@@ -331,7 +335,7 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
                 statusCode: 200,
                 message: 'Supporting Text deleted successfully.',
                 data: updated,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ statusCode: 200, message: 'Supporting Text not Updated.' });

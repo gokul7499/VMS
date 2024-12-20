@@ -11,6 +11,7 @@ export async function createState(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
+    const traceId=generateCustomUUID();
     try {
         const states = request.body as stateInterface;
         const state_data: any = await stateModel.create({ ...states });
@@ -18,7 +19,7 @@ export async function createState(
             status_code: 201,
             message: "state created succesfully",
             state_date: state_data,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
@@ -32,6 +33,7 @@ export async function createStateBulk(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { country_id, states }: StatePayload = request.body as StatePayload;
 
@@ -39,7 +41,7 @@ export async function createStateBulk(
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Invalid payload',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
 
@@ -54,13 +56,13 @@ export async function createStateBulk(
             status_code: 201,
             message: 'States created successfully',
             state_data,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while creating states',
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
@@ -69,6 +71,7 @@ export async function getStateById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id } = request.params;
         console.log("Params:", id);
@@ -84,7 +87,7 @@ export async function getStateById(
                 status_code: 201,
                 message: "state get succesfully",
                 states: states,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -100,21 +103,22 @@ export async function getStateById(
 export async function updateStateById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<stateInterface>;
+    const traceId=generateCustomUUID();
     try {
         const [states] = await stateModel.update(updates, {
             where: { id }
         });
         if (states === 0) {
-            return reply.status(200).send({ message: "state data not found", trace_id: generateCustomUUID(), states: [] });
+            return reply.status(200).send({ message: "state data not found", trace_id: traceId, states: [] });
         }
         return reply.status(201).send({
             status_code: 201,
             message: "state updated successfully",
             states: id,
-            trace_id: generateCustomUUID()
+            trace_id: traceId
         });
     } catch (error) {
-        return reply.status(500).send({ message: "Internal Server Error", trace_id: generateCustomUUID(), error });
+        return reply.status(500).send({ message: "Internal Server Error", trace_id:traceId, error });
     }
 }
 
@@ -124,6 +128,7 @@ export async function deleteStatesById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id } = request.params;
         const [states] = await stateModel.update(
@@ -139,10 +144,10 @@ export async function deleteStatesById(
                 status_code: 200,
                 message: "state deleted successfully",
                 states: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: "state not found", trace_id: generateCustomUUID(), states: [] });
+            reply.status(200).send({ message: "state not found", trace_id: traceId, states: [] });
         }
     } catch (error) {
         console.error("Error deleting state:", error);
@@ -170,7 +175,7 @@ export async function getAllStatesByProgramId(
 
         whereClause.country_id = { [Op.in]: countryIds };
     }
-
+    const traceId=generateCustomUUID();
     try {
         const states = await stateModel.findAll({ where: whereClause });
         if (states.length > 0) {
@@ -178,10 +183,10 @@ export async function getAllStatesByProgramId(
                 status_code: 201,
                 message: "States retrieved successfully",
                 data: states,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ status_code: 200, message: "No states found for the given country_id(s)",states:[],trace_id: generateCustomUUID(), });
+            reply.status(200).send({ status_code: 200, message: "No states found for the given country_id(s)",states:[],trace_id: traceId, });
         }
     } catch (error) {
         reply.status(500).send({ status_code: 500, message: "Internal Server Error" });
