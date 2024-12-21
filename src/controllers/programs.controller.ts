@@ -150,7 +150,7 @@ export const getAllProgram = async (
   reply: FastifyReply
 ) => {
   const { name, is_activated, start_date } = request.query as Partial<ProgramQuery>;
-
+  const traceId=generateCustomUUID();
   try {
     const query = request.query as any;
     const page = parseInt(query.page ?? "1");
@@ -204,14 +204,14 @@ export const getAllProgram = async (
       items_per_page: limit,
       total_records: count,
       programs: programs,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     console.error('Error in getAllProgram:', error);
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 };
@@ -221,6 +221,7 @@ export const getProgramById = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params as { id: string };
+  const traceId=generateCustomUUID();
   try {
     const programs = await Programs.findOne({
       where: {
@@ -261,21 +262,21 @@ export const getProgramById = async (
         status_code: 200,
         message: "Data fetch successfully",
         data: programs,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
         program: [],
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Programs not found",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server error",
-      trace_id: generateCustomUUID(),
+      trace_id:traceId,
       error: error,
     });
   }
@@ -290,6 +291,7 @@ export const updateProgramById = async (
 ) => {
   const { id } = request.params;
   const updates = request.body as CreateProgramData;
+  const traceId=generateCustomUUID();
   try {
     const program = await Programs.findOne({
       where: {
@@ -301,7 +303,7 @@ export const updateProgramById = async (
       return reply.status(200).send({
         status_code: 200,
         message: "Program not found",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
     if (updates.module_groups != null && updates.module_groups.length > 0) {
@@ -320,13 +322,13 @@ export const updateProgramById = async (
       status_code: 200,
       id: updatedCount.id,
       message: "Program configuration updated successfully",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error,
     });
   }
@@ -337,6 +339,7 @@ export const deleteProgramById = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params;
+  const traceId=generateCustomUUID();
   try {
     const program = await Programs.findByPk(id);
     if (program) {
@@ -347,20 +350,20 @@ export const deleteProgramById = async (
       reply.status(204).send({
         status_code: 204,
         message: "Program Deleted Successfully",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Program Not Found",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error,
     });
   }
