@@ -94,31 +94,50 @@ export const createQualificationTypes = async (record: Model) => {
 };
 
 export const createRateTypes = async (record: Model) => {
-    await rateType.create({
-        program_id: (record as any).id,
-        name: "Standard",
-        type: "Standard",
-        description: "standard bill rate and pay rate",
-        bill_rate: [
-            {
-                "differential_type": "Factor Differential",
-                "differential_on": "Bill Rate",
-                "differential_value": 1.00
-            }
-        ],
-        pay_rate: [
-            {
-                "differential_type": "Fixed Differential",
-                "differential_on": "Pay Rate",
-                "differential_value": 1.00
-            }
-        ],
-        abbreviation: "ST",
-        is_enabled: true,
-        is_deleted: false,
-        is_shift_rate: false,
-        is_billable: true,
-        created_by: (record as any).created_by,
-        modified_by: (record as any).modified_by,
-    });
-}
+    try {
+        // Check if a rate type with the given name already exists
+        const existingRateType = await rateType.findOne({
+            where: {
+                name: "Standard",
+                program_id: (record as any).id, // Ensure it checks against the correct program ID
+            },
+        });
+
+        // If it does not exist, create it
+        if (!existingRateType) {
+            await rateType.create({
+                program_id: (record as any).id,
+                name: "Standard",
+                type: "Standard",
+                description: "standard bill rate and pay rate",
+                bill_rate: [
+                    {
+                        differential_type: "Factor Differential",
+                        differential_on: "Bill Rate",
+                        differential_value: 1.0,
+                    },
+                ],
+                pay_rate: [
+                    {
+                        differential_type: "Fixed Differential",
+                        differential_on: "Pay Rate",
+                        differential_value: 1.0,
+                    },
+                ],
+                abbreviation: "ST",
+                is_enabled: true,
+                is_deleted: false,
+                is_shift_rate: false,
+                is_billable: true,
+                created_by: (record as any).created_by,
+                modified_by: (record as any).modified_by,
+            });
+            console.log("Rate type created successfully.");
+        } else {
+            console.log("Rate type already exists. Skipping creation.");
+        }
+    } catch (error) {
+        console.error("Error creating rate type:", error);
+        throw error; // Re-throw the error if you need further handling
+    }
+};
