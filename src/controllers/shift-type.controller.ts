@@ -16,6 +16,7 @@ export async function getALLShiftType(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function getShiftTypeById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await ShiftTypeModel.findOne({
@@ -28,13 +29,13 @@ export async function getShiftTypeById(request: FastifyRequest, reply: FastifyRe
         if (item) {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 shiftType: item
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 event: [],
                 message: 'shiftType not found.',
             });
@@ -42,7 +43,7 @@ export async function getShiftTypeById(request: FastifyRequest, reply: FastifyRe
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -54,6 +55,7 @@ export async function createShiftType(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
+    const traceId=generateCustomUUID();
     try {
         const shiftType = request.body as ShiftTypeAttributes;
         const existingShiftType = await ShiftTypeModel.findOne({
@@ -63,7 +65,7 @@ export async function createShiftType(
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Shift type with the name already exists.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
         const state_data: any = await ShiftTypeModel.create({ ...shiftType });
@@ -71,7 +73,7 @@ export async function createShiftType(
             status_code: 201,
             message: "shiftType created succesfully",
             id: state_data.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
@@ -84,6 +86,7 @@ export async function createShiftType(
 export async function updateShiftType(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const shiftTypeData = request.body as ShiftTypeAttributes;
+    const traceId=generateCustomUUID();
     try {
         const shiftType = await ShiftTypeModel.findOne({
             where: {
@@ -105,20 +108,20 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
                 return reply.status(400).send({
                     status_code: 400,
                     message: "Shift Type With Same Name Already Exists.",
-                    trace_id: generateCustomUUID(),
+                    trace_id: traceId,
                 });
             }
             console.log("existingShiftTypeWithSameName", existingShiftTypeWithSameName)
             await shiftType.update(shiftTypeData);
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 message: 'ShiftType updated successfully.',
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 message: 'ShiftType not found.',
             });
         }
@@ -126,7 +129,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
         console.error('Error updating shift type:', error);
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -134,6 +137,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
 }
 export async function deleteShiftType(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
+    const traceId=generateCustomUUID();
     try {
         const shiftType = await ShiftTypeModel.findOne({
             where: {
@@ -146,20 +150,20 @@ export async function deleteShiftType(request: FastifyRequest, reply: FastifyRep
             await shiftType.update({ is_deleted: true });
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 message: 'ShiftType deleted successfully.',
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 message: 'ShiftType not found.',
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -216,6 +220,7 @@ export async function getShiftTypesByHierarchies(
 }
 
 export async function getShiftCategories(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const categories = await ShiftTypeModel.findAll({
@@ -231,13 +236,13 @@ export async function getShiftCategories(request: FastifyRequest, reply: Fastify
             reply.status(200).send({
                 status_code: 200,
                 message: 'Shift categories found successfully!',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 shift_categories: categoryValues
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 shift_categories: [],
                 message: 'Shift categories not found.',
             });
@@ -245,7 +250,7 @@ export async function getShiftCategories(request: FastifyRequest, reply: Fastify
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error: error.message
         });
