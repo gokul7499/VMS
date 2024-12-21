@@ -195,9 +195,11 @@ export const getCustomFieldsByHierarchyIds = async (
   const traceId = generateCustomUUID();
 
   try {
-    const result: any[] = [];
+    const result: Record<string, any[]> = {};
+    const hierarchyIdsArray = hierarchy_ids
+      ? Array.from(new Set(hierarchy_ids.split(',').map(id => id.trim()).filter(Boolean)))
+      : [];
 
-    // Handle the case where module_name is provided
     if (module_name) {
       const customFields = await CustomField.findAll({
         where: { program_id, module_name, is_deleted: false, is_enabled: true },
@@ -209,12 +211,15 @@ export const getCustomFieldsByHierarchyIds = async (
           message: `No Custom fields found for module name: ${module_name}`,
           trace_id: traceId,
           custom_fields: [],
-          is_status:false,
+          is_status: false,
         });
       }
 
       const customFieldHierarchies = await customFieldHierarchie.findAll({
-        where: { program_id },
+        where: {
+          program_id,
+          ...(hierarchyIdsArray.length > 0 ? { hierarchy_id: hierarchyIdsArray } : {}), // Apply filter only if hierarchy_ids is provided
+        },
       });
 
       if (!customFieldHierarchies.length) {
@@ -226,13 +231,10 @@ export const getCustomFieldsByHierarchyIds = async (
         });
       }
 
-      const hierarchyMap: Record<string, any[]> = {};
-
-      for (const hierarchy of customFieldHierarchies) {
+      customFieldHierarchies.forEach(hierarchy => {
         const hierarchyId = hierarchy.hierarchy_id;
-
-        if (!hierarchyMap[hierarchyId]) {
-          hierarchyMap[hierarchyId] = customFields.map(field => ({
+        if (!result[hierarchyId]) {
+          result[hierarchyId] = customFields.map(field => ({
             custid: field.id,
             program_id: field.program_id,
             custname: field.name,
@@ -260,26 +262,19 @@ export const getCustomFieldsByHierarchyIds = async (
             linked_modules: field.linked_modules,
           }));
         }
-      }
-
-      for (const hierarchyId in hierarchyMap) {
-        result.push({
-          [hierarchyId]: hierarchyMap[hierarchyId],
-        });
-      }
+      });
     }
 
-    // Handle the case where hierarchy_ids is provided
-    if (hierarchy_ids) {
-      const hierarchyIds = Array.from(new Set(hierarchy_ids.split(',')));
+    if (hierarchyIdsArray.length > 0) {
+      for (const hierarchyId of hierarchyIdsArray) {
+        if (result[hierarchyId]) continue;
 
-      for (const hierarchyId of hierarchyIds) {
         const customFieldHierarchies = await customFieldHierarchie.findAll({
           where: { hierarchy_id: hierarchyId, program_id },
         });
 
         if (!customFieldHierarchies.length) {
-          result.push({ [hierarchyId]: [] });
+          result[hierarchyId] = [];
           continue;
         }
 
@@ -291,45 +286,42 @@ export const getCustomFieldsByHierarchyIds = async (
           where: { id: customFieldIds, program_id, is_deleted: false, is_enabled: true },
         });
 
-        result.push({
-          [hierarchyId]: customFields.map(field => ({
-            custid: field.id,
-            program_id: field.program_id,
-            custname: field.name,
-            field_type: field.field_type,
-            label: field.label,
-            slug: field.slug,
-            placeholder: field.placeholder,
-            meta_data: field.meta_data,
-            is_all_work_location: field.is_all_work_location,
-            is_all_hierarchy: field.is_all_hierarchy,
-            supporting_text: field.supporting_text,
-            description: field.description,
-            is_required: field.is_required,
-            is_readonly: field.is_readonly,
-            is_enabled: field.is_enabled,
-            is_linked: field.is_linked,
-            is_deleted: field.is_deleted,
-            created_on: field.created_on,
-            modified_on: field.modified_on,
-            module_id: field.module_id,
-            module_name: field.module_name,
-            can_view: field.can_view,
-            can_edit: field.can_edit,
-            job_type: field.job_type,
-            linked_modules: field.linked_modules,
-          })),
-        });
+        result[hierarchyId] = customFields.map(field => ({
+          custid: field.id,
+          program_id: field.program_id,
+          custname: field.name,
+          field_type: field.field_type,
+          label: field.label,
+          slug: field.slug,
+          placeholder: field.placeholder,
+          meta_data: field.meta_data,
+          is_all_work_location: field.is_all_work_location,
+          is_all_hierarchy: field.is_all_hierarchy,
+          supporting_text: field.supporting_text,
+          description: field.description,
+          is_required: field.is_required,
+          is_readonly: field.is_readonly,
+          is_enabled: field.is_enabled,
+          is_linked: field.is_linked,
+          is_deleted: field.is_deleted,
+          created_on: field.created_on,
+          modified_on: field.modified_on,
+          module_id: field.module_id,
+          module_name: field.module_name,
+          can_view: field.can_view,
+          can_edit: field.can_edit,
+          job_type: field.job_type,
+          linked_modules: field.linked_modules,
+        }));
       }
     }
 
-    // Construct the response
     const response: Record<string, any> = {
       status_code: 200,
       trace_id: traceId,
       program_id,
-      total_record: result.length,
-      custom_fields: is_status ? result.length : result,
+      total_record: Object.keys(result).length,
+      custom_fields: is_status ? Object.keys(result).length : result,
     };
     if (is_status) {
       response.is_status = is_status;
@@ -337,12 +329,12 @@ export const getCustomFieldsByHierarchyIds = async (
 
     return reply.status(200).send(response);
 
-  } catch (error) {
-    console.error(error);
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields.',
       trace_id: traceId,
+      error:error.message
     });
   }
 };

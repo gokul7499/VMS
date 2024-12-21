@@ -5,6 +5,7 @@ import { Module } from '../models/module.model';
 import { Op } from 'sequelize';
 
 export const getProgramModuleById = async (request: FastifyRequest, reply: FastifyReply) => {
+  const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
   try {
     const programData: any = await ProgramModule.findOne({
@@ -18,7 +19,7 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
       return reply.status(200).send({
         status_code: 200,
         message: 'Data not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -51,7 +52,7 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
     reply.send({
       status_code: 200,
       data: program,
-      trace_id: generateCustomUUID()
+      trace_id: traceId,
     });
   } catch (error) {
     console.log(error);
@@ -64,6 +65,7 @@ export const getProgramModuleByIdAndQuery = async (
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { id } = request.params;
 
   try {
@@ -79,7 +81,7 @@ export const getProgramModuleByIdAndQuery = async (
       return reply.status(200).send({
         status_code: 200,
         message: 'Data not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -121,7 +123,7 @@ export const getProgramModuleByIdAndQuery = async (
     reply.send({
       status_code: 200,
       data: programResponse,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     console.log(error);
@@ -133,6 +135,7 @@ export const getProgramModuleByProgramId = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
 
   try {
@@ -147,7 +150,7 @@ export const getProgramModuleByProgramId = async (
       return reply.status(200).send({
         status_code: 200,
         message: 'Data not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -174,7 +177,7 @@ export const getProgramModuleByProgramId = async (
     return reply.send({
       statusCode: 200,
       modules: transformedModules,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     console.log(error);
@@ -187,6 +190,7 @@ export const getProgramModuleByIdAndQueryForWorkFlow = async (
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { id } = request.params;
 
   try {
@@ -201,7 +205,7 @@ export const getProgramModuleByIdAndQueryForWorkFlow = async (
       return reply.status(200).send({
         status_code: 200,
         message: 'Data not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -243,7 +247,7 @@ export const getProgramModuleByIdAndQueryForWorkFlow = async (
     reply.send({
       status_code: 200,
       data: programResponse,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     console.log(error);

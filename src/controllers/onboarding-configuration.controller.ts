@@ -13,7 +13,7 @@ export async function createOnboardingConfiguration(
   const configuration = request.body as OnboardingConfigurationInterface;
   const { name } = request.body as { name: string};
   const { program_id } = request.params as { program_id: string };
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const existingConfigurationWithSameName = await OnboardingConfigurationModel.findOne({
       where: {
@@ -26,7 +26,7 @@ export async function createOnboardingConfiguration(
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid Name Field, Name Must Be Unique.",
-        trace_id,
+        trace_id:trace_Id,
       });
     }
 
@@ -34,13 +34,13 @@ export async function createOnboardingConfiguration(
     reply.status(201).send({
       statusCode: 201,
       onboarding_configuration: item.id,
-      trace_id,
+      trace_id:trace_Id,
       message:"Onboarding configuration created successfully !"
     });
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
-      trace_id,
+      trace_id:trace_Id,
       message: 'Internal Server Error',
       error:error.message
     });
@@ -175,7 +175,7 @@ export async function getOnboardingConfigurationById(
   request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const item = await OnboardingConfigurationModel.findOne({
@@ -185,20 +185,20 @@ export async function getOnboardingConfigurationById(
       reply.status(200).send({
         statusCode: 200,
         onboarding_configuration: item,
-        trace_id
+        trace_id:trace_Id,
       });
     } else {
       reply.status(200).send({
         message: 'labour category not found',
         onboarding_configuration: [],
-        trace_id
+        trace_id:trace_Id,
       });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while fetching',
-      trace_id
+      trace_id:trace_Id,
     });
   }
 }
@@ -207,7 +207,7 @@ export async function updateOnboardingConfiguration(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const labour_categories = request.body as OnboardingConfigurationInterface;
@@ -225,7 +225,7 @@ export async function updateOnboardingConfiguration(
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid Name Field, Name Must Be Unique.",
-        trace_id,
+        trace_id:trace_Id,
       });
     }
 
@@ -238,16 +238,16 @@ export async function updateOnboardingConfiguration(
       reply.status(200).send({
         statusCode: 200,
         labour_category_id: id,
-        trace_id,
+        trace_id:trace_Id,
       });
     } else {
-      reply.status(400).send({ message: 'labour categories not found' , trace_id});
+      reply.status(400).send({ message: 'labour categories not found' , trace_id:trace_Id});
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while updating',
-      trace_id
+      trace_id:trace_Id,
     });
   }
 }
@@ -256,7 +256,7 @@ export async function deleteOnboardingConfiguration(
   request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const trace_Id = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const [numRowsDeleted] = await OnboardingConfigurationModel.update({
@@ -271,17 +271,17 @@ export async function deleteOnboardingConfiguration(
       reply.status(200).send({
         statusCode: 200,
         labour_category_id: id,
-        trace_id,
+        trace_id:trace_Id,
         message:"Onboarding configuration deleted successfully !"
       });
     } else {
-      reply.status(400).send({ message: 'Onboarding configuration not found', trace_id });
+      reply.status(400).send({ message: 'Onboarding configuration not found', trace_id:trace_Id });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while deleting',
-      trace_id
+      trace_id:trace_Id,
     });
   }
 }
