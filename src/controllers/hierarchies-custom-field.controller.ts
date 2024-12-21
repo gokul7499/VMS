@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import  generateCustomUUID  from '../utility/genrateTraceId';
+import generateCustomUUID from '../utility/genrateTraceId';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model'; // assuming this is the path of your model
 import { HierarchyCustomFieldInterface } from '../interfaces/hierarchies-custom-field.interface'; // assuming interface is defined
 
@@ -7,6 +7,7 @@ export async function createHierarchyCustomField(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const hierarchyCustomField = request.body as HierarchyCustomFieldInterface;
 
@@ -18,7 +19,7 @@ export async function createHierarchyCustomField(
       status_code: 201,
       message: 'Custom field created successfully',
       custom_field_location_id: customFieldLocation?.id,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     reply.status(500).send({
@@ -28,88 +29,89 @@ export async function createHierarchyCustomField(
   }
 }
 export async function getHierarchyCustomFieldById(
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { id } = request.params;
-      const hierarchy = await HierarchyCustomFieldModel.findByPk(id,{
-       
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) {
+  const trace_Id = generateCustomUUID();
+  try {
+    const { id } = request.params;
+    const hierarchy = await HierarchyCustomFieldModel.findByPk(id, {
+
+    });
+    if (hierarchy) {
+      reply.status(200).send({
+        status_code: 200,
+        trace_id: trace_Id,
+        hierarchies: hierarchy
       });
-      if (hierarchy) {
-        reply.status(200).send({
-          status_code: 200,
-          trace_id: generateCustomUUID(),
-          hierarchies: hierarchy
-        });
-      } else {
-        reply.status(200).send({ message: 'Hierarchy customField not found', hierarchies: [] });
-      }
-    } catch (error) {
-      reply.status(500).send({
-        message: 'An error occurred while fetching Hierarchy by ID',
-        error: error,
-      });
+    } else {
+      reply.status(200).send({ message: 'Hierarchy customField not found', hierarchies: [] });
     }
+  } catch (error) {
+    reply.status(500).send({
+      message: 'An error occurred while fetching Hierarchy by ID',
+      error: error,
+    });
   }
+}
 
 
-  export const updateHierarchyCustomFieldById = async (
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) => {
-    const { program_id, id } = request.params as { program_id: string, id: string };
-    const traceId = generateCustomUUID();
-    try {
-      const [updatedCount] = await HierarchyCustomFieldModel.update(request.body as HierarchyCustomFieldInterface, { where: { program_id, id } });
-      if (updatedCount > 0) {
-        reply.send({
-          status_code: 201,
-          message: 'HierarchyCustomField updated successfully.',
-          id,
-          trace_id: traceId,
-        });
-      } else {
-        reply.status(200).send({
-          status_code: 200,
-          message: 'HierarchyCustomField not found.',
-        });
-      }
-    } catch (error) {
-      reply.status(500).send({
-        message: 'Internal Server error',
+export const updateHierarchyCustomFieldById = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { program_id, id } = request.params as { program_id: string, id: string };
+  const traceId = generateCustomUUID();
+  try {
+    const [updatedCount] = await HierarchyCustomFieldModel.update(request.body as HierarchyCustomFieldInterface, { where: { program_id, id } });
+    if (updatedCount > 0) {
+      reply.send({
+        status_code: 201,
+        message: 'HierarchyCustomField updated successfully.',
+        id,
         trace_id: traceId,
-        error
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: 'HierarchyCustomField not found.',
       });
     }
-  };
-
-
-  export async function deleteHierarchyCustomFieldById(
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
-    reply: FastifyReply
-  ) {
-    const traceId = generateCustomUUID()
-    try {
-      const { program_id, id } = request.params;
-      const hierarchyCustomField = await HierarchyCustomFieldModel.findOne({ where: { program_id, id } });
-      if (hierarchyCustomField) {
-        reply.status(204).send({
-          status_code: 204,
-          message: 'hierarchyCustomField deleted successfully.',
-          trace_id: traceId,
-        });
-      } else {
-        reply.status(404).send({
-          status_code: 404,
-          message: 'hierarchyCustomField not found.'
-        });
-      }
-    } catch (error) {
-      reply.status(500).send({
-        message: 'An error occurred while deleting hierarchyCustomField.',
-        trace_id: traceId,
-        error: error,
-      });
-    }
+  } catch (error) {
+    reply.status(500).send({
+      message: 'Internal Server error',
+      trace_id: traceId,
+      error
+    });
   }
+};
+
+
+export async function deleteHierarchyCustomFieldById(
+  request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID()
+  try {
+    const { program_id, id } = request.params;
+    const hierarchyCustomField = await HierarchyCustomFieldModel.findOne({ where: { program_id, id } });
+    if (hierarchyCustomField) {
+      reply.status(204).send({
+        status_code: 204,
+        message: 'hierarchyCustomField deleted successfully.',
+        trace_id: traceId,
+      });
+    } else {
+      reply.status(404).send({
+        status_code: 404,
+        message: 'hierarchyCustomField not found.'
+      });
+    }
+  } catch (error) {
+    reply.status(500).send({
+      message: 'An error occurred while deleting hierarchyCustomField.',
+      trace_id: traceId,
+      error: error,
+    });
+  }
+}
