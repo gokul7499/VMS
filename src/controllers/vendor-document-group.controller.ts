@@ -116,7 +116,7 @@ export async function createVendordocumentsgroup(
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_id ,
         });
     }
 }
@@ -125,6 +125,7 @@ export async function getVendorDocumentsGroupByIdAndDoc(
     request: FastifyRequest<{ Params: { id: string; program_id: string; required_documents?: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id, required_documents } = request.params;
 
@@ -146,7 +147,7 @@ export async function getVendorDocumentsGroupByIdAndDoc(
             reply.status(200).send({
                 status_code: 200,
                 vendorDocumentsGroup,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({ message: "Vendor documents group not found" });
@@ -155,7 +156,7 @@ export async function getVendorDocumentsGroupByIdAndDoc(
         reply.status(500).send({
             message: "An error occurred while fetching vendor documents group.",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 }
@@ -164,6 +165,7 @@ export async function getVendordocumentsgroup(
     request: FastifyRequest<{ Params: VendorDocumentGroup; Querystring: VendorDocumentGroup }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const params = request.params as VendorDocumentGroup;
         const query = request.query as VendorDocumentGroup | any;
@@ -221,7 +223,7 @@ export async function getVendordocumentsgroup(
             items_per_page: limit,
             total_records: count,
             vendorDocumentsGroup: vendorDocumentsGroupWithCount,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);
@@ -229,7 +231,7 @@ export async function getVendordocumentsgroup(
             status_code: 500,
             message: "Internal Server error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 }
@@ -238,6 +240,7 @@ export async function getVendordocumentsgroupId(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const vendorDocumentsGroup = await vendordocumentgroupModel.findOne(
@@ -270,12 +273,12 @@ export async function getVendordocumentsgroupId(
                 ...vendorDocumentsGroup.dataValues,
                 required_documents
             },
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: "Internal Server Error",
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }
@@ -354,6 +357,7 @@ export async function deleteVendordocumentsgroup(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await vendordocumentgroupModel.update({
@@ -368,7 +372,7 @@ export async function deleteVendordocumentsgroup(
             reply.status(204).send({
                 status_code: 204,
                 vendor_documents_group_id: id,
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
@@ -380,7 +384,7 @@ export async function deleteVendordocumentsgroup(
         reply.status(500).send({
             message: "Internal Server Error",
             error,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 }
