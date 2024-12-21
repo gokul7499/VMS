@@ -12,6 +12,7 @@ export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const reasoncode = request.body as ReasonCodeResponse;
 
@@ -19,7 +20,7 @@ export async function createReasoncode(
             return reply.status(400).send({
                 status_code: 400,
                 message: "Invalid payload structure",
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
 
@@ -28,7 +29,7 @@ export async function createReasoncode(
                 return reply.status(400).send({
                     status_code: 400,
                     message: "Each reason must have a name",
-                    trace_id: generateCustomUUID(),
+                    trace_id: traceId,
                 });
             }
             const isExist = await ReasoncodeModel.findOne({
@@ -47,7 +48,7 @@ export async function createReasoncode(
                 return reply.status(400).send({
                     status_code: 400,
                     message: `Reason code with the name ${reason.name} already exists!`,
-                    trace_id: generateCustomUUID(),
+                    trace_id: traceId,
                 });
             }
         }
@@ -61,7 +62,7 @@ export async function createReasoncode(
         reply.status(201).send({
             status_code: 201,
             reason_code_id: reason_code.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         console.error("Error in createReasoncode:", error);
@@ -73,6 +74,7 @@ export async function createReasoncode(
 }
 
 export async function getReasoncode(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const { page = 1, limit = 10, module_name, reasons_count, event_name } = request.query as {
@@ -154,7 +156,7 @@ export async function getReasoncode(request: FastifyRequest, reply: FastifyReply
         reply.status(200).send({
             status_code: 200,
             reasoncodes: filteredReasoncodes,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             total_records: totalRecords,
         });
     } catch (error) {
@@ -171,6 +173,7 @@ export async function getReasoncodeId(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const reason_code = await ReasoncodeModel.findOne({
@@ -208,13 +211,13 @@ export async function getReasoncodeId(
             reply.status(200).send({
                 status_code: 200,
                 reason_code: reasoncodeWithDetails,
-                trace_id: generateCustomUUID(),  // Assuming you have this function defined somewhere
+                trace_id: traceId,  // Assuming you have this function defined somewhere
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 reason_code: [],  // Return empty array
-                trace_id: generateCustomUUID(),  // Assuming you have this function defined somewhere
+                trace_id: traceId,  // Assuming you have this function defined somewhere
             });
         }
     } catch (error) {
@@ -228,6 +231,7 @@ export async function getReasoncodeByEventName(
     request: FastifyRequest<{ Params: { event_slug: string, program_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params;
         const { event_slug } = request.query as {
@@ -257,13 +261,13 @@ export async function getReasoncodeByEventName(
             reply.status(200).send({
                 status_code: 200,
                 reason_code: reason_code,
-                trace_id: generateCustomUUID(),  // Assuming you have this function defined somewhere
+                trace_id: traceId,  // Assuming you have this function defined somewhere
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 reason_code: [],  // Return empty array
-                trace_id: generateCustomUUID(),  // Assuming you have this function defined somewhere
+                trace_id: traceId,  // Assuming you have this function defined somewhere
             });
         }
     } catch (error) {
@@ -276,6 +280,7 @@ export async function getReasoncodeByEventName(
 export async function updateReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const reasonCodeData = request.body as ReasonCode;
+    const traceId=generateCustomUUID();
     try {
         const reasonCode: ReasoncodeModel | null = await ReasoncodeModel.findByPk(id);
         if (reasonCode) {
@@ -293,7 +298,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
             reply.status(200).send({
                 status_code: 200,
                 reason_code: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: 'Custom Field not found' });
@@ -308,6 +313,7 @@ export async function deleteReasoncode(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await ReasoncodeModel.update({
@@ -321,7 +327,7 @@ export async function deleteReasoncode(
             reply.status(200).send({
                 status_code: 200,
                 reason_code_id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: 'Reasoncode not found' });
@@ -340,7 +346,7 @@ export const getReasonCodeByModuleEventName = async (
 ) => {
     const { program_id } = request.params;
     const { module_name, event_name } = request.query;
-
+    const traceId=generateCustomUUID();
     try {
         const data = await sequelize.query(resonCode, {
             replacements: {
@@ -362,12 +368,12 @@ export const getReasonCodeByModuleEventName = async (
             status_code: 200,
             message: "Reason codes retrieved successfully",
             data: transformedData,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error: error.message,
         });
