@@ -8,6 +8,7 @@ export const getConfigurations = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const configurations = await ProgramsConfig.findAll({ order: [["sr_Number", "ASC"]] });
   if (configurations.length === 0) {
     return reply.status(200).send({ message: "Configuration Not Found", hierarchies: [] });
@@ -16,7 +17,7 @@ export const getConfigurations = async (
     status_code: 200,
     message: "Configurations fetched successfully",
     program_configurations: configurations,
-    trace_id: generateCustomUUID(),
+    trace_id: traceId,
   });
 };
 
@@ -24,6 +25,7 @@ export const getConfigurationById = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
   const configuration = await ProgramsConfig.findByPk(id);
   if (configuration) {
@@ -31,7 +33,7 @@ export const getConfigurationById = async (
       status_code: 200,
       message: "Configuration fetched successfully",
       program_configuration: configuration,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } else {
     reply.status(200).send({ message: "Configuration Not Found", programsConfig: [] });
@@ -42,12 +44,13 @@ export const createConfiguration = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const configData = request.body as Partial<ProgramConfigAttributes>;
   const newConfiguration = await ProgramsConfig.create(configData);
   reply.status(200).send({
     status_code: 200,
     message: "program configuration created successfully",
-    trace_id: generateCustomUUID(),
+    trace_id: traceId,
     programsConfig: newConfiguration.id
   });
 };
@@ -56,6 +59,7 @@ export const updateConfiguration = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
     const configs = request.body as Array<Partial<ProgramConfigAttributes & { id: string; value: any }>>;
@@ -86,7 +90,7 @@ export const updateConfiguration = async (
       status_code: 200,
       message: `Configuration  has been updated  `,
       updatedConfigurations: updatedConfigurations,
-      trace_id: generateCustomUUID()
+      trace_id: traceId,
     });
   } catch (error) {
     reply
@@ -94,7 +98,7 @@ export const updateConfiguration = async (
       .send({
         stutus_code: 500,
         message: "Failed to update the configurations", error,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
   }
 };
