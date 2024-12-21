@@ -125,6 +125,7 @@ export async function getFeesConfigurationById(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const fees = await feesConfiguration.findOne({
@@ -182,7 +183,7 @@ export async function getFeesConfigurationById(
             name: vendor.vendor_name,
           })),
         },
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     } else {
       reply.status(200).send({
@@ -200,6 +201,7 @@ export async function getFeesConfigurationById(
 }
 
 export async function updateFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
+  const trace_Id = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
   try {
@@ -213,7 +215,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
       message: 'fees configuration updated successfully',
       id: feesConfigData.id,
       fees_config: feesConfig,
-      trace_id: generateCustomUUID()
+      trace_id: trace_Id,
     });
   } catch (error) {
     console.error('error updating fees configuration fees configuration', error);
@@ -225,6 +227,7 @@ export async function deleteFeesConfigurationById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params;
     const [feesConfig] = await feesConfiguration.update(
@@ -240,7 +243,7 @@ export async function deleteFeesConfigurationById(
         status_code: 200,
         message: "Fees configuration deleted successfully",
         feesConfig: feesConfig,
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     } else {
       reply.status(200).send({ message: 'Fees configuration not found' });

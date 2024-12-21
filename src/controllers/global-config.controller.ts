@@ -5,13 +5,14 @@ import generateCustomUUID from '../utility/genrateTraceId';
 
 
 export async function createGlobalConfig(request: FastifyRequest, reply: FastifyReply) {
+  const trace_Id = generateCustomUUID();
   try {
     const industries = request.body as GlobalConfigInterface;
     const item: any = await GlobalConfigModel.create({ ...industries });
     reply.status(201).send({
       status_code: 201,
       data: item?.id,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     reply.status(500).send({
@@ -26,6 +27,7 @@ export async function getGlobalConfig(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const query = request.query as GlobalConfigInterface;
     const page = parseInt(query.page ?? '1');
@@ -39,15 +41,15 @@ export async function getGlobalConfig(
       limit: limit,
       offset: offset,
     });
-    if(flags.length===0){
-      return reply.status(200).send({ message: "GlobalConfig not found",globalConfigs:[] });
+    if (flags.length === 0) {
+      return reply.status(200).send({ message: "GlobalConfig not found", globalConfigs: [] });
     }
     reply.status(200).send({
       status_code: 200,
       items_per_page: limit,
       total_records: count,
       industries: flags,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     console.error(error);
@@ -62,6 +64,7 @@ export async function getGlobalConfigById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   const { id } = request.params as { id: string };
   const globalConfig = await GlobalConfigModel.findOne({
     where: {
@@ -74,7 +77,7 @@ export async function getGlobalConfigById(
     reply.status(200).send({
       status_code: 200,
       global_launch_data: globalConfig,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } else {
     reply.status(404).send({
@@ -90,6 +93,7 @@ export async function updateGlobalConfig(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const { ...config } = request.body as GlobalConfigInterface;
@@ -98,7 +102,7 @@ export async function updateGlobalConfig(
       reply.send({
         message: 'GlobalConfig Updated Successfully',
         data: globalConfig,
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     } else {
       reply.status(404).send({
@@ -118,6 +122,7 @@ export async function updateGlobalConfigFlags(
   request: FastifyRequest<{ Body: { global_launches: { id: string; is_enabled: boolean }[] } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   const { global_launches } = request.body;
   try {
     await GlobalConfigModel.sequelize?.transaction(async (t) => {
@@ -130,7 +135,7 @@ export async function updateGlobalConfigFlags(
     });
     reply.status(200).send({
       status_code: 200,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
       message: 'Global launch flag updated successfully',
     });
   } catch (error) {
@@ -146,6 +151,7 @@ export async function deleteGlobalConfig(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   try {
     const { id } = request.params;
     const globalConfig = await GlobalConfigModel.findByPk(id);
@@ -156,7 +162,7 @@ export async function deleteGlobalConfig(
       })
       reply.status(200).send({
         status_code: 200,
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
         message: 'Global Config Deleted Successfully'
       });
     } else {
@@ -173,6 +179,7 @@ export async function deleteGlobalConfig(
 }
 
 export const bulkUploadGlobalConfig = async (request: FastifyRequest, reply: FastifyReply) => {
+  const trace_Id = generateCustomUUID();
   try {
     const { global_config_data } = request.body as { global_config_data: any[] };
 
@@ -180,7 +187,7 @@ export const bulkUploadGlobalConfig = async (request: FastifyRequest, reply: Fas
       return reply.status(400).send({
         status_code: 400,
         message: 'Invalid input: global_config_data should be an array',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     }
 
@@ -190,13 +197,13 @@ export const bulkUploadGlobalConfig = async (request: FastifyRequest, reply: Fas
       status_code: 201,
       data: global_launch_data,
       message: 'Global config created successfully',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create global config',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
       error: error,
     });
   }

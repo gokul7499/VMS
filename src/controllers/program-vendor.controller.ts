@@ -380,6 +380,7 @@ export const updateProgramVendor = async (
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     const programVendorData = request.body as Partial<programVendorInterface>;
 
@@ -390,7 +391,7 @@ export const updateProgramVendor = async (
             return reply.status(200).send({
                 status_code: 200,
                 message: 'ProgramVendor not found for update.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 program_vendor: []
             });
         }
@@ -445,12 +446,12 @@ export const updateProgramVendor = async (
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while updating ProgramVendor.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: (error as any).message
         });
     }
@@ -460,6 +461,7 @@ export async function deleteProgramVendor(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
@@ -468,7 +470,7 @@ export async function deleteProgramVendor(
             reply.status(204).send({
                 status_code: 204,
                 message: 'ProgramVendor deleted successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -479,7 +481,7 @@ export async function deleteProgramVendor(
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while deleting ProgramVendor.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: error,
         });
     }
@@ -489,6 +491,7 @@ export const getProgramVendorById = async (
     request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     try {
         const vendorData = await sequelize.query<ProgramVendor>(vendorDataQuery, {
@@ -500,7 +503,7 @@ export const getProgramVendorById = async (
             return reply.status(200).send({
                 status_code: 200,
                 message: 'ProgramVendor not found.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 program_vendor: null,
             });
         }
@@ -510,18 +513,19 @@ export const getProgramVendorById = async (
         return reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor data fetched successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             program_vendor: programVendor,
         });
     } catch (error) {
         return reply.status(500).send({
             message: 'An error occurred while retrieving ProgramVendor data.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };
 
 export async function getVendorAndVendorGroup(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     const { hierarchy_ids, labor_category_id, work_location_id, search } = request.query as {
         hierarchy_ids?: string;
@@ -597,14 +601,14 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         reply.status(200).send({
             status_code: 200,
             vendors: combinedResponse,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
 
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: (error as Error).message,
         });
     }
@@ -614,6 +618,7 @@ export async function updateProgramVendorByUserId(
     request: FastifyRequest<{ Params: { program_id: string, user_id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId = generateCustomUUID();
     const { program_id, user_id } = request.params;
     const programVendorData = request.body as Partial<programVendorInterface>;
     try {
@@ -623,7 +628,7 @@ export async function updateProgramVendorByUserId(
             return reply.status(200).send({
                 status_code: 200,
                 message: 'ProgramVendor not found for update.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 program_vendor: []
             });
         }
@@ -647,7 +652,7 @@ export async function updateProgramVendorByUserId(
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             program_vendor: updatedVendor,
         });
 
@@ -655,7 +660,7 @@ export async function updateProgramVendorByUserId(
         console.error('Error updating ProgramVendor:', error);
         reply.status(500).send({
             message: 'An error occurred while updating ProgramVendor.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: error,
         });
     }

@@ -24,7 +24,6 @@ import WorkflowLevel from '../models/workflowLevelModel';
 import WorkflowLevelCondition from '../models/workflowLevelCondition';
 import WorkflowRecepientType from '../models/workflowRecipientType';
 import User from '../models/user.model';
-import FoundationalModel from '../models/foundational-datatypes.model';
 import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import WorkLocationModel from '../models/work-location.model';
@@ -32,6 +31,7 @@ import IndustriesModel from '../models/industries.model';
 import picklistModel from '../models/picklist.model';
 import jobTemplateModel from '../models/job-template.model';
 import foundationalData from '../models/foundational-data.model';
+import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
@@ -514,7 +514,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             });
         });
 
-        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails] = await Promise.all([
+        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType] = await Promise.all([
             FieldConfigModel.findAll({
                 where: { id: { [Op.in]: Array.from(metaFieldConfigIds) } },
                 attributes: ['id', 'config', 'field_id', 'placement_order'],
@@ -540,7 +540,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(selectedItems) } },
                 attributes: ['id', 'name', 'slug']
             }),
-            FoundationalModel.findAll({
+            FoundationalDataTypes.findAll({
                 where: { id: { [Op.in]: Array.from(selectedItems) } },
                 attributes: ['id', 'name',]
             }),
@@ -569,6 +569,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(targetValues) } },
                 attributes: ['id', 'first_name', 'last_name']
             }),
+            TimesheetTypeConfig.findAll({
+                where: { id: { [Op.in]: Array.from(targetValues) } },
+                attributes: ['id', 'title']
+            })
         ]);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
@@ -616,6 +620,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             return acc;
         }, {});
         const userMap = userDetails.reduce((acc: any, item: any) => {
+            acc[item.id] = item;
+            return acc;
+        }, {});
+        const timesheetTypeMap = timesheetType.reduce((acc: any, item: any) => {
             acc[item.id] = item;
             return acc;
         }, {});
@@ -777,6 +785,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             { map: createOrgItemMap, key: 'createOrgItem' },
                             { map: jobTemplateMap, key: 'jobTemplateItem', nameField: 'template_name' },
                             { map: userMap, key: 'userItem', username: ['first_name', 'last_name'] },
+                            { map: timesheetTypeMap, key: 'timesheetTypeItem', nameField: 'title' }
                         ];
 
                         if (condition.target_field_value?.values) {
