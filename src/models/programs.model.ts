@@ -115,12 +115,12 @@ Programs.init(
         beforeSave(instance);
 
       },
-      afterSave: (instance) => {
-        createProgramModule(instance);
-        createHierarchy(instance);
-        createQualificationTypes(instance);
-        createRateTypes(instance);
-      },
+      // afterSave: (instance) => {
+        // createProgramModule(instance);
+        // createHierarchy(instance);
+        // createQualificationTypes(instance);
+        // createRateTypes(instance);
+      // },
     },
   }
 );

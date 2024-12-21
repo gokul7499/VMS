@@ -23,7 +23,9 @@ export const createProgramModule = async (record: Model) => {
     await ProgramModule.create({
         program_id: (record as any).id,
         modules: module,
-    });
+
+            });
+    
 };
 
 //create hierarchy for program
