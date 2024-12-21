@@ -11,6 +11,7 @@ export async function getPicklistById(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
   const {
     name,
@@ -151,7 +152,7 @@ export async function getPicklistById(
     reply.status(200).send({
       status_code: 200,
       message: "Picklists retrieved successfully",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       picklists: paginatedPicklists,
       total_records: totalPicklists,
     });
@@ -160,7 +161,7 @@ export async function getPicklistById(
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error. Unable to fetch picklists.",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 }
@@ -265,6 +266,7 @@ export async function deletePicklist(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params as {
     id: string;
     program_id: string;
@@ -285,13 +287,13 @@ export async function deletePicklist(
     return reply.status(200).send({
       status_code: 200,
       message: "Picklist successfully deleted",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } else {
     return reply.status(200).send({
       status_code: 200,
       message: `Picklist not found`,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 }
@@ -303,6 +305,7 @@ export const updatePicklistAndItem = async (
   }>,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const { picklist_items, ...picklist_data } = request.body;
 
@@ -326,7 +329,7 @@ export const updatePicklistAndItem = async (
         return reply.status(400).send({
           status_code: 400,
           message: "Picklist with the same name already exists.",
-          trace_id: generateCustomUUID(),
+          trace_id: traceId,
         });
       }
 
@@ -352,7 +355,7 @@ export const updatePicklistAndItem = async (
         return reply.status(400).send({
           status_code: 400,
           message: "Picklist with the same name already exists.",
-          trace_id: generateCustomUUID(),
+          trace_id: traceId,
         });
       }
 
@@ -365,7 +368,7 @@ export const updatePicklistAndItem = async (
       return reply.status(404).send({
         status_code: 404,
         message: `Picklist with ID ${id} not found`,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -387,7 +390,7 @@ export const updatePicklistAndItem = async (
               return reply.status(404).send({
                 status_code: 404,
                 message: `Picklist item with ID "${item.id}" not found`,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
               });
             }
 
@@ -410,7 +413,7 @@ export const updatePicklistAndItem = async (
       return reply.status(200).send({
         status_code: 200,
         message: "Successfully updated picklist and items",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } catch (error) {
       await transaction.rollback();
@@ -421,7 +424,7 @@ export const updatePicklistAndItem = async (
       return reply.status(500).send({
         status_code: 500,
         message: `Error updating picklist and items: ${errorMessage}`,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
   } catch (error) {
@@ -431,7 +434,7 @@ export const updatePicklistAndItem = async (
     return reply.status(500).send({
       status_code: 500,
       message: `Error fetching picklist or validation: ${errorMessage}`,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 };
@@ -442,6 +445,7 @@ export const getPicklistAndPicklistItem = async (
   }>,
   reply: FastifyReply
 ) => {
+  const traceId = generateCustomUUID();
   const { program_id, picklist_id } = request.params;
 
   // Validate that the parameters are not undefined or null
@@ -484,7 +488,7 @@ export const getPicklistAndPicklistItem = async (
       const picklist = picklists[0];
       const response = {
         status_code: 200,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
         picklist,
       };
 
@@ -499,7 +503,7 @@ export const getPicklistAndPicklistItem = async (
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 };

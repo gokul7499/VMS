@@ -74,6 +74,7 @@ export async function getHolidayCalendarById(
   request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   try {
     const { program_id, id } = request.params;
 
@@ -111,7 +112,7 @@ export async function getHolidayCalendarById(
       reply.status(200).send({
         status_code: 200,
         message: 'HolidayCalendar fetched successfully.',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
         holiday_calendar: {
           ...holiday_calendar.toJSON(),
           hierarchy_units_ids: hierarchiesdata,
@@ -128,7 +129,7 @@ export async function getHolidayCalendarById(
   } catch (error) {
     reply.status(500).send({
       message: 'An error occurred while fetching holidayCalendar.',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error,
     });
   }

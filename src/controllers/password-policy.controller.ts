@@ -14,6 +14,7 @@ export async function getPasswordPolicyById(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const password_policy = await passwordPolicyModel.findOne({ where: { program_id, id } });
@@ -21,7 +22,7 @@ export async function getPasswordPolicyById(
             reply.status(200).send({
                 status_code: 200,
                 message: 'PasswordPolicy fetch Successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 password_policy: password_policy
             });
         } else {
@@ -34,7 +35,7 @@ export async function getPasswordPolicyById(
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while fetching PasswordPolicy.',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error: error,
         });
     }
@@ -42,11 +43,12 @@ export async function getPasswordPolicyById(
 
 export const createPasswordPolicy = async (request: FastifyRequest, reply: FastifyReply) => {
     const password_policy = request.body as passwordPolicyData;
+    const traceId = generateCustomUUID();
     try {
         await passwordPolicyModel.create({ ...password_policy });
         reply.status(201).send({
             status_code: 201,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: 'PasswordPolicy Created Successfully.',
         });
 
@@ -54,7 +56,7 @@ export const createPasswordPolicy = async (request: FastifyRequest, reply: Fasti
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating PasswordPolicy.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error: (error as Error).message,
         });
     }
@@ -64,6 +66,7 @@ export async function updatePasswordPolicy(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId = generateCustomUUID();
     const { id } = request.params;
     try {
         const [updatedCount] = await passwordPolicyModel.update(request.body as passwordPolicyData, { where: { id } });
@@ -71,7 +74,7 @@ export async function updatePasswordPolicy(
             reply.send({
                 status_code: 201,
                 message: 'PasswordPolicy updated successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -82,7 +85,7 @@ export async function updatePasswordPolicy(
     } catch (error) {
         reply.status(500).send({
             message: 'Internal Server error',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error
         });
     }
@@ -92,6 +95,7 @@ export async function deletePasswordPolicy(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const passwordPolicyData = await passwordPolicyModel.findOne({ where: { program_id, id } });
@@ -100,7 +104,7 @@ export async function deletePasswordPolicy(
             reply.status(204).send({
                 status_code: 204,
                 message: 'PasswordPolicy deleted successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -111,7 +115,7 @@ export async function deletePasswordPolicy(
     } catch (error) {
         reply.status(500).send({
             message: 'Internal Server error',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error
         });
     }

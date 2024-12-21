@@ -5,6 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
 export const createRateCardMapping = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const RateCardMappingPayload = request.body as Omit<RateCardMappingData, '_id'>;
@@ -12,16 +13,17 @@ export const createRateCardMapping = async (request: FastifyRequest, reply: Fast
         reply.status(201).send({
             status_code: 201,
             rate_card_mapping: RateCardMappingData?.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error While Creating Rate Card Mapping', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error While Creating Rate Card Mapping', error, trace_id: traceId});
     }
 };
 
 export const updateRateCardMapping = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const RateCardMappingData = request.body as RateCardMappingData;
+    const traceId=generateCustomUUID();
     try {
         const data = await RateCardMappingModel.findOne({
             where: { id, is_deleted: false, program_id }
@@ -31,18 +33,19 @@ export const updateRateCardMapping = async (request: FastifyRequest, reply: Fast
             reply.status(201).send({
                 status_code: 201,
                 rate_card_mapping_id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 message: 'Rate Card Mapping Updated Successfully.',
             });
         } else {
             reply.status(200).send({ message: 'Rate Card Mapping Data Not Found.' });
         }
     } catch (error) {
-        reply.status(500).send({ message: ' An Error Occurred While Updating The Rate Card Mapping.', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: ' An Error Occurred While Updating The Rate Card Mapping.', error, trace_id: traceId });
     }
 }
 
 export const deleteRateCardMapping = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = await RateCardMappingModel.findOne({
@@ -57,11 +60,11 @@ export const deleteRateCardMapping = async (request: FastifyRequest, reply: Fast
         reply.status(200).send({
             status_code: 200,
             rate_card_mapping_id: id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: 'Rate Card Mapping Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Rate Card Mapping Data', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error Deleting Rate Card Mapping Data', error, trace_id: traceId });
     }
 }
 
@@ -69,6 +72,7 @@ export async function getAllRateCardMappings(
     request: FastifyRequest<{ Params: RateCardMappingData, Querystring: RateCardMappingData }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const params = request.params as RateCardMappingData;
         const query: any = request.query as RateCardMappingData;
@@ -104,19 +108,20 @@ export async function getAllRateCardMappings(
             items_per_page: limit,
             total_records: count,
             rate_card_mapping: rate_card_mapping,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: "Internal Server Error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
 
 export async function getRateCardMappingById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await RateCardMappingModel.findOne({
@@ -126,7 +131,7 @@ export async function getRateCardMappingById(request: FastifyRequest, reply: Fas
             reply.status(200).send({
                 statusCode: 200,
                 rate_card_mapping: item,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: 'Rate Card Mapping Data Not Found', Rate_card_mapping: [] });
