@@ -1,82 +1,75 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import ReasoncodeModel from '../models/reason-code.model';
-import { ReasonCode, ReasonCodeResponse } from '../interfaces/reason-code.interface';
+import { ReasonCode } from '../interfaces/reason-code.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Module } from '../models/module.model';
-import { Op, QueryTypes, Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 import Event from '../models/event.model';
-import { resonCode } from '../utility/queries';
-import { sequelize } from '../config/instance';
+import ReasonCodeActionModel from '../models/reason-code-action.model';
+import ReasonCodeModel from '../models/reason-code.model';
 
 export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
-        const reasoncode = request.body as ReasonCodeResponse;
+        const reasoncode = request.body as {
+            id: any;
+            reasons_count: number;
+            created_by: object;
+            modified_by: object;
+            is_deleted: boolean;
+            program_id: string;
+            event_id?: string;
+            module_id?: string;
+            slug: string;
+            reason_codes: Array<{
+                name: string;
+                category: string;
+                is_enabled: Boolean
 
-        if (!reasoncode.program_id || !reasoncode.reason || !Array.isArray(reasoncode.reason)) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Invalid payload structure",
-                trace_id: traceId,
-            });
-        }
 
-        for (const reason of reasoncode.reason) {
-            if (!reason.name) {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "Each reason must have a name",
-                    trace_id: traceId,
-                });
-            }
-            const isExist = await ReasoncodeModel.findOne({
-                where: {
-                    program_id: reasoncode.program_id,
-                    reason: {
-                        [Op.ne]: null,
-                        [Op.and]: [
-                            Sequelize.literal(`JSON_SEARCH(reason, 'one', '${reason.name}') IS NOT NULL`)
-                        ]
-                    }
-                }
-            });
+            }>;
+        };
 
-            if (isExist) {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: `Reason code with the name ${reason.name} already exists!`,
-                    trace_id: traceId,
-                });
-            }
-        }
-
-        const reason_code = await ReasoncodeModel.create({
-            program_id: reasoncode.program_id,
-            module_id: reasoncode.module_id,
+        const reason_code_action = await ReasonCodeActionModel.create({
+            reasons_count: reasoncode.reasons_count,
+            created_by: reasoncode.created_by,
+            modified_by: reasoncode.modified_by,
+            is_deleted: reasoncode.is_deleted,
             event_id: reasoncode.event_id,
-            reason: reasoncode.reason
+            module_id: reasoncode.module_id,
+            slug: reasoncode.slug,
         });
+
+        const reasonCodes = await ReasonCodeModel.bulkCreate(
+            reasoncode.reason_codes.map((reason) => ({
+                name: reason.name,
+                category: reason.category,
+                reason_code_id: reason_code_action.id,
+                is_enabled:reason.is_enabled
+            }))
+        );
+
         reply.status(201).send({
             status_code: 201,
-            reason_code_id: reason_code.id,
+            message: "Reasoncode created successfully",
+            reason_code_id: reason_code_action.id,
             trace_id: traceId,
         });
-    } catch (error) {
-        console.error("Error in createReasoncode:", error);
+    } catch (error: any) {
         reply.status(500).send({
-            message: 'An error occurred while creating reason codes',
-            error,
+            message: "Internal Server Error",
+            trace_id: traceId,
+            error: error.message,
         });
     }
 }
 
-export async function getReasoncode(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+
+export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params as { program_id: string };
         const { page = 1, limit = 10, module_name, reasons_count, event_name } = request.query as {
             page?: number,
             limit?: number,
@@ -87,9 +80,8 @@ export async function getReasoncode(request: FastifyRequest, reply: FastifyReply
 
         const offset = (page - 1) * limit;
 
-        const reasoncodes = await ReasoncodeModel.findAll({
+        const reasoncodes = await ReasonCodeActionModel.findAll({
             where: {
-                program_id,
                 is_deleted: false,
                 ...(module_name && {
                     '$module.name$': { [Op.like]: `%${module_name}%` }
@@ -99,7 +91,7 @@ export async function getReasoncode(request: FastifyRequest, reply: FastifyReply
                 })
             },
             attributes: {
-                exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit']
+                exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
             },
             include: [
                 {
@@ -123,10 +115,8 @@ export async function getReasoncode(request: FastifyRequest, reply: FastifyReply
         });
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
-            const { reason, supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
-            const enabledReasonsCount = Array.isArray(reason)
-                ? reason.filter((r: any) => !r.is_deleted).length
-                : 0;
+            const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
+            const enabledReasonsCount = reasoncode.reasons_count || 0;
 
             return {
                 ...reasoncodeWithoutReason,
@@ -142,42 +132,47 @@ export async function getReasoncode(request: FastifyRequest, reply: FastifyReply
             ? reasoncodesWithDetails.filter((rc) => rc.reasons_count === reasons_count)
             : reasoncodesWithDetails;
 
-        const totalRecords = await ReasoncodeModel.count({
+        const totalRecords = await ReasonCodeActionModel.count({
             where: {
-                program_id,
                 is_deleted: false,
             }
         });
 
         if (!filteredReasoncodes || filteredReasoncodes.length === 0) {
-            return reply.status(200).send({ message: "Reasoncode not found", reasoncodes: [], totalRecords });
+            return reply.status(200).send({
+                message: "Reasoncode not found",
+                reason_code_action: [],
+                totalRecords
+            });
         }
 
         reply.status(200).send({
             status_code: 200,
-            reasoncodes: filteredReasoncodes,
+            message: 'Reasoncode retrive successfully ',
             trace_id: traceId,
+            reason_code_action: filteredReasoncodes,
             total_records: totalRecords,
         });
     } catch (error) {
-        console.error(error);
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
+            trace_id: traceId,
             error: error,
         });
     }
 }
 
-export async function getReasoncodeId(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
+
+export async function getReasoncodeById(
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
-        const reason_code = await ReasoncodeModel.findOne({
-            where: { id, program_id },
+        const { id } = request.params;
+        const reason_code = await ReasonCodeActionModel.findOne({
+            where: { id },
             attributes: { exclude: ['ref_id', 'entity_ref', 'code', 'program_id', 'event_id', 'module_id', 'is_deleted', 'created_on', 'reasons_count', 'created_by', 'modified_by', 'reason_code_limit', 'modified_on'] },
             include: [
                 {
@@ -196,53 +191,63 @@ export async function getReasoncodeId(
         });
 
         if (reason_code) {
-            const reasoncode = reason_code.toJSON();  // Convert to plain object
-            // Destructure and remove `module` from the response
-            const { reason, supporting_text_event, module, ...reasoncodeWithoutExtras } = reasoncode;
+            const reasoncodes = await ReasonCodeModel.findAll({
+                where: {
+                    reason_code_id: id
+                },
+                attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+            });
+
+            const reasoncode = reason_code.toJSON();
+            const { supporting_text_event, module, ...reasoncodeWithoutExtras } = reasoncode;
+
             const reasoncodeWithDetails = {
                 ...reasoncodeWithoutExtras,
                 module_name: module?.name || 'Unknown Module',
                 module_id: module?.id || 'Unknown id',
                 event_name: supporting_text_event?.name || 'Unknown Event',
                 event_id: supporting_text_event?.id || 'Unknown id',
-                reason,
+                reason_codes: reasoncodes || [],
             };
 
             reply.status(200).send({
                 status_code: 200,
-                reason_code: reasoncodeWithDetails,
-                trace_id: traceId,  // Assuming you have this function defined somewhere
+                meassage: 'Reason code retrieved successfully',
+                reason_code_action: reasoncodeWithDetails,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                reason_code: [],  // Return empty array
-                trace_id: traceId,  // Assuming you have this function defined somewhere
+                reason_code_action: {
+                    reasoncodes: []
+                },
+                trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         reply.status(500).send({
             message: 'An error occurred while fetching',
-            error: error
+            trace_id: traceId,
+            error: error.message || error,
         });
     }
 }
+
 export async function getReasoncodeByEventName(
-    request: FastifyRequest<{ Params: { event_slug: string, program_id: string } }>,
+    request: FastifyRequest<{ Params: { event_slug: string } }>,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
         const { event_slug } = request.query as {
             event_slug?: string
         };
-        const event= await Event.findOne({ where: { slug: event_slug } });
-        const eventId =event?.dataValues?.id;
-        const reason_code = await ReasoncodeModel.findOne({
+        const event = await Event.findOne({ where: { slug: event_slug } });
+        const eventId = event?.dataValues?.id;
+        const reason_code = await ReasonCodeActionModel.findOne({
             where: {
-                program_id,
-                event_id:eventId
+                event_id: eventId
             },
             include: [
                 {
@@ -257,118 +262,206 @@ export async function getReasoncodeByEventName(
                 },
             ],
         });
-        if(reason_code){
+        if (reason_code) {
             reply.status(200).send({
                 status_code: 200,
-                reason_code: reason_code,
-                trace_id: traceId,  // Assuming you have this function defined somewhere
+                message: 'Reason code retrieved successfully',
+                reason_code_action: reason_code,
+                trace_id: traceId
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                reason_code: [],  // Return empty array
-                trace_id: traceId,  // Assuming you have this function defined somewhere
+                message: 'Reason code not found',
+                reason_code_action: [],
+                trace_id: traceId
             });
         }
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while fetching',
+            trace_id: traceId,
             error: error
         });
     }
 }
+
+
 export async function updateReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    const reasonCodeData = request.body as ReasonCode;
-    const traceId=generateCustomUUID();
+    const { reason_codes, reasons_count }: { reason_codes: ReasonCode[], reasons_count: number } = request.body as { reason_codes: ReasonCode[], reasons_count: number };
+    const traceId = generateCustomUUID();
+
     try {
-        const reasonCode: ReasoncodeModel | null = await ReasoncodeModel.findByPk(id);
-        if (reasonCode) {
-            if (
-                reasonCodeData.program_id && reasonCodeData.program_id !== reasonCode.program_id ||
-                reasonCodeData.module_id && reasonCodeData.module_id !== reasonCode.module_id ||
-                reasonCodeData.event_id && reasonCodeData.event_id !== reasonCode.event_id
-            ) {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: 'program_id, module_id, and event_id fields cannot be modified',
+        const reasonCodeAction = await ReasonCodeActionModel.findByPk(id);
+
+        if (reasonCodeAction) {
+            for (const reasonCodeData of reason_codes) {
+                if (
+                    (reasonCodeData.module_id && reasonCodeData.module_id !== reasonCodeAction.module_id) ||
+                    (reasonCodeData.event_id && reasonCodeData.event_id !== reasonCodeAction.event_id)
+                ) {
+                    return reply.status(400).send({
+                        status_code: 400,
+                        trace_id: traceId,
+                        message: 'program_id, module_id, and event_id fields cannot be modified',
+                    });
+                }
+
+                const reasonCode = await ReasonCodeModel.findOne({
+                    where: { reason_code_id: id },
                 });
+
+                if (reasonCode) {
+                    await reasonCode.update(reasonCodeData);
+                } else {
+                    return reply.status(404).send({
+                        status_code: 404,
+                        trace_id: traceId,
+                        message: `Reason code with ID ${reasonCodeData.id} not found`,
+                    });
+                }
             }
-            await reasonCode.update(reasonCodeData);
-            reply.status(200).send({
+
+            await reasonCodeAction.update({
+                reasons_count,
+            });
+
+            return reply.status(200).send({
                 status_code: 200,
-                reason_code: id,
+                message: 'Reason codes and reason code action updated successfully',
+                reason_code_action: id,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Custom Field not found' });
+            return reply.status(404).send({
+                status_code: 404,
+                trace_id: traceId,
+                message: 'Reason code action not found',
+            });
         }
     } catch (error) {
-        console.error(error);
-        reply.status(500).send({ message: 'Internal Server Error' });
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+        });
     }
 }
 
 export async function deleteReasoncode(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
-        const [numRowsDeleted] = await ReasoncodeModel.update({
+        const { id } = request.params;
+        const [numRowsDeleted] = await ReasonCodeActionModel.update({
             is_enabled: false,
             modified_on: Date.now(),
         },
-            { where: { id, program_id } }
+            { where: { id } }
         );
 
         if (numRowsDeleted > 0) {
             reply.status(200).send({
                 status_code: 200,
-                reason_code_id: id,
+                message: "Reasoncode deleted successfully",
+                reason_code_action_id: id,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Reasoncode not found' });
+            reply.status(200).send({
+                status_code: 200,
+                message: 'Reasoncode not found',
+                reason_code_action: [],
+                trace_id: traceId,
+            });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while deleting', error });
+        reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while deleting',
+            trace_id: traceId,
+            error
+        });
     }
 }
 
-export const getReasonCodeByModuleEventName = async (
+export const getReasonCodeBySlug = async (
     request: FastifyRequest<{
         Params: { program_id: string },
-        Querystring: { module_name?: string, event_name?: string }
+        Querystring: { event_slug?: string, module_slug?: string }
     }>,
     reply: FastifyReply
 ) => {
+
     const { program_id } = request.params;
-    const { module_name, event_name } = request.query;
-    const traceId=generateCustomUUID();
+    const { event_slug, module_slug } = request.query;
+    const traceId = generateCustomUUID();
     try {
-        const data = await sequelize.query(resonCode, {
-            replacements: {
-                program_id,
-                module_name: module_name ? `%${module_name}%` : null,
-                event_name: event_name ? `%${event_name}%` : null,
-            },
-            type: QueryTypes.SELECT,
+        const event = await Event.findOne({
+            where: { slug: event_slug },
+            attributes: ['id'],
         });
 
-        const transformedData = data.map((item: any) => ({
-            module_name:module_name,
-            event_name:event_name,
-            reason_name: item?.reason?.[0]?.name || null,
-            reason_label: item?.reason?.[0]?.label || null, 
-          }));
+        if (!event) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: `Event with slug '${event_slug}' not found`,
+                trace_id: traceId,
+            });
+        }
+
+        const module = await Module.findOne({
+            where: { slug: module_slug },
+            attributes: ['id'],
+        });
+
+        if (!module) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: `Module with slug '${module_slug}' not found`,
+                trace_id: traceId,
+            });
+        }
+
+        const event_id = event.id;
+        const module_id = module.id;
+
+        const data = await ReasonCodeActionModel.findAll({
+            where: { event_id, module_id },
+        });
+
+        if (!data.length) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "Reason codes action not found for the given event and module",
+                trace_id: traceId,
+            });
+        }
+
+        const reason_codes = await ReasonCodeModel.findAll({
+            where: {
+                reason_code_id: data.map((d) => d.id),
+                program_id: program_id
+            },
+            attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
+        });
+
+        if (!reason_codes.length) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "No reason codes found for the given event and module",
+                trace_id: traceId,
+            });
+        }
 
         reply.status(200).send({
             status_code: 200,
             message: "Reason codes retrieved successfully",
-            data: transformedData,
             trace_id: traceId,
+            reason_code_action: reason_codes,
         });
     } catch (error: any) {
         reply.status(500).send({
