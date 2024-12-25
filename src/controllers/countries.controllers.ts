@@ -3,6 +3,7 @@ import CountryModel from '../models/countries.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 
 export const createCountry = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();
     try {
         const payload = request.body as {
             name: string,
@@ -18,19 +19,20 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
             status_code: 201,
             data: newCountry?.id,
             message: 'Country Created successfully',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to create Country',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error: error,
         });
     }
 };
 
 export const bulkUploadCountry = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();
     try {
         const countries = request.body as any[];
         const createdCountries = await CountryModel.bulkCreate(countries);
@@ -38,18 +40,19 @@ export const bulkUploadCountry = async (request: FastifyRequest, reply: FastifyR
             status_code: 201,
             data: createdCountries,
             message: 'Countries Created successfully',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to create Countries',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error: error,
         });
     }
 };
 export const getCountries = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();;
     try {
         const { name, id } = request.query as { name?: string; id?: string };
         const whereClause: any = { is_deleted: false };
@@ -80,19 +83,20 @@ export const getCountries = async (request: FastifyRequest, reply: FastifyReply)
                     ? "No Countries found"
                     : "Countries retrieved successfully",
             countries: countries,
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
         });
     } catch (error) {
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to fetch Countries",
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error,
         });
     }
 };
 
 export const getCountriesById = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const countries = await CountryModel.findOne({
@@ -105,27 +109,28 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
             reply.status(200).send({
                 status_code: 200,
                 country: countries,
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         }
         else {
             reply.status(200).send({
                 status_code: 200,
                 message: "Countries not found",
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to fetch Countries',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error: error,
         });
     }
 };
 
 export const updateCountry = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const {
@@ -161,26 +166,27 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country updated successfully',
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country not found',
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to update Country',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error: error,
         });
     }
 };
 
 export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply) => {
+    const trace_Id = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const [updatedRows] = await CountryModel.update(
@@ -196,20 +202,20 @@ export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country Deleted successfully',
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country not found',
-                trace_id: generateCustomUUID(),
+                trace_id:trace_Id,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to delete Country',
-            trace_id: generateCustomUUID(),
+            trace_id:trace_Id,
             error: error,
         });
     }

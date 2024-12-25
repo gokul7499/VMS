@@ -17,7 +17,7 @@ export async function createCandidate(
 ) {
     const candidate = request.body as candidateInterface;
     const { program_id, email } = candidate;
-    const trace_id = generateCustomUUID();
+    const trace_Id = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -46,14 +46,14 @@ export async function createCandidate(
                     status_code: 200,
                     message: "Candidate with the same email already exists in this program",
                     candidate: {},
-                    trace_id,
+                    trace_id: trace_Id,
                 });
             }
         }
 
         logger(
             {
-                trace_id,
+                trace_id: trace_Id,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -80,7 +80,7 @@ export async function createCandidate(
 
         logger(
             {
-                trace_id,
+                trace_id: trace_Id,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -102,12 +102,12 @@ export async function createCandidate(
             status_code: 201,
             message: "Candidate Created Successfully",
             candidate: candidateData?.id,
-            trace_id,
+            trace_id: trace_Id,
         });
     } catch (error: any) {
         logger(
             {
-                trace_id,
+                trace_id: trace_Id,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -127,7 +127,7 @@ export async function createCandidate(
 
         return reply.status(500).send({
             status_code: 500,
-            trace_id,
+            trace_id: trace_Id,
             message: "Failed To Create Candidate",
             error: (error as Error).message,
         });
@@ -138,6 +138,7 @@ export async function getAllCandidate(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const trace_Id = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -252,14 +253,14 @@ export async function getAllCandidate(
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
         });
 
     } catch (error) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             message: "Internal Server Error",
             error
         });
@@ -270,6 +271,7 @@ export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const trace_Id = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string; };
         const candidate = await candidateModel.findOne({
@@ -297,20 +299,20 @@ export async function getCandidateByIdAndProgramId(
         if (!candidate) {
             return reply.status(200).send({
                 status_code: 404,
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
                 message: "Candidate not found",
             });
         }
         return reply.status(200).send({
             status_code: 200,
             candidate,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
         });
     } catch (error) {
         console.error("Error fetching candidate:", error);
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             message: "Internal Server Error",
         });
     }
@@ -320,6 +322,7 @@ export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const trace_Id = generateCustomUUID();
     try {
         const { program_id, id, } = request.params as { program_id: string, id: string; };
         const updates = request.body as candidateInterface;
@@ -334,7 +337,7 @@ export async function updateCandidateByIdAndProgramId(
         if (updatedRows === 0) {
             return reply.status(404).send({
                 status_code: 404,
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
                 message: "Candidate not found",
             });
         }
@@ -348,13 +351,13 @@ export async function updateCandidateByIdAndProgramId(
         return reply.status(200).send({
             status_code: 200,
             record: updatedRecord,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
         });
     } catch (error) {
         console.error("Error updating candidate:", error);
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             message: "Internal Server Error",
         });
     }
@@ -364,6 +367,7 @@ export async function deleteCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const trace_Id = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
 
@@ -379,20 +383,20 @@ export async function deleteCandidateByIdAndProgramId(
         if (updatedRows === 0) {
             return reply.status(404).send({
                 status_code: 404,
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
                 message: "Candidate not found or already deleted",
             });
         }
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate successfully deleted",
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
         });
     } catch (error) {
         console.error("Error deleting candidate:", error);
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             message: "Internal Server Error",
         });
     }

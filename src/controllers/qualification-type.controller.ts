@@ -10,6 +10,7 @@ export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   try {
     const params = request.params as Partial<qualificationType>;
     const query = request.query as any;
@@ -74,19 +75,20 @@ export async function getQualificationTypes(
       items_per_page: limit,
       total_records: count,
       qualification_type: qualificationType,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'Internal Server Error',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 }
 
 export async function createQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
+  const traceId=generateCustomUUID();
   try {
     const { name } = request.body as qualificationType;
     const existingQualificationType = await qualificationTypeModel.findOne({
@@ -97,7 +99,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
       return reply.status(409).send({
         status_code: 409,
         message: 'Qualification type with the same name already exists.',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -109,7 +111,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
         id: qualificationType?.id,
         qualificationType_name: qualificationType?.qualificationType_name
       },
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
@@ -121,12 +123,12 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
 
 export const getQualificationTypeById = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string, program_id: string };
-
+  const traceId=generateCustomUUID();
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program Id is required',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
     return;
   }
@@ -141,13 +143,13 @@ export const getQualificationTypeById = async (request: FastifyRequest, reply: F
       reply.status(200).send({
         status_code: 200,
         qualificationType: qualificationTypeData,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Qualification type not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
         qualificationType: []
       });
     }
@@ -155,7 +157,7 @@ export const getQualificationTypeById = async (request: FastifyRequest, reply: F
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: (error as Error).message,
     });
   }
@@ -165,13 +167,13 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as qualificationType;
   let { name } = request.body as qualificationType;
-
+  const traceId=generateCustomUUID();
   name = name.trim();
   if (!program_id) {
     return reply.status(400).send({
       status_code: 400,
       message: 'Program Id is required',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
   try {
@@ -188,7 +190,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
       return reply.status(400).send({
         status_code: 400,
         message: "Qualification type with same name already exists.",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
     const data = await qualificationTypeModel.findOne({
@@ -199,7 +201,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
       return reply.status(404).send({
         status_code: 404,
         message: 'Qualification type not found.',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
     await data.update(updates);
@@ -207,18 +209,19 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
     return reply.status(200).send({
       status_code: 200,
       message: 'Qualification type updated successfully.',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal server error: Failed to update qualification type',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   }
 };
 
 export async function deleteQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
+  const traceId=generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const qualificationType = await qualificationTypeModel.findByPk(id);
@@ -230,20 +233,20 @@ export async function deleteQualificationTypes(request: FastifyRequest, reply: F
       reply.status(200).send({
         status_code: 200,
         message: 'Qualification type deleted successfully',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Qualification type not found',
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal server error: Failed to delete qualification type',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error as Error,
     });
   }

@@ -59,7 +59,11 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             });
         }
 
-        const foundationalData: any = await foundationalDataTypes.create(foundationalDataPayload);
+        const foundationalData: any = await foundationalDataTypes.create({
+            ...foundationalDataPayload,
+            created_on: Date.now(),
+            modified_on: Date.now(),
+        });
         reply.status(201).send({
             statusCode: 201,
             data: {
@@ -142,7 +146,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
         }
         const data = await foundationalDataTypes.findByPk(id);
         if (data) {
-            await data.update(foundationalData);
+            await data.update({ ...foundationalData, modified_on: Date.now() });
             reply.status(201).send({
                 statusCode: 201,
                 foundational_datatype_id: id,
@@ -207,7 +211,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'modified_on', 'program_id', 'configuration', 'associations']
         });
 
         if (foundationalDataType) {

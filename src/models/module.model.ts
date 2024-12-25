@@ -3,7 +3,9 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
-class Module extends Model { }
+class Module extends Model {
+    id: any;
+}
 
 Module.init(
     {
