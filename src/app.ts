@@ -2,7 +2,7 @@ import fastify from "fastify";
 import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
-import redis from "./config/radis";
+import redis from "./config/redis";
 import { checkDatabaseConnection } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
 
@@ -20,7 +20,7 @@ app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
-app.register(formBodyPlugin);
+
 
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to Fastify API with Redis!" });

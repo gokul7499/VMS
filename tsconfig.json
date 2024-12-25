@@ -9,6 +9,6 @@
         "outDir": "./dist",
         "typeRoots": ["./node_modules/@types"] 
     },
-    "include": ["src/**/*.ts", "src/types.d.ts"],
+    "include": ["src/**/*.ts", "src/types.d.ts","fastify.d.ts"],
     "exclude": ["node_modules"]
 }
