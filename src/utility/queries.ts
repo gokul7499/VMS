@@ -1441,73 +1441,89 @@ GROUP BY
 
 export const getAllRateTypes = (
     hasName: boolean,
-    hasId:boolean,
+    hasId: boolean,
     hasIsEnabled: boolean,
-    isShiftRateValue:boolean,
-    isBaseRate:boolean,
+    isShiftRateValue: boolean,
+    isBaseRate: boolean,
+    hasDifferentialOn: boolean,
+    hasRateTypeCategory: boolean,
+    hasShiftType: boolean,
     startDate?: number,
     endDate?: number,
     limit?: number,
     offset?: number
 ) => `
-    WITH rate_type AS (
-      SELECT
-        rt.id,
-        rt.name,
-        rt.program_id,
-        rt.is_enabled,
-        rt.is_shift_rate,
-        rt.abbreviation,
-        rt.is_base_rate,
-        rt.rate,
-        rt.modified_on,
-        COUNT(*) OVER() AS total_records,
-        CASE 
-          WHEN shift_types.id IS NULL THEN NULL
-          ELSE JSON_OBJECT(
-              'id', shift_types.id,
-              'name', shift_types.shift_type_name
-          )
-        END AS shift_type,
-        CASE 
-          WHEN picklistitems.id IS NULL THEN NULL
-          ELSE JSON_OBJECT(
-            'id', picklistitems.picklist_id,
-            'label', picklistitems.label,
-            'value', picklistitems.value
-          )
-        END AS rate_type_category
-      FROM rate_type rt
-      LEFT JOIN shift_types 
-        ON rt.shift_type=shift_types.id
-      LEFT JOIN picklistitems 
-        ON rt.rate_type_category = picklistitems.id
-      WHERE rt.program_id = :program_id
-        AND rt.is_deleted = false
-        ${hasId ? "AND rt.id = :id" : ""}
-        ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
-        ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
-        ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
-        ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
-        ${startDate !== undefined && endDate !== undefined
+      WITH rate_type AS (
+        SELECT
+          rt.id,
+          rt.name,
+          rt.program_id,
+          rt.is_enabled,
+          rt.is_shift_rate,
+          rt.abbreviation,
+          rt.is_base_rate,
+          rt.rate,
+          rt.modified_on,
+          COUNT(*) OVER() AS total_records,
+          CASE 
+            WHEN shift_types.id IS NULL THEN NULL
+            ELSE JSON_OBJECT(
+                'id', shift_types.id,
+                'name', shift_types.shift_type_name
+            )
+          END AS shift_type,
+          CASE 
+            WHEN picklistitems.id IS NULL THEN NULL
+            ELSE JSON_OBJECT(
+              'id', picklistitems.picklist_id,
+              'label', picklistitems.label,
+              'value', picklistitems.value
+            )
+          END AS rate_type_category,
+          JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
+        FROM rate_type rt
+        LEFT JOIN shift_types 
+          ON rt.shift_type = shift_types.id
+        LEFT JOIN picklistitems 
+          ON rt.rate_type_category = picklistitems.id
+        WHERE rt.program_id = :program_id
+          AND rt.is_deleted = false
+          ${hasId ? "AND rt.id = :id" : ""}
+          ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
+          ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
+          ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
+          ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
+          ${hasDifferentialOn
+        ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
+        : ""
+    }
+          ${hasRateTypeCategory
+        ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category, '%')"
+        : ""
+    }
+          ${hasShiftType
+        ? "AND shift_types.shift_type_name LIKE CONCAT('%', :shift_type, '%')"
+        : ""
+    }
+          ${startDate !== undefined && endDate !== undefined
         ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
         : ""
     }
-      GROUP BY 
-        rt.id, 
-        rt.name, 
-        rt.program_id, 
-        rt.is_enabled, 
-        rt.is_shift_rate, 
-        rt.abbreviation, 
-        rt.is_base_rate, 
-        rt.rate, 
-        rt.modified_on, 
-        picklistitems.picklist_id, 
-        picklistitems.label, 
-        picklistitems.value
-    )
-    SELECT *
-    FROM rate_type
-    LIMIT :limit OFFSET :offset;
-  `;
+        GROUP BY 
+          rt.id, 
+          rt.name, 
+          rt.program_id, 
+          rt.is_enabled, 
+          rt.is_shift_rate, 
+          rt.abbreviation, 
+          rt.is_base_rate, 
+          rt.rate, 
+          rt.modified_on, 
+          picklistitems.picklist_id, 
+          picklistitems.label, 
+          picklistitems.value
+      )
+      SELECT *
+      FROM rate_type
+      LIMIT :limit OFFSET :offset;
+    `;

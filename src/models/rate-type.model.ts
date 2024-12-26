@@ -8,6 +8,8 @@ class RateType extends Model {
   is_base_rate: any;
   name: any;
   is_shift_rate: any;
+  rate_type_category: any;
+  shift_type: any;
 }
 RateType.init(
   {
@@ -20,7 +22,7 @@ RateType.init(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      // unique: true
+      unique: true
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
@@ -66,7 +68,7 @@ RateType.init(
     },
     is_base_rate: {
       type: DataTypes.BOOLEAN,
-      defaultValue:false,
+      defaultValue: false,
       allowNull: true,
     },
     program_id: {
