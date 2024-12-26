@@ -5,7 +5,7 @@ import { TimesheetExpenseRuleGroupData } from '../interfaces/timesheet-expense-r
 import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
 
 export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const { timesheet_expense_rules_group_mapping, ...data } = request.body as any;
@@ -16,19 +16,19 @@ export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
             status_code: 201,
             id: newConfig.id,
             message: 'Timesheet expense rule group created successfully.',
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Error creating rule group.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
 
 export const getAllTimesheetExpenseRuleGroups = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const { page = 1, limit = 10, rule_category } = request.query as {
@@ -54,19 +54,19 @@ export const getAllTimesheetExpenseRuleGroups = async (request: FastifyRequest, 
             items_per_page: limit,
             total_records: count,
             timesheet_expense_rule_group: ruleGroups,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Error fetching timesheet expense rule groups.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
 
 export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({
@@ -76,7 +76,7 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet expense rule group not found.',
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         const timesheetExpenseRules = ruleGroup.timesheet_expense_rules || [];
@@ -85,7 +85,7 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
                 status_code: 200,
                 timesheet_expense_rule_group: ruleGroup,
                 message: "No timesheet expense rules associated with this group.",
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         const populatedRules = await TimesheetExpenseRuleModel.findAll({
@@ -100,7 +100,7 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
                 status_code: 200,
                 timesheet_expense_rule_group: ruleGroup,
                 message: "No related timesheet expense rules found.",
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         const data = {
@@ -111,14 +111,14 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
             status_code: 200,
             timesheet_expense_rule_group: data,
             message: "Timesheet expense rule group retrieved successfully.",
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Error fetching rule group.',
             error: error.message,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
@@ -129,7 +129,7 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
 
 
 export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     const updates = request.body as Partial<TimesheetExpenseRuleGroupData>; // Updated to simplify the input
 
@@ -140,25 +140,25 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
         if (updatedCount === 0) {
             return reply.status(200).send({
                 message: 'Timesheet expense rule group not found.',
-                trace_id,
+                trace_id:traceId,
             });
         }
         return reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group updated successfully.',
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         return reply.status(500).send({
             message: 'Internal Server Error',
-            trace_id,
+            trace_id:traceId,
             error,
         });
     }
 }
 
 export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({ where: { id, is_deleted: false } });
@@ -166,20 +166,20 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet expense rule group not found.',
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         await ruleGroup.update({ is_deleted: true, is_enabled: false });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group deleted successfully.',
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Error deleting rule group.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
