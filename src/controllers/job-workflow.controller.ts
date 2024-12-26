@@ -4,17 +4,11 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import CustomField from '../models/custom-fields.model';
-import RecipientType from '../models/recipient-types.model';
 import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
 import jobModel from '../models/job.model';
-import workflowLevelReplace from '../models/workflowLevelReplaceModel'
-import UserMapping from '../models/user-mapping.model';
-import User from '../models/user.model';
-import FoundationalData from '../models/foundational-data.model';
-import { levels } from 'pino';
-
+import { Module } from '../models/module.model';
+import Event from '../models/event.model';
 
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -453,7 +447,7 @@ export const updateWorkflowStatus = async (
                     updatedLevels = true;
 
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                        if (behavior=="any") {
+                        if (behavior == "any") {
                             // If `behavior: any` is present, mark all recipients as "approved"
                             return { ...recipient, status: "approved" };
                         }
@@ -674,14 +668,6 @@ export const rejectLevel = async (
     }
 };
 
-
-
-
-
-
-
-
-
 // export const updateReplaceLevel = async (
 //     request: FastifyRequest<{
 //         Params: { program_id: string; id: string };
@@ -782,7 +768,6 @@ export const rejectLevel = async (
 //         });
 //     }
 // };
-
 
 export const updateReplaceLevel = async (
     request: FastifyRequest<{
@@ -1678,6 +1663,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         });
     }
 }
+
 // export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
 //     const trace_id = generateCustomUUID();
 //     const { program_id } = request.params as { program_id: string };
@@ -2025,6 +2011,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 //         });
 //     }
 // }
+
 export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
@@ -2598,3 +2585,53 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         });
     }
 }
+
+export const getModuleEvent = async (
+    request: FastifyRequest<{ Querystring: { candidate_id: string; job_id: string }; }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+    const { program_id } = request.params as { program_id: string };
+    const { candidate_id, job_id } = request.query;
+    try {
+        const workflows = await JobWorkFlowModel.findAll({
+            where: {
+                candidate_id,
+                program_id,
+                job_id,
+                is_deleted: false,
+            },
+            include: [
+                {
+                    model: Module,
+                    as: 'moduleDetail',
+                    attributes: ['name'],
+                },
+                {
+                    model: Event,
+                    as: 'event',
+                    attributes: ['name'],
+                },
+            ],
+            order: [['created_on', 'DESC']],
+        });
+
+        const data = workflows.map((workflow) => ({
+            module: workflow.moduleDetail?.name || null,
+            event: workflow.event?.name || null,
+        }));
+
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Module and events fetched successfully.',
+            data,
+        });
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            error: error,
+        });
+    }
+};
