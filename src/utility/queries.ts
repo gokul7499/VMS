@@ -19,7 +19,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
                     'max_limit', ex.max_limit,
                     'unit_of_measure', ex.unit_of_measure,
                     'unit_lable', ex.unit_lable,
-                    'expense_type', JSON_OBJECT('id', ex.expense_type_id, 'name', ec.expense_type)
+                    'expense_item_type_config', JSON_OBJECT('id', ex.expense_type_id, 'name', ec.expense_item_type_config)
                 )
             ) AS expenses
         FROM
@@ -44,7 +44,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             )) AS ex
             ON ex.expense_type_id IS NOT NULL
         LEFT JOIN
-            expense_type ec ON ec.id = ex.expense_type_id
+            expense_item_type_config ec ON ec.id = ex.expense_type_id
         WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = :program_id
@@ -127,7 +127,7 @@ SELECT
         'max_limit', ex.max_limit,
         'unit_of_measure', ex.unit_of_measure,
         'unit_lable', ex.unit_lable,
-        'expense_type', JSON_OBJECT('id', ec.id, 'name', ec.expense_type)
+        'expense_item_type_config', JSON_OBJECT('id', ec.id, 'name', ec.expense_item_type_config)
     )) AS expenses
 FROM
     rate_type_configurations rcc
@@ -155,7 +155,7 @@ LEFT JOIN JSON_TABLE(
         unit_of_measure VARCHAR(255) PATH '$.unit_of_measure'
     )
 ) AS ex ON ex.expense_type_id IS NOT NULL
-LEFT JOIN expense_type ec ON ec.id = ex.expense_type_id
+LEFT JOIN expense_item_type_config ec ON ec.id = ex.expense_type_id
 WHERE
     rcc.is_deleted = 0
     AND rcc.id = :id
@@ -1373,7 +1373,7 @@ export const getAllExpenseTypeByHierarchies = (
         LIMIT 1
       )
       SELECT et.*
-      FROM expense_type et
+      FROM expense_item_type_config et
       JOIN HierarchyMatches hm ON et.expense_config_id = hm.expense_config_id
       WHERE et.program_id = :program_id;
     `;
@@ -1401,7 +1401,7 @@ export const getExpenseType = `
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
-    et.type AS expense_type,
+    et.type AS expense_item_type_config,
     et.category AS expense_type_category,
     et.apply_msp_fee,
     et.appply_tax,
@@ -1414,7 +1414,7 @@ export const getExpenseType = `
     ) AS hierarchy
 FROM expense_configuration ec
 LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-LEFT JOIN expense_type et ON etm.expense_type_id = et.id
+LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
 LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
 LEFT JOIN hierarchies h ON eth.hierarchy = h.id
 WHERE ec.program_id =:program_id

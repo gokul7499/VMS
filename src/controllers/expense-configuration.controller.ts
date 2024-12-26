@@ -117,7 +117,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
             status: expenseConfig.status === "1",
-            expense_type: transformedExpenseTypes,
+            expense_item_type_config: transformedExpenseTypes,
             hierarchy: hierarchy, 
         };
 
@@ -148,8 +148,8 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
         const expenseConfig: ExpenseConfigurationAttributes = request.body as ExpenseConfigurationAttributes;
 
         const expenseConfigData = await ExpenseConfigurationModel.create({ ...expenseConfig, program_id });
-        if (Array.isArray(expenseConfig.expense_type) && expenseConfig.expense_type.length > 0) {
-            for (const expenseType of expenseConfig.expense_type) {
+        if (Array.isArray(expenseConfig.expense_item_type_config) && expenseConfig.expense_item_type_config.length > 0) {
+            for (const expenseType of expenseConfig.expense_item_type_config) {
                 await ExpenseTypeMapping.create({
                     program_id,
                     expense_config_id: expenseConfigData.id,
@@ -207,8 +207,8 @@ export async function updateExpenseConfiguration(
 
         await existingExpenseConfig.update(expenseConfigData, { transaction });
 
-        if (Array.isArray(expenseConfigData.expense_type) && expenseConfigData.expense_type.length > 0) {
-            const existingExpenseTypeIds = expenseConfigData.expense_type.map(et => et.id).filter(Boolean);
+        if (Array.isArray(expenseConfigData.expense_item_type_config) && expenseConfigData.expense_item_type_config.length > 0) {
+            const existingExpenseTypeIds = expenseConfigData.expense_item_type_config.map(et => et.id).filter(Boolean);
 
             await ExpenseTypeMapping.destroy({
                 where: {
@@ -219,7 +219,7 @@ export async function updateExpenseConfiguration(
             });
 
             const modifiedOn = new Date();
-            const upsertPromises = expenseConfigData.expense_type.map(expenseType =>
+            const upsertPromises = expenseConfigData.expense_item_type_config.map(expenseType =>
                 ExpenseTypeMapping.upsert({
                     ...expenseType,
                     id: expenseType.id,
@@ -466,10 +466,10 @@ export async function getExpenseTypesByProgramId(
     reply: FastifyReply
 ) {
     const { program_id } = request.params as { program_id: string };
-    const { is_enabled, expense_code, expense_type } = request.query as {
+    const { is_enabled, expense_code, expense_item_type_config } = request.query as {
         is_enabled?: boolean | string;
         expense_code?: string;
-        expense_type?: string;
+        expense_item_type_config?: string;
     };
     const traceId = generateCustomUUID();
 
@@ -484,16 +484,16 @@ export async function getExpenseTypesByProgramId(
         if (expense_code) {
             whereCondition.expense_code = expense_code;
         }
-        if (expense_type) {
-            whereCondition.expense_type = { [Op.like]: `%${expense_type}%` }; 
+        if (expense_item_type_config) {
+            whereCondition.expense_item_type_config = { [Op.like]: `%${expense_item_type_config}%` }; 
         }
         const results = await ExpenseTypeMapping.findAll({
             where: whereCondition,
-            attributes: ['id', 'expense_type', 'expense_code', 'expense_name', 'is_enabled'],
+            attributes: ['id', 'expense_item_type_config', 'expense_code', 'expense_name', 'is_enabled'],
         });
         const formattedResults = results.map((item) => ({
             id: item.id,
-            expense_type: item.expense_type,
+            expense_item_type_config: item.expense_item_type_config,
             expense_code: item.expense_code,
             expense_name: item.expense_name,
             is_enabled: item.is_enabled,

@@ -7,7 +7,7 @@ import ExpenseConfigurationModel from './expense-configuration.model';
 
 class ExpenseTypeMapping extends Model { 
     id:any;
-    expense_type:any;
+    expense_item_type_config:any;
     expense_code:any;
     expense_name:any;
     is_enabled:any;
