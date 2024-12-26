@@ -5,7 +5,8 @@ import { Programs } from './programs.model';
 class TimesheetExpenseRuleGroup extends Model {
     id: any;
     expenseRules: any;
-   
+    timesheet_expense_rules: never[] | undefined;
+
 }
 
 TimesheetExpenseRuleGroup.init(
@@ -23,6 +24,10 @@ TimesheetExpenseRuleGroup.init(
                 model: Programs,
                 key: 'id',
             },
+        },
+        timesheet_expense_rules: {
+            type: DataTypes.JSON,
+            allowNull: true
         },
         rule_group_name: {
             type: DataTypes.STRING,
@@ -43,7 +48,7 @@ TimesheetExpenseRuleGroup.init(
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
-          },
+        },
         created_on: {
             type: DataTypes.DOUBLE,
             allowNull: false,
@@ -72,9 +77,9 @@ TimesheetExpenseRuleGroup.init(
 TimesheetExpenseRuleGroup.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
-  });
-  
-  
+});
+
+
 export default TimesheetExpenseRuleGroup;
 
 

@@ -1,9 +1,9 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { Programs } from './programsModel';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import ExpenseConfigurationModel from './expense-configuration.model';
+import { Programs } from './programs.model';
 
 class ExpenseTypeMapping extends Model { 
     id:any;
