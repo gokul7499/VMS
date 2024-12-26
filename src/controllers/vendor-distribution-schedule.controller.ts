@@ -150,6 +150,7 @@ export const getVendorDistributionScheduleById = async (
     request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
 
@@ -205,7 +206,7 @@ export const getVendorDistributionScheduleById = async (
             statusCode: 200,
             message: 'Vendor Distribution Schedule fetched successfully.',
             vendor_schedule: responseData,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
@@ -217,6 +218,7 @@ export const getVendorDistributionScheduleById = async (
 
 export const deleteVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+        const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const [vendorSchedule] = await vendorDistributionScheduleModel.update(
@@ -240,13 +242,13 @@ export const deleteVendorDistributionSchedule = async (
             reply.status(200).send({
                 status_code: 200,
                 message: "Vendor Distribution Schedule deleted successfully.",
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(204).send({
                 status_code: 204,
                 message: "Vendor Distribution Schedule not found.",
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 vendor_schedule: [],
             });
         }
@@ -255,7 +257,7 @@ export const deleteVendorDistributionSchedule = async (
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }
@@ -265,6 +267,7 @@ export const updateVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const updateData = request.body as updateVendorDistributionScheduleDetail;
@@ -278,7 +281,7 @@ export const updateVendorDistributionSchedule = async (
                 statusCode: 200,
                 message: 'Vendor Distribution Schedule not found.',
                 vendorDistributionSchedule: [],
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         }
 
@@ -295,7 +298,7 @@ export const updateVendorDistributionSchedule = async (
                 return reply.status(409).send({
                     statusCode: 409,
                     message: 'A vendor distribution schedule with this name already exists.',
-                    trace_id: generateCustomUUID(),
+                    trace_id:traceId,
                 });
             }
         }
@@ -350,14 +353,14 @@ export const updateVendorDistributionSchedule = async (
         reply.status(200).send({
             statusCode: 200,
             message: 'Vendor Distribution Schedule updated successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal Server Error',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 };
@@ -376,6 +379,7 @@ export const getVendorDistributionScheduleByIds = async (
     }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
 
@@ -451,7 +455,7 @@ export const getVendorDistributionScheduleByIds = async (
             statusCode: 200,
             message: 'Vendor Distribution Schedule fetched successfully.',
             vendor_schedule: responseData,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);

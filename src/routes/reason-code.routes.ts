@@ -1,14 +1,14 @@
 import { FastifyInstance } from 'fastify';
-import { getReasoncode,getReasoncodeId,getReasoncodeByEventName, updateReasoncode,createReasoncode, deleteReasoncode,getReasonCodeByModuleEventName  } from '../controllers/reason-code.controller';
+import { getAllReasoncode, getReasoncodeById, getReasoncodeByEventName, updateReasoncode, createReasoncode, deleteReasoncode, getReasonCodeBySlug } from '../controllers/reason-code.controller';
 
 async function reasoncodeRoute(fastify: FastifyInstance) {
     fastify.post('/reason-code', createReasoncode);
-    fastify.get('/program/:program_id/reason-code', getReasoncode);
-    fastify.get('/program/:program_id/reason-code/:id', getReasoncodeId);
-    fastify.get('/program/:program_id/reason-code/module-event-name', getReasonCodeByModuleEventName);
-    fastify.get('/program/:program_id/reason-codes', getReasoncodeByEventName);
+    fastify.get('/reason-code', getAllReasoncode);
+    fastify.get('/reason-code/:id', getReasoncodeById);
+    fastify.get('/program/:program_id/reason-code', getReasonCodeBySlug);
+    fastify.get('/reason-codes', getReasoncodeByEventName);
     fastify.put('/reason-code/:id', updateReasoncode);
-    fastify.delete('/program/:program_id/reason-code/:id', deleteReasoncode);
+    fastify.delete('/reason-code/:id', deleteReasoncode);
 }
 
 export default reasoncodeRoute;

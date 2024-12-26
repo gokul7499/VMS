@@ -9,6 +9,7 @@ export async function createVendorLabourCategories(
     reply: FastifyReply
 ) {
     const vendor_labour_category = request.body as vendorLabourCategoriesInterface;
+    const traceId=generateCustomUUID();
     try {
         const vendorLabourCategoriesData: any = await vendorLabourCategoriesModel.create({
             ...vendor_labour_category,
@@ -18,13 +19,13 @@ export async function createVendorLabourCategories(
             status_code: 201,
             message: 'Vendor Labour Categories Created Successfully',
             programVendor: vendorLabourCategoriesData.id,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);
         return reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             message: 'Failed To Create Vendor Labour Categories',
             error,
         });
@@ -41,6 +42,7 @@ export async function getVendorLabourCategoryById(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const vendor_labour_category = await vendorLabourCategoriesModel.findOne({ where: { program_id, id, is_deleted: false } });
@@ -48,7 +50,7 @@ export async function getVendorLabourCategoryById(
             reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Labour Category fetched successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 vendor_labour_category,
             });
         } else {
@@ -61,7 +63,7 @@ export async function getVendorLabourCategoryById(
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while fetching Vendor Labour Category.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }
@@ -73,6 +75,7 @@ export async function updateVendorLabourCategory(
     reply: FastifyReply
 ) {
     const { program_id, id } = request.params;
+    const traceId=generateCustomUUID();
     try {
         const [updatedCount] = await vendorLabourCategoriesModel.update(request.body as vendorLabourCategoriesInterface, {
             where: { program_id, id, is_deleted: false },
@@ -81,7 +84,7 @@ export async function updateVendorLabourCategory(
             reply.send({
                 status_code: 201,
                 message: 'Vendor Labour Category updated successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
@@ -92,7 +95,7 @@ export async function updateVendorLabourCategory(
     } catch (error) {
         reply.status(500).send({
             message: 'Internal Server error',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }
@@ -102,6 +105,7 @@ export async function deleteVendorLabourCategory(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const vendor_labour_category = await vendorLabourCategoriesModel.findOne({
@@ -115,7 +119,7 @@ export async function deleteVendorLabourCategory(
             reply.status(204).send({
                 status_code: 204,
                 message: 'Vendor Labour Category deleted successfully.',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -126,7 +130,7 @@ export async function deleteVendorLabourCategory(
     } catch (error) {
         reply.status(500).send({
             message: 'An error occurred while deleting Vendor Labour Category.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }

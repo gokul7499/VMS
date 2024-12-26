@@ -203,7 +203,11 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
             });
         }
 
-        const foundational_Data = await foundationalData.create({ ...foundational_data });
+        const foundational_Data = await foundationalData.create({
+            ...foundational_data,
+            created_on: Date.now(),
+            modified_on: Date.now(),
+        });
 
         logger(
             {
@@ -284,7 +288,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
             });
         }
 
-        const [updatedCount] = await foundationalData.update(request.body as FoundationalDataInterface, { where: { program_id, id } });
+        const [updatedCount] = await foundationalData.update({ ...request.body as FoundationalDataInterface, modified_on: Date.now() }, { where: { program_id, id } });
         if (updatedCount > 0) {
             reply.send({
                 statusCode: 201,

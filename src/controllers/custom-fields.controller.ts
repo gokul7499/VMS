@@ -71,11 +71,12 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
 
 // Helper functions
 const validateProgramId = (program_id: string | undefined, reply: FastifyReply, trace_id: string) => {
+  const trace_Id = generateCustomUUID();
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required.',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
     return false;
   }
@@ -91,11 +92,12 @@ const generateSlugIfNeeded = (name: string | undefined, customFieldData: any) =>
 };
 
 const validateLabelLength = (label: string | undefined, reply: FastifyReply, trace_id: string) => {
+  const trace_Id = generateCustomUUID();
   if (label && label.length > 64) {
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid label, Maximum 64 characters.',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
     return false;
   }
@@ -103,11 +105,12 @@ const validateLabelLength = (label: string | undefined, reply: FastifyReply, tra
 };
 
 const validateNameLength = (name: string | undefined, reply: FastifyReply, trace_id: string) => {
+  const trace_Id = generateCustomUUID();
   if (name && name.length < 3) {
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid name, Minimum 3 characters.',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
     return false;
   }
@@ -206,6 +209,7 @@ export async function getAllCustomFields(
   }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   const programId = request.params.program_id;
   const page = parseInt(request.query.page ?? '1', 10);
   const limit = parseInt(request.query.limit ?? '10', 10);
@@ -271,26 +275,27 @@ export async function getAllCustomFields(
       page: page,
       limit: limit,
       message: 'Custom Fields Get Successfully',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields',
       error: error,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   }
 }
 
 export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
+  const trace_Id = generateCustomUUID();
 
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
     return;
   }
@@ -350,20 +355,20 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
           workLocations: workLocations,
         },
         message: 'Custom Fields Type Get Successfully',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Custom Fields Type Not Found',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
       error: (error as Error).message,
     });
   }
@@ -373,6 +378,7 @@ export const updateCustomFieldById = async (
   request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFields }>,
   reply: FastifyReply
 ) => {
+  const trace_Id = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
   const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids } = updates as {
@@ -406,7 +412,7 @@ export const updateCustomFieldById = async (
     return reply.status(200).send({
       status_code: 200,
       message: "Custom field updated successfully.",
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   } catch (error) {
     console.error("Error updating custom field:", error);
@@ -416,10 +422,11 @@ export const updateCustomFieldById = async (
 
 // Helper functions
 const sendError = (reply: FastifyReply, statusCode: number, message: string) => {
+  const trace_Id = generateCustomUUID();
   reply.status(statusCode).send({
     status_code: statusCode,
     message,
-    trace_id: generateCustomUUID(),
+    trace_id: trace_Id,
   });
 };
 
@@ -505,6 +512,7 @@ const processLinkedModules = async (linked_modules: Array<{ is_linked: boolean }
 };
 export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: string, program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
+  const trace_Id = generateCustomUUID();
 
   try {
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
@@ -519,13 +527,13 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
         reply.status(200).send({
           status_code: 200,
           message: 'Custom Field marked as deleted successfully',
-          trace_id: generateCustomUUID(),
+          trace_id: trace_Id,
         });
       } else {
         reply.status(500).send({
           status_code: 500,
           message: 'Custom Field cannot be deleted as it is linked with modules.',
-          trace_id: generateCustomUUID(),
+          trace_id: trace_Id,
         });
 
       }
@@ -533,14 +541,14 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
       reply.status(404).send({
         status_code: 404,
         message: 'Custom Field not found',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
       error: error
     });
   }
@@ -552,6 +560,7 @@ export async function updateCustomFieldsIsdisable(
   request: FastifyRequest<{ Params: { id: string, program_id: string }; Body: { is_enabled: boolean } }>,
   reply: FastifyReply
 ) {
+  const trace_Id = generateCustomUUID();
   const { id, program_id } = request.params;
   const { is_enabled } = request.body;
 
@@ -563,7 +572,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(400).send({
       status_code: 400,
       message: `Invalid request: fields ${invalidFields.join(', ')} are not allowed.`,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id
     });
   }
 
@@ -571,7 +580,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(400).send({
       status_code: 400,
       message: 'Invalid request: is_enabled field is required.',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   }
 
@@ -605,13 +614,13 @@ export async function updateCustomFieldsIsdisable(
       return reply.status(200).send({
         status_code: 200,
         message: 'Custom field updated successfully.',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     } else {
       return reply.status(404).send({
         status_code: 404,
         message: 'Custom field not found',
-        trace_id: generateCustomUUID(),
+        trace_id: trace_Id,
       });
     }
   } catch (error) {
@@ -619,7 +628,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error: Failed to update Custom Field',
-      trace_id: generateCustomUUID(),
+      trace_id: trace_Id,
     });
   }
 }
@@ -630,7 +639,7 @@ export async function searchCustomFields(
 ) {
   try {
     const { module_name, is_enabled, field_type } = request.query;
-    const { program_id } = request.params; 
+    const { program_id } = request.params;
     const searchFields: any = { is_deleted: false };
 
     if (module_name) {
@@ -641,7 +650,7 @@ export async function searchCustomFields(
     }
 
     if (field_type) {
-      const fieldTypesArray = field_type.split(","); 
+      const fieldTypesArray = field_type.split(",");
       searchFields.field_type = { [Op.in]: fieldTypesArray };
     }
 

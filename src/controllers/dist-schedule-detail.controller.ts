@@ -118,6 +118,7 @@ export const getAllDistScheduleDetails = async (request: FastifyRequest, reply: 
 
 export const getDistScheduleDetailById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id, id } = request.params as { id: string, program_id: string };
+    const trace_Id = generateCustomUUID();
 
     try {
         const detail = await DistScheduleDetail.findOne({
@@ -128,7 +129,7 @@ export const getDistScheduleDetailById = async (request: FastifyRequest, reply: 
             reply.status(200).send({
                 status_code: 200,
                 data: detail,
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
             });
         } else {
             reply.status(200).send({
@@ -140,7 +141,7 @@ export const getDistScheduleDetailById = async (request: FastifyRequest, reply: 
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             error,
         });
     }
@@ -150,6 +151,7 @@ export const deleteDistScheduleDetail = async (
     request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
     reply: FastifyReply
 ) => {
+    const trace_Id = generateCustomUUID();
     const { id, program_id } = request.params;
 
     try {
@@ -165,19 +167,19 @@ export const deleteDistScheduleDetail = async (
                 status_code: 200,
                 message: "Distribution Schedule Detail not found.",
                 dist_schedule_detail: [],
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
             });
         }
         reply.status(204).send({
             status_code: 204,
             message: "Distribution Schedule Detail deleted successfully.",
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             error,
         });
     }
@@ -188,6 +190,7 @@ export const updateDistScheduleDetail = async (
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) => {
+    const trace_Id = generateCustomUUID();
     const { program_id, id } = request.params;
 
     try {
@@ -199,7 +202,7 @@ export const updateDistScheduleDetail = async (
             reply.send({
                 status_code: 200,
                 message: "Distribution Schedule Detail updated successfully.",
-                trace_id: generateCustomUUID(),
+                trace_id: trace_Id,
             });
         } else {
             reply.status(200).send({
@@ -212,7 +215,7 @@ export const updateDistScheduleDetail = async (
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: generateCustomUUID(),
+            trace_id: trace_Id,
             error,
         });
     }

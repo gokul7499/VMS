@@ -189,10 +189,7 @@ export async function getAllRateType(
   request: FastifyRequest<{ Querystring: { id?: string; name?: string; is_enabled?: boolean | string; modified_on?: string; is_shift_rate?: boolean | string; is_base_rate?: string | boolean; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) {
-  const { program_id } = request.params as CreateRateTypeData;
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, page = "1", limit = "10" } = request.query;
-  const traceId = generateCustomUUID();
-
+  const traceId=generateCustomUUID();
   try {
     const hasName = !!name;
     const hasId = !!id;
@@ -253,17 +250,15 @@ export async function getAllRateType(
 
     return reply.status(200).send({
       status_code: 200,
+      items_per_page: limit,
+      total_records: count,
+      rate_type: rateTypeResponse,
       trace_id: traceId,
-      message: "Rate type fetched successfully.",
-      total_records: totalRecords,
-      page: pageNumber,
-      limit: pageSize,
-      rate_types: rateTypes,
     });
   } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "Internal server error",
       error: error.message,
     });
@@ -274,6 +269,7 @@ export async function getRateTypeById(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   const { id, program_id } = request.params as {
     id: string;
     program_id: string;
@@ -281,7 +277,7 @@ export async function getRateTypeById(
   if (!id || !program_id) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "Invalid parameters"
     });
   }
@@ -297,12 +293,12 @@ export async function getRateTypeById(
       return reply.status(200).send({
         status_code: 200,
         rate_type: rateTypes,
-        trace_id: generateCustomUUID(),
+        trace_id:traceId,
       });
     } else {
       return reply.status(200).send({
         status_code: 200,
-        trace_id: generateCustomUUID(),
+        trace_id:traceId,
         message: "Rate type not found"
       });
     }
@@ -310,7 +306,7 @@ export async function getRateTypeById(
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "Failed to retrieve rate type", error
     });
   }
@@ -320,6 +316,7 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as CreateRateTypeData;
   const { name } = request.body as CreateRateTypeData;
+  const traceId=generateCustomUUID();
   try {
     const existingRateTypeWithSameName = await rateType.findOne({
       where: {
@@ -333,7 +330,7 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid name field, name must be unique.",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
 
@@ -347,7 +344,7 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
       return reply.status(200).send({
         status_code: 200,
         message: "Rate Types not found",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
     const updatedCount: any = await rateType.update(updates, {
@@ -357,13 +354,13 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
       status_code: 200,
       id: updatedCount.id,
       message: "Rate type updated successfully",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error
     });
   }
@@ -371,6 +368,7 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
 
 export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   const { id } = request.params;
+  const traceId=generateCustomUUID();
   try {
     const rateTypes = await rateType.findByPk(id);
     if (rateTypes) {
@@ -381,29 +379,55 @@ export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id:
       reply.status(204).send({
         status_code: 204,
         message: "Rate type deleted successfully",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Rate type not found",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error
     });
   }
 };
 
-export async function getDifferentialOnForRateType(request: FastifyRequest, reply: FastifyReply) {
-  const { program_id } = request.params as { program_id: string };
-  const { is_shift_rate } = request.query as { is_shift_rate?: string };
-  const traceId = generateCustomUUID();
+export async function getRateTBYId(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const traceId=generateCustomUUID();
+  const { program_id } = request.params as {
+    program_id: string;
+  };
+  const { shift_category } = request.query as {
+    shift_category?: string;
+  };
+
+  if (!program_id) {
+    return reply.status(400).send({
+      status_code: 400,
+      trace_id: traceId,
+      message: "program_id is required",
+    });
+  }
+
+  if (shift_category !== undefined) {
+    if (shift_category.trim() === "") {
+      return reply.status(400).send({
+        status_code: 400,
+        trace_id: traceId,
+        message: "Shift category has no value. Please provide a valid value.",
+      });
+    }
+  }
+
   try {
     const whereConditions: any = {
       program_id,
@@ -435,10 +459,15 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
     if (is_shift_rate === "false") {
       return reply.status(200).send({
         status_code: 200,
+        rate_type: rateTypes,
         trace_id: traceId,
-        differential_on: {
-          standard
-        },
+      });
+    } else {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "Rate type not found",
+        rate_type: []
       });
     }
 

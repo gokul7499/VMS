@@ -44,12 +44,13 @@ export async function getUserById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   try {
     const { id } = request.params;
     const user = await User.findByPk(id);
     return reply.status(200).send({
       status_code: 200,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       user: user ?? [],
       message: user ? undefined : "User not found",
     });
@@ -57,7 +58,7 @@ export async function getUserById(
     reply.status(500).send({
       message: "Internal server error",
       error: error,
-      trace_id: generateCustomUUID(),
+      trace_id:traceId,
     });
   }
 }
@@ -259,7 +260,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
-
+  const traceId=generateCustomUUID();
   try {
     const user = await User.findOne({
       where: { id, program_id }
@@ -295,14 +296,14 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     }
     return reply.status(200).send({
       status_code: 200,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "User updated successfully",
       id,
     });
   } catch (error: any) {
     return reply.status(500).send({
       message: "Internal Server Error",
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error.message
     });
   }
@@ -313,6 +314,7 @@ export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId=generateCustomUUID();
   try {
     const { id } = request.params;
     const numRowsDeleted = await User.destroy({ where: { id } });
@@ -320,7 +322,7 @@ export async function deleteUser(
       return reply.status(201).send({
         status_code: 201,
         message: "User deleted succesfully",
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({ message: "User not found" });
@@ -339,7 +341,7 @@ export async function getAllUserIDAndUserId(
 ) {
   const { program_id } = request.params;
   const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email } = request.query;
-
+  const traceId=generateCustomUUID();
   try {
     const whereClause: any = {
       is_deleted: false,
@@ -429,7 +431,7 @@ export async function getAllUserIDAndUserId(
 
     reply.status(200).send({
       status_code: 200,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       users: enrichedUsers,
       total_count: totalCount,
     });
@@ -438,7 +440,7 @@ export async function getAllUserIDAndUserId(
 
     reply.status(500).send({
       status_code: 500,
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       message: "Internal Server Error",
       error: error.message,
     });

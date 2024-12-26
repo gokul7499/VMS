@@ -8,6 +8,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 
 export async function getLanguages(request: FastifyRequest<{ Querystring: LanguageData }>, reply: FastifyReply) {
   const { name, created_on } = request.query as { name: string, created_on: number };
+  const traceId = generateCustomUUID();
   try {
     const languages = await Language.findAll({
       where: {
@@ -25,7 +26,7 @@ export async function getLanguages(request: FastifyRequest<{ Querystring: Langua
       status_code: 200,
       items_per_page: languages.length,
       total_records: languages.length, // Total records after filtering
-      trace_id: generateCustomUUID(),
+      trace_id:  traceId,
       data: languages,
     });
   } catch (error) {
@@ -35,6 +36,7 @@ export async function getLanguages(request: FastifyRequest<{ Querystring: Langua
 }
 
 export const bulkUploadLanguage = async (request: FastifyRequest, reply: FastifyReply) => {
+  const traceId = generateCustomUUID();
   try {
     const Languages = request.body as any[];
     const languagesWithTimestamps = Languages.map(language => {
@@ -47,19 +49,20 @@ export const bulkUploadLanguage = async (request: FastifyRequest, reply: Fastify
       status_code: 201,
       data: createdLanguage,
       message: 'Languages Created successfully',
-      trace_id: generateCustomUUID(),
+      trace_id:  traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create Languages',
-      trace_id: generateCustomUUID(),
+      trace_id: traceId,
       error: error,
     });
   }
 };
 
 export async function getLanguageById(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
   try {
     const language = await Language.findByPk(id);
@@ -67,7 +70,7 @@ export async function getLanguageById(request: FastifyRequest, reply: FastifyRep
       reply.status(200).send({
         status_code: 200,
         data: language,
-        trace_id: generateCustomUUID(),
+        trace_id:  traceId,
       });
     } else {
       reply.status(200).send({ message: 'Language not found', language: [] });
@@ -82,6 +85,7 @@ export async function createLanguage(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  const traceId = generateCustomUUID();
   try {
     const language = request.body as LanguageData;
 
@@ -89,7 +93,7 @@ export async function createLanguage(
     reply.status(201).send({
       statusCode: 201,
       data: item,
-      trace_id: generateCustomUUID(),
+      trace_id:  traceId,
     });
   } catch (error) {
     reply.status(500).send({
@@ -101,6 +105,7 @@ export async function createLanguage(
 
 
 export async function updateLanguage(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
   const LanguageData = request.body as LanguageData;
   try {
@@ -110,7 +115,7 @@ export async function updateLanguage(request: FastifyRequest, reply: FastifyRepl
       reply.status(200).send({
         status_code: 200,
         language_id: id,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({ message: 'Language not found' });
@@ -125,6 +130,7 @@ export async function deleteLanguage(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const [numRowsDeleted] = await Language.update({
@@ -138,7 +144,7 @@ export async function deleteLanguage(
       reply.status(200).send({
         statusCode: 200,
         language_id: id,
-        trace_id: generateCustomUUID(),
+        trace_id:  traceId,
       });
     } else {
       reply.status(200).send({ message: 'Language not found' });

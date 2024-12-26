@@ -161,6 +161,7 @@ export async function getHierarchiesById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findByPk(id, {
@@ -217,7 +218,7 @@ export async function getHierarchiesById(
 
       return reply.status(200).send({
         status_code: 200,
-        trace_id: generateCustomUUID(),
+        trace_id: traceId,
         hierarchies: hierarchyData,
       });
     } else {
@@ -331,7 +332,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       status_code: 201,
       message: 'Hierarchy Created Successfully',
       data: newItem,
-      trace_id: generateCustomUUID(),
+      trace_id: trace_id,
     });
 
   } catch (error) {

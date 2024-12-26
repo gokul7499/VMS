@@ -13,6 +13,7 @@ interface ShiftRateTypesResponse {
     [key: string]: CreateRateTypeData;
 }
 export async function getShiftConfigurationHierarchies(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const shiftConfiguration = await shiftConfigurationHierarchies.findAll({
@@ -23,19 +24,20 @@ export async function getShiftConfigurationHierarchies(request: FastifyRequest, 
         });
         reply.status(200).send({
             status_code: 200,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             shiftConfiguration
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
     }
 }
 export async function getShiftConfigurationHierarchiesById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await shiftConfigurationHierarchies.findOne({
@@ -48,13 +50,13 @@ export async function getShiftConfigurationHierarchiesById(request: FastifyReque
         if (item) {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 shiftConfiguration: item
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 event: [],
                 message: 'shiftConfiguration not found.',
             });
@@ -62,7 +64,7 @@ export async function getShiftConfigurationHierarchiesById(request: FastifyReque
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -70,18 +72,19 @@ export async function getShiftConfigurationHierarchiesById(request: FastifyReque
 }
 
 export async function createShiftConfigurationHierarchies(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const shiftConfigurationData = request.body as ShiftConfigurationHierarchiesAttributes;
         const shiftConfiguration = await shiftConfigurationHierarchies.create({ ...shiftConfigurationData });
         reply.status(201).send({
             status_code: 201,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             shiftConfiguration
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -94,12 +97,12 @@ export const updateShiftConfigurationHierarchies = async (
 ) => {
     const { id, program_id } = request.params;
     const updates = request.body;
-
+    const traceId=generateCustomUUID();
     if (!program_id) {
         reply.status(400).send({
             status_code: 400,
             message: 'Program ID is required',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
         return;
     }
@@ -113,24 +116,25 @@ export const updateShiftConfigurationHierarchies = async (
             reply.status(201).send({
                 status_code: 201,
                 message: "Shift Configuration updated successfully.",
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Shift Configuration not found',
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error: Failed to update Shift Configuration',
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
 export async function deleteShiftConfigurationHierarchies(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const [numRowsDeleted] = await shiftConfigurationHierarchies.update({
@@ -143,7 +147,7 @@ export async function deleteShiftConfigurationHierarchies(request: FastifyReques
             reply.status(200).send({
                 status_code: 200,
                 shift_configuration_id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId
             });
         } else {
             reply.status(200).send({ message: 'Shift Configuration not found' });
@@ -151,7 +155,7 @@ export async function deleteShiftConfigurationHierarchies(request: FastifyReques
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -200,6 +204,7 @@ export async function postRateTypesByShiftType(
     }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const { hierarchy } = request.body;
         const { program_id, is_shift_rate } = request.query;
@@ -274,7 +279,7 @@ export async function postRateTypesByShiftType(
                         statusCode: 200,
                         shift_types: shiftTypes,
                         rate_types: shiftRateTypes,
-                        trace_id: generateCustomUUID(),
+                        trace_id: traceId,
                         hierarchy
                     });
                 } else {
@@ -297,7 +302,7 @@ export async function postRateTypesByShiftType(
                 return reply.status(404).send({
                     statusCode: 404,
                     message: 'No rate types found for the given criteria.',
-                    trace_id: generateCustomUUID(),
+                    trace_id: traceId,
                 });
             }
 
@@ -316,7 +321,7 @@ export async function postRateTypesByShiftType(
                 statusCode: 200,
                 rate_types: rate_types,
                 types,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 hierarchy
             });
         }
@@ -326,7 +331,7 @@ export async function postRateTypesByShiftType(
             status_code: 500,
             message: 'An error occurred while processing the request.',
             error: (error as any).message,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
