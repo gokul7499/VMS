@@ -1,6 +1,8 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
+import Event from "./event.model";
+import { Module } from "./module.model";
 
 class JobWorkFlowModel extends Model {
     id!: string;
@@ -13,6 +15,8 @@ class JobWorkFlowModel extends Model {
     program_id!: string;
     code!: string;
     hierarchies: any;
+    event: any;
+    moduleDetail: any;
 }
 
 JobWorkFlowModel.init(
@@ -22,9 +26,9 @@ JobWorkFlowModel.init(
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
-        status:{
+        status: {
             type: DataTypes.STRING,
-            defaultValue:"pending",
+            defaultValue: "pending",
             allowNull: true,
         },
         name: {
@@ -120,6 +124,10 @@ JobWorkFlowModel.init(
         code: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        candidate_id: {
+            type: DataTypes.UUID,
+            allowNull: true
         }
     },
     {
@@ -130,7 +138,7 @@ JobWorkFlowModel.init(
             beforeValidate: async (instance) => {
                 if (!instance.code && instance.program_id) {
                     const program = await Programs.findByPk(instance.program_id);
-                    if (program && program.unique_id) {
+                    if (program?.unique_id) {
                         const programPrefix = program.unique_id.substring(0, 3).toUpperCase();
                         const count = await JobWorkFlowModel.count();
                         const sequence = (count + 1).toString().padStart(5, '0');
@@ -146,5 +154,13 @@ sequelize.sync();
 JobWorkFlowModel.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
+});
+JobWorkFlowModel.belongsTo(Event, {
+    foreignKey: "event_id",
+    as: "event",
+});
+JobWorkFlowModel.belongsTo(Module, {
+    foreignKey: "module",
+    as: "moduleDetail",
 });
 export default JobWorkFlowModel;

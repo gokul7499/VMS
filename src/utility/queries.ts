@@ -1395,3 +1395,43 @@ WHERE reason_codes.program_id = :program_id
 AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
+export const getExpenseType = `
+   SELECT 
+    ec.config_name,
+    ec.id AS expense_config_id,
+    ec.program_id,
+    et.name AS expense_type_name,
+    et.type AS expense_type,
+    et.category AS expense_type_category,
+    et.apply_msp_fee,
+    et.appply_tax,
+    et.allow_unit_based,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', h.id,
+            'name', h.name
+        )
+    ) AS hierarchy
+FROM expense_configuration ec
+LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
+LEFT JOIN expense_type et ON etm.expense_type_id = et.id
+LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+WHERE ec.program_id =:program_id
+  AND ec.id =:id
+GROUP BY ec.id, et.id;
+`
+export const getAllExpenseTypeHierarchy=`
+SELECT 
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', h.id,
+            'name', h.name
+        )
+    ) AS hierarchy
+FROM expense_configuration ec
+INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+INNER JOIN hierarchies h ON eth.hierarchy = h.id
+WHERE ec.program_id = :program_id
+ AND ec.id=ec.id;
+`

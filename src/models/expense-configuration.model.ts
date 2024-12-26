@@ -37,53 +37,32 @@ ExpenseConfigurationModel.init(
         key: "id",
       },
     },
-    hierarchy: {
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    expense_start_date: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
     week_end_day: {
       type: DataTypes.STRING,
       allowNull: true
     },
-    is_expense: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true
-    },
-    is_taxable: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true
-    },
-    user_role: {
+    thresholds: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    expense_header: {
+    remove_msp_access_general: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    is_permission: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true
-    },
-    permission_config: {
+    remove_user_access_misc: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    is_project: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true
-    },
-    project_config: {
+    revoke_user_access: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    expense_type: {
+    project: {
       type: DataTypes.JSON,
       allowNull: true
+    },
+    master_data:{
+     type:DataTypes.JSON
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
