@@ -48,14 +48,14 @@ export async function getExpenseTypeById(
             reply.status(201).send({
                 status_code: 201,
                 message: "expense type get succesfully",
-                expense_type: expenseType,
+                expense_item_type_config: expenseType,
                 trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: "expense type data not found",
-                expense_type: [],
+                expense_item_type_config: [],
                 trace_id: traceId
             });
         }
@@ -81,7 +81,7 @@ export async function updateExpenseTypeById(request: FastifyRequest, reply: Fast
             return reply.status(200).send({
                 message: "Expense type data not found",
                 trace_id: traceId,
-                expense_type: []
+                expense_item_type_config: []
             });
         }
 
@@ -120,7 +120,7 @@ export async function deleteExpenseTypeById(
             reply.status(200).send({
                 status_code: 200,
                 message: "expense type deleted successfully",
-                expense_type: id,
+                expense_item_type_config: id,
                 trace_id: traceId,
             });
         } else {
@@ -179,14 +179,14 @@ export async function getAllExpenseType(request: FastifyRequest<{ Querystring: {
             reply.status(201).send({
                 status_code: 201,
                 message: "expense type retrieved successfully",
-                expense_type: expenseType,
+                expense_item_type_config: expenseType,
                 total_records:total_records,
                 page:page,
                 limit:limit,
                 trace_id:traceId,
             });
         } else {
-            reply.status(200).send({ status_code: 200, message: "expense type not found", expense_type: [], trace_id:traceId, });
+            reply.status(200).send({ status_code: 200, message: "expense type not found", expense_item_type_config: [], trace_id:traceId, });
         }
     } catch (error) {
         console.error(error);
