@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import ExpenseConfigurationModel from './expense-configuration.model';
-import hierarchies from './hierarchiesModel';
+import hierarchies from './hierarchies.model';
 
 class expenseTypeHierarchie extends Model {
     hierarchy: never[] | undefined; 
