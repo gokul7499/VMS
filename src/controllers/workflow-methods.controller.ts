@@ -5,6 +5,8 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { Module } from '../models/module.model';
+import Event from '../models/event.model';
 
 export const createWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
     const WorkflowMethodDataPayload = request.body as Omit<WorkflowMethodData, '_id'>;
@@ -12,7 +14,7 @@ export const createWorkflowMethod = async (request: FastifyRequest, reply: Fasti
 
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
 
@@ -97,7 +99,7 @@ export const createWorkflowMethod = async (request: FastifyRequest, reply: Fasti
 export const updateWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const WorkflowMethodData = request.body as WorkflowMethodData;
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
     try {
         const data = await WorkflowMethod.findOne({
             where: { id, is_deleted: false }
@@ -114,12 +116,12 @@ export const updateWorkflowMethod = async (request: FastifyRequest, reply: Fasti
             reply.status(200).send({ message: 'Workflow Method Data Not Found.' });
         }
     } catch (error) {
-        reply.status(500).send({ message: ' An Error Occurred While Updating The Workflow Method.', error ,trace_id});
+        reply.status(500).send({ message: ' An Error Occurred While Updating The Workflow Method.', error, trace_id });
     }
 }
 
 export const deleteWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
 
     try {
         const { id, } = request.params as { id: string };
@@ -147,7 +149,7 @@ export async function getAllWorkflowMethods(
     request: FastifyRequest<{ Params: WorkflowMethodData, Querystring: WorkflowMethodData }>,
     reply: FastifyReply
 ) {
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
 
     try {
         const query = request.query as WorkflowMethodData | any;
@@ -207,7 +209,7 @@ export async function getWorkflowMethods(
     request: FastifyRequest<{ Params: WorkflowMethodData, Querystring: WorkflowMethodData }>,
     reply: FastifyReply
 ) {
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
     try {
         const query = request.query as WorkflowMethodData | any;
 
@@ -261,7 +263,7 @@ export async function getWorkflowMethods(
 }
 
 export async function getWorkflowMethodById(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await WorkflowMethod.findOne({
@@ -282,29 +284,195 @@ export async function getWorkflowMethodById(request: FastifyRequest, reply: Fast
 }
 
 export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id=generateCustomUUID();
+    const trace_id = generateCustomUUID();
     try {
         const { module } = request.query as { module: string };
         let item;
         if (module === 'job') {
+            const event_slug = "create_job";
+            const module_name = "Job";
+            let moduleId;
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId;
+            if (module_ids && event_slug) {
+                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+            }
             item = await WorkflowMethod.findAll({
-                where: { module_id: "1711799f-710f-4cad-b464-086265bad8ff", event_id: "bfb880d7-cd0f-4871-b0e1-b260754ce9f8" }
-            })
-        } else {
-            item = await WorkflowMethod.findAll({
-                where: { module_id: "1eceb989-3edc-4db2-9224-f00cddc4b5ea", event_id: "f652903c-3608-453b-bb0c-1d91c39b13f7" }
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id
+                }
             });
+        } else if (module === 'offer') {
+            const event_slug = "create_offer";
+            const module_name = "Offers";
+            let moduleId;
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId;
+            if (module_ids && event_slug) {
+                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+            }
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id
+
+                }
+            });
+        } else if (module === 'assignment') {
+            const event_slug = "create_assignment";
+            const module_name = "Assignment";
+            let moduleId;
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId;
+            if (module_ids && event_slug) {
+                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+            }
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id
+
+                }
+            });
+        } else if (module === 'submit_candidate_rehire_check') {
+            const event_slug1 = "submit_candidate_rehire_check";
+            const event_slug2 = "submit_candidate_shortlist";
+            const module_name = "Submissions";
+            let moduleId
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId1Value: any;
+            let eventId2Value: any;
+            if (module_ids && event_slug1) {
+                eventId1Value = await Event.findOne({ where: { module_id: module_ids, slug: event_slug1, is_enabled: true } })
+            }
+            if (module_ids && event_slug2) {
+                eventId2Value = await Event.findOne({ where: { module_id: module_ids, slug: event_slug2, is_enabled: true } })
+            }
+            let eventId1 = eventId1Value?.dataValues?.id || null;
+            let eventId2 = eventId2Value?.dataValues?.id || null;
+
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    [Op.or]: [
+                        { event_id: eventId1 },
+                        { event_id: eventId2 },
+                    ]
+                }
+            });
+
+            const reviewMethod1 = item.find(
+                i => i.dataValues.event_id === eventId1 &&
+                    i.dataValues.name?.trim().toLowerCase() === "review"
+            );
+
+            const reviewMethod2 = item.find(
+                i => i.dataValues.event_id === eventId2 &&
+                    i.dataValues.name?.trim().toLowerCase() === "review"
+            );
+
+            const approvalMethod = item.find(
+                i => i.dataValues.event_id === eventId1 &&
+                    i.dataValues.name?.trim().toLowerCase() === "approval"
+            );
+
+            if (reviewMethod1 && reviewMethod2 && approvalMethod) {
+                const updatedItems = item.map(i =>
+                    i.id === reviewMethod1.id
+                        ? { ...i.dataValues, shortlist_method_id: reviewMethod2.id }
+                        : i.dataValues
+                ).filter(i => i.id !== reviewMethod2.id);
+
+                return reply.status(200).send({
+                    statusCode: 200,
+                    workflow_method: updatedItems,
+                    trace_id
+                });
+            }
+        } else if (module === 'submit_candidate_shortlist') {
+            const event_slug = "submit_candidate_shortlist";
+            const module_name = "Submissions";
+            let moduleId
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId
+            if (module_ids && event_slug) {
+                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+            }
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id
+
+                }
+            });
+        } else if (module === 'candidate') {
+            const event_slug = "locum_name_clear";
+            const module_name = "Candidates";
+            let moduleId
+            if (module_name) {
+                moduleId = await Module.findOne({ where: { name: module_name } })
+            }
+            const module_ids = moduleId?.dataValues.id || "";
+            let eventId
+            if (module_ids && event_slug) {
+                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+            }
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id
+
+                }
+            });
+        } else {
+            item = null;
         }
-        if (item) {
+
+        if (item && item.length > 0) {
+            const reviewItem = item.find(it =>
+                it.dataValues.name?.trim().toLowerCase() === "review"
+            );
+            const otherItems = item.filter(it =>
+                it.dataValues.name?.trim().toLowerCase() !== "review"
+            );
+
+            const sortedItems = reviewItem ? [reviewItem, ...otherItems] : otherItems;
+
             reply.status(200).send({
                 statusCode: 200,
-                workflow_method: item,
-                trace_id,
+                workflow_method: sortedItems,
+                trace_id
             });
         } else {
-            reply.status(200).send({ message: 'Workflow Method Data Not Found', workflow: [] });
+            reply.status(404).send({
+                statusCode: 404,
+                message: 'Workflow Method Data Not Found',
+                workflow_method: [],
+                trace_id
+            });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Fetching Workflow Method Data.', error });
+        reply.status(500).send({
+            statusCode: 500,
+            message: 'An Error Occurred While Fetching Workflow Method.',
+            error,
+            trace_id
+        });
     }
 }

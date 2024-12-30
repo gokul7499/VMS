@@ -69,6 +69,7 @@ import expenseConfigurationRoutes from "./expense-configuration.routes";
 import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
 import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
+import expenseTypeRoute from "./expenseType.routes";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -81,7 +82,6 @@ export default async function (app: FastifyInstance) {
   app.register(tenantRoutes, { prefix: `${basePrefix}` });
   app.register(programsRoutes, { prefix: `${basePrefix}` });
   app.register(industriesRoutes, { prefix: `${basePrefix}` });
-
   app.register(programModuleRoutes, { prefix: `${basePrefix}` });
   app.register(EventRoutes, { prefix: `${basePrefix}` });
   app.register(programsConfigRoutes, { prefix: `${basePrefix}` });
@@ -91,17 +91,15 @@ export default async function (app: FastifyInstance) {
   app.register(workLocationRoutes, { prefix: `${basePrefix}` });
   app.register(stateRoutes, { prefix: `${basePrefix}` });
   app.register(SchemaRoutes, { prefix: `${basePrefix}` });
-
   app.register(holidayCalendarRoutes, { prefix: `${basePrefix}` });
   app.register(countyRoutes, { prefix: `${basePrefix}` });
   app.register(reasoncodeRoute, { prefix: `${basePrefix}` });
-  app.register(configurationRoutes, { prefix: `${basePrefix}/configuration` });
+  app.register(configurationRoutes, { prefix: `${basePrefix}` });
   app.register(userRoutes, { prefix: `${basePrefix}` });
   app.register(userMappingRoutes, { prefix: `${basePrefix}` });
   app.register(QualificationsRoutes, { prefix: `${basePrefix}` });
   app.register(qualificationTypeRouter, { prefix: `${basePrefix}` });
   app.register(customFieldsMasterDataRoutes, { prefix: `${basePrefix}` });
-
   app.register(hierarchyCustomFieldRoutes, { prefix: `${basePrefix}` });
   app.register(foundationalDataTypeRoutes, { prefix: `${basePrefix}` });
   app.register(feesConfigurationRoute, { prefix: `${basePrefix}` });
@@ -111,7 +109,6 @@ export default async function (app: FastifyInstance) {
   app.register(customFieldLocationRoutes, { prefix: `${basePrefix}` });
   app.register(picklistRoutes, { prefix: `${basePrefix}` });
   app.register(programVendorRoutes, { prefix: `${basePrefix}` });
-
   app.register(vendordocumentsgroup, { prefix: `${basePrefix}` });
   app.register(VendorGroupRoutes, { prefix: `${basePrefix}` });
   app.register(vendorMarkupConfigRoutes, { prefix: `${basePrefix}` });
@@ -121,14 +118,12 @@ export default async function (app: FastifyInstance) {
   app.register(vendorDistributionScheduleRoutes, { prefix: `${basePrefix}` });
   app.register(vendorComplianceDocumentRoutes, { prefix: `${basePrefix}` });
   app.register(vendorComplianceReqDocMappingRoutes, { prefix: `${basePrefix}` });
-
   app.register(shiftConfigurationHierarchiesRoutes, { prefix: `${basePrefix}` });
   app.register(shiftConfigurationRoutes, { prefix: `${basePrefix}` });
   app.register(candidateRoutes, { prefix: `${basePrefix}` });
   app.register(resourceCityRoutes, { prefix: `${basePrefix}` });
   app.register(expenseConfigurationRoutes, { prefix: `${basePrefix}` });
   app.register(TimesheetExpenseRuleRoutes, { prefix: `${basePrefix}` });
-
   app.register(WorkflowRoutes, { prefix: `${basePrefix}` });
   app.register(WorkflowMethodRoutes, { prefix: `${basePrefix}` });
   app.register(WorkflowApproverRoutes, { prefix: `${basePrefix}` });
@@ -137,7 +132,6 @@ export default async function (app: FastifyInstance) {
   app.register(WorkflowDataSourceRoute, { prefix: `${basePrefix}` });
   app.register(WorkflowFieldRoutes, { prefix: `${basePrefix}` });
   app.register(JobWorkFlowRoutes, { prefix: `${basePrefix}` });
-
   app.register(rateTypeRouter, { prefix: `${basePrefix}` });
   app.register(rateCardRoutes, { prefix: `${basePrefix}` });
   app.register(rateTypeHierarchyRoutes, { prefix: `${basePrefix}` });
@@ -149,4 +143,5 @@ export default async function (app: FastifyInstance) {
   app.register(timesheetTypeConfigRoutes, { prefix: `${basePrefix}/program/:program_id`});
   app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
   app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
+  app.register(expenseTypeRoute,{prefix:`${basePrefix}`})
 }

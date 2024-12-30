@@ -122,10 +122,11 @@ export const getProgramConfigurations = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params as { program_id: string };
-  const { config_model, parent_config_id, title } = request.query as {
+  const { config_model, parent_config_id, title, key } = request.query as {
     config_model?: string;
     parent_config_id?: string;
     title?: string;
+    key?: string;
   };
 
   const queryConditions: any = { program_id };
@@ -146,6 +147,10 @@ export const getProgramConfigurations = async (
     queryConditions.parent_config_id = {
       [Op.or]: [null, ""],
     };
+  }
+
+  if (key) {
+    queryConditions.key = key;
   }
 
   try {
@@ -173,18 +178,22 @@ export const getProgramConfigurations = async (
 };
 
 export async function getConfigByProgramIdAndTitles(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { title?: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { title?: string, key: string } }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { title } = request.query;
+  const { title, key } = request.query;
 
-  const responseFields = ['id', 'title', 'value'];
+  const responseFields = ['id', 'title', 'value', 'key'];
   const whereClause: any = { program_id };
 
   if (title) {
     const titlesArray = title.split(',').map((t) => t.trim());
     whereClause.title = titlesArray.length > 1 ? { [Op.in]: titlesArray } : titlesArray[0];
+  }
+
+  if (key) {
+    whereClause.key = key;
   }
 
   try {
@@ -219,11 +228,11 @@ export const getTransformedConfig = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { config_model } = request.query as { config_model?: string };
+  const { config_model, key } = request.query as { config_model?: string, key?: string };
 
   try {
     const configuration = await ProgramsConfig.findOne({
-      where: { program_id, config_model },
+      where: { program_id, config_model, key },
     });
 
     if (!configuration) {

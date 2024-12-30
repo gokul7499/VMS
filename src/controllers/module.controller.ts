@@ -7,11 +7,16 @@ export async function getModule(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const { is_enabled } = request.query as { is_enabled?: boolean };
+
   try {
+    const whereClause: any = { is_deleted: false };
+    if (is_enabled !== undefined) {
+      whereClause.is_enabled = is_enabled;
+    }
+
     const result = await Module.findAndCountAll({
-      where: {
-        is_deleted: false,
-      },
+      where: whereClause,
       attributes: ["id", "name", "is_enabled", "module_linking"],
       order: [["name", "ASC"]],
     });

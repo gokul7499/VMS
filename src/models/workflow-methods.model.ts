@@ -6,7 +6,9 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import { Module } from "./module.model";
 import Event from "./event.model";
 
-class WorkflowMethod extends Model { }
+class WorkflowMethod extends Model {
+    id: any;
+}
 
 WorkflowMethod.init(
     {

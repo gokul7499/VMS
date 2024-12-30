@@ -84,15 +84,17 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         const defaultConfigs = await Configuration.findAll();
 
         const programConfigs = defaultConfigs.map((config) => {
-          const { id, ...configWithoutId } = config.toJSON();
+          const { id, created_by, modified_by, created_on, modified_on, ...configWithoutId } = config.toJSON();
           return {
             program_id: item.id,
+            created_by: user.sub,
+            modified_by: user.sub,
             ...configWithoutId,
           };
         });
 
         await ProgramConfig.bulkCreate(programConfigs);
-        await createHierarchy(item); 
+        await createHierarchy(item);
       } catch (error) {
         console.error("Error in async configuration setup:", error);
 
