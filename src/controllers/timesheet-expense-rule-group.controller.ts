@@ -8,7 +8,7 @@ import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.mo
 
 export const createRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const transaction = await TimesheetExpenseRuleGroup.sequelize?.transaction();
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
 
@@ -37,20 +37,21 @@ export const createRuleGroup = async (request: FastifyRequest, reply: FastifyRep
             status_code: 201,
             id: newConfig.id,
             message: 'Rule group created successfully.',
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         await transaction?.rollback();
         reply.status(500).send({
+            status_code: 500,
             message: 'Error creating rule group.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
 
 export const getAllRuleGroups = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const { page = 1, limit = 10, rule_category } = request.query as {
@@ -73,22 +74,24 @@ export const getAllRuleGroups = async (request: FastifyRequest, reply: FastifyRe
         });
         reply.status(200).send({
             status_code: 200,
+            message:" Rule groups retrieved successfully.",
             items_per_page: limit,
             total_records: count,
             data: ruleGroups,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error fetching rule groups.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
 
 export const getRuleGroupById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({
@@ -99,7 +102,7 @@ export const getRuleGroupById = async (request: FastifyRequest, reply: FastifyRe
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Rule group not found.',
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         const timesheet_expense_rule = await ExpenseRuleGroupRuleModel.findAll({
@@ -121,21 +124,22 @@ export const getRuleGroupById = async (request: FastifyRequest, reply: FastifyRe
         };
         reply.status(200).send({
             status_code: 200,
+            message: 'Rule group found.',
             rule_group: data,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Error fetching rule group.',
             error: error.message,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };
 
 export async function updateRuleGroup(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     const updates = request.body as Partial<TimesheetExpenseRuleGroupData & { timesheet_expense_rules_group_mapping: any[] }>;
     const { timesheet_expense_rules_group_mapping, ...updateFields } = updates;
@@ -148,8 +152,10 @@ export async function updateRuleGroup(request: FastifyRequest, reply: FastifyRep
         if (updatedCount === 0) {
             await transaction.rollback();
             return reply.status(200).send({
+                status_code: 200,
                 message: 'Timesheet Type Config not found.',
                 custom_field_loc: [],
+                trace_id: traceId,
             });
         }
         if (Array.isArray(timesheet_expense_rules_group_mapping)) {
@@ -176,13 +182,14 @@ export async function updateRuleGroup(request: FastifyRequest, reply: FastifyRep
             status_code: 201,
             message: 'Rule group updated successfully.',
             timesheet_expense_rule: id,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         await transaction.rollback();
         return reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server Error',
-            trace_id,
+            trace_id:traceId,
             error,
         });
     }
@@ -190,7 +197,7 @@ export async function updateRuleGroup(request: FastifyRequest, reply: FastifyRep
 
 export const deleteRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const transaction = await TimesheetExpenseRuleGroup.sequelize?.transaction();
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({ where: { id, is_deleted: false } });
@@ -198,7 +205,7 @@ export const deleteRuleGroup = async (request: FastifyRequest, reply: FastifyRep
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Rule group not found.',
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
         await ruleGroup.update({ is_deleted: true, is_enabled: false }, { transaction });
@@ -206,14 +213,15 @@ export const deleteRuleGroup = async (request: FastifyRequest, reply: FastifyRep
         reply.status(200).send({
             status_code: 200,
             message: 'Rule group deleted successfully.',
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         await transaction?.rollback();
         reply.status(500).send({
+            status_code: 500,
             message: 'Error deleting rule group.',
             error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };

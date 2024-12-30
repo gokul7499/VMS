@@ -15,7 +15,7 @@ export async function createTimesheetExpenseRule(
     try {
         const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule,program_id });
         reply.status(201).send({
-            statusCode: 201,
+            status_code: 201,
             trace_id: traceId,
             message: "Timesheet expense rule created succesfully.",
             timesheet_expense_rule: item.id,
@@ -72,7 +72,7 @@ export const getTimesheetExpenseRule = async (
 
         if (timesheetRule.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 trace_id: traceId,
                 message: 'No timesheet expense rule found.',
                 timesheet_expense_rule: [],
@@ -80,7 +80,7 @@ export const getTimesheetExpenseRule = async (
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_ode: 200,
             trace_id: traceId,
             message: 'Timesheet expense rule retrieved successfully.',
             items_per_page: pageSize,
@@ -90,7 +90,7 @@ export const getTimesheetExpenseRule = async (
         });
     } catch (error:any) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
             error: error.message
@@ -110,13 +110,14 @@ export async function getTimesheetExpenseRuleById(
         });
         if (timesheetRule) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 trace_id: traceId,
                 message: "Timesheet expense rule retrieved successfully.",
                 timesheet_expense_rule: timesheetRule,
             });
         } else {
             reply.status(200).send({
+                status_code: 200,
                 trace_id: traceId,
                 message: 'No timesheet expense rule found.',
                 timesheet_expense_rule: [],
@@ -124,7 +125,7 @@ export async function getTimesheetExpenseRuleById(
         }
     } catch (error:any) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while fetching',
             trace_id: traceId,
             error:error.message
@@ -144,6 +145,7 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
 
         if (!timesheetRule) {
             return reply.status(200).send({
+                status_code: 200,
                 trace_id: traceId,
                 message: 'No timesheet expense rule found.',
                 timesheet_expense_rule: []
@@ -157,6 +159,7 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
         });
     } catch (error:any) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
             error:error.message
@@ -168,7 +171,7 @@ export async function deleteTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await TimesheetExpenseRuleModel.update({
@@ -181,23 +184,23 @@ export async function deleteTimesheetExpenseRule(
 
         if (numRowsDeleted > 0) {
             reply.status(200).send({
-                statusCode: 200,
-                trace_id: trace_id,
+                status_code: 200,
+                trace_id: traceId,
                 message: "Timesheet expense rule deleted succesfully.",
                 timesheet_expense_rule: id,
             });
         } else {
             reply.status(404).send({
-                statusCode: 404,
-                trace_id: trace_id,
+                status_code: 404,
+                trace_id: traceId,
                 message: 'No timesheet expense rule found.'
             });
         }
     } catch (error:any) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while deleting.',
-            trace_id: trace_id,
+            trace_id: traceId,
             error:error.message
         });
     }
