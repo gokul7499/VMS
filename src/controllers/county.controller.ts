@@ -9,7 +9,7 @@ export async function createCounty(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const county = request.body as CountyInterface;
         const county_data: any = await countyModel.create({ ...county });
@@ -17,10 +17,11 @@ export async function createCounty(
             status_code: 201,
             message: "county created succesfully",
             county_data: county_data?.id,
-            trace_id:trace_Id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: 'An error occurred while creating county',
             error
         });
@@ -30,7 +31,7 @@ export async function getCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params;
         console.log("Params:", id);
@@ -46,7 +47,7 @@ export async function getCountyById(
                 status_code: 201,
                 message: "county get succesfully",
                 county: county,
-                trace_id:trace_Id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
@@ -56,11 +57,11 @@ export async function getCountyById(
             });
         }
     } catch (error) {
-        reply.status(500).send({ message: "An error occurred while fetching county", error });
+        reply.status(500).send({status_code:500, message: "An error occurred while fetching county", error });
     }
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<CountyInterface>;
     try {
@@ -74,10 +75,10 @@ export async function updateCountyById(request: FastifyRequest, reply: FastifyRe
             status_code: 201,
             message: "county updated successfully",
             county: id,
-            trace_id:trace_Id,
+            trace_id:traceId,
         });
     } catch (error) {
-        return reply.status(500).send({ message: "Internal Server Error", trace_id: generateCustomUUID(), error });
+        return reply.status(500).send({ status_code:500,message: "Internal Server Error", trace_id: traceId, error });
     }
 }
 
@@ -85,7 +86,7 @@ export async function deleteCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params;
         const [county] = await countyModel.update(
@@ -101,18 +102,18 @@ export async function deleteCountyById(
                 status_code: 200,
                 message: "county deleted successfully",
                 county: id,
-                trace_id:trace_Id,
+                trace_id:traceId,
             });
         } else {
-            reply.status(200).send({ message: "county not found", trace_id: generateCustomUUID(), county: [] });
+            reply.status(200).send({ status_code:200,message: "county not found", trace_id: traceId, county: [] });
         }
     } catch (error) {
-        reply.status(500).send({ message: "An error occurred while deleting county", error });
+        reply.status(500).send({ status_code:500,message: "An error occurred while deleting county", error });
     }
 }
 export async function getAllCounty(request: FastifyRequest<{ Querystring: { name?: string; state_id?: string[] } }>, reply: FastifyReply) {
     const { name, state_id } = request.query;
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     let whereClause: any = {};
 
     if (name) {
@@ -133,7 +134,7 @@ export async function getAllCounty(request: FastifyRequest<{ Querystring: { name
                 status_code: 201,
                 message: "Counties retrieved successfully",
                 data: counties,
-                trace_id:trace_Id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({ status_code: 200, message: "No counties found for the given state_id(s)", counties: [], trace_id: generateCustomUUID(), });
