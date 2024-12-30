@@ -79,6 +79,7 @@ export async function updateExpenseTypeById(request: FastifyRequest, reply: Fast
 
         if (updatedCount === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "Expense type data not found",
                 trace_id: traceId,
                 expense_item_type_config: []
