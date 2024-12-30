@@ -36,18 +36,18 @@ import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
     const { name, levels } = request.body as WorkflowData;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
     try {
         const existingWorkflow = await WorkFlow.findOne({
@@ -57,7 +57,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (existingWorkflow) {
             logger(
                 {
-                    trace_id,
+                    trace_id:traceId,
                     actor: {
                         user_name: user?.preferred_username,
                         user_id: user?.sub,
@@ -76,9 +76,9 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             );
 
             return reply.status(409).send({
-                statusCode: 409,
+                status_code: 409,
                 message: "A workflow with the same name already exists",
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -148,7 +148,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         }
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -167,17 +167,17 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         );
 
         reply.status(201).send({
-            statusCode: 201,
+            status_code: 201,
             workflow: {
                 id: createdWorkflow?.id,
                 name: createdWorkflow?.name,
             },
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -196,10 +196,10 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         );
         console.log(error)
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Error while creating workflow',
             error: (error).message,
-            trace_id
+            trace_id:traceId
         });
     }
 };
@@ -208,7 +208,7 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const { id, program_id } = request.params as { id: string, program_id: string };
     const workflowData = request.body as WorkflowData;
     const { name } = request.body as WorkflowData;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const existingWorkFlowWithSameName = await WorkFlow.findOne({
             where: {
@@ -220,9 +220,9 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
 
         if (existingWorkFlowWithSameName) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: "A workflow with the same name already exists",
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -232,20 +232,20 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (data) {
             await data.update(workflowData);
             reply.status(201).send({
-                statusCode: 201,
+                status_code: 201,
                 workflow_id: id,
                 message: 'Workflow updated successfully.',
-                trace_id
+                trace_id:traceId
             });
         } else {
-            reply.status(200).send({ message: 'Workflow data not found.' });
+            reply.status(200).send({status_code:200, message: 'Workflow data not found.' });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: ' An error occurred while updating the workflow',
             error: (error as any).message,
-            trace_id
+            trace_id:traceId
         });
     }
 }
@@ -259,7 +259,7 @@ export const updateReorder = async (
 ) => {
     const { program_id, module, event_id, flow_type } = request.params;
     const { flow_order } = request.body;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
     try {
         // Fetch workflows based on flow_order and other conditions
@@ -286,9 +286,9 @@ export const updateReorder = async (
 
         if (missingIds.length > 0) {
             return reply.status(404).send({
-                statusCode: 404,
+                status_code: 404,
                 message: `Some workflows not found: ${missingIds.join(', ')}`,
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -311,18 +311,18 @@ export const updateReorder = async (
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Workflow placement order updated successfully.',
-            trace_id
+            trace_id:traceId
         });
 
     } catch (error) {
         console.log(error);
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while updating the workflow placement order.',
             error: (error as any).message,
-            trace_id
+            trace_id:traceId
         });
     }
 };
@@ -345,11 +345,13 @@ export async function deleteWorkflow(
         } else {
             reply.status(404).send({
                 status_code: 404,
-                message: 'Workflow not found.'
+                message: 'Workflow not found.',
+                trace_id: traceId
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while deleting workflow.',
             trace_id: traceId,
             error: (error as any).message,
@@ -361,7 +363,7 @@ export async function getAllWorkflows(
     request: FastifyRequest<{ Params: WorkflowData, Querystring: WorkflowData }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params;
         const query = request.query as WorkflowData | any;
@@ -405,9 +407,10 @@ export async function getAllWorkflows(
 
         if (workflows.length === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "Workflow not found",
                 workflow: [],
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -438,23 +441,24 @@ export async function getAllWorkflows(
             };
         }));
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Workflows found succesfully",
             total_records: count,
             workflow: populatedWorkflow,
-            trace_id
+            trace_id:traceId
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal server error",
             error: (error as any).message,
-            trace_id
+            trace_id:traceId
         });
     }
 }
 
 export async function getWorkflowById(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const item = await WorkFlow.findOne({
@@ -463,10 +467,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
         if (!item) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Workflow data not found',
                 workflow: [],
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -842,23 +846,24 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
         };
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: 'Workflow retrieved successfully',
             workflow,
-            trace_id
+            trace_id:traceId
         });
     } catch (error: any) {
         console.log(error);
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             error: (error).message,
             message: 'An error occurred while fetching workflow data.',
-            trace_id
+            trace_id:traceId
         });
     }
 }
 
 export async function getChildWorkflows(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params as {
             workflow_id: string;
@@ -893,10 +898,10 @@ export async function getChildWorkflows(request: FastifyRequest, reply: FastifyR
 
         if ((!parentWorkflow || parentWorkflow.length === 0) && (!childWorkflows || childWorkflows.length === 0)) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: "Workflow not found",
                 workflows: [],
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -918,18 +923,18 @@ export async function getChildWorkflows(request: FastifyRequest, reply: FastifyR
             : [...childWorkflows];
         workflows.sort((a: any, b: any) => a.placement_order - b.placement_order);
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             total_records: totalRecords,
             message: "Workflows fetched successfully.",
             workflows,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "An error occurred while fetching workflow data.",
             error: (error).message,
-            trace_id
+            trace_id:traceId
         });
     }
 }
