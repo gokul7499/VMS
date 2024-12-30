@@ -21,14 +21,14 @@ export async function createWorkLocation(
   const authHeader = request.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
   }
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
@@ -305,6 +305,7 @@ export async function getWorkLocationById(
 
     return reply.status(200).send({
       status_code: 200,
+      message:" Work Location Retrieved Successfully",
       work_location: responseWorkLocation,
       trace_id: traceId,
     });
