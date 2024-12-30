@@ -70,6 +70,7 @@ import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
 import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 import expenseTypeRoute from "./expenseType.routes";
+import rateCardsRoutes from "./rate_card.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -144,4 +145,5 @@ export default async function (app: FastifyInstance) {
   app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
   app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
   app.register(expenseTypeRoute,{prefix:`${basePrefix}`})
+  app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
 }
