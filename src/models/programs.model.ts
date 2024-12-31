@@ -115,12 +115,14 @@ Programs.init(
         beforeSave(instance);
 
       },
-      afterSave: (instance) => {
-        createProgramModule(instance);
-        createHierarchy(instance);
-        createQualificationTypes(instance);
-        createRateTypes(instance);
-      },
+      afterSave: async (instance, options) => {
+        const transaction = options.transaction; 
+      
+        await createProgramModule(instance, transaction);
+        await createHierarchy(instance, transaction);
+        await createQualificationTypes(instance, transaction);
+        await createRateTypes(instance, transaction);
+      }
     },
   }
 );

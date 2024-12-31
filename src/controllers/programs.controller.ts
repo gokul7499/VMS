@@ -13,7 +13,7 @@ import Configuration from "../models/configuration.model";
 import ProgramModule from "../models/program-module.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { createHierarchy } from "../hooks/afterProgramSave";
+import { sequelize } from "../config/instance";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -51,8 +51,11 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     Programs
   );
 
+  const transaction = await sequelize.transaction();
+
   try {
-    const item: any = await Programs.create({ ...programData });
+    const item: any = await Programs.create({ ...programData }, { transaction });
+
     reply.status(201).send({
       status_code: 201,
       id: item.id,
@@ -81,7 +84,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
     process.nextTick(async () => {
       try {
-        const defaultConfigs = await Configuration.findAll();
+        const defaultConfigs = await Configuration.findAll({ transaction });
 
         const programConfigs = defaultConfigs.map((config) => {
           const { id, created_by, modified_by, created_on, modified_on, ...configWithoutId } = config.toJSON();
@@ -89,13 +92,17 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
             program_id: item.id,
             created_by: user.sub,
             modified_by: user.sub,
+            configuration_id: id,
             ...configWithoutId,
           };
         });
 
-        await ProgramConfig.bulkCreate(programConfigs);
-        await createHierarchy(item);
+        await ProgramConfig.bulkCreate(programConfigs, { transaction });
+    
+        await transaction.commit();
       } catch (error) {
+
+        await transaction.rollback();
         console.error("Error in async configuration setup:", error);
 
         logger(
@@ -119,11 +126,14 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       }
     });
   } catch (error: any) {
+    
+    await transaction.rollback();
+
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: trace_id,
-      error: error,
+      error: error.message,
     });
 
     logger(
