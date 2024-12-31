@@ -1,3 +1,5 @@
+import { QueryTypes } from "sequelize";
+import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
@@ -19,7 +21,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
                     'max_limit', ex.max_limit,
                     'unit_of_measure', ex.unit_of_measure,
                     'unit_lable', ex.unit_lable,
-                    'expense_type', JSON_OBJECT('id', ex.expense_type_id, 'name', ec.expense_type)
+                    'expense_item_type_config', JSON_OBJECT('id', ex.expense_type_id, 'name', ec.expense_item_type_config)
                 )
             ) AS expenses
         FROM
@@ -44,7 +46,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             )) AS ex
             ON ex.expense_type_id IS NOT NULL
         LEFT JOIN
-            expense_type ec ON ec.id = ex.expense_type_id
+            expense_item_type_config ec ON ec.id = ex.expense_type_id
         WHERE
             rcc.is_deleted = 0
             AND rcc.program_id = :program_id
@@ -127,7 +129,7 @@ SELECT
         'max_limit', ex.max_limit,
         'unit_of_measure', ex.unit_of_measure,
         'unit_lable', ex.unit_lable,
-        'expense_type', JSON_OBJECT('id', ec.id, 'name', ec.expense_type)
+        'expense_item_type_config', JSON_OBJECT('id', ec.id, 'name', ec.expense_item_type_config)
     )) AS expenses
 FROM
     rate_type_configurations rcc
@@ -155,7 +157,7 @@ LEFT JOIN JSON_TABLE(
         unit_of_measure VARCHAR(255) PATH '$.unit_of_measure'
     )
 ) AS ex ON ex.expense_type_id IS NOT NULL
-LEFT JOIN expense_type ec ON ec.id = ex.expense_type_id
+LEFT JOIN expense_item_type_config ec ON ec.id = ex.expense_type_id
 WHERE
     rcc.is_deleted = 0
     AND rcc.id = :id
@@ -1182,6 +1184,7 @@ export const vendorFilterQueryBuilder = (
         WHERE
             program_vendors.is_deleted = false
             AND program_vendors.program_id = :program_id
+            AND status = 'Active'
             ${hierarchyIdsClause}
             ${laborCategoryIdsClause}
             ${workLocationIdsClause}
@@ -1241,34 +1244,33 @@ export const getWorkLocationTimeZoneByUserId = `
 
 export const getMasterDataForHeirarchiesQuery = () => {
     return `
-            SELECT
-                JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', hmd.foundation_data_type_id,
-                        'name', fdt.name,
-                        'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
-                        'value', (
-                            SELECT JSON_ARRAYAGG(
-                                JSON_OBJECT(
-                                    'id', fd.id,
-                                    'name', fd.name
-                                )
+        SELECT
+            h.id AS hierarchy_id,
+            h.name AS hierarchy_name,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', fdt.id,
+                    'name', fdt.name,
+                    'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
+                    'value', (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', fd.id,
+                                'name', fd.name
                             )
-                            FROM master_data fd
-                            WHERE fd.foundational_data_type_id = hmd.foundation_data_type_id AND fd.is_enabled = 1
-                        ),
-                        'hierarchy_name', h.name,
-                        'hierarchy_id', h.id
+                        )
+                        FROM master_data fd
+                        WHERE fd.foundational_data_type_id = fdt.id AND fd.is_enabled = 1
                     )
-                ) AS master_data
-            FROM hierarchies_master_data hmd
-            LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-            LEFT JOIN hierarchies h ON h.id = hmd.hierarchy_id
-            WHERE hmd.hierarchy_id IN (:hierarchy_ids) AND fdt.is_enabled = 1
-            GROUP BY hmd.foundation_data_type_id, fdt.name, h.name, h.id
-        `;
+                )
+            ) AS master_data
+        FROM hierarchies h
+        LEFT JOIN hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
+        LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
+        WHERE h.id IN (:hierarchy_ids) AND fdt.is_enabled = 1
+        GROUP BY h.id, h.name
+    `;
 };
-
 export const masterDataQuery = `
     SELECT
       h.*,
@@ -1373,7 +1375,7 @@ export const getAllExpenseTypeByHierarchies = (
         LIMIT 1
       )
       SELECT et.*
-      FROM expense_type et
+      FROM expense_item_type_config et
       JOIN HierarchyMatches hm ON et.expense_config_id = hm.expense_config_id
       WHERE et.program_id = :program_id;
     `;
@@ -1395,17 +1397,150 @@ WHERE reason_codes.program_id = :program_id
 AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
+
+export const getMasterData = `
+SELECT 
+ JSON_OBJECT(
+     'id',hierarchies.id,
+     'name',hierarchies.name
+     )AS hierarchy,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'master_data_type', JSON_OBJECT(
+                'id', master_data_type.id,
+                'name', master_data_type.name
+            ),
+            'foundational_data_ids', (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', md1.id,
+                        'name', md1.name
+                    )
+                )
+                FROM master_data AS md1
+                WHERE JSON_CONTAINS(user_master_data.foundation_data_ids, JSON_QUOTE(md1.id), '$')
+            ),
+            'default_master_data', JSON_OBJECT(
+                'id', md2.id,
+                'name', md2.name
+            ),
+            'is_associated', TRUE
+        )
+    ) AS master_data
+FROM 
+    user_master_data
+LEFT JOIN 
+    master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
+LEFT JOIN 
+    hierarchies ON user_master_data.hierarchy_id = hierarchies.id
+LEFT JOIN 
+    master_data AS md2 ON user_master_data.default_master_data = md2.id
+WHERE 
+    user_master_data.user_id = :id
+GROUP BY 
+    hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
+`;
+
+export const getAllRateTypes = (
+    hasName: boolean,
+    hasId: boolean,
+    hasIsEnabled: boolean,
+    isShiftRateValue: boolean,
+    isBaseRate: boolean,
+    hasDifferentialOn: boolean,
+    hasRateTypeCategory: boolean,
+    hasShiftType: boolean,
+    startDate?: number,
+    endDate?: number,
+    limit?: number,
+    offset?: number
+) => `
+      WITH rate_type AS (
+        SELECT
+          rt.id,
+          rt.name,
+          rt.program_id,
+          rt.is_enabled,
+          rt.is_shift_rate,
+          rt.abbreviation,
+          rt.is_base_rate,
+          rt.rate,
+          rt.modified_on,
+          COUNT(*) OVER() AS total_records,
+          CASE 
+            WHEN shift_types.id IS NULL THEN NULL
+            ELSE JSON_OBJECT(
+                'id', shift_types.id,
+                'name', shift_types.shift_type_name
+            )
+          END AS shift_type,
+          CASE 
+            WHEN picklistitems.id IS NULL THEN NULL
+            ELSE JSON_OBJECT(
+              'id', picklistitems.picklist_id,
+              'label', picklistitems.label,
+              'value', picklistitems.value
+            )
+          END AS rate_type_category,
+          JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
+        FROM rate_type rt
+        LEFT JOIN shift_types 
+          ON rt.shift_type = shift_types.id
+        LEFT JOIN picklistitems 
+          ON rt.rate_type_category = picklistitems.id
+        WHERE rt.program_id = :program_id
+          AND rt.is_deleted = false
+          ${hasId ? "AND rt.id = :id" : ""}
+          ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
+          ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
+          ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
+          ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
+          ${hasDifferentialOn
+        ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
+        : ""
+    }
+          ${hasRateTypeCategory
+        ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category, '%')"
+        : ""
+    }
+          ${hasShiftType
+        ? "AND shift_types.shift_type_name LIKE CONCAT('%', :shift_type, '%')"
+        : ""
+    }
+          ${startDate !== undefined && endDate !== undefined
+        ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+        : ""
+    }
+        GROUP BY 
+          rt.id, 
+          rt.name, 
+          rt.program_id, 
+          rt.is_enabled, 
+          rt.is_shift_rate, 
+          rt.abbreviation, 
+          rt.is_base_rate, 
+          rt.rate, 
+          rt.modified_on, 
+          picklistitems.picklist_id, 
+          picklistitems.label, 
+          picklistitems.value
+      )
+      SELECT *
+      FROM rate_type
+      LIMIT :limit OFFSET :offset;
+    `;
 export const getExpenseType = `
    SELECT 
     ec.config_name,
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
-    et.type AS expense_type,
+    et.type AS expense_item_type_config,
     et.category AS expense_type_category,
     et.apply_msp_fee,
     et.appply_tax,
     et.allow_unit_based,
+    et.id AS expense_type_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', h.id,
@@ -1414,7 +1549,7 @@ export const getExpenseType = `
     ) AS hierarchy
 FROM expense_configuration ec
 LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-LEFT JOIN expense_type et ON etm.expense_type_id = et.id
+LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
 LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
 LEFT JOIN hierarchies h ON eth.hierarchy = h.id
 WHERE ec.program_id =:program_id
@@ -1434,4 +1569,62 @@ INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
 INNER JOIN hierarchies h ON eth.hierarchy = h.id
 WHERE ec.program_id = :program_id
  AND ec.id=ec.id;
-`
+`;
+
+export const getAllRateConfigurationsQuery = async (replacements: any) => {
+    let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
+
+    if (replacements.name) {
+        whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
+    }
+    if (replacements.is_enabled !== undefined) {
+        whereConditions += ` AND rc.is_enabled = :is_enabled`;
+    }
+    if (replacements.is_shift_rate !== undefined) {
+        whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
+    }
+    if (replacements.startDate && replacements.endDate) {
+        whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    }
+
+    const sqlQuery = `
+      SELECT 
+        rc.id AS rate_configuration_id,
+        rc.name,
+        rc.is_enabled,
+        rc.is_shift_rate,
+        rc.created_on,
+        rc.modified_on,
+        h.hierarchies,
+        jt.job_templates,
+        rt.base_rates
+      FROM 
+        rate_configurations AS rc
+      LEFT JOIN (
+        SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
+        FROM rate_configuration_hierarchies AS rch
+        LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
+        GROUP BY rch.rate_configuration_id
+      ) AS h ON h.rate_configuration_id = rc.id
+      LEFT JOIN (
+        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
+        FROM rate_configuration_job_templates AS rcjt
+        LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
+        GROUP BY rcjt.rate_configuration_id
+      ) AS jt ON jt.rate_configuration_id = rc.id
+      LEFT JOIN (
+        SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
+        FROM rate_configuration_base_rate_types AS rcbt
+        LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
+        GROUP BY rcbt.rate_configuration_id
+      ) AS rt ON rt.rate_configuration_id = rc.id
+      WHERE ${whereConditions}
+      ORDER BY rc.created_on DESC
+      LIMIT :limit OFFSET :offset;
+    `;
+
+    return await sequelize.query(sqlQuery, {
+        replacements,
+        type: QueryTypes.SELECT,
+    });
+};

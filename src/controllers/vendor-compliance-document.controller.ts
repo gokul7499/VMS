@@ -24,14 +24,14 @@ export async function createVendorComplianceDocument(
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return reply
       .status(401)
-      .send({ message: "Unauthorized - Token not found", trace_id: traceId });
+      .send({status_code:401, message: "Unauthorized - Token not found", trace_id: traceId });
   }
 
   const token = authHeader.split(" ")[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token", trace_id: traceId });
+    return reply.status(401).send({status_code:401, message: "Unauthorized - Invalid token", trace_id: traceId });
   }
   logger(
     {
@@ -187,6 +187,7 @@ export async function vendorComplianceDocumentById(
   } catch (error) {
     console.error("Error fetching compliance document:", error);
     return reply.status(500).send({
+      status_code: 500,
       message: "An error occurred while fetching compliance document",
       trace_id: traceId,
     });
@@ -304,7 +305,7 @@ export async function getAllVendorCompDocummentByProgramId(
   };
 
   const responseFields = ['id', 'name', 'document_details', 'modified_on', 'is_enabled', 'program_id'];
-
+  const traceId = generateCustomUUID();
   try {
     const result = await baseService.getAllByCriteriaPopulate(
       request,
@@ -320,12 +321,14 @@ export async function getAllVendorCompDocummentByProgramId(
         page: Number(page),
         limit: Number(limit),
         compliance_documents: result.rows,
+        message:" Vendor Compliance Documents Retrieved Successfully",
+        trace_id: traceId
       });
     } else {
-      return reply.status(200).send({ status_code: 200, message: "No records found" });
+      return reply.status(200).send({ status_code: 200, message: "No records found",trace_id:traceId  });
     }
   } catch (error) {
-    return reply.status(500).send({ status_code: 500, message: "Internal Server Error" });
+    return reply.status(500).send({ status_code: 500, message: "Internal Server Error",trace_id:traceId  });
   }
 }
 

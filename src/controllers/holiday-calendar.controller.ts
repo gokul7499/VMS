@@ -63,6 +63,7 @@ export async function getHolidayCalendar(
     });
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while fetching holidayCalendars.',
       trace_id: traceId,
       error,
@@ -141,14 +142,14 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
   }
 
   const traceId = generateCustomUUID();
@@ -276,7 +277,7 @@ export const updateHolidayCalendar = async (
   try {
     const [updatedCount] = await holidayCalendar.update(request.body as holidayCalendarData, { where: { program_id, id } });
     if (updatedCount > 0) {
-      reply.send({
+      reply.status(201).send({
         status_code: 201,
         message: 'HolidayCalendar updated successfully.',
         id,
@@ -290,6 +291,7 @@ export const updateHolidayCalendar = async (
     }
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'Internal Server error',
       trace_id: traceId,
       error

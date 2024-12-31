@@ -34,6 +34,7 @@ export async function getPasswordPolicyById(
         }
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: 'An error occurred while fetching PasswordPolicy.',
             trace_id: traceId,
             error: error,
@@ -71,7 +72,7 @@ export async function updatePasswordPolicy(
     try {
         const [updatedCount] = await passwordPolicyModel.update(request.body as passwordPolicyData, { where: { id } });
         if (updatedCount > 0) {
-            reply.send({
+            reply.status(201).send({
                 status_code: 201,
                 message: 'PasswordPolicy updated successfully.',
                 trace_id: traceId,
@@ -84,6 +85,7 @@ export async function updatePasswordPolicy(
         }
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: 'Internal Server error',
             trace_id:traceId,
             error
@@ -114,6 +116,7 @@ export async function deletePasswordPolicy(
         }
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: 'Internal Server error',
             trace_id: traceId,
             error

@@ -114,7 +114,7 @@ ExpenseTypeModel.init({
 },
     {
         sequelize,
-        tableName: 'expense_type',
+        tableName: 'expense_item_type_config',
         timestamps: false,
         hooks: {
             beforeSave: (instance) => {

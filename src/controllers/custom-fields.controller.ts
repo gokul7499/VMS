@@ -16,26 +16,26 @@ import { Op } from 'sequelize';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name, ...customFieldData } = request.body as any;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   // Validate Program ID
-  if (!validateProgramId(program_id, reply, trace_id)) return;
+  if (!validateProgramId(program_id, reply, traceId)) return;
 
   // Generate slug if name is present
   generateSlugIfNeeded(name, customFieldData);
 
   // Validate label length
-  if (!validateLabelLength(label, reply, trace_id)) return;
+  if (!validateLabelLength(label, reply, traceId)) return;
 
   // Validate name length
-  if (!validateNameLength(name, reply, trace_id)) return;
+  if (!validateNameLength(name, reply, traceId)) return;
 
   // Validate Authorization Header
   const user = await validateAuthHeader(request, reply);
   if (!user) return;
 
   // Log creating customField
-  logCreatingCustomField(trace_id, user, request, program_id);
+  logCreatingCustomField(traceId, user, request, program_id);
 
   try {
     const customField = await createCustomField({ program_id, label, name, ...customFieldData });
@@ -51,32 +51,32 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       ...(master_data_id?.map((master_data_id: string) => saveCustomFieldsMasterData(master_data_id, custom_field_id)) || []),
     ]);
 
-    logSuccess(trace_id, user, request, program_id);
+    logSuccess(traceId, user, request, program_id);
     return reply.status(201).send({
       status_code: 201,
       message: 'Custom field created successfully.',
-      trace_id,
+      trace_id:traceId,
     });
 
   } catch (error) {
     console.error('Error processing custom field:', error);
-    logError(trace_id, user, request, program_id);
+    logError(traceId, user, request, program_id);
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id,
+      traceId,
     });
   }
 };
 
 // Helper functions
 const validateProgramId = (program_id: string | undefined, reply: FastifyReply, trace_id: string) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required.',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return false;
   }
@@ -92,12 +92,12 @@ const generateSlugIfNeeded = (name: string | undefined, customFieldData: any) =>
 };
 
 const validateLabelLength = (label: string | undefined, reply: FastifyReply, trace_id: string) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   if (label && label.length > 64) {
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid label, Maximum 64 characters.',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return false;
   }
@@ -105,12 +105,12 @@ const validateLabelLength = (label: string | undefined, reply: FastifyReply, tra
 };
 
 const validateNameLength = (name: string | undefined, reply: FastifyReply, trace_id: string) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   if (name && name.length < 3) {
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid name, Minimum 3 characters.',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return false;
   }
@@ -120,14 +120,14 @@ const validateNameLength = (name: string | undefined, reply: FastifyReply, trace
 const validateAuthHeader = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const authHeader = request.headers.authorization;
   if (!(authHeader?.startsWith('Bearer '))) {
-    reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
     return null;
   }
 
   const token = authHeader.split(' ')[1];
   const user: any = await decodeToken(token);
   if (!user) {
-    reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
     return null;
   }
   return user;
@@ -209,7 +209,7 @@ export async function getAllCustomFields(
   }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const programId = request.params.program_id;
   const page = parseInt(request.query.page ?? '1', 10);
   const limit = parseInt(request.query.limit ?? '10', 10);
@@ -275,27 +275,27 @@ export async function getAllCustomFields(
       page: page,
       limit: limit,
       message: 'Custom Fields Get Successfully',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields',
       error: error,
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 }
 
 export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return;
   }
@@ -355,20 +355,20 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
           workLocations: workLocations,
         },
         message: 'Custom Fields Type Get Successfully',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Custom Fields Type Not Found',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: (error as Error).message,
     });
   }
@@ -378,7 +378,7 @@ export const updateCustomFieldById = async (
   request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFields }>,
   reply: FastifyReply
 ) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
   const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids } = updates as {
@@ -412,7 +412,7 @@ export const updateCustomFieldById = async (
     return reply.status(200).send({
       status_code: 200,
       message: "Custom field updated successfully.",
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     console.error("Error updating custom field:", error);
@@ -422,11 +422,11 @@ export const updateCustomFieldById = async (
 
 // Helper functions
 const sendError = (reply: FastifyReply, statusCode: number, message: string) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   reply.status(statusCode).send({
     status_code: statusCode,
     message,
-    trace_id: trace_Id,
+    trace_id: traceId,
   });
 };
 
@@ -512,7 +512,7 @@ const processLinkedModules = async (linked_modules: Array<{ is_linked: boolean }
 };
 export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: string, program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   try {
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
@@ -527,13 +527,13 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
         reply.status(200).send({
           status_code: 200,
           message: 'Custom Field marked as deleted successfully',
-          trace_id: trace_Id,
+          trace_id: traceId,
         });
       } else {
         reply.status(500).send({
           status_code: 500,
           message: 'Custom Field cannot be deleted as it is linked with modules.',
-          trace_id: trace_Id,
+          trace_id: traceId,
         });
 
       }
@@ -541,14 +541,14 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
       reply.status(404).send({
         status_code: 404,
         message: 'Custom Field not found',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: error
     });
   }
@@ -560,7 +560,7 @@ export async function updateCustomFieldsIsdisable(
   request: FastifyRequest<{ Params: { id: string, program_id: string }; Body: { is_enabled: boolean } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const { is_enabled } = request.body;
 
@@ -572,7 +572,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(400).send({
       status_code: 400,
       message: `Invalid request: fields ${invalidFields.join(', ')} are not allowed.`,
-      trace_id: trace_Id
+      trace_id: traceId
     });
   }
 
@@ -580,7 +580,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(400).send({
       status_code: 400,
       message: 'Invalid request: is_enabled field is required.',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 
@@ -614,13 +614,13 @@ export async function updateCustomFieldsIsdisable(
       return reply.status(200).send({
         status_code: 200,
         message: 'Custom field updated successfully.',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       return reply.status(404).send({
         status_code: 404,
         message: 'Custom field not found',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
@@ -628,7 +628,7 @@ export async function updateCustomFieldsIsdisable(
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error: Failed to update Custom Field',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 }
@@ -663,18 +663,19 @@ export async function searchCustomFields(
     });
 
     if (result.rows.length === 0) {
-      reply.status(200).send({ message: "Modules not found", modules: [] });
+      reply.status(200).send({status_code:200, message: "Modules not found", modules: [] });
       return;
     }
 
     reply.status(200).send({
       status_code: 200,
+      message:"Custom search successfully",
       total_records: result.count,
       items: result.rows,
     });
   } catch (error: any) {
     console.log(error.stack);
-    reply.status(500).send({ error: "Internal Server Error" });
+    reply.status(500).send({status_code:500, error: "Internal Server Error" });
   }
 }
 
