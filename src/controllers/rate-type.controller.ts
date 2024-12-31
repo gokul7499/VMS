@@ -12,7 +12,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   const data = request.body as CreateRateTypeData;
   const { program_id } = request.params as { program_id: string };
   const { name, rate } = request.body as CreateRateTypeData;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
@@ -92,7 +92,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       if (existingRateTypeWithSameBaseDifferential) {
         logger(
           {
-            trace_id,
+            traceId,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -113,7 +113,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
         return reply.status(400).send({
           status_code: 400,
           message: "A rate type with the same base differential already exists.",
-          trace_id,
+          traceId,
         });
       }
     }
@@ -149,7 +149,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       status_code: 201,
       id: item.id,
       message: "Rate Type created successfully.",
-      trace_id,
+      traceId,
     });
   } catch (error: any) {
     if (error.name === "SequelizeUniqueConstraintError") {
