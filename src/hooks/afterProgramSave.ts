@@ -4,7 +4,7 @@ import { Module } from '../models/module.model';
 import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';
 import qualificationTypeModel from '../models/qualification-type-model'
-import { rateType } from '../models/rate-type.model';
+import rateType from '../models/rate-type.model';
 import { sequelize } from '../config/instance';
 import { fetchProgramConfigValues } from '../utility/queries';
 

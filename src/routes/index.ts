@@ -5,7 +5,7 @@ import tenantRoutes from "./tenant.routes";
 import userMappingRoutes from "./user-mapping.routes";
 import hierarchiesRoutes from "./hierarchies.routes";
 import currenciesRoutes from "./currencies.routes";
-import industriesRoutes from "./industries.route";
+import industriesRoutes from "./labour-category.route";
 import userRoutes from "./user.routes";
 import timeZoneRoutes from "./time-zones.routes";
 import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
@@ -66,11 +66,12 @@ import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
 import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 import expenseTypeRoute from "./expense-type.routes";
+import rateCardsRoutes from "./rate-card.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
   app.register(timeZoneRoutes, { prefix: `${basePrefix}` });
-  app.register(countriesRoutes, { prefix: `${basePrefix}/countries` });
+  app.register(countriesRoutes, { prefix: `${basePrefix}` });
   app.register(currenciesRoutes, { prefix: `${basePrefix}` });
   app.register(globalConfigRoutes, { prefix: `${basePrefix}` });
   app.register(languageRoutes, { prefix: `${basePrefix}` });
@@ -136,4 +137,5 @@ export default async function (app: FastifyInstance) {
   app.register(timesheetExpenseRuleGroupRoutes, { prefix: `${basePrefix}/program/:program_id` });
   app.register(OnboardingConfigurationRoutes,{prefix:`${basePrefix}`})
   app.register(expenseTypeRoute,{prefix:`${basePrefix}`})
+  app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
 }

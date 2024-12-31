@@ -15,11 +15,9 @@ import CountryModel from "../models/countries.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getWorkLocationTimeZoneByUserId } from "../utility/queries";
-import { Op, QueryTypes } from "sequelize";
+import { getMasterData, getWorkLocationTimeZoneByUserId } from "../utility/queries";
+import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/userMasterDataModel";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
-import foundationalData from "../models/foundational-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -152,6 +150,7 @@ export async function getUserHierarchiesByProgram(
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
+
   try {
     const { user, user_group_mapping } = request.body as {
       user: UserInterface;
@@ -171,7 +170,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       where: {
         id: user.id,
         tenant_id: user.tenant_id,
-        ...(user.program_id && { program_id: user.program_id })
+        ...(user.program_id && { program_id: user.program_id }),
       },
       transaction,
     });
@@ -212,22 +211,25 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     const foundationalData = user.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-      await Promise.all(
-        foundationalData.map(async (data) => {
-          await UserMasterDataModel.create(
-            {
-              user_id: user.id,
-              foundation_data_type_id: data.foundation_data_type_id,
-              foundation_data_ids: data.foundation_data_ids,
-              default_master_data: data.default_master_data || null,
-              is_associated: data.is_associated || false,
-              hierarchy_id: data.hierarchy_id,
-            },
-            { transaction }
-          );
-        })
-      );
+      for (const hierarchy of foundationalData) {
+        if (hierarchy?.master_data?.length > 0) {
+          for (const masterData of hierarchy.master_data) {
+            await UserMasterDataModel.create(
+              {
+                user_id: user.id,
+                hierarchy_id: hierarchy.hierarchy_id,
+                foundation_data_type_id: masterData.foundation_data_type_id,
+                foundation_data_ids: masterData.foundation_data_ids,
+                default_master_data: masterData.default_master_data,
+                is_associated: masterData.is_associated || false,
+              },
+              { transaction }
+            );
+          }
+        }
+      }
     }
+
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
@@ -264,6 +266,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
@@ -281,29 +284,28 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user: []
       });
     }
-
     await user.update(updates);
-
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
+
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
 
-      const createPromises = foundationalData.map((data) =>
-        UserMasterDataModel.create({
+      const createPromises = foundationalData.flatMap((item) =>
+        item.master_data.map((data: { foundation_data_type_id: any; foundation_data_ids: any; default_master_data: any; is_associated: any; }) => ({
           user_id: id,
           foundation_data_type_id: data.foundation_data_type_id,
           foundation_data_ids: data.foundation_data_ids,
           default_master_data: data.default_master_data || null,
           is_associated: data.is_associated || false,
-          hierarchy_id: data.hierarchy_id
-        })
+          hierarchy_id: item.hierarchy_id
+        }))
       );
 
-      await Promise.all(createPromises);
-    }
+      const createResults = await UserMasterDataModel.bulkCreate(createPromises);
 
+    }
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -319,6 +321,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     });
   }
 }
+
 
 export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
@@ -366,9 +369,7 @@ export async function getAllUserIDAndUserId(
 
     if (user_type) whereClause.user_type = user_type;
     if (user_id) whereClause.id = user_id;
-    if (typeof is_activated === 'string') {
-      whereClause.is_activated = is_activated === 'true';
-    }
+    if (typeof is_activated === 'string') whereClause.is_activated = is_activated === 'true';
     if (role_id) whereClause.role_id = role_id;
     if (tenant_id) whereClause.tenant_id = tenant_id;
     if (email) whereClause.email = email;
@@ -380,7 +381,7 @@ export async function getAllUserIDAndUserId(
       "tenant_id", "language_id", "time_zone_id",
       "is_enabled", "is_activated", "is_deleted",
       "associate_hierarchy_ids", "work_location_ids",
-      "default_hierarchy_id", "default_work_location_id", "user_type"
+      "default_hierarchy_id", "default_work_location_id", "user_type", "is_associated"
     ];
 
     const users = await User.findAll({
@@ -389,44 +390,15 @@ export async function getAllUserIDAndUserId(
       order: [['created_on', 'DESC']],
     });
 
-    const foundationalDataDetails = await Promise.all(users.map(async user => {
-      const userMasterData = await UserMasterDataModel.findAll({
-        where: { user_id: user.id },
-        attributes: ["foundation_data_type_id", "foundation_data_ids", "default_master_data", "is_associated", "hierarchy_id"],
-        include: [
-          {
-            model: foundationalData,
-            as: 'default_master_datas',
-            attributes: ["id", "name"]
-          },
-          {
-            model: FoundationalDataTypes,
-            as: 'foundation_data_type',
-            attributes: ["id", "name"]
-          },
-          {
-            model: hierarchies,
-            as: 'hierarchies',
-            attributes: ["id", "name"]
-          }
-        ]
+    const masterDataDetails = await Promise.all(users.map(async user => {
+      const masterDataResult = await sequelize.query(getMasterData, {
+        replacements: { id: user.id },
+        type: QueryTypes.SELECT,
       });
-
-      return Promise.all(userMasterData.map(async data => {
-        const foundationDataItems = await foundationalData.findAll({
-          where: { id: { [Op.in]: data.foundation_data_ids || [] } },
-          attributes: ["id", "name"],
-        });
-
-        return {
-          user_id: user.id,
-          default_master_data: data.default_master_data ? data.default_master_datas : null,
-          is_associated: data.is_associated,
-          foundation_data_type: data.foundation_data_type_id ? data.foundation_data_type : null,
-          hierarchy_id: data.hierarchy_id ? data.hierarchies : null,
-          foundation_data_items: foundationDataItems.map(item => ({ id: item.id, name: item.name })),
-        };
-      }));
+      return {
+        user_id: user.id,
+        master_data: masterDataResult,
+      };
     }));
 
     const hierarchyIds = users.flatMap(user => user.associate_hierarchy_ids || []);
@@ -458,7 +430,7 @@ export async function getAllUserIDAndUserId(
       const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
       const language = languagesData.find(language => language.id === user.language_id);
       const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
-      const userFoundationalData = foundationalDataDetails.flat().filter(data => data.user_id === user.id);
+      const userMasterData = masterDataDetails.find(data => data.user_id === user.id)?.master_data || [];
 
       return {
         ...user.toJSON(),
@@ -470,7 +442,7 @@ export async function getAllUserIDAndUserId(
         tenant_id: tenant ? { id: tenant.id, name: tenant.name } : null,
         language_id: language ? { id: language.id, name: language.name } : null,
         time_zone_id: timeZone ? { id: timeZone.id, name: timeZone.name } : null,
-        foundational_data: userFoundationalData,
+        foundational_data: userMasterData,
       };
     });
 

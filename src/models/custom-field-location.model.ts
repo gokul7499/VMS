@@ -4,12 +4,12 @@ import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
 import { Programs } from './programs.model';
-class custom_fields_location extends Model {
+class CustomFieldsLocation extends Model {
     work_location_id: any;
     custom_field_id: any;
     id: any;
 }
-custom_fields_location.init({
+CustomFieldsLocation.init({
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -46,7 +46,7 @@ custom_fields_location.init({
             },
         },
     });
-custom_fields_location.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
+CustomFieldsLocation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 
 sequelize.sync();
-export default custom_fields_location;
+export default CustomFieldsLocation;
