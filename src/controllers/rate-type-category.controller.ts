@@ -5,19 +5,20 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
 export const createRateTypeCategory = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const RateTypeCategoryPayload = request.body as Omit<RateTypeCategoryData, '_id'>;
         const RateTypeCategoryData: any = await RateTypeCategory.create(RateTypeCategoryPayload);
         reply.status(201).send({
             status_code: 201,
             rate_type_category_id: RateTypeCategoryData?.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             message: 'Error While Creating Rate Type Category',
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 };
@@ -25,6 +26,7 @@ export const createRateTypeCategory = async (request: FastifyRequest, reply: Fas
 export const updateRateTypeCategory = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const RateTypeCategoryData = request.body as RateTypeCategoryData;
+    const traceId=generateCustomUUID();
     try {
         const data = await RateTypeCategory.findOne({
             where: { id, is_deleted: false },
@@ -38,11 +40,12 @@ export const updateRateTypeCategory = async (request: FastifyRequest, reply: Fas
             reply.send({ success: true, message: 'Rate Type Category Updated Successfully.' });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Updating The Rate Type Category', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'An Error Occurred While Updating The Rate Type Category', error, trace_id: traceId });
     }
 }
 
 export const deleteRateTypeCategory = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId=generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const data = await RateTypeCategory.findOne({
@@ -56,11 +59,11 @@ export const deleteRateTypeCategory = async (request: FastifyRequest, reply: Fas
         reply.status(200).send({
             status_code: 200,
             rate_type_category_id: id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             message: 'Rate Type Category Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Rate Type Category', error, trace_id: generateCustomUUID() });
+        reply.status(500).send({ message: 'Error Deleting Rate Type Category', error, trace_id: traceId});
     }
 }
 
@@ -68,6 +71,7 @@ export async function getAllRateTypeCategory(
     request: FastifyRequest<{ Params: RateTypeCategoryData, Querystring: RateTypeCategoryData }>,
     reply: FastifyReply
 ) {
+    const traceId=generateCustomUUID();
     try {
         const query: any = request.query as RateTypeCategoryData;
 
@@ -105,19 +109,20 @@ export async function getAllRateTypeCategory(
             items_per_page: limit,
             total_records: count,
             rate_type_category: rateTypeCategory,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: "Internal Server Error",
             error: error,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     }
 }
 
 export async function getRateTypeCategoryById(request: FastifyRequest, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const item = await RateTypeCategory.findOne({
@@ -127,7 +132,7 @@ export async function getRateTypeCategoryById(request: FastifyRequest, reply: Fa
             reply.status(200).send({
                 statusCode: 200,
                 rate_type_category: item,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: 'Rate Type Category Not Found', rate_type_category: [] });

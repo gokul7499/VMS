@@ -25,6 +25,7 @@ export async function getVendorMarkupConfigById(request: FastifyRequest, reply: 
         if (item) {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Vendor Markup Config found',
                 trace_id:traceId,
                 vendor_markup_config: item
             });
@@ -109,6 +110,7 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
 
         if (!vendorData) {
             return reply.status(200).send({
+                status_code: 200,
                 trace_id:traceId,
                 message: 'vendorMarkupConfig data not found.',
                 vendor_markup_config: [],
@@ -122,6 +124,7 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server Error',
             trace_id:traceId,
         });
@@ -136,7 +139,7 @@ export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params:
             where: { id, program_id, is_deleted: false },
         });
         if (!vendorData) {
-            return reply.status(200).send({ message: 'vendorMarkupConfig data not found.', vendor_markup_config: [] });
+            return reply.status(200).send({status_code:200, message: 'vendorMarkupConfig data not found.', vendor_markup_config: [] ,trace_id:traceId });
         }
         await vendorData.update({ is_enabled: false, is_deleted: true });
         reply.status(204).send({
@@ -155,7 +158,7 @@ export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params:
 }
 
 export async function calculateAverageVendorMarkupConfig(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
 
@@ -190,7 +193,7 @@ export async function calculateAverageVendorMarkupConfig(request: FastifyRequest
         if (!markupData) {
             return reply.status(200).send({
                 status_code: 200,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
                 markup_aggregate: {},
                 message: 'No markups found for vendors.',
             });
@@ -228,12 +231,13 @@ export async function calculateAverageVendorMarkupConfig(request: FastifyRequest
                 max_bill_rate,
                 average_bill_rate
             },
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: (error as Error).message,
-            trace_id,
+            trace_id:traceId,
         });
     }
 }

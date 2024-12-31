@@ -9,10 +9,9 @@ import {
 } from "../controllers/configuration.controller";
 
 async function configurationRoutes(fastify: FastifyInstance) {
-
-  fastify.get("/configuration/", getConfigurations,);
+  fastify.get("/configuration", getConfigurations,);
   fastify.get("/configuration/:id", getConfigurationById,);
-  fastify.post("/configuration/", createConfiguration);
+  fastify.post("/configuration", createConfiguration);
   fastify.put("/configuration/:id", updateConfiguration,);
   fastify.delete("/configuration/:id", deleteConfiguration,);
 }

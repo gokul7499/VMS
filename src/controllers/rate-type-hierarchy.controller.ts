@@ -6,6 +6,7 @@ import generateCustomUUID from "../utility/genrateTraceId"
 
 export async function getDataById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const data = await RateTypeHierarchy.findOne({
             where: {
@@ -18,7 +19,7 @@ export async function getDataById(request: FastifyRequest, reply: FastifyReply) 
             reply.status(200).send({
                 status_code: 200,
                 data: data,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Hierarchy Not Found", data: [] });
@@ -30,6 +31,7 @@ export async function getDataById(request: FastifyRequest, reply: FastifyReply) 
 }
 
 export async function createData(data: Omit<RateTypeHierarchyData, "_id">, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const processedData = {
             ...data
@@ -38,7 +40,7 @@ export async function createData(data: Omit<RateTypeHierarchyData, "_id">, reply
         reply.status(201).send({
             status_code: 201,
             data: newItem?.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         return reply.status(500).send({ message: "Failed To Create Data", error });
@@ -48,6 +50,7 @@ export async function createData(data: Omit<RateTypeHierarchyData, "_id">, reply
 export async function updateData(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const Data = request.body as RateTypeHierarchyData;
+    const traceId=generateCustomUUID();
     try {
         const data: RateTypeHierarchy | null = await RateTypeHierarchy.findByPk(id);
         if (data) {
@@ -55,7 +58,7 @@ export async function updateData(request: FastifyRequest, reply: FastifyReply) {
             reply.status(200).send({
                 status_code: 200,
                 id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Hierarchy Not Found",data:[] });
@@ -68,6 +71,7 @@ export async function updateData(request: FastifyRequest, reply: FastifyReply) {
 
 export async function deleteData(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const field = await RateTypeHierarchy.findByPk(id);
         if (field) {
@@ -75,7 +79,7 @@ export async function deleteData(request: FastifyRequest, reply: FastifyReply) {
             reply.status(200).send({
                 status_code: 200,
                 id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Hierarchy Not Found",data:[] });

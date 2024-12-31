@@ -6,6 +6,7 @@ import generateCustomUUID from "../utility/genrateTraceId"
 
 export async function getDataById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const data = await RateTypeJobTemplate.findOne({
             where: {
@@ -18,7 +19,7 @@ export async function getDataById(request: FastifyRequest, reply: FastifyReply) 
             reply.status(200).send({
                 status_code: 200,
                 data: data,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Job Template Not Found", data: [] });
@@ -30,6 +31,7 @@ export async function getDataById(request: FastifyRequest, reply: FastifyReply) 
 }
 
 export async function createData(data: Omit<RateTypeJobTemplateData, "_id">, reply: FastifyReply) {
+    const traceId=generateCustomUUID();
     try {
         const processedData = {
             ...data
@@ -38,7 +40,7 @@ export async function createData(data: Omit<RateTypeJobTemplateData, "_id">, rep
         reply.status(201).send({
             status_code: 201,
             data: newItem?.id,
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
         });
     } catch (error) {
         return reply.status(500).send({ message: "Failed To Create Data", error });
@@ -48,6 +50,7 @@ export async function createData(data: Omit<RateTypeJobTemplateData, "_id">, rep
 export async function updateData(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const Data = request.body as RateTypeJobTemplateData;
+    const traceId=generateCustomUUID();
     try {
         const data: RateTypeJobTemplate | null = await RateTypeJobTemplate.findByPk(id);
         if (data) {
@@ -55,7 +58,7 @@ export async function updateData(request: FastifyRequest, reply: FastifyReply) {
             reply.status(200).send({
                 status_code: 200,
                 id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Job Template Not Found",data:[] });
@@ -68,6 +71,7 @@ export async function updateData(request: FastifyRequest, reply: FastifyReply) {
 
 export async function deleteData(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    const traceId=generateCustomUUID();
     try {
         const field = await RateTypeJobTemplate.findByPk(id);
         if (field) {
@@ -75,7 +79,7 @@ export async function deleteData(request: FastifyRequest, reply: FastifyReply) {
             reply.status(200).send({
                 status_code: 200,
                 id: id,
-                trace_id: generateCustomUUID(),
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ message: "Rate Type Job Template Not Found",data:[] });

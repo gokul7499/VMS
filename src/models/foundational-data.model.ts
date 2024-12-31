@@ -3,7 +3,6 @@ import { sequelize } from '../config/instance';
 import FoundationalDataTypes from './foundational-datatypes.model';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { beforeSave } from '../hooks/timeFormatHook';
 import User from './user.model';
 
 class FoundationalData extends Model {
@@ -38,12 +37,10 @@ FoundationalData.init({
     },
     created_on: {
         type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
         allowNull: false,
     },
     modified_on: {
         type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
         allowNull: false,
     },
     created_by: {
@@ -96,10 +93,7 @@ FoundationalData.init({
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
-        },
-        beforeSave: (instance) => {
-            beforeSave(instance);
-        },
+        }
     },
 });
 

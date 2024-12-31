@@ -18,21 +18,21 @@ export const createVendorDistributionSchedule = async (
     const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -62,7 +62,7 @@ export const createVendorDistributionSchedule = async (
             return reply.status(409).send({
                 status_code: 409,
                 message: 'A vendor distribution schedule with this name already exists in the program.',
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -86,7 +86,7 @@ export const createVendorDistributionSchedule = async (
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -108,12 +108,12 @@ export const createVendorDistributionSchedule = async (
             status_code: 201,
             message: 'Vendor Distribution Schedule created successfully.',
             id: newVendorSchedule.id,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -134,7 +134,7 @@ export const createVendorDistributionSchedule = async (
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error.',
-            trace_id,
+            trace_id:traceId,
             error: error
         });
     }
@@ -150,6 +150,7 @@ export const getVendorDistributionScheduleById = async (
     request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
 
@@ -160,9 +161,10 @@ export const getVendorDistributionScheduleById = async (
 
         if (!vendorDistributionSchedule) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
                 vendor_schedule: [],
+                trace_id: traceId
             });
         }
 
@@ -202,21 +204,23 @@ export const getVendorDistributionScheduleById = async (
         };
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Vendor Distribution Schedule fetched successfully.',
             vendor_schedule: responseData,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
+            trace_id: traceId,
         });
     }
 };
 
 export const deleteVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+        const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const [vendorSchedule] = await vendorDistributionScheduleModel.update(
@@ -240,13 +244,13 @@ export const deleteVendorDistributionSchedule = async (
             reply.status(200).send({
                 status_code: 200,
                 message: "Vendor Distribution Schedule deleted successfully.",
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         } else {
             reply.status(204).send({
                 status_code: 204,
                 message: "Vendor Distribution Schedule not found.",
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
                 vendor_schedule: [],
             });
         }
@@ -255,7 +259,7 @@ export const deleteVendorDistributionSchedule = async (
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
             error,
         });
     }
@@ -265,6 +269,7 @@ export const updateVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const updateData = request.body as updateVendorDistributionScheduleDetail;
@@ -275,10 +280,10 @@ export const updateVendorDistributionSchedule = async (
 
         if (!vendorDistributionSchedule) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
                 vendorDistributionSchedule: [],
-                trace_id: generateCustomUUID(),
+                trace_id:traceId,
             });
         }
 
@@ -293,9 +298,9 @@ export const updateVendorDistributionSchedule = async (
 
             if (existingSchedule) {
                 return reply.status(409).send({
-                    statusCode: 409,
+                    status_code: 409,
                     message: 'A vendor distribution schedule with this name already exists.',
-                    trace_id: generateCustomUUID(),
+                    trace_id:traceId,
                 });
             }
         }
@@ -348,16 +353,16 @@ export const updateVendorDistributionSchedule = async (
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Vendor Distribution Schedule updated successfully.',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     }
 };
@@ -376,6 +381,7 @@ export const getVendorDistributionScheduleByIds = async (
     }>,
     reply: FastifyReply
 ) => {
+    const traceId=generateCustomUUID();
     try {
         const { program_id, id } = request.params;
 
@@ -392,9 +398,10 @@ export const getVendorDistributionScheduleByIds = async (
 
         if (!vendorDistributionSchedule) {
             return reply.status(404).send({
-                statusCode: 404,
+                status_code: 404,
                 message: 'Vendor Distribution Schedule not found.',
                 vendor_schedule: [],
+                trace_id:traceId,
             });
         }
 
@@ -448,16 +455,17 @@ export const getVendorDistributionScheduleByIds = async (
         };
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Vendor Distribution Schedule fetched successfully.',
             vendor_schedule: responseData,
-            trace_id: generateCustomUUID(),
+            trace_id:traceId,
         });
     } catch (error) {
         console.error(error);
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
+            trace_id: traceId,
         });
     }
 };

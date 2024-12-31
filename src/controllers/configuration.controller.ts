@@ -2,8 +2,9 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import Configuration from "../models/configuration.model";
 import { ConfigurationAttributes } from "../interfaces/configuration.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { logger } from '../utility/loggerService';
-import { decodeToken } from '../middlewares/verifyToken';
+import generateSlug from '../plugins/slugGenerate';
+import { logger } from "../utility/loggerService";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export const getConfigurations = async (
   request: FastifyRequest,
@@ -58,9 +59,7 @@ export const getConfigurationById = async (
   }
 };
 
-export const createConfiguration = async (
-  request: FastifyRequest,
-  reply: FastifyReply) => {
+export const createConfiguration = async (request: FastifyRequest, reply: FastifyReply) => {
   const configData = request.body as Partial<ConfigurationAttributes>;
   const { program_id } = request.body as { program_id: string };
   const traceId = generateCustomUUID();
@@ -100,13 +99,27 @@ export const createConfiguration = async (
   );
 
   try {
-    const newConfiguration: any = await Configuration.create(configData);
+    const key = generateSlug(configData.title ?? '', {
+      lowercase: true,
+      trim: true,
+      removedspecial: true,
+    });
 
+    if (configData.config_model) {
+      configData.config_model = configData.config_model.toLowerCase();
+    }
+
+    if (configData.key) {
+      configData.key = configData.key.toLowerCase();
+    }
+
+    const newConfiguration: any = await Configuration.create({ ...configData, key });
 
     reply.status(201).send({
       status_code: 201,
       message: "Configuration data created successfully",
       configuration: newConfiguration?.id,
+      trace_id: traceId,
     });
 
 

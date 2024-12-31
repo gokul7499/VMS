@@ -10,7 +10,8 @@ import {
     updateReplaceLevel,
     rejectLevel,
     getUpdateWorkflowApprovals,
-    imporsonateLevel
+    imporsonateLevel,
+    getModuleEvent
 } from '../controllers/job-workflow.controller';
 
 async function JobWorkFlowRoutes(fastify: FastifyInstance) {
@@ -25,6 +26,7 @@ async function JobWorkFlowRoutes(fastify: FastifyInstance) {
     fastify.delete('/program/:program_id/job-workflow/:id', deleteJobWorkFlow);
     fastify.get('/program/:program_id/workflow-approval', getWorkflowForJob);
     fastify.get('/program/:program_id/update-workflow-approval', getUpdateWorkflowApprovals);
+    fastify.get('/program/:program_id/get-module-event', getModuleEvent)
 }
 
 export default JobWorkFlowRoutes;

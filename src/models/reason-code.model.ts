@@ -1,19 +1,14 @@
-import { DataTypes, Model } from 'sequelize';
-import { sequelize } from '../config/instance';
-import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from './programs.model';
-import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-import { Module } from './module.model';
-import Event from './event.model';
+import { DataTypes, Model } from "sequelize";
+import { sequelize } from "../config/instance";
+import ReasonCodeActionModel from "./reason-code-action.model";
+import { Programs } from "./programs.model";
 
-class ReasoncodeModel extends Model {
-    id: any;
-    program_id: any;
-    module_id: any;
-    event_id: any;
+
+class ReasonCodeModel extends Model {
+    id?: any;
 }
 
-ReasoncodeModel.init(
+ReasonCodeModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -21,22 +16,9 @@ ReasoncodeModel.init(
             allowNull: false,
             primaryKey: true,
         },
-        reasons_count: {
-            type: DataTypes.INTEGER,
-            defaultValue: 0,
-        },
-        created_by: {
-            type: DataTypes.JSON,
-            allowNull: true,
-
-        },
-        modified_by: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        reason_code_limit: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false,
         },
         created_on: {
             type: DataTypes.DOUBLE,
@@ -44,12 +26,26 @@ ReasoncodeModel.init(
         modified_on: {
             type: DataTypes.DOUBLE,
         },
-        ref_id: {
-            type: DataTypes.UUID,
+        created_by: {
+            type: DataTypes.JSON,
         },
-        is_deleted: {
+        modified_by: {
+            type: DataTypes.JSON,
+        },
+        is_enabled: {
             type: DataTypes.BOOLEAN,
-            defaultValue: false,
+        },
+        category: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        reason_code_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: ReasonCodeActionModel,
+                key: 'id'
+            }
         },
         program_id: {
             type: DataTypes.UUID,
@@ -59,46 +55,18 @@ ReasoncodeModel.init(
                 key: 'id',
             },
         },
-        event_id: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: 'event',
-                key: 'id',
-            },
-        },
-        module_id: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references:
-            {
-                model: 'module',
-                key: 'id',
-            },
-        },
-        reason: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
     },
     {
         sequelize,
-        modelName: 'reason_codes',
+        tableName: "reason_codes",
+        modelName: "reason_codes",
         timestamps: false,
-        hooks: {
-            beforeValidate: (instance) => {
-                convertEmptyStringsToNull(instance);
-            },
-            beforeSave: (instance) => {
-                beforeSave(instance);
-            },
-        },
+
+
     }
 );
 
 sequelize.sync();
-ReasoncodeModel.belongsTo(Programs, { foreignKey: 'program_id' });
-ReasoncodeModel.belongsTo(Module, { foreignKey: 'module_id', as: 'module' });
-ReasoncodeModel.belongsTo(Event, { foreignKey: 'event_id', as: 'supporting_text_event' });
-
-export default ReasoncodeModel;
+ReasonCodeModel.belongsTo(Programs, { foreignKey: 'program_id' });
+ReasonCodeModel.belongsTo(ReasonCodeActionModel, { foreignKey: "reason_code_id", as: "reason_codes" })
+export default ReasonCodeModel;
