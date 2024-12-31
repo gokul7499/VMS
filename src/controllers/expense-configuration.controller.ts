@@ -394,7 +394,7 @@ export async function expenseConfigurationAdvancedFilter(
     }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
         const { config_name, status, modified_on, hierarchy_ids, page, limit } = request.body;
@@ -446,7 +446,7 @@ export async function expenseConfigurationAdvancedFilter(
                 status_code: 201,
                 total_records: transformedData.length,
                 items: transformedData,
-                trace_id,
+                trace_id:traceId,
                 pagination: {
                     page: pageNumber,
                     limit: limitNumber,
@@ -454,10 +454,10 @@ export async function expenseConfigurationAdvancedFilter(
                 },
             });
         } else {
-            return reply.status(200).send({status_code:200, message: 'No records found', items: [], trace_id });
+            return reply.status(200).send({status_code:200, message: 'No records found', items: [], trace_id:traceId });
         }
     } catch (error: any) {
-        return reply.status(500).send({ status_code:500,message: 'Internal Server Error', trace_id, error: error.message });
+        return reply.status(500).send({ status_code:500,message: 'Internal Server Error', trace_id:traceId, error: error.message });
     }
 
 

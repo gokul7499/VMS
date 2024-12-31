@@ -51,13 +51,19 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
 
     reply.send({
       status_code: 200,
+      message: "program module Data found",
       data: program,
       trace_id: traceId,
     });
   } catch (error) {
     console.log(error);
 
-    return reply.status(500).send({ error });
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error
+    });
   }
 };
 
@@ -127,7 +133,12 @@ export const getProgramModuleByIdAndQuery = async (
     });
   } catch (error) {
     console.log(error);
-    return reply.status(500).send({ error });
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error
+    });
   }
 };
 
@@ -175,13 +186,19 @@ export const getProgramModuleByProgramId = async (
     }));
 
     return reply.send({
-      statusCode: 200,
+      status_code: 200,
       modules: transformedModules,
       trace_id: traceId,
+      message: " Modules retrieved successfully",
     });
   } catch (error) {
     console.log(error);
-    return reply.status(500).send({ error });
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Internal server error",
+      error,
+      trace_id: traceId
+    });
   }
 };
 
@@ -246,11 +263,17 @@ export const getProgramModuleByIdAndQueryForWorkFlow = async (
 
     reply.send({
       status_code: 200,
+      message: " Program data retrieved successfully",
       data: programResponse,
       trace_id: traceId,
     });
   } catch (error) {
     console.log(error);
-    return reply.status(500).send({ error });
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error
+    });
   }
 };

@@ -12,6 +12,7 @@ export const createRecipientType = async (request: FastifyRequest, reply: Fastif
         const RecipientTypesData: any = await RecipientType.create({ ...RecipientTypesDataPayload, program_id });
         reply.status(201).send({
             status_code: 201,
+            message:" Recipient Type created successfully",
             Recipient_type: {
                 id: RecipientTypesData?.id,
                 name: RecipientTypesData?.name,
@@ -19,7 +20,7 @@ export const createRecipientType = async (request: FastifyRequest, reply: Fastif
             trace_id: traceId,
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error While Creating RecipientType', error, trace_id: traceId });
+        reply.status(500).send({status_code:500, message: 'Error While Creating RecipientType', error, trace_id: traceId });
     }
 };
 
@@ -40,10 +41,10 @@ export const updateRecipientType = async (request: FastifyRequest, reply: Fastif
                 message: 'RecipientType Updated Successfully.',
             });
         } else {
-            reply.status(200).send({ message: 'RecipientType Data Not Found.' });
+            reply.status(200).send({status_code:200, message: 'RecipientType Data Not Found.',trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: ' An Error Occurred While Updating The RecipientType', error, trace_id: traceId });
+        reply.status(500).send({status_code:500, message: ' An Error Occurred While Updating The RecipientType', error, trace_id: traceId });
     }
 }
 
@@ -56,7 +57,7 @@ export const deleteRecipientType = async (request: FastifyRequest, reply: Fastif
         });
 
         if (!data) {
-            return reply.status(200).send({ message: 'RecipientType Data Not Found' });
+            return reply.status(200).send({status_code:200, message: 'RecipientType Data Not Found',trace_id:traceId });
         }
 
         await data.update({ is_enabled: false, is_deleted: true });
@@ -67,7 +68,7 @@ export const deleteRecipientType = async (request: FastifyRequest, reply: Fastif
             message: 'RecipientType Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting RecipientType Data', error, trace_id: traceId });
+        reply.status(500).send({status_code:500, message: 'Error Deleting RecipientType Data', error, trace_id: traceId });
     }
 }
 
@@ -106,7 +107,8 @@ export async function getAllRecipientTypes(
             });
         }
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message:" RecipientType Retrieved Successfully",
             items_per_page: limit,
             total_records: count,
             Receipient_type: Receipient_type,
@@ -114,7 +116,7 @@ export async function getAllRecipientTypes(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server error",
             error: error,
             trace_id: traceId,
@@ -152,12 +154,15 @@ export async function getRecipientTypes(
         });
         if (Receipient_type.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "RecipientType Not Found",
-                Recipient_type: []
+                Recipient_type: [],
+                trace_id: traceId,
             });
         }
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "RecipientType Found",
             items_per_page: limit,
             total_records: count,
             Receipient_type: Receipient_type,
@@ -165,7 +170,7 @@ export async function getRecipientTypes(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server error",
             error: error,
             trace_id: traceId,
@@ -182,14 +187,15 @@ export async function getRecipientTypeById(request: FastifyRequest, reply: Fasti
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: "RecipientType Found",
                 Receipient_type: item,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: 'RecipientType Data Not Found', workflow: [] });
+            reply.status(200).send({status_code:200, message: 'RecipientType Data Not Found', workflow: [],trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Fetching RecipientType Data.', error });
+        reply.status(500).send({status_code:500, message: 'An Error Occurred While Fetching RecipientType Data.', error ,trace_id:traceId});
     }
 }

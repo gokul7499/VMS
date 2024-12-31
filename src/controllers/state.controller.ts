@@ -23,8 +23,10 @@ export async function createState(
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while creating fees configuration',
-            error
+            error,
+            trace_id: traceId,
         });
     }
 }
@@ -60,6 +62,7 @@ export async function createStateBulk(
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while creating states',
             error,
             trace_id: traceId,
@@ -93,11 +96,12 @@ export async function getStateById(
             reply.status(200).send({
                 status_code: 200,
                 message: "state data not found",
-                states: []
+                states: [],
+                trace_id: traceId,
             });
         }
     } catch (error) {
-        reply.status(500).send({ message: "An error occurred while fetching state", error });
+        reply.status(500).send({status_code:500, message: "An error occurred while fetching state", error ,trace_id:traceId});
     }
 }
 export async function updateStateById(request: FastifyRequest, reply: FastifyReply) {
@@ -109,7 +113,7 @@ export async function updateStateById(request: FastifyRequest, reply: FastifyRep
             where: { id }
         });
         if (states === 0) {
-            return reply.status(200).send({ message: "state data not found", trace_id: traceId, states: [] });
+            return reply.status(200).send({status_code:200, message: "state data not found", trace_id: traceId, states: [] });
         }
         return reply.status(201).send({
             status_code: 201,
@@ -118,7 +122,7 @@ export async function updateStateById(request: FastifyRequest, reply: FastifyRep
             trace_id: traceId
         });
     } catch (error) {
-        return reply.status(500).send({ message: "Internal Server Error", trace_id:traceId, error });
+        return reply.status(500).send({status_code:500, message: "Internal Server Error", trace_id:traceId, error });
     }
 }
 
@@ -147,11 +151,11 @@ export async function deleteStatesById(
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: "state not found", trace_id: traceId, states: [] });
+            reply.status(200).send({status_code:200, message: "state not found", trace_id: traceId, states: [] });
         }
     } catch (error) {
         console.error("Error deleting state:", error);
-        reply.status(500).send({ message: "An error occurred while deleting state", error });
+        reply.status(500).send({status_code:500, message: "An error occurred while deleting state", error ,trace_id:traceId});
     }
 }
 
@@ -189,7 +193,7 @@ export async function getAllStatesByProgramId(
             reply.status(200).send({ status_code: 200, message: "No states found for the given country_id(s)",states:[],trace_id: traceId, });
         }
     } catch (error) {
-        reply.status(500).send({ status_code: 500, message: "Internal Server Error" });
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error",trace_id:traceId });
     }
 }
 

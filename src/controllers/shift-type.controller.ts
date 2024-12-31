@@ -29,6 +29,7 @@ export async function getShiftTypeById(request: FastifyRequest, reply: FastifyRe
         if (item) {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Shift Type found successfully',
                 trace_id: traceId,
                 shiftType: item
             });
@@ -77,6 +78,7 @@ export async function createShiftType(
         });
     } catch (error:any) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal server error',
             trace_id:traceId,
             error:error.message
@@ -205,18 +207,19 @@ export async function getShiftTypesByHierarchies(
         });
 
         if (result.length === 0) {
-            reply.status(200).send({ trace_id: traceId, message: "Shift types not found", shift_types: [] });
+            reply.status(200).send({status_code:200, trace_id: traceId, message: "Shift types not found", shift_types: [] });
             return;
         }
 
         reply.status(200).send({
             status_code: 200,
+            message:" Shift types found",
             trace_id: traceId,
             total_records: result.length,
             shift_types: result,
         });
     } catch (error: any) {
-        reply.status(500).send({ trace_id: traceId, error: "Internal Server Error" });
+        reply.status(500).send({status_code:500, trace_id: traceId, error: "Internal Server Error" });
     }
 }
 

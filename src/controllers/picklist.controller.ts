@@ -184,8 +184,8 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
     const programData = await Programs.findOne({ where: { id: program_id } });
     if (!programData) {
       return reply.status(404).send({
-        message: "Program not found",
         status_code: 404,
+        message: "Program not found",
         trace_id: traceId,
       });
     }
@@ -200,8 +200,8 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
       });
       if (existingPicklist) {
         return reply.status(400).send({
-          message: "Picklist with this name already exists",
           status_code: 400,
+          message: "Picklist with this name already exists",
           trace_id: traceId,
         });
       }
@@ -237,8 +237,8 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
       await transaction.commit();
 
       reply.status(201).send({
-        message: "Picklist saved successfully.",
         status_code: 201,
+        message: "Picklist saved successfully.",
         trace_id: traceId,
         id: picklist.id,
       });
@@ -488,6 +488,7 @@ export const getPicklistAndPicklistItem = async (
       const picklist = picklists[0];
       const response = {
         status_code: 200,
+        message:"Get PicklistAndPicklistItemt successfully",
         trace_id: traceId,
         picklist,
       };

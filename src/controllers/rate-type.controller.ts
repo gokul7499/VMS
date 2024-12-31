@@ -10,23 +10,23 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   const data = request.body as CreateRateTypeData;
   const { program_id } = request.params as { program_id: string };
   const { name } = request.body as CreateRateTypeData;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' ,trace_id:traceId});
   }
   logger(
     {
-      trace_id,
+      trace_id:traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -51,7 +51,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     if (existingRateTypeWithSameName) {
       logger(
         {
-          trace_id,
+          trace_id:traceId,
           actor: {
             user_name: user?.preferred_username,
             user_id: user?.sub,
@@ -72,7 +72,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       return reply.status(400).send({
         status_code: 400,
         message: "A rate type with this name already exists.",
-        trace_id,
+        trace_id:traceId,
       });
     }
 
@@ -80,7 +80,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -102,16 +102,16 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       status_code: 201,
       id: item.id,
       message: "Data created successfully",
-      trace_id,
+      trace_id:traceId,
     });
   } catch (error: any) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
-      return reply.status(400).send({ trace_id: trace_id, message: `${field} already in use!` });
+      return reply.status(400).send({status_code:400, trace_id: traceId, message: `${field} already in use!` });
     }
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -132,7 +132,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
-      trace_id,
+      trace_id:traceId,
       error: error
     });
   }
@@ -206,6 +206,7 @@ export async function getAllRateType(
 
     return reply.status(200).send({
       status_code: 200,
+      message:" Rate Type get successfully",
       items_per_page: limit,
       total_records: count,
       rate_type: rateTypeResponse,
@@ -251,6 +252,7 @@ export async function getRateTypeById(
     if (rateTypes) {
       return reply.status(200).send({
         status_code: 200,
+        message: "Rate Type get successfully",
         rate_type: rateTypes,
         trace_id:traceId,
       });
@@ -408,6 +410,7 @@ export async function getRateTBYId(
     if (rateTypes && rateTypes.length > 0) {
       return reply.status(200).send({
         status_code: 200,
+        message:" Rate types found",
         rate_type: rateTypes,
         trace_id: traceId,
       });
