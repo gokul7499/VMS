@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import FieldOperatorModel from '../models/field-operator-model';
-import { FieldOperatorData } from '../interfaces/field-operator-interface';
+import FieldOperatorModel from '../models/field-operator.model';
+import { FieldOperatorData } from '../interfaces/field-operator.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 

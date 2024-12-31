@@ -5,7 +5,7 @@ import {
     deleteFieldOperator,
     getAllFieldOperator,
     getFieldOperatorById,
-} from '../controllers/field-operator-controller';
+} from '../controllers/field-operator.controller';
 
 async function fieldOperatorRoutes(fastify: FastifyInstance) {
     fastify.post('/field-operator', async (request, reply) => {
