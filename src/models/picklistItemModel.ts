@@ -4,6 +4,7 @@ import { Programs } from './programs.model';
 
 class PicklistItemModel extends Model {
   id: any;
+  value:any;
 }
 
 PicklistItemModel.init({

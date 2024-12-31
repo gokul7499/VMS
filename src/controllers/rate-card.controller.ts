@@ -5,9 +5,9 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { sequelize } from '../config/instance';
 import hierarchies from "../models/hierarchies.model";
 import jobTemplateModel from "../models/jobTemplateModel";
-import { rateType } from "../models/rate-type.model";
+import rateType from "../models/rate-type.model";
 import Currencies from "../models/currencies.model";
-import IndustriesModel from "../models/industries.model";
+import IndustriesModel from "../models/labour-category.model";
 
 export const createRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();

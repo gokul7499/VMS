@@ -1,3 +1,5 @@
+import { QueryTypes } from "sequelize";
+import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
@@ -1567,4 +1569,62 @@ INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
 INNER JOIN hierarchies h ON eth.hierarchy = h.id
 WHERE ec.program_id = :program_id
  AND ec.id=ec.id;
-`
+`;
+
+export const getAllRateConfigurationsQuery = async (replacements: any) => {
+    let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
+
+    if (replacements.name) {
+        whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
+    }
+    if (replacements.is_enabled !== undefined) {
+        whereConditions += ` AND rc.is_enabled = :is_enabled`;
+    }
+    if (replacements.is_shift_rate !== undefined) {
+        whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
+    }
+    if (replacements.startDate && replacements.endDate) {
+        whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    }
+
+    const sqlQuery = `
+      SELECT 
+        rc.id AS rate_configuration_id,
+        rc.name,
+        rc.is_enabled,
+        rc.is_shift_rate,
+        rc.created_on,
+        rc.modified_on,
+        h.hierarchies,
+        jt.job_templates,
+        rt.base_rates
+      FROM 
+        rate_configurations AS rc
+      LEFT JOIN (
+        SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
+        FROM rate_configuration_hierarchies AS rch
+        LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
+        GROUP BY rch.rate_configuration_id
+      ) AS h ON h.rate_configuration_id = rc.id
+      LEFT JOIN (
+        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
+        FROM rate_configuration_job_templates AS rcjt
+        LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
+        GROUP BY rcjt.rate_configuration_id
+      ) AS jt ON jt.rate_configuration_id = rc.id
+      LEFT JOIN (
+        SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
+        FROM rate_configuration_base_rate_types AS rcbt
+        LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
+        GROUP BY rcbt.rate_configuration_id
+      ) AS rt ON rt.rate_configuration_id = rc.id
+      WHERE ${whereConditions}
+      ORDER BY rc.created_on DESC
+      LIMIT :limit OFFSET :offset;
+    `;
+
+    return await sequelize.query(sqlQuery, {
+        replacements,
+        type: QueryTypes.SELECT,
+    });
+};

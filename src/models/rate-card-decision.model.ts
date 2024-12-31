@@ -4,7 +4,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import hierarchies from "./hierarchies.model";
 import jobTemplateModel from "./jobTemplateModel";
-import { rateType } from "./rate-type.model";
+import rateType from "./rate-type.model";
 import Currencies from "./currencies.model";
 
 class DecisionTable extends Model {
