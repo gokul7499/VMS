@@ -8,7 +8,7 @@ import CustomField from '../models/custom-fields.model';
 export const saveCustomFieldsHierarchie = async (
   request: FastifyRequest<{}>,
   reply: FastifyReply) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { ...customFieldData } = request.body as CustomFieldHierarchieInterface;
 
   try {
@@ -23,13 +23,13 @@ export const saveCustomFieldsHierarchie = async (
         id: item.id,
       },
       message: 'Custom field hierarchie created successfully',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: error.message
     });
   }
@@ -37,13 +37,13 @@ export const saveCustomFieldsHierarchie = async (
 
 export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
   const { id, program_id } = request.params;
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return;
   }
@@ -59,20 +59,20 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
         status_code: 200,
         customField: customfiedData,
         message: 'Custom Fields Hierarchie Get Successfully',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Custom Fields hierarchie Type Not Found',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: (error as Error).message,
     });
   }
@@ -82,7 +82,7 @@ export const updateCustomFieldById = async (
   request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFieldHierarchieInterface }>,
   reply: FastifyReply
 ) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
 
@@ -90,7 +90,7 @@ export const updateCustomFieldById = async (
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
     return;
   }
@@ -104,27 +104,27 @@ export const updateCustomFieldById = async (
       reply.status(201).send({
         status_code: 201,
         message: "Custom field hierarchie updated successfully.",
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Custom Fields hierarchie not found', customField: [],
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error: Failed to update Custom Fields',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 };
 
 export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   const { id } = request.params;
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const customFieldItem = await customFieldHierarchie.findByPk(id);
     if (customFieldItem) {
@@ -136,20 +136,20 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
       reply.status(204).send({
         status_code: 204,
         message: 'custom Field hierarchie Deleted Successfully',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(404).send({
         status_code: 404,
         message: 'custom Field Not Found',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: error
     });
   }
@@ -323,6 +323,7 @@ export const getCustomFieldsByHierarchyIds = async (
     const response: Record<string, any> = {
       status_code: 200,
       trace_id: traceId,
+      message:"Custom feild get successfully",
       program_id,
       total_record: Object.keys(result).length,
       custom_fields: is_status ? Object.keys(result).length : result,

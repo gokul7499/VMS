@@ -28,6 +28,7 @@ export async function getExpenseConfigurations(
                 'id',
                 'config_name',
                 'status',
+                'is_enabled',
                 'program_id',
                 'thresholds',
                 'remove_msp_access_general',
@@ -71,6 +72,7 @@ export async function getExpenseConfigurations(
         });
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: 'Internal Server Error',
             trace_id: traceId,
             error: (error as Error).message,
@@ -149,11 +151,11 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
 
         const expenseConfigData = await ExpenseConfigurationModel.create({ ...expenseConfig, program_id });
         if (Array.isArray(expenseConfig.expense_item_type_config) && expenseConfig.expense_item_type_config.length > 0) {
-            for (const expenseType of expenseConfig.expense_item_type_config) {
+            for (const expenseTypeId of expenseConfig.expense_item_type_config) {
                 await ExpenseTypeMapping.create({
                     program_id,
                     expense_config_id: expenseConfigData.id,
-                    expense_type_id: expenseType.expense_type_id,
+                    expense_type_id: expenseTypeId, 
                     created_on: new Date(),
                     modified_on: new Date(),
                 });
@@ -486,7 +488,7 @@ export async function getExpenseTypesByProgramId(
             whereCondition.expense_code = expense_code;
         }
         if (expense_item_type_config) {
-            whereCondition.expense_item_type_config = { [Op.like]: `%${expense_item_type_config}%` }; 
+            whereCondition.expense_item_type_config = { [Op.like]: `%${expense_item_type_config}%` };
         }
         const results = await ExpenseTypeMapping.findAll({
             where: whereCondition,
