@@ -11,11 +11,13 @@ export const createRateTypeCategory = async (request: FastifyRequest, reply: Fas
         const RateTypeCategoryData: any = await RateTypeCategory.create(RateTypeCategoryPayload);
         reply.status(201).send({
             status_code: 201,
+            message: 'Rate Type Category created successfully',
             rate_type_category_id: RateTypeCategoryData?.id,
             trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error While Creating Rate Type Category',
             error: error,
             trace_id: traceId,
@@ -32,15 +34,15 @@ export const updateRateTypeCategory = async (request: FastifyRequest, reply: Fas
             where: { id, is_deleted: false },
         });
         if (!data) {
-            return reply.status(200).send({ message: 'Rate Type Category Not Found.' });
+            return reply.status(200).send({status_code:200, message: 'Rate Type Category Not Found.',trace_id:traceId });
         }
         const UpdatedRateTypeCategory = await data.update(RateTypeCategoryData);
 
         if (UpdatedRateTypeCategory) {
-            reply.send({ success: true, message: 'Rate Type Category Updated Successfully.' });
+            reply.send({ success: true, message: 'Rate Type Category Updated Successfully.',trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Updating The Rate Type Category', error, trace_id: traceId });
+        reply.status(500).send({status_code:200, message: 'An Error Occurred While Updating The Rate Type Category', error, trace_id: traceId });
     }
 }
 
@@ -53,7 +55,7 @@ export const deleteRateTypeCategory = async (request: FastifyRequest, reply: Fas
         });
 
         if (!data) {
-            return reply.status(200).send({ message: 'Rate Type Category Data Not Found' });
+            return reply.status(200).send({status_code:200, message: 'Rate Type Category Data Not Found' ,trace_id:traceId});
         }
         await data.update({ is_enabled: false, is_deleted: true });
         reply.status(200).send({
@@ -63,7 +65,7 @@ export const deleteRateTypeCategory = async (request: FastifyRequest, reply: Fas
             message: 'Rate Type Category Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Rate Type Category', error, trace_id: traceId});
+        reply.status(500).send({status_code:500, message: 'Error Deleting Rate Type Category', error, trace_id: traceId});
     }
 }
 
@@ -105,7 +107,8 @@ export async function getAllRateTypeCategory(
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message:" Rate Type Category Retrieved Successfully",
             items_per_page: limit,
             total_records: count,
             rate_type_category: rateTypeCategory,
@@ -113,7 +116,7 @@ export async function getAllRateTypeCategory(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server Error",
             error: error,
             trace_id: traceId,
@@ -130,14 +133,15 @@ export async function getRateTypeCategoryById(request: FastifyRequest, reply: Fa
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: "Rate Type Category Retrieved Successfully",
                 rate_type_category: item,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Rate Type Category Not Found', rate_type_category: [] });
+            reply.status(200).send({status_code:200, message: 'Rate Type Category Not Found', rate_type_category: [] ,trace_id:traceId});
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Fetching Rate Type Category', error });
+        reply.status(500).send({status_code:500, message: 'An Error Occurred While Fetching Rate Type Category', error,trace_id:traceId });
     }
 }
