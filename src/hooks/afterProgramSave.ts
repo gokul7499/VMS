@@ -4,7 +4,7 @@ import { Module } from '../models/module.model';
 import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';
 import qualificationTypeModel from '../models/qualification-type-model'
-import { rateType } from '../models/rate-type.model';
+import rateType from '../models/rate-type.model';
 import { sequelize } from '../config/instance';
 import { fetchProgramConfigValues } from '../utility/queries';
 
@@ -23,10 +23,11 @@ export const createProgramModule = async (record: Model) => {
     await ProgramModule.create({
         program_id: (record as any).id,
         modules: module,
-    });
+
+            });
+    
 };
 
-//create hierarchy for program
 export const createHierarchy = async (record: Model) => {
     const { id: programId, name } = record as any;
     console.log("program", programId);
@@ -55,7 +56,7 @@ export const createHierarchy = async (record: Model) => {
         hierarchy_level: 1,
         hierarchy_order: 1,
         is_enabled: true,
-        rate_model:rateModel,
+        rate_model: rateModel,
         preferred_date_format: preferredDateFormat,
         is_vendor_neutral: false,
         is_rate_card_enforced: false,
@@ -92,31 +93,27 @@ export const createQualificationTypes = async (record: Model) => {
 };
 
 export const createRateTypes = async (record: Model) => {
+    const picklistItemResult = await sequelize.query<{ id: any }>(
+        `SELECT id 
+         FROM picklistitems
+         WHERE defined_by = 'predefined' 
+           AND label = 'Standard'
+         LIMIT 1`,
+        { type: QueryTypes.SELECT }
+    );
+    const picklistItemId = picklistItemResult[0].id;
+
     await rateType.create({
         program_id: (record as any).id,
-        name: "Standard",
-        type: "Standard",
-        description: "standard bill rate and pay rate",
-        bill_rate: [
-            {
-                "differential_type": "Factor Differential",
-                "differential_on": "Bill Rate",
-                "differential_value": 1.00
-            }
-        ],
-        pay_rate: [
-            {
-                "differential_type": "Fixed Differential",
-                "differential_on": "Pay Rate",
-                "differential_value": 1.00
-            }
-        ],
+        name: "Standard Rate",
+        rate_type_category: picklistItemId,
+        rate: null,
         abbreviation: "ST",
         is_enabled: true,
         is_deleted: false,
         is_shift_rate: false,
-        is_billable: true,
+        is_base_rate: true,
         created_by: (record as any).created_by,
         modified_by: (record as any).modified_by,
     });
-}
+} 

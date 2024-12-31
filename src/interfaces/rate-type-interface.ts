@@ -1,30 +1,51 @@
-import { UUID } from "crypto";
-import { CharDataType, DoubleDataType } from "sequelize";
-
-export interface CreateRateTypeData {
+export interface RateTypeInterface {
+    type: any;
     id: string;
     name: string;
-    program_id: string,
-    description: string;
-    bill_rate?: JSON;
-    pay_rate?: JSON;
-    shift_rate: any
     is_enabled?: boolean;
-    is_deleted?: boolean;
-    created_on?: DoubleDataType;
-    modified_on?: DoubleDataType;
-    created_by?: CharDataType;
-    modified_by?: CharDataType;
-    abbreviation?: string;
-    ref_order?: Int16Array;
-    ot_exemption: boolean;
-    type?: string;
-    edit_rate_factors?: boolean;
-    hide_rate_factors?: boolean;
-    billable?: boolean;
-    ordering?: DoubleDataType;
-    is_shift_rate?: boolean;
-    shift_category?: string;
-    ref_id?: UUID;
-    expense_rate?:object;
+    is_deleted: boolean;
+    created_on?: number;
+    modified_on?: number;
+    created_by?: string | null;
+    modified_by?: string | null;
+    abbreviation?: string | null;
+    shift_type?: string | null;
+    is_shift_rate?: boolean | null;
+    rate?:Rate;
+    is_base_rate?: boolean | null;
+    program_id?: string | null;
+    rate_type_category?: string | null;
+    differential_on?: string;
+    page?: string;
+    limit?: string;
+    base_differential_on?: string;
+    differential_type?: string;
+    differential_value: number;
+}
+export interface CreateRateTypeData {
+    type: any;
+    id: string;
+    name: string;
+    is_enabled?: boolean;
+    is_deleted: boolean;
+    created_on?: number;
+    modified_on?: number;
+    created_by?: string | null;
+    modified_by?: string | null;
+    abbreviation?: string | null;
+    shift_type?: string | null;
+    is_shift_rate?: boolean | null;
+    rate?:Rate;
+    is_base_rate?: boolean | null;
+    program_id?: string | null;
+    rate_type_category?: string | null;
+    differential_on?: string;
+    page?: string;
+    limit?: string;
+}
+interface Rate{
+    differential_on?:string;
+    base_differential_on?:string;
+    differential_type?:string;
+    differential_value:number;
 }
