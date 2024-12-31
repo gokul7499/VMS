@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from "./programs.model";
-import IndustriesModel from './industries.model';
+import IndustriesModel from './labour-category.model';
 
 class RateCard extends Model {
     id: any;
