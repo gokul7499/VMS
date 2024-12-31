@@ -1406,6 +1406,7 @@ export const getExpenseType = `
     et.apply_msp_fee,
     et.appply_tax,
     et.allow_unit_based,
+    et.id AS expense_type_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', h.id,

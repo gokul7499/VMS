@@ -17,24 +17,24 @@ import { createHierarchy } from "../hooks/afterProgramSave";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' ,trace_id:traceId});
   }
 
   logger(
     {
-      trace_id,
+      trace_id:traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -57,12 +57,12 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       status_code: 201,
       id: item.id,
       message: "Program Created Successfully",
-      trace_id: trace_id,
+      trace_id:traceId,
     });
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -100,7 +100,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
         logger(
           {
-            trace_id,
+            trace_id:traceId,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -122,13 +122,13 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
-      trace_id: trace_id,
+      trace_id: traceId,
       error: error,
     });
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -197,12 +197,11 @@ export const getAllProgram = async (
       },
     });
     if (programs.length === 0) {
-      return reply
-        .status(200)
-        .send({ message: "Programs not found", programs: [] });
+      return reply.status(200).send({status_code:200, message: "Programs not found", programs: [],trace_id:traceId });
     }
     reply.status(200).send({
       status_code: 200,
+      message: "Programs found",
       items_per_page: limit,
       total_records: count,
       programs: programs,

@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from "./programs.model";
+import IndustriesModel from './industries.model';
 
 class RateCard extends Model {
     id: any;
@@ -21,10 +22,10 @@ RateCard.init(
     labor_category_id: {
       type: DataTypes.UUID,
       allowNull: true,
-      // references: {
-      //   model: IndustriesModel,
-      //   key: "id",
-      // },
+      references: {
+        model: IndustriesModel,
+        key: "id",
+      },
     },
     program_id: {
       type: DataTypes.UUID,
@@ -75,6 +76,6 @@ RateCard.init(
 );
 sequelize.sync();
 RateCard.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-// RateCard.belongsTo(IndustriesModel, { foreignKey: "labor_category_id", as: "LaborCategory" });
+RateCard.belongsTo(IndustriesModel, { foreignKey: "labor_category_id", as: "LaborCategory" });
 
 export default RateCard;

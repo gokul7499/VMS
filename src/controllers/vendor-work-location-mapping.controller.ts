@@ -29,11 +29,13 @@ export async function getVendorWorkLocationMappingById(
             reply.status(200).send({
                 status_code: 200,
                 message: 'VendorWorkLocationMapping not found.',
-                vendor_work_location_mapping: []
+                vendor_work_location_mapping: [],
+                trace_id:traceId
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while fetching VendorWorkLocationMapping.',
             trace_id:traceId,
             error: error,
@@ -72,7 +74,7 @@ export async function updateVendorWorkLocationMapping(
     try {
         const [updatedCount] = await vendorWorkLocationMappingModel.update(request.body as vendorWorkLocationMappingInterface, { where: { program_id, id } });
         if (updatedCount > 0) {
-            reply.send({
+            reply.status(201).send({
                 status_code: 201,
                 message: 'VendorWorkLocationMapping updated successfully.',
                 trace_id:traceId,
@@ -80,11 +82,14 @@ export async function updateVendorWorkLocationMapping(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'VendorWorkLocationMapping not found.',
+                trace_id:traceId,
                 vendor_work_location_mapping: [],
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server error',
             trace_id:traceId,
             error
@@ -110,11 +115,14 @@ export async function deleteVendorWorkLocationMapping(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'VendorWorkLocationMapping not found.',
+                trace_id:traceId,
                 vendor_work_location_mapping: [],
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server error',
             trace_id:traceId,
             error

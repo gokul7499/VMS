@@ -16,6 +16,7 @@ export const getAllUserMappings = async (request: FastifyRequest, reply: Fastify
         const userMappings = await UserMapping.findAll();
         if (userMappings.length === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "User mappings not found",
                 user_mapping: [],
                 trace_id: traceId,
@@ -24,6 +25,7 @@ export const getAllUserMappings = async (request: FastifyRequest, reply: Fastify
         reply.status(200).send(userMappings);
     } catch (error) {
         reply.status(500).send({
+            status_code:500,
             message: "Internal Server Error",
             error,
             trace_id: traceId,
@@ -41,17 +43,20 @@ export const getUserMappingById = async (request: FastifyRequest, reply: Fastify
             reply.status(200).send({
                 status_code: 200,
                 message: "Data fetched successfully",
-                user_mapping: userMapping
+                user_mapping: userMapping,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: "User Mapping not found",
-                user_mapping: []
+                user_mapping: [],
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
             trace_id: traceId,
@@ -77,12 +82,15 @@ export async function createUserMappings(
 
         if (existingMapping) {
             return reply.status(200).send({
-                message: "A user mapping already exists for the specified tenant, user, and program."
+                status_code: 200,
+                message: "A user mapping already exists for the specified tenant, user, and program.",
+                trace_id: traceId,
             });
         }
 
         const newUserMapping = await UserMapping.create({ tenant_id, user_id, role_id, program_id });
         return reply.status(201).send({
+            status_code: 201,
             message: "User Mapping created successfully",
             user_mapping: newUserMapping,
             trace_id: traceId,
@@ -90,6 +98,7 @@ export async function createUserMappings(
 
     } catch (error) {
         return reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
             trace_id: traceId,
@@ -111,12 +120,15 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
             });
         } else {
             reply.status(200).send({
+                status_code: 200,
                 message: "User Mapping not found",
-                user_mapping: []
+                user_mapping: [],
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
             trace_id: traceId,
@@ -138,12 +150,15 @@ export const deleteUserMappingById = async (request: FastifyRequest, reply: Fast
             });
         } else {
             reply.status(200).send({
+                status_code: 200,
                 message: "User Mapping not found",
-                user_mapping: []
+                user_mapping: [],
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
             trace_id: traceId,

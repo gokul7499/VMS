@@ -27,11 +27,12 @@ export const createVendorHierarchyMapping = async (request: FastifyRequest<{ Par
 
         reply.status(201).send({
             status_code: 201,
+            message: 'Vendor Hierarchy Mapping created successfully',
             id: mappingData.id,
             trace_id:traceId,
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error while creating mapping', error, trace_id:traceId });
+        reply.status(500).send({status_code:500, message: 'Error while creating mapping', error, trace_id:traceId });
     }
 };
 
@@ -52,11 +53,13 @@ export const updateVendorHierarchyMapping = async (request: FastifyRequest, repl
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'vendor hierarchy mapping not found.',
+                trace_id:traceId,
                 mappingData: [],
             });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while updating the mapping', error, trace_id:traceId});
+        reply.status(500).send({status_code:500, message: 'An error occurred while updating the mapping', error, trace_id:traceId});
     }
 };
 
@@ -69,7 +72,7 @@ export const deleteVendorHierarchyMapping = async (request: FastifyRequest, repl
         });
 
         if (!data) {
-            return reply.status(404).send({ message: 'Mapping data not found' });
+            return reply.status(404).send({status_code:404, message: 'Mapping data not found' });
         }
 
         await data.update({ is_enabled: false, is_deleted: true });
@@ -82,7 +85,9 @@ export const deleteVendorHierarchyMapping = async (request: FastifyRequest, repl
     } catch (error) {
         reply.status(200).send({
             status_code: 200,
+            message: 'An error occurred while deleting the mapping',
             mappingData: [],
+            trace_id:traceId
         });
     }
 };
@@ -105,17 +110,20 @@ export async function getVendorHierarchyMappingById(
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message:" Vendor Hierarchy Mapping found",
                 mapping: item,
                 trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Vendor Hierarchy Mapping not found',
+                trace_id: traceId,
                 mappingData: [],
             });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while fetching mapping data', error });
+        reply.status(500).send({status_code:500, message: 'An error occurred while fetching mapping data', error,trace_id:traceId  });
     }
 }

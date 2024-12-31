@@ -212,6 +212,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                 status_code: 200,
                 message: "Rate card not found.",
                 trace_id: traceId,
+                rate_cards: [],
             });
         }
         let laborCategory = null;
@@ -296,6 +297,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 status_code: 200,
                 message: "Rate card not found.",
                 trace_id: traceId,
+                rate_cards: [],
             });
         }
         await RateCard.update(rateCardUpdates, {
@@ -318,8 +320,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
             }
         }
         await transaction.commit();
-        reply.status(200).send({
-            status_code: 200,
+        reply.status(201).send({
+            status_code: 201,
             message: "Rate card updated successfully.",
             trace_id: traceId,
         });
@@ -348,6 +350,7 @@ export const deleteRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 status_code: 200,
                 message: "Rate card not found.",
                 trace_id: traceId,
+                rate_cards: [],
             });
         }
         await rateCard.update({ is_deleted: true }, { transaction });

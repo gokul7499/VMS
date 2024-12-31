@@ -70,7 +70,7 @@ import TimesheetExpenseRuleRoutes from "./timesheet-expense-rule.route";
 import timesheetTypeConfigRoutes from "./timesheet-type-config.route";
 import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.route";
 import expenseTypeRoute from "./expenseType.routes";
-import rateCardsRoutes from "./rate_card.route";
+import rateCardsRoutes from "./rate-card.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {

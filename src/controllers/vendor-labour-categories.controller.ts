@@ -58,10 +58,12 @@ export async function getVendorLabourCategoryById(
                 status_code: 200,
                 message: 'Vendor Labour Category not found.',
                 vendor_labour_category: [],
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while fetching Vendor Labour Category.',
             trace_id:traceId,
             error,
@@ -89,11 +91,14 @@ export async function updateVendorLabourCategory(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Vendor Labour Category not updated.',
                 vendor_labour_category: [],
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server error',
             trace_id:traceId,
             error,
@@ -124,11 +129,14 @@ export async function deleteVendorLabourCategory(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Vendor Labour Category not found.',
+                trace_id: traceId,
                 vendor_labour_category: [],
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while deleting Vendor Labour Category.',
             trace_id:traceId,
             error,
