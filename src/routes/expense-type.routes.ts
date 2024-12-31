@@ -6,7 +6,7 @@ import {
     updateExpenseTypeById,
     deleteExpenseTypeById,
     getAllExpenseType,
-} from "../controllers/expenseType.controller";
+} from "../controllers/expense-type.controller";
 async function expenseTypeRoute(fastify: FastifyInstance) {
     fastify.get("/program/:program_id/expense-type/:id", getExpenseTypeById);
     fastify.post("/program/:program_id/expense-type", createExpenseType);

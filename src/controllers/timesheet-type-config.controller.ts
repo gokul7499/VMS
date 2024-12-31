@@ -5,7 +5,7 @@ import { TimesheetTypeConfigInterface } from '../interfaces/timesheet-config.int
 import TimesheetTypeHierarchies from '../models/timesheet-type-hierarchies.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import hierarchies from '../models/hierarchies.model';
-import IndustriesModel from '../models/labour-categories.model';
+import IndustriesModel from '../models/labour-category.model';
 import TimesheetMasterData from '../models/timesheet-type-master-data.Model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import { sequelize } from '../config/instance';

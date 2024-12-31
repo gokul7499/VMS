@@ -25,6 +25,7 @@ export async function getShiftConfigurationHierarchies(request: FastifyRequest, 
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
+            message:" Shift Configuration Hierarchies Retrieved Successfully",
             shiftConfiguration
         });
     } catch (error) {
@@ -51,6 +52,7 @@ export async function getShiftConfigurationHierarchiesById(request: FastifyReque
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
+                message: "Shift Configuration Hierarchy Retrieved Successfully",
                 shiftConfiguration: item
             });
         } else {
@@ -79,6 +81,7 @@ export async function createShiftConfigurationHierarchies(request: FastifyReques
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
+            message: "Shift Configuration Hierarchy Created Successfully",
             shiftConfiguration
         });
     } catch (error) {
@@ -146,11 +149,12 @@ export async function deleteShiftConfigurationHierarchies(request: FastifyReques
         if (numRowsDeleted > 0) {
             reply.status(200).send({
                 status_code: 200,
+                message: "Shift Configuration deleted successfully.",
                 shift_configuration_id: id,
                 trace_id: traceId
             });
         } else {
-            reply.status(200).send({ message: 'Shift Configuration not found' });
+            reply.status(200).send({status_code:200, message: 'Shift Configuration not found' ,trace_id:traceId});
         }
     } catch (error) {
         reply.status(500).send({
@@ -221,7 +225,7 @@ export async function postRateTypesByShiftType(
 
             const configIds = hierarchyMappings.map(config => config.shift_config_id);
             if (configIds.length === 0) {
-                return reply.status(404).send({ message: 'No shift configurations found for the provided hierarchy.' });
+                return reply.status(404).send({status_code:404, message: 'No shift configurations found for the provided hierarchy.', trace_id:traceId});
             }
 
             const shiftConfig = await ShiftConfiguration.findAll({
@@ -234,7 +238,7 @@ export async function postRateTypesByShiftType(
             });
 
             if (shiftConfig.length === 0) {
-                return reply.status(404).send({ message: 'No shift configurations found.' });
+                return reply.status(404).send({status_code:404, message: 'No shift configurations found.',trace_id:traceId });
             }
 
             const shiftConfigurations = shiftConfig.map(config => config.id);
@@ -276,14 +280,15 @@ export async function postRateTypesByShiftType(
                     }, {} as ShiftRateTypesResponse);
 
                     return reply.status(200).send({
-                        statusCode: 200,
+                        status_code: 200,
+                        message: 'Shift rate types retrieved successfully.',
                         shift_types: shiftTypes,
                         rate_types: shiftRateTypes,
                         trace_id: traceId,
                         hierarchy
                     });
                 } else {
-                    return reply.status(404).send({ message: 'No shift types found for the given configuration.' });
+                    return reply.status(404).send({status_code:404, message: 'No shift types found for the given configuration.' ,trace_id:traceId});
                 }
             }
         } else {
@@ -300,7 +305,7 @@ export async function postRateTypesByShiftType(
 
             if (!Array.isArray(rateTypes) || rateTypes.length === 0) {
                 return reply.status(404).send({
-                    statusCode: 404,
+                    status_code: 404,
                     message: 'No rate types found for the given criteria.',
                     trace_id: traceId,
                 });
@@ -318,7 +323,8 @@ export async function postRateTypesByShiftType(
             const types: string[] = [...new Set(rateTypes.map((rt: any) => rt.type).filter(Boolean))];
 
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: 'Rate types retrieved successfully.',
                 rate_types: rate_types,
                 types,
                 trace_id: traceId,

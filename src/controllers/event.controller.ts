@@ -16,7 +16,7 @@ export async function getEvents(
   request: FastifyRequest<{ Params: EventInterface, Querystring: EventInterface }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const params = request.params;
     const query = request.query as Partial<EventInterface> & { page?: string; limit?: string };
@@ -55,23 +55,24 @@ export async function getEvents(
     }
     reply.status(200).send({
       statusCode: 200,
+      message:"Event get successfully",
       items_per_page: limit,
       total_records: count,
       events: event,
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: "Internal Server Error",
       error: error,
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 }
 
 export async function getEventById(request: FastifyRequest, reply: FastifyReply) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, module_id } = request.params as { id: string, module_id: string };
     const item = await Event.findOne({
@@ -84,13 +85,14 @@ export async function getEventById(request: FastifyRequest, reply: FastifyReply)
     if (item) {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        message:"Event get data successfully",
+        trace_id: traceId,
         event: item
       });
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        trace_id: traceId,
         event: [],
         message: 'Event not found.',
       });
@@ -98,7 +100,7 @@ export async function getEventById(request: FastifyRequest, reply: FastifyReply)
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -109,7 +111,7 @@ export async function createEvent(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const event = request.body as EventInterface;
     const { module_id } = event;
@@ -117,7 +119,7 @@ export async function createEvent(
     if (!module_id) {
       return reply.status(400).send({
         status_code: 400,
-        trace_id: trace_Id,
+        trace_id: traceId,
         message: 'module_id id is required.',
       });
     }
@@ -126,7 +128,7 @@ export async function createEvent(
 
     reply.status(201).send({
       status_code: 201,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: 'Event created successfully.',
       event: {
         id: eventData?.id,
@@ -135,7 +137,7 @@ export async function createEvent(
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error,
     });
@@ -143,7 +145,7 @@ export async function createEvent(
 }
 
 export async function updateEvent(request: FastifyRequest, reply: FastifyReply) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, module_id } = request.params as { id: string, module_id: string };
     const data = request.body as EventInterface;
@@ -154,7 +156,7 @@ export async function updateEvent(request: FastifyRequest, reply: FastifyReply) 
 
     if (!eventData) {
       return reply.status(200).send({
-        trace_id: trace_Id,
+        trace_id: traceId,
         message: 'Event data not found.',
         event: [],
       });
@@ -163,36 +165,36 @@ export async function updateEvent(request: FastifyRequest, reply: FastifyReply) 
     reply.status(201).send({
       status_code: 201,
       message: 'Event updated successfully.',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       message: 'Internal Server Error',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   }
 }
 
 export async function deleteEvent(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, module_id } = request.params as { id: string, module_id: string };
     const eventData = await Event.findOne({
       where: { id, module_id, is_deleted: false },
     });
     if (!eventData) {
-      return reply.status(200).send({ message: 'Event data not found.' });
+      return reply.status(200).send({ status_code:200,message: 'Event data not found.' });
     }
     await eventData.update({ is_enabled: false, is_deleted: true });
     reply.status(204).send({
       status_code: 204,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: 'Event Deleted Successfully.'
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -200,7 +202,7 @@ export async function deleteEvent(request: FastifyRequest<{ Params: { id: string
 }
 
 export async function getEventSchemaById(request: FastifyRequest, reply: FastifyReply) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { module_id, event_id } = request.params as { module_id: string, event_id: string };
 
@@ -224,7 +226,8 @@ export async function getEventSchemaById(request: FastifyRequest, reply: Fastify
 
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        message:"Event schema get successfully",
+        trace_id: traceId,
         id: event.id,
         name: event.name,
         slug: event.slug,
@@ -233,7 +236,7 @@ export async function getEventSchemaById(request: FastifyRequest, reply: Fastify
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        trace_id: traceId,
         id: null,
         name: null,
         slug: null,
@@ -244,7 +247,7 @@ export async function getEventSchemaById(request: FastifyRequest, reply: Fastify
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
