@@ -99,4 +99,4 @@ rateType.init(
 );
 
 sequelize.sync();
-export { rateType };
+export default rateType;

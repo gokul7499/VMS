@@ -17,7 +17,7 @@ import {
     getChildWorkflowsQuery,
     getparentWorkflowsQuery
 } from '../utility/queries';
-import FieldOperatorModel from '../models/field-operator-model'
+import FieldOperatorModel from '../models/field-operator.model'
 import FieldConfigModel from '../models/workflow-field-config.model'
 import FieldModel from '../models/workflow-field.model'
 import WorkflowLevel from '../models/workflowLevelModel';
@@ -27,7 +27,7 @@ import User from '../models/user.model';
 import CustomField from '../models/custom-fields.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import WorkLocationModel from '../models/work-location.model';
-import IndustriesModel from '../models/industries.model';
+import IndustriesModel from '../models/labour-category.model';
 import picklistModel from '../models/picklist.model';
 import jobTemplateModel from '../models/job-template.model';
 import foundationalData from '../models/foundational-data.model';
