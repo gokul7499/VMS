@@ -2,7 +2,7 @@ import { Model } from "sequelize";
 import vendorWorkLocationMapping from "../models/vendor-work-location-mapping.model";
 import VendorHierarchyMapping from "../models/vendor-hieararchy-mapping.model";
 import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
-import IndustriesModel from "../models/industries.model";
+import IndustriesModel from "../models/labour-categories.model";
 import hierarchies from "../models/hierarchies.model";
 import WorkLocationModel from "../models/work-location.model";
 

@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import IndustriesModel from './industries.model';
+import IndustriesModel from './labour-categories.model';
 class TimesheetTypeLaborCategorys extends Model {
     labor_categorys: any;
 }
