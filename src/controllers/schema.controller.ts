@@ -13,6 +13,7 @@ export const createSchema = async (request: FastifyRequest, reply: FastifyReply)
         const SchemaData: any = await SchemaModel.create({ ...SchemaDataPayload });
         reply.status(201).send({
             status_code: 201,
+            message: 'Schema created successfully',
             schema: {
                 id: SchemaData?.id,
                 name: SchemaData?.name,
@@ -20,7 +21,7 @@ export const createSchema = async (request: FastifyRequest, reply: FastifyReply)
             trace_id: traceId,
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error While Creating Schema.', error, trace_id: traceId });
+        reply.status(500).send({status_code:500, message: 'Error While Creating Schema.', error, trace_id: traceId });
     }
 };
 
@@ -41,10 +42,10 @@ export const updateSchema = async (request: FastifyRequest, reply: FastifyReply)
                 message: 'Schema updated successfully.',
             });
         } else {
-            reply.status(200).send({ message: 'Schema Data Not Found.' });
+            reply.status(200).send({status_code:200, message: 'Schema Data Not Found.',trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: ' An Error Occurred While Updating The Schema.', error, trace_id: traceId});
+        reply.status(500).send({status_code:500, message: ' An Error Occurred While Updating The Schema.', error, trace_id: traceId});
     }
 }
 
@@ -57,7 +58,7 @@ export const deleteSchema = async (request: FastifyRequest, reply: FastifyReply)
         });
 
         if (!data) {
-            return reply.status(200).send({ message: 'Schema Data Not Found' });
+            return reply.status(200).send({status_code:200, message: 'Schema Data Not Found',trace_id:traceId });
         }
 
         await data.update({ is_enabled: false, is_deleted: true });
@@ -68,7 +69,7 @@ export const deleteSchema = async (request: FastifyRequest, reply: FastifyReply)
             message: 'Schema Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Schema', error, trace_id: traceId});
+        reply.status(500).send({status_code:500, message: 'Error Deleting Schema', error, trace_id: traceId});
     }
 }
 
@@ -112,12 +113,15 @@ export async function getAllSchema(
         });
         if (schema.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Schema not found",
-                schema: []
+                schema: [],
+                trace_id:traceId
             });
         }
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Schema found",
             items_per_page: limit,
             total_records: count,
             schema: schema,
@@ -125,7 +129,7 @@ export async function getAllSchema(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server Error",
             error: error,
             trace_id: traceId,
@@ -171,12 +175,15 @@ export async function getAllSchemas(
         });
         if (schema.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Schema not found",
-                schema: []
+                schema: [],
+                trace_id: traceId,
             });
         }
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Schemas found",
             items_per_page: limit,
             total_records: count,
             schema: schema,
@@ -184,7 +191,7 @@ export async function getAllSchemas(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server Error",
             error: error,
             trace_id: traceId,
@@ -201,14 +208,15 @@ export async function getSchemaById(request: FastifyRequest, reply: FastifyReply
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: "Schema found successfully",    
                 schema: item,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Schema not found', schema: [] });
+            reply.status(200).send({status_code:200, message: 'Schema not found', schema: [],trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while fetching schema.', error });
+        reply.status(500).send({status_code:200, message: 'An error occurred while fetching schema.', error,trace_id:traceId });
     }
 }
