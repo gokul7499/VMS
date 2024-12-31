@@ -10,23 +10,23 @@ export const createDistScheduleDetails = async (request: FastifyRequest<{ Params
     reply: FastifyReply) => {
     const { program_id } = request.params;
     const distScheduleDetailsData = request.body as DistScheduleDetailInterface[];
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
     logger(
         {
-            trace_id,
+            trace_id:traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -52,7 +52,7 @@ export const createDistScheduleDetails = async (request: FastifyRequest<{ Params
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -77,13 +77,13 @@ export const createDistScheduleDetails = async (request: FastifyRequest<{ Params
                 id: detail.id,
                 program_id: detail.program_id,
             })),
-            trace_id,
+            trace_id:traceId,
         });
 
     } catch (error) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -104,7 +104,7 @@ export const createDistScheduleDetails = async (request: FastifyRequest<{ Params
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id,
+            trace_id:traceId,
             error,
         });
     }
@@ -118,7 +118,7 @@ export const getAllDistScheduleDetails = async (request: FastifyRequest, reply: 
 
 export const getDistScheduleDetailById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id, id } = request.params as { id: string, program_id: string };
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
     try {
         const detail = await DistScheduleDetail.findOne({
@@ -128,12 +128,14 @@ export const getDistScheduleDetailById = async (request: FastifyRequest, reply: 
         if (detail) {
             reply.status(200).send({
                 status_code: 200,
+                message:"Dist schedule detail get successfully",
                 data: detail,
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message:"Dist schedule detail not found",
                 dist_schedule_detail: [],
             });
         }
@@ -141,7 +143,7 @@ export const getDistScheduleDetailById = async (request: FastifyRequest, reply: 
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: trace_Id,
+            trace_id: traceId,
             error,
         });
     }
@@ -151,7 +153,7 @@ export const deleteDistScheduleDetail = async (
     request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
     reply: FastifyReply
 ) => {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, program_id } = request.params;
 
     try {
@@ -167,19 +169,19 @@ export const deleteDistScheduleDetail = async (
                 status_code: 200,
                 message: "Distribution Schedule Detail not found.",
                 dist_schedule_detail: [],
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
         reply.status(204).send({
             status_code: 204,
             message: "Distribution Schedule Detail deleted successfully.",
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
-            trace_id: trace_Id,
+            trace_id: traceId,
             error,
         });
     }
@@ -190,7 +192,7 @@ export const updateDistScheduleDetail = async (
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) => {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
 
     try {
@@ -202,7 +204,7 @@ export const updateDistScheduleDetail = async (
             reply.send({
                 status_code: 200,
                 message: "Distribution Schedule Detail updated successfully.",
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -215,7 +217,7 @@ export const updateDistScheduleDetail = async (
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: trace_Id,
+            trace_id: traceId,
             error,
         });
     }
