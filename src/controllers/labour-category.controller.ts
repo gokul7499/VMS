@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import IndustriesModel from '../models/industries.model';
-import { IndustriesInterface, } from '../interfaces/industries.interface';
+import IndustriesModel from '../models/labour-category.model';
+import { IndustriesInterface, } from '../interfaces/labour-category.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

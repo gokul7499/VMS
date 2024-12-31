@@ -5,7 +5,7 @@ import tenantRoutes from "./tenant.routes";
 import userMappingRoutes from "./user-mapping.routes";
 import hierarchiesRoutes from "./hierarchies.routes";
 import currenciesRoutes from "./currencies.routes";
-import industriesRoutes from "./industries.route";
+import industriesRoutes from "./labour-category.route";
 import userRoutes from "./user.routes";
 import timeZoneRoutes from "./time-zones.routes";
 import OnboardingConfigurationRoutes from "./onboarding-configuration.route";
