@@ -227,6 +227,7 @@ export async function getProgramVendors(
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while fetching ProgramVendors.',
             trace_id: traceId,
             error: (error as any).message,
@@ -242,7 +243,7 @@ export async function saveProgramVendor(
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
     }
 
 
@@ -250,23 +251,23 @@ export async function saveProgramVendor(
     let users: any = await decodeToken(token);
 
     if (!users) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
     const { tenant, user } = request.body as any;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
         return reply.status(400).send({
             status_code: 400,
             message: 'Program ID is required.',
-            trace_id,
+            trace_id:traceId,
         });
     }
 
     logger(
         {
-            trace_id,
+            trace_id:traceId,
             actor: {
                 user_name: users?.preferred_username,
                 user_id: users?.sub,
@@ -288,7 +289,7 @@ export async function saveProgramVendor(
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Tenant or User information is missing.',
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -324,13 +325,13 @@ export async function saveProgramVendor(
         reply.status(201).send({
             status_code: 201,
             message: 'ProgramVendor created successfully.',
-            trace_id,
+            trace_id:traceId,
             id: programVendors.id,
         });
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: users?.preferred_username,
                     user_id: users?.sub,
@@ -351,7 +352,7 @@ export async function saveProgramVendor(
     } catch (error) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: users?.preferred_username,
                     user_id: users?.sub,
@@ -369,8 +370,9 @@ export async function saveProgramVendor(
             ProgramVendor
         );
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while saving ProgramVendor.',
-            trace_id,
+            trace_id:traceId,
             error: (error as any).message,
         });
     }
@@ -450,6 +452,7 @@ export const updateProgramVendor = async (
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while updating ProgramVendor.',
             trace_id: traceId,
             error: (error as any).message
@@ -475,11 +478,14 @@ export async function deleteProgramVendor(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'ProgramVendor not found.',
+                trace_id: traceId,
                 program_vendor: [],
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while deleting ProgramVendor.',
             trace_id: traceId,
             error: error,
@@ -518,6 +524,7 @@ export const getProgramVendorById = async (
         });
     } catch (error) {
         return reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while retrieving ProgramVendor data.',
             trace_id: traceId,
         });
@@ -600,6 +607,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
 
         reply.status(200).send({
             status_code: 200,
+            message: 'Vendors retrieved successfully',
             vendors: combinedResponse,
             trace_id: traceId,
         });
@@ -659,6 +667,7 @@ export async function updateProgramVendorByUserId(
     } catch (error) {
         console.error('Error updating ProgramVendor:', error);
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while updating ProgramVendor.',
             trace_id: traceId,
             error: error,
@@ -831,7 +840,7 @@ export async function updateComplianceDocument(
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
     }
 
 
@@ -839,7 +848,7 @@ export async function updateComplianceDocument(
     let users: any = await decodeToken(token);
 
     if (!users) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
     }
 
     try {
@@ -1010,7 +1019,7 @@ export async function advanceFilter(
     }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
         const { vendor_name, country_id, hierarchy_ids, labor_category_id, work_location_id, job_type, page, limit } = request.body;
@@ -1067,7 +1076,7 @@ export async function advanceFilter(
             return reply.status(201).send({
                 status_code: 201,
                 message: 'ProgramVendors fetched successfully.',
-                trace_id,
+                trace_id:traceId,
                 total_records: data.length,
                 program_vendors: data,
                 pagination: {
@@ -1077,9 +1086,9 @@ export async function advanceFilter(
                 },
             });
         } else {
-            return reply.status(200).send({ message: "No records found", program_vendors: [], trace_id });
+            return reply.status(200).send({status_code:200, message: "No records found", program_vendors: [], trace_id:traceId });
         }
     } catch (error) {
-        return reply.status(500).send({ message: "Internal Server Error", trace_id });
+        return reply.status(500).send({status_code:500, message: "Internal Server Error", trace_id:traceId });
     }
 }

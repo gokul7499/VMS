@@ -22,16 +22,17 @@ export async function getModule(
     });
 
     if (result.rows.length === 0) {
-      reply.status(200).send({ message: "Modules not found", modules: [] });
+      reply.status(200).send({ status_code:200,message: "Modules not found", modules: [] });
       return;
     }
 
     reply.status(200).send({
-      statusCode: 200,
+      status_code: 200,
+      mesage:"Module get successfully",
       modules: result.rows,
     });
   } catch (error) {
-    reply.status(500).send({ error: "Internal Server Error" });
+    reply.status(500).send({ status_code:500,error: "Internal Server Error" });
   }
 }
 
@@ -69,19 +70,19 @@ export async function updateModule(
       }
     });
     if (!program) {
-      return reply.status(200).send({ message: 'Program not found' });
+      return reply.status(200).send({ status_code:200,message: 'Program not found' });
     }
     const updatedCount: any = await Module.update(updates, {
       where: { id: id }
     });
-    reply.send({
+    reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
       message: 'Module updated successfully',
     });
   } catch (error) {
     console.error(error);
-    reply.status(500).send({ message: 'Internal Server Error', error: error });
+    reply.status(500).send({ status_code:500,message: 'Internal Server Error', error: error });
   }
 }
 
@@ -101,12 +102,12 @@ export async function updateModuleFlags(
       await Promise.all(updatePromises);
     });
     reply.status(201).send({
-      statusCode: 200,
+      status_code: 201,
       message: 'Module data updated successfully.',
     });
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'An error occurred while updating data.',
       error: error as Error,
     });
@@ -125,11 +126,11 @@ export async function deleteModule(
         is_enabled: false,
         is_deleted: true,
       })
-      reply.status(204).send({ message: 'Module Deleted Successfully' });
+      reply.status(204).send({status_code:204, message: 'Module Deleted Successfully' });
     } else {
-      reply.status(200).send({ message: 'Module Not Found' });
+      reply.status(200).send({ status_code:200,message: 'Module Not Found' });
     }
   } catch (error) {
-    reply.status(500).send({ message: 'An error occurred while deleting Module', error: error });
+    reply.status(500).send({status_code:500, message: 'An error occurred while deleting Module', error: error });
   }
 }

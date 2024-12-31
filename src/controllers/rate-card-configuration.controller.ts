@@ -22,7 +22,7 @@ export async function getAllRateCard(
     }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params as Partial<RateCardInterface>;
         const query = request.query as any;
@@ -105,10 +105,10 @@ export async function getAllRateCard(
 
         if (rateCardResult.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: "Rate configs not found",
                 rate_card: [],
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -143,17 +143,18 @@ export async function getAllRateCard(
         });
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Rate configs found",
             total_records: totalRecords,
             rate_card: rateCardArray,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal server error",
             error: error.message,
-            trace_id,
+            trace_id:traceId,
         });
     }
 }
@@ -225,7 +226,7 @@ function adjustRatesForShift(rateDetails: any, standardMin: number, standardMax:
 }
 
 export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const RateCardConfigurationPayload = request.body as RateCardInterface;
     const transaction = await sequelize.transaction();
     const { program_id } = request.params as { program_id: string };
@@ -233,8 +234,9 @@ export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply)
     try {
         if (!RateCardConfigurationPayload.name || !RateCardConfigurationPayload.hierarchies || !RateCardConfigurationPayload.job_templates) {
             return reply.status(400).send({
+                status_code:400,
                 message: 'Invalid request body',
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -247,7 +249,7 @@ export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply)
             return reply.status(400).send({
                 status_code: 400,
                 message: `A rate configuration named ${RateCardConfigurationPayload.name} already exists`,
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -265,7 +267,7 @@ export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply)
             return reply.status(400).send({
                 status_code: 400,
                 message: 'A rate configuration with the same hierarchies and job templates already exists',
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -285,19 +287,20 @@ export const saveRateCard = async (request: FastifyRequest, reply: FastifyReply)
             success: true,
             message: 'Rate card configuration saved successfully',
             rate_card_config_id: newRateCard.id,
-            trace_id
+            trace_id:traceId
         });
     } catch (error) {
         await transaction.rollback();
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while saving the rate card configuration',
-            trace_id
+            trace_id:traceId
         });
     }
 };
 
 export const updateRateCardById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     const RateCardConfigurationData = request.body as RateCardInterface;
     const transaction = await sequelize.transaction();
@@ -309,8 +312,9 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
         if (!data) {
             return reply.status(200).send(
                 {
+                    status_code: 200,
                     message: 'Rate card config not found.',
-                    trace_id
+                    trace_id:traceId
                 }
             );
         }
@@ -353,11 +357,11 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
         reply.send({
             success: true,
             message: 'Rate config and mappings updated successfully.',
-            trace_id
+            trace_id:traceId
         });
     } catch (error) {
         await transaction.rollback();
-        reply.status(500).send({ message: 'An error occurred while updating the rate config', trace_id });
+        reply.status(500).send({status_code:500, message: 'An error occurred while updating the rate config', trace_id :traceId});
     }
 }
 
@@ -365,7 +369,7 @@ export const getRateCardById = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id } = request.params as { id: string };
     try {
         const rateCardResult = await sequelize.query(rateCardQuery, {
@@ -380,7 +384,7 @@ export const getRateCardById = async (
                 status_code: 200,
                 message: 'Rate config not found',
                 rate_card: [],
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -413,15 +417,16 @@ export const getRateCardById = async (
 
         reply.status(200).send({
             status_code: 200,
+            message: 'Rate config found',
             rate_card: rateCardArray,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
             error: error.message,
-            trace_id
+            trace_id:traceId
         });
     }
 };
@@ -430,7 +435,7 @@ export async function deleteRateCardById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params;
         const rateCard = await RateCardModel.findByPk(id);
@@ -442,20 +447,20 @@ export async function deleteRateCardById(
             reply.status(200).send({
                 status_code: 200,
                 message: 'Rate config deleted successfully',
-                trace_id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Rate config not found',
-                trace_id
+                trace_id:traceId
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId
         });
     }
 }
@@ -464,7 +469,7 @@ export async function getRateType(
     request: FastifyRequest<{ Params: RateCardInterface, Querystring: RateCardInterface }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params as Partial<RateCardInterface>;
         const query = request.query as any;
@@ -502,21 +507,22 @@ export async function getRateType(
 
         if (rateTypeResult.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Rate type not found",
                 rate_types: [],
-                trace_id
+                trace_id:traceId
             });
         }
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             rate_types: rateTypeResult,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId
         });
     }
 }
@@ -525,14 +531,15 @@ export async function getShiftTypes(
     request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string, job_template_ids?: string } }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const program_id = request.params.program_id;
     const { job_template_ids, hierarchy_ids } = request.query;
 
     if (!job_template_ids || !hierarchy_ids) {
         return reply.status(400).send({
             status_code: 400,
-            message: 'Missing required query parameters: job_template_ids and hierarchy_ids are both required.'
+            message: 'Missing required query parameters: job_template_ids and hierarchy_ids are both required.',
+            trace_id:traceId
         });
     }
 
@@ -564,9 +571,10 @@ export async function getShiftTypes(
         });
         if (shiftTypeResult.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Shift types not found",
                 shift_types: [],
-                trace_id
+                trace_id:traceId
             });
         }
 
@@ -577,17 +585,18 @@ export async function getShiftTypes(
         ));
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Shift types found",
             shift_types: shiftTypes,
-            trace_id,
+            trace_id:traceId,
         });
 
     } catch (error) {
         console.error('Error fetching shift types:', error);
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId
         });
     }
 }
