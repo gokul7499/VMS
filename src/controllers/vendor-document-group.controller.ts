@@ -14,18 +14,18 @@ export async function createVendordocumentsgroup(
 ) {
     const vendorDocumentsGroup = request.body as VendorDocumentGroup;
     const { program_id, required_documents } = vendorDocumentsGroup;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
     try {
@@ -40,7 +40,7 @@ export async function createVendordocumentsgroup(
             return reply.status(409).send({
                 status_code: 409,
                 message: 'This vendor document group already exists',
-                trace_id,
+                trace_id:traceId,
             });
         }
         const total_documents = Array.isArray(required_documents) ? required_documents.length : 0;
@@ -49,7 +49,7 @@ export async function createVendordocumentsgroup(
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -69,13 +69,14 @@ export async function createVendordocumentsgroup(
 
         reply.status(201).send({
             status_code: 201,
+            message: 'Vendor document group created successfully',
             vendor_documents_group_id: item.id,
-            trace_id
+            trace_id:traceId
         });
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -95,7 +96,7 @@ export async function createVendordocumentsgroup(
     } catch (error) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -114,9 +115,10 @@ export async function createVendordocumentsgroup(
         );
 
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
-            trace_id: trace_id ,
+            trace_id: traceId ,
         });
     }
 }
@@ -146,14 +148,16 @@ export async function getVendorDocumentsGroupByIdAndDoc(
         if (vendorDocumentsGroup) {
             reply.status(200).send({
                 status_code: 200,
+                message: "Vendor documents group found",
                 vendorDocumentsGroup,
                 trace_id:traceId,
             });
         } else {
-            reply.status(200).send({ message: "Vendor documents group not found" });
+            reply.status(200).send({status_code:200, message: "Vendor documents group not found",trace_id:traceId  });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "An error occurred while fetching vendor documents group.",
             error,
             trace_id:traceId,
@@ -208,7 +212,7 @@ export async function getVendordocumentsgroup(
         });
 
         if (vendorDocumentsGroup.length === 0) {
-            return reply.status(200).send({ message: "Vendor documents group not found", vendorDocumentsGroup: [] });
+            return reply.status(200).send({status_code:200, message: "Vendor documents group not found", vendorDocumentsGroup: [] ,trace_id:traceId });
         }
 
         const vendorDocumentsGroupWithCount = vendorDocumentsGroup.map(group => {
@@ -220,6 +224,7 @@ export async function getVendordocumentsgroup(
 
         reply.status(200).send({
             status_code: 200,
+            message: "Vendor documents group found",
             items_per_page: limit,
             total_records: count,
             vendorDocumentsGroup: vendorDocumentsGroupWithCount,
@@ -254,6 +259,7 @@ export async function getVendordocumentsgroupId(
                 status_code: 200,
                 message: "Vendor documents group not found",
                 vendor_documents_group: [],
+                trace_id: traceId
             });
         }
 
@@ -269,6 +275,7 @@ export async function getVendordocumentsgroupId(
 
         reply.status(201).send({
             status_code: 201,
+            message: "Vendor documents group found",
             vendorDocumentsGroup: {
                 ...vendorDocumentsGroup.dataValues,
                 required_documents
@@ -277,6 +284,7 @@ export async function getVendordocumentsgroupId(
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             trace_id:traceId,
             error,
@@ -371,17 +379,21 @@ export async function deleteVendordocumentsgroup(
         if (numRowsDeleted > 0) {
             reply.status(204).send({
                 status_code: 204,
+                message: 'Document group deleted successfully',
                 vendor_documents_group_id: id,
                 trace_id:traceId,
             });
         } else {
             reply.status(200).send({
+                status_code: 200,
                 message: "Vendor documents group not found",
-                vendor_documents_group: []
+                vendor_documents_group: [],
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             error,
             trace_id:traceId,

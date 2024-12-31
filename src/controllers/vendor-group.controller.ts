@@ -19,14 +19,14 @@ export const createVendorGroup = async (
   const authHeader = request.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
   }
 
   if (!vendorGroup.vendor_group_name) {
@@ -53,6 +53,7 @@ export const createVendorGroup = async (
     return reply.status(400).send({
       status_code: 400,
       message: 'Vendor group name is required.',
+      trace_id:traceId 
     });
   }
 
@@ -174,6 +175,7 @@ const traceId= generateCustomUUID();
 
         return reply.status(200).send({
             status_code: 200,
+            message: 'Vendor Group found.',
             vendor_group: {
                 ...vendorGroup.toJSON(),
                 vendors: detailedVendors.map(vendor => vendor.toJSON()),

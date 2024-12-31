@@ -75,6 +75,7 @@ export const getHierarchiesByProgram = async (
 
     return reply.status(200).send({
       status_code: 200,
+      message:"Hierarchies get ssuccessfully",
       trace_id: traceId,
       hierarchies: nestedHierarchy,
     });
@@ -218,11 +219,13 @@ export async function getHierarchiesById(
 
       return reply.status(200).send({
         status_code: 200,
+        message:"Hierarchies data get successfully",
         trace_id: traceId,
         hierarchies: hierarchyData,
       });
     } else {
       return reply.status(200).send({
+        status_code:200,
         message: 'Hierarchy not found',
         hierarchies: [],
       });
@@ -230,6 +233,7 @@ export async function getHierarchiesById(
   } catch (error) {
     console.error(error);
     return reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while fetching Hierarchy by ID',
       error: (error as Error).message,
     });
@@ -241,7 +245,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   const program_id = hierarchie.program_id;
   const hierarchyName = hierarchie.name;
   const hierarchyCode = hierarchie.code;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -250,11 +254,11 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   const token = authHeader.split(' ')[1];
   const user: any = await decodeToken(token);
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
   }
 
   logger({
-    trace_id,
+    trace_id:traceId,
     actor: { user_name: user?.preferred_username, user_id: user?.sub },
     data: request.body,
     eventname: "creating hierarchies",
@@ -315,7 +319,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     await transaction.commit();
 
     logger({
-      trace_id,
+      trace_id:traceId,
       actor: { user_name: user?.preferred_username, user_id: user?.sub },
       data: request.body,
       eventname: "created hierarchies",
@@ -332,13 +336,13 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       status_code: 201,
       message: 'Hierarchy Created Successfully',
       data: newItem,
-      trace_id: trace_id,
+      trace_id:traceId,
     });
 
   } catch (error) {
     await transaction.rollback();
     logger({
-      trace_id,
+      trace_id:traceId,
       actor: { user_name: user?.preferred_username, user_id: user?.sub },
       data: request.body,
       eventname: "creating hierarchies",
@@ -353,6 +357,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
     console.error(error);
     return reply.status(500).send({
+      status_code:500,
       message: 'Failed To Create Hierarchy',
       error: (error as any).message
     });

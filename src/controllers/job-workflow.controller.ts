@@ -118,6 +118,7 @@ export const getJobWorkFlowById = async (
 
         reply.status(200).send({
             status_code: 200,
+            message:"Get JobWorkflow successfully",
             trace_id: traceId,
             job_workflow: workflow,
         });
@@ -1093,7 +1094,7 @@ export async function deleteJobWorkFlow(
     }
 };
 export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
         const { method_id, job_id } = request.query as {
@@ -1237,10 +1238,10 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 
         if (rows.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Workflow data not found',
                 workflow: [],
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -1649,17 +1650,18 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 
 
         return reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message:"JobWorkflow get successfully",
             workflow,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         console.log(error);
 
         return reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while fetching workflow data.',
-            trace_id,
+            trace_id:traceId,
         });
     }
 }
@@ -2013,7 +2015,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 // }
 
 export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
         const { workflow_action, job_id } = request.query as {
@@ -2156,10 +2158,10 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
         if (rows.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Workflow data not found',
                 workflow: [],
-                trace_id,
+                trace_id:traceId,
             });
         }
 
@@ -2571,17 +2573,18 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
         }
         return reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message:"JobWorkflow get update successfully",
             workflow,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         console.log(error);
 
         return reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while fetching workflow data.',
-            trace_id,
+            trace_id:traceId,
         });
     }
 }

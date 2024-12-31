@@ -30,12 +30,14 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   });
   if (result.rows.length === 0) {
     return reply.status(200).send({
+      status_code: 200,
       message: "Users not found",
       users: []
     });
   }
   reply.status(200).send({
     status_code: 200,
+    message: "Users found",
     users: result.rows,
   });
 }
@@ -44,7 +46,7 @@ export async function getUserById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const user = await User.findByPk(id);
@@ -56,9 +58,10 @@ export async function getUserById(
     });
   } catch (error) {
     reply.status(500).send({
+      status_code: 500,
       message: "Internal server error",
       error: error,
-      trace_id:traceId,
+      trace_id: traceId,
     });
   }
 }
@@ -157,7 +160,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     if (!user?.tenant_id) {
       await transaction.rollback();
       return reply.status(400).send({
+        status_code: 400,
         message: "Missing user or tenant id in request body",
+        trace_id: traceId,
       });
     }
 
@@ -173,7 +178,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     if (existingUser) {
       await transaction.rollback();
       return reply.status(400).send({
+        status_code: 400,
         message: "User with tenant_id or program_id already exists!",
+        trace_id: traceId,
       });
     }
 
@@ -235,6 +242,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     await transaction.commit();
     return reply.status(201).send({
       status_code: 201,
+      message: "User created successfully",
       id: newUser instanceof User ? newUser.id : undefined,
       trace_id: traceId,
     });
@@ -244,7 +252,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
       return reply.status(400).send({
+        status_code: 400,
         message: `${field} already in use!`,
+        trace_id: traceId,
       });
     }
     return reply.status(500).send({
@@ -260,7 +270,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const user = await User.findOne({
       where: { id, program_id }
@@ -268,7 +278,9 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (!user) {
       return reply.status(404).send({
+        status_code: 404,
         message: "User not found",
+        trace_id: traceId,
         user: []
       });
     }
@@ -302,6 +314,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     });
   } catch (error: any) {
     return reply.status(500).send({
+      status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
       error: error.message
@@ -314,7 +327,7 @@ export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const numRowsDeleted = await User.destroy({ where: { id } });
@@ -325,11 +338,17 @@ export async function deleteUser(
         trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ message: "User not found" });
+      reply.status(200).send({
+        status_code: 200,
+        message: "User not found",
+        trace_id: traceId,
+      });
     }
   } catch (error) {
     reply.status(500).send({
+      status_code: 500,
       message: "An error occurred while deleting User",
+      trace_id: traceId,
       error: error,
     });
   }
@@ -341,7 +360,7 @@ export async function getAllUserIDAndUserId(
 ) {
   const { program_id } = request.params;
   const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email } = request.query;
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const whereClause: any = {
       is_deleted: false,
@@ -431,6 +450,7 @@ export async function getAllUserIDAndUserId(
 
     reply.status(200).send({
       status_code: 200,
+      message:" Users fetched successfully",
       trace_id: traceId,
       users: enrichedUsers,
       total_count: totalCount,
@@ -477,6 +497,7 @@ export async function getUserWorkLocationAndTimeZone(
 
   if (!user_ids) {
     return reply.status(400).send({
+      status_code: 400,
       message: "Missing user_ids in the query string.",
       trace_id,
     });
@@ -495,6 +516,7 @@ export async function getUserWorkLocationAndTimeZone(
 
     if (!result || !workLocationValid || !timeZoneValid) {
       return reply.status(200).send({
+        status_code: 200,
         message: "No data found for the provided user IDs and program ID.",
         data: {
           work_location: [],
@@ -509,6 +531,7 @@ export async function getUserWorkLocationAndTimeZone(
 
     return reply.status(200).send({
       status_code: 200,
+      message: "User work locations and time zones retrieved successfully.",
       data: {
         work_location: uniqueWorkLocations,
         time_zone: uniqueTimeZones,
@@ -518,6 +541,7 @@ export async function getUserWorkLocationAndTimeZone(
   } catch (error) {
     console.error("Error retrieving work location and time zone:", error);
     return reply.status(500).send({
+      status_code: 500,
       message: "Internal Server Error",
       trace_id,
     });
