@@ -1,6 +1,6 @@
 
-import ExpenseTypeModel from "../models/expenseType.model";
-import { ExpenseTypeInterface } from "../interfaces/expenseTypeInterface";
+import ExpenseTypeModel from "../models/expense-type.model";
+import { ExpenseTypeInterface } from "../interfaces/expense-type.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
