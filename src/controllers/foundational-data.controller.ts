@@ -9,9 +9,10 @@ import { sequelize } from "../config/instance";
 import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import User from "../models/user.model";
+import { trace } from "console";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params as { program_id: string };
         const query = request.query as {
@@ -88,26 +89,27 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
 
         if (foundationalDataResult.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 foundational_data_type_name: foundationalDataTypeName,
                 message: "foundational data not found",
                 foundational_data: [],
-                trace_id
+                trace_id:traceId,
             });
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message:"Foundational data get successfully",
             foundational_data_type_name: foundationalDataTypeName,
             total_records: totalRecords,
             foundational_data: foundationalDataArray,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
@@ -116,7 +118,7 @@ export async function getFoundationalDataById(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const foundational_data = await foundationalData.findOne(
@@ -131,23 +133,23 @@ export async function getFoundationalDataById(
         );
         if (foundational_data) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'FoundationalData fetch Successfully.',
                 foundational_data: foundational_data,
-                trace_id
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'FoundationalData Not Found.',
-                trace_id
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while fetching FoundationalData.',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
@@ -156,12 +158,12 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     const foundational_data = request.body as FoundationalDataInterface;
     const program_id = foundational_data.program_id;
     const name = foundational_data.name;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
     }
 
 
@@ -169,11 +171,11 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
     }
     logger(
         {
-            trace_id,
+            trace_id:traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -197,9 +199,9 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: "Master Data Already Exist.",
-                trace_id
+                trace_id:traceId,
             });
         }
 
@@ -211,7 +213,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -230,16 +232,16 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         );
 
         reply.status(201).send({
-            statusCode: 201,
+            status_code: 201,
             foundational_data_id: foundational_Data.id,
-            trace_id,
+            trace_id:traceId,
             message: 'FoundationalData Created Successfully.',
         });
 
     } catch (error) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -258,15 +260,15 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         );
 
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while creating FoundationalData.',
-            trace_id,
+            trace_id:traceId,
         });
     }
 }
 
 export async function updateFoundationalData(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string, id: string };
     let { name } = request.body as { name: string }
     name = name.trim();
@@ -282,59 +284,59 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
 
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: "Master Data Already Exist.",
-                trace_id,
+                trace_id:traceId,
             });
         }
 
         const [updatedCount] = await foundationalData.update({ ...request.body as FoundationalDataInterface, modified_on: Date.now() }, { where: { program_id, id } });
         if (updatedCount > 0) {
             reply.send({
-                statusCode: 201,
+                status_code: 201,
                 message: 'FoundationalData updated successfully.',
-                trace_id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'FoundationalData not found.',
-                trace_id,
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server error',
-            trace_id,
+            trace_id:traceId,
         });
     }
 }
 
 export async function deleteFoundationalData(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
         const foundational_data = await foundationalData.findOne({ where: { program_id, id } });
         if (foundational_data) {
             await foundationalData.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
             reply.status(204).send({
-                statusCode: 204,
+                status_code: 204,
                 message: 'FoundationalData deleted successfully.',
-                trace_id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'FoundationalData not found.',
-                trace_id,
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'An error occurred while deleting FoundationalData.',
-            trace_id,
+            trace_id:traceId,
         });
     }
 }

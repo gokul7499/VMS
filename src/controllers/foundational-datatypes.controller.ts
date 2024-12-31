@@ -12,23 +12,23 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
     const program_id = foundationalDataPayload.program_id;
     const name = foundationalDataPayload.name;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
     }
 
     logger(
         {
-            trace_id,
+            trace_id:traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -53,9 +53,9 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
 
         if (existingFoundationalDataTypeWithSameName) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: "Master Data Type Already Exist.",
-                trace_id
+                trace_id:traceId,
             });
         }
 
@@ -65,17 +65,18 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             modified_on: Date.now(),
         });
         reply.status(201).send({
-            statusCode: 201,
+            status_code: 201,
+            message:"Data create successfully",
             data: {
                 id: foundationalData?.id,
                 name: foundationalData?.name,
             },
-            trace_id,
+            trace_id:traceId,
         });
 
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -95,7 +96,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
     } catch (error) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -114,15 +115,15 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
         );
 
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Error while creating foundation datatype',
-            trace_id
+            trace_id:traceId,
         });
     }
 };
 
 export const updateFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { id: string, program_id: string };
     const foundationalData = request.body as FoundationalDataTypesInterface;
     let { name } = request.body as { name: string };
@@ -139,38 +140,38 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
 
         if (existingFoundationalDataTypeWithSameName) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: "Master Data Type Already Exist.",
-                trace_id
+                trace_id:traceId,
             });
         }
         const data = await foundationalDataTypes.findByPk(id);
         if (data) {
             await data.update({ ...foundationalData, modified_on: Date.now() });
             reply.status(201).send({
-                statusCode: 201,
+                status_code: 201,
                 foundational_datatype_id: id,
                 message: 'Foundational data type updated successfully.',
-                trace_id
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Foundational Datatypes not found',
-                trace_id
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Error updating foundational data',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
 
 export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const data = await foundationalDataTypes.findOne({
@@ -179,30 +180,30 @@ export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply
 
         if (!data) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Foundational Datatypes not found',
-                trace_id
+                trace_id:traceId,
             });
         }
 
         await data.update({ is_enabled: false, is_deleted: true });
         reply.status(204).send({
-            statusCode: 204,
+            status_code: 204,
             foundational_datatype_id: id,
             message: 'Foundational data type Deleted Successfully',
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Error deleting foundational data',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
 
 export async function getFoundationalDataTypeById(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     try {
         const foundationalDataType: any = await foundationalDataTypes.findOne({
@@ -239,29 +240,30 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
             };
 
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message:"Foundational data get successfully",
                 foundational_data: foundationalDataTypeResponse,
-                trace_id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Foundational datatype not found',
                 foundational_data: [],
-                trace_id,
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
 
 export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Querystring: { name?: string, is_enabled?: string, modified_on?: string, page?: string, limit?: string } }>, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const responseFields = ['id', 'program_id', 'name', 'is_enabled', 'modified_on', 'description', 'configuration'];
     const { program_id } = request.params as { program_id: string };
     const { name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
@@ -297,9 +299,9 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Quer
 
         if (!foundationalDataItems.length) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Foundational data not found',
-                trace_id
+                trace_id:traceId,
             });
             return;
         }
@@ -334,16 +336,17 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Quer
         );
 
         reply.send({
-            statusCode: 200,
+            status_code: 200,
+            message:"Foundational get successfully",
             total_records: totalRecords,
             foundationalData: populatedFoundationalData,
-            trace_id
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
