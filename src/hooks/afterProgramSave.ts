@@ -37,29 +37,16 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         removedspecial: true,
     });
 
-    // const result: any[] = await sequelize.query(fetchProgramConfigValues, {
-    //     replacements: { programId },
-    //     type: QueryTypes.SELECT,
-    // });
-    // if (result.length === 0) {
-    //     console.log("No configuration data found for this program. No hierarchy record will be created.");
-    //     return null;
-    // }
-    // const defaultCurrency = result[0]?.defaultCurrency?.id || 'INR';
-    // const timeZone = result[0]?.timeZone?.id || 'UTC';
-    // const rateModel = result[0]?.rateModel?.[0] || 'Bill Rate';
-    // const preferredDateFormat = result[0]?.preferredDateFormat || 'DD/MM/YYYY';
     const hierarchy = await hierarchies.create({
         program_id: programId,
         name,
         code: "--",
         hierarchy_level: 1,
         hierarchy_order: 1,
-        is_enabled: true,
-        
+        is_enabled: true,        
         default_date_format: "MM/DD/YYYY",
         default_time_format: "12 Hours",
-        default_timezone : "da5d6254-4980-42e9-9896-0c23f8512eaf",
+        default_timezone : "d5129833-a45f-43c7-84c1-c427c2e820cd",
         default_currency: "5cc1357f-a90d-40b0-971f-74c8ddafb8c7",
         default_language : "adc0bb59-7c4f-4479-bc3c-20d1498ba13b",
         unit_of_measure: [
