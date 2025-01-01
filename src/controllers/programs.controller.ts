@@ -102,9 +102,6 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         await transaction.commit();
       } catch (error) {
 
-        await transaction.rollback();
-        console.error("Error in async configuration setup:", error);
-
         logger(
           {
             trace_id:traceId,
@@ -123,6 +120,9 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
           },
           Programs
         );
+
+        await transaction.rollback();
+        console.error("Error in async configuration setup:", error);       
       }
     });
   } catch (error: any) {
