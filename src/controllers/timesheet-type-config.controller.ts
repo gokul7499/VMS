@@ -4,11 +4,12 @@ import TimesheetTypeLaborCategorys from '../models/timesheet-type-labor-category
 import { TimesheetTypeConfigInterface } from '../interfaces/timesheet-config.interface';
 import TimesheetTypeHierarchies from '../models/timesheet-type-hierarchies.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
-import hierarchies from '../models/hierarchies.model';
-import IndustriesModel from '../models/labour-category.model';
 import TimesheetMasterData from '../models/timesheet-type-master-data.Model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import { sequelize } from '../config/instance';
+import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
+import Hierarchies from '../models/hierarchies.model';
+import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import IndustriesModel from '../models/labour-category.model';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const transaction = await TimesheetTypeConfig.sequelize?.transaction();
@@ -67,7 +68,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 };
 
 export const getAllTimesheetTypeConfigs = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: number; limit?: number } }>,
+    request: FastifyRequest<{Params: { program_id: string }; Querystring: { page?: number; limit?: number };}>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
@@ -75,11 +76,9 @@ export const getAllTimesheetTypeConfigs = async (
     try {
         const { program_id } = request.params;
         const { page = 1, limit = 10 } = request.query;
-
         const sanitizedPage = Math.max(Number(page), 1);
         const sanitizedLimit = Math.max(Number(limit), 1);
         const offset = (sanitizedPage - 1) * sanitizedLimit;
-
         const searchConditions: Record<string, any> = { is_deleted: false };
         if (program_id) searchConditions.program_id = program_id;
         const { rows: configs, count } = await TimesheetTypeConfig.findAndCountAll({
@@ -92,21 +91,54 @@ export const getAllTimesheetTypeConfigs = async (
             where: { timesheet_type_config_id: configIds },
             include: [
                 {
-                    model: hierarchies,
+                    model: Hierarchies,
                     as: 'hierarchies',
                     attributes: ['id', 'name'],
                 },
             ],
         });
-        const hierarchiesMap = hierarchyRelations.reduce((acc: any, relation: any) => {
+        const hierarchiesMap = hierarchyRelations.reduce((acc: Record<string, any[]>, relation) => {
             const configId = relation.timesheet_type_config_id;
-            if (!acc[configId]) acc[configId] = [];
+            acc[configId] = acc[configId] || [];
             if (relation.hierarchies) acc[configId].push(relation.hierarchies);
             return acc;
         }, {});
+        const laborRelations = await TimesheetTypeLaborCategorys.findAll({
+            where: { timesheet_type_config_id: configIds },
+            include: [
+                {
+                    model: IndustriesModel,
+                    as: 'labor_categorys',
+                    attributes: ['id', 'name'],
+                },
+            ],
+        });
+        const labourCategoryMap = laborRelations.reduce((acc: Record<string, any[]>, relation) => {
+            const configId = relation.timesheet_type_config_id;
+            acc[configId] = acc[configId] || [];
+            if (relation.labor_categorys) acc[configId].push(relation.labor_categorys);
+            return acc;
+        }, {});
+        const ruleGroupIds = configs
+            .map((config) => config.allocations?.timesheet_rule_group_association)
+            .filter(Boolean);
+        const ruleGroups = await TimesheetExpenseRuleGroup.findAll({
+            where: { id: ruleGroupIds },
+            attributes: ['id', 'rule_group_name'],
+        });
+        const ruleGroupMap = ruleGroups.reduce((acc: Record<string, any>, ruleGroup) => {
+            acc[ruleGroup.id] = ruleGroup;
+            return acc;
+        }, {});
+
         const data = configs.map((config) => ({
             ...config.toJSON(),
             hierarchies: hierarchiesMap[config.id] || [],
+            labour_category: labourCategoryMap[config.id] || [],
+            allocations: {
+                ...config.allocations,
+                timesheet_rule_group_association: ruleGroupMap[config.allocations?.timesheet_rule_group_association] || null,
+            },
         }));
         reply.status(200).send({
             status_code: 200,
@@ -145,7 +177,7 @@ export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply:
             where: { timesheet_type_config_id: id },
             include: [
                 {
-                    model: hierarchies,
+                    model: Hierarchies,
                     as: 'hierarchies',
                     attributes: ['id', 'name'],
                 },
@@ -218,7 +250,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     const transaction = await sequelize.transaction();
     try {
         const { id } = request.params as { id: string };
-        const { program_id, labor_categorys, hierarchies, master_data_types ,...configData} = request.body as {
+        const { program_id, labor_categorys, hierarchies, master_data_types, ...configData } = request.body as {
             program_id?: string;
             labor_categorys?: string[];
             hierarchies?: string[];
@@ -232,9 +264,9 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
                 trace_id:traceId,
             });
         }
-        await config.update({ 
+        await config.update({
             program_id,
-            ...configData 
+            ...configData
         }, { transaction });
 
         await config.update({ program_id }, { transaction });
