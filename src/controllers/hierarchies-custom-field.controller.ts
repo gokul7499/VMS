@@ -7,7 +7,7 @@ export async function createHierarchyCustomField(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const hierarchyCustomField = request.body as HierarchyCustomFieldInterface;
 
@@ -19,10 +19,11 @@ export async function createHierarchyCustomField(
       status_code: 201,
       message: 'Custom field created successfully',
       custom_field_location_id: customFieldLocation?.id,
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while creating custom field',
       error: (error as Error).message,
     });
@@ -32,7 +33,7 @@ export async function getHierarchyCustomFieldById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const hierarchy = await HierarchyCustomFieldModel.findByPk(id, {
@@ -41,14 +42,16 @@ export async function getHierarchyCustomFieldById(
     if (hierarchy) {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        message:"Hierarchy customField get successfully",
+        trace_id: traceId,
         hierarchies: hierarchy
       });
     } else {
-      reply.status(200).send({ message: 'Hierarchy customField not found', hierarchies: [] });
+      reply.status(200).send({ status_code:200,message: 'Hierarchy customField not found', hierarchies: [] });
     }
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while fetching Hierarchy by ID',
       error: error,
     });
@@ -65,7 +68,7 @@ export const updateHierarchyCustomFieldById = async (
   try {
     const [updatedCount] = await HierarchyCustomFieldModel.update(request.body as HierarchyCustomFieldInterface, { where: { program_id, id } });
     if (updatedCount > 0) {
-      reply.send({
+      reply.status(201).send({
         status_code: 201,
         message: 'HierarchyCustomField updated successfully.',
         id,
@@ -79,6 +82,7 @@ export const updateHierarchyCustomFieldById = async (
     }
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'Internal Server error',
       trace_id: traceId,
       error
@@ -109,6 +113,7 @@ export async function deleteHierarchyCustomFieldById(
     }
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while deleting hierarchyCustomField.',
       trace_id: traceId,
       error: error,

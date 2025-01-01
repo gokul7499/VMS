@@ -12,11 +12,13 @@ export const createWorkflowApprover = async (request: FastifyRequest, reply: Fas
         const WorkflowApproversData: any = await WorkFlowApproverModel.create({ ...workflowApproverPayload, program_id });
         reply.status(201).send({
             status_code: 201,
+            message: 'Workflow Approver created successfully',
             workflow_approver_id: WorkflowApproversData?.id,
             trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error While Creating Workflow Approver.',
             error: error,
             trace_id:traceId,
@@ -33,15 +35,15 @@ export const updateWorkflowApprover = async (request: FastifyRequest, reply: Fas
             where: { id, program_id, is_deleted: false },
         });
         if (!data) {
-            return reply.status(200).send({ message: 'Workflow Approver Not Found.' });
+            return reply.status(200).send({status_code:200, message: 'Workflow Approver Not Found.',trace_id:traceId });
         }
         const UpdatedWorkflowApprover = await data.update(WorkflowApproversData);
 
         if (UpdatedWorkflowApprover) {
-            reply.send({ success: true, message: 'Workflow Approver Updated Successfully.' });
+            reply.send({ success: true, message: 'Workflow Approver Updated Successfully.', trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Updating The Workflow Approver', error, trace_id:traceId});
+        reply.status(500).send({status_code:500, message: 'An Error Occurred While Updating The Workflow Approver', error, trace_id:traceId});
     }
 }
 
@@ -54,7 +56,7 @@ export const deleteWorkflowApprover = async (request: FastifyRequest, reply: Fas
         });
 
         if (!data) {
-            return reply.status(200).send({ message: 'Workflow Approver Data Not Found' });
+            return reply.status(200).send({status_code:200, message: 'Workflow Approver Data Not Found' ,trace_id:traceId });
         }
         await data.update({ is_enabled: false, is_deleted: true });
         reply.status(200).send({
@@ -64,7 +66,7 @@ export const deleteWorkflowApprover = async (request: FastifyRequest, reply: Fas
             message: 'Workflow Approver Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error Deleting Workflow Approver', error, trace_id:traceId});
+        reply.status(500).send({status_code:500, message: 'Error Deleting Workflow Approver', error, trace_id:traceId});
     }
 }
 
@@ -113,13 +115,16 @@ export async function getAllWorkflowApprover(
 
         if (workflowApprover.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Workflow Approver Not Found",
-                workflowApprover: []
+                workflowApprover: [],
+                trace_id:traceId 
             });
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Workflow Approver Found",
             items_per_page: limit,
             total_records: count,
             workflowApprover: workflowApprover,
@@ -127,7 +132,7 @@ export async function getAllWorkflowApprover(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal Server Error",
             error: error,
             trace_id:traceId,
@@ -144,14 +149,15 @@ export async function getWorkflowApproverById(request: FastifyRequest, reply: Fa
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: "Workflow Approver Found",
                 workflowApprover: item,
                 trace_id:traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Workflow Approver Not Found', workflowApprover: [] });
+            reply.status(200).send({status_code:200, message: 'Workflow Approver Not Found', workflowApprover: [] ,trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An Error Occurred While Fetching Workflow Approver', error });
+        reply.status(500).send({status_code:500, message: 'An Error Occurred While Fetching Workflow Approver', error ,trace_id:traceId });
     }
 }

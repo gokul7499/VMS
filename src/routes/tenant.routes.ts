@@ -12,9 +12,9 @@ import {
 } from "../controllers/tenant.controller";
 
 async function tenantRoutes(fastify: FastifyInstance) {
-  fastify.get("/tenant/", getTenants);
+  fastify.get("/tenant", getTenants);
   fastify.get("/tenant/:id", getTenantById);
-  fastify.post("/tenant/",createTenant);
+  fastify.post("/tenant",createTenant);
   fastify.post("/tenant/tenant-user",createTenantAndUser);
   fastify.put("/tenant/:id", updateTenant);
   fastify.delete("/tenant/:id", deleteTenant);

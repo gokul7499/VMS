@@ -1,0 +1,85 @@
+import { DataTypes, Model } from "sequelize";
+import { sequelize } from "../config/instance";
+import { Programs } from "./programs.model";
+import { beforeSave } from "../hooks/timeFormatHook";
+import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+
+class RateConfigurationsModel extends Model {
+    id!: string;
+    program_id!: string;
+    hierarchies:any;
+    job_templates: any;
+    rate_configuration: any;
+    is_shift_rate: any;
+    name: any;
+}
+
+RateConfigurationsModel.init(
+    {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            allowNull: false,
+            primaryKey: true,
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        is_shift_rate: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+        },
+        is_enabled: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: true,
+        },
+        is_deleted: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: false,
+        },
+        program_id: {
+            type: DataTypes.UUID,
+            references: {
+                model: "programs",
+                key: "id",
+            },
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        modified_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue:DataTypes.NOW
+        },
+        modified_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue:DataTypes.NOW
+        },
+    },
+    {
+        sequelize,
+        tableName: "rate_configurations",
+        timestamps: false,
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
+        },
+    }
+);
+
+sequelize.sync();
+
+RateConfigurationsModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
+export default RateConfigurationsModel;

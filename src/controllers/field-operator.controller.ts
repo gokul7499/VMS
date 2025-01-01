@@ -1,11 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import FieldOperatorModel from '../models/field-operator-model';
-import { FieldOperatorData } from '../interfaces/field-operator-interface';
+import FieldOperatorModel from '../models/field-operator.model';
+import { FieldOperatorData } from '../interfaces/field-operator.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
 export const createFieldOperator = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const FieldOperatorPayload = request.body as Omit<FieldOperatorData, '_id'>;
         const FieldOperator: any = await FieldOperatorModel.create({ ...FieldOperatorPayload });
@@ -13,19 +13,19 @@ export const createFieldOperator = async (request: FastifyRequest, reply: Fastif
             statusCode: 201,
             field_operator_id: FieldOperator.id,
             message: 'Field operator created successfully',
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 };
 
 export const updateFieldOperator = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id } = request.params as { id: string };
     const fieldOperator = request.body as FieldOperatorData;
     try {
@@ -40,26 +40,26 @@ export const updateFieldOperator = async (request: FastifyRequest, reply: Fastif
                 statusCode: 201,
                 field_operator_id: id,
                 message: 'Field operator data updated successfully.',
-                trace_id,
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
                 statusCode: 200,
                 message: 'Field operator not found.',
-                trace_id
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
 
 export const deleteFieldOperator = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const data = await FieldOperatorModel.findOne({
@@ -70,7 +70,7 @@ export const deleteFieldOperator = async (request: FastifyRequest, reply: Fastif
             return reply.status(200).send({
                 statusCode: 200,
                 message: 'Field operator not found',
-                trace_id
+                trace_id:traceId,
             });
         }
 
@@ -78,14 +78,14 @@ export const deleteFieldOperator = async (request: FastifyRequest, reply: Fastif
         reply.status(200).send({
             statusCode: 200,
             field_operator_id: id,
-            trace_id,
+            trace_id:traceId,
             message: 'Field operator data deleted successfully'
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }
@@ -94,7 +94,7 @@ export async function getAllFieldOperator(
     request: FastifyRequest<{ Params: FieldOperatorData, Querystring: FieldOperatorData }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const query: any = request.query;
 
@@ -129,28 +129,29 @@ export async function getAllFieldOperator(
                 statusCode: 200,
                 message: "Field operator not found",
                 field_operator: [],
-                trace_id,
+                trace_id:traceId,
             });
         }
 
         reply.status(200).send({
             statusCode: 200,
+            message:"Field operator get successfully",
             items_per_page: limit,
             total_records: count,
             field_operators: fieldOperator,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: "Internal server error",
-            trace_id,
+            trace_id:traceId,
         });
     }
 }
 
 export async function getFieldOperatorById(request: FastifyRequest, reply: FastifyReply) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const item = await FieldOperatorModel.findOne({
@@ -160,21 +161,21 @@ export async function getFieldOperatorById(request: FastifyRequest, reply: Fasti
             reply.status(200).send({
                 statusCode: 200,
                 field_operator: item,
-                trace_id
+                trace_id:traceId,
             });
         } else {
             reply.status(200).send({
                 statusCode: 200,
                 message: 'Field operator not found',
                 field_operator: [],
-                trace_id
+                trace_id:traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id
+            trace_id:traceId,
         });
     }
 }

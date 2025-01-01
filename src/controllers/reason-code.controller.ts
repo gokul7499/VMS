@@ -59,6 +59,7 @@ export async function createReasoncode(
         });
     } catch (error: any) {
         reply.status(500).send({
+            status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
             error: error.message,
@@ -140,9 +141,11 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
 
         if (!filteredReasoncodes || filteredReasoncodes.length === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "Reasoncode not found",
                 reason_code_action: [],
-                totalRecords
+                totalRecords,
+                trace_id:traceId
             });
         }
 
@@ -219,6 +222,7 @@ export async function getReasoncodeById(
         } else {
             reply.status(200).send({
                 status_code: 200,
+                message: 'Reason code not found',
                 reason_code_action: {
                     reasoncodes: []
                 },
@@ -227,6 +231,7 @@ export async function getReasoncodeById(
         }
     } catch (error: any) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while fetching',
             trace_id: traceId,
             error: error.message || error,
@@ -279,6 +284,7 @@ export async function getReasoncodeByEventName(
         }
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'An error occurred while fetching',
             trace_id: traceId,
             error: error

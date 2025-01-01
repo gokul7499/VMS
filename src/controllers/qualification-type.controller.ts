@@ -45,6 +45,8 @@ export async function getQualificationTypes(
 
     if (qualificationTypes.length === 0) {
       return reply.status(200).send({
+        status_code:200,
+        traceId: traceId,
         message: "Qualification type not found",
         qualificationTypes: []
       });
@@ -72,6 +74,7 @@ export async function getQualificationTypes(
 
     reply.status(200).send({
       status_code: 200,
+      message:" Qualification type get successfully",
       items_per_page: limit,
       total_records: count,
       qualification_type: qualificationType,
@@ -79,7 +82,7 @@ export async function getQualificationTypes(
     });
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'Internal Server Error',
       trace_id: traceId,
     });
@@ -107,6 +110,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id });
     reply.status(201).send({
       status_code: 201,
+      message: 'Qualification type created successfully',
       qualification_type: {
         id: qualificationType?.id,
         qualificationType_name: qualificationType?.qualificationType_name
@@ -115,8 +119,10 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     });
   } catch (error) {
     reply.status(500).send({
+      status_code: 500,
       message: 'An error occurred while creating the qualification type',
       error,
+      trace_id: traceId,
     })
   }
 }
@@ -142,6 +148,7 @@ export const getQualificationTypeById = async (request: FastifyRequest, reply: F
     if (qualificationTypeData) {
       reply.status(200).send({
         status_code: 200,
+        message: 'Qualification type retrieved successfully',
         qualificationType: qualificationTypeData,
         trace_id: traceId,
       });

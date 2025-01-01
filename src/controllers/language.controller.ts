@@ -18,20 +18,26 @@ export async function getLanguages(request: FastifyRequest<{ Querystring: Langua
       },
     });
     if (languages.length === 0) {
-      return reply
-        .code(200)
-        .send({ message: 'Languages not found', languages: [] });
+      return reply.code(200).send({
+        status_code: 200,
+        message: 'Languages not found',
+        languages: []
+      });
     }
     reply.status(200).send({
       status_code: 200,
+      message: "Languages gwt successfully",
       items_per_page: languages.length,
       total_records: languages.length, // Total records after filtering
-      trace_id:  traceId,
+      trace_id: traceId,
       data: languages,
     });
   } catch (error) {
     console.error(error);
-    reply.status(500).send({ message: 'Internal Server Error' });
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error'
+    });
   }
 }
 
@@ -49,7 +55,7 @@ export const bulkUploadLanguage = async (request: FastifyRequest, reply: Fastify
       status_code: 201,
       data: createdLanguage,
       message: 'Languages Created successfully',
-      trace_id:  traceId,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
@@ -69,15 +75,16 @@ export async function getLanguageById(request: FastifyRequest, reply: FastifyRep
     if (language) {
       reply.status(200).send({
         status_code: 200,
+        message:"Language data get successfully",
         data: language,
-        trace_id:  traceId,
+        trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ message: 'Language not found', language: [] });
+      reply.status(200).send({ status_code:200,message: 'Language not found', language: [] });
     }
   } catch (error) {
     console.error(error);
-    reply.status(500).send({ message: 'Internal Server Error' });
+    reply.status(500).send({ status_code:500,message: 'Internal Server Error' });
   }
 }
 
@@ -91,12 +98,14 @@ export async function createLanguage(
 
     const item: any = await Language.create({ ...language });
     reply.status(201).send({
-      statusCode: 201,
+      status_code: 201,
+      message:"Language create successfully",
       data: item,
-      trace_id:  traceId,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while creating',
       error
     });
@@ -114,15 +123,16 @@ export async function updateLanguage(request: FastifyRequest, reply: FastifyRepl
       await language.update(LanguageData);
       reply.status(200).send({
         status_code: 200,
+        message:"Languages update successfully",
         language_id: id,
         trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ message: 'Language not found' });
+      reply.status(200).send({ status_code:200,message: 'Language not found' });
     }
   } catch (error) {
     console.error(error);
-    reply.status(500).send({ message: 'Internal Server Error' });
+    reply.status(500).send({status_code:500, message: 'Internal Server Error' });
   }
 }
 
@@ -143,14 +153,15 @@ export async function deleteLanguage(
     if (numRowsDeleted > 0) {
       reply.status(200).send({
         statusCode: 200,
+        message:"Languages delete successfully",
         language_id: id,
-        trace_id:  traceId,
+        trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ message: 'Language not found' });
+      reply.status(200).send({status_code:200, message: 'Language not found' });
     }
   } catch (error) {
-    reply.status(500).send({ message: 'An error occurred while deleting', error });
+    reply.status(500).send({status_code:500, message: 'An error occurred while deleting', error });
   }
 }
 

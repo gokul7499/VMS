@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import IndustriesModel from '../models/industries.model';
-import { IndustriesInterface, } from '../interfaces/industries.interface';
+import IndustriesModel from '../models/labour-category.model';
+import { IndustriesInterface, } from '../interfaces/labour-category.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -12,23 +12,23 @@ export async function createIndustries(
 ) {
   const labour_categories = request.body as IndustriesInterface;
   const { name, program_id } = request.body as { name: string, program_id: string };
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
   }
 
   logger(
     {
-      trace_id,
+      trace_id:traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -58,20 +58,21 @@ export async function createIndustries(
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid Name Field, Name Must Be Unique.",
-        trace_id,
+        trace_id:traceId,
       });
     }
 
     const item = await IndustriesModel.create({ ...labour_categories });
     reply.status(201).send({
-      statusCode: 201,
+      status_code: 201,
+      message:"Industries create successfully",
       data: item.id,
-      trace_id
+      trace_id:traceId,
     });
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -91,7 +92,7 @@ export async function createIndustries(
   } catch (error: any) {
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -112,7 +113,7 @@ export async function createIndustries(
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id
+      trace_id:traceId,
     });
   }
 }
@@ -160,7 +161,7 @@ export const getIndustries = async (
 
     if (labour_categories.length === 0) {
       return reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
         trace_id: traceId,
         message: 'No labour categories found',
         labour_categories: [],
@@ -168,7 +169,7 @@ export const getIndustries = async (
     }
 
     reply.status(200).send({
-      statusCode: 200,
+      status_code: 200,
       trace_id: traceId,
       message: 'labour categories retrieved successfully',
       items_per_page: pageSize,
@@ -178,7 +179,7 @@ export const getIndustries = async (
     });
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'Internal Server Error',
       trace_id: traceId,
       error: error
@@ -190,7 +191,7 @@ export async function getIndustriesById(
   request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const item = await IndustriesModel.findOne({
@@ -199,22 +200,24 @@ export async function getIndustriesById(
     });
     if (item) {
       reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
+        message:"Industries get sueccssfully",
         labour_category_data: item,
-        trace_id
+        trace_id:traceId
       });
     } else {
       reply.status(200).send({
+        status_code:200,
         message: 'labour category not found',
         labour_category: [],
-        trace_id
+        trace_id:traceId
       });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while fetching',
-      trace_id
+      trace_id:traceId
     });
   }
 }
@@ -223,7 +226,7 @@ export async function updateIndustries(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const labour_categories = request.body as IndustriesInterface;
@@ -241,7 +244,7 @@ export async function updateIndustries(
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid Name Field, Name Must Be Unique.",
-        trace_id,
+        trace_id:traceId,
       });
     }
 
@@ -252,18 +255,19 @@ export async function updateIndustries(
 
     if (numRowsUpdated > 0) {
       reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
+        message:"Industries get successfully",
         labour_category_id: id,
-        trace_id,
+        trace_id:traceId,
       });
     } else {
-      reply.status(404).send({ message: 'labour categories not found' });
+      reply.status(404).send({ status_code:401,message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'An error occurred while updating',
-      trace_id
+      trace_id:traceId
     });
   }
 }
@@ -272,7 +276,7 @@ export async function deleteIndustries(
   request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const [numRowsDeleted] = await IndustriesModel.update({
@@ -286,23 +290,24 @@ export async function deleteIndustries(
     if (numRowsDeleted > 0) {
       reply.status(200).send({
         statusCode: 200,
+        message:"Industries delete successfully",
         labour_category_id: id,
-        trace_id,
+        trace_id:traceId,
       });
     } else {
-      reply.status(404).send({ message: 'labour categories not found' });
+      reply.status(404).send({ status_code:404,message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while deleting',
-      trace_id
+      trace_id:traceId
     });
   }
 }
 
 export const bulkUploadIndustries = async (request: FastifyRequest, reply: FastifyReply) => {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const labour_categories = request.body as any[];
     const createdLabourCategories = await IndustriesModel.bulkCreate(labour_categories);
@@ -310,13 +315,13 @@ export const bulkUploadIndustries = async (request: FastifyRequest, reply: Fasti
       status_code: 201,
       data: createdLabourCategories,
       message: 'labour categories Created successfully',
-      trace_id,
+      trace_id:traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create labour categories',
-      trace_id,
+      trace_id:traceId,
       error: error,
     });
   }

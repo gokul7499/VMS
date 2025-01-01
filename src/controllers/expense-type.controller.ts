@@ -1,6 +1,6 @@
 
-import ExpenseTypeModel from "../models/expenseType.model";
-import { ExpenseTypeInterface } from "../interfaces/expenseTypeInterface";
+import ExpenseTypeModel from "../models/expense-type.model";
+import { ExpenseTypeInterface } from "../interfaces/expense-type.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
@@ -48,14 +48,14 @@ export async function getExpenseTypeById(
             reply.status(201).send({
                 status_code: 201,
                 message: "expense type get succesfully",
-                expense_type: expenseType,
+                expense_item_type_config: expenseType,
                 trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: "expense type data not found",
-                expense_type: [],
+                expense_item_type_config: [],
                 trace_id: traceId
             });
         }
@@ -79,9 +79,10 @@ export async function updateExpenseTypeById(request: FastifyRequest, reply: Fast
 
         if (updatedCount === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "Expense type data not found",
                 trace_id: traceId,
-                expense_type: []
+                expense_item_type_config: []
             });
         }
 
@@ -120,7 +121,7 @@ export async function deleteExpenseTypeById(
             reply.status(200).send({
                 status_code: 200,
                 message: "expense type deleted successfully",
-                expense_type: id,
+                expense_item_type_config: id,
                 trace_id: traceId,
             });
         } else {
@@ -138,9 +139,9 @@ export async function deleteExpenseTypeById(
         });
     }
 }
-export async function getAllExpenseType(request: FastifyRequest<{ Querystring: { name?: string ,code?:string,category?:string,apply_msp_fee?:string,appply_tax?:string,allow_unit_based?:string,is_enabled?:string,page?:number,limit?:number} }>, reply: FastifyReply) {
-    const { program_id } = request.params as { program_id: string }
-    const { name,code,category ,apply_msp_fee,appply_tax,allow_unit_based,is_enabled,page,limit} = request.query;
+export async function getAllExpenseType(request: FastifyRequest<{Querystring: { name?: string,code?: string,category?: string,apply_msp_fee?: string,appply_tax?: string,allow_unit_based?: string,is_enabled?: string,page?: number,limit?: number; };}>,reply: FastifyReply) {
+    const { program_id } = request.params as { program_id: string };
+    const {name, code, category, apply_msp_fee, appply_tax, allow_unit_based, is_enabled, page, limit,} = request.query;
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
 
@@ -159,37 +160,35 @@ export async function getAllExpenseType(request: FastifyRequest<{ Querystring: {
     if (appply_tax !== undefined) {
         whereClause.appply_tax = appply_tax === "true";
     }
-    if(allow_unit_based !== undefined){
-        whereClause.allow_unit_based=allow_unit_based ==="true"
+    if (allow_unit_based !== undefined) {
+        whereClause.allow_unit_based = allow_unit_based === "true";
     }
     if (is_enabled !== undefined) {
         whereClause.is_enabled = is_enabled === "true";
     }
-    const pageSize=parseInt(page as unknown as string)|| 1
-    const pageNumber=parseInt(limit as unknown as string) || 10
-    const offset=(pageSize-1)*pageNumber
+
+    const pageNumber = parseInt(page as unknown as string) || 1;
+    const pageSize = parseInt(limit as unknown as string) || 10;
+    const offset = (pageNumber - 1) * pageSize;
 
     try {
-        const {rows:expenseType,count:total_records} = await ExpenseTypeModel.findAndCountAll({
-             where: whereClause,
-             offset,
-             limit:pageSize
-             });
-        if (expenseType.length > 0) {
-            reply.status(201).send({
-                status_code: 201,
-                message: "expense type retrieved successfully",
-                expense_type: expenseType,
-                total_records:total_records,
-                page:page,
-                limit:limit,
-                trace_id:traceId,
-            });
-        } else {
-            reply.status(200).send({ status_code: 200, message: "expense type not found", expense_type: [], trace_id:traceId, });
-        }
+        const { rows: expenseType, count: total_records } = await ExpenseTypeModel.findAndCountAll({
+            where: whereClause,
+            offset,
+            limit: pageSize,
+            order: [["created_on", "DESC"]], 
+        });
+        reply.status(200).send({
+            status_code: 200,
+            message: expenseType.length > 0 ? "Expense types retrieved successfully" : "No expense types found",
+            expense_type: expenseType,
+            total_records: total_records,
+            page: pageNumber,
+            limit: pageSize,
+            trace_id: traceId,
+        });
     } catch (error) {
         console.error(error);
-        reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id:traceId });
+        reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }

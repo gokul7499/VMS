@@ -11,11 +11,13 @@ export const createWorkflowFieldConfig = async (request: FastifyRequest, reply: 
         const WorkflowFieldConfigAttributes: any = await WorkFlowFieldConfig.create({ ...workflowFieldConfigPayload });
         reply.status(201).send({
             status_code: 201,
+            message: 'Workflow Field Config created successfully',
             id: WorkflowFieldConfigAttributes?.id,
             trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error while creating workflow field config.',
             error: (error as any).message,
  
@@ -33,7 +35,7 @@ export const updateWorkflowFieldConfig = async (request: FastifyRequest, reply: 
             where: { id, is_deleted: false },
         });
         if (!data) {
-            return reply.status(200).send({ message: 'Workflow field config not found.',trace_id:traceId});
+            return reply.status(200).send({status_code:200, message: 'Workflow field config not found.',trace_id:traceId});
         }
         const UpdatedWorkflowInstance = await data.update(WorkflowFieldConfigAttributes);
 
@@ -41,7 +43,7 @@ export const updateWorkflowFieldConfig = async (request: FastifyRequest, reply: 
             reply.send({ success: true, message: 'Workflow field config updated successfully.',trace_id:traceId });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while updating the workflow field config',error: (error as any).message, trace_id:traceId});
+        reply.status(500).send({status_code:500, message: 'An error occurred while updating the workflow field config',error: (error as any).message, trace_id:traceId});
     }
 }
 
@@ -54,7 +56,7 @@ export const deleteWorkflowFieldConfig= async (request: FastifyRequest, reply: F
         });
 
         if (!data) {
-            return reply.status(200).send({ message: 'Workflow field config not found.',trace_id:traceId });
+            return reply.status(200).send({status_code:200, message: 'Workflow field config not found.',trace_id:traceId });
         }
         await data.update({ is_enabled: false, is_deleted: true });
         reply.status(200).send({
@@ -64,7 +66,7 @@ export const deleteWorkflowFieldConfig= async (request: FastifyRequest, reply: F
             message: 'Workflow field config deleted successfully!'
         });
     } catch (error) {
-        reply.status(500).send({ message: 'Error deleting workflow field config', error: (error as any).message, trace_id:traceId });
+        reply.status(500).send({status_code:500, message: 'Error deleting workflow field config', error: (error as any).message, trace_id:traceId });
     }
 }
 
@@ -96,14 +98,16 @@ export async function getAllWorkflowFieldConfig(
 
         if (workflowInstance.length === 0) {
             return reply.status(200).send({
+                status_code: 200,
                 message: "Workflow instance not found",
-                traceId:traceId,
+                trace_id:traceId,
                 field_config: []
             });
         }
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
+            message: "Workflow field config retrieved successfully",
             items_per_page: limit,
             total_records: count,
             field_config: workflowInstance,
@@ -111,7 +115,7 @@ export async function getAllWorkflowFieldConfig(
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: "Internal server error",
             error: (error as any).message,
             trace_id:traceId,
@@ -128,14 +132,15 @@ export async function getWorkflowFieldConfigById(request: FastifyRequest, reply:
         });
         if (item) {
             reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
+                message: "Workflow field config retrieved successfully",
                 field_config: item,
                 trace_id:traceId,
             });
         } else {
-            reply.status(200).send({ message: 'Workflow field config not found',trace_id:traceId, field_config: [] });
+            reply.status(200).send({status_code:200, message: 'Workflow field config not found',trace_id:traceId, field_config: [] });
         }
     } catch (error) {
-        reply.status(500).send({ message: 'An error occurred while fetching workflow instance',trace_id:traceId, error: (error as any).message, });
+        reply.status(500).send({status_code:500, message: 'An error occurred while fetching workflow instance',trace_id:traceId, error: (error as any).message, });
     }
 }

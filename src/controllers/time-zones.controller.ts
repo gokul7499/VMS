@@ -6,7 +6,7 @@ export const getAllTimeZones = async (request: FastifyRequest, reply: FastifyRep
   const { name, code } = request.query as { name?: string; code?: string };
 
   const whereConditions: any = {};
-
+  const traceId = generateCustomUUID();
   if (name) {
     whereConditions.name = { [Op.like]: `%${name}%` };
   }
@@ -16,13 +16,18 @@ export const getAllTimeZones = async (request: FastifyRequest, reply: FastifyRep
   }
   const timeZones = await TimeZone.findAll({ where: whereConditions });
   if (timeZones.length === 0) {
-    return reply.status(200).send({ message: "TimeZones not found", timeZones: [] });
+    return reply.status(200).send({ status_code: 200, message: "TimeZones not found", timeZones: [], trace_id: traceId });
   }
-  reply.send(timeZones);
+  reply.status(200).send({
+    status_code: 200,
+    message: "TimeZones found",
+    data: timeZones,
+    trace_id: traceId
+  })
 };
 
 export const bulkUploadTimeZone = async (request: FastifyRequest, reply: FastifyReply) => {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const timeZoneData = request.body as any[];
     const createdTimeZone = await TimeZone.bulkCreate(timeZoneData);
@@ -36,7 +41,7 @@ export const bulkUploadTimeZone = async (request: FastifyRequest, reply: Fastify
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create time_zone',
-      trace_id:traceId,
+      trace_id: traceId,
       error: error,
     });
   }
@@ -45,10 +50,16 @@ export const bulkUploadTimeZone = async (request: FastifyRequest, reply: Fastify
 export const getTimeZoneById = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id } = request.params as { id: string };
   const timeZone = await TimeZone.findByPk(id);
+  const traceId = generateCustomUUID();
   if (timeZone) {
-    reply.send(timeZone);
+    reply.status(200).send({
+      status_code:200,
+      timeZone,
+      message:" timezone found successfully",
+      trace_id: traceId
+    });
   } else {
-    reply.status(200).send({ message: 'Time zone not found', timeZone: [] });
+    reply.status(200).send({ status_code: 200, message: 'Time zone not found', timeZone: [],trace_id:traceId });
   }
 };
 
@@ -61,7 +72,7 @@ export const createTimeZone = async (request: FastifyRequest, reply: FastifyRepl
     region: string;
     num: string;
   };
-
+  const traceId = generateCustomUUID();
   try {
     const newTimeZone = await TimeZone.create({
       code,
@@ -71,9 +82,14 @@ export const createTimeZone = async (request: FastifyRequest, reply: FastifyRepl
       region,
       num
     });
-    reply.status(201).send(newTimeZone);
+    reply.status(201).send({
+      status_code: 201,
+      message: " time_zone Created successfully",
+      newTimeZone,
+      trace_id: traceId
+    });
   } catch (error) {
-    reply.status(500).send({ error: 'Internal Server Error' });
+    reply.status(500).send({ status_code: 500, error: 'Internal Server Error',trace_id:traceId });
   }
 };
 
@@ -87,7 +103,7 @@ export const updateTimeZone = async (request: FastifyRequest, reply: FastifyRepl
     region?: string;
     num?: string;
   };
-
+  const traceId = generateCustomUUID();
   const timeZone = await TimeZone.findByPk(id);
   if (timeZone) {
     await timeZone.update({
@@ -98,19 +114,29 @@ export const updateTimeZone = async (request: FastifyRequest, reply: FastifyRepl
       region,
       num
     });
-    reply.send(timeZone);
+    reply.status(200).send({
+      status_code: 200,
+      message: "time_zone Updated successfully",
+      timeZone,
+      trace_id: traceId
+    });
   } else {
-    reply.status(200).send({ message: 'Time zone not found' });
+    reply.status(200).send({ status_code: 200, message: 'Time zone not found' ,trace_id:traceId});
   }
 };
 
 export const deleteTimeZone = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id } = request.params as { id: string };
   const timeZone = await TimeZone.findByPk(id);
+  const traceId = generateCustomUUID();
   if (timeZone) {
     await timeZone.destroy();
-    reply.status(204).send();
+    reply.status(204).send({
+      status_code: 204,
+      message: "Time zone deleted successfully",
+      trace_id: traceId
+    });
   } else {
-    reply.status(200).send({ message: 'Time zone not found' });
+    reply.status(200).send({ status_code: 200, message: 'Time zone not found', trace_id: traceId });
   }
 };

@@ -13,28 +13,28 @@ import Configuration from "../models/configuration.model";
 import ProgramModule from "../models/program-module.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { createHierarchy } from "../hooks/afterProgramSave";
+import { sequelize } from "../config/instance";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' ,trace_id:traceId});
   }
 
   logger(
     {
-      trace_id,
+      trace_id:traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -51,18 +51,21 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     Programs
   );
 
+  const transaction = await sequelize.transaction();
+
   try {
-    const item: any = await Programs.create({ ...programData });
+    const item: any = await Programs.create({ ...programData }, { transaction });
+
     reply.status(201).send({
       status_code: 201,
       id: item.id,
       message: "Program Created Successfully",
-      trace_id: trace_id,
+      trace_id:traceId,
     });
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -81,24 +84,30 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
     process.nextTick(async () => {
       try {
-        const defaultConfigs = await Configuration.findAll();
+        const defaultConfigs = await Configuration.findAll({ transaction });
 
         const programConfigs = defaultConfigs.map((config) => {
-          const { id, ...configWithoutId } = config.toJSON();
+          const { id, created_by, modified_by, created_on, modified_on, ...configWithoutId } = config.toJSON();
           return {
             program_id: item.id,
+            created_by: user.sub,
+            modified_by: user.sub,
+            configuration_id: id,
             ...configWithoutId,
           };
         });
 
-        await ProgramConfig.bulkCreate(programConfigs);
-        await createHierarchy(item); 
+        await ProgramConfig.bulkCreate(programConfigs, { transaction });
+    
+        await transaction.commit();
       } catch (error) {
+
+        await transaction.rollback();
         console.error("Error in async configuration setup:", error);
 
         logger(
           {
-            trace_id,
+            trace_id:traceId,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -117,16 +126,19 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       }
     });
   } catch (error: any) {
+    
+    await transaction.rollback();
+
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
-      trace_id: trace_id,
+      trace_id: traceId,
       error: error,
     });
 
     logger(
       {
-        trace_id,
+        trace_id:traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -195,12 +207,11 @@ export const getAllProgram = async (
       },
     });
     if (programs.length === 0) {
-      return reply
-        .status(200)
-        .send({ message: "Programs not found", programs: [] });
+      return reply.status(200).send({status_code:200, message: "Programs not found", programs: [],trace_id:traceId });
     }
     reply.status(200).send({
       status_code: 200,
+      message: "Programs found",
       items_per_page: limit,
       total_records: count,
       programs: programs,

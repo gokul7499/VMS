@@ -8,7 +8,7 @@ import Hierarchy from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, Sequelize } from 'sequelize';
-import IndustriesModel from '../models/industries.model';
+import IndustriesModel from '../models/labour-category.model';
 import { ProgramVendor } from '../models/program-vendor.model';
 const baseService = new BaseService(feesConfiguration);
 
@@ -23,14 +23,14 @@ export async function createFeesConfiguration(
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
   }
 
   logger(
@@ -63,6 +63,7 @@ export async function createFeesConfiguration(
 
     if (existingConfig) {
       return reply.status(409).send({
+        status_code:409,
         message: 'Fees configuration with this name already exists'
       });
     }
@@ -115,6 +116,7 @@ export async function createFeesConfiguration(
     );
 
     reply.status(500).send({
+      status_code:500,
       message: 'An error occurred while creating fees configuration',
       error
     });
@@ -125,7 +127,7 @@ export async function getFeesConfigurationById(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const fees = await feesConfiguration.findOne({
@@ -183,7 +185,7 @@ export async function getFeesConfigurationById(
             name: vendor.vendor_name,
           })),
         },
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
@@ -194,6 +196,7 @@ export async function getFeesConfigurationById(
     }
   } catch (error) {
     reply.status(500).send({
+      status_code:500,
       message: "An error occurred while fetching fees configuration",
       error,
     });
@@ -201,7 +204,7 @@ export async function getFeesConfigurationById(
 }
 
 export async function updateFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
   try {
@@ -215,11 +218,11 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
       message: 'fees configuration updated successfully',
       id: feesConfigData.id,
       fees_config: feesConfig,
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     console.error('error updating fees configuration fees configuration', error);
-    return reply.status(500).send({ message: 'Internal Server Error', error });
+    return reply.status(500).send({ status_code:500,message: 'Internal Server Error', error });
   }
 }
 
@@ -227,7 +230,7 @@ export async function deleteFeesConfigurationById(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const [feesConfig] = await feesConfiguration.update(
@@ -243,14 +246,14 @@ export async function deleteFeesConfigurationById(
         status_code: 200,
         message: "Fees configuration deleted successfully",
         feesConfig: feesConfig,
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ message: 'Fees configuration not found' });
+      reply.status(200).send({status_code:200, message: 'Fees configuration not found' });
     }
   } catch (error) {
     console.error('Error deleting fees configuration:', error);
-    reply.status(500).send({ message: 'An error occurred while deleting fees configuration', error });
+    reply.status(500).send({ status_code:500,message: 'An error occurred while deleting fees configuration', error });
   }
 }
 
@@ -272,6 +275,7 @@ export async function advancedSearchFeesConfiguration(
     if (result.count > 0) {
       return reply.status(200).send({
         status_code: 200,
+        message:"Data search successfully",
         total_records: result.count,
         items: result.rows,
       });
@@ -299,7 +303,7 @@ export async function getFeesConfig(
   }>,
   reply: FastifyReply
 ) {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params;
     const { hierarchy_levels, vendors, labor_category, source_model, is_enabled } = request.query;
@@ -356,14 +360,15 @@ export async function getFeesConfig(
 
     reply.status(200).send({
       status_code: 200,
+      message:"Fees config get successfully",
       fees: data,
-      trace_id,
+      trace_id:traceId,
     });
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id,
+      trace_id:traceId,
     });
   }
 }

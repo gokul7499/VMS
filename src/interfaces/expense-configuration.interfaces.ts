@@ -17,7 +17,7 @@ export interface ExpenseConfigurationAttributes {
   created_by?: string;
   updated_by?: string;
   hierarchy?: any; 
-  expense_type?: any; 
+  expense_item_type_config?: any; 
   master_data?:any
 }
   

@@ -8,12 +8,12 @@ import TimesheetMasterData from '../models/timesheet-type-master-data.Model';
 import { sequelize } from '../config/instance';
 import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
 import Hierarchies from '../models/hierarchies.model';
-import IndustriesModel from '../models/industries.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import IndustriesModel from '../models/labour-category.model';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const transaction = await TimesheetTypeConfig.sequelize?.transaction();
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const { labor_categorys, hierarchies, master_data_types, program_id: _ignoredProgramId, ...data } = request.body as any;
@@ -54,7 +54,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             status_code: 201,
             id: newConfig.id,
             message: 'Timesheet Type Config created successfully.',
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         await transaction?.rollback();
@@ -62,7 +62,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             status_code: 500,
             message: 'Error while creating Timesheet Type Config.',
             error: error.message || error,
-            trace_id,
+            trace_id:traceId,
         });
     }
 };
@@ -70,7 +70,9 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 export const getAllTimesheetTypeConfigs = async (
     request: FastifyRequest<{Params: { program_id: string }; Querystring: { page?: number; limit?: number };}>,
     reply: FastifyReply
-) => {const trace_id = generateCustomUUID();
+) => {
+    const traceId = generateCustomUUID();
+
     try {
         const { program_id } = request.params;
         const { page = 1, limit = 10 } = request.query;
@@ -140,23 +142,25 @@ export const getAllTimesheetTypeConfigs = async (
         }));
         reply.status(200).send({
             status_code: 200,
+            message:" Timesheet Type Configs Retrieved Successfully",
             items_per_page: sanitizedLimit,
             total_records: count,
             data,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error fetching Timesheet Type Configs.',
             error: error || 'Unknown error',
-            trace_id,
+            trace_id:traceId,
         });
     }
 };
 
 
 export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const config = await TimesheetTypeConfig.findOne({
@@ -166,7 +170,7 @@ export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply:
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
-                trace_id,
+                trace_id:traceId,
             });
         }
         const timesheetHierarchies = await TimesheetTypeHierarchies.findAll({
@@ -229,20 +233,20 @@ export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply:
         reply.status(200).send({
             status_code: 200,
             config: data,
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Error fetching Timesheet Type Config.',
             error: error.message || 'Unknown error',
-            trace_id,
+            trace_id:traceId,
         });
     }
 };
 
 export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     try {
         const { id } = request.params as { id: string };
@@ -257,7 +261,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
-                trace_id,
+                trace_id:traceId,
             });
         }
         await config.update({
@@ -307,7 +311,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet Type Config updated successfully.',
-            trace_id,
+            trace_id:traceId,
         });
     } catch (error) {
         await transaction.rollback();
@@ -315,13 +319,13 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             status_code: 500,
             message: 'Error updating Timesheet Type Config.',
             error: error || 'Unknown error',
-            trace_id,
+            trace_id:traceId,
         });
     }
 };
 
 export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id } = request.params as { id: string };
         const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
@@ -330,7 +334,7 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
-                trace_id: trace_id,
+                trace_id: traceId,
             });
         }
 
@@ -339,13 +343,14 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet Type Config deleted successfully.',
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error deleting Timesheet Type Config.',
             error: error,
-            trace_id: trace_id,
+            trace_id: traceId,
         });
     }
 };

@@ -20,6 +20,7 @@ export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error creating rule group.',
             error,
             trace_id: traceId,
@@ -51,6 +52,7 @@ export const getAllTimesheetExpenseRuleGroups = async (request: FastifyRequest, 
         });
         reply.status(200).send({
             status_code: 200,
+            message:" Rule groups retrieved successfully.",
             items_per_page: limit,
             total_records: count,
             timesheet_expense_rule_group: ruleGroups,
@@ -150,6 +152,7 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
         });
     } catch (error) {
         return reply.status(500).send({
+            status_code: 500,
             message: 'Internal Server Error',
             trace_id:traceId,
             error,
@@ -177,6 +180,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
         });
     } catch (error) {
         reply.status(500).send({
+            status_code: 500,
             message: 'Error deleting rule group.',
             error,
             trace_id: traceId,

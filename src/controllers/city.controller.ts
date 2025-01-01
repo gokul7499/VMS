@@ -10,7 +10,7 @@ export async function createCity(
     request: FastifyRequest<{ Params: { state_id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     try {
         const { state_id } = request.params;
@@ -35,7 +35,7 @@ export async function createCity(
             return reply.status(400).send({
                 status_code: 400,
                 message: `Cities with the following names already exist in the given state: ${existingCityNames.join(', ')}`,
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
 
@@ -48,22 +48,25 @@ export async function createCity(
 
         reply.status(201).send({
             status_code: 201,
+            message:"City created successfully",
             city: newCities.map(city => city.id),
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     } catch (error: any) {
         await transaction.rollback();
         if (error.message.includes("already exists")) {
             return reply.status(400).send({
+                status_code:400,
                 message: error.message,
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
         console.error(error);
         reply.status(500).send({
+            status_code:500,
             message: "Failed to create city(s)",
             error,
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     }
 }
@@ -72,7 +75,7 @@ export async function getCity(
     request: FastifyRequest<{ Querystring: { name?: string; state_id?: string[]; county_id?: string[] } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { state_id, county_id } = request.query;
     const { name } = request.query;
     let whereClause: any = {};
@@ -105,24 +108,27 @@ export async function getCity(
         const cities = await city.findAll({ where: whereClause });
         if (cities.length === 0) {
             return reply.status(200).send({
+                status_code:200,
                 message: "city not found",
                 cities: [],
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
         reply.status(200).send({
             status_code: 200,
+            message:"City get successfully",
             items_per_page: cities.length,
             total_records: cities.length,
-            trace_id: trace_Id,
+            trace_id: traceId,
             cities_data: cities,
         });
     } catch (error) {
         console.error(error);
         reply.status(500).send({
+            status_code:500,
             message: "Internal Server Error",
             error,
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     }
 }
@@ -131,7 +137,7 @@ export async function updateCity(
     request: FastifyRequest<{ Params: { id: string, state_id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, state_id } = request.params;
     const cityData = request.body as CityData;
     try {
@@ -142,22 +148,25 @@ export async function updateCity(
             await City.update(cityData);
             reply.status(200).send({
                 status_code: 200,
+                message:"City update successfully",
                 City_id: id,
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
+                status_code:200,
                 message: "city not found",
                 city: [],
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         console.error(error);
         reply.status(500).send({
+            status_code:500,
             message: "Internal Server Error",
             error,
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     }
 }
@@ -166,7 +175,7 @@ export async function deleteCity(
     request: FastifyRequest<{ Params: { id: string, state_id: string } }>,
     reply: FastifyReply
 ) {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, state_id } = request.params;
     try {
         const Citys = await city.update({
@@ -181,22 +190,25 @@ export async function deleteCity(
 
             reply.status(200).send({
                 status_code: 200,
+                message:"City delete successfully",
                 Citys_id: id,
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
+                status_code:200,
                 message: "city not found",
                 city: [],
-                trace_id: trace_Id,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         console.error(error);
         reply.status(500).send({
+            status_code:500,
             message: "Internal Server Error",
             error,
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     }
 }
@@ -207,7 +219,7 @@ export const getCityById = async (
     }>,
     reply: FastifyReply
 ) => {
-    const trace_Id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id, state_id: string } = request.params;
 
     try {
@@ -227,7 +239,7 @@ export const getCityById = async (
             status_code: 200,
             message: "city data retrieved successfully",
             City: resourceCity,
-            trace_id: trace_Id,
+            trace_id: traceId,
         });
     } catch (error) {
         handleError(error, reply);

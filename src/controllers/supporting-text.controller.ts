@@ -65,9 +65,10 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
 
         if (!supportingText || supportingText.length === 0) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Supporting Text not found.',
                 supportingText: [],
+                trace_id:traceId
             });
         }
 
@@ -90,7 +91,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
         }));
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Supporting Texts retrieved successfully.',
             total_records: count,
             total_pages: Math.ceil(count / limit),
@@ -100,8 +101,9 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
+            trace_id:traceId
         });
     }
 };
@@ -129,9 +131,10 @@ export const getSupportingText = async (request: FastifyRequest<{ Params: { id: 
 
         if (!supportingText) {
             return reply.status(200).send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Supporting Text not found.',
                 supportingText: [],
+                trace_id:traceId
             });
         }
 
@@ -154,36 +157,37 @@ export const getSupportingText = async (request: FastifyRequest<{ Params: { id: 
         };
 
         reply.status(200).send({
-            statusCode: 200,
+            status_code: 200,
             message: 'Supporting Text retrieved successfully.',
             support_text_data: responseData,
             trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
+            trace_id:traceId
         });
     }
 };
 
 export const createSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
     const data = request.body as supportingTextAttributes;
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found',trace_id:traceId });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
     }
     logger(
         {
-            trace_id,
+            trace_id:traceId,
             actor: {
                 user_name: user?.preferred_username,
                 user_id: user?.sub,
@@ -204,8 +208,9 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
 
         if (!data.program_id) {
             return reply.status(400).send({
-                statusCode: 400,
+                status_code: 400,
                 message: 'Program ID is required.',
+                trace_id: traceId
             });
         }
 
@@ -214,13 +219,14 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
         });
 
         reply.status(201).send({
-            statusCode: 201,
+            status_code: 201,
+            message: `Supporting text created successfully.`,
             support_text_data: newSupportingText.id,
-            trace_id,
+            trace_id:traceId,
         });
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -240,7 +246,7 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     } catch (error: any) {
         logger(
             {
-                trace_id,
+                trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -258,9 +264,10 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
             supportingTextModel
         )
         reply.status(500).send({
-            statusCode: 500,
+            status_code: 500,
             message: 'Internal Server Error',
             error: error.message || 'Unknown error',
+            trace_id:traceId,
         });
     }
 };
@@ -289,7 +296,7 @@ export const updateSupportingText = async (
         const supportingText = await supportingTextModel.findByPk(id);
 
         if (!supportingText) {
-            return reply.status(200).send({ statusCode: 200, message: 'Supporting Text not found.' });
+            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found.' ,trace_id:traceId});
         }
 
         await supportingText.update({
@@ -307,12 +314,13 @@ export const updateSupportingText = async (
         });
 
         reply.send({
-            statusCode: 200,
+            status_code: 200,
+            message: 'Supporting Text updated successfully.',
             support_text_data: supportingText,
             trace_id: traceId,
         });
     } catch (error) {
-        reply.status(500).send({ statusCode: 500, message: 'Internal Server Error' });
+        reply.status(500).send({ status_code: 500, message: 'Internal Server Error' ,trace_id:traceId});
     }
 };
 
@@ -322,7 +330,7 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
         const supportingText = await supportingTextModel.findByPk(request.params.id);
 
         if (!supportingText) {
-            return reply.status(200).send({ statusCode: 200, message: 'Supporting Text not found' });
+            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found' ,trace_id:traceId});
         }
 
         const [updated] = await supportingTextModel.update(
@@ -332,16 +340,16 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
 
         if (updated) {
             reply.send({
-                statusCode: 200,
+                status_code: 200,
                 message: 'Supporting Text deleted successfully.',
                 data: updated,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ statusCode: 200, message: 'Supporting Text not Updated.' });
+            reply.status(200).send({ status_code: 200, message: 'Supporting Text not Updated.' ,trace_id:traceId});
         }
     } catch (error) {
-        reply.status(500).send({ statusCode: 500, message: 'Internal Server Error' });
+        reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id:traceId });
     }
 };
 
