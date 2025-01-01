@@ -139,9 +139,9 @@ export async function deleteExpenseTypeById(
         });
     }
 }
-export async function getAllExpenseType(request: FastifyRequest<{Querystring: { name?: string,code?: string,category?: string,apply_msp_fee?: string,appply_tax?: string,allow_unit_based?: string,is_enabled?: string,page?: number,limit?: number; };}>,reply: FastifyReply) {
+export async function getAllExpenseType(request: FastifyRequest<{Querystring: { name?: string,code?: string,category?: string,apply_msp_fee?: string,appply_tax?: string,allow_unit_based?: string,is_enabled?: string,page?: number,limit?: number;max_limit?:number,modified_on?:string };}>,reply: FastifyReply) {
     const { program_id } = request.params as { program_id: string };
-    const {name, code, category, apply_msp_fee, appply_tax, allow_unit_based, is_enabled, page, limit,} = request.query;
+    const {name, code, category, apply_msp_fee, appply_tax, allow_unit_based, is_enabled, page, limit,max_limit,modified_on} = request.query;
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
 
@@ -166,7 +166,17 @@ export async function getAllExpenseType(request: FastifyRequest<{Querystring: { 
     if (is_enabled !== undefined) {
         whereClause.is_enabled = is_enabled === "true";
     }
-
+    if (max_limit !== undefined) {
+        whereClause["unit_based.max_limit"] = { [Op.lte]: max_limit };
+    }
+    if (modified_on) {
+        const dateRange = modified_on.split(',');
+        if (dateRange.length === 2) {
+            const startDate = parseFloat(dateRange[0].trim());
+            const endDate = parseFloat(dateRange[1].trim());
+            whereClause.modified_on = { [Op.between]: [startDate, endDate] };
+        }
+    }
     const pageNumber = parseInt(page as unknown as string) || 1;
     const pageSize = parseInt(limit as unknown as string) || 10;
     const offset = (pageNumber - 1) * pageSize;
