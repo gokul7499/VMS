@@ -10,6 +10,7 @@ class TimesheetTypeConfig extends Model {
   timesheet_hierarchies: any;
   labor_category: any;
   master_data_types: never[] | undefined;
+  allocations: any;
 }
 
 TimesheetTypeConfig.init(

@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import ExpenseConfigurationModel from './expense-configuration.model';
-import hierarchies from './hierarchies.model';
+import Hierarchies from './hierarchies.model';
 
 class expenseTypeHierarchie extends Model {
     hierarchy: never[] | undefined; 
@@ -22,7 +22,7 @@ expenseTypeHierarchie.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: hierarchies,
+                model: Hierarchies,
                 key: 'id',
             },
         },
@@ -51,6 +51,6 @@ expenseTypeHierarchie.init(
 );
 
 expenseTypeHierarchie.belongsTo(ExpenseConfigurationModel, { foreignKey: 'expense_config_id', as: 'expense_configuration' });
-expenseTypeHierarchie.belongsTo(hierarchies, { foreignKey: 'hierarchy', as: 'hierarchies' });
+expenseTypeHierarchie.belongsTo(Hierarchies, { foreignKey: 'hierarchy', as: 'hierarchies' });
 
 export default expenseTypeHierarchie;

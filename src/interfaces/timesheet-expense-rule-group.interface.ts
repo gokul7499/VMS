@@ -4,11 +4,7 @@ export interface TimesheetExpenseRuleGroupData {
     rule_group_name: string;
     rule_type_name: string;
     rule_category:string;
-    timesheet_expense_rules_group_mapping?: {
-        is_enabled: any;
-        id: string;
-        rule_type: string;
-    }[];
+    timesheet_expense_rules:any;
     is_enabled: boolean;
     is_deleted?: boolean;
     created_on: number;
