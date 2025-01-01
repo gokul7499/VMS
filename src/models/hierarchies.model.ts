@@ -8,7 +8,7 @@ import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
 }
-class Hierarchies extends Model {
+class hierarchies extends Model {
   parent_hierarchy_id: any;
   name: any;
   id: any;
@@ -16,7 +16,7 @@ class Hierarchies extends Model {
   rate_model!: any;
   program_id!: string;
 }
-Hierarchies.init(
+hierarchies.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -32,28 +32,14 @@ Hierarchies.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    is_enabled: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-
-    preferred_date_format: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    is_rate_card_enforced: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
+   
     rate_model: {
       type: DataTypes.ENUM(
         'Bill Rate (No Markup)',
         'Bill Rate (Markup)',
         'Pay Rate (Markup)'
       ),
-      allowNull: true
+      allowNull: true,
     },
     created_on: {
       type: DataTypes.DOUBLE,
@@ -67,10 +53,7 @@ Hierarchies.init(
     modified_by: {
       type: DataTypes.UUID,
     },
-    is_hidden: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
+  
     code: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -80,7 +63,7 @@ Hierarchies.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    program_id: {
+     program_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
@@ -89,7 +72,7 @@ Hierarchies.init(
       },
     },
     unit_of_measure: {
-      type: DataTypes.STRING,
+      type: DataTypes.JSON,
       allowNull: true,
     },
     currency_id: {
@@ -104,18 +87,65 @@ Hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    is_enable_adjustment: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    is_enable_tax: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
+    // is_enable_adjustment: {
+    //   type: DataTypes.BOOLEAN,
+    //   defaultValue: true,
+    // },
+    // is_enable_tax: {
+    //   type: DataTypes.BOOLEAN,
+    //   defaultValue: true,
+    // },
     is_default_timezone: {
       type: DataTypes.UUID,
       allowNull: true,
-    }
+    },
+    default_date_format: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue:"MM/DD/YYYY"
+    },
+    default_time_format: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue:"12 Hours"
+    },
+    default_currency: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    default_language: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    is_vendor_neutral_program: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    is_hide_candidate_img: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    manage_tax: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+
+    manage_adjustment: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    custom_fields: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    is_enabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+
+
+
   },
   {
     sequelize,
@@ -133,7 +163,7 @@ Hierarchies.init(
 );
 
 sequelize.sync();
-Hierarchies.belongsToMany(TimeZone, {
+hierarchies.belongsToMany(TimeZone, {
   through: "hierarchies_time_zone",
   as: "time_zones",
   foreignKey: "hierarchies_id",
@@ -141,14 +171,14 @@ Hierarchies.belongsToMany(TimeZone, {
   timestamps: false,
 });
 
-Hierarchies.belongsTo(Currencies, {
+hierarchies.belongsTo(Currencies, {
   foreignKey: "currency_id",
   as: "currency",
 });
 
-Hierarchies.belongsTo(TimeZone, {
+hierarchies.belongsTo(TimeZone, {
   foreignKey: "is_default_timezone",
   as: "default_timezone",
 });
 
-export default Hierarchies;
+export default hierarchies;
