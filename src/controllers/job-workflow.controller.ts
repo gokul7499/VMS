@@ -873,10 +873,11 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, job_id, workflow_trigger_id } = request.query as {
+        const { method_id, manager, workflow_trigger_id,hierarchy_ids } = request.query as {
             method_id: string;
-            job_id?: string;
+            manager?: string;
             workflow_trigger_id: string;
+            hierarchy_ids:any
         };
         // let findJobData: any = await jobModel.findOne({
         //     where: { id: job_id || workflow_trigger_id },
@@ -887,34 +888,35 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         //         where: { uuid: workflow_trigger_id },
         //     });
         // }
-        const workflowquery = `
-        (
-            SELECT *
-            FROM ${source_db}.jobs
-            WHERE id = :job_id OR id = :workflow_trigger_id
-        )
-        UNION
-        (
-            SELECT *
-            FROM ${teai_db}.assignments
-            WHERE uuid = :workflow_trigger_id
-        )
-        LIMIT 1;
-    `;
-        const findJobDataDetails: any = await sequelize.query(workflowquery, {
-            replacements: {
-                job_id: job_id,
-                workflow_trigger_id: workflow_trigger_id,
-            },
-            type: QueryTypes.SELECT,
-        });
-        let findJobData = findJobDataDetails[0]
-        console.log(findJobData);
+    // //     const workflowquery = `
+    // //     (
+    // //         SELECT *
+    // //         FROM ${source_db}.jobs
+    // //         WHERE id = :job_id OR id = :workflow_trigger_id
+    // //     )
+    // //     UNION
+    // //     (
+    // //         SELECT *
+    // //         FROM ${teai_db}.assignments
+    // //         WHERE uuid = :workflow_trigger_id
+    // //     )
+    // //     LIMIT 1;
+    // // `;
+    // //     const findJobDataDetails: any = await sequelize.query(workflowquery, {
+    // //         replacements: {
+    // //             job_id: job_id,
+    // //             workflow_trigger_id: workflow_trigger_id,
+                
+    // //         },
+    // //         type: QueryTypes.SELECT,
+    // //     });
+    // //     let findJobData = findJobDataDetails[0]
+    //     console.log(findJobData);
 
-        let hierarchy_ids
-        if (findJobData && findJobData.dataValues.hierarchy_ids) {
-            hierarchy_ids = findJobData.dataValues.hierarchy_ids;
-        }
+    //     let hierarchy_ids
+    //     if (findJobData && findJobData.hierarchy_ids) {
+    //         hierarchy_ids = findJobData.hierarchy_ids;
+    //     }
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -1195,7 +1197,7 @@ ORDER BY
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: findJobData?.dataValues.job_manager_id || findJobData?.dataValues.assignment_manager },
+                        replacements: { job_manager_id: manager || manager },
                     });
 
 
@@ -1539,39 +1541,40 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        const { workflow_action, job_id, workflow_trigger_id } = request.query as {
+        const { workflow_action, manager, workflow_trigger_id,hierarchy_ids } = request.query as {
             workflow_action: string;
             workflow_trigger_id: string;
-            job_id: string
+            manager: string;
+            hierarchy_ids:any
         };
-        const workflowquery = `
-    (
-        SELECT *
-        FROM ${source_db}.jobs
-        WHERE id = :job_id OR id = :workflow_trigger_id
-    )
-    UNION
-    (
-        SELECT *
-        FROM ${teai_db}.assignments
-        WHERE uuid = :workflow_trigger_id
-    )
-    LIMIT 1;
-`;
-        const findJobDataDetails: any = await sequelize.query(workflowquery, {
-            replacements: {
-                job_id: job_id,
-                workflow_trigger_id: workflow_trigger_id,
-            },
-            type: QueryTypes.SELECT,
-        });
-        let findJobData = findJobDataDetails[0]
-        console.log(findJobData);
-        let hierarchy_ids
-        if (findJobData && findJobData.hierarchy_ids) {
+//         const workflowquery = `
+//     (
+//         SELECT *
+//         FROM ${source_db}.jobs
+//         WHERE id = :job_id OR id = :workflow_trigger_id
+//     )
+//     UNION
+//     (
+//         SELECT *
+//         FROM ${teai_db}.assignments
+//         WHERE uuid = :workflow_trigger_id
+//     )
+//     LIMIT 1;
+// `;
+//         const findJobDataDetails: any = await sequelize.query(workflowquery, {
+//             replacements: {
+//                 job_id: job_id,
+//                 workflow_trigger_id: workflow_trigger_id,
+//             },
+//             type: QueryTypes.SELECT,
+//         });
+//         let findJobData = findJobDataDetails[0]
+//         console.log(findJobData);
+//         let hierarchy_ids
+//         if (findJobData && findJobData.hierarchy_ids) {
 
-            hierarchy_ids = findJobData.hierarchy_ids;
-        }
+//             hierarchy_ids = findJobData.hierarchy_ids;
+//         }
         const query = `
             SELECT
             w.id As job_workflow_id,
@@ -1855,7 +1858,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: findJobData?.dataValues.job_manager_id || findJobData?.dataValues.assignment_manager },
+                        replacements: { job_manager_id:manager  },
                     });
 
 
