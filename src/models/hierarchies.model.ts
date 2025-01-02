@@ -3,6 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import TimeZone from "./time-zone.model";
+import Currencies from "./currencies.model";
 import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
@@ -34,9 +35,9 @@ hierarchies.init(
    
     rate_model: {
       type: DataTypes.ENUM(
-        'bill_rate',
-        'markup',
-        'pay_rate'
+        'Bill Rate (No Markup)',
+        'Bill Rate (Markup)',
+        'Pay Rate (Markup)'
       ),
       allowNull: true,
     },
@@ -74,12 +75,16 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    default_currency: {
-      type: DataTypes.STRING,
+    currency_id: {
+      type: DataTypes.UUID,
       allowNull: true,
+      references: {
+        model: "currencies",
+        key: "id",
+      },
     },
-    default_timezone: {
-      type: DataTypes.STRING,
+    timezone_id: {
+      type: DataTypes.JSON,
       allowNull: true,
     },
     // is_enable_adjustment: {
@@ -90,17 +95,26 @@ hierarchies.init(
     //   type: DataTypes.BOOLEAN,
     //   defaultValue: true,
     // },
-   
+    is_default_timezone: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
     default_date_format: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue:"MM/DD/YYYY"
     },
     default_time_format: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue:"12 Hours"
+    },
+    default_currency: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     default_language: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
     },
     is_vendor_neutral_program: {
@@ -157,5 +171,14 @@ hierarchies.belongsToMany(TimeZone, {
   timestamps: false,
 });
 
+hierarchies.belongsTo(Currencies, {
+  foreignKey: "currency_id",
+  as: "currency",
+});
+
+hierarchies.belongsTo(TimeZone, {
+  foreignKey: "is_default_timezone",
+  as: "default_timezone",
+});
 
 export default hierarchies;

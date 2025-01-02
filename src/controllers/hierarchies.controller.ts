@@ -8,7 +8,8 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
-
+import TimeZone from '../models/time-zone.model';
+import Currencies from '../models/currencies.model';
 import HierarchyMasterData from '../models/hierarchyMasterDataModel';
 
 interface HierarchyItem {
@@ -165,20 +166,66 @@ export async function getHierarchiesById(
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findByPk(id, {
+      include: [
+        {
+          model: TimeZone,
+          as: 'time_zones',
+          attributes: ['id', 'name'],
+          through: { attributes: [] },
+        },
+        {
+          model: TimeZone,
+          as: 'default_timezone',
+          attributes: ['id', 'name']
+        },
+        {
+          model: Currencies,
+          as: 'currency',
+          attributes: ['id', 'name'],
+        },
+      ],
     });
 
     if (hierarchy) {
       const hierarchyData = hierarchy.toJSON();
+      hierarchyData.timezone_id = hierarchyData.time_zones.map((tz: any) => ({
+        id: tz.id,
+        name: tz.name,
+      }));
+      delete hierarchyData.time_zones;
+
+      const [masterDataResult] = await sequelize.query<MasterDataResult>(masterDataQuery, {
+        replacements: { hierarchy_id: id },
+        type: QueryTypes.SELECT,
+      });
+
+      if (masterDataResult) {
+        // Handle foundational_data
+        const parsedData =
+          typeof masterDataResult.foundational_data === 'string'
+            ? JSON.parse(masterDataResult.foundational_data)
+            : masterDataResult.foundational_data;
+
+        hierarchyData.foundational_data = Array.isArray(parsedData)
+          ? parsedData.filter((item) => item.id !== null && item.name !== null)
+          : [];
+
+        // Include parent_hierarchy_name
+        hierarchyData.parent_hierarchy_name = masterDataResult.parent_hierarchy_name || null;
+      } else {
+        hierarchyData.foundational_data = [];
+        hierarchyData.parent_hierarchy_name = null;
+      }
 
       return reply.status(200).send({
         status_code: 200,
-        message: "Hierarchies data fetched successfully",
+        message:"Hierarchies data get successfully",
         trace_id: traceId,
         hierarchies: hierarchyData,
       });
     } else {
       return reply.status(200).send({
-        status_code: 200,
+        status_code:200,
         message: 'Hierarchy not found',
         hierarchies: [],
       });
@@ -186,7 +233,7 @@ export async function getHierarchiesById(
   } catch (error) {
     console.error(error);
     return reply.status(500).send({
-      status_code: 500,
+      status_code:500,
       message: 'An error occurred while fetching Hierarchy by ID',
       error: (error as Error).message,
     });
@@ -226,19 +273,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
   const transaction = await sequelize.transaction();
   try {
-    const nameExists = await HierarchiesModel.findOne({
-      where: { name: hierarchyName, program_id, is_deleted: false },
-      transaction,
-    });
-
-    if (nameExists) {
-      await transaction.rollback();
-      return reply.status(409).send({
-        status_code: 409,
-        message: "Hierarchy name is already exist",
-      });
-    }
-
+   
     const codeExists = await HierarchiesModel.findOne({
       where: { code: hierarchyCode, program_id, is_deleted: false },
       transaction,
@@ -265,7 +300,10 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       );
     }
 
- 
+    if (hierarchie.timezone_id) {
+      await setAssociations(newItem, hierarchie, transaction);
+    }
+
     await transaction.commit();
 
     logger({
@@ -285,8 +323,8 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     return reply.status(201).send({
       status_code: 201,
       message: 'Hierarchy Created Successfully',
+      data: newItem,
       trace_id:traceId,
-      id:newItem.id
     });
 
   } catch (error) {
@@ -314,7 +352,11 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
-
+const setAssociations = async (newItem: any, hierarchies: hierarchiesData, transaction: any) => {
+  if (hierarchies.timezone_id && Array.isArray(hierarchies.timezone_id)) {
+    await newItem.setTime_zones(hierarchies.timezone_id, { transaction });
+  }
+};
 
 export async function updateHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
@@ -334,6 +376,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
 
     const transaction = await sequelize.transaction();
     try {
+      // Selectively update fields if parent_hierarchy_id is null
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
         await hierarchy.update(updatableData, { transaction });
@@ -341,7 +384,11 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update(hierarchiesData, { transaction });
       }
 
-    
+      // Update associated data if timezone_id exists
+      if (hierarchiesData.timezone_id) {
+        await setAssociations(hierarchy, hierarchiesData, transaction);
+      }
+
       const foundationalData = hierarchiesData.foundational_data;
       if (Array.isArray(foundationalData)) {
         await HierarchyMasterData.destroy({
