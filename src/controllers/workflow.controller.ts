@@ -459,7 +459,6 @@ export async function getAllWorkflows(
         });
     }
 }
-
 export async function getWorkflowById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
@@ -990,7 +989,7 @@ export const createWorkflowRecipientType = async (request: FastifyRequest, reply
         });
     } catch (error) {
         console.log(error);
-        
+
         reply.status(500).send({
             statusCode: 500,
             message: 'Error while creating workflow triggered recipient type.',
