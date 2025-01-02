@@ -873,11 +873,11 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, manager, workflow_trigger_id,hierarchy_id} = request.query as {
+        const { method_id, manager, workflow_trigger_id, hierarchy_id } = request.query as {
             method_id: string;
             manager?: string;
             workflow_trigger_id: string;
-            hierarchy_id:any
+            hierarchy_id: any
         };
         // let findJobData: any = await jobModel.findOne({
         //     where: { id: job_id || workflow_trigger_id },
@@ -888,36 +888,36 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         //         where: { uuid: workflow_trigger_id },
         //     });
         // }
-    // //     const workflowquery = `
-    // //     (
-    // //         SELECT *
-    // //         FROM ${source_db}.jobs
-    // //         WHERE id = :job_id OR id = :workflow_trigger_id
-    // //     )
-    // //     UNION
-    // //     (
-    // //         SELECT *
-    // //         FROM ${teai_db}.assignments
-    // //         WHERE uuid = :workflow_trigger_id
-    // //     )
-    // //     LIMIT 1;
-    // // `;
-    // //     const findJobDataDetails: any = await sequelize.query(workflowquery, {
-    // //         replacements: {
-    // //             job_id: job_id,
-    // //             workflow_trigger_id: workflow_trigger_id,
-                
-    // //         },
-    // //         type: QueryTypes.SELECT,
-    // //     });
-    // //     let findJobData = findJobDataDetails[0]
-    //     console.log(findJobData);
+        // //     const workflowquery = `
+        // //     (
+        // //         SELECT *
+        // //         FROM ${source_db}.jobs
+        // //         WHERE id = :job_id OR id = :workflow_trigger_id
+        // //     )
+        // //     UNION
+        // //     (
+        // //         SELECT *
+        // //         FROM ${teai_db}.assignments
+        // //         WHERE uuid = :workflow_trigger_id
+        // //     )
+        // //     LIMIT 1;
+        // // `;
+        // //     const findJobDataDetails: any = await sequelize.query(workflowquery, {
+        // //         replacements: {
+        // //             job_id: job_id,
+        // //             workflow_trigger_id: workflow_trigger_id,
 
-    //     let hierarchy_ids
-    //     if (findJobData && findJobData.hierarchy_ids) {
-    //         hierarchy_ids = findJobData.hierarchy_ids;
-    //     }
-    const hierarchy_ids = hierarchy_id.split(',');
+        // //         },
+        // //         type: QueryTypes.SELECT,
+        // //     });
+        // //     let findJobData = findJobDataDetails[0]
+        //     console.log(findJobData);
+
+        //     let hierarchy_ids
+        //     if (findJobData && findJobData.hierarchy_ids) {
+        //         hierarchy_ids = findJobData.hierarchy_ids;
+        //     }
+        const hierarchy_ids = hierarchy_id.split(',');
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -1542,41 +1542,41 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        const { workflow_action, manager, workflow_trigger_id,hierarchy_id } = request.query as {
+        const { workflow_action, manager, workflow_trigger_id, hierarchy_id } = request.query as {
             workflow_action: string;
             workflow_trigger_id: string;
             manager: string;
-            hierarchy_id:any
+            hierarchy_id: any
         };
-//         const workflowquery = `
-//     (
-//         SELECT *
-//         FROM ${source_db}.jobs
-//         WHERE id = :job_id OR id = :workflow_trigger_id
-//     )
-//     UNION
-//     (
-//         SELECT *
-//         FROM ${teai_db}.assignments
-//         WHERE uuid = :workflow_trigger_id
-//     )
-//     LIMIT 1;
-// `;
-//         const findJobDataDetails: any = await sequelize.query(workflowquery, {
-//             replacements: {
-//                 job_id: job_id,
-//                 workflow_trigger_id: workflow_trigger_id,
-//             },
-//             type: QueryTypes.SELECT,
-//         });
-//         let findJobData = findJobDataDetails[0]
-//         console.log(findJobData);
-//         let hierarchy_ids
-//         if (findJobData && findJobData.hierarchy_ids) {
+        //         const workflowquery = `
+        //     (
+        //         SELECT *
+        //         FROM ${source_db}.jobs
+        //         WHERE id = :job_id OR id = :workflow_trigger_id
+        //     )
+        //     UNION
+        //     (
+        //         SELECT *
+        //         FROM ${teai_db}.assignments
+        //         WHERE uuid = :workflow_trigger_id
+        //     )
+        //     LIMIT 1;
+        // `;
+        //         const findJobDataDetails: any = await sequelize.query(workflowquery, {
+        //             replacements: {
+        //                 job_id: job_id,
+        //                 workflow_trigger_id: workflow_trigger_id,
+        //             },
+        //             type: QueryTypes.SELECT,
+        //         });
+        //         let findJobData = findJobDataDetails[0]
+        //         console.log(findJobData);
+        //         let hierarchy_ids
+        //         if (findJobData && findJobData.hierarchy_ids) {
 
-//             hierarchy_ids = findJobData.hierarchy_ids;
-//         }
-const hierarchy_ids = hierarchy_id.split(',');
+        //             hierarchy_ids = findJobData.hierarchy_ids;
+        //         }
+        const hierarchy_ids = hierarchy_id.split(',');
         const query = `
             SELECT
             w.id As job_workflow_id,
@@ -1761,6 +1761,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                     SELECT id, name
                     FROM recipient_type
                     WHERE id = :recipient_type_id
+                     AND is_enabled = true
                     LIMIT 1
                 `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
@@ -1797,6 +1798,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                             SELECT id, first_name, last_name, avatar, role_id
                             FROM user
                             WHERE id = :user_id
+                             AND is_enabled = true
                             LIMIT 1
                         `;
                         let userResult = await sequelize.query<Users>(userQuery, {
@@ -1854,13 +1856,14 @@ const hierarchy_ids = hierarchy_id.split(',');
                         SELECT id, first_name, last_name, email, avatar, supervisor
                         FROM user
                         WHERE id = :job_manager_id
+                         AND is_enabled = true
                         LIMIT 1
                     `;
 
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id:manager  },
+                        replacements: { job_manager_id: manager },
                     });
 
 
@@ -1875,6 +1878,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                                 SELECT id, first_name, last_name, email, avatar
                                 FROM user
                                 WHERE id = :supervisor
+                                 AND is_enabled = true
                                 LIMIT 1
                             `;
                             const supervisorResult = await sequelize.query(supervisorQuery, {
@@ -1912,77 +1916,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                         } : undefined;
                     }
                 }
-                // if (recipientType?.name === "Managerial Chain") {
-                //     const secondKey = Object.keys(meta_data)[1];
-                //     const chainLength = meta_data[secondKey];
-                //     let replacedUserResult = null;
-                //     let imporsonateUserResult = null;
-                //     if (chainLength && findJobData?.dataValues.job_manager_id) {
-                //         const managerialChain: any[] = [];
-                //         let currentManagerId = findJobData.dataValues.job_manager_id;
-                //         for (let i = 0; i < chainLength; i++) {
-                //             if (!currentManagerId) {
-                //                 break;
-                //             }
-                //             const managerQuery = `
-                //                 SELECT id, first_name, last_name, email, avatar, supervisor
-                //                 FROM user
-                //                 WHERE id = :manager_id
-                //                 LIMIT 1
-                //             `;
-                //             const managerResult = await sequelize.query(managerQuery, {
-                //                 type: QueryTypes.SELECT,
-                //                 replacements: { manager_id: currentManagerId },
-                //             });
 
-                //             if (managerResult.length && replaced_by) {
-                //                 replacedUserResult = await sequelize.query<Users>(managerQuery, {
-                //                     type: QueryTypes.SELECT,
-                //                     replacements: { manager_id: replaced_by },
-                //                 });
-                //             }
-                //             if (managerResult.length > 0) {
-                //                 const manager: any = managerResult[0];
-                //                 managerialChain.push({
-                //                     id: manager.id,
-                //                     name: `${manager.first_name} ${manager.last_name}`.trim(),
-                //                     email: manager.email,
-                //                     avatar: manager.avatar || null,
-                //                 });
-                //                 currentManagerId = manager.supervisor;
-
-                //             } else {
-                //                 console.log("No manager found for ID:", currentManagerId, "Breaking the loop.");
-                //                 break;
-                //             }
-                //         }
-                //         if (managerialChain.length >= chainLength) {
-                //             const selectedManager = managerialChain[chainLength - 1]; // Get the manager at the position `chainLength - 1`
-                //             input_value = [{
-                //                 id: selectedManager.id,
-                //                 name: selectedManager.name,
-                //                 email: selectedManager.email,
-                //                 avatar: selectedManager.avatar,
-                //             }];
-                //             replaced_user_data = replacedUserResult ? {
-                //                 id: replacedUserResult[0]?.id,
-                //                 first_name: replacedUserResult[0]?.first_name,
-                //                 last_name: replacedUserResult[0]?.last_name,
-                //                 avatar: replacedUserResult[0]?.avatar || null,
-                //                 recipient_type: recipientType?.name || "",
-                //                 behaviour,
-                //             } : undefined;
-                //         } else {
-                //             console.warn(`Managerial Chain: Found only ${managerialChain.length} managers, less than the specified chain length.`);
-                //             input_value = [];
-                //         }
-
-
-                //     } else {
-                //         console.warn(`Managerial Chain: Unable to process. chainLength or job_manager_id is missing.`);
-                //         input_value = [];
-                //     }
-                // }
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain") {
                     // Loop through each placement order
                     for (const level of levels) {
@@ -1996,6 +1930,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                     SELECT id, first_name, last_name, email, avatar
                     FROM user
                     WHERE id = :user_id
+                     AND is_enabled = true
                     LIMIT 1
                 `;
                                     const userData: any = await sequelize.query(userQuery, {
@@ -2030,6 +1965,7 @@ const hierarchy_ids = hierarchy_id.split(',');
                                 SELECT id, first_name, last_name, avatar, role_id, email
                                 FROM user
                                 WHERE id = :user_id
+                                 AND is_enabled = true
                                 LIMIT 1
                             `;
                             const userResult = await sequelize.query<Users>(userQuery, {
