@@ -8,7 +8,8 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
-
+import TimeZone from '../models/time-zone.model';
+import Currencies from '../models/currencies.model';
 import HierarchyMasterData from '../models/hierarchyMasterDataModel';
 
 interface HierarchyItem {
@@ -265,7 +266,10 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       );
     }
 
- 
+    // if (hierarchie.timezone_id) {
+    //   await setAssociations(newItem, hierarchie, transaction);
+    // }
+
     await transaction.commit();
 
     logger({
@@ -285,8 +289,8 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     return reply.status(201).send({
       status_code: 201,
       message: 'Hierarchy Created Successfully',
+      data: newItem,
       trace_id:traceId,
-      id:newItem.id
     });
 
   } catch (error) {
@@ -314,7 +318,11 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
-
+// const setAssociations = async (newItem: any, hierarchies: hierarchiesData, transaction: any) => {
+//   if (hierarchies.timezone_id && Array.isArray(hierarchies.timezone_id)) {
+//     await newItem.setTime_zones(hierarchies.timezone_id, { transaction });
+//   }
+// };
 
 export async function updateHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
@@ -334,6 +342,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
 
     const transaction = await sequelize.transaction();
     try {
+      // Selectively update fields if parent_hierarchy_id is null
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
         await hierarchy.update(updatableData, { transaction });
@@ -341,7 +350,11 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update(hierarchiesData, { transaction });
       }
 
-    
+      // // Update associated data if timezone_id exists
+      // if (hierarchiesData.timezone_id) {
+      //   await setAssociations(hierarchy, hierarchiesData, transaction);
+      // }
+
       const foundationalData = hierarchiesData.foundational_data;
       if (Array.isArray(foundationalData)) {
         await HierarchyMasterData.destroy({
