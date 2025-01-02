@@ -1,5 +1,5 @@
 export interface hierarchiesData {
-  timezone: any;
+  default_timezone: any;
   is_default_timezone?:string;
   id: string;
   parent_hierarchy_id: string;
@@ -26,6 +26,5 @@ export interface hierarchiesData {
   manage_tax: any;
   manage_adjustment:any;
   custom_fields: any;
-  currency:string;
 
 }
