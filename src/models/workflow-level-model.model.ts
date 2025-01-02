@@ -54,7 +54,7 @@ WorkflowLevel.init(
         workflow_id: {
             type: DataTypes.UUID,
             references: {
-                model: "workflow",
+                model: "workflow_config",
                 key: "id",
             },
         }
@@ -82,7 +82,7 @@ WorkflowLevel.belongsTo(Programs, {
 
 WorkflowLevel.belongsTo(Workflow, {
     foreignKey: "workflow_id",
-    as: "workflow",
+    as: "workflow_config",
 });
 
 export default WorkflowLevel;

@@ -119,10 +119,11 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         }
         for (const level of levels) {
             const createdLevel = await WorkflowLevel.create({
-                workflow_id: createdWorkflow.id,
+                workflow_id: createdWorkflow?.id,
                 placement_order: level.placement_order,
                 program_id: program_id,
             });
+console.log("llllllllllllllllllllllllllllllllllllllllllllllllll",createdLevel);
 
             if (Array.isArray(level.conditions)) {
                 for (const condition of level.conditions) {
@@ -139,6 +140,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             }
 
             for (const recipient of level.recipient_types || []) {
+                console.log("ppppppppppppppppppppppppppp", recipient);
+                
                 await WorkflowRecepientType.create({
                     level_id: createdLevel.id,
                     program_id: program_id,

@@ -100,7 +100,7 @@ WorkflowRecipientType.belongsTo(WorkflowLevel, {
 
 WorkflowRecipientType.belongsTo(RecipientType, {
     foreignKey: "recipient_type_id",
-    as: "recipientType",
+    as: "recipient_type",
 });
 
 export default WorkflowRecipientType;
