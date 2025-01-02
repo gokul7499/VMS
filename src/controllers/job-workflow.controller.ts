@@ -5,7 +5,7 @@ import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workf
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
 import CustomField from '../models/custom-fields.model';
-import WorkflowStatusHistory from '../models/workflowStatusHistoryModel';
+import WorkflowStatusHistory from '../models/workflow-status-history.Model';
 import jobModel from '../models/job.model';
 import { Module } from '../models/module.model';
 import Event from '../models/event.model';

@@ -1,13 +1,14 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import { Programs } from "./programs.model";
-import WorkflowLevel from "./workflowLevelModel";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
+import { Programs } from "./programs.model";
+import WorkflowLevel from "./workflow-level-model.model";
+import RecipientType from "./recipient-types.model";
 
-class WorkflowLevelCondition extends Model { }
+class WorkflowRecipientType extends Model { }
 
-WorkflowLevelCondition.init(
+WorkflowRecipientType.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -38,48 +39,42 @@ WorkflowLevelCondition.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
-        placement_order: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        source_field_meta: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        target_field_value: {
+        meta_data: {
             type: DataTypes.JSON,
             allowNull: true,
         },
         level_id: {
             type: DataTypes.UUID,
+            allowNull: false,
             references: {
                 model: "workflow_level",
                 key: "id",
             },
         },
-        operator_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
         program_id: {
             type: DataTypes.UUID,
+            allowNull: false,
             references: {
                 model: "programs",
                 key: "id",
             },
         },
-        indent: {
-            type: DataTypes.INTEGER,
+        recipient_type_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: "recipient_type",
+                key: "id",
+            },
+        },
+        behaviour: {
+            type: DataTypes.STRING,
             allowNull: true,
         },
-        field_config_id: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        }
     },
     {
         sequelize,
-        tableName: "workflow_level_condition",
+        tableName: "workflow_recepient_type",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
@@ -93,14 +88,19 @@ WorkflowLevelCondition.init(
 );
 
 sequelize.sync();
-WorkflowLevelCondition.belongsTo(Programs, {
+WorkflowRecipientType.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
 
-WorkflowLevelCondition.belongsTo(WorkflowLevel, {
+WorkflowRecipientType.belongsTo(WorkflowLevel, {
     foreignKey: "level_id",
-    as: "workflow-level",
+    as: "workflow_level",
 });
 
-export default WorkflowLevelCondition;
+WorkflowRecipientType.belongsTo(RecipientType, {
+    foreignKey: "recipient_type_id",
+    as: "recipientType",
+});
+
+export default WorkflowRecipientType;
