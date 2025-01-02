@@ -273,19 +273,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
   const transaction = await sequelize.transaction();
   try {
-    const nameExists = await HierarchiesModel.findOne({
-      where: { name: hierarchyName, program_id, is_deleted: false },
-      transaction,
-    });
-
-    if (nameExists) {
-      await transaction.rollback();
-      return reply.status(409).send({
-        status_code: 409,
-        message: "Hierarchy name is already exist",
-      });
-    }
-
+   
     const codeExists = await HierarchiesModel.findOne({
       where: { code: hierarchyCode, program_id, is_deleted: false },
       transaction,
