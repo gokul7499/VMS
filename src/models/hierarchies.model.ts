@@ -75,12 +75,16 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    currency: {
-      type: DataTypes.STRING,
+    currency_id: {
+      type: DataTypes.UUID,
       allowNull: true,
+      references: {
+        model: "currencies",
+        key: "id",
+      },
     },
-    timezone: {
-      type: DataTypes.STRING,
+    timezone_id: {
+      type: DataTypes.JSON,
       allowNull: true,
     },
     // is_enable_adjustment: {
@@ -92,23 +96,25 @@ hierarchies.init(
     //   defaultValue: true,
     // },
     is_default_timezone: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
     },
     default_date_format: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue:"MM/DD/YYYY"
     },
     default_time_format: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue:"12 Hours"
     },
     default_currency: {
       type: DataTypes.UUID,
       allowNull: true,
     },
     default_language: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
     },
     is_vendor_neutral_program: {
@@ -165,5 +171,14 @@ hierarchies.belongsToMany(TimeZone, {
   timestamps: false,
 });
 
+hierarchies.belongsTo(Currencies, {
+  foreignKey: "currency_id",
+  as: "currency",
+});
+
+hierarchies.belongsTo(TimeZone, {
+  foreignKey: "is_default_timezone",
+  as: "default_timezone",
+});
 
 export default hierarchies;
