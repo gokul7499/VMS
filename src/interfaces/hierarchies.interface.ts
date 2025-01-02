@@ -1,5 +1,5 @@
 export interface hierarchiesData {
-  timezone_id: any;
+  timezone: any;
   is_default_timezone?:string;
   id: string;
   parent_hierarchy_id: string;
@@ -25,6 +25,7 @@ export interface hierarchiesData {
   is_hide_candidate_img:boolean,
   manage_tax: any;
   manage_adjustment:any;
-  custom_fields: any
+  custom_fields: any;
+  currency:string;
 
 }
