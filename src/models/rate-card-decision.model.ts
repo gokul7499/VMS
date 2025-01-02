@@ -19,6 +19,7 @@ class DecisionTable extends Model {
     created_on: any;
     modified_on: any;
     id: any;
+    rate_type_id: any;
 }
 
 DecisionTable.init(

@@ -13,6 +13,9 @@ import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklistItemModel';
 import { getAllRateConfigurationsQuery } from '../utility/queries';
+import DecisionTable from '../models/rate-card-decision.model';
+import { Op, QueryTypes } from 'sequelize';
+const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -412,21 +415,20 @@ export async function getRateConfigurationById(
             ],
         }).then((data) => data.map((item) => item.hierarchy));
 
-        const jobTemplates = await RateConfigurationJobTemplates.findAll({
-            where: { rate_configuration_id: id },
-            include: [
-                {
-                    model: jobTemplateModel,
-                    as: 'job_template',
-                    attributes: ['id', 'template_name'],
-                },
-            ],
-        }).then((data) =>
+        const jobTemplates = await sequelize.query<{ job_template_id: string; template_name: string }>(
+            ` SELECT jt.id AS job_template_id,jt.template_name FROM rate_configuration_job_templates rcjt
+              JOIN ${sourcing_db}.job_templates jt ON rcjt.job_template_id = jt.id WHERE  rcjt.rate_configuration_id = :id`,
+            {
+                replacements: { id },
+                type: QueryTypes.SELECT
+            }
+        ).then((data) =>
             data.map((item) => ({
-                id: item.job_template?.id,
-                name: item.job_template?.template_name,
+                id: item.job_template_id,
+                name: item.template_name,
             }))
         );
+
 
         const baseRates = await RateConfigurationBaseRateTypes.findAll({
             where: { rate_configuration_id: id },
@@ -535,6 +537,8 @@ export async function getAllRateConfigurationRates(
             hierarchie_id?: string;
             job_templates?: string;
             is_shift_rate?: boolean;
+            currency_id?: string;
+            unit_of_measure?: string;
         };
     }>,
     reply: FastifyReply
@@ -542,7 +546,7 @@ export async function getAllRateConfigurationRates(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate } = request.query;
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure } = request.query;
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -579,6 +583,16 @@ export async function getAllRateConfigurationRates(
                 rate_configurations: [],
             });
         }
+
+        const rateCardDecisionRecords = await DecisionTable.findAll({
+            where: {
+                hierarchy_id: { [Op.in]: hierarchyIds },
+                job_template_id: { [Op.in]: jobTemplateIds },
+                unit_of_measure,
+                currency_id,
+            },
+            attributes: ['id', 'rate_card_id', 'rate_type_id', 'min_rate', 'max_rate'],
+        });
 
         const hierarchie = await RateConfigurationHierarchies.findAll({
             where: { rate_configuration_id: finalRateConfigurationIds },
@@ -645,14 +659,44 @@ export async function getAllRateConfigurationRates(
                             where: { rate_id: rate.id, type: 'PAY_RATE' },
                             attributes: ['differential_on', 'differential_type', 'differential_value'],
                         });
+                        const matchingDecisionRecord = rateCardDecisionRecords.find(
+                            (record) => record.rate_type_id === baseRate.rate_type?.id
+                        );
+                        const bill_rate = billRates.map((billRate) => {
+                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
+                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
 
+                            return {
+                                ...billRate.get(),
+                                min_rate: billRate.differential_value === "Factor Differential"
+                                    ? minRate * (billRate.differential_value || 0)
+                                    : minRate + (billRate.differential_value || 0),
+                                max_rate: billRate.differential_value === "Factor Differential"
+                                    ? maxRate * (billRate.differential_value || 0)
+                                    : maxRate + (billRate.differential_value || 0),
+                            };
+                        });
+                        const pay_rate = payRates.map((payRate) => {
+                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
+                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
+
+                            return {
+                                ...payRate.get(),
+                                min_rate: payRate.differential_value === "Factor Differential"
+                                    ? minRate * (payRate.differential_value || 0)
+                                    : minRate + (payRate.differential_value || 0),
+                                max_rate: payRate.differential_value === "Factor Differential"
+                                    ? maxRate * (payRate.differential_value || 0)
+                                    : maxRate + (payRate.differential_value || 0),
+                            };
+                        });
                         return {
                             rate_type: {
                                 ...rate.rate_type?.get(),
                                 rate_type_category: rateTypeCategory,
                             },
-                            bill_rate: billRates,
-                            pay_rate: payRates,
+                            bill_rate: bill_rate,
+                            pay_rate: pay_rate
                         };
                     })
                 );
@@ -677,11 +721,17 @@ export async function getAllRateConfigurationRates(
                         }))
                 }));
 
+                const matchingDecisionRecord = rateCardDecisionRecords.find(
+                    (record) => record.rate_type_id === baseRate.rate_type?.id
+                );
+
                 return {
                     base_rate: {
                         rate_type: {
                             ...baseRate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
+                            min_rate: matchingDecisionRecord?.min_rate.amount || null,
+                            max_rate: matchingDecisionRecord?.max_rate.amount || null,
                         },
                         rates: filteredRateType,
                     },
