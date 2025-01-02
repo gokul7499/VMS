@@ -873,11 +873,11 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, manager, workflow_trigger_id,hierarchy_ids } = request.query as {
+        const { method_id, manager, workflow_trigger_id,hierarchy_id} = request.query as {
             method_id: string;
             manager?: string;
             workflow_trigger_id: string;
-            hierarchy_ids:any
+            hierarchy_id:any
         };
         // let findJobData: any = await jobModel.findOne({
         //     where: { id: job_id || workflow_trigger_id },
@@ -917,6 +917,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
     //     if (findJobData && findJobData.hierarchy_ids) {
     //         hierarchy_ids = findJobData.hierarchy_ids;
     //     }
+    const hierarchy_ids = hierarchy_id.split(',');
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -1541,11 +1542,11 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        const { workflow_action, manager, workflow_trigger_id,hierarchy_ids } = request.query as {
+        const { workflow_action, manager, workflow_trigger_id,hierarchy_id } = request.query as {
             workflow_action: string;
             workflow_trigger_id: string;
             manager: string;
-            hierarchy_ids:any
+            hierarchy_id:any
         };
 //         const workflowquery = `
 //     (
@@ -1575,6 +1576,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
 //             hierarchy_ids = findJobData.hierarchy_ids;
 //         }
+const hierarchy_ids = hierarchy_id.split(',');
         const query = `
             SELECT
             w.id As job_workflow_id,
