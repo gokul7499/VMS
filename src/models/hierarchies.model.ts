@@ -3,7 +3,6 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import TimeZone from "./time-zone.model";
-import Currencies from "./currencies.model";
 import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
@@ -35,9 +34,9 @@ hierarchies.init(
    
     rate_model: {
       type: DataTypes.ENUM(
-        'Bill Rate (No Markup)',
-        'Bill Rate (Markup)',
-        'Pay Rate (Markup)'
+        'bill_rate',
+        'markup',
+        'pay_rate'
       ),
       allowNull: true,
     },
@@ -75,11 +74,11 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    currency: {
+    default_currency: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    timezone: {
+    default_timezone: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -91,20 +90,13 @@ hierarchies.init(
     //   type: DataTypes.BOOLEAN,
     //   defaultValue: true,
     // },
-    is_default_timezone: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
+   
     default_date_format: {
       type: DataTypes.STRING,
       allowNull: true,
     },
     default_time_format: {
       type: DataTypes.STRING,
-      allowNull: true,
-    },
-    default_currency: {
-      type: DataTypes.UUID,
       allowNull: true,
     },
     default_language: {
