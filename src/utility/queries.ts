@@ -1650,12 +1650,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
         FROM rate_configuration_hierarchies AS rch
         LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
         GROUP BY rch.rate_configuration_id
-      ) AS h ON h.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
-        FROM rate_configuration_job_templates AS rcjt        
-        GROUP BY rcjt.rate_configuration_id
-      ) AS jt ON jt.rate_configuration_id = rc.id
+      ) AS h ON h.rate_configuration_id = rc.id     
       LEFT JOIN (
         SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
         FROM rate_configuration_base_rate_types AS rcbt
