@@ -102,6 +102,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             where: whereConditions,
             limit: parsedLimit,
             offset,
+            order: [["created_on", "DESC"]]
         });
 
         if (!rateCards.length) {

@@ -207,32 +207,28 @@ export async function updateExpenseConfiguration(
             });
         }
 
-        await existingExpenseConfig.update(expenseConfigData, { transaction });
-
         if (Array.isArray(expenseConfigData.expense_item_type_config) && expenseConfigData.expense_item_type_config.length > 0) {
-            const existingExpenseTypeIds = expenseConfigData.expense_item_type_config.map(et => et.id).filter(Boolean);
+            const updatedExpenseTypeIds = expenseConfigData.expense_item_type_config;
 
             await ExpenseTypeMapping.destroy({
                 where: {
                     expense_config_id: id,
-                    id: { [Op.notIn]: existingExpenseTypeIds },
+                    id: { [Op.notIn]: updatedExpenseTypeIds },
                 },
                 transaction,
             });
 
             const modifiedOn = new Date();
-            const upsertPromises = expenseConfigData.expense_item_type_config.map(expenseType =>
-                ExpenseTypeMapping.upsert({
-                    ...expenseType,
-                    id: expenseType.id,
-                    program_id,
+            const createPromises = updatedExpenseTypeIds.map(expenseTypeId =>
+                ExpenseTypeMapping.create({
+                    expense_type_id: expenseTypeId, 
                     expense_config_id: id,
                     modified_on: modifiedOn,
-                    created_on: expenseType.id ? undefined : modifiedOn,
+                    created_on: modifiedOn, 
                 }, { transaction })
             );
 
-            await Promise.all(upsertPromises);
+            await Promise.all(createPromises);
         }
         await transaction.commit();
         return reply.status(200).send({
@@ -250,7 +246,6 @@ export async function updateExpenseConfiguration(
         });
     }
 }
-
 export async function deleteExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string, id: string };
