@@ -973,7 +973,6 @@ export const createWorkflowLevel = async (request: FastifyRequest, reply: Fastif
         });
     }
 };
-
 export const createWorkflowRecipientType = async (request: FastifyRequest, reply: FastifyReply) => {
     const WorkflowRecipientTypePayload = request.body as Omit<WorkflowLevelData, '_id'>;
     const { program_id } = request.params as { program_id: string };
