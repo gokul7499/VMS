@@ -10,11 +10,16 @@ export const initializeDatabase = async () => {
 };
 
 export const databaseConfig = {
-  config: {
-    host: config.host,
-    user: config.username,
-    password: config.password,
-    database: config.database,
-    port: config.port
+  get config() {
+    if (!config) {
+      throw new Error('Database configuration has not been initialized.');
+    }
+    return {
+      host: config.host,
+      user: config.user,
+      password: config.password,
+      database: config.database,
+      port: config.port
+    };
   }
 };

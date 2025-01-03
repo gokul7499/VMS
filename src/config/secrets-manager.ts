@@ -11,15 +11,13 @@ export const getSecretsManager = async () => {
     try {
         const command = new GetSecretValueCommand({ SecretId: secretName });
         const data = await secretsManager.send(command);
-        console.log('SecretString:', data);
 
         if (data.SecretString) {
             const secret = JSON.parse(data.SecretString);
-            console.log('Secret fetched successfully');
             return {
                 host: secret.DATABASE_HOST,
                 port: secret.DATABASE_PORT,
-                username: secret.DATABASE_USER,
+                user: secret.DATABASE_USER,
                 password: secret.DATABASE_PASSWORD,
                 database: secret.DATABASE_NAME,
             };
