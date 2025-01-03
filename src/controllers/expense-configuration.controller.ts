@@ -4,7 +4,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import ExpenseTypeMapping from "../models/expense-type-mapping.model";
 import { QueryTypes, Op } from 'sequelize';
-import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies, getAllExpenseTypeHierarchy, getExpenseType } from "../utility/queries";
+import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import expenseTypeHierarchie from "../models/expense-type-hierarchie.model";
 interface Hierarchy {
@@ -72,7 +72,7 @@ export async function getExpenseConfigurations(
         });
     } catch (error) {
         reply.status(500).send({
-            status_code:500,
+            status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
             error: (error as Error).message,
@@ -120,7 +120,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             ...expenseConfig.toJSON(),
             status: expenseConfig.status === "1",
             expense_item_type_config: transformedExpenseTypes,
-            hierarchy: hierarchy, 
+            hierarchy: hierarchy,
         };
 
         return reply.status(200).send({
@@ -155,12 +155,13 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 await ExpenseTypeMapping.create({
                     program_id,
                     expense_config_id: expenseConfigData.id,
-                    expense_type_id: expenseTypeId, 
+                    expense_type_id: expenseTypeId,
                     created_on: new Date(),
                     modified_on: new Date(),
                 });
             }
         }
+
 
         if (Array.isArray(expenseConfig.hierarchy) && expenseConfig.hierarchy.length > 0) {
             const hierarchyMappings = expenseConfig.hierarchy.map((hierarchyId) => ({
@@ -221,10 +222,10 @@ export async function updateExpenseConfiguration(
             const modifiedOn = new Date();
             const createPromises = updatedExpenseTypeIds.map(expenseTypeId =>
                 ExpenseTypeMapping.create({
-                    expense_type_id: expenseTypeId, 
+                    expense_type_id: expenseTypeId,
                     expense_config_id: id,
                     modified_on: modifiedOn,
-                    created_on: modifiedOn, 
+                    created_on: modifiedOn,
                 }, { transaction })
             );
 
@@ -246,6 +247,7 @@ export async function updateExpenseConfiguration(
         });
     }
 }
+
 export async function deleteExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string, id: string };
@@ -272,7 +274,7 @@ export async function deleteExpenseConfiguration(request: FastifyRequest, reply:
         }
     } catch (error) {
         reply.status(500).send({
-            status_code:500,
+            status_code: 500,
             message: 'An error occurred while deleting expense configuration.',
             trace_id: traceId,
         });
@@ -382,6 +384,7 @@ export async function expenseConfigurationAdvancedFilter(
             config_name?: string;
             status?: string;
             modified_on?: string;
+            is_enabled?: boolean;
             hierarchy_ids?: string[];
             page?: string;
             limit?: string;
@@ -389,13 +392,14 @@ export async function expenseConfigurationAdvancedFilter(
     }>,
     reply: FastifyReply
 ) {
-    const traceId = generateCustomUUID();
+    const trace_id = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { config_name, status, modified_on, hierarchy_ids, page, limit } = request.body;
+        const { config_name, status, modified_on, is_enabled, hierarchy_ids, page, limit } = request.body;
         const hasConfigName = config_name !== undefined;
         const hasStatus = status !== undefined;
         const hasModifiedOn = modified_on !== undefined;
+        const hasIsEnabled = is_enabled !== undefined;
         const hasPage = page !== undefined;
         const hasLimit = limit !== undefined;
         const hierarchyIdsArray = hierarchy_ids || [];
@@ -406,21 +410,19 @@ export async function expenseConfigurationAdvancedFilter(
             hasConfigName,
             hasStatus,
             hasModifiedOn,
-            hierarchyIdsArray
+            hasIsEnabled,
+            hierarchyIdsArray,
         );
 
         const replacements: Record<string, any> = {
             program_id,
             config_name: config_name ? `%${config_name}%` : null,
-            status,
+            status: hasStatus ? status : null,
             modified_on,
+            is_enabled: hasIsEnabled ? is_enabled : null,
             limit: limitNumber,
             offset,
         };
-
-        if (status !== undefined) {
-            replacements.status = status === "true" ? "1" : "0";
-        }
 
         hierarchyIdsArray.forEach((id, index) => {
             replacements[`hierarchy_ids${index}`] = id;
@@ -432,8 +434,7 @@ export async function expenseConfigurationAdvancedFilter(
         });
 
         const transformedData = data.map((item: any) => ({
-            ...item,
-            status: item.status === "1"
+            ...item
         }));
 
         if (transformedData.length > 0) {
@@ -441,7 +442,7 @@ export async function expenseConfigurationAdvancedFilter(
                 status_code: 201,
                 total_records: transformedData.length,
                 items: transformedData,
-                trace_id:traceId,
+                trace_id,
                 pagination: {
                     page: pageNumber,
                     limit: limitNumber,
@@ -449,14 +450,11 @@ export async function expenseConfigurationAdvancedFilter(
                 },
             });
         } else {
-            return reply.status(200).send({status_code:200, message: 'No records found', items: [], trace_id:traceId });
+            return reply.status(200).send({ status_code: 200, message: 'No records found', items: [], trace_id });
         }
     } catch (error: any) {
-        return reply.status(500).send({ status_code:500,message: 'Internal Server Error', trace_id:traceId, error: error.message });
+        return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id, error: error.message });
     }
-
-
-
 }
 
 export async function getExpenseTypesByProgramId(
@@ -483,7 +481,7 @@ export async function getExpenseTypesByProgramId(
             whereCondition.expense_code = expense_code;
         }
         if (expense_item_type_config) {
-            whereCondition.expense_item_type_config = { [Op.like]: `%${expense_item_type_config}%` };
+            whereCondition.expense_item_type_config = { [Op.like]: `%${expense_item_type_config}%` }; // Partial match filter
         }
         const results = await ExpenseTypeMapping.findAll({
             where: whereCondition,
@@ -501,6 +499,39 @@ export async function getExpenseTypesByProgramId(
             trace_id: traceId,
             message: 'Expense type fetched successfully.',
             data: formattedResults,
+        });
+    } catch (error) {
+        return reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: 'An error occurred while fetching expense types.',
+            error,
+        });
+    }
+}
+
+export async function getExpenseTypesByProgramIdAndHierarchies(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    const { program_id } = request.params as { program_id: string };
+    const { hierarchy_ids } = request.query as { hierarchy_ids: string };
+    const traceId = generateCustomUUID();
+
+    try {
+        const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
+        const query = getExpenseByHierarchy(hierarchyIdsArray);
+        const replacements = [program_id, ...hierarchyIdsArray];
+        const results = await sequelize.query(query, {
+            replacements,
+            type: QueryTypes.SELECT
+        });
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Expense types fetched successfully.',
+            data: results,
         });
     } catch (error) {
         return reply.status(500).send({
