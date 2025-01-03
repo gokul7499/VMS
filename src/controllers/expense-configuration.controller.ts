@@ -223,6 +223,7 @@ export async function updateExpenseConfiguration(
                 ExpenseTypeMapping.create({
                     expense_type_id: expenseTypeId, 
                     expense_config_id: id,
+                    program_id,
                     modified_on: modifiedOn,
                     created_on: modifiedOn, 
                 }, { transaction })
