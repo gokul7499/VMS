@@ -259,22 +259,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     }
     const newItem = await HierarchiesModel.create({ ...hierarchie }, { transaction });
 
-    const foundationalData = hierarchie.foundational_data;
-    if (Array.isArray(foundationalData)) {
-      await Promise.all(
-        foundationalData.map(async (foundation: any) => {
-          await HierarchyMasterData.create({
-            hierarchy_id: newItem.id,
-            foundation_data_type_id: foundation
-          }, { transaction });
-        })
-      );
-    }
-
-    // if (hierarchie.timezone_id) {
-    //   await setAssociations(newItem, hierarchie, transaction);
-    // }
-
     await transaction.commit();
 
     logger({
@@ -354,31 +338,9 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update(hierarchiesData, { transaction });
       }
 
-      // Update associated data if timezone_id exists
-      // if (hierarchiesData.timezone_id) {
-      //   await setAssociations(hierarchy, hierarchiesData, transaction);
-      // }
+      
 
-      const foundationalData = hierarchiesData.foundational_data;
-      if (Array.isArray(foundationalData)) {
-        await HierarchyMasterData.destroy({
-          where: { hierarchy_id: hierarchy.id },
-          transaction,
-        });
-
-        await Promise.all(
-          foundationalData.map(async (foundation: any) => {
-            await HierarchyMasterData.create(
-              {
-                hierarchy_id: hierarchy.id,
-                foundation_data_type_id: foundation,
-              },
-              { transaction }
-            );
-          })
-        );
-      }
-
+     
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,

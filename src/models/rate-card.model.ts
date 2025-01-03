@@ -74,6 +74,7 @@ RateCard.init(
     },
   }
 );
+
 sequelize.sync();
 RateCard.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
 RateCard.belongsTo(IndustriesModel, { foreignKey: "labor_category_id", as: "LaborCategory" });
