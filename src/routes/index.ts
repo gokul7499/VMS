@@ -25,7 +25,7 @@ import picklistRoutes from "./picklist.routes";
 import foundationalDataRoutes from "./foundational-data-routes";
 import WorkflowRoutes from "./workflow.routes";
 import customFieldsRoutes from "./custom-fields.routes";
-import reasoncodeRoute from "./reason-code.routes";
+import reasoncodeRoute from "./reasonCodeAction.routes";
 import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./password-policy.routes";
 import vendorDistributionScheduleRoutes from "./vendor-distribution-schedule.routes";
