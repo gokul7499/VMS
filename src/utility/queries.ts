@@ -1832,6 +1832,7 @@ export const rateTypeShiftAndRate = `
     RIGHT JOIN
       RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
   `;
+  
 export const getExpenseTypeAndRateType = `
 SELECT 
   timesheet_expense_rules.id,
@@ -1923,94 +1924,4 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
      ${hierarchyCondition}
     `;
 };
-
-
-export const rateTypeShiftAndRate = `
-  WITH RateTypeData AS (
-    SELECT
-      rt.shift_type,
-      rt.rate_type_category
-    FROM
-      rate_type rt
-    WHERE
-      rt.program_id = :program_id
-  ),
-  ShiftTypeDetails AS (
-    SELECT
-      st.id AS shift_type_id,
-      st.shift_type_name AS shift_type_name
-    FROM
-      shift_types st
-    JOIN
-      RateTypeData rtd ON rtd.shift_type = st.id
-  ),
-  RateTypeCategoryDetails AS (
-    SELECT
-      pi.id AS rate_type_category_id,
-      pi.value AS rate_type_category_value
-    FROM
-      picklistitems pi
-    JOIN
-      RateTypeData rtd ON rtd.rate_type_category = pi.id
-  )
-  SELECT
-    st.shift_type_id AS shift_id,
-    st.shift_type_name AS shift_name,
-    rt.rate_type_category_id AS rate_type_id,
-    rt.rate_type_category_value AS rate_type_value
-  FROM
-    ShiftTypeDetails st
-  LEFT JOIN
-    RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id
-  UNION
-  SELECT
-    st.shift_type_id AS shift_id,
-    st.shift_type_name AS shift_name,
-    rt.rate_type_category_id AS rate_type_id,
-    rt.rate_type_category_value AS rate_type_value
-  FROM
-    ShiftTypeDetails st
-  RIGHT JOIN
-    RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
-`;
-
-export const rateConfigHierarchiesAndJobTemplates = `
-WITH RateConfigurations AS (
-  SELECT
-    id AS rate_configuration_id
-  FROM
-    rate_configurations
-  WHERE
-    program_id = :program_id
-),
-HierarchiesData AS (
-  SELECT
-    rh.hierarchy_id
-  FROM
-    rate_configuration_hierarchies rh
-  JOIN
-    RateConfigurations rc ON rh.rate_configuration_id = rc.rate_configuration_id
-),
-JobTemplatesData AS (
-  SELECT
-    rjt.job_template_id
-  FROM
-    rate_configuration_job_templates rjt
-  JOIN
-    RateConfigurations rc ON rjt.rate_configuration_id = rc.rate_configuration_id
-)
-SELECT DISTINCT
-  h.id AS hierarchy_id,
-  h.name AS hierarchy_name,
-  jt.id AS job_template_id,
-  jt.template_name AS job_template_name
-FROM
-  hierarchies h
-LEFT JOIN
-  HierarchiesData hd ON h.id = hd.hierarchy_id
-LEFT JOIN
-  job_templates jt ON jt.id IN (SELECT job_template_id FROM JobTemplatesData)
-WHERE
-  hd.hierarchy_id IS NOT NULL AND jt.id IS NOT NULL;
-`;
 
