@@ -3,11 +3,11 @@ import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
 import { checkDatabaseConnection } from "./config/instance";
-import formBodyPlugin from '@fastify/formbody';
+import formBodyPlugin from "@fastify/formbody";
+import registerRoutes from "./routes";
 
 dotenv.config();
 
-import registerRoutes from "./routes";
 const app = fastify({
   logger: pino({ level: "info" }),
 });

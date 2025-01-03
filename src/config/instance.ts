@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import { databaseConfig } from '../config/db';
+import { databaseConfig }from '../config/db';
 
 const sequelize = new Sequelize(
   databaseConfig.config.database ?? '',
@@ -8,9 +8,7 @@ const sequelize = new Sequelize(
   {
     host: databaseConfig.config.host,
     dialect: 'mysql',
-    port : 3306,
-    logging: false
-    
+    logging :false
   }
 );
 

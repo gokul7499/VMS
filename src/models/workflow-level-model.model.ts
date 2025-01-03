@@ -1,52 +1,36 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
-import { beforeSave } from "../hooks/timeFormatHook";
+import Workflow from "./workflow.model";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import { beforeSave } from "../hooks/timeFormatHook";
 
-class RateConfigurationsModel extends Model {
-    id!: string;
-    program_id!: string;
-    hierarchies:any;
-    job_templates: any;
-    rate_configuration: any;
-    is_shift_rate: any;
-    name: any;
-    is_enabled: any;
+class WorkflowLevel extends Model {
+    id: any;
 }
 
-RateConfigurationsModel.init(
+WorkflowLevel.init(
     {
         id: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
-            allowNull: false,
             primaryKey: true,
-        },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        is_shift_rate: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true,
         },
         is_enabled: {
             type: DataTypes.BOOLEAN,
-            allowNull: true,
             defaultValue: true,
         },
         is_deleted: {
             type: DataTypes.BOOLEAN,
-            allowNull: true,
             defaultValue: false,
         },
-        program_id: {
-            type: DataTypes.UUID,
-            references: {
-                model: "programs",
-                key: "id",
-            },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+        },
+        modified_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
         },
         created_by: {
             type: DataTypes.UUID,
@@ -56,18 +40,28 @@ RateConfigurationsModel.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue:DataTypes.NOW
+        placement_order: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue:DataTypes.NOW
+        program_id: {
+            type: DataTypes.UUID,
+            references: {
+                model: "programs",
+                key: "id",
+            },
         },
+        workflow_id: {
+            type: DataTypes.UUID,
+            references: {
+                model: "workflow_config",
+                key: "id",
+            },
+        }
     },
     {
         sequelize,
-        tableName: "rate_configurations",
+        tableName: "workflow_level",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
@@ -81,6 +75,14 @@ RateConfigurationsModel.init(
 );
 
 sequelize.sync();
+WorkflowLevel.belongsTo(Programs, {
+    foreignKey: "program_id",
+    as: "programs",
+});
 
-RateConfigurationsModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-export default RateConfigurationsModel;
+WorkflowLevel.belongsTo(Workflow, {
+    foreignKey: "workflow_id",
+    as: "workflow_config",
+});
+
+export default WorkflowLevel;

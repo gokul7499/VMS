@@ -46,9 +46,9 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         is_enabled: true,        
         default_date_format: "MM/DD/YYYY",
         default_time_format: "12 Hours",
-        default_timezone : "d5129833-a45f-43c7-84c1-c427c2e820cd",
-        default_currency: "5cc1357f-a90d-40b0-971f-74c8ddafb8c7",
-        default_language : "adc0bb59-7c4f-4479-bc3c-20d1498ba13b",
+        default_timezone : "(UTC-05:00) Eastern Standard Time (North America)",
+        default_currency: "USD",
+        default_language : "English",
         unit_of_measure: [
         {
             value: "daily",
@@ -58,7 +58,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         rate_model: "bill_rate",
         is_vendor_neutral_program: false,
         is_hide_candidate_img: true,
-        support_email: "support@gmail.com",
+        support_email: "noreply@simplifyvms.com",
     },{ transaction });
 
     return hierarchy;

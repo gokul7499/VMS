@@ -1,22 +1,17 @@
 export interface hierarchiesData {
-  timezone_id: any;
-  is_default_timezone?:string;
   id: string;
+  default_timezone?:string;
   parent_hierarchy_id: string;
   program_id:string;
   name: string;
-  is_enabled: boolean; 
- 
+  is_enabled: boolean;  
   rate_model: string;
   created_by: string;
   created_on: number;
   modified_by: string;
   modified_on: number;
-  defaults: any[];
-  
+  defaults: any[];  
   code: string;
-  foundational_data:any,
- 
   default_date_format:string,
   default_time_format:string,
   default_currency: string,
@@ -26,5 +21,4 @@ export interface hierarchiesData {
   manage_tax: any;
   manage_adjustment:any;
   custom_fields: any
-
 }
