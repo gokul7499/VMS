@@ -1,7 +1,6 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
     endDate: number | undefined) => {
@@ -1642,8 +1641,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
         rc.is_shift_rate,
         rc.created_on,
         rc.modified_on,
-        h.hierarchies,
-        jt.job_templates,
+        h.hierarchies,      
         rt.base_rates
       FROM 
         rate_configurations AS rc
@@ -1652,13 +1650,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
         FROM rate_configuration_hierarchies AS rch
         LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
         GROUP BY rch.rate_configuration_id
-      ) AS h ON h.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
-        FROM rate_configuration_job_templates AS rcjt
-        LEFT JOIN ${sourcing_db}.job_templates AS jt ON rcjt.job_template_id = jt.id
-        GROUP BY rcjt.rate_configuration_id
-      ) AS jt ON jt.rate_configuration_id = rc.id
+      ) AS h ON h.rate_configuration_id = rc.id     
       LEFT JOIN (
         SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
         FROM rate_configuration_base_rate_types AS rcbt
