@@ -6,7 +6,7 @@ import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import { getAllRateTypes } from "../utility/queries";
+import { getAllRateTypes, rateTypeShiftAndRate } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
@@ -511,6 +511,48 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve rate type",
+      error: error.message,
+    });
+  }
+}
+
+export async function getShiftAndRateType(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const traceId = generateCustomUUID();
+
+  try {
+    const results = await sequelize.query(rateTypeShiftAndRate, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT,
+    });
+
+    const shiftTypes = results
+      .filter((result: any) => result.shift_id && result.shift_name)
+      .map((result: any) => ({
+        id: result.shift_id,
+        name: result.shift_name,
+      }));
+
+    const rateTypeCategories = results
+      .filter((result: any) => result.rate_type_id && result.rate_type_value)
+      .map((result: any) => ({
+        id: result.rate_type_id,
+        name: result.rate_type_value,
+      }));
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      data: {
+        shift_type: shiftTypes,
+        rate_type_category: rateTypeCategories,
+      },
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Failed to retrieve shift and rate type data',
       error: error.message,
     });
   }

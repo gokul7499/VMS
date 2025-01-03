@@ -2,8 +2,6 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import TimeZone from "./time-zone.model";
-import Currencies from "./currencies.model";
 import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
@@ -75,16 +73,12 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    currency_id: {
-      type: DataTypes.UUID,
+    currency: {
+      type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: "currencies",
-        key: "id",
-      },
     },
-    timezone_id: {
-      type: DataTypes.JSON,
+    timezone: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     // is_enable_adjustment: {
@@ -102,19 +96,18 @@ hierarchies.init(
     default_date_format: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue:"MM/DD/YYYY"
+     
     },
     default_time_format: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue:"12 Hours"
     },
     default_currency: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     default_language: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     is_vendor_neutral_program: {
@@ -163,22 +156,5 @@ hierarchies.init(
 );
 
 sequelize.sync();
-hierarchies.belongsToMany(TimeZone, {
-  through: "hierarchies_time_zone",
-  as: "time_zones",
-  foreignKey: "hierarchies_id",
-  otherKey: "timezone_id",
-  timestamps: false,
-});
-
-hierarchies.belongsTo(Currencies, {
-  foreignKey: "currency_id",
-  as: "currency",
-});
-
-hierarchies.belongsTo(TimeZone, {
-  foreignKey: "is_default_timezone",
-  as: "default_timezone",
-});
 
 export default hierarchies;

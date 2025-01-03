@@ -26,10 +26,6 @@ ExpenseTypeModel.init({
         type: DataTypes.STRING,
         allowNull: true
     },
-    type: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
     code: {
         type: DataTypes.STRING,
         allowNull: true

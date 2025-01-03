@@ -34,4 +34,5 @@ export interface TimesheetTypeConfigInterface {
   created_by?: string;
   modified_by?: string;
   is_deleted?: boolean;
+  slug?:string;
 }
