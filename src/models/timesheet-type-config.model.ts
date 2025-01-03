@@ -150,6 +150,10 @@ TimesheetTypeConfig.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    slug:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }
   },
   {
     sequelize,
