@@ -1,9 +1,10 @@
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
-import * as dotenv from 'dotenv';
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import * as dotenv from "dotenv";
+
 dotenv.config();
 
-const secretName = 'v4/dev/configurator';
-const region = 'us-east-1';
+const secretName = "v4/dev/configurator";
+const region = "us-east-1";
 
 const secretsManager = new SecretsManagerClient({ region });
 
@@ -22,20 +23,18 @@ export const getSecretsManager = async () => {
                 database: secret.DATABASE_NAME,
             };
         } else {
-            throw new Error('Secret is in an invalid format (no SecretString found)');
+            throw new Error("Secret is in an invalid format (no SecretString found)");
         }
     } catch (err: any) {
-        // Handle different error scenarios
-        if (err.name === 'ResourceNotFoundException') {
-            console.error('Error: The requested secret ' + secretName + ' was not found');
-        } else if (err.name === 'InvalidRequestException') {
-            console.error('Error: The request to Secrets Manager was invalid');
-        } else if (err.name === 'InvalidParameterException') {
-            console.error('Error: One or more parameters provided in the request are invalid');
-        } else if (err instanceof SyntaxError) {
-            console.error('Error: There was a problem parsing the secret value');
+        if (err.name === "AccessDeniedException") {
+            console.error(
+                `Access Denied: Ensure the IAM user has permissions to access the secret ${secretName}`
+            );
+        } else if (err.name === "ResourceNotFoundException") {
+            console.error(`Secret not found: ${secretName}`);
         } else {
-            console.error('Unknown error:', err.message || err);
+            console.error("Unknown error while retrieving secret:", err.message || err);
         }
+        throw new Error("Failed to retrieve database configuration from Secrets Manager");
     }
 };
