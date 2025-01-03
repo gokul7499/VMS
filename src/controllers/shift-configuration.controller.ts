@@ -14,7 +14,7 @@ export const getAllshiftConfiguration = async (
     Params: { program_id: string };
     Querystring: {
       name?: string;
-      is_enabled?: boolean;
+      is_enabled?: boolean | string;
       modified_on?: string;
       hierarchy_names?: string;
       shift_type_name?: string;
@@ -70,7 +70,7 @@ export const getAllshiftConfiguration = async (
     }
 
     if (is_enabled !== undefined) {
-      searchFilters.is_enabled = is_enabled;
+      searchFilters.is_enabled = is_enabled === 'true' || is_enabled === true;
     }
 
     if (start_date && end_date) {
