@@ -20,12 +20,12 @@ export async function createExpenseType(
             expense_type_data: expenseTypeData?.id,
             trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 }
@@ -79,7 +79,6 @@ export async function updateExpenseTypeById(request: FastifyRequest, reply: Fast
 
         if (updatedCount === 0) {
             return reply.status(200).send({
-                status_code:200,
                 message: "Expense type data not found",
                 trace_id: traceId,
                 expense_item_type_config: []
@@ -126,10 +125,11 @@ export async function deleteExpenseTypeById(
             });
         } else {
             reply.status(200).send({
-                status_code:200,
-                 message: "expense type not found", 
-                 trace_id: traceId, 
-                 expense_Type: [] });
+                status_code: 200,
+                message: "expense type not found",
+                trace_id: traceId,
+                expense_Type: []
+            });
         }
     } catch (error) {
         reply.status(500).send({
@@ -139,9 +139,39 @@ export async function deleteExpenseTypeById(
         });
     }
 }
-export async function getAllExpenseType(request: FastifyRequest<{Querystring: { name?: string,code?: string,category?: string,apply_msp_fee?: string,appply_tax?: string,allow_unit_based?: string,is_enabled?: string,page?: number,limit?: number;max_limit?:number,modified_on?:string };}>,reply: FastifyReply) {
+
+export async function getAllExpenseType(
+    request: FastifyRequest<{
+        Querystring: {
+            name?: string;
+            code?: string;
+            category?: string;
+            apply_msp_fee?: string;
+            appply_tax?: string;
+            allow_unit_based?: string;
+            is_enabled?: string;
+            max_limit?: number;
+            page?: number;
+            limit?: number;
+            modified_on?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
     const { program_id } = request.params as { program_id: string };
-    const {name, code, category, apply_msp_fee, appply_tax, allow_unit_based, is_enabled, page, limit,max_limit,modified_on} = request.query;
+    const {
+        name,
+        code,
+        category,
+        apply_msp_fee,
+        appply_tax,
+        allow_unit_based,
+        is_enabled,
+        max_limit,
+        page,
+        limit,
+        modified_on
+    } = request.query;
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
 
@@ -177,6 +207,7 @@ export async function getAllExpenseType(request: FastifyRequest<{Querystring: { 
             whereClause.modified_on = { [Op.between]: [startDate, endDate] };
         }
     }
+
     const pageNumber = parseInt(page as unknown as string) || 1;
     const pageSize = parseInt(limit as unknown as string) || 10;
     const offset = (pageNumber - 1) * pageSize;
@@ -186,7 +217,7 @@ export async function getAllExpenseType(request: FastifyRequest<{Querystring: { 
             where: whereClause,
             offset,
             limit: pageSize,
-            order: [["created_on", "DESC"]], 
+            order: [["created_on", "DESC"]],
         });
         reply.status(200).send({
             status_code: 200,
