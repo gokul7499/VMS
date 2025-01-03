@@ -35,7 +35,7 @@ const start = async () => {
     }
 
     // Import models and routes after Sequelize is initialized
-    require("./models");
+    // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
 
