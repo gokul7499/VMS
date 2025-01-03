@@ -22,10 +22,6 @@ RateCard.init(
     labor_category_id: {
       type: DataTypes.UUID,
       allowNull: true,
-      references: {
-        model: IndustriesModel,
-        key: "id",
-      },
     },
     program_id: {
       type: DataTypes.UUID,
