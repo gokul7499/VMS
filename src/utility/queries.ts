@@ -1667,3 +1667,28 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
         type: QueryTypes.SELECT,
     });
 };
+
+
+export const hierarchie = `
+
+     SELECT
+    h.*,
+    rate.value AS rate_model,
+    h.default_currency AS default_currency,
+    h.default_language AS default_language,
+    JSON_OBJECT(
+        'id', uom.id,
+        'name', uom.label
+    ) AS default_unit_of_measure
+FROM
+    hierarchies h
+LEFT JOIN
+    picklistitems rate ON h.rate_model = rate.id
+LEFT JOIN
+    picklistitems uom ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+WHERE
+    h.id = :hierarchy_id
+GROUP BY
+    h.id, uom.id, uom.label
+LIMIT 0, 1000;
+`;
