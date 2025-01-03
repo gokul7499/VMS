@@ -1220,7 +1220,7 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
+                           
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -1885,8 +1885,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
-
+                           
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
