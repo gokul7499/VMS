@@ -3,9 +3,12 @@ import { sequelize } from "../config/instance";
 import ReasonCodeActionModel from "./reason-code-action.model";
 import { Programs } from "./programs.model";
 
-
 class ReasonCodeModel extends Model {
     id?: any;
+    name: any;
+    created_on: any;
+    category: any;
+    is_enabled: any;
 }
 
 ReasonCodeModel.init(
