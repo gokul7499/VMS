@@ -1,7 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
-import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { Module } from './module.model';
 import Event from './event.model';
@@ -11,6 +10,13 @@ class ReasonCodeActionModel extends Model {
     module_id: any;
     event_id: any;
     reasons_code: any;
+    reason_codes: any;
+    name: any;
+    created_on: any;
+    category: any;
+    is_enabled: any;
+    module?: Module;
+    supporting_text_event?: Event;
 }
 
 ReasonCodeActionModel.init(
@@ -26,19 +32,21 @@ ReasonCodeActionModel.init(
             defaultValue: 0,
         },
         created_by: {
-            type: DataTypes.JSON,
+            type: DataTypes.UUID,
             allowNull: true,
 
         },
         modified_by: {
-            type: DataTypes.JSON,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true,
         },
         modified_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true,
         },
         is_deleted: {
             type: DataTypes.BOOLEAN,
@@ -61,8 +69,13 @@ ReasonCodeActionModel.init(
                 key: 'id',
             },
         },
-        slug:{
-            type:DataTypes.STRING
+        slug: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        reason_codes: {
+            type: DataTypes.JSON,
+            allowNull: true
         }
     },
     {
