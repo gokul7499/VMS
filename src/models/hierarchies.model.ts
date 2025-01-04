@@ -55,7 +55,10 @@ hierarchies.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-
+    support_email:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,

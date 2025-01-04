@@ -22,4 +22,5 @@ export interface hierarchiesData {
   manage_adjustment?: any; 
   custom_fields?: any; 
   is_enabled: boolean; 
+  support_email:string;
 }
