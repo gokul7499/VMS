@@ -1272,17 +1272,10 @@ export const getMasterDataForHeirarchiesQuery = () => {
     `;
 };
 export const masterDataQuery = `
-     SELECT
+   SELECT
     h.*,
-    rate.value AS rate_model,
-    JSON_OBJECT(
-        'id', currencies.id,
-        'name', currencies.name
-    ) AS default_currency,
-    JSON_OBJECT(
-        'id', language.id,
-        'name', language.name
-    ) AS default_language,
+    h.default_currency,
+    h.default_language,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', fdt.id,
@@ -1303,20 +1296,15 @@ LEFT JOIN
 LEFT JOIN
     hierarchies ph ON h.parent_hierarchy_id = ph.id
 LEFT JOIN
-    currencies ON h.default_currency = currencies.id
-LEFT JOIN
-    language ON h.default_language = language.id
-LEFT JOIN
-    picklistitems rate ON h.rate_model = rate.id
-LEFT JOIN
     picklistitems uom ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
 WHERE
     h.id = :hierarchy_id
 GROUP BY
     h.id, ph.name, uom.id, uom.label
 LIMIT 0, 1000;
-
+ 
 `;
+ 
 
 
 
@@ -1882,10 +1870,8 @@ export const getQuery = () => `
 
 
 export const hierarchie = `
-
-     SELECT
+    SELECT
     h.*,
-    rate.value AS rate_model,
     h.default_currency AS default_currency,
     h.default_language AS default_language,
     JSON_OBJECT(
@@ -1895,14 +1881,11 @@ export const hierarchie = `
 FROM
     hierarchies h
 LEFT JOIN
-    picklistitems rate ON h.rate_model = rate.id
-LEFT JOIN
     picklistitems uom ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
 WHERE
     h.id = :hierarchy_id
-GROUP BY
-    h.id, uom.id, uom.label
 LIMIT 0, 1000;
+
 `;
 
 export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
