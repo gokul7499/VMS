@@ -18,5 +18,38 @@ export interface WorkflowData {
     is_deleted: boolean,
     workflow_id: string,
     flow_count: number,
-    flow_type:string
+    flow_type: string
+}
+
+export interface WorkflowRecepientTypeData {
+    id: string,
+    is_enabled: boolean,
+    is_deleted: boolean,
+    created_on: Date,
+    modified_on: Date,
+    created_by: string,
+    modified_by: string,
+    meta_data: string,
+    level_id: string,
+    program_id: string,
+    recipient_type_id: string,
+    behaviour: string,
+    workflow_id: string,
+    workflow_trigger_id: string,
+    job_id: string
+}
+
+export interface WorkflowLevelData {
+    id: string,
+    is_enabled: boolean,
+    is_deleted: boolean,
+    created_on: Date,
+    modified_on: Date,
+    created_by: string,
+    modified_by: string,
+    placement_order: number,
+    program_id: string,
+    workflow_id: string,
+    workflow_trigger_id: string,
+    job_id: string
 }

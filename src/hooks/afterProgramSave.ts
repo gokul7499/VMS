@@ -4,17 +4,19 @@ import { Module } from '../models/module.model';
 import hierarchies from '../models/hierarchies.model';
 import generateSlug from '../plugins/slugGenerate';
 import qualificationTypeModel from '../models/qualification-type-model'
-import { rateType } from '../models/rate-type.model';
+import rateType from '../models/rate-type.model';
 import { sequelize } from '../config/instance';
 import { fetchProgramConfigValues } from '../utility/queries';
 
-export const createProgramModule = async (record: Model) => {
+
+export const createProgramModule = async (record: Model,transaction: any) => {
 
     let modules = await Module.findAll({
         where: {
             is_deleted: false,
             parent_module_id: null
         },
+        transaction 
     });
     let module = modules.map((module: any) => ({
         module_id: module?.id,
@@ -23,11 +25,10 @@ export const createProgramModule = async (record: Model) => {
     await ProgramModule.create({
         program_id: (record as any).id,
         modules: module,
-    });
+    },{transaction});
 };
 
-//create hierarchy for program
-export const createHierarchy = async (record: Model) => {
+export const createHierarchy = async (record: Model, transaction: any) => {
     const { id: programId, name } = record as any;
     console.log("program", programId);
 
@@ -36,38 +37,34 @@ export const createHierarchy = async (record: Model) => {
         removedspecial: true,
     });
 
-    const result: any[] = await sequelize.query(fetchProgramConfigValues, {
-        replacements: { programId },
-        type: QueryTypes.SELECT,
-    });
-    if (result.length === 0) {
-        console.log("No configuration data found for this program. No hierarchy record will be created.");
-        return null;
-    }
-    const defaultCurrency = result[0]?.defaultCurrency?.id || 'INR';
-    const timeZone = result[0]?.timeZone?.id || 'UTC';
-    const rateModel = result[0]?.rateModel?.[0] || 'Bill Rate';
-    const preferredDateFormat = result[0]?.preferredDateFormat || 'DD/MM/YYYY';
     const hierarchy = await hierarchies.create({
         program_id: programId,
         name,
         code: "--",
         hierarchy_level: 1,
         hierarchy_order: 1,
-        is_enabled: true,
-        rate_model:rateModel,
-        preferred_date_format: preferredDateFormat,
-        is_vendor_neutral: false,
-        is_rate_card_enforced: false,
-        is_hidden: false,
-        currency_id: defaultCurrency,
-        is_default_timezone: timeZone,
-    });
+        is_enabled: true,        
+        default_date_format: "MM/DD/YYYY",
+        default_time_format: "12 Hours",
+        default_timezone : "d5129833-a45f-43c7-84c1-c427c2e820cd",
+        default_currency: "5cc1357f-a90d-40b0-971f-74c8ddafb8c7",
+        default_language : "adc0bb59-7c4f-4479-bc3c-20d1498ba13b",
+        unit_of_measure: [
+        {
+            value: "daily",
+            is_default: true
+        }
+        ],
+        rate_model: "bill_rate",
+        is_vendor_neutral_program: false,
+        is_hide_candidate_img: true,
+        support_email: "support@gmail.com",
+    },{ transaction });
 
     return hierarchy;
 };
 
-export const createQualificationTypes = async (record: Model) => {
+export const createQualificationTypes = async (record: Model,transaction: any) => {
     const defaultQualificationTypes = [
         { name: 'Skill', code: 'skill', type: 'Predefined' },
         { name: 'Education', code: 'education', type: 'Predefined' },
@@ -87,36 +84,32 @@ export const createQualificationTypes = async (record: Model) => {
             is_deleted: false,
             created_by: (record as any).created_by,
             modified_by: (record as any).modified_by,
-        });
+        },{transaction});
     }
 };
 
-export const createRateTypes = async (record: Model) => {
+export const createRateTypes = async (record: Model,transaction: any) => {
+    const picklistItemResult = await sequelize.query<{ id: any }>(
+        `SELECT id 
+         FROM picklistitems
+         WHERE defined_by = 'predefined' 
+           AND label = 'Standard'
+         LIMIT 1`,
+        { type: QueryTypes.SELECT }
+    );
+    const picklistItemId = picklistItemResult[0].id;
+
     await rateType.create({
         program_id: (record as any).id,
-        name: "Standard",
-        type: "Standard",
-        description: "standard bill rate and pay rate",
-        bill_rate: [
-            {
-                "differential_type": "Factor Differential",
-                "differential_on": "Bill Rate",
-                "differential_value": 1.00
-            }
-        ],
-        pay_rate: [
-            {
-                "differential_type": "Fixed Differential",
-                "differential_on": "Pay Rate",
-                "differential_value": 1.00
-            }
-        ],
+        name: "Standard Rate",
+        rate_type_category: picklistItemId,
+        rate: null,
         abbreviation: "ST",
         is_enabled: true,
         is_deleted: false,
         is_shift_rate: false,
-        is_billable: true,
+        is_base_rate: true,
         created_by: (record as any).created_by,
         modified_by: (record as any).modified_by,
-    });
-}
+    },{transaction});
+} 

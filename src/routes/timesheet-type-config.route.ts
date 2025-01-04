@@ -5,6 +5,7 @@ import {
     getTimesheetTypeConfigById,
     updateTimesheetTypeConfig,
     deleteTimesheetTypeConfig,
+    timesheetTypeConfigFilter,
 } from '../controllers/timesheet-type-config.controller';
 
 export default async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
@@ -13,4 +14,5 @@ export default async function timesheetTypeConfigRoutes(fastify: FastifyInstance
     fastify.get('/timesheet-type-config/:id', getTimesheetTypeConfigById);
     fastify.put('/timesheet-type-config/:id', updateTimesheetTypeConfig);
     fastify.delete('/timesheet-type-config/:id', deleteTimesheetTypeConfig);
+    fastify.post('/timesheet-type-config/advanced-filter', timesheetTypeConfigFilter);
 }

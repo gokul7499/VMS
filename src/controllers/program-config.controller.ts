@@ -13,7 +13,7 @@ export const getConfigurations = async (
   if (configurations.length === 0) {
     return reply.status(200).send({ message: "Configuration Not Found", hierarchies: [] });
   }
-  reply.send({
+  reply.status(200).send({
     status_code: 200,
     message: "Configurations fetched successfully",
     program_configurations: configurations,
@@ -29,14 +29,14 @@ export const getConfigurationById = async (
   const { id } = request.params as { id: string };
   const configuration = await ProgramsConfig.findByPk(id);
   if (configuration) {
-    reply.send({
+    reply.status(200).send({
       status_code: 200,
       message: "Configuration fetched successfully",
       program_configuration: configuration,
       trace_id: traceId,
     });
   } else {
-    reply.status(200).send({ message: "Configuration Not Found", programsConfig: [] });
+    reply.status(200).send({ status_code: 200,message: "Configuration Not Found", programsConfig: [] });
   }
 };
 
@@ -80,22 +80,18 @@ export const updateConfiguration = async (
         await configuration.update({ value, child_config });
         updatedConfigurations.push(configuration);
       } else {
-        return reply
-          .status(200)
-          .send({ message: `Configuration With ID ${id} Not Found` });
+        return reply.status(200).send({ status_code: 200,message: `Configuration With ID ${id} Not Found` });
       }
     }
 
     reply.status(200).send({
       status_code: 200,
-      message: `Configuration  has been updated  `,
+      message: `Configuration has been updated  `,
       updatedConfigurations: updatedConfigurations,
       trace_id: traceId,
     });
   } catch (error) {
-    reply
-      .status(500)
-      .send({
+    reply.status(500).send({
         stutus_code: 500,
         message: "Failed to update the configurations", error,
         trace_id: traceId,
@@ -111,9 +107,12 @@ export const deleteConfiguration = async (
   const configuration = await ProgramsConfig.findByPk(id);
   if (configuration) {
     await configuration.destroy();
-    reply.status(204).send();
+    reply.status(204).send({
+      status_code:204,
+      message:"Configuration delete successfully",
+    });
   } else {
-    reply.status(200).send({ message: "Configuration Not Found" });
+    reply.status(200).send({ status_code: 200,message: "Configuration Not Found" });
   }
 };
 
@@ -122,10 +121,11 @@ export const getProgramConfigurations = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params as { program_id: string };
-  const { config_model, parent_config_id, title } = request.query as {
+  const { config_model, parent_config_id, title, key } = request.query as {
     config_model?: string;
     parent_config_id?: string;
     title?: string;
+    key?: string;
   };
 
   const queryConditions: any = { program_id };
@@ -148,24 +148,28 @@ export const getProgramConfigurations = async (
     };
   }
 
+  if (key) {
+    queryConditions.key = key;
+  }
+
   try {
     const configurations = await ProgramsConfig.findAll({
       where: queryConditions,
     });
 
     if (configurations.length === 0) {
-      return reply.status(200).send({ message: "Configuration Not Found", programsConfigs: [] });
+      return reply.status(200).send({ status_code: 200,message: "Configuration Not Found", programsConfigs: [] });
     }
 
     reply.status(200).send({
-      statusCode: 200,
+      status_code: 200,
       message: "Program configurations retrieved successfully",
       configuration: configurations,
     });
   } catch (error) {
     console.error('Error fetching program configurations:', error);
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'Internal Server Error',
       error: error,
     });
@@ -173,18 +177,22 @@ export const getProgramConfigurations = async (
 };
 
 export async function getConfigByProgramIdAndTitles(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { title?: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { title?: string, key: string } }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { title } = request.query;
+  const { title, key } = request.query;
 
-  const responseFields = ['id', 'title', 'value'];
+  const responseFields = ['id', 'title', 'value', 'key'];
   const whereClause: any = { program_id };
 
   if (title) {
     const titlesArray = title.split(',').map((t) => t.trim());
     whereClause.title = titlesArray.length > 1 ? { [Op.in]: titlesArray } : titlesArray[0];
+  }
+
+  if (key) {
+    whereClause.key = key;
   }
 
   try {
@@ -219,11 +227,11 @@ export const getTransformedConfig = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { config_model } = request.query as { config_model?: string };
+  const { config_model, key } = request.query as { config_model?: string, key?: string };
 
   try {
     const configuration = await ProgramsConfig.findOne({
-      where: { program_id, config_model },
+      where: { program_id, config_model, key },
     });
 
     if (!configuration) {

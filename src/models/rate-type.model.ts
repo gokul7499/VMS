@@ -2,14 +2,17 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { Programs } from "./programs.model";
-class rateType extends Model {
-  shift_category: string | undefined;
+import ShiftType from "./shift-type.model";
+class RateType extends Model {
   id!: string;
   type!: string
+  is_base_rate: any;
+  name: any;
+  is_shift_rate: any;
+  rate_type_category: any;
+  shift_type: any;
 }
-
-rateType.init(
+RateType.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -21,18 +24,6 @@ rateType.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
-    },
-    description: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-    },
-    bill_rate: {
-      type: DataTypes.JSON,
-      allowNull: true,
-    },
-    pay_rate: {
-      type: DataTypes.JSON,
-      allowNull: true,
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
@@ -46,11 +37,11 @@ rateType.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: false,
+      defaultValue: DataTypes.NOW,
     },
     modified_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: false,
+      defaultValue: DataTypes.NOW,
     },
     created_by: {
       type: DataTypes.CHAR(36),
@@ -64,46 +55,25 @@ rateType.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    ref_order: {
-      type: DataTypes.INTEGER,
+    shift_type: {
+      type: DataTypes.UUID,
       allowNull: true,
-    },
-    ot_exemption: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-    },
-    type: {
-      type: DataTypes.STRING,
-      defaultValue: true,
+      references: {
+        model: ShiftType,
+        key: "id",
+      },
     },
     is_shift_rate: {
       type: DataTypes.BOOLEAN,
       allowNull: true
     },
-    shift_rate: {
+    rate: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    shift_category: {
-      type: DataTypes.STRING
-    },
-    edit_rate_factors: {
+    is_base_rate: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    hide_rate_factors: {
-      type: DataTypes.BOOLEAN,
-    },
-    is_billable: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    ordering: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-    },
-    ref_id: {
-      type: DataTypes.UUID,
+      defaultValue:false,
       allowNull: true,
     },
     program_id: {
@@ -113,8 +83,8 @@ rateType.init(
         key: "id",
       },
     },
-    expense_rate: {
-      type: DataTypes.JSON,
+    rate_type_category: {
+      type: DataTypes.UUID,
       allowNull: true
     }
   },
@@ -134,4 +104,5 @@ rateType.init(
 );
 
 sequelize.sync();
-export { rateType };
+RateType.belongsTo(ShiftType, { foreignKey: "shift_type", as: "shift_types" });
+export default RateType;

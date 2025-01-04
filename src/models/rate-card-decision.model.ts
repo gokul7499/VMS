@@ -1,0 +1,113 @@
+import { DataTypes, Model } from "sequelize";
+import { sequelize } from "../config/instance";
+import { beforeSave } from "../hooks/timeFormatHook";
+import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import hierarchies from "./hierarchies.model";
+import jobTemplateModel from "./jobTemplateModel";
+import rateType from "./rate-type.model";
+import Currencies from "./currencies.model";
+
+class DecisionTable extends Model {
+    rate_card_id: any;
+    hierarchy: any;
+    job_template: any;
+    rate_type: any;
+    currency: any;
+    unit_of_measure: any;
+    min_rate: any;
+    max_rate: any;
+    created_on: any;
+    modified_on: any;
+    id: any;
+    rate_type_id: any;
+}
+
+DecisionTable.init(
+    {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            allowNull: false,
+            primaryKey: true,
+        },
+        rate_card_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        hierarchy_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: hierarchies,
+                key: 'id'
+            }
+        },
+        job_template_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: jobTemplateModel,
+                key: 'id'
+            }
+        },
+        rate_type_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: rateType,
+                key: 'id'
+            }
+        },
+        unit_of_measure: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        currency_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: Currencies,
+                key: 'id'
+            }
+        },
+        min_rate: {
+            type: DataTypes.JSON,
+            allowNull: true,
+        },
+        max_rate: {
+            type: DataTypes.JSON,
+            allowNull: true,
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: DataTypes.NOW,
+        },
+        modified_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: DataTypes.NOW,
+        },
+    },
+    {
+        sequelize,
+        tableName: "rate_card_decision_table",
+        timestamps: false,
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+                if (instance.unit_of_measure) {
+                    instance.unit_of_measure = instance.unit_of_measure.toLowerCase();
+                }
+            },
+        },
+    }
+);
+
+DecisionTable.belongsTo(hierarchies, { foreignKey: "hierarchy_id", as: "hierarchy" });
+DecisionTable.belongsTo(jobTemplateModel, { foreignKey: "job_template_id", as: "job_template" });
+DecisionTable.belongsTo(rateType, { foreignKey: "rate_type_id", as: "rate_type" });
+DecisionTable.belongsTo(Currencies, { foreignKey: "currency_id", as: "currency" });
+sequelize.sync();
+export default DecisionTable;

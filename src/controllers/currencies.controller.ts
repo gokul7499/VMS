@@ -14,20 +14,21 @@ export async function getCurrenciesById(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
     const currencies = await Currencies.findByPk(id);
     if (currencies) {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        message:"Currencies get successfully",
+        trace_id: traceId,
         data: currencies
       });
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        trace_id: traceId,
         currency: [],
         message: 'Currencies not found',
       });
@@ -35,7 +36,7 @@ export async function getCurrenciesById(
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -46,7 +47,7 @@ export async function createCurrencies(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { name, label, code, symbol } = request.body as currenciesData;
     const newItem = await Currencies.create({
@@ -58,11 +59,11 @@ export async function createCurrencies(
     reply.status(200).send({
       status_code: 200,
       message: 'Currencies create succesfully',
-      trace_id: trace_Id,
+      trace_id: traceId,
       data: newItem
     });
   } catch (error) {
-    reply.status(500).send({ message: 'An error occurred while creating currencies', error });
+    reply.status(500).send({ status_code:500,message: 'An error occurred while creating currencies', error });
   }
 }
 
@@ -70,7 +71,7 @@ export async function updateCurrencies(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const { name, label, code, symbol } = request.body as currenciesData;
@@ -84,20 +85,20 @@ export async function updateCurrencies(
       reply.status(200).send({
         status_code: 200,
         message: 'Currencies updated successfully',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
 
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        trace_id: traceId,
         message: 'Currencies not found',
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -108,7 +109,7 @@ export async function deleteCurrencies(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id } = request.params;
     const currencies = await Currencies.update({
@@ -118,19 +119,19 @@ export async function deleteCurrencies(
       reply.status(200).send({
         status_code: 200,
         message: 'Currencies deleted successfully',
-        trace_id: trace_Id,
+        trace_id: traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id: trace_Id,
+        trace_id: traceId,
         message: 'Currencies not found',
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: trace_Id,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -138,7 +139,7 @@ export async function deleteCurrencies(
 }
 
 export const bulkUploadCurrencies = async (request: FastifyRequest, reply: FastifyReply) => {
-  const trace_Id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const currencies = request.body as any[];
     const createdCurrencies = await Currencies.bulkCreate(currencies);
@@ -146,13 +147,13 @@ export const bulkUploadCurrencies = async (request: FastifyRequest, reply: Fasti
       status_code: 201,
       data: createdCurrencies,
       message: 'Currencies Created successfully',
-      trace_id: trace_Id,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create Currencies',
-      trace_id: trace_Id,
+      trace_id: traceId,
       error: error,
     });
   }

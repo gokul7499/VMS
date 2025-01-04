@@ -1,13 +1,14 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
-import WorkflowLevel from "./workflowLevelModel";
-import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { beforeSave } from "../hooks/timeFormatHook";
 
-class WorkflowLevelCondition extends Model { }
+class WorkflowTriggeredLevel extends Model {
+    id: any;
+    workflow_trigger_id?: any;
+    job_id?: any
+}
 
-WorkflowLevelCondition.init(
+WorkflowTriggeredLevel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -42,25 +43,6 @@ WorkflowLevelCondition.init(
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        source_field_meta: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        target_field_value: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        level_id: {
-            type: DataTypes.UUID,
-            references: {
-                model: "workflow_level",
-                key: "id",
-            },
-        },
-        operator_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
         program_id: {
             type: DataTypes.UUID,
             references: {
@@ -68,39 +50,30 @@ WorkflowLevelCondition.init(
                 key: "id",
             },
         },
-        indent: {
-            type: DataTypes.INTEGER,
+        workflow_id: {
+            type: DataTypes.UUID,
             allowNull: true,
         },
-        field_config_id: {
-            type: DataTypes.UUID,
+        workflow_trigger_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        job_id: {
+            type: DataTypes.STRING,
             allowNull: true,
         }
     },
     {
         sequelize,
-        tableName: "workflow_level_condition",
+        tableName: "workflow_triggered_level",
         timestamps: false,
-        hooks: {
-            beforeValidate: (instance) => {
-                convertEmptyStringsToNull(instance);
-            },
-            beforeSave: (instance) => {
-                beforeSave(instance);
-            },
-        },
     }
 );
 
 sequelize.sync();
-WorkflowLevelCondition.belongsTo(Programs, {
+WorkflowTriggeredLevel.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
 
-WorkflowLevelCondition.belongsTo(WorkflowLevel, {
-    foreignKey: "level_id",
-    as: "workflow-level",
-});
-
-export default WorkflowLevelCondition;
+export default WorkflowTriggeredLevel;

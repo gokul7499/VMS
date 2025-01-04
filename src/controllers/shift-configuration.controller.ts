@@ -14,7 +14,7 @@ export const getAllshiftConfiguration = async (
     Params: { program_id: string };
     Querystring: {
       name?: string;
-      is_enabled?: boolean;
+      is_enabled?: boolean | string;
       modified_on?: string;
       hierarchy_names?: string;
       shift_type_name?: string;
@@ -26,15 +26,15 @@ export const getAllshiftConfiguration = async (
   }>,
   reply: FastifyReply
 ) => {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   const { program_id } = request.params;
   const { name, is_enabled, start_date,end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query;
 
   if (!program_id) {
     reply.status(400).send({
-      statusCode: 400,
+      status_code: 400,
       message: 'Program ID is required',
-      trace_id,
+      trace_id:traceId,
     });
     return;
   }
@@ -44,18 +44,18 @@ export const getAllshiftConfiguration = async (
 
   if (isNaN(pageNumber) || pageNumber < 1) {
     reply.status(400).send({
-      statusCode: 400,
+      status_code: 400,
       message: 'Invalid page number',
-      trace_id,
+      trace_id:traceId,
     });
     return;
   }
 
   if (isNaN(pageSize) || pageSize < 1) {
     reply.status(400).send({
-      statusCode: 400,
+      status_code: 400,
       message: 'Invalid limit',
-      trace_id,
+      trace_id:traceId,
     });
     return;
   }
@@ -70,7 +70,7 @@ export const getAllshiftConfiguration = async (
     }
 
     if (is_enabled !== undefined) {
-      searchFilters.is_enabled = is_enabled;
+      searchFilters.is_enabled = is_enabled === 'true' || is_enabled === true;
     }
 
     if (start_date && end_date) {
@@ -170,27 +170,27 @@ export const getAllshiftConfiguration = async (
       );
 
       reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
         page: pageNumber,
         limit: pageSize,
         total_records: count,
         shiftConfigurations: shiftConfigsWithDetails,
         message: 'Shift configurations retrieved successfully',
-        trace_id,
+        trace_id:traceId,
       });
     } else {
       reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
         shiftConfigurations: [],
         message: 'Shift configurations not found',
-        trace_id,
+        trace_id:traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'Internal server error',
-      trace_id,
+      trace_id:traceId,
     });
   }
 };
@@ -199,7 +199,7 @@ export const getAllshiftConfiguration = async (
 
 
 export async function getShiftConfigurationById(request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) {
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const item = await ShiftConfiguration.findOne({
@@ -212,10 +212,10 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
 
     if (!item) {
       return reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
         shiftConfiguration: {},
         message: 'Shift Configuration not found.',
-        trace_id,
+        trace_id:traceId,
       });
     }
 
@@ -249,8 +249,9 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
     }
 
     return reply.status(200).send({
-      statusCode: 200,
-      trace_id,
+      status_code: 200,
+      message:" Shift Configuration found.",
+      trace_id:traceId,
       shiftConfiguration: {
         ...item.toJSON(),
         hierarchies: hierarchiesList,
@@ -259,8 +260,8 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
     });
   } catch (error) {
     return reply.status(500).send({
-      statusCode: 500,
-      trace_id,
+      status_code: 500,
+      trace_id:traceId,
       message: 'Internal server error',
     });
   }
@@ -268,7 +269,7 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
 
 export async function createShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const shiftTypeData = request.body as ShiftConfigurationAttributes;
     const { hierarchy_ids, shift_type_ids, name, ...rest } = shiftTypeData;
@@ -279,8 +280,8 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
     if (existingShiftConfig) {
       await transaction.rollback();
       return reply.status(400).send({
-        statusCode: 400,
-        trace_id,
+        status_code: 400,
+        trace_id:traceId,
         message: `Shift configuration with the name ${name} already exists`,
       });
     }
@@ -308,17 +309,17 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
     }
     await transaction.commit();
     reply.status(201).send({
-      statusCode: 201,
+      status_code: 201,
       id: shiftType.id,
       message: 'Shift configuration created successfully',
-      trace_id,
+      trace_id:traceId,
     });
 
   } catch (error) {
     await transaction.rollback();
     reply.status(500).send({
-      statusCode: 500,
-      trace_id,
+      status_code: 500,
+      trace_id:traceId,
       message: (error instanceof Error) ? error.message : 'An unknown error occurred'
     });
   }
@@ -328,7 +329,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
   const { id, program_id } = request.params as { id: string; program_id: string };
   const shiftTypeData = request.body as ShiftConfigurationAttributes;
   const { hierarchy_ids, shift_type_ids, ...rest } = shiftTypeData;
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
   try {
     const shiftType = await ShiftConfiguration.findOne({
@@ -341,9 +342,9 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
 
     if (!shiftType) {
       return reply.status(404).send({
-        statusCode: 404,
+        status_code: 404,
         message: 'Shift configuration not found.',
-        trace_id,
+        trace_id:traceId,
       });
     }
 
@@ -358,9 +359,9 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
 
     if (existingShiftTypeConfigWithSameName) {
       return reply.status(400).send({
-        statusCode: 400,
+        status_code: 400,
         message: `Shift configuration with the name ${shiftTypeData.name} already exists.`,
-        trace_id,
+        trace_id:traceId,
       });
     }
 
@@ -423,15 +424,15 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       }
     }
     reply.status(200).send({
-      statusCode: 200,
+      status_code: 200,
       message: 'Shift configuration updated successfully.',
-      trace_id,
+      trace_id:traceId,
     });
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
+      status_code: 500,
       message: 'Internal server error',
-      trace_id,
+      trace_id:traceId,
     });
   }
 }
@@ -440,7 +441,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
 
 export async function deleteShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
-  const trace_id = generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const shiftConfiguration = await ShiftConfiguration.findOne({
       where: {
@@ -452,21 +453,21 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
     if (shiftConfiguration) {
       await shiftConfiguration.update({ is_deleted: true, is_enabled: false });
       reply.status(200).send({
-        statusCode: 200,
-        trace_id,
+        status_code: 200,
+        trace_id:traceId,
         message: 'Shift configuration deleted successfully.',
       });
     } else {
       reply.status(200).send({
-        statusCode: 200,
+        status_code: 200,
         message: 'Shift configuration not found.',
-        trace_id,
+        trace_id:traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
-      statusCode: 500,
-      trace_id,
+      status_code: 500,
+      trace_id:traceId,
       message: "Internal server error"
     });
   }

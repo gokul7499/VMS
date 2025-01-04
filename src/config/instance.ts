@@ -1,17 +1,22 @@
 import { Sequelize } from 'sequelize';
-import { databaseConfig } from '../config/db';
+import { databaseConfig, initializeDatabase } from './db';
 
-const sequelize = new Sequelize(
-  databaseConfig.config.database ?? '',
-  databaseConfig.config.user ?? '',
-  databaseConfig.config.password,
-  {
-    host: databaseConfig.config.host,
-    dialect: 'mysql',
-    port : 3306
-    
-  }
-);
+let sequelize: Sequelize;
+
+const initializeSequelize = async () => {
+  await initializeDatabase();
+  sequelize = new Sequelize(
+    databaseConfig.config.database,
+    databaseConfig.config.user,
+    databaseConfig.config.password,
+    {
+      host: databaseConfig.config.host,
+      port: databaseConfig.config.port,
+      dialect: 'mysql',
+      logging: false
+    }
+  );
+};
 
 const checkDatabaseConnection = async () => {
   try {
@@ -24,4 +29,4 @@ const checkDatabaseConnection = async () => {
   }
 };
 
-export { sequelize, checkDatabaseConnection };
+export { sequelize, checkDatabaseConnection, initializeSequelize };

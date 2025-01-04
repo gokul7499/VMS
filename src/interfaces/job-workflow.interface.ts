@@ -27,6 +27,7 @@ export interface JobWorkFlow {
 
 export interface Recipient {
   name: string;
+  id?:string;
   level_id: string;
   user_id:string;
   avatar: string;
@@ -40,6 +41,7 @@ export interface Level {
   level_id: string;
   level_status: string;
   placement_order: number;
+  level_order:number;
   // is_bypassed:string;
  
   recipients: Recipient[];
@@ -47,12 +49,13 @@ export interface Level {
 
 export interface Workflow {
   status:string;
-  // program_id:string,
+  program_id:string;
   job_workflow_id:string;
   workflow_id: string;
   workflow_name: string;
   workflow_type: string;
-  levels: Level[];
+  event_slug:string;
+     levels: Level[];
   config:any
 }
 
