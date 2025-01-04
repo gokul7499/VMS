@@ -873,9 +873,9 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, manager, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { method_id, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
             method_id: string;
-            manager?: string;
+            job_id?: string;
             workflow_trigger_id: string;
             hierarchy_id: any
         };
@@ -917,7 +917,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         //     if (findJobData && findJobData.hierarchy_ids) {
         //         hierarchy_ids = findJobData.hierarchy_ids;
         //     }
-        const hierarchy_ids = hierarchy_id.split(',');
+        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -929,6 +929,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 w.levels,
                 w.status,
                 w.config,
+                w.manager,
                 l.id AS level_id,
                 l.placement_order AS placement_order,
             r.recipient_type_id,
@@ -1072,7 +1073,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-
+        let manager=rows[0].manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
@@ -1220,7 +1221,7 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
+                           
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -1252,7 +1253,7 @@ ORDER BY
                     }
                 }
 
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain"|| recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
                         let replacedUserResult = null;
@@ -1542,10 +1543,10 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        const { workflow_action, manager, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { workflow_action, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
             workflow_action: string;
+            job_id: string;
             workflow_trigger_id: string;
-            manager: string;
             hierarchy_id: any
         };
         //         const workflowquery = `
@@ -1576,7 +1577,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
         //             hierarchy_ids = findJobData.hierarchy_ids;
         //         }
-        const hierarchy_ids = hierarchy_id.split(',');
+        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const query = `
             SELECT
             w.id As job_workflow_id,
@@ -1586,6 +1587,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 w.levels,
                 w.status,
                   w.config,
+                  w.manager,
                 l.id AS level_id,
                 l.placement_order AS placement_order,
                 r.recipient_type_id,
@@ -1734,7 +1736,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-
+            let manager=row.manager
             // Initialize workflow for the job if not already initialized
             if (!workflows[job_workflow_id]) {
                 workflows[job_workflow_id] = {
@@ -1885,8 +1887,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
-
+                           
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
@@ -1917,7 +1918,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     }
                 }
 
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain"|| recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
                         for (const recipients of level.recipient_types || []) {

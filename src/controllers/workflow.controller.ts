@@ -123,7 +123,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 placement_order: level.placement_order,
                 program_id: program_id,
             });
-console.log("llllllllllllllllllllllllllllllllllllllllllllllllll",createdLevel);
+
 
             if (Array.isArray(level.conditions)) {
                 for (const condition of level.conditions) {
@@ -140,7 +140,7 @@ console.log("llllllllllllllllllllllllllllllllllllllllllllllllll",createdLevel);
             }
 
             for (const recipient of level.recipient_types || []) {
-                console.log("ppppppppppppppppppppppppppp", recipient);
+              
                 
                 await WorkflowRecepientType.create({
                     level_id: createdLevel.id,
@@ -445,7 +445,7 @@ export async function getAllWorkflows(
                 })),
             };
         }));
-        console.log("pppppppppppppppppppppppppp", populatedWorkflow)
+       
         reply.status(200).send({
             status_code: 200,
             message: "workflow get successfully",
