@@ -25,7 +25,6 @@ hierarchies.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-
     name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -33,9 +32,9 @@ hierarchies.init(
    
     rate_model: {
       type: DataTypes.ENUM(
-        'Bill Rate (No Markup)',
-        'Bill Rate (Markup)',
-        'Pay Rate (Markup)'
+        'bill_rate',
+        'markup',
+        'pay_rate'
       ),
       allowNull: true,
     },
@@ -56,7 +55,10 @@ hierarchies.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-
+    support_email:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -73,24 +75,9 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    currency: {
+   
+    default_timezone: {
       type: DataTypes.STRING,
-      allowNull: true,
-    },
-    timezone: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    // is_enable_adjustment: {
-    //   type: DataTypes.BOOLEAN,
-    //   defaultValue: true,
-    // },
-    // is_enable_tax: {
-    //   type: DataTypes.BOOLEAN,
-    //   defaultValue: true,
-    // },
-    is_default_timezone: {
-      type: DataTypes.UUID,
       allowNull: true,
     },
     default_date_format: {
