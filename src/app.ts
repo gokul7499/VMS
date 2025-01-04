@@ -2,7 +2,7 @@ import fastify from "fastify";
 import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
-import { checkDatabaseConnection } from "./config/instance";
+import { initializeSequelize, checkDatabaseConnection } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
  
 dotenv.config();
@@ -25,9 +25,10 @@ app.register(formBodyPlugin);
  
 // Import routes after Sequelize initialization
 let port = 8000;
-
+ 
 const start = async () => {
   try {
+    await initializeSequelize(); // Initialize Sequelize first
     const dbStatus = await checkDatabaseConnection();
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
