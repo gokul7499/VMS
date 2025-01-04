@@ -609,6 +609,7 @@ export async function getAllPickListByProgramId(
       created_on: picklist.created_on,
       picklistItems: picklist.picklistItems
         .map((item: any) => ({
+          id:item.id,
           picklist_id: item.picklist_id,
           label: item.label,
           value: item.value,
