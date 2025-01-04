@@ -73,8 +73,8 @@ hierarchies.init(
       allowNull: true,
     },
    
-    is_default_timezone: {
-      type: DataTypes.UUID,
+    default_timezone: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     default_date_format: {
