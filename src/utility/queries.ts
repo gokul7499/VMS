@@ -1272,51 +1272,62 @@ export const getMasterDataForHeirarchiesQuery = () => {
     `;
 };
 export const masterDataQuery = `
-     SELECT
-    h.*,
-    rate.value AS rate_model,
-    JSON_OBJECT(
-        'id', currencies.id,
-        'name', currencies.name
-    ) AS default_currency,
-    JSON_OBJECT(
-        'id', language.id,
-        'name', language.name
-    ) AS default_language,
-    JSON_ARRAYAGG(
+    SELECT 
+        h.id,
+        h.parent_hierarchy_id,
+        h.name,
+        h.is_enabled,
+        h.is_rate_card_enforced,
+        h.rate_model,
+        h.created_on,
+        h.modified_on,
+        h.code,
+        h.is_deleted,
+        h.program_id,
+        h.default_date_format,
+        h.default_time_format,
+        h.default_language,
+        h.is_vendor_neutral_program,
+        h.is_hide_candidate_img,
+        h.manage_tax,
+        h.manage_adjustment,
+        h.custom_fields,
+        h.default_timezone,
+        h.default_currency,
+        h.unit_of_measure,
+        h.support_email,
         JSON_OBJECT(
-            'id', fdt.id,
-            'name', fdt.name
-        )
-    ) AS foundational_data,
-    ph.name AS parent_hierarchy_name,
-    JSON_OBJECT(
-        'id', uom.id,
-        'name', uom.label
-    ) AS default_unit_of_measure
-FROM
-    hierarchies h
-LEFT JOIN
-    hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
-LEFT JOIN
-    master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-LEFT JOIN
-    hierarchies ph ON h.parent_hierarchy_id = ph.id
-LEFT JOIN
-    currencies ON h.default_currency = currencies.id
-LEFT JOIN
-    language ON h.default_language = language.id
-LEFT JOIN
-    picklistitems rate ON h.rate_model = rate.id
-LEFT JOIN
-    picklistitems uom ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
-WHERE
-    h.id = :hierarchy_id
-GROUP BY
-    h.id, ph.name, uom.id, uom.label
-LIMIT 0, 1000;
-
+            'id', uom.id,
+            'name', uom.label
+        ) AS default_unit_of_measure,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', fdt.id,
+                'name', fdt.name
+            )
+        ) AS foundational_data,
+        ph.name AS parent_hierarchy_name
+    FROM 
+        hierarchies h
+    LEFT JOIN 
+        hierarchies_master_data hmd 
+        ON h.id = hmd.hierarchy_id
+    LEFT JOIN 
+        master_data_type fdt 
+        ON hmd.foundation_data_type_id = fdt.id
+    LEFT JOIN 
+        hierarchies ph 
+        ON h.parent_hierarchy_id = ph.id
+    LEFT JOIN 
+        picklistitems uom 
+        ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+    WHERE 
+        h.id = :hierarchy_id
+    GROUP BY 
+        h.id, ph.name, uom.id, uom.label
+    LIMIT 0, 1000;
 `;
+
 
 
 
@@ -1882,28 +1893,44 @@ export const getQuery = () => `
 
 
 export const hierarchie = `
-
-     SELECT
-    h.*,
-    rate.value AS rate_model,
-    h.default_currency AS default_currency,
-    h.default_language AS default_language,
-    JSON_OBJECT(
-        'id', uom.id,
-        'name', uom.label
-    ) AS default_unit_of_measure
-FROM
-    hierarchies h
-LEFT JOIN
-    picklistitems rate ON h.rate_model = rate.id
-LEFT JOIN
-    picklistitems uom ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
-WHERE
-    h.id = :hierarchy_id
-GROUP BY
-    h.id, uom.id, uom.label
-LIMIT 0, 1000;
+    SELECT 
+        h.id,
+        h.parent_hierarchy_id,
+        h.name,
+        h.is_enabled,
+        h.is_rate_card_enforced,
+        h.rate_model,
+        h.created_on,
+        h.modified_on,
+        h.code,
+        h.is_deleted,
+        h.program_id,
+        h.default_date_format,
+        h.default_time_format,
+        h.default_language,
+        h.is_vendor_neutral_program,
+        h.is_hide_candidate_img,
+        h.manage_tax,
+        h.manage_adjustment,
+        h.custom_fields,
+        h.default_timezone,
+        h.default_currency,
+        h.unit_of_measure,
+        h.support_email,
+        JSON_OBJECT(
+            'id', uom.id,
+            'name', uom.label
+        ) AS default_unit_of_measure
+    FROM 
+        hierarchies h
+    LEFT JOIN 
+        picklistitems uom 
+        ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+    WHERE 
+        h.id = :hierarchy_id
+    LIMIT 0, 1000;
 `;
+
 
 export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
     const hierarchyCondition = hierarchy_ids.length > 0
