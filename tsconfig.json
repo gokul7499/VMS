@@ -4,10 +4,11 @@
         "module": "commonjs",
         "strict": true,
         "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,  // Ensures compatibility with require and default imports
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "outDir": "./dist",
-        "typeRoots": ["./node_modules/@types"] 
+        "typeRoots": ["./node_modules/@types"]
     },
     "include": ["src/**/*.ts", "src/types.d.ts"],
     "exclude": ["node_modules"]
