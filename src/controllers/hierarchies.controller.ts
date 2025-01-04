@@ -168,7 +168,6 @@ export async function getHierarchiesById(
     });
 
     if (hierarchy) {
-      // Fetch additional master data
       const [masterDataResult] = await sequelize.query<MasterDataResult>(masterDataQuery, {
         replacements: { hierarchy_id: id },
         type: QueryTypes.SELECT,
