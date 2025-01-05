@@ -9,9 +9,11 @@ class JobTemplateModel extends Model {
     program_id: any;
     template_name: any;
     job_submitted_count: number | undefined;
-  custom_field_id: any;
+    custom_field_id: any;
     is_automatic_distribution: any;
     is_automatic_distribute_submit: any;
+    labour_category: any;
+    is_tiered_distribute_schedule: any;
 
 }
 
@@ -35,7 +37,7 @@ JobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'job_category',
+                model: jobCategoryModel,
                 key: 'id'
             }
         },
