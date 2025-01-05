@@ -27,5 +27,6 @@ export interface ProgramConfigAttributes {
   sr_Number: number;
   options: Json;
   is_default: boolean;
-  child_config: Json
+  child_config: Json;
+  configuration_id:string;
 }
