@@ -20,7 +20,7 @@ const initializeSequelize = async () => {
  
 const checkDatabaseConnection = async () => {
   try {
-    await  sequelize.sync();
+    await  sequelize.sync({alter: true});
     await sequelize.authenticate();
     console.log('Database connected successfully');
     return { connected: true, message: 'Database connected successfully' };
