@@ -3,23 +3,19 @@ import { sequelize } from "../config/instance";
 import jobCategoryModel from "./job-category.model";
 import { Programs } from "./programs.model";
 import IndustriesModel from "./labour-category.model";
-import User from "./user.model";
 
-class jobTemplateModel extends Model {
+class JobTemplateModel extends Model {
     id: any;
     job_id: any;
     job_category: any;
     program_id: any;
     program_industry: any;
     template_name: any;
-    job_submitted_count: number | undefined;
-  custom_field_id: any;
-    is_automatic_distribution: any;
-    is_automatic_distribute_submit: any;
-
+    job_submitted_count: number | undefined ;
+    custom_field_id: any;
 }
 
-jobTemplateModel.init(
+JobTemplateModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -43,7 +39,7 @@ jobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: jobCategoryModel,
+                model: 'job_category',
                 key: 'id'
             }
         },
@@ -71,7 +67,7 @@ jobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: IndustriesModel,
+                model: 'labour_category',
                 key: 'id'
             }
         },
@@ -190,9 +186,9 @@ jobTemplateModel.init(
             defaultValue: false,
             allowNull: true
         },
-        job_submitted_count:{
-            type:DataTypes.INTEGER,
-            defaultValue:0
+        job_submitted_count: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0
         },
         created_by: {
             type: DataTypes.UUID,
@@ -224,8 +220,8 @@ jobTemplateModel.init(
 
 sequelize.sync();
 
-jobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
-jobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-jobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'industries' });
+JobTemplateModel.belongsTo(jobCategoryModel, { foreignKey: "category", as: "job_category" });
+JobTemplateModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+JobTemplateModel.belongsTo(IndustriesModel, { foreignKey: 'program_industry', as: 'labour_category' });
 
-export default jobTemplateModel;
+export default JobTemplateModel;

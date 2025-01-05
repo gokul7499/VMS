@@ -9,7 +9,6 @@ import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from "sequelize";
-import { sequelize } from "../config/instance";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -31,18 +30,13 @@ export async function createWorkLocation(
   if (!user) {
     return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
   }
-
-  const transaction = await sequelize.transaction();
-
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
       where: { code: workLocation.code, program_id },
       defaults: { ...workLocation },
-      transaction
     });
 
     if (!created) {
-      await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
         message: `Work location with code '${workLocation.code}' already exists.`,
@@ -75,11 +69,10 @@ export async function createWorkLocation(
           work_location_id: workLocationData.id,
           currency_id: currency.id,
           is_default: currency.is_default,
-        }, { transaction });
+        });
       }
     }
 
-    await transaction.commit();
     reply.status(201).send({
       status_code: 201,
       message: "Work location created successfully",
@@ -107,7 +100,6 @@ export async function createWorkLocation(
       WorkLocationModel
     );
   } catch (error) {
-    await transaction.rollback();
     logger(
       {
         trace_id: traceId,
