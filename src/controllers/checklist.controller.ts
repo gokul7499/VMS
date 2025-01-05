@@ -29,9 +29,9 @@ export async function createCheckList(
 
             if (Array.isArray(task_category_configs) && task_category_configs.length > 0) {
                 const taskCategoryMappings = task_category_configs.map((config) => ({
-                    checklist_version_id:createdCheckList.version_id,
+                    checklist_version_id,
                     checklist_entity_id: createdCheckList.entity_id,
-                    seq_no: config.seq_no,
+                    sequence_number: config.seq_no,
                     is_mandatory: config.is_mandatory ?? true,
                     trigger: config.trigger,
                     actor_org_type: config.actor_org_type,
@@ -104,8 +104,9 @@ export async function getChecklistById(
             const checklistResponse = {
                 entity_id: checklistData.entity_id,
                 version_id: checklistData.version_id,
-                task_category_configs: taskMappings.map((task_category: any) => ({
-                    ...task_category.dataValues
+                task_category_configs: taskMappings.map((task: any) => ({
+                    task_entity_id: task.task_entity_id,
+                    task_version_id: task.task_version_id,
                 })),
             };
             return reply.status(200).send({
@@ -132,18 +133,22 @@ export async function getChecklistById(
 }
 
 export async function updateCheckList(
-    request: FastifyRequest<{ Params: { entity_id: string, program_id: string }; Body: ChecklistInterface }>,
+    request: FastifyRequest<{ Params: { entity_id: string }; Body: ChecklistInterface }>,
     reply: FastifyReply
 ) {
-    const { entity_id, program_id } = request.params;
+    const { entity_id } = request.params;
     const {
         name,
         description,
+        tenant_id,
         is_enabled,
+        pre_checklist_entity_id,
+        pre_checklist_version,
         associations,
         task_category_configs,
         created_by,
-        updated_by
+        updated_by,
+        program_id
     } = request.body;
     if (!Array.isArray(task_category_configs)) {
         return reply.status(400).send({
@@ -175,9 +180,10 @@ export async function updateCheckList(
                 version: newVersion,
                 name,
                 description,
+                tenant_id,
                 is_enabled,
-                pre_checklist_entity_id: existingChecklist?.pre_checklist_entity_id,
-                pre_checklist_version: existingChecklist?.pre_checklist_version,
+                pre_checklist_entity_id,
+                pre_checklist_version,
                 associations: JSON.stringify(associations),
                 previous_version_id: existingChecklist ? existingChecklist.version_id : null,
                 latest: true,
@@ -254,7 +260,6 @@ export async function updateCheckList(
         });
     }
 }
-
 export async function deleteCheckList(
     request: FastifyRequest<{ Params: { entity_id: string } }>,
     reply: FastifyReply
@@ -294,82 +299,20 @@ export async function deleteCheckList(
         });
     }
 }
-
-export async function listChecklists(
-    request: FastifyRequest<{
-        Querystring: {
-            name?: string;
-        };
-        Params: { 
-            program_id: string 
-        };
-    }>,
-    reply: FastifyReply
-) {
-    const { name } = request.query;
-    const program_id = request.params.program_id;
-    const traceId = generateCustomUUID();
-    try {
-
-        const whereConditions: any = {
-            latest: true,
-            is_enabled: true,
-            program_id,
-            ...(name ? {} : {name: { [Op.like]: `%${name}%` }})
-        };
-
-        const checklists = await Checklist.findAll({
-            where: whereConditions,
-            order: [['name', 'ASC']],
-            attributes: [
-                'name', 'entity_id', 'version'
-            ],
-        });
-        if (!checklists.length) {
-            return reply.status(404).send({
-                status_code: 404,
-                message: 'No checklists found for the given filters.',
-                traceId: traceId,
-            });
-        }
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Successfully fetched checklists for the program",
-            data: checklists,
-            traceId: traceId,
-        });
-    } catch (error) {
-        console.error('Error while filtering checklists:', error);
-
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'Internal Server Error',
-            traceId: traceId,
-            error: {
-                message: (error as Error).message || 'An unexpected error occurred.',
-                stack: (error as Error).stack || null,
-            },
-        });
-    }
-}
-
 export async function filterChecklists(
     request: FastifyRequest<{
         Querystring: {
             task_ids?: string;
             is_enabled?: boolean;
+            tenant_id?: string;
             entity_id?: string;
             limit?: number;
             offset?: number;
         };
-        Params: { 
-            program_id: string 
-        };
     }>,
     reply: FastifyReply
 ) {
-    const { task_ids, is_enabled, entity_id, limit = 10, offset = 0 } = request.query;
-    const program_id = request.params.program_id;
+    const { task_ids, is_enabled, tenant_id: tenantId, entity_id, limit = 10, offset = 0 } = request.query;
     const traceId = generateCustomUUID();
     try {
         const whereConditions: any = {
@@ -378,8 +321,8 @@ export async function filterChecklists(
         if (entity_id) {
             whereConditions.entity_id = entity_id;
         }
-        if (program_id) {
-            whereConditions.program_id = program_id;
+        if (tenantId) {
+            whereConditions.tenant_id = tenantId;
         }
         if (is_enabled !== undefined) {
             whereConditions.is_enabled = is_enabled;

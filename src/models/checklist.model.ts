@@ -8,7 +8,7 @@ class Checklist extends Model {
     entity_id: any;
     name: any;
     description: any;
-    program_id: any;
+    tenant_id: any;
     latest: any;
     version: any;
     previous_version_id: any;
@@ -44,6 +44,10 @@ Checklist.init(
         description: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+        tenant_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
         },
         latest: {
             type: DataTypes.BOOLEAN,
@@ -117,12 +121,12 @@ Checklist.init(
         tableName: 'checklist',
         timestamps: false,
         indexes: [
-            // {
-            //     fields: ['version_id'],
-            // },
-            // {
-            //     fields: ['entity_id'],
-            // },
+            {
+                fields: ['version_id'],
+            },
+            {
+                fields: ['entity_id'],
+            },
             // {
             //     fields: ['tenant_id'],
             // },
