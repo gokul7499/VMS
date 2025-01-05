@@ -24,9 +24,9 @@ RateConfigurationJobTemplates.init(
         job_template_id : {
             type: DataTypes.UUID,
             allowNull: true,
-            references:{
-                model:jobTemplateModel,
-                key:'id'
+            references: {
+                model: jobTemplateModel,
+                key: 'id',
             }
         },
     },

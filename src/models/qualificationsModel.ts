@@ -8,7 +8,6 @@ import qualificationTypeModel from "./qualification-type-model";
 class Qualifications extends Model {
     code: any;
     qualification_type_id: any;
-    name:any
 }
 
 Qualifications.init(
