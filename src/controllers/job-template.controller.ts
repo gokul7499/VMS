@@ -48,7 +48,7 @@ export const getAllJobTemplates = async (
       job_id,
       is_enabled,
       template_name,
-      program_industry,
+      labour_category,
       category,
       page = 1,
       limit = 10,
@@ -66,7 +66,7 @@ export const getAllJobTemplates = async (
     }
     if (template_name)
       whereClause.template_name = { [Op.like]: `%${template_name}%` };
-    if (program_industry) whereClause.program_industry = program_industry;
+    if (labour_category) whereClause.labour_category = labour_category;
 
     const categoryWhereClause: any = {};
     if (category) {
@@ -142,7 +142,7 @@ export async function getJobTemplateById(
           "created_on",
           "created_by",
           "modified_by",
-          "program_industry",
+          "labour_category",
           "category",
         ],
       },
@@ -875,7 +875,7 @@ export async function getAllJobTempletsByHierarchies(
     Params: { program_id: string };
     Querystring: {
       hierarchy?: string;
-      program_industry?: string;
+      labour_category?: string;
       job_type?: string;
       name?: string;
       qualification?: string;
@@ -890,7 +890,7 @@ export async function getAllJobTempletsByHierarchies(
     const { program_id } = request.params;
     const {
       hierarchy,
-      program_industry,
+      labour_category,
       job_type,
       name,
       qualification,
@@ -901,8 +901,8 @@ export async function getAllJobTempletsByHierarchies(
     const hierarchyIdsArray = hierarchy ? hierarchy.split(",") : [];
     const includeJobIdFilter = hierarchyIdsArray.length > 0;
 
-    const laborCategoryIdsArray = program_industry
-      ? program_industry.split(",")
+    const laborCategoryIdsArray = labour_category
+      ? labour_category.split(",")
       : [];
     const includeLaborCategoryIdFilter = laborCategoryIdsArray.length > 0;
 
@@ -1076,7 +1076,7 @@ export async function findJobTemplatesByLabourCategories(
     }
     const jobTemplates = await jobTemplateModel.findAll({
       where: {
-        program_industry: labour_category,
+        labour_category: labour_category,
         program_id: program_id
       },
       attributes: ["template_name", "id"]

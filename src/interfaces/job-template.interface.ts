@@ -6,7 +6,7 @@ export interface JobTemplateInterface {
   ref_title?: string | null;
   template_code: string;
   level?: string | null;
-  program_industry: string[];
+  labour_category: string[];
   description: string;
   is_submission_exceed_max_bill_rate?: boolean | null;
   allow_express_offer?: boolean | null;
@@ -62,7 +62,7 @@ export interface  GetJobTemplatesQuery {
   job_id?: string;
   is_enabled?: boolean;
   template_name?: string;
-  program_industry?: string;
+  labour_category?: string;
   category?: string;
   page?: number;
   limit?: number;
