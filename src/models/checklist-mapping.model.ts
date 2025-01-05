@@ -138,7 +138,7 @@ ChecklistTaskMapping.init(
 
     }
 );
-
+sequelize.sync();
 ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_version_id', as: 'checklistVersion', targetKey: 'version_id' });
 ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_entity_id', as: 'checklistEntity', targetKey: 'entity_id' });
 

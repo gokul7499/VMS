@@ -131,6 +131,8 @@ Checklist.init(
     }
 );
 
+sequelize.sync();
+
 Checklist.belongsTo(Checklist, { foreignKey: 'previous_version_id', as: 'previousVersion' });
 Checklist.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 
