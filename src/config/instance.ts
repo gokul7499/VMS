@@ -1,8 +1,8 @@
 import { Sequelize } from 'sequelize';
 import { databaseConfig, initializeDatabase } from './db';
-
+ 
 let sequelize: Sequelize;
-
+ 
 const initializeSequelize = async () => {
   await initializeDatabase();
   sequelize = new Sequelize(
@@ -17,7 +17,7 @@ const initializeSequelize = async () => {
     }
   );
 };
-
+ 
 const checkDatabaseConnection = async () => {
   try {
     await sequelize.authenticate();
@@ -28,5 +28,5 @@ const checkDatabaseConnection = async () => {
     return { connected: false, message: 'Database connection failed', error };
   }
 };
-
+ 
 export { sequelize, checkDatabaseConnection, initializeSequelize };
