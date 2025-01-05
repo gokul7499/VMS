@@ -66,4 +66,5 @@ export interface  GetJobTemplatesQuery {
   category?: string;
   page?: number;
   limit?: number;
+  is_shift_rate?:boolean;
 }

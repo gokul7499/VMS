@@ -18,7 +18,7 @@ import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
 import { Op, Transaction } from "sequelize";
 // import { extractFileContent } from "../utility/fileUpload";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
-import JobTempletRepository from "../hooks/job-template"
+import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 const jobTempletRepositories = new JobTempletRepository()
 export const getAllJobTemplates = async (
@@ -34,6 +34,7 @@ export const getAllJobTemplates = async (
       is_enabled,
       template_name,
       labour_category,
+      is_shift_rate,
       category,
       page = 1,
       limit = 10,
@@ -70,7 +71,10 @@ export const getAllJobTemplates = async (
       dynamicConditions.push(`labour_category.name LIKE :program_industry`);
       replacements.program_industry = `%${labour_category}%`;
     }
-
+    if (is_shift_rate !== undefined) {
+      dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
+      replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
     const dynamicConditionsString =
       dynamicConditions.length > 0
         ? `AND ${dynamicConditions.join(" AND ")}`

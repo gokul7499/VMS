@@ -271,6 +271,7 @@ class JobTempletRepository {
           job_templates.is_enabled,
           job_templates.template_name,
           job_templates.job_submitted_count,
+          job_templates.is_shift_rate,
           JSON_OBJECT(
             'id', job_category.id,
             'title', job_category.title
