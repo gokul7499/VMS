@@ -16,6 +16,7 @@ import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sa
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
+const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -330,7 +331,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -349,6 +350,8 @@ export async function getAllRateConfigurations(
         const replacements: any = {
             program_id,
             name: query.name ?? null,
+            job_template_id: query.job_template_id ?? null,
+            hierarchy_id: query.hierarchy_id ?? null,
             is_enabled: isEnabled,
             is_shift_rate: isShiftRate,
             startDate,
@@ -418,7 +421,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate','is_enabled'],
         });
 
         if (!rateConfiguration) {
@@ -441,19 +444,17 @@ export async function getRateConfigurationById(
             ],
         }).then((data) => data.map((item) => item.hierarchy));
 
-        const jobTemplates = await RateConfigurationJobTemplates.findAll({
-            where: { rate_configuration_id: id },
-            include: [
-                {
-                    model: jobTemplateModel,
-                    as: 'job_template',
-                    attributes: ['id', 'template_name'],
-                },
-            ],
-        }).then((data) =>
+        const jobTemplates = await sequelize.query<{ job_template_id: string; template_name: string }>(
+            ` SELECT jt.id AS job_template_id,jt.template_name FROM rate_configuration_job_templates rcjt
+              JOIN ${sourcing_db}.job_templates jt ON rcjt.job_template_id = jt.id WHERE  rcjt.rate_configuration_id = :id`,
+            {
+                replacements: { id },
+                type: QueryTypes.SELECT
+            }
+        ).then((data) =>
             data.map((item) => ({
-                id: item.job_template?.id,
-                name: item.job_template?.template_name,
+                id: item.job_template_id,
+                name: item.template_name,
             }))
         );
 
@@ -833,12 +834,21 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
             ).values()
         ];
 
+        const rateType = [
+            ...new Map(
+                results
+                    .filter((result: any) => result.rate_id && result.rate_name)
+                    .map((result: any) => [result.rate_id, { id: result.rate_id, name: result.rate_name }])
+            ).values()
+        ];
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             data: {
                 hierarchies: hierarchies,
                 job_templates: jobTemplates,
+                rate_type:rateType,
             },
         });
     } catch (error: any) {

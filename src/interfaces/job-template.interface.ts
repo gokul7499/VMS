@@ -62,8 +62,9 @@ export interface  GetJobTemplatesQuery {
   job_id?: string;
   is_enabled?: boolean;
   template_name?: string;
-  program_industry?: string;
+  labour_category?: string;
   category?: string;
   page?: number;
   limit?: number;
+  is_shift_rate?:boolean;
 }

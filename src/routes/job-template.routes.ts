@@ -12,6 +12,7 @@ import {
   getAllJobTempletsByHierarchies,
   findJobTemplatesByHierarchyIds,
   findJobTemplatesByLabourCategories,
+  getCommonHierarchies
 } from "../controllers/job-template.controller";
 // import fastifyMultipart from "@fastify/multipart";
 
@@ -22,21 +23,12 @@ async function jobTemplate(fastify: FastifyInstance) {
   fastify.post("/program/:program_id/job-template", createJobTemplate);
   fastify.put("/program/:program_id/job-template/:id", updateJobTemplate);
   fastify.delete("/program/:program_id/job-template/:id", deleteJobTemplate);
-  fastify.post(
-    "/program/:program_id/get-job-templates",
-    getJobTemplatesByHierarchies
-  );
+  fastify.post("/program/:program_id/get-job-templates", getJobTemplatesByHierarchies);
+  fastify.get("/program/:program_id/recent-job-templates", getAllJobTemplateHierarchyById);
+  fastify.get("/program/:program_id/popular-job-templates", getMostUsedJobTemplates);
+  // fastify.post("/upload-file", uploadFile);
   fastify.get(
-    "/program_id/:program_id/recent-job-templates",
-    getAllJobTemplateHierarchyById
-  );
-  fastify.get(
-    "/program_id/:program_id/popular-job-templates",
-    getMostUsedJobTemplates
-  );
-  //fastify.post("/upload-file", uploadFile);
-  fastify.get(
-    "/program_id/:program_id/job-templates",
+    "/program/:program_id/job-templates",
     getAllJobTempletsByHierarchies
   );
   fastify.get(
@@ -46,6 +38,10 @@ async function jobTemplate(fastify: FastifyInstance) {
   fastify.post(
     "/program/:program_id/job-templates-by-hierarchy",
     findJobTemplatesByHierarchyIds
+  );
+  fastify.get(
+    "/program/:program_id/common-hierarchies",
+    getCommonHierarchies
   );
 }
 export default jobTemplate;

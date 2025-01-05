@@ -48,7 +48,7 @@ ChecklistTaskMapping.init(
             type: DataTypes.STRING(50),
             allowNull: false,
         },
-        seq_no: {
+        sequence_number: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
@@ -138,7 +138,7 @@ ChecklistTaskMapping.init(
 
     }
 );
-
+sequelize.sync();
 ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_version_id', as: 'checklistVersion', targetKey: 'version_id' });
 ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_entity_id', as: 'checklistEntity', targetKey: 'entity_id' });
 

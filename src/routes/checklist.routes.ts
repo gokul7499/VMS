@@ -7,12 +7,11 @@ import {
     deleteCheckList,
     filterChecklists,
 } from "../controllers/checklist.controller";
-async function checkListRoutes(fastify: FastifyInstance) {
-    fastify.post("/program/:program_id/checklists", createCheckList);
-    fastify.get("/program/:program_id/checklists/entity/:entity_id", getChecklistById);
-    fastify.put("/program/:program_id/checklists/entity/:entity_id", updateCheckList);
-    fastify.delete("/program/:program_id/checklists/entity/:entity_id", deleteCheckList);
-    fastify.get("/program/:program_id/checklists/list/brief", filterChecklists);
-    fastify.get("/program/:program_id/checklists/filter", filterChecklists);
+async function checkListRoute(fastify: FastifyInstance) {
+    fastify.post("/program/:program_id/check_list", createCheckList);
+    fastify.get("/program/:program_id/entity_id/:entity_id", getChecklistById);
+    fastify.put("/program/:program_id/entity_id/:entity_id", updateCheckList);
+    fastify.delete("/program/:program_id/entity_id/:entity_id", deleteCheckList);
+    fastify.get("/filter-checklists", filterChecklists);
 }
-export default checkListRoutes;
+export default checkListRoute;

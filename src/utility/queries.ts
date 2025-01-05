@@ -3,14 +3,14 @@ import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
-    endDate: number | undefined) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    let jobTemplateIdCondition = jobTemplateIdCount > 0
-        ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
-        : '';
-    return `
+  endDate: number | undefined) => {
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  let jobTemplateIdCondition = jobTemplateIdCount > 0
+    ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
+    : '';
+  return `
         SELECT
             rcc.*,
             GROUP_CONCAT(DISTINCT JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies,
@@ -90,14 +90,14 @@ LIMIT 0, 1000;
 
 `;
 export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
-    endDate: number | undefined) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    let jobTemplateIdCondition = jobTemplateIdCount > 0
-        ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
-        : '';
-    return `
+  endDate: number | undefined) => {
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  let jobTemplateIdCondition = jobTemplateIdCount > 0
+    ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
+    : '';
+  return `
         SELECT COUNT(DISTINCT rcc.id) AS total
         FROM rate_type_configurations rcc
         LEFT JOIN
@@ -462,9 +462,9 @@ WITH hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.is_enabled,
     h.modified_on,
-    h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.unit_of_measure,    
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
   LEFT JOIN hierarchies ph
@@ -483,10 +483,8 @@ ORDER BY
     WHEN parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Sort parent hierarchies first
-  created_on ASC, -- Sort by created_on in ascending order
   id;
 `;
-
 
 // export const vendorDataQuery = `
 // SELECT
@@ -848,14 +846,14 @@ export const getShiftTypesByHierarchiesQuery = `
 `;
 
 export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    let jobTemplateIdCondition = jobTemplateIdCount > 0
-        ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
-        : '';
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  let jobTemplateIdCondition = jobTemplateIdCount > 0
+    ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
+    : '';
 
-    return `
+  return `
         SELECT DISTINCT
             REPLACE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(rcc.rate_configuration, '$[*].rate_type_name')), '[', ''), ']', '') AS rate_type_name
         FROM
@@ -879,13 +877,13 @@ export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount
 };
 
 export const shiftTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    let jobTemplateIdCondition = jobTemplateIdCount > 0
-        ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
-        : '';
-    return `
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND hj.hierarchy_id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  let jobTemplateIdCondition = jobTemplateIdCount > 0
+    ? `AND jt.job_template_id IN (${Array.from({ length: jobTemplateIdCount }, (_, i) => `:job_template_id_${i + 1}`)})`
+    : '';
+  return `
         SELECT DISTINCT
             JSON_UNQUOTE(JSON_EXTRACT(rcc.rate_configuration, '$[0].shift_type')) AS shift_type
         FROM
@@ -909,18 +907,18 @@ export const shiftTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCoun
 };
 
 export const minMaxRateQuery = ({
-    hierarchyIdsJSON,
-    jobTemplateId,
-    currency,
-    unit_of_measure,
-    programId,
-    is_shift_rate
+  hierarchyIdsJSON,
+  jobTemplateId,
+  currency,
+  unit_of_measure,
+  programId,
+  is_shift_rate
 }: MinMaxRateQueryParams) => {
-    const hierarchyIdsArray = typeof hierarchyIdsJSON === 'string'
-        ? JSON.parse(hierarchyIdsJSON)
-        : hierarchyIdsJSON;
-    const isShiftRateValue = is_shift_rate ? '1' : '0';
-    return `
+  const hierarchyIdsArray = typeof hierarchyIdsJSON === 'string'
+    ? JSON.parse(hierarchyIdsJSON)
+    : hierarchyIdsJSON;
+  const isShiftRateValue = is_shift_rate ? '1' : '0';
+  return `
     SELECT
         r.unit_of_measure,
         r.currency,
@@ -1008,10 +1006,10 @@ LIMIT 1;
 `;
 
 export const getChildWorkflowsQuery = (hierarchyIdCount: number) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    return `
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  return `
     SELECT wf.id AS workflow_id,
            wf.name AS workflow_name,
            wf.created_on,
@@ -1043,10 +1041,10 @@ export const getChildWorkflowsQuery = (hierarchyIdCount: number) => {
 };
 
 export const getparentWorkflowsQuery = (hierarchyIdCount: number) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    return `
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  return `
     SELECT wf.id AS workflow_id,
            wf.name AS workflow_name,
            wf.created_on,
@@ -1078,10 +1076,10 @@ export const getparentWorkflowsQuery = (hierarchyIdCount: number) => {
 };
 
 export const countChildWorkflowsQuery = (hierarchyIdCount: number) => {
-    let hierarchyIdCondition = hierarchyIdCount > 0
-        ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
-        : '';
-    return `
+  let hierarchyIdCondition = hierarchyIdCount > 0
+    ? `AND h.id IN (${Array.from({ length: hierarchyIdCount }, (_, i) => `:hierarchy_id_${i + 1}`)})`
+    : '';
+  return `
     SELECT COUNT(DISTINCT wf.id) AS total_workflows
     FROM workflow_config wf
     LEFT JOIN module m ON wf.module = m.id
@@ -1099,38 +1097,38 @@ export const countChildWorkflowsQuery = (hierarchyIdCount: number) => {
 };
 
 export const programVendorAdvancedFilter = (
-    hasQueryName: boolean,
-    hasCountry: boolean,
-    hierarchyIdsArray: string[],
-    laborCategoryIdsArray: string[],
-    workLocationIdsArray: string[],
-    jobtypeIdsArray: string[]
+  hasQueryName: boolean,
+  hasCountry: boolean,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  workLocationIdsArray: string[],
+  jobtypeIdsArray: string[]
 ) => {
-    const hierarchyIdsClause = hierarchyIdsArray.length
-        ? `AND (${hierarchyIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
-        : '';
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `AND (${hierarchyIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const laborCategoryIdsClause = laborCategoryIdsArray.length
-        ? `AND (${laborCategoryIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
-        : '';
+  const laborCategoryIdsClause = laborCategoryIdsArray.length
+    ? `AND (${laborCategoryIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const workLocationIdsClause = workLocationIdsArray.length
-        ? `AND (${workLocationIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
-        : '';
+  const workLocationIdsClause = workLocationIdsArray.length
+    ? `AND (${workLocationIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const jobTypeIdsClause = jobtypeIdsArray.length
-        ? `AND (${jobtypeIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.job_type, JSON_QUOTE(:job_type${index}), '$')`).join(' OR ')})`
-        : '';
+  const jobTypeIdsClause = jobtypeIdsArray.length
+    ? `AND (${jobtypeIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.job_type, JSON_QUOTE(:job_type${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const countryClause = hasCountry
-        ? `AND JSON_UNQUOTE(JSON_EXTRACT(program_vendors.addresses, '$[0].country')) = :country_id`
-        : '';
+  const countryClause = hasCountry
+    ? `AND JSON_UNQUOTE(JSON_EXTRACT(program_vendors.addresses, '$[0].country')) = :country_id`
+    : '';
 
-    return `
+  return `
         SELECT
             program_vendors.*,
             JSON_ARRAYAGG(
@@ -1160,26 +1158,26 @@ export const programVendorAdvancedFilter = (
 };
 
 export const vendorFilterQueryBuilder = (
-    hierarchyIdsArray: string[],
-    laborCategoryIdsArray: string[],
-    workLocationIdsArray: string[]
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  workLocationIdsArray: string[]
 ) => {
-    const hierarchyIdsClause = hierarchyIdsArray.length
-        ? `AND (${hierarchyIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
-        : '';
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `AND (${hierarchyIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const laborCategoryIdsClause = laborCategoryIdsArray.length
-        ? `AND (${laborCategoryIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
-        : '';
+  const laborCategoryIdsClause = laborCategoryIdsArray.length
+    ? `AND (${laborCategoryIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+    : '';
 
-    const workLocationIdsClause = workLocationIdsArray.length
-        ? `AND (${workLocationIdsArray.map((_, index) =>
-            `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
-        : '';
+  const workLocationIdsClause = workLocationIdsArray.length
+    ? `AND (${workLocationIdsArray.map((_, index) =>
+      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+    : '';
 
-    return `
+  return `
         SELECT
             program_vendors.*
         FROM
@@ -1246,7 +1244,7 @@ export const getWorkLocationTimeZoneByUserId = `
       `;
 
 export const getMasterDataForHeirarchiesQuery = () => {
-    return `
+  return `
         SELECT
             h.id AS hierarchy_id,
             h.name AS hierarchy_name,
@@ -1373,78 +1371,73 @@ export const configAdvancedFilter = (
   hasStatus: boolean,
   hasModifiedOn: boolean,
   hasIsEnabled: boolean,
-  hierarchyIdsArray: string[],
-  modifiedOnArray: string[] | undefined
+  hierarchyIdsArray: string[]
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `AND ec.id IN (
-          SELECT expense_config_id
-          FROM expense_type_hierarchies 
-          WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
-        )`
-    : '';
-  
-  const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
+    ? `AND ${hierarchyIdsArray
+      .map(
+        (_, index) =>
+          `JSON_CONTAINS(eth.hierarchy, JSON_QUOTE(:hierarchy_ids${index}), '$')`
+      )
+      .join(' AND ')}`
     : '';
 
   return `
-    SELECT
-      ec.id AS expense_config_id,
-      ec.config_name,
-      ec.program_id,
-      ec.is_enabled,
-      ec.modified_on,
-      ec.status,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
+      SELECT
+        ec.id AS expense_config_id,
+        ec.config_name,
+        ec.program_id,
+        ec.is_enabled,
+        ec.modified_on,
+        ec.status,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', h.id,
+              'name', h.name
+            )
           )
-        )
-        FROM expense_type_hierarchies 
-        LEFT JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
-        WHERE expense_type_hierarchies.expense_config_id = ec.id
-      ) AS hierarchy,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'expense_type_name', et.name,
-          'expense_type_category', et.category,
-          'apply_msp_fee', et.apply_msp_fee,
-          'apply_tax', et.appply_tax,
-          'allow_unit_based', et.allow_unit_based,
-          'expense_type_id', et.id
-        )
-      ) AS expense_item_type_config
-    FROM
-      expense_configuration ec
-    LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-    LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-    WHERE
-      ec.is_deleted = false
-      AND ec.program_id = :program_id
-      ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
-      ${hasStatus ? 'AND ec.status = :status' : ''}
-      ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
-      ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
-      ${hierarchyIdsClause}
-    GROUP BY
-      ec.id, ec.config_name, ec.program_id, ec.is_enabled
-    ORDER BY
-      ec.modified_on DESC
-    LIMIT :limit
-    OFFSET :offset;
-  `;
+          FROM expense_type_hierarchies eth
+          LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+          WHERE eth.expense_config_id = ec.id
+        ) AS hierarchy,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'expense_type_name', et.name,
+            'expense_type_category', et.category,
+            'apply_msp_fee', et.apply_msp_fee,
+            'apply_tax', et.appply_tax,
+            'allow_unit_based', et.allow_unit_based,
+            'expense_type_id', et.id
+          )
+        ) AS expense_item_type_config
+      FROM
+        expense_configuration ec
+      LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
+      LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
+      WHERE
+        ec.is_deleted = false
+        AND ec.program_id = :program_id
+        ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
+        ${hasStatus ? 'AND ec.status = :status' : ''}
+        ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
+        ${hasModifiedOn ? 'AND ec.modified_on = :modified_on' : ''}
+        ${hierarchyIdsClause}
+      GROUP BY
+        ec.id, ec.config_name, ec.program_id, ec.is_enabled
+      ORDER BY
+        ec.modified_on DESC
+      LIMIT :limit
+      OFFSET :offset;
+    `;
 };
 
-
 export const getAllExpenseTypeByHierarchies = (
-    hierarchyCondition: string,
-    isEnabled: boolean | null
+  hierarchyCondition: string,
+  isEnabled: boolean | null
 ): string => {
-    const isEnabledCondition = isEnabled !== null ? `AND ec.is_enabled = ${isEnabled}` : "";
-    return `
+  const isEnabledCondition = isEnabled !== null ? `AND ec.is_enabled = ${isEnabled}` : "";
+  return `
       WITH HierarchyMatches AS (
         SELECT ec.id AS expense_config_id
         FROM expense_configuration ec
@@ -1478,25 +1471,25 @@ AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
 
 export const timesheetConfigAdvancedFilter = (
-    hasId: boolean,
-    hasQueryName: boolean,
-    hierarchyIdsArray: string[],
-    laborCategoryIdsArray: string[],
-    startDate: number | undefined,
-    endDate: number | undefined,
-    newStartDate: number | undefined,
-    newEndDate: number | undefined,
-    hasIsEnabled: boolean
+  hasId: boolean,
+  hasQueryName: boolean,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  startDate: number | undefined,
+  endDate: number | undefined,
+  newStartDate: number | undefined,
+  newEndDate: number | undefined,
+  hasIsEnabled: boolean
 ) => {
-    const hierarchyIdsClause = hierarchyIdsArray.length ?
-        `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable 
+  const hierarchyIdsClause = hierarchyIdsArray.length ?
+    `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable 
     ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})` : ''
 
-    const laborCategoryClause = laborCategoryIdsArray.length ?
-        `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS labourTable 
+  const laborCategoryClause = laborCategoryIdsArray.length ?
+    `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS labourTable 
     ON labourTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})` : ''
 
-    return `
+  return `
       SELECT
         timesheet_type_config.*,
         COUNT(timesheet_type_config.id) OVER () AS total_count
@@ -1565,94 +1558,87 @@ GROUP BY
 `;
 
 export const getAllRateTypes = (
-    hasName: boolean,
-    hasId: boolean,
-    hasIsEnabled: boolean,
-    isShiftRateValue: boolean,
-    isBaseRate: boolean,
-    hasDifferentialOn: boolean,
-    hasRateTypeCategory: boolean,
-    hasShiftType: boolean,
-    startDate?: number,
-    endDate?: number,
-    limit?: number,
-    offset?: number
+  hasName: boolean,
+  hasId: boolean,
+  hasIsEnabled: boolean,
+  isShiftRateValue: boolean,
+  isBaseRate: boolean,
+  hasDifferentialOn: boolean,
+  hasRateTypeCategory: boolean,
+  hasShiftType: boolean,
+  startDate?: number,
+  endDate?: number,
+  limit?: number,
+  offset?: number
 ) => `
-      WITH rate_type AS (
-        SELECT
-          rt.id,
-          rt.name,
-          rt.program_id,
-          rt.is_enabled,
-          rt.is_shift_rate,
-          rt.abbreviation,
-          rt.is_base_rate,
-          rt.rate,
-          rt.modified_on,
-          COUNT(*) OVER() AS total_records,
-          CASE 
-            WHEN shift_types.id IS NULL THEN NULL
-            ELSE JSON_OBJECT(
-                'id', shift_types.id,
-                'name', shift_types.shift_type_name
-            )
-          END AS shift_type,
-          CASE 
-            WHEN picklistitems.id IS NULL THEN NULL
-            ELSE JSON_OBJECT(
-              'id', picklistitems.picklist_id,
-              'label', picklistitems.label,
-              'value', picklistitems.value
-            )
-          END AS rate_type_category,
-          JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
-        FROM rate_type rt
-        LEFT JOIN shift_types 
-          ON rt.shift_type = shift_types.id
-        LEFT JOIN picklistitems 
-          ON rt.rate_type_category = picklistitems.id
-        WHERE rt.program_id = :program_id
-          AND rt.is_deleted = false
-          ${hasId ? "AND rt.id = :id" : ""}
-          ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
-          ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
-          ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
-          ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
-          ${hasDifferentialOn
-        ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
-        : ""
-    }
-          ${hasRateTypeCategory
-        ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category, '%')"
-        : ""
-    }
-          ${hasShiftType
-        ? "AND shift_types.shift_type_name LIKE CONCAT('%', :shift_type, '%')"
-        : ""
-    }
-          ${startDate !== undefined && endDate !== undefined
-        ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
-        : ""
-    }
-        GROUP BY 
-          rt.id, 
-          rt.name, 
-          rt.program_id, 
-          rt.is_enabled, 
-          rt.is_shift_rate, 
-          rt.abbreviation, 
-          rt.is_base_rate, 
-          rt.rate, 
-          rt.modified_on, 
-          picklistitems.picklist_id, 
-          picklistitems.label, 
-          picklistitems.value
-      )
-      SELECT *
-      FROM rate_type
-      ORDER BY modified_on DESC 
-      LIMIT :limit OFFSET :offset;
-    `;
+    WITH rate_type AS (
+      SELECT
+        rt.id,
+        rt.name,
+        rt.program_id,
+        rt.is_enabled,
+        rt.is_shift_rate,
+        rt.abbreviation,
+        rt.is_base_rate,
+        rt.rate,
+        rt.modified_on,
+        COUNT(*) OVER() AS total_records,
+        CASE 
+          WHEN shift_types.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+              'id', shift_types.id,
+              'name', shift_types.shift_type_name
+          )
+        END AS shift_type,
+        CASE 
+          WHEN picklistitems.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+            'id', picklistitems.id,
+            'label', picklistitems.label,
+            'value', picklistitems.value
+          )
+        END AS rate_type_category,
+        JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
+      FROM rate_type rt
+      LEFT JOIN shift_types 
+        ON rt.shift_type = shift_types.id
+      LEFT JOIN picklistitems 
+        ON rt.rate_type_category = picklistitems.id
+      WHERE rt.program_id = :program_id
+        AND rt.is_deleted = false
+        ${hasId ? "AND rt.id = :id" : ""}
+        ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
+        ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
+        ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
+        ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
+        ${hasDifferentialOn
+      ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
+      : ""}
+        ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
+        ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
+        ${startDate !== undefined && endDate !== undefined
+      ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+      : ""
+  }
+      GROUP BY 
+        rt.id, 
+        rt.name, 
+        rt.program_id, 
+        rt.is_enabled, 
+        rt.is_shift_rate, 
+        rt.abbreviation, 
+        rt.is_base_rate, 
+        rt.rate, 
+        rt.modified_on, 
+        picklistitems.picklist_id, 
+        picklistitems.label, 
+        picklistitems.value
+    )
+    SELECT *
+    FROM rate_type
+    ORDER BY modified_on DESC 
+    LIMIT :limit OFFSET :offset;
+  `;
 
 export const getExpenseType = `
    SELECT 
@@ -1688,69 +1674,81 @@ SELECT
             'name', h.name
         )
     ) AS hierarchy
-FROM expense_type_hierarchies 
+FROM expense_configuration ec
 INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-INNER JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
+INNER JOIN hierarchies h ON eth.hierarchy = h.id
 WHERE ec.program_id = :program_id
- AND ec.is_deleted=false;
+ AND ec.id=ec.id;
 `;
 
 export const getAllRateConfigurationsQuery = async (replacements: any) => {
-    let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
+  let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
 
-    if (replacements.name) {
-        whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
-    }
-    if (replacements.is_enabled !== undefined) {
-        whereConditions += ` AND rc.is_enabled = :is_enabled`;
-    }
-    if (replacements.is_shift_rate !== undefined) {
-        whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
-    }
-    if (replacements.startDate && replacements.endDate) {
-        whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
-    }
-
-    const sqlQuery = `
-      SELECT 
-        rc.id AS rate_configuration_id,
-        rc.name,
-        rc.is_enabled,
-        rc.is_shift_rate,
-        rc.created_on,
-        rc.modified_on,
-        h.hierarchies,
-        jt.job_templates,
-        rt.base_rates
-      FROM 
-        rate_configurations AS rc
-      LEFT JOIN (
-        SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
-        FROM rate_configuration_hierarchies AS rch
-        LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
-        GROUP BY rch.rate_configuration_id
-      ) AS h ON h.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
-        FROM rate_configuration_job_templates AS rcjt
-        LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
-        GROUP BY rcjt.rate_configuration_id
-      ) AS jt ON jt.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
-        FROM rate_configuration_base_rate_types AS rcbt
-        LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
-        GROUP BY rcbt.rate_configuration_id
-      ) AS rt ON rt.rate_configuration_id = rc.id
-      WHERE ${whereConditions}
-      ORDER BY rc.created_on DESC
-      LIMIT :limit OFFSET :offset;
-    `;
-
-    return await sequelize.query(sqlQuery, {
-        replacements,
-        type: QueryTypes.SELECT,
-    });
+  if (replacements.name) {
+      whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
+  }
+  if (replacements.is_enabled !== undefined) {
+      whereConditions += ` AND rc.is_enabled = :is_enabled`;
+  }
+  if (replacements.is_shift_rate !== undefined) {
+      whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
+  }
+  if (replacements.startDate && replacements.endDate) {
+      whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+  }
+  if (replacements.job_template_id) {
+      whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rcjt.rate_configuration_id
+          FROM rate_configuration_job_templates AS rcjt
+          WHERE rcjt.job_template_id = :job_template_id
+      )`;
+  }
+  if (replacements.hierarchy_id) {
+      whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rch.rate_configuration_id
+          FROM rate_configuration_hierarchies AS rch
+          WHERE rch.hierarchy_id = :hierarchy_id
+      )`;
+  }
+  const sqlQuery = `
+    SELECT 
+      rc.id AS rate_configuration_id,
+      rc.name,
+      rc.is_enabled,
+      rc.is_shift_rate,
+      rc.created_on,
+      rc.modified_on,
+      h.hierarchies,
+      jt.job_templates,
+      rt.base_rates
+    FROM 
+      rate_configurations AS rc
+    LEFT JOIN (
+      SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
+      FROM rate_configuration_hierarchies AS rch
+      LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
+      GROUP BY rch.rate_configuration_id
+    ) AS h ON h.rate_configuration_id = rc.id
+    LEFT JOIN (
+      SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
+      FROM rate_configuration_job_templates AS rcjt
+      LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
+      GROUP BY rcjt.rate_configuration_id
+    ) AS jt ON jt.rate_configuration_id = rc.id
+    LEFT JOIN (
+      SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
+      FROM rate_configuration_base_rate_types AS rcbt
+      LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
+      GROUP BY rcbt.rate_configuration_id
+    ) AS rt ON rt.rate_configuration_id = rc.id
+    WHERE ${whereConditions}
+    ORDER BY rc.created_on DESC
+    LIMIT :limit OFFSET :offset;
+  `;
+  return await sequelize.query(sqlQuery, {
+      replacements,
+      type: QueryTypes.SELECT,
+  });
 };
 
 export const sameRateConfiguration = `
@@ -1787,21 +1785,36 @@ export const rateConfigHierarchiesAndJobTemplates = `
         rate_configuration_job_templates rjt
       JOIN
         RateConfigurations rc ON rjt.rate_configuration_id = rc.rate_configuration_id
+    ),
+    RateTypesData AS (
+      SELECT DISTINCT
+        rbrt.rate_type_id,
+        rt.name AS rate_name
+      FROM
+        rate_configuration_base_rate_types rbrt
+      JOIN
+        rate_type rt ON rbrt.rate_type_id = rt.id
+      JOIN
+        RateConfigurations rc ON rbrt.rate_configuration_id = rc.rate_configuration_id
     )
     SELECT DISTINCT
       h.id AS hierarchy_id,
       h.name AS hierarchy_name,
       jt.id AS job_template_id,
-      jt.template_name AS job_template_name
+      jt.template_name AS job_template_name,
+      rtd.rate_type_id AS rate_id,
+      rtd.rate_name AS rate_name
     FROM
       hierarchies h
     LEFT JOIN
       HierarchiesData hd ON h.id = hd.hierarchy_id
     LEFT JOIN
       job_templates jt ON jt.id IN (SELECT job_template_id FROM JobTemplatesData)
+    LEFT JOIN
+      RateTypesData rtd ON rtd.rate_type_id IS NOT NULL
     WHERE
-      hd.hierarchy_id IS NOT NULL AND jt.id IS NOT NULL;
-    `;
+      hd.hierarchy_id IS NOT NULL;
+`;
 
 export const rateTypeShiftAndRate = `
     WITH RateTypeData AS (
@@ -1851,7 +1864,7 @@ export const rateTypeShiftAndRate = `
     RIGHT JOIN
       RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
   `;
-  
+
 export const getExpenseTypeAndRateType = `
 SELECT 
   timesheet_expense_rules.id,
@@ -1941,11 +1954,11 @@ export const hierarchie = `
 
 
 export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
-    const hierarchyCondition = hierarchy_ids.length > 0
+  const hierarchyCondition = hierarchy_ids.length > 0
     ? `AND eth.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
     : '';
-    
-    return `
+
+  return `
    SELECT DISTINCT
     eic.*
    FROM
@@ -1958,192 +1971,4 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
     eic.program_id =?
      ${hierarchyCondition}
     `;
-};
-
-
-
-export const deleteJobTemplateHierarchyQuery = `
-  DELETE FROM job_template_hierarchies
-  WHERE program_id = :program_id AND job_temp_id = :job_temp_id
-`;
-
-export const getJobTemplateByHierarchies = () => {
-  return `
-      SELECT
-          ji.id,
-          ji.template_name,
-          ji.job_id,
-          ji.program_id,
-          ji.created_on,
-          GROUP_CONCAT(jc.hierarchy SEPARATOR ',') AS hierarchy -- concatenate hierarchies
-      FROM job_templates AS ji
-      INNER JOIN job_template_hierarchies AS jc ON jc.job_temp_id = ji.id
-      WHERE ji.is_deleted = false
-        AND ji.program_id = :program_id
-      GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on
-      ORDER BY ji.created_on DESC;
-    `;
-};
-
-export const getMostUsedJobTemplatesByProgram = (
-  includeJobIdFilter: boolean,
-  hierarchyIdsArray: string[],
-  job_type?: string,
-  limit?: number,
-  offset?: number,
-) => {
-  const hierarchyCondition = includeJobIdFilter && hierarchyIdsArray.length > 0
-    ? `AND job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`
-    : '';
-  const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
-  const paginationCondition = limit !== undefined && offset !== undefined
-    ? `LIMIT ? OFFSET ?`
-    : '';
-
-  return `
-    SELECT
-      job_templates.template_name,
-      MIN(job_templates.id) AS id,
-      MIN(job_templates.program_id) AS program_id,
-      MIN(job_templates.job_type) AS job_type,
-      MIN(job_templates.description) AS description,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_category.title) AS job_category,
-      MIN(labour_category.name) AS labour_category_name,
-      MIN(hierarchies.name) AS hierarchy,
-      MAX(job_templates.job_submitted_count) AS job_submitted_count
-    FROM job_templates
-    INNER JOIN job_template_hierarchies
-      ON job_templates.id = job_template_hierarchies.job_temp_id
-	INNER JOIN hierarchies
-      ON job_template_hierarchies.hierarchy = hierarchies.id
-	left join job_category on job_templates.category=job_category.id
-    left join labour_category on job_templates.program_industry=labour_category.id
-    WHERE job_templates.program_id = ?
-    ${hierarchyCondition}
-    ${jobTypeCondition}
-    GROUP BY
-      job_templates.template_name
-    ORDER BY
-      job_submitted_count DESC
-    ${paginationCondition};
-  `;
-};
-
-export const getJobTempletByHierarchies = (
-  includeJobIdFilter: boolean,
-  hierarchyIdsArray: string[],
-  job_type?: string
-) => {
-  let hierarchyCondition = '';
-
-  if (includeJobIdFilter && hierarchyIdsArray.length > 0) {
-    hierarchyCondition = `AND job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`;
-  }
-  const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
-  return `
-    SELECT
-      job_templates.template_name,
-      MIN(job_templates.id) AS id,
-      MIN(job_templates.program_id) AS program_id,
-      MIN(job_templates.job_type) AS job_type,
-      MIN(job_templates.description) AS description,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_category.title) AS job_category,
-      MIN(labour_category.name) AS labour_category_name,
-      MIN(hierarchies.name) AS hierarchy,
-      MIN(job_templates.created_on) AS created_on
-    FROM job_templates
-   INNER JOIN job_template_hierarchies
-      ON job_templates.id = job_template_hierarchies.job_temp_id
-	INNER JOIN hierarchies
-      ON job_template_hierarchies.hierarchy = hierarchies.id
-	left join job_category on job_templates.category=job_category.id
-    left join labour_category on job_templates.program_industry=labour_category.id
-    WHERE job_templates.program_id = ?
-    ${hierarchyCondition}
-    ${jobTypeCondition}
-    GROUP BY
-      job_templates.template_name
-    ORDER BY
-      created_on DESC;
-  `;
-};
-
-
-export const getAllJobTemplateByHierarchy = (
-  includeJobIdFilter: boolean,
-  hierarchyIdsArray: string[],
-  includeLaborCategoryIdFilter: boolean,
-  laborCategoryIdsArray: string[],
-  includeQualificationIdFilter: boolean,
-  qualificationIdsArray: string[],
-  limit?: number,
-  offset?: number,
-  job_type?: string,
-  name?:string
-) => {
-  const hierarchyCondition = includeJobIdFilter
-    ? `AND job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`
-    : '';
-
-  const laborCategoryCondition = includeLaborCategoryIdFilter
-    ? `AND job_templates.program_industry IN (${laborCategoryIdsArray.map(() => '?').join(',')})`
-    : '';
-
-  const qualificationCondition = includeQualificationIdFilter
-    ? `AND qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`
-    : '';
-
-  const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
-  const jobTemplateCondition = name ? `AND job_templates.template_name LIKE ?` : '';
-
-
-  const paginationCondition = limit && offset
-    ? `LIMIT ? OFFSET ?`
-    : '';
-
-    return `
-    SELECT
-      job_templates.template_name,
-      MIN(job_templates.id) AS id,
-      MIN(job_templates.program_id) AS program_id,
-      MIN(job_templates.job_type) AS job_type,
-      MIN(job_templates.description) AS description,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_category.title) AS job_category,
-      MIN(labour_category.name) AS labour_category_name,
-      MIN(labour_category.id) AS labour_category_id,
-      MIN(hierarchies.name) AS hierarchy,
-      MIN(qualifications.name) AS qualification_name,
-      MIN(qualifications.id) AS qualification_id
-    FROM job_templates
-    INNER JOIN job_template_hierarchies
-      ON job_templates.id = job_template_hierarchies.job_temp_id
-    INNER JOIN hierarchies
-      ON job_template_hierarchies.hierarchy = hierarchies.id
-    LEFT JOIN job_category 
-      ON job_templates.category = job_category.id
-    LEFT JOIN labour_category 
-      ON job_templates.program_industry = labour_category.id
-    LEFT JOIN job_template_qualification 
-      ON job_templates.id = job_template_qualification.job_temp_id
-    LEFT JOIN qualifications 
-      ON JSON_CONTAINS(
-          JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
-          JSON_QUOTE(qualifications.id)
-      )
-    WHERE job_templates.program_id = ?
-    ${hierarchyCondition}
-    ${laborCategoryCondition}
-    ${qualificationCondition}
-    ${jobTypeCondition}
-     ${jobTemplateCondition}
-    GROUP BY job_templates.template_name
-    ORDER BY job_templates.template_name
-    ${paginationCondition};
-  `;
-  
 };
