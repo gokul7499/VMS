@@ -6,7 +6,7 @@ export interface JobTemplateInterface {
   ref_title?: string | null;
   template_code: string;
   level?: string | null;
-  labour_category: string[];
+  program_industry: string[];
   description: string;
   is_submission_exceed_max_bill_rate?: boolean | null;
   allow_express_offer?: boolean | null;
