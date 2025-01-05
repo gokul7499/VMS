@@ -330,7 +330,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -349,6 +349,8 @@ export async function getAllRateConfigurations(
         const replacements: any = {
             program_id,
             name: query.name ?? null,
+            job_template_id: query.job_template_id ?? null,
+            hierarchy_id: query.hierarchy_id ?? null,
             is_enabled: isEnabled,
             is_shift_rate: isShiftRate,
             startDate,

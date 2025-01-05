@@ -1570,81 +1570,74 @@ export const getAllRateTypes = (
   limit?: number,
   offset?: number
 ) => `
-      WITH rate_type AS (
-        SELECT
-          rt.id,
-          rt.name,
-          rt.program_id,
-          rt.is_enabled,
-          rt.is_shift_rate,
-          rt.abbreviation,
-          rt.is_base_rate,
-          rt.rate,
-          rt.modified_on,
-          COUNT(*) OVER() AS total_records,
-          CASE 
-            WHEN shift_types.id IS NULL THEN NULL
-            ELSE JSON_OBJECT(
-                'id', shift_types.id,
-                'name', shift_types.shift_type_name
-            )
-          END AS shift_type,
-          CASE 
-            WHEN picklistitems.id IS NULL THEN NULL
-            ELSE JSON_OBJECT(
-              'id', picklistitems.picklist_id,
-              'label', picklistitems.label,
-              'value', picklistitems.value
-            )
-          END AS rate_type_category,
-          JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
-        FROM rate_type rt
-        LEFT JOIN shift_types 
-          ON rt.shift_type = shift_types.id
-        LEFT JOIN picklistitems 
-          ON rt.rate_type_category = picklistitems.id
-        WHERE rt.program_id = :program_id
-          AND rt.is_deleted = false
-          ${hasId ? "AND rt.id = :id" : ""}
-          ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
-          ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
-          ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
-          ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
-          ${hasDifferentialOn
-    ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
-    : ""
+    WITH rate_type AS (
+      SELECT
+        rt.id,
+        rt.name,
+        rt.program_id,
+        rt.is_enabled,
+        rt.is_shift_rate,
+        rt.abbreviation,
+        rt.is_base_rate,
+        rt.rate,
+        rt.modified_on,
+        COUNT(*) OVER() AS total_records,
+        CASE 
+          WHEN shift_types.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+              'id', shift_types.id,
+              'name', shift_types.shift_type_name
+          )
+        END AS shift_type,
+        CASE 
+          WHEN picklistitems.id IS NULL THEN NULL
+          ELSE JSON_OBJECT(
+            'id', picklistitems.id,
+            'label', picklistitems.label,
+            'value', picklistitems.value
+          )
+        END AS rate_type_category,
+        JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
+      FROM rate_type rt
+      LEFT JOIN shift_types 
+        ON rt.shift_type = shift_types.id
+      LEFT JOIN picklistitems 
+        ON rt.rate_type_category = picklistitems.id
+      WHERE rt.program_id = :program_id
+        AND rt.is_deleted = false
+        ${hasId ? "AND rt.id = :id" : ""}
+        ${hasName ? "AND rt.name LIKE CONCAT('%', :name, '%')" : ""}
+        ${hasIsEnabled ? "AND rt.is_enabled = :is_enabled" : ""}
+        ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
+        ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
+        ${hasDifferentialOn
+      ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
+      : ""}
+        ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
+        ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
+        ${startDate !== undefined && endDate !== undefined
+      ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+      : ""
   }
-          ${hasRateTypeCategory
-    ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category, '%')"
-    : ""
-  }
-          ${hasShiftType
-    ? "AND shift_types.shift_type_name LIKE CONCAT('%', :shift_type, '%')"
-    : ""
-  }
-          ${startDate !== undefined && endDate !== undefined
-    ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
-    : ""
-  }
-        GROUP BY 
-          rt.id, 
-          rt.name, 
-          rt.program_id, 
-          rt.is_enabled, 
-          rt.is_shift_rate, 
-          rt.abbreviation, 
-          rt.is_base_rate, 
-          rt.rate, 
-          rt.modified_on, 
-          picklistitems.picklist_id, 
-          picklistitems.label, 
-          picklistitems.value
-      )
-      SELECT *
-      FROM rate_type
-      ORDER BY modified_on DESC 
-      LIMIT :limit OFFSET :offset;
-    `;
+      GROUP BY 
+        rt.id, 
+        rt.name, 
+        rt.program_id, 
+        rt.is_enabled, 
+        rt.is_shift_rate, 
+        rt.abbreviation, 
+        rt.is_base_rate, 
+        rt.rate, 
+        rt.modified_on, 
+        picklistitems.picklist_id, 
+        picklistitems.label, 
+        picklistitems.value
+    )
+    SELECT *
+    FROM rate_type
+    ORDER BY modified_on DESC 
+    LIMIT :limit OFFSET :offset;
+  `;
 
 export const getExpenseType = `
    SELECT 
@@ -1691,57 +1684,69 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
   let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
 
   if (replacements.name) {
-    whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
+      whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
   }
   if (replacements.is_enabled !== undefined) {
-    whereConditions += ` AND rc.is_enabled = :is_enabled`;
+      whereConditions += ` AND rc.is_enabled = :is_enabled`;
   }
   if (replacements.is_shift_rate !== undefined) {
-    whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
+      whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+      whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
   }
-
+  if (replacements.job_template_id) {
+      whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rcjt.rate_configuration_id
+          FROM rate_configuration_job_templates AS rcjt
+          WHERE rcjt.job_template_id = :job_template_id
+      )`;
+  }
+  if (replacements.hierarchy_id) {
+      whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rch.rate_configuration_id
+          FROM rate_configuration_hierarchies AS rch
+          WHERE rch.hierarchy_id = :hierarchy_id
+      )`;
+  }
   const sqlQuery = `
-      SELECT 
-        rc.id AS rate_configuration_id,
-        rc.name,
-        rc.is_enabled,
-        rc.is_shift_rate,
-        rc.created_on,
-        rc.modified_on,
-        h.hierarchies,
-        jt.job_templates,
-        rt.base_rates
-      FROM 
-        rate_configurations AS rc
-      LEFT JOIN (
-        SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
-        FROM rate_configuration_hierarchies AS rch
-        LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
-        GROUP BY rch.rate_configuration_id
-      ) AS h ON h.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
-        FROM rate_configuration_job_templates AS rcjt
-        LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
-        GROUP BY rcjt.rate_configuration_id
-      ) AS jt ON jt.rate_configuration_id = rc.id
-      LEFT JOIN (
-        SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
-        FROM rate_configuration_base_rate_types AS rcbt
-        LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
-        GROUP BY rcbt.rate_configuration_id
-      ) AS rt ON rt.rate_configuration_id = rc.id
-      WHERE ${whereConditions}
-      ORDER BY rc.created_on DESC
-      LIMIT :limit OFFSET :offset;
-    `;
-
+    SELECT 
+      rc.id AS rate_configuration_id,
+      rc.name,
+      rc.is_enabled,
+      rc.is_shift_rate,
+      rc.created_on,
+      rc.modified_on,
+      h.hierarchies,
+      jt.job_templates,
+      rt.base_rates
+    FROM 
+      rate_configurations AS rc
+    LEFT JOIN (
+      SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
+      FROM rate_configuration_hierarchies AS rch
+      LEFT JOIN hierarchies AS h ON rch.hierarchy_id = h.id
+      GROUP BY rch.rate_configuration_id
+    ) AS h ON h.rate_configuration_id = rc.id
+    LEFT JOIN (
+      SELECT rcjt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', jt.id, 'name', jt.template_name)) AS job_templates
+      FROM rate_configuration_job_templates AS rcjt
+      LEFT JOIN job_templates AS jt ON rcjt.job_template_id = jt.id
+      GROUP BY rcjt.rate_configuration_id
+    ) AS jt ON jt.rate_configuration_id = rc.id
+    LEFT JOIN (
+      SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
+      FROM rate_configuration_base_rate_types AS rcbt
+      LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
+      GROUP BY rcbt.rate_configuration_id
+    ) AS rt ON rt.rate_configuration_id = rc.id
+    WHERE ${whereConditions}
+    ORDER BY rc.created_on DESC
+    LIMIT :limit OFFSET :offset;
+  `;
   return await sequelize.query(sqlQuery, {
-    replacements,
-    type: QueryTypes.SELECT,
+      replacements,
+      type: QueryTypes.SELECT,
   });
 };
 
