@@ -6,12 +6,12 @@ let sequelize: Sequelize;
 const initializeSequelize = async () => {
   await initializeDatabase();
   sequelize = new Sequelize(
-    "qa_vms_configurator",
-    "root",
-    "priyanka123",
+    databaseConfig.config.database,
+    databaseConfig.config.user,
+    databaseConfig.config.password,
     {
-      host: "localhost",
-      port: 3306,
+      host: databaseConfig.config.host,
+      port: databaseConfig.config.port,
       dialect: 'mysql',
       logging: false
     }
