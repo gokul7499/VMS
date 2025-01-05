@@ -68,8 +68,8 @@ export const getAllJobTemplates = async (
       replacements.category = `%${category}%`;
     }
     if (labour_category) {
-      dynamicConditions.push(`labour_category.name LIKE :program_industry`);
-      replacements.program_industry = `%${labour_category}%`;
+      dynamicConditions.push(`labour_category.name LIKE :labour_category`);
+      replacements.labour_category = `%${labour_category}%`;
     }
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
@@ -749,7 +749,7 @@ export async function getAllJobTempletsByHierarchies(
     Params: { program_id: string };
     Querystring: {
       hierarchy?: string;
-      program_industry?: string;
+      labour_category?: string;
       job_type?: string;
       name?: string;
       qualification?: string;
@@ -764,7 +764,7 @@ export async function getAllJobTempletsByHierarchies(
     const { program_id } = request.params;
     const {
       hierarchy,
-      program_industry,
+      labour_category,
       job_type,
       name,
       qualification,
@@ -773,7 +773,7 @@ export async function getAllJobTempletsByHierarchies(
     } = request.query;
 
     const hierarchyIdsArray = hierarchy ? hierarchy.split(",") : [];
-    const laborCategoryIdsArray = program_industry ? program_industry.split(",") : [];
+    const laborCategoryIdsArray = labour_category ? labour_category.split(",") : [];
     const qualificationIdsArray = qualification ? qualification.split(",") : [];
 
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
@@ -916,7 +916,7 @@ export async function findJobTemplatesByLabourCategories(
     }
     const jobTemplates = await jobTemplateModel.findAll({
       where: {
-        program_industry: labour_category,
+        labour_category: labour_category,
         program_id: program_id
       },
       attributes: ["template_name", "id"]
