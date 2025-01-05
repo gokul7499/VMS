@@ -464,6 +464,7 @@ WITH hierarchy_cte AS (
     h.modified_on,
     h.program_id,
     h.is_deleted,
+    h.unit_of_measure,    
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
   LEFT JOIN hierarchies ph
