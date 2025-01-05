@@ -1,13 +1,13 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import * as dotenv from "dotenv";
-
+ 
 dotenv.config();
-
+ 
 const secretName = process.env.SECRET_NAME ?? "v4/qa/configurator";
 const region = "us-east-1";
-
+ 
 const secretsManager = new SecretsManagerClient({ region });
-
+ 
 export const getSecretsManager = async () => {
     if (process.env.NODE_ENV === 'local') {
         return {
@@ -18,11 +18,11 @@ export const getSecretsManager = async () => {
             database: process.env.DATABASE_NAME,
         };
     }
-
+ 
     try {
         const command = new GetSecretValueCommand({ SecretId: secretName });
         const data = await secretsManager.send(command);
-
+ 
         if (data.SecretString) {
             const secret = JSON.parse(data.SecretString);
             return {
