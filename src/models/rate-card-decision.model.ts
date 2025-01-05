@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import hierarchies from "./hierarchies.model";
-import jobTemplateModel from "./jobTemplateModel";
+import jobTemplateModel from "./job-template.model";
 import rateType from "./rate-type.model";
 import Currencies from "./currencies.model";
 

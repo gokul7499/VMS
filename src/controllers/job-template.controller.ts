@@ -9,33 +9,18 @@ import {
   GetJobTemplatesQuery,
 } from "../interfaces/job-template.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import jobCategoryModel from "../models/job-category.model";
 import jobTempRateTypeModel from "../models/job-temp-rate-type.model";
 import jobTemplateQualificationModel from "../models/job-template-qualification.model";
 import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
 import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
 import jobMasterDataModel from "../models/job-master-data.model";
 import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
-import IndustriesModel from "../models/labour-category.model";
-import hierarchies from "../models/hierarchies.model";
-import { Op, QueryTypes } from "sequelize";
-import {
-  getJobTempletByHierarchies,
-  getJobTemplateByHierarchies,
-  getMostUsedJobTemplatesByProgram,
-  getAllJobTemplateByHierarchy,
-  deleteJobTemplateHierarchyQuery,
-} from "../utility/queries";
-import { sequelize } from '../config/instance';
+import { Op, Transaction } from "sequelize";
 // import { extractFileContent } from "../utility/fileUpload";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
-import Qualifications from "../models/qualificationsModel";
-import foundationalDataTypesModel from "../models/foundational-datatypes.model";
-
-interface FoundationalDataMap {
-  [key: string]: string | null;
-}
-
+import JobTempletRepository from "../hooks/job-template-query"
+import { sequelize } from "../config/instance";
+const jobTempletRepositories = new JobTempletRepository()
 export const getAllJobTemplates = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -48,7 +33,8 @@ export const getAllJobTemplates = async (
       job_id,
       is_enabled,
       template_name,
-      program_industry,
+      labour_category,
+      is_shift_rate,
       category,
       page = 1,
       limit = 10,
@@ -58,70 +44,70 @@ export const getAllJobTemplates = async (
     const limitNumber = Number(limit);
     const offset = (pageNumber - 1) * limitNumber;
 
-    const whereClause: any = { program_id, is_deleted: false };
-    if (id) whereClause.id = id;
-    if (job_id) whereClause.job_id = job_id;
+    const dynamicConditions: string[] = [];
+    const replacements: any = { program_id };
+
+    if (id) {
+      dynamicConditions.push(`job_templates.id = :id`);
+      replacements.id = id;
+    }
+    if (job_id) {
+      dynamicConditions.push(`job_templates.job_id = :job_id`);
+      replacements.job_id = job_id;
+    }
     if (is_enabled !== undefined) {
-      whereClause.is_enabled = is_enabled.toString() !== "false";
+      dynamicConditions.push(`job_templates.is_enabled = :is_enabled`);
+      replacements.is_enabled = is_enabled.toString() !== "false";
     }
-    if (template_name)
-      whereClause.template_name = { [Op.like]: `%${template_name}%` };
-    if (program_industry) whereClause.program_industry = program_industry;
-
-    const categoryWhereClause: any = {};
+    if (template_name) {
+      dynamicConditions.push(`job_templates.template_name LIKE :template_name`);
+      replacements.template_name = `%${template_name}%`;
+    }
     if (category) {
-      categoryWhereClause.title = { [Op.like]: `%${category}%` };
+      dynamicConditions.push(`job_category.title LIKE :category`);
+      replacements.category = `%${category}%`;
     }
+    if (labour_category) {
+      dynamicConditions.push(`labour_category.name LIKE :labour_category`);
+      replacements.labour_category = `%${labour_category}%`;
+    }
+    if (is_shift_rate !== undefined) {
+      dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
+      replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
+    const dynamicConditionsString =
+      dynamicConditions.length > 0
+        ? `AND ${dynamicConditions.join(" AND ")}`
+        : "";
 
-    const jobTemplates = await jobTemplateModel.findAndCountAll({
-      where: whereClause,
-      attributes: ["program_id", "id", "job_id", "is_enabled", "template_name"],
-      include: [
-        {
-          model: jobCategoryModel,
-          as: "job_category",
-          attributes: ["id", "title"],
-          where: category ? categoryWhereClause : undefined,
-        },
-        {
-          model: IndustriesModel,
-          as: "industries",
-          attributes: ["id", "name"],
-        },
-      ],
-      limit: limitNumber,
-      offset: offset,
-      order: [["created_on", "DESC"]],
-    });
-
-    const totalPages = Math.ceil(jobTemplates.count / limitNumber);
-    const currentPage = pageNumber;
-
-    const formattedJobTemplates = jobTemplates.rows.map((jobTemplate: any) => {
-      return {
-        ...jobTemplate.get(),
-        category_name: jobTemplate.job_category
-          ? jobTemplate.job_category.title
-          : null,
-      };
-    });
-
+    const jobTemplates = await jobTempletRepositories.getAllJobTemplets(
+      program_id,
+      dynamicConditionsString,
+      replacements,
+      limitNumber + 1,
+      offset
+    );
+    const hasMorePages = jobTemplates.length > limitNumber;
+    if (hasMorePages) {
+      jobTemplates.pop();
+    }
+    const totalPages = hasMorePages ? pageNumber + 1 : pageNumber;
     reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
-      job_templates: formattedJobTemplates,
+      job_templates: jobTemplates,
       pagination: {
-        total_count: jobTemplates.count,
-        total_pages: totalPages,
-        page: currentPage,
+        page: pageNumber,
         limit: limitNumber,
+        total_pages: totalPages,
+        total_count: jobTemplates.length
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       message: "An error occurred while fetching job templates.",
       trace_id: traceId,
-      error: (error as any).message,
+      error: error.message,
     });
   }
 };
@@ -134,31 +120,7 @@ export async function getJobTemplateById(
   try {
     const { program_id, id } = request.params;
 
-    const jobTemplate = await jobTemplateModel.findOne({
-      where: { program_id, id, is_deleted: false },
-      attributes: {
-        exclude: [
-          "is_deleted",
-          "created_on",
-          "created_by",
-          "modified_by",
-          "program_industry",
-          "category",
-        ],
-      },
-      include: [
-        {
-          model: jobCategoryModel,
-          as: "job_category",
-          attributes: ["id", "title"],
-        },
-        {
-          model: IndustriesModel,
-          as: "industries",
-          attributes: ["id", "name"],
-        },
-      ],
-    });
+    const [jobTemplate] = await jobTempletRepositories.getJobTempletById(program_id, id);
 
     if (!jobTemplate) {
       reply.status(200).send({
@@ -169,153 +131,63 @@ export async function getJobTemplateById(
       });
       return;
     }
-
-    const jobTemplateQualifications =
-      await jobTemplateQualificationModel.findAll({
-        where: { job_temp_id: jobTemplate.id },
-        attributes: [
-          "id",
-          "qualification_type_id",
-          "name",
-          "code",
-          "is_required",
-          "qualifications",
-        ],
+    const transformBooleanFields = (obj: any) => {
+      const booleanFields = [
+        "is_submission_exceed_max_bill_rate",
+        "allow_express_offer",
+        "is_qualification_enabled",
+        "is_description_editable",
+        "is_onboarding_checklist",
+        "is_automatic_distribution",
+        "is_tiered_distribute_schedule",
+        "is_manual_distribution_job_submit",
+        "is_automatic_distribute_submit",
+        "is_automatic_distribute_final_approval",
+        "is_expense_allowed_editable",
+        "is_expense_allowed",
+        "is_resume_mandatory",
+        "allow_user_description",
+        "is_deleted",
+        "is_enabled",
+        "is_background_check",
+        "is_tiered_distribute_submit",
+        "is_tiered_distribute_final_approval",
+        "is_manual_distribute_submit",
+        "is_manual_distribute_final_approval",
+      ];
+      booleanFields.forEach((field) => {
+        if (field in obj) {
+          obj[field] = Boolean(obj[field]);
+        }
       });
-
-    const qualificationDetails = await Promise.all(
-      jobTemplateQualifications.map(async (qual) => {
-        const qualificationsWithNames = await Promise.all(
-          qual.qualifications.map(async (q: { qualification_id: any }) => {
-            const qualificationDetail = await Qualifications.findOne({
-              where: { id: q.qualification_id },
-              attributes: ["name"],
-            });
-            return {
-              ...q,
-              name: qualificationDetail?.name ?? null,
-            };
-          })
-        );
-        return {
-          qualification_type_id: qual.qualification_type_id,
-          name: qual.name,
-          code: qual.code,
-          is_required: qual.is_required,
-          qualifications: qualificationsWithNames,
-        };
-      })
-    );
-
-    const jobTemplateDistributionSchedules =
-      await JobTemplateDistScheduleModel.findAll({
-        where: { job_temp_id: jobTemplate.id },
-        attributes: [
-          "id",
-          "dist_shedule_id",
-          "schedule_value",
-          "schedule_unit",
-          "vendors",
-        ],
-      });
-    const jobMasterData = await jobMasterDataModel.findAll({
-      where: { job_temp_id: jobTemplate.id },
-      attributes: [
-        "id",
-        "foundation_data_type_id",
-        "foundation_data_id",
-        "is_read_only",
-      ],
-    });
-
-    const jobMasterDataWithDetails = await Promise.all(
-      jobMasterData.map(async (data) => {
-        const foundationDataType = await foundationalDataTypesModel.findOne({
-          where: { id: data.foundation_data_type_id },
-          attributes: ["name"],
-        });
-
-        return {
-          id: data.id,
-          foundation_data_type_id: data.foundation_data_type_id,
-          foundation_data_type_name: foundationDataType
-            ? foundationDataType.name
-            : null,
-          foundation_data_id: data.foundation_data_id,
-          is_read_only: data.is_read_only,
-        };
-      })
-    );
-
-    const jobTemplateRateTypes = await jobTempRateTypeModel.findAll({
-      where: { job_temp_id: jobTemplate.id },
-      attributes: [
-        "id",
-        "bill_rate",
-        "pay_rate",
-        "abbreviation",
-        "billable",
-        "name",
-      ],
-    });
-
-    const jobCustomFields = await jobTemplateCustomFieldModel.findAll({
-      where: { job_temp_id: jobTemplate.id },
-      attributes: ["custom_field_id", "value"],
-    });
-
-    const jobTemplateHierarchy = await jobTemplateHierarchyModel.findAll({
-      where: { job_temp_id: jobTemplate.id },
-    });
-
-    const hierarchyIds = jobTemplateHierarchy.map(
-      (hierarchy) => hierarchy.hierarchy
-    );
-
-    let hierarchiesData: hierarchies[] = [];
-    if (hierarchyIds.length > 0) {
-      hierarchiesData = await hierarchies.findAll({
-        where: {
-          id: {
-            [Op.in]: hierarchyIds,
-          },
-        },
-        attributes: ["id", "name"],
-      });
-    }
-
-    const result = {
-      ...jobTemplate.toJSON(),
-      job_category: jobTemplate.job_category || null,
-      job_template_qualifications: qualificationDetails,
-      job_template_distribution_schedules: jobTemplateDistributionSchedules,
-      job_master_data: jobMasterDataWithDetails,
-      job_template_rate_types: jobTemplateRateTypes,
-      hierarchies: hierarchiesData,
-      job_template_custom_fields: jobCustomFields,
+      return obj;
     };
+
+    const transformedJobTemplate = transformBooleanFields(jobTemplate);
 
     reply.status(200).send({
       statusCode: 200,
-      message:"Job template fetched successfully",
-      job_template: result,
+      message: "Job template fetched successfully",
+      job_template: transformedJobTemplate,
       trace_id: traceId,
     });
-  } catch (error) {
-    console.error("Error fetching job template data:", error);
+  } catch (error: any) {
     reply.status(500).send({
       message: "An error occurred while fetching job template data.",
-      error: (error as any).message,
+      error: error.message,
       trace_id: traceId,
     });
   }
 }
+
 
 export async function createJobTemplate(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  let transaction: Transaction | null = null;
+
   try {
     const jobTemplateData = request.body as JobTemplateInterface;
     const jobMasterData = request.body as JobMasterDataInterface;
@@ -325,46 +197,72 @@ export async function createJobTemplate(
     const jobTempCustomField = request.body as jobTemplateCustomFieldModel;
 
     const { program_id } = request.params as { program_id: string };
+    transaction = await sequelize.transaction();
+    const program = await jobTempletRepositories.programQuery(program_id)
+    
+    if (!program || program.length === 0) {
+      return reply.status(400).send({
+        status_code: 400,
+        trace_id: traceId,
+        message: 'Program with this ID does not exist.',
+      });
+    }
+
     const existingTemplate = await jobTemplateModel.findOne({
       where: { template_name: jobTemplateData.template_name, program_id },
+      transaction,
     });
 
     if (existingTemplate) {
       return reply.status(400).send({
         status_code: 400,
         trace_id: traceId,
-        message: "Job template with this name already exists.",
+        message: 'Job template with this name already exists.',
       });
     }
+
     const job_id = await generateJobTemplateCode(program_id);
-    const jobTemplate = await jobTemplateModel.create({
-      ...jobTemplateData,
-      program_id,
-      job_id,
-    });
-    if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
+
+    const jobTemplate = await jobTemplateModel.create(
+      {
+        ...jobTemplateData,
+        program_id,
+        job_id,
+      },
+      { transaction }
+    );
+
+    if (Array.isArray(jobTemplateData.hierarchy)) {
       for (const hierarchyId of jobTemplateData.hierarchy) {
-        await jobTemplateHierarchyModel.create({
-          job_temp_id: jobTemplate.id,
-          hierarchy: hierarchyId,
-          program_id: jobTemplate.program_id,
-        });
+        await jobTemplateHierarchyModel.create(
+          {
+            job_temp_id: jobTemplate.id,
+            hierarchy: hierarchyId,
+            program_id: jobTemplate.program_id,
+          },
+          { transaction }
+        );
       }
     }
+
     if (Array.isArray(jobTempCustomField.custom_fields)) {
       const customFieldPromises = jobTempCustomField.custom_fields.map(
         (field: { id: string; value: string }) =>
-          jobTemplateCustomFieldModel.create({
-            custom_field_id: field.id,
-            value: field.value,
-            program_id,
-            job_temp_id: jobTemplate.id,
-          })
+          jobTemplateCustomFieldModel.create(
+            {
+              custom_field_id: field.id,
+              value: field.value,
+              program_id,
+              job_temp_id: jobTemplate.id,
+            },
+            { transaction }
+          )
       );
       await Promise.all(customFieldPromises);
     }
-    const rateTypePromises = Array.isArray(jobRateType.rates)
-      ? jobRateType.rates.map(
+
+    if (Array.isArray(jobRateType.rates)) {
+      const rateTypePromises = jobRateType.rates.map(
         (rateType: {
           rate_type_id: any;
           bill_rate: any;
@@ -373,61 +271,69 @@ export async function createJobTemplate(
           billable: any;
           name: any;
         }) =>
-          jobTempRateTypeModel.create({
-            rate_type_id: rateType.rate_type_id,
-            bill_rate: rateType.bill_rate,
-            pay_rate: rateType.pay_rate,
-            abbreviation: rateType.abbreviation,
-            billable: rateType.billable,
-            name: rateType.name,
-            program_id,
-            job_temp_id: jobTemplate.id,
-          })
-      )
-      : [];
+          jobTempRateTypeModel.create(
+            {
+              rate_type_id: rateType.rate_type_id,
+              bill_rate: rateType.bill_rate,
+              pay_rate: rateType.pay_rate,
+              abbreviation: rateType.abbreviation,
+              billable: rateType.billable,
+              name: rateType.name,
+              program_id,
+              job_temp_id: jobTemplate.id,
+            },
+            { transaction }
+          )
+      );
+      await Promise.all(rateTypePromises);
+    }
 
-    const masterDataPromises = Array.isArray(jobMasterData.foundational_data)
-      ? jobMasterData.foundational_data.map(
+    if (Array.isArray(jobMasterData.foundational_data)) {
+      const masterDataPromises = jobMasterData.foundational_data.map(
         (masterData: {
           foundation_data_type_id: any;
           foundation_data_id: any;
           is_read_only: any;
         }) =>
-          jobMasterDataModel.create({
-            foundation_data_type_id: masterData.foundation_data_type_id,
-            foundation_data_id: masterData.foundation_data_id,
-            is_read_only: masterData.is_read_only,
-            program_id,
-            job_temp_id: jobTemplate.id,
-          })
-      )
-      : [];
+          jobMasterDataModel.create(
+            {
+              foundation_data_type_id: masterData.foundation_data_type_id,
+              foundation_data_id: masterData.foundation_data_id,
+              is_read_only: masterData.is_read_only,
+              program_id,
+              job_temp_id: jobTemplate.id,
+            },
+            { transaction }
+          )
+      );
+      await Promise.all(masterDataPromises);
+    }
 
-    const distSchedulePromises = Array.isArray(
-      jobDistSchedule.distribute_schedule_data
-    )
-      ? jobDistSchedule.distribute_schedule_data.map(
+    if (Array.isArray(jobDistSchedule.distribute_schedule_data)) {
+      const distSchedulePromises = jobDistSchedule.distribute_schedule_data.map(
         (distSchedule: {
           dist_shedule_id: any;
           schedule_value: any;
           schedule_unit: any;
           vendors: any;
         }) =>
-          JobTemplateDistScheduleModel.create({
-            dist_shedule_id: distSchedule.dist_shedule_id,
-            schedule_value: distSchedule.schedule_value,
-            schedule_unit: distSchedule.schedule_unit,
-            vendors: distSchedule.vendors,
-            program_id,
-            job_temp_id: jobTemplate.id,
-          })
-      )
-      : [];
+          JobTemplateDistScheduleModel.create(
+            {
+              dist_shedule_id: distSchedule.dist_shedule_id,
+              schedule_value: distSchedule.schedule_value,
+              schedule_unit: distSchedule.schedule_unit,
+              vendors: distSchedule.vendors,
+              program_id,
+              job_temp_id: jobTemplate.id,
+            },
+            { transaction }
+          )
+      );
+      await Promise.all(distSchedulePromises);
+    }
 
-    const qualificationPromises = Array.isArray(
-      jobQualification.qualification_types
-    )
-      ? jobQualification.qualification_types.map(
+    if (Array.isArray(jobQualification.qualification_types)) {
+      const qualificationPromises = jobQualification.qualification_types.map(
         (qualification: {
           qualification_type_id: any;
           is_required: any;
@@ -435,35 +341,37 @@ export async function createJobTemplate(
           code: any;
           qualifications: any;
         }) =>
-          jobTemplateQualificationModel.create({
-            qualification_type_id: qualification.qualification_type_id,
-            is_required: qualification.is_required,
-            name: qualification.name,
-            code: qualification.code,
-            qualifications: qualification.qualifications,
-            program_id,
-            job_temp_id: jobTemplate.id,
-          })
-      )
-      : [];
+          jobTemplateQualificationModel.create(
+            {
+              qualification_type_id: qualification.qualification_type_id,
+              is_required: qualification.is_required,
+              name: qualification.name,
+              code: qualification.code,
+              qualifications: qualification.qualifications,
+              program_id,
+              job_temp_id: jobTemplate.id,
+            },
+            { transaction }
+          )
+      );
+      await Promise.all(qualificationPromises);
+    }
 
-    await Promise.all([
-      ...rateTypePromises,
-      ...masterDataPromises,
-      ...distSchedulePromises,
-      ...qualificationPromises,
-    ]);
+    await transaction.commit();
 
     reply.status(201).send({
       status_code: 201,
       trace_id: traceId,
-      message: "Job template created successfully.",
+      message: 'Job template created successfully.',
       id: jobTemplate.id,
     });
   } catch (error: any) {
-    console.log("Error : ", error, "trace_id:", traceId);
+    if (transaction) {
+      await transaction.rollback();
+    }
+    console.log('Error: ', error, 'trace_id:', traceId);
     reply.status(500).send({
-      message: "Internal Server error.",
+      message: 'Internal Server error.',
       error: error.message,
       trace_id: traceId,
     });
@@ -503,15 +411,7 @@ export async function updateJobTemplate(
     const { template_name, category, level, ...updateData } = jobTemplateData;
     await jobTemplate.update(updateData);
 
-    await sequelize.query(
-      deleteJobTemplateHierarchyQuery,
-      {
-        replacements: {
-          program_id: jobTemplate.program_id,
-          job_temp_id: jobTemplate.id,
-        },
-      }
-    );
+    await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
       for (const hierarchyId of jobTemplateData.hierarchy) {
@@ -524,7 +424,7 @@ export async function updateJobTemplate(
     }
 
     if (jobTempCustomField?.custom_fields) {
-      const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean); 
+      const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean);
       for (const custom_field of jobTempCustomField.custom_fields) {
         const { id, value } = custom_field;
         const existingRecord = await jobTemplateCustomFieldModel.findOne({
@@ -723,14 +623,7 @@ export async function getJobTemplatesByHierarchies(
         trace_id: traceId,
       });
     }
-    const query = getJobTemplateByHierarchies();
-    const data = await sequelize.query(query, {
-      replacements: {
-        program_id,
-        hierarchy_ids,
-      },
-      type: QueryTypes.SELECT,
-    });
+    const data = await jobTempletRepositories.getJobTemplateByHierarchies(program_id, hierarchy_ids);
     reply.status(200).send({
       status_code: 200,
       job_templates: data,
@@ -790,30 +683,23 @@ export async function getAllJobTemplateHierarchyById(
     const { program_id } = request.params;
     const { hierarchy_ids, job_type } = request.query;
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
-    const includeJobIdFilter = hierarchyIdsArray.length > 0;
-    const query = getJobTempletByHierarchies(
-      includeJobIdFilter,
+
+    const data = await jobTempletRepositories.getJobTempletByHierarchies(
+      program_id,
       hierarchyIdsArray,
       job_type
     );
-    const replacements = [program_id, ...hierarchyIdsArray];
-    if (job_type) {
-      replacements.push(job_type);
-    }
-    const data = await sequelize.query(query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
+
     reply.status(200).send({
       status_code: 200,
       job_templates: data,
-      trace_id:trace_id,
+      trace_id: trace_id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "An error occurred while fetching job templates.",
-      trace_id:trace_id,
+      trace_id: trace_id,
     });
   }
 }
@@ -833,39 +719,27 @@ export async function getMostUsedJobTemplates(
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { hierarchy_ids, job_type } = request.query;
+    const { hierarchy_ids, job_type, limit, offset } = request.query;
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
-    const includeJobIdFilter = hierarchyIdsArray.length > 0;
-    const query = getMostUsedJobTemplatesByProgram(
-      includeJobIdFilter,
+
+    const data = await jobTempletRepositories.getMostUsedJobTemplatesByProgram(
+      program_id,
       hierarchyIdsArray,
-      job_type
+      job_type,
+      limit,
+      offset
     );
-    const replacements = includeJobIdFilter
-      ? [program_id, ...hierarchyIdsArray]
-      : [program_id];
-    if (job_type) {
-      replacements.push(job_type);
-    }
-    const data = await sequelize.query(query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
+
     reply.status(200).send({
       status_code: 200,
       job_templates: data,
-      trace_id:trace_id,
-    });
-    reply.status(200).send({
-      status_code: 200,
-      job_templates: data,
-      trace_id:trace_id,
+      trace_id: trace_id,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: "An error occurred while fetching job templates.",
-      trace_id:trace_id,
+      trace_id: trace_id,
     });
   }
 }
@@ -875,7 +749,7 @@ export async function getAllJobTempletsByHierarchies(
     Params: { program_id: string };
     Querystring: {
       hierarchy?: string;
-      program_industry?: string;
+      labour_category?: string;
       job_type?: string;
       name?: string;
       qualification?: string;
@@ -890,7 +764,7 @@ export async function getAllJobTempletsByHierarchies(
     const { program_id } = request.params;
     const {
       hierarchy,
-      program_industry,
+      labour_category,
       job_type,
       name,
       qualification,
@@ -899,53 +773,19 @@ export async function getAllJobTempletsByHierarchies(
     } = request.query;
 
     const hierarchyIdsArray = hierarchy ? hierarchy.split(",") : [];
-    const includeJobIdFilter = hierarchyIdsArray.length > 0;
-
-    const laborCategoryIdsArray = program_industry
-      ? program_industry.split(",")
-      : [];
-    const includeLaborCategoryIdFilter = laborCategoryIdsArray.length > 0;
-
+    const laborCategoryIdsArray = labour_category ? labour_category.split(",") : [];
     const qualificationIdsArray = qualification ? qualification.split(",") : [];
-    const includeQualificationIdFilter = qualificationIdsArray.length > 0;
 
-    const query = getAllJobTemplateByHierarchy(
-      includeJobIdFilter,
+    const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
+      program_id,
       hierarchyIdsArray,
-      includeLaborCategoryIdFilter,
       laborCategoryIdsArray,
-      includeQualificationIdFilter,
       qualificationIdsArray,
       limit,
       offset,
       job_type,
       name
     );
-
-    const replacements: (string | number)[] = [program_id];
-    if (includeJobIdFilter) {
-      replacements.push(...hierarchyIdsArray);
-    }
-    if (includeLaborCategoryIdFilter) {
-      replacements.push(...laborCategoryIdsArray);
-    }
-    if (includeQualificationIdFilter) {
-      replacements.push(...qualificationIdsArray);
-    }
-    if (job_type) {
-      replacements.push(job_type);
-    }
-    if (name) {
-      replacements.push(`%${name}%`);
-    }
-    if (limit && offset) {
-      replacements.push(limit, offset);
-    }
-
-    const data = await sequelize.query(query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
 
     reply.status(200).send({
       status_code: 200,
@@ -1076,7 +916,7 @@ export async function findJobTemplatesByLabourCategories(
     }
     const jobTemplates = await jobTemplateModel.findAll({
       where: {
-        program_industry: labour_category,
+        labour_category: labour_category,
         program_id: program_id
       },
       attributes: ["template_name", "id"]
@@ -1102,6 +942,64 @@ export async function findJobTemplatesByLabourCategories(
       trace_id: traceId,
       message: "Internal Server error.",
       error: error.message
+    });
+  }
+}
+
+export async function getCommonHierarchies(
+  request: FastifyRequest<{
+    Querystring: { job_manager_id: string; job_template_id: string };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId=generateCustomUUID();
+  try {
+    const { job_manager_id, job_template_id } = request.query;
+
+    if (!job_manager_id || !job_template_id) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "Please provide both job_manager_id and job_template_id.",
+        trace_id: traceId,
+      });
+    }
+
+    const [managerData, templateData] = await Promise.all([ 
+      jobTempletRepositories.managerQuery(job_manager_id), 
+      jobTempletRepositories.templateQuery(job_template_id) 
+    ]);
+  
+    const managerHierarchyIds =
+      managerData.length > 0 ? managerData[0].associate_hierarchy_ids : [];
+    
+    const templateHierarchyIds = templateData.map((row) => row.hierarchy);
+
+    const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
+      templateHierarchyIds.includes(id)
+    );
+
+    if (commonHierarchyIds.length === 0) {
+      return reply.status(400).send({
+        status_code: 400,
+        common_hierarchies: [],
+        trace_id: traceId,
+      });
+    }
+
+    // Query hierarchy details for common hierarchy IDs
+    const hierarchyDetails =await jobTempletRepositories.hierarchyDetailsQuery(commonHierarchyIds)
+
+    reply.status(200).send({
+      status_code: 200,
+      common_hierarchies: hierarchyDetails,
+      trace_id: traceId,
+    });
+  } catch (error:any) {
+    reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "An error occurred while fetching common hierarchies.",
+      error:error.message
     });
   }
 }
