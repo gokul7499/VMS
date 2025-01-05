@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import jobTemplateModel from "./job-template.model";
 
 class RateConfigurationJobTemplates extends Model {
     job_template: any;
@@ -23,6 +24,10 @@ RateConfigurationJobTemplates.init(
         job_template_id : {
             type: DataTypes.UUID,
             allowNull: true,
+            references:{
+                model:jobTemplateModel,
+                key:'id'
+            }
         },
     },
     {
@@ -41,4 +46,5 @@ RateConfigurationJobTemplates.init(
 );
 
 sequelize.sync();
+RateConfigurationJobTemplates.belongsTo(jobTemplateModel, { foreignKey: 'job_template_id', as: 'job_template' });
 export default RateConfigurationJobTemplates;
