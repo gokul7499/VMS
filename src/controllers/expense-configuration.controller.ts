@@ -386,24 +386,29 @@ export async function expenseConfigurationAdvancedFilter(
             status?: string;
             modified_on?: string;
             is_enabled?: boolean;
-            hierarchy_ids?: string[];
+            hierarchy?: string[];
             page?: string;
             limit?: string;
         };
+        
     }>,
+    
     reply: FastifyReply
+    
 ) {
+    
     const trace_id = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { config_name, status, modified_on, is_enabled, hierarchy_ids, page, limit } = request.body;
+        const { config_name, status, modified_on, is_enabled, hierarchy, page, limit } = request.body;
+        console.log("hhh",hierarchy)
         const hasConfigName = config_name !== undefined;
         const hasStatus = status !== undefined;
         const hasModifiedOn = modified_on !== undefined;
         const hasIsEnabled = is_enabled !== undefined;
         const hasPage = page !== undefined;
         const hasLimit = limit !== undefined;
-        const hierarchyIdsArray = hierarchy_ids || [];
+        const hierarchyIdsArray = hierarchy || [];
         const pageNumber = hasPage ? parseInt(page, 10) : 1;
         const limitNumber = hasLimit ? parseInt(limit, 10) : 10;
         const offset = (pageNumber - 1) * limitNumber;
@@ -414,7 +419,7 @@ export async function expenseConfigurationAdvancedFilter(
             hasIsEnabled,
             hierarchyIdsArray,
         );
-
+       console.log("jjj",hierarchyIdsArray)
         const replacements: Record<string, any> = {
             program_id,
             config_name: config_name ? `%${config_name}%` : null,
@@ -426,8 +431,9 @@ export async function expenseConfigurationAdvancedFilter(
         };
 
         hierarchyIdsArray.forEach((id, index) => {
-            replacements[`hierarchy_ids${index}`] = id;
+            replacements[`hierarchy${index}`] = id;
         });
+        console.log("dd",replacements)
 
         const data = await sequelize.query(query, {
             replacements,
