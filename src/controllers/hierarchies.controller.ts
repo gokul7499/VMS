@@ -211,8 +211,8 @@ export async function getHierarchiesById(
 
 
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string }; 
   const hierarchie = request.body as hierarchiesData;
-  const program_id = hierarchie.program_id;
   const hierarchyName = hierarchie.name;
   const hierarchyCode = hierarchie.code;
   const traceId = generateCustomUUID();
@@ -224,26 +224,25 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   const token = authHeader.split(' ')[1];
   const user: any = await decodeToken(token);
   if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
 
   logger({
-    trace_id:traceId,
-    actor: { user_name: user?.preferred_username, user_id: user?.sub },
-    data: request.body,
-    eventname: "creating hierarchies",
-    status: "in_progress",
-    description: `Creating hierarchies for ${program_id}`,
-    level: 'info',
-    action: request.method,
-    url: request.url,
-    entity_id: program_id,
-    is_deleted: false
-  }, HierarchiesModel);
+      trace_id:traceId,
+      actor: { user_name: user?.preferred_username, user_id: user?.sub },
+      data: request.body,
+      eventname: "creating hierarchies",
+      status: "in_progress",
+      description: `Creating hierarchies for ${program_id}`,
+      level: 'info',
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false
+    }, HierarchiesModel);
 
   const transaction = await sequelize.transaction();
   try {
-
     const codeExists = await HierarchiesModel.findOne({
       where: { code: hierarchyCode, program_id, is_deleted: false },
       transaction,
@@ -256,23 +255,27 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
         message: "Hierarchy code is already in use",
       });
     }
-    const newItem = await HierarchiesModel.create({ ...hierarchie }, { transaction });
+
+    const newItem = await HierarchiesModel.create(
+      { ...hierarchie, program_id }, 
+      { transaction }
+    );
 
     await transaction.commit();
 
     logger({
-      trace_id:traceId,
-      actor: { user_name: user?.preferred_username, user_id: user?.sub },
-      data: request.body,
-      eventname: "created hierarchies",
-      status: "success",
-      description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
-      level: 'success',
-      action: request.method,
-      url: request.url,
-      entity_id: program_id,
-      is_deleted: false
-    }, HierarchiesModel);
+        trace_id:traceId,
+        actor: { user_name: user?.preferred_username, user_id: user?.sub },
+        data: request.body,
+        eventname: "created hierarchies",
+        status: "success",
+        description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
+        level: "success",
+        action: request.method,
+        url: request.url,
+        entity_id: program_id,
+        is_deleted: false,
+      },HierarchiesModel);
 
     return reply.status(201).send({
       status_code: 201,
@@ -280,27 +283,29 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       data: newItem,
       trace_id:traceId,
     });
-
   } catch (error) {
     await transaction.rollback();
+
     logger({
-      trace_id:traceId,
-      actor: { user_name: user?.preferred_username, user_id: user?.sub },
-      data: request.body,
-      eventname: "creating hierarchies",
-      status: "error",
-      description: `Error creating hierarchies for ${program_id}`,
-      level: 'error',
-      action: request.method,
-      url: request.url,
-      entity_id: program_id,
-      is_deleted: false
-    }, HierarchiesModel);
+        trace_id:traceId,
+        actor: { user_name: user?.preferred_username, user_id: user?.sub },
+        data: request.body,
+        eventname: "creating hierarchies",
+        status: "error",
+        description: `Error creating hierarchies for ${program_id}`,
+        level: "error",
+        action: request.method,
+        url: request.url,
+        entity_id: program_id,
+        is_deleted: false,
+      },
+      HierarchiesModel
+    );
 
     console.error(error);
     return reply.status(500).send({
-      message: 'Failed To Create Hierarchy',
-      error: (error as any).message
+      message: "Failed To Create Hierarchy",
+      error: (error as any).message,
     });
   }
 }
@@ -312,12 +317,14 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 // };
 
 export async function updateHierarchies(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
+  const { id, program_id } = request.params as { id: string; program_id: string };
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
 
   try {
-    const hierarchy = await HierarchiesModel.findByPk(id);
+    const hierarchy = await HierarchiesModel.findOne({
+      where: { id, program_id, is_deleted: false },
+    });
 
     if (!hierarchy) {
       return reply.status(404).send({
@@ -329,7 +336,6 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
 
     const transaction = await sequelize.transaction();
     try {
-      // Selectively update fields if parent_hierarchy_id is null
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
         await hierarchy.update(updatableData, { transaction });
@@ -337,9 +343,6 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update(hierarchiesData, { transaction });
       }
 
-      
-
-     
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,

@@ -150,11 +150,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                     as: 'rate_type',
                     attributes: ['id', 'name'],
                 },
-                {
-                    model: Currencies,
-                    as: 'currency',
-                    attributes: ['id', 'name'],
-                },
+               
             ],
         });
 
@@ -172,7 +168,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                     hierarchy: dt.hierarchy,
                     job_template: dt.job_template,
                     rate_type: dt.rate_type,
-                    currency: dt.currency,
+                    currency: dt.currency_id,
                     unit_of_measure: dt.unit_of_measure,
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
@@ -242,11 +238,6 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                     as: "rate_type",
                     attributes: ["id", "name"],
                 },
-                {
-                    model: Currencies,
-                    as: "currency",
-                    attributes: ["id", "name"],
-                },
             ],
         });
 
@@ -259,7 +250,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                 hierarchy: dt.hierarchy,
                 job_template: dt.job_template,
                 rate_type: dt.rate_type,
-                currency: dt.currency,
+                currency: dt.currency_id,
                 unit_of_measure: dt.unit_of_measure,
                 min_rate: dt.min_rate,
                 max_rate: dt.max_rate,
