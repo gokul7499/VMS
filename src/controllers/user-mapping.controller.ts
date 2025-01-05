@@ -202,7 +202,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             attributes: [
                 "id", "tenant_id", "role_id", "user_id",
                 "program_id", "is_activated", "is_deleted",
-                "created_on", "modified_on", "created_by",
+                "created_on","language_id", "modified_on", "created_by",
                 "modified_by", "ref_id"
             ],
             where: whereClause,
@@ -211,11 +211,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     model: User,
                     as: "user",
                     include: [
-                        {
-                            model: Language,
-                            as: 'language',
-                            attributes: ["id", "name"]
-                        },
+                       
                         {
                             model: TimeZone,
                             as: 'time_zone',
@@ -224,11 +220,6 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                         {
                             model: CountryModel,
                             as: 'countries',
-                            attributes: ["id", "name"]
-                        },
-                        {
-                            model: Language,
-                            as: 'language',
                             attributes: ["id", "name"]
                         },
                         {

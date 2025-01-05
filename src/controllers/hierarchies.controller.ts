@@ -8,7 +8,6 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
-import HierarchyMasterData from '../models/hierarchyMasterDataModel';
 
 interface HierarchyItem {
   id: string;
