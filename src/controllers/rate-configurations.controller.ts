@@ -8,7 +8,7 @@ import RateConfigurationBaseRateTypes from '../models/rate-configuration-base-ra
 import RateConfigurationRateTypes from '../models/rate-configuration-rate-types.model';
 import RateConfigurationRateDifferentials from '../models/rate-configuration-rate-differentials.model';
 import { sequelize } from '../config/instance';
-import jobTemplateModel from '../models/jobTemplateModel';
+import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklistItemModel';
