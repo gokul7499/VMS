@@ -69,6 +69,7 @@ import expenseTypeRoute from "./expense-type.routes";
 import rateCardsRoutes from "./rate-card.route";
 import rateConfigurationsRoutes from "./rate-configurations.route";
 import checkListRoutes from "./checklist.routes";
+import jobTemplate from "./job-template.routes";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -142,4 +143,5 @@ export default async function (app: FastifyInstance) {
   app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
   app.register(rateConfigurationsRoutes,{prefix:`${basePrefix}`})
   app.register(checkListRoutes,{prefix:`${basePrefix}`})
+  app.register(jobTemplate, { prefix: `${basePrefix}` });
 }
