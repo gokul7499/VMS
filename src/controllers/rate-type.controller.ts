@@ -237,7 +237,7 @@ export async function getAllRateType(request: FastifyRequest<{
   } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id:traceId,
+      trace_id: traceId,
       message: "Internal server error",
       error: error.message,
     });
@@ -299,8 +299,8 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
         ...(queryParams.isShiftRateValue !== undefined && { is_shift_rate: queryParams.isShiftRateValue }),
         ...(queryParams.isBaseRate !== undefined && { is_base_rate: queryParams.isBaseRate }),
         ...(queryParams.hasDifferentialOn && { differential_on: `%${queryParams.differential_on}%` }),
-        ...(queryParams.hasRateTypeCategory && { rate_type_category: `%${queryParams.rate_type_category}%` }),
-        ...(queryParams.hasShiftType && { shift_type: `%${queryParams.shift_type}%` }),
+        ...(queryParams.hasRateTypeCategory && { rate_type_category: queryParams.rate_type_category }),
+        ...(queryParams.hasShiftType && { shift_type: queryParams.shift_type }),
         ...(queryParams.startDate !== undefined && { startDate: queryParams.startDate }),
         ...(queryParams.endDate !== undefined && { endDate: queryParams.endDate }),
         limit: queryParams.pageSize,
