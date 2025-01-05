@@ -1373,7 +1373,8 @@ export const configAdvancedFilter = (
   hasStatus: boolean,
   hasModifiedOn: boolean,
   hasIsEnabled: boolean,
-  hierarchyIdsArray: string[]
+  hierarchyIdsArray: string[],
+  modifiedOnArray: string[] | undefined
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `AND ec.id IN (
@@ -1381,6 +1382,10 @@ export const configAdvancedFilter = (
           FROM expense_type_hierarchies 
           WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
         )`
+    : '';
+  
+  const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
+    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
     : '';
 
   return `
@@ -1422,7 +1427,7 @@ export const configAdvancedFilter = (
       ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
       ${hasStatus ? 'AND ec.status = :status' : ''}
       ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
-      ${hasModifiedOn ? 'AND ec.modified_on = :modified_on' : ''}
+      ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
       ${hierarchyIdsClause}
     GROUP BY
       ec.id, ec.config_name, ec.program_id, ec.is_enabled
@@ -1432,6 +1437,7 @@ export const configAdvancedFilter = (
     OFFSET :offset;
   `;
 };
+
 
 export const getAllExpenseTypeByHierarchies = (
     hierarchyCondition: string,

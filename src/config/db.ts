@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
-import { getSecretsManager } from './secrets-manager';
+// import { getSecretsManager } from './secrets-manager';
  
 dotenv.config();
  
 let config: any;
  
 export const initializeDatabase = async () => {
-  config = await getSecretsManager();
+  // config = await getSecretsManager();
 };
  
 export const databaseConfig = {
@@ -15,11 +15,11 @@ export const databaseConfig = {
       throw new Error('Database configuration has not been initialized.');
     }
     return {
-      host: config.host,
-      user: config.user,
-      password: config.password,
-      database: config.database,
-      port: config.port
+      host: "localhost",
+      user:"root",
+      password:"priyanka123",
+      database:"qa_vms_configurator",
+      port: 3306
     };
   }
 };
