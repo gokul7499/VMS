@@ -70,17 +70,64 @@ Delegation.init({
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
         allowNull: false
+    },
+    interview_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    job_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    offer_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    assignment_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: 0,
+        allowNull: false
+    },
+    submission_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    time_and_expense_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    rfx_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    bid_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    sow_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    progress_update_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
     }
-
 },
     {
         sequelize,
         tableName: 'delegation',
         timestamps: false,
-
     }
 );
-
 
 Delegation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 
