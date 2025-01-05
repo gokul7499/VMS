@@ -253,6 +253,10 @@ JobTemplateModel.init(
             defaultValue: false,
             allowNull: true
         },
+        job_id:{
+            type:DataTypes.STRING,
+            allowNull:true
+        }
     },
     {
         sequelize,
