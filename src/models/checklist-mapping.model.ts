@@ -48,7 +48,7 @@ ChecklistTaskMapping.init(
             type: DataTypes.STRING(50),
             allowNull: false,
         },
-        seq_no: {
+        sequence_number: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
