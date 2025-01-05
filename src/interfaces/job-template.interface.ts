@@ -38,7 +38,8 @@ export interface JobTemplateInterface {
   modified_on?: number | null;
   job_submitted_count?:number,
   hierarchy:string[];
-  custom_fields:string[]
+  custom_fields:string[];
+  job_id:string;
 }
 
 export interface JobMasterDataInterface {
