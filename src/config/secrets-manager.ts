@@ -2,8 +2,8 @@ import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-sec
 import * as dotenv from "dotenv";
  
 dotenv.config();
- 
-const secretName = process.env.SECRET_NAME ?? "v4/qa/configurator";
+
+const secretName = process.env.SECRET_NAME ?? "v4/dev/configurator";
 const region = "us-east-1";
  
 const secretsManager = new SecretsManagerClient({ region });
