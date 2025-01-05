@@ -88,7 +88,7 @@ Delegation.init({
     },
     assignment_module: {
         type: DataTypes.TINYINT,
-        defaultValue: 0,
+        defaultValue: false,
         allowNull: false
     },
     submission_module: {
