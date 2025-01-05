@@ -115,7 +115,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
                 });
             }
             console.log("existingShiftTypeWithSameName", existingShiftTypeWithSameName)
-            await shiftType.update(shiftTypeData);
+            await shiftType.update({...shiftTypeData,modified_on:Date.now()});
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
