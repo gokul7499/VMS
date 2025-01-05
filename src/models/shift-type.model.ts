@@ -45,10 +45,12 @@ ShiftType.init(
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
+      defaultValue:Date.now()
     },
     modified_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
+      defaultValue:Date.now()
     },
     time_duration: {
       type: DataTypes.STRING,
@@ -76,9 +78,6 @@ ShiftType.init(
     tableName: 'shift_types',
     timestamps: false,
     hooks: {
-      beforeSave: (instance) => {
-        beforeSave(instance);
-      },
     }
   }
 );
