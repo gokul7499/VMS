@@ -407,17 +407,15 @@ export async function getAllUserIDAndUserId(
     const defaultWorkLocationIds = users.flatMap(user => user.default_work_location_id ? [user.default_work_location_id] : []);
     const countryIds = users.flatMap(user => user.country_id ? [user.country_id] : []);
     const tenantIds = users.flatMap(user => user.tenant_id ? [user.tenant_id] : []);
-    const languageIds = users.flatMap(user => user.language_id ? [user.language_id] : []);
     const timeZoneIds = users.flatMap(user => user.time_zone_id ? [user.time_zone_id] : []);
 
-    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, languagesData, timeZonesData] = await Promise.all([
+    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, timeZonesData] = await Promise.all([
       hierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
       workLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: workLocationIds }, attributes: ['id', 'name'] }) : [],
       defaultHierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: defaultHierarchyIds }, attributes: ['id', 'name'] }) : [],
       defaultWorkLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: defaultWorkLocationIds }, attributes: ['id', 'name'] }) : [],
       countryIds.length > 0 ? CountryModel.findAll({ where: { id: countryIds }, attributes: ['id', 'name'] }) : [],
       tenantIds.length > 0 ? Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name'] }) : [],
-      languageIds.length > 0 ? Language.findAll({ where: { id: languageIds }, attributes: ['id', 'name'] }) : [],
       timeZoneIds.length > 0 ? TimeZone.findAll({ where: { id: timeZoneIds }, attributes: ['id', 'name'] }) : [],
     ]);
 
@@ -428,7 +426,6 @@ export async function getAllUserIDAndUserId(
       const defaultWorkLocation = defaultWorkLocationsData.find(location => location.id === user.default_work_location_id);
       const country = countriesData.find(country => country.id === user.country_id);
       const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
-      const language = languagesData.find(language => language.id === user.language_id);
       const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
       const userMasterData = masterDataDetails.find(data => data.user_id === user.id)?.master_data || [];
 
@@ -440,7 +437,6 @@ export async function getAllUserIDAndUserId(
         default_work_location_id: defaultWorkLocation ? { id: defaultWorkLocation.id, name: defaultWorkLocation.name } : null,
         country_id: country ? { id: country.id, name: country.name } : null,
         tenant_id: tenant ? { id: tenant.id, name: tenant.name } : null,
-        language_id: language ? { id: language.id, name: language.name } : null,
         time_zone_id: timeZone ? { id: timeZone.id, name: timeZone.name } : null,
         foundational_data: userMasterData,
       };

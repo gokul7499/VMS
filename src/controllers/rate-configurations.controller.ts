@@ -16,7 +16,6 @@ import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sa
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
-const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -100,6 +99,8 @@ export const createRateConfigurations = async (
                                     differential_on: billRate.differential_on,
                                     differential_type: billRate.differential_type,
                                     differential_value: billRate.differential_value,
+                                    unit_of_measure:billRate.unit_of_measure,
+                                    currency:billRate.currency,
                                     type: 'BILL_RATE',
                                 }, { transaction });
                             }
@@ -111,6 +112,8 @@ export const createRateConfigurations = async (
                                     differential_on: payRate.differential_on,
                                     differential_type: payRate.differential_type,
                                     differential_value: payRate.differential_value,
+                                    unit_of_measure:payRate.unit_of_measure,
+                                    currency:payRate.currency,
                                     type: 'PAY_RATE',
                                 }, { transaction });
                             }
@@ -251,6 +254,8 @@ export const updateRateConfigurations = async (
                                         differential_on: billRate.differential_on,
                                         differential_type: billRate.differential_type,
                                         differential_value: billRate.differential_value,
+                                        unit_of_measure:billRate.unit_of_measure,
+                                        currency:billRate.currency,
                                         type: 'BILL_RATE',
                                     },
                                     { transaction }
@@ -271,6 +276,8 @@ export const updateRateConfigurations = async (
                                         differential_on: payRate.differential_on,
                                         differential_type: payRate.differential_type,
                                         differential_value: payRate.differential_value,
+                                        unit_of_measure:payRate.unit_of_measure,
+                                        currency:payRate.currency,
                                         type: 'PAY_RATE',
                                     },
                                     { transaction }
@@ -421,7 +428,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate','is_enabled'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
         });
 
         if (!rateConfiguration) {
@@ -444,17 +451,19 @@ export async function getRateConfigurationById(
             ],
         }).then((data) => data.map((item) => item.hierarchy));
 
-        const jobTemplates = await sequelize.query<{ job_template_id: string; template_name: string }>(
-            ` SELECT jt.id AS job_template_id,jt.template_name FROM rate_configuration_job_templates rcjt
-              JOIN ${sourcing_db}.job_templates jt ON rcjt.job_template_id = jt.id WHERE  rcjt.rate_configuration_id = :id`,
-            {
-                replacements: { id },
-                type: QueryTypes.SELECT
-            }
-        ).then((data) =>
+        const jobTemplates = await RateConfigurationJobTemplates.findAll({
+            where: { rate_configuration_id: id },
+            include: [
+                {
+                    model: jobTemplateModel,
+                    as: 'job_template',
+                    attributes: ['id', 'template_name'],
+                },
+            ],
+        }).then((data) =>
             data.map((item) => ({
-                id: item.job_template_id,
-                name: item.template_name,
+                id: item.job_template?.id,
+                name: item.job_template?.template_name,
             }))
         );
 
@@ -500,12 +509,12 @@ export async function getRateConfigurationById(
 
                         const billRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'BILL_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         const payRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'PAY_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         return {
@@ -848,7 +857,7 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
             data: {
                 hierarchies: hierarchies,
                 job_templates: jobTemplates,
-                rate_type:rateType,
+                rate_type: rateType,
             },
         });
     } catch (error: any) {

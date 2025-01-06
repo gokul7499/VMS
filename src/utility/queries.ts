@@ -462,9 +462,9 @@ WITH hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.is_enabled,
     h.modified_on,
+    h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
-    h.unit_of_measure,    
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
   LEFT JOIN hierarchies ph
@@ -483,8 +483,10 @@ ORDER BY
     WHEN parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Sort parent hierarchies first
+  created_on ASC, -- Sort by created_on in ascending order
   id;
 `;
+
 
 // export const vendorDataQuery = `
 // SELECT
@@ -1371,66 +1373,71 @@ export const configAdvancedFilter = (
   hasStatus: boolean,
   hasModifiedOn: boolean,
   hasIsEnabled: boolean,
-  hierarchyIdsArray: string[]
+  hierarchyIdsArray: string[],
+  modifiedOnArray: string[] | undefined
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `AND ${hierarchyIdsArray
-      .map(
-        (_, index) =>
-          `JSON_CONTAINS(eth.hierarchy, JSON_QUOTE(:hierarchy_ids${index}), '$')`
-      )
-      .join(' AND ')}`
+    ? `AND ec.id IN (
+          SELECT expense_config_id
+          FROM expense_type_hierarchies 
+          WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
+        )`
+    : '';
+  
+  const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
+    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
     : '';
 
   return `
-      SELECT
-        ec.id AS expense_config_id,
-        ec.config_name,
-        ec.program_id,
-        ec.is_enabled,
-        ec.modified_on,
-        ec.status,
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', h.id,
-              'name', h.name
-            )
-          )
-          FROM expense_type_hierarchies eth
-          LEFT JOIN hierarchies h ON eth.hierarchy = h.id
-          WHERE eth.expense_config_id = ec.id
-        ) AS hierarchy,
-        JSON_ARRAYAGG(
+    SELECT
+      ec.id AS expense_config_id,
+      ec.config_name,
+      ec.program_id,
+      ec.is_enabled,
+      ec.modified_on,
+      ec.status,
+      (
+        SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
-            'expense_type_name', et.name,
-            'expense_type_category', et.category,
-            'apply_msp_fee', et.apply_msp_fee,
-            'apply_tax', et.appply_tax,
-            'allow_unit_based', et.allow_unit_based,
-            'expense_type_id', et.id
+            'id', h.id,
+            'name', h.name
           )
-        ) AS expense_item_type_config
-      FROM
-        expense_configuration ec
-      LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-      LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-      WHERE
-        ec.is_deleted = false
-        AND ec.program_id = :program_id
-        ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
-        ${hasStatus ? 'AND ec.status = :status' : ''}
-        ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
-        ${hasModifiedOn ? 'AND ec.modified_on = :modified_on' : ''}
-        ${hierarchyIdsClause}
-      GROUP BY
-        ec.id, ec.config_name, ec.program_id, ec.is_enabled
-      ORDER BY
-        ec.modified_on DESC
-      LIMIT :limit
-      OFFSET :offset;
-    `;
+        )
+        FROM expense_type_hierarchies 
+        LEFT JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
+        WHERE expense_type_hierarchies.expense_config_id = ec.id
+      ) AS hierarchy,
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'expense_type_name', et.name,
+          'expense_type_category', et.category,
+          'apply_msp_fee', et.apply_msp_fee,
+          'apply_tax', et.appply_tax,
+          'allow_unit_based', et.allow_unit_based,
+          'expense_type_id', et.id
+        )
+      ) AS expense_item_type_config
+    FROM
+      expense_configuration ec
+    LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
+    LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
+    WHERE
+      ec.is_deleted = false
+      AND ec.program_id = :program_id
+      ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
+      ${hasStatus ? 'AND ec.status = :status' : ''}
+      ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
+      ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
+      ${hierarchyIdsClause}
+    GROUP BY
+      ec.id, ec.config_name, ec.program_id, ec.is_enabled
+    ORDER BY
+      ec.modified_on DESC
+    LIMIT :limit
+    OFFSET :offset;
+  `;
 };
+
 
 export const getAllExpenseTypeByHierarchies = (
   hierarchyCondition: string,
@@ -1668,17 +1675,19 @@ GROUP BY ec.id, et.id;
 `
 export const getAllExpenseTypeHierarchy = `
 SELECT 
+    ec.id AS config_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', h.id,
             'name', h.name
         )
     ) AS hierarchy
-FROM expense_configuration ec
-INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-INNER JOIN hierarchies h ON eth.hierarchy = h.id
-WHERE ec.program_id = :program_id
- AND ec.id=ec.id;
+  FROM expense_configuration ec
+  LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+  LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+  WHERE ec.program_id = :program_id
+  GROUP BY ec.id
+
 `;
 
 export const getAllRateConfigurationsQuery = async (replacements: any) => {
@@ -1972,4 +1981,3 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
      ${hierarchyCondition}
     `;
 };
-

@@ -10,19 +10,19 @@ import { decodeToken } from '../middlewares/verifyToken';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
-    const program_id = foundationalDataPayload.program_id;
+    const { program_id } = request.params as { program_id: string };
     const name = foundationalDataPayload.name;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-
+  
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
     }
-
+  
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
-
-    if (!user) {
+  
+      if (!user) {
         return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
     }
 
@@ -45,82 +45,83 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
         },
         foundationalDataTypes
     );
-
+  
     try {
-        const existingFoundationalDataTypeWithSameName = await foundationalDataTypes.findOne({
-            where: { name, program_id },
+      const existingFoundationalDataTypeWithSameName = await foundationalDataTypes.findOne({
+        where: { name, program_id },
+      });
+  
+      if (existingFoundationalDataTypeWithSameName) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Master Data Type Already Exists",
+          trace_id: traceId,
         });
-
-        if (existingFoundationalDataTypeWithSameName) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Master Data Type Already Exist.",
-                trace_id:traceId,
-            });
-        }
-
-        const foundationalData: any = await foundationalDataTypes.create({
-            ...foundationalDataPayload,
-            created_on: Date.now(),
-            modified_on: Date.now(),
-        });
-        reply.status(201).send({
-            status_code: 201,
-            message:"Data create successfully",
-            data: {
-                id: foundationalData?.id,
-                name: foundationalData?.name,
-            },
+      }
+  
+      const foundationalData: any = await foundationalDataTypes.create({
+        ...foundationalDataPayload,
+        program_id,
+        created_on: Date.now(),
+        modified_on: Date.now(),
+      });
+      reply.status(201).send({
+        status_code: 201,
+        message:"Data create successfully",
+        data: {
+          id: foundationalData?.id,
+          name: foundationalData?.name,
+        },
+        trace_id:traceId,
+      });
+  
+      logger(
+        {
             trace_id:traceId,
-        });
-
-        logger(
-            {
-                trace_id:traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "created foundational data types",
-                status: "success",
-                description: `Created foundational data types for ${program_id} successfully: ${foundationalData?.id}`,
-                level: 'success',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
             },
-            foundationalDataTypes
-        );
-    } catch (error) {
-        logger(
-            {
-                trace_id:traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "creating foundational data types",
-                status: "error",
-                description: `Error creating foundational data types for ${program_id}`,
-                level: 'error',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            foundationalDataTypes
-        );
-
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Error while creating foundation datatype',
+            data: request.body,
+            eventname: "created foundational data types",
+            status: "success",
+            description: `Created foundational data types for ${program_id} successfully: ${foundationalData?.id}`,
+            level: 'success',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false
+        },
+        foundationalDataTypes
+    );
+} catch (error) {
+    logger(
+        {
             trace_id:traceId,
-        });
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating foundational data types",
+            status: "error",
+            description: `Error creating foundational data types for ${program_id}`,
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false
+        },
+        foundationalDataTypes
+    );
+  
+      reply.status(500).send({
+        status_code: 500,
+        message: 'Error while creating foundation datatype',
+            trace_id:traceId,
+      });
     }
-};
+  };
 
 export const updateFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
