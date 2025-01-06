@@ -412,6 +412,7 @@ export async function deleteReasoncode(
         const { id } = request.params;
         const [numRowsDeleted] = await ReasonCodeActionModel.update({
             is_enabled: false,
+            is_deleted:true,
             modified_on: Date.now(),
         },
             { where: { id } }

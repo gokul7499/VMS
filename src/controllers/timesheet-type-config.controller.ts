@@ -18,14 +18,14 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { labor_categorys, hierarchies, master_data_types, program_id: _ignoredProgramId, ...data } = request.body as any;
+        const { labor_categories , hierarchies, master_data_types, program_id: _ignoredProgramId, ...data } = request.body as any;
         const newConfig = await TimesheetTypeConfig.create(
             { program_id, ...data },
             { transaction }
         );
-        if (Array.isArray(labor_categorys) && labor_categorys.length > 0) {
+        if (Array.isArray(labor_categories ) && labor_categories .length > 0) {
             await TimesheetTypeLaborCategorys.bulkCreate(
-                labor_categorys.map(laborCategory => ({
+                labor_categories .map(laborCategory => ({
                     timesheet_type_config_id: newConfig.id,
                     labor_category_id: laborCategory,
                 })),
