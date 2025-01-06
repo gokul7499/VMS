@@ -51,7 +51,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         default_language : "English",
         unit_of_measure: [
         {
-            label: "hourly",
+            label: "Hourly",
             is_default: true
         }
         ],
