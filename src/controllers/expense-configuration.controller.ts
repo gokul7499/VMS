@@ -384,9 +384,9 @@ export async function expenseConfigurationAdvancedFilter(
         Body: {
             config_name?: string;
             status?: string;
-            modified_on?: string;
+            modified_on?: string[];
             is_enabled?: boolean;
-            hierarchy_ids?: string[];
+            hierarchy?: string[];
             page?: string;
             limit?: string;
         };
@@ -396,37 +396,42 @@ export async function expenseConfigurationAdvancedFilter(
     const trace_id = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { config_name, status, modified_on, is_enabled, hierarchy_ids, page, limit } = request.body;
+        const { config_name, status, modified_on, is_enabled, hierarchy, page, limit } = request.body;
+
         const hasConfigName = config_name !== undefined;
         const hasStatus = status !== undefined;
         const hasModifiedOn = modified_on !== undefined;
         const hasIsEnabled = is_enabled !== undefined;
         const hasPage = page !== undefined;
         const hasLimit = limit !== undefined;
-        const hierarchyIdsArray = hierarchy_ids || [];
+        const hierarchyIdsArray = hierarchy || [];
+        const modifiedOnArray = modified_on || [];
         const pageNumber = hasPage ? parseInt(page, 10) : 1;
         const limitNumber = hasLimit ? parseInt(limit, 10) : 10;
         const offset = (pageNumber - 1) * limitNumber;
+
         const query = configAdvancedFilter(
             hasConfigName,
             hasStatus,
             hasModifiedOn,
             hasIsEnabled,
             hierarchyIdsArray,
+            modifiedOnArray
         );
 
         const replacements: Record<string, any> = {
             program_id,
             config_name: config_name ? `%${config_name}%` : null,
             status: hasStatus ? status : null,
-            modified_on,
+            modified_on: modifiedOnArray,
             is_enabled: hasIsEnabled ? is_enabled : null,
             limit: limitNumber,
             offset,
         };
 
-        hierarchyIdsArray.forEach((id, index) => {
-            replacements[`hierarchy_ids${index}`] = id;
+        // Add placeholders for each date in modified_on array
+        modifiedOnArray.forEach((_, index) => {
+            replacements[`modified_on${index}`] = modifiedOnArray[index];
         });
 
         const data = await sequelize.query(query, {
@@ -435,7 +440,7 @@ export async function expenseConfigurationAdvancedFilter(
         });
 
         const transformedData = data.map((item: any) => ({
-            ...item
+            ...item,
         }));
 
         if (transformedData.length > 0) {
@@ -457,6 +462,7 @@ export async function expenseConfigurationAdvancedFilter(
         return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id, error: error.message });
     }
 }
+
 
 export async function getExpenseTypesByProgramId(
     request: FastifyRequest,
