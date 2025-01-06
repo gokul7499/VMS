@@ -445,11 +445,12 @@ export async function expenseConfigurationAdvancedFilter(
             offset,
         };
 
-        // Add placeholders for each date in modified_on array
         modifiedOnArray.forEach((_, index) => {
             replacements[`modified_on${index}`] = modifiedOnArray[index];
         });
-
+        hierarchyIdsArray.forEach((_, index) => {
+            replacements[`hierarchy${index}`] = hierarchyIdsArray[index];
+        });
         const data = await sequelize.query(query, {
             replacements,
             type: QueryTypes.SELECT,
