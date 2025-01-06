@@ -8,7 +8,11 @@ import CountryModel from "../models/countries.model";
 import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
+import { getAllCounty } from "./county.controller";
+import { request } from "http";
+import { sequelize } from "../config/instance";
+import { getWorklocation } from "../utility/queries";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -21,14 +25,14 @@ export async function createWorkLocation(
   const authHeader = request.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
@@ -62,16 +66,6 @@ export async function createWorkLocation(
       },
       WorkLocationModel
     );
-
-    if (workLocation.currencies && workLocation.currencies.length > 0) {
-      for (const currency of workLocation.currencies) {
-        await WorkLocationCurrency.create({
-          work_location_id: workLocationData.id,
-          currency_id: currency.id,
-          is_default: currency.is_default,
-        });
-      }
-    }
 
     reply.status(201).send({
       status_code: 201,
@@ -134,7 +128,7 @@ export async function getAllWorkLocations(
   request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
   reply: FastifyReply
 ) {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const params = request.params as WorkLocationInterface;
     const query = request.query as WorkLocationInterface | any;
@@ -171,31 +165,19 @@ export async function getAllWorkLocations(
       limit,
       offset,
       order,
-      include: [
-        {
-          model: TimeZone,
-          as: 'time_zones',
-          attributes: ['id', 'name'],
-        },
-        {
-          model: CountryModel,
-          as: 'countries',
-          attributes: ['id', 'name'],
-        }
-      ]
+      // include: [
+      //   {
+      //     model: TimeZone,
+      //     as: 'time_zones',
+      //     attributes: ['id', 'name'],
+      //   },
+      //   {
+      //     model: CountryModel,
+      //     as: 'countries',
+      //     attributes: ['id', 'name'],
+      //   }
+      // ]
     });
-    for (const location of workLocations) {
-      const currencyIds = location.currency_id as string[] || [];
-      if (currencyIds.length > 0) {
-        const currencies = await Currencies.findAll({
-          where: { id: currencyIds },
-          attributes: ['id', 'name']
-        });
-        location.dataValues.currencies = currencies;
-      } else {
-        location.dataValues.currencies = [];
-      }
-    }
 
     const count = await WorkLocationModel.count({
       where: whereClause,
@@ -205,7 +187,7 @@ export async function getAllWorkLocations(
         status_code: 200,
         items_per_page: limit,
         total_records: count,
-        trace_id:traceId,
+        trace_id: traceId,
         message: "Worklocation not found.",
         work_locations: [],
       });
@@ -223,7 +205,7 @@ export async function getAllWorkLocations(
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
-      trace_id:traceId,
+      trace_id: traceId,
       message: "Internal Server Error",
       error,
     });
@@ -264,11 +246,6 @@ export async function getWorkLocationById(
           as: 'countries',
           attributes: ['id', 'name'],
         },
-        {
-          model: WorkLocationCurrency,
-          as: 'currencies',
-          attributes: ['currency_id', 'is_default'],
-        },
       ],
     });
 
@@ -280,32 +257,12 @@ export async function getWorkLocationById(
       });
     }
 
-    const currencyIds = workLocation.currencies.map((currency: { currency_id: any; }) => currency.currency_id);
-
-    const currencies = await Currencies.findAll({
-      where: {
-        id: currencyIds,
-      },
-      attributes: ['id', 'name'],
-    });
-
-    const responseCurrencies = workLocation.currencies.map((currency: { currency_id: any; is_default: any; }) => {
-      const foundCurrency = currencies.find(curr => curr.id === currency.currency_id);
-      return {
-        id: currency.currency_id,
-        name: foundCurrency ? foundCurrency.name : null,
-        is_default: currency.is_default,
-      };
-    });
-
     const responseWorkLocation = {
       ...workLocation.dataValues,
-      currencies: responseCurrencies,
     };
-
     return reply.status(200).send({
       status_code: 200,
-      message:" Work Location Retrieved Successfully",
+      message: " Work Location Retrieved Successfully",
       work_location: responseWorkLocation,
       trace_id: traceId,
     });
@@ -354,27 +311,11 @@ export async function updateWorkLocation(
       });
     }
 
-    await WorkLocationCurrency.destroy({
-      where: { work_location_id: id },
-    });
-
-    if (currencies && currencies.length > 0) {
-      await Promise.all(
-        currencies.map(async (currency: { id: any; is_default: any }) => {
-          await WorkLocationCurrency.create({
-            work_location_id: id,
-            currency_id: currency.id,
-            is_default: currency.is_default,
-          });
-        })
-      );
-    }
-
     return reply.status(200).send({
       status_code: 200,
       work_location_id: id,
       trace_id: traceId,
-      message: "Work Location and currencies updated successfully",
+      message: "Work Locationupdated successfully",
     });
   } catch (error) {
     console.error("Error Updating Work Location:", error);
@@ -391,7 +332,7 @@ export async function deleteWorkLocationById(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
     const [numRowsDeleted] = await WorkLocationModel.update(
@@ -407,13 +348,13 @@ export async function deleteWorkLocationById(
       reply.status(200).send({
         status_code: 200,
         work_location_id: id,
-        trace_id:traceId,
+        trace_id: traceId,
         message: "Work Location Deleted Successfully",
       });
     } else {
       reply.status(200).send({
         status_code: 200,
-        trace_id:traceId,
+        trace_id: traceId,
         message: "Work Location Not Found"
       });
     }
@@ -421,7 +362,7 @@ export async function deleteWorkLocationById(
     console.error("Error Deleting Work Location:", error);
     reply.status(500).send({
       status_code: 500,
-      trace_id:traceId,
+      trace_id: traceId,
       message: "Internal Server Error",
       error
     });
@@ -502,6 +443,51 @@ export async function getAllWorkLocationsCountry(
       trace_id: traceId,
       message: "Failed to retrieve work locations",
       error
+    });
+  }
+}
+
+type QueryResult = {
+  program_id: string;
+  countries: Array<{ id: string; name: string }> | null;
+};
+
+export async function getAllCountry(
+  request: FastifyRequest<{ Params: { program_id: string } }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params;
+
+  try {
+    const result = await sequelize.query<QueryResult>(getWorklocation,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { program_id },
+      }
+    );
+    if (!result || result.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "Work Location Not Found",
+      });
+    }
+    const countries = result[0]?.countries || [];
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: "Work Locations retrieved successfully",
+      countries,
+    });
+  } catch (error) {
+    console.error("Error Fetching Work Locations:", error);
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "Internal Server Error",
+      error,
     });
   }
 }

@@ -1573,6 +1573,7 @@ export const getAllRateTypes = (
   hasDifferentialOn: boolean,
   hasRateTypeCategory: boolean,
   hasShiftType: boolean,
+  hasRateTypeCategoryLabel: boolean,
   startDate?: number,
   endDate?: number,
   limit?: number,
@@ -1622,6 +1623,7 @@ export const getAllRateTypes = (
       ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
       : ""}
         ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
+        ${hasRateTypeCategoryLabel ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category_label, '%')" : ""} 
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
       ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
@@ -1981,3 +1983,22 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
      ${hierarchyCondition}
     `;
 };
+
+export const getWorklocation= `
+SELECT 
+    wl.program_id,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', c.id,
+            'name', c.name
+        )
+    ) AS countries
+FROM (
+    SELECT DISTINCT 
+        work_locations.program_id, 
+        work_locations.country_id 
+    FROM work_locations
+    WHERE work_locations.program_id = :program_id
+) AS wl
+LEFT JOIN countries c ON wl.country_id = c.id
+GROUP BY wl.program_id;`
