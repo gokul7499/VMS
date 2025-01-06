@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from './programs.model';
+import generateSlug from '../plugins/slugGenerate';
 
 class TimesheetTypeConfig extends Model {
   id: any;
@@ -11,6 +12,8 @@ class TimesheetTypeConfig extends Model {
   labor_category: any;
   master_data_types: never[] | undefined;
   allocations: any;
+  title!: string;
+  slug!:string
 }
 
 TimesheetTypeConfig.init(
@@ -163,8 +166,15 @@ TimesheetTypeConfig.init(
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
       },
-      beforeSave: (instance) => {
+      beforeSave:async (instance) => { 
         beforeSave(instance);
+        if (instance.title) {
+          instance.slug = generateSlug(instance.title, {
+              lowercase: true,
+              removedspecial: true,
+              replacewithhyphens: true
+          });
+      }
       },
     },
   }
