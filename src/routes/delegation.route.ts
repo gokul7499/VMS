@@ -3,7 +3,8 @@ import {
     createDelegation,
     getDelegationById,
     updateDelegationById,
-    deleteDelegationById
+    deleteDelegationById,
+    getDelegationsByCriteria
 
 } from "../controllers/delegation.controller";
 
@@ -13,4 +14,5 @@ export default async function delegationRoutes(fastify: FastifyInstance) {
     fastify.get("/program/:program_id/delegations/:id", getDelegationById);
     fastify.put("/program/:program_id/delegations/:id", updateDelegationById);
     fastify.delete("/program/:program_id/delegations/:id", deleteDelegationById);
+    fastify.get("/created_by/:created_by/program/:program_id", getDelegationsByCriteria);
 }

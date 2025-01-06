@@ -1,8 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 import { Programs } from './programs.model';
 import { sequelize } from "../config/instance";
+import User from "./user.model";
 
-class Delegation extends Model { }
+class Delegation extends Model {}
 
 Delegation.init({
     id: {
@@ -22,10 +23,18 @@ Delegation.init({
     delegated_to_user_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+            model: User,
+            key: 'id'
+        }
     },
     delegated_by_user_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+            model: User,
+            key: 'id'
+        }
     },
     delegated_to_user_mapping_id: {
         type: DataTypes.UUID,
@@ -96,7 +105,12 @@ Delegation.init({
         defaultValue: false,
         allowNull: false
     },
-    time_and_expense_module: {
+    expense_module: {
+        type: DataTypes.TINYINT,
+        defaultValue: false,
+        allowNull: false
+    },
+    timesheet_module: {
         type: DataTypes.TINYINT,
         defaultValue: false,
         allowNull: false
@@ -120,15 +134,21 @@ Delegation.init({
         type: DataTypes.TINYINT,
         defaultValue: false,
         allowNull: false
-    }
+    },
+    modules: {
+        type: DataTypes.JSON,
+        allowNull: true,
+    },
 },
-    {
-        sequelize,
-        tableName: 'delegation',
-        timestamps: false,
-    }
-);
+{
+    sequelize,
+    tableName: 'delegation',
+    timestamps: false,
+});
 
 Delegation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
+
+Delegation.belongsTo(User, { foreignKey: 'delegated_to_user_id', as: 'delegate_to_user' });
+Delegation.belongsTo(User, { foreignKey: 'delegated_by_user_id', as: 'delegate_by_user' });
 
 export default Delegation;

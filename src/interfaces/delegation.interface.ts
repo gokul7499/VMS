@@ -18,9 +18,11 @@ export interface DelegationInterface {
     offer_module: boolean;
     assignment_module: boolean;
     submission_module: boolean;
-    time_and_expense_module: boolean;
+    expense_module: boolean;
+    timesheet_module: boolean;
     rfx_module: boolean;
     bid_module: boolean;
     sow_module: boolean;
     progress_update_module: boolean;
+    modules:JSON
 }
