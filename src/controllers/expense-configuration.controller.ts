@@ -366,7 +366,16 @@ export const getAllExpenseConfigurationHierarchies = async (
             replacements: { program_id },
             type: QueryTypes.SELECT,
         });
-        const hierarchies = results[0].hierarchies_d || [];
+
+        if (results.length === 0) {
+            return reply.status(404).send({
+                status_code: 404,
+                trace_id: traceId,
+                message: 'No hierarchies found for the specified program.',
+            });
+        }
+        const hierarchies = Array.from(new Map(results[0].hierarchy.map((item: any) => [item.id, item])).values());
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -374,6 +383,7 @@ export const getAllExpenseConfigurationHierarchies = async (
             hierarchies,
         });
     } catch (error: any) {
+        console.error("Error retrieving hierarchies:", error);
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',

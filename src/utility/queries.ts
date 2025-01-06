@@ -1335,36 +1335,24 @@ export const masterDataQuery = `
 
 
 export const getAllExpenseConfigHierarchies = `
-  WITH DistinctHierarchies AS (
-    SELECT
-      ec.id AS expense_config_id,
-      h.id AS hierarchy_id,
-      h.name AS hierarchy_name
-    FROM
-      expense_configuration ec
-    LEFT JOIN
-      expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-    LEFT JOIN
-      hierarchies h ON eth.hierarchy = h.id
-    WHERE
-      ec.program_id = :program_id
-      AND ec.is_deleted = false
-    GROUP BY
-      ec.id, h.id, h.name
-  )
-  SELECT
-    expense_config_id,
-    JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'id', hierarchy_id,
-        'name', hierarchy_name
-      )
-    ) AS hierarchies_d
-  FROM
-    DistinctHierarchies
-  GROUP BY
-    expense_config_id;
+ SELECT 
+  ec.program_id,
+  JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'id', h.id,
+      'name', h.name
+    )
+  ) AS hierarchy
+FROM expense_configuration ec
+LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+WHERE ec.program_id = :program_id
+GROUP BY ec.program_id
+LIMIT 0, 1000;
 `;
+
+
+
 
 
 
