@@ -1229,6 +1229,13 @@ ORDER BY
                                     replacements: { supervisor: replaced_by },
                                 });
                             }
+                            if (supervisorResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: imporsonate_by },
+                                });
+                            }
+    
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
@@ -1250,9 +1257,18 @@ ORDER BY
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
                     }
                 }
-
+                let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain"|| recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
@@ -1281,7 +1297,12 @@ ORDER BY
                                             replacements: { user_id: replaced_by },
                                         });
                                     }
-
+                                    if (userData.length && imporsonate_by) {
+                                        imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: imporsonate_by },
+                                        });
+                                    }
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].id,
@@ -1299,6 +1320,16 @@ ORDER BY
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
+                                    imposonate_user_data = imporsonateUserResult ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+                                
                                 }
                             }
                         }
@@ -1308,7 +1339,8 @@ ORDER BY
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;;
+                    let replacedUserResult: Users[] | null = null;
+                    let imporsonateUserResult:Users[]|null=null;
                     const recipientTypes = JSON.parse(row.recipient_types);
                     for (const recipient of recipientTypes) {
                         if (recipient?.meta_data) {
@@ -1331,6 +1363,12 @@ ORDER BY
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
                                     type: QueryTypes.SELECT,
                                     replacements: { user_id: replaced_by },
+                                });
+                            }
+                            if (userResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { user_id: imporsonate_by },
                                 });
                             }
 
@@ -1358,7 +1396,15 @@ ORDER BY
                                         behaviour: level_behaviour,
                                     }
                                     : undefined;
-
+                                    imposonate_user_data = imporsonateUserResult &&imporsonateUserResult[0] ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
                                 return {
                                     id: user.id,
                                     name: `${user.first_name} ${user.last_name}`.trim(),
@@ -1377,7 +1423,6 @@ ORDER BY
                     let recipients = [];
 
                     if (Array.isArray(input_value)) {
-
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
@@ -1894,6 +1939,13 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                     replacements: { supervisor: replaced_by },
                                 });
                             }
+                            if (supervisorResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: imporsonate_by },
+                                });
+                            }
+    
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
@@ -1915,13 +1967,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
+
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
                     }
                 }
-
+                let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain"|| recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
+                        let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
+
                             if (recipients?.meta_data) {
                                 if (recipientType?.id == recipients.recipient_type_id) {
                                     const metaData = recipients.meta_data;
@@ -1931,13 +1995,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     SELECT id, first_name, last_name, email, avatar
                     FROM user
                     WHERE id = :user_id
-                     AND is_enabled = true
+                    AND is_enabled = true
                     LIMIT 1
                 `;
-                                    const userData: any = await sequelize.query(userQuery, {
+                                    const userData: any = await sequelize.query<Users>(userQuery, {
                                         type: QueryTypes.SELECT,
                                         replacements: { user_id: metaValue },
                                     });
+                                    if (userData.length && replaced_by) {
+                                        replacedUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: replaced_by },
+                                        });
+                                    }
+                                    if (userData.length && imporsonate_by) {
+                                        imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: imporsonate_by },
+                                        });
+                                    }
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].id,
@@ -1946,6 +2022,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                             avatar: userData[0].avatar,
                                         };
                                     }
+                                    replaced_user_data = replacedUserResult ? {
+                                        id: replacedUserResult[0].id,
+                                        first_name: replacedUserResult[0].first_name,
+                                        last_name: replacedUserResult[0].last_name,
+                                        avatar: replacedUserResult[0].avatar,
+                                        role_id: replacedUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+                                    imposonate_user_data = imporsonateUserResult ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+                                
                                 }
                             }
                         }
@@ -1955,7 +2050,8 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;;
+                    let replacedUserResult: Users[] | null = null;
+                    let imporsonateUserResult:Users[]|null=null;
                     const recipientTypes = JSON.parse(row.recipient_types);
                     for (const recipient of recipientTypes) {
                         if (recipient?.meta_data) {
@@ -1966,7 +2062,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 SELECT id, first_name, last_name, avatar, role_id, email
                                 FROM user
                                 WHERE id = :user_id
-                                 AND is_enabled = true
+                                AND is_enabled = true
                                 LIMIT 1
                             `;
                             const userResult = await sequelize.query<Users>(userQuery, {
@@ -1978,6 +2074,12 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
                                     type: QueryTypes.SELECT,
                                     replacements: { user_id: replaced_by },
+                                });
+                            }
+                            if (userResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { user_id: imporsonate_by },
                                 });
                             }
 
@@ -2005,7 +2107,15 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                         behaviour: level_behaviour,
                                     }
                                     : undefined;
-
+                                    imposonate_user_data = imporsonateUserResult &&imporsonateUserResult[0] ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
                                 return {
                                     id: user.id,
                                     name: `${user.first_name} ${user.last_name}`.trim(),
