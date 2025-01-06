@@ -167,7 +167,8 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now()
+                modified_on: Date.now(),
+                is_enabled:rateConfigurationsPayload.is_enabled
             },
             { transaction }
         );
