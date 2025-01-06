@@ -7,10 +7,7 @@ import { QueryTypes, Op } from 'sequelize';
 import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import expenseTypeHierarchie from "../models/expense-type-hierarchie.model";
-interface Hierarchy {
-    id: number;
-    name: string;
-}
+
 export async function getExpenseConfigurations(
     request: FastifyRequest<{ Params: { program_id: string }, Querystring: { page?: string, limit?: string } }>,
     reply: FastifyReply
@@ -19,9 +16,11 @@ export async function getExpenseConfigurations(
     try {
         const { program_id } = request.params;
         const { page = '1', limit = '10' } = request.query;
+
         const pageNum = Number(page);
         const limitNum = Number(limit);
         const offset = (pageNum - 1) * limitNum;
+
         const { rows: expenseConfig, count: totalRecords } = await ExpenseConfigurationModel.findAndCountAll({
             where: { program_id, is_deleted: false },
             attributes: [
@@ -44,20 +43,26 @@ export async function getExpenseConfigurations(
             limit: limitNum,
             order: [['created_on', 'DESC']],
         });
-        const expenseTypeHierarchy: { hierarchy: Hierarchy[] }[] = await sequelize.query(getAllExpenseTypeHierarchy, {
+
+        const expenseTypeHierarchy = await sequelize.query(getAllExpenseTypeHierarchy, {
             replacements: { program_id },
             type: QueryTypes.SELECT,
         });
-        const uniqueHierarchies = expenseTypeHierarchy[0]?.hierarchy || [];
-        const uniqueHierarchyMap = new Map<number, Hierarchy>();
-        uniqueHierarchies.forEach((item) => {
-            uniqueHierarchyMap.set(item.id, item);
+        const hierarchyMap: { [key: string]: { id: string, name: string }[] } = {};
+        expenseTypeHierarchy.forEach((item: any) => {
+            let hierarchyArray;
+            try {
+                hierarchyArray = typeof item.hierarchy === 'string' ? JSON.parse(item.hierarchy) : item.hierarchy;
+            } catch (error) {
+                console.error('Failed to parse hierarchy JSON:', error, item.hierarchy);
+                hierarchyArray = [];
+            }
+            hierarchyMap[item.config_id] = hierarchyArray;
         });
-        const uniqueHierarchy = Array.from(uniqueHierarchyMap.values());
         const populatedExpenseConfig = expenseConfig.map(config => ({
             ...config.toJSON(),
             status: config.status === '1',
-            hierarchy: uniqueHierarchy,
+            hierarchy: hierarchyMap[config.id] || [],
         }));
         reply.status(200).send({
             status_code: 200,
@@ -79,7 +84,6 @@ export async function getExpenseConfigurations(
         });
     }
 }
-
 export async function getExpenseConfigurationById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
