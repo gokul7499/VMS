@@ -123,7 +123,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
 
         const laborCategories = await IndustriesModel.findAll({
             where: { id: laborCategoryIdsFromRateCards },
-            attributes: ['id', 'name'],
+            attributes: ['id', 'name','is_enabled'],
         });
 
         const laborCategoryMap = laborCategories.reduce((map, category) => {
@@ -216,7 +216,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
         if (rateCard.labor_category_id) {
             laborCategory = await IndustriesModel.findOne({
                 where: { id: rateCard.labor_category_id },
-                attributes: ["id", "name"],
+                attributes: ["id", "name","is_enabled"],
             });
         }
 
