@@ -198,9 +198,7 @@ export async function updateExpenseConfiguration(
 
     const { id, program_id } = request.params;
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
-
     const transaction = await sequelize.transaction();
-
     try {
         const existingExpenseConfig = await ExpenseConfigurationModel.findOne({ where: { program_id, id }, transaction });
         if (!existingExpenseConfig) {
@@ -212,6 +210,9 @@ export async function updateExpenseConfiguration(
             });
         }
 
+        await ExpenseConfigurationModel.update(expenseConfigData, {
+            where: { id, program_id }
+        });
         if (Array.isArray(expenseConfigData.expense_item_type_config) && expenseConfigData.expense_item_type_config.length > 0) {
             const updatedExpenseTypeIds = expenseConfigData.expense_item_type_config;
 
