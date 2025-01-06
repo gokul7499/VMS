@@ -45,13 +45,13 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         hierarchy_order: 1,
         is_enabled: true,        
         default_date_format: "MM/DD/YYYY",
-        default_time_format: "12 Hours",
+        default_time_format: "24 Hours",
         default_timezone : "(UTC-05:00) Eastern Standard Time (North America)",
         default_currency: "USD",
         default_language : "English",
         unit_of_measure: [
         {
-            label: "daily",
+            label: "Hourly",
             is_default: true
         }
         ],

@@ -199,7 +199,7 @@ export async function createJobTemplate(
     const { program_id } = request.params as { program_id: string };
     transaction = await sequelize.transaction();
     const program = await jobTempletRepositories.programQuery(program_id)
-    
+
     if (!program || program.length === 0) {
       return reply.status(400).send({
         status_code: 400,
@@ -409,8 +409,9 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
+    updateData.modified_on = Date.now();
     await jobTemplate.update(updateData);
-
+    
     await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
@@ -952,7 +953,7 @@ export async function getCommonHierarchies(
   }>,
   reply: FastifyReply
 ) {
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const { job_manager_id, job_template_id } = request.query;
 
@@ -964,14 +965,14 @@ export async function getCommonHierarchies(
       });
     }
 
-    const [managerData, templateData] = await Promise.all([ 
-      jobTempletRepositories.managerQuery(job_manager_id), 
-      jobTempletRepositories.templateQuery(job_template_id) 
+    const [managerData, templateData] = await Promise.all([
+      jobTempletRepositories.managerQuery(job_manager_id),
+      jobTempletRepositories.templateQuery(job_template_id)
     ]);
-  
+
     const managerHierarchyIds =
       managerData.length > 0 ? managerData[0].associate_hierarchy_ids : [];
-    
+
     const templateHierarchyIds = templateData.map((row) => row.hierarchy);
 
     const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
@@ -987,19 +988,19 @@ export async function getCommonHierarchies(
     }
 
     // Query hierarchy details for common hierarchy IDs
-    const hierarchyDetails =await jobTempletRepositories.hierarchyDetailsQuery(commonHierarchyIds)
+    const hierarchyDetails = await jobTempletRepositories.hierarchyDetailsQuery(commonHierarchyIds)
 
     reply.status(200).send({
       status_code: 200,
       common_hierarchies: hierarchyDetails,
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "An error occurred while fetching common hierarchies.",
-      error:error.message
+      error: error.message
     });
   }
 }
