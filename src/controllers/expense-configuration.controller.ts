@@ -368,10 +368,11 @@ export const getAllExpenseConfigurationHierarchies = async (
         });
 
         if (results.length === 0) {
-            return reply.status(404).send({
-                status_code: 404,
-                trace_id: traceId,
+            return reply.status(200).send({
+                status_code: 200,
                 message: 'No hierarchies found for the specified program.',
+                hierarchies:[],
+                trace_id: traceId,
             });
         }
         const hierarchies = Array.from(new Map(results[0].hierarchy.map((item: any) => [item.id, item])).values());
