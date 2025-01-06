@@ -6,8 +6,8 @@ import {
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/hierarchies/:id', getHierarchiesById);
-    fastify.post('/hierarchies', createHierarchies);
-    fastify.put('/hierarchies/:id', updateHierarchies);
+    fastify.post('/program/:program_id/hierarchies', createHierarchies);
+    fastify.put('/program/:program_id/hierarchies/:id', updateHierarchies);
     fastify.delete('/hierarchies/:id', deleteHierarchies);
     fastify.get('/program/:program_id/hierarchies/', searchHierarchies);
     fastify.post('/program/:program_id/hierarchies/advance_search', advancedSearchHierarchies);
