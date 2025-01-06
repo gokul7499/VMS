@@ -1675,17 +1675,19 @@ GROUP BY ec.id, et.id;
 `
 export const getAllExpenseTypeHierarchy = `
 SELECT 
+    ec.id AS config_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', h.id,
             'name', h.name
         )
     ) AS hierarchy
-FROM expense_configuration ec
-INNER JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-INNER JOIN hierarchies h ON eth.hierarchy = h.id
-WHERE ec.program_id = :program_id
- AND ec.id=ec.id;
+  FROM expense_configuration ec
+  LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+  LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+  WHERE ec.program_id = :program_id
+  GROUP BY ec.id
+
 `;
 
 export const getAllRateConfigurationsQuery = async (replacements: any) => {
