@@ -51,11 +51,11 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         default_language : "English",
         unit_of_measure: [
         {
-            label: "daily",
+            label: "Hourly",
             is_default: true
         }
         ],
-        rate_model: "bill_rate",
+        rate_model: "Bill Rate (No Markup)",
         is_vendor_neutral_program: false,
         is_hide_candidate_img: true,
         support_email: "noreply@simplifyvms.com",
