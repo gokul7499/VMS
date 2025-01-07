@@ -551,8 +551,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     message: "Required workflow methods not found"
                 });
             }
-        }
-        else if (module === 'submit_candidate_rehire_check') {
+        } else if (module === 'submit_candidate_rehire_check') {
             const event_slug1 = "submit_candidate_rehire_check";
             const event_slug2 = "submit_candidate_shortlist";
             const module_name = "Submissions";
@@ -594,20 +593,32 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     i.dataValues.name?.trim().toLowerCase() === "approval"
             );
 
+            const reviewMethod1 = item.find(
+                (i) =>
+                    i.dataValues.event_id === eventId1 &&
+                    i.dataValues.name?.trim().toLowerCase() === "review"
+            );
+
             const reviewMethod2 = item.find(
                 (i) =>
                     i.dataValues.event_id === eventId2 &&
                     i.dataValues.name?.trim().toLowerCase() === "review"
             );
 
-            if (approvalMethod && reviewMethod2) {
+            if (approvalMethod || reviewMethod1 || reviewMethod2) {
                 const updatedItems = item
-                    .map((i) =>
-                        i.id === reviewMethod2.id
-                            ? { ...i.dataValues, method_ids: [approvalMethod.id, i.id] }
-                            : i.dataValues
-                    )
-                    .filter((i) => i.id !== approvalMethod.id);
+                    .map((i) => {
+                        if (reviewMethod1 && reviewMethod2 && i.id === reviewMethod1.id) {
+                            return {
+                                ...i.dataValues,
+                                method_ids: [i.id, reviewMethod2.id],
+                            };
+                        } else if (i.id === approvalMethod?.id) {
+                            return i.dataValues;
+                        }
+                        return null;
+                    })
+                    .filter((i) => i !== null);
 
                 return reply.status(200).send({
                     status_code: 200,
@@ -618,7 +629,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             } else {
                 return reply.status(400).send({
                     status_code: 400,
-                    message: "Required workflow methods (approval or review) not found",
+                    message: "Required workflow methods not found",
                     trace_id: traceId,
                 });
             }
