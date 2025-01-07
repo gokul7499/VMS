@@ -3,7 +3,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 
 class JobCategoryModel extends Model {
-  id: any;
+    id: any;
 }
 
 JobCategoryModel.init(
