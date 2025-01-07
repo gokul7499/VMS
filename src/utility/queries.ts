@@ -1573,6 +1573,7 @@ export const getAllRateTypes = (
   hasDifferentialOn: boolean,
   hasRateTypeCategory: boolean,
   hasShiftType: boolean,
+  hasRateTypeCategoryLabel: boolean,
   startDate?: number,
   endDate?: number,
   limit?: number,
@@ -1622,6 +1623,7 @@ export const getAllRateTypes = (
       ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
       : ""}
         ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
+        ${hasRateTypeCategoryLabel ? "AND picklistitems.label LIKE CONCAT('%', :rate_type_category_label, '%')" : ""} 
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
       ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
