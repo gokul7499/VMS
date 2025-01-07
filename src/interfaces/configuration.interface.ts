@@ -27,4 +27,5 @@ export interface ConfigurationAttributes {
   help_icon: boolean;
   help_icon_text: string;
   child_config: Json;
+  placeholder_value:string;
 }
