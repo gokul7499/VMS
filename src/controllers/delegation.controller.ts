@@ -32,8 +32,8 @@ export const createDelegation = async (request: FastifyRequest, reply: FastifyRe
     }
 
     const currentDate = new Date(); 
-    const isEnabled = new Date(start_date) <= currentDate;
-
+    const isEnabled = new Date(start_date) <= currentDate && new Date(end_date) >= currentDate;
+    
     const newDelegation: any = await Delegation.create({
       ...delegationData,
       program_id,
