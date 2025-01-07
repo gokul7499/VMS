@@ -143,6 +143,5 @@ export default async function (app: FastifyInstance) {
   app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
   app.register(rateConfigurationsRoutes,{prefix:`${basePrefix}`})
   app.register(jobTemplate, { prefix: `${basePrefix}` });
-  app.register(picklistRoutes,{prefix:`${basePrefix}`})
   app.register(JobCategoryRoutes, { prefix: `${basePrefix}` });
 }
