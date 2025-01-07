@@ -179,6 +179,7 @@ export const updateWorkflowStatus = async (
         for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
 
             const user = await fetchUserById(user_id);
+             // Here, you can do any other operations that depend on the fetched user add here notification code
             console.log("user", user)
             let levelFound = false;
 
@@ -330,7 +331,7 @@ export const rejectLevel = async (
         let updatedLevels = false;
 
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-
+           
           
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
@@ -345,16 +346,21 @@ export const rejectLevel = async (
                     if (level.placement_order === placement_order) {
                         levelFound = true;
 
-                        const updatedRecipientTypes = level.recipient_types.map(async(recipient: any) => {
+                        const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
                             if (
                                 (recipient.replaced_by && recipient.replaced_by === user_id) ||
                                 (!recipient.replaced_by &&
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-                                const user = await fetchUserById(user_id);
-                                console.log("user", user);
-                                
+                               
+                                fetchUserById(user_id).then(user => {
+                                    console.log("user", user);
+                                    // Here, you can do any other operations that depend on the fetched user add here notification code
+                                }).catch(error => {
+                                    console.error("Error fetching user", error);
+                                });
+                        
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -370,8 +376,8 @@ export const rejectLevel = async (
                         };
                     }
 
-
-
+                   
+                  
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
