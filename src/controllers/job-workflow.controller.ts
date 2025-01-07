@@ -289,8 +289,8 @@ export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; resone: string; user_id: string; notes?: string }
-        | { placement_order: number; new_status: string; resone: string; user_id: string; notes?: string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -324,7 +324,7 @@ export const rejectLevel = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
-        updates.forEach(({ placement_order, new_status, user_id, notes, resone }) => {
+        updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
 
 
             if (new_status !== "rejected") {
@@ -348,11 +348,11 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, resone: resone };
+                                return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
-                            return { ...recipient, status: "canceled", modified_on: new Date(), notes: notes, resone: resone };
+                            return { ...recipient, status: "canceled", modified_on: new Date(), notes: notes, reason: reason };
                         });
 
                         return {
@@ -368,7 +368,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        modified_on: new Date(), notes: notes, resone: resone
+                        modified_on: new Date(), notes: notes, reason: reason
                     }));
 
                     return {
@@ -391,7 +391,7 @@ export const rejectLevel = async (
                 placement_order,
                 new_status: "rejected",
                 program_id,
-                resone,
+                reason,
                 notes: notes || "",
                 created_on: new Date(),
                 user_id: user_id,
@@ -1454,7 +1454,7 @@ ORDER BY
                                 status: recipient_status,
                                 modified_on: recipient_details.modified_on,
                                 notes: recipient_details.notes,
-                                resone: recipient_details.resone,
+                                reason: recipient_details.reason,
                                 replaced_date_time: recipient_details.replaced_modified_on,
                                 replaced_notes: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
@@ -1475,7 +1475,7 @@ ORDER BY
                             status: recipient_status,
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
-                            resone: recipient_details.resone,
+                            reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
@@ -2200,7 +2200,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 status: recipient_status,
                                 modified_on: recipient_details.modified_on,
                                 notes: recipient_details.notes,
-                                resone: recipient_details.resone,
+                                reason: recipient_details.reason,
                                 replaced_date_time: recipient_details.replaced_modified_on,
                                 replaced_notes: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
@@ -2221,7 +2221,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             status: recipient_status,
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
-                            resone: recipient_details.resone,
+                            reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
