@@ -3,14 +3,10 @@ import { WorkLocationInterface } from "../interfaces/work-location.interface";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import TimeZone from "../models/time-zone.model";
-import Currencies from "../models/currencies.model";
 import CountryModel from "../models/countries.model";
-import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
-import { getAllCounty } from "./county.controller";
-import { request } from "http";
 import { sequelize } from "../config/instance";
 import { getWorklocation } from "../utility/queries";
 
@@ -170,11 +166,6 @@ export async function getAllWorkLocations(
           model: TimeZone,
           as: 'time_zones',
           attributes: ['id', 'name'],
-        },
-        {
-          model: CountryModel,
-          as: 'countries',
-          attributes: ['id', 'name'],
         }
       ]
     });
@@ -240,12 +231,7 @@ export async function getWorkLocationById(
           model: TimeZone,
           as: 'time_zones',
           attributes: ['id', 'name'],
-        },
-        {
-          model: CountryModel,
-          as: 'countries',
-          attributes: ['id', 'name'],
-        },
+        }
       ],
     });
 
@@ -369,18 +355,15 @@ export async function deleteWorkLocationById(
   }
 }
 
-
 export async function getAllWorkLocationsCountry(
   request: FastifyRequest<{ Params: { program_id: string }; Querystring: { isCountry?: string; isStates?: string } }>,
   reply: FastifyReply
 ) {
-
   const traceId = generateCustomUUID();
   const { program_id } = request.params;
   const { isCountry, isStates } = request.query;
 
   try {
-    const includeOptions = [];
     const response: {
       status_code: number;
       trace_id: string;
@@ -393,20 +376,11 @@ export async function getAllWorkLocationsCountry(
       message: "Work locations retrieved successfully",
     };
 
-    if (isCountry === "true") {
-      includeOptions.push({
-        model: CountryModel,
-        as: "countries",
-        attributes: ["id", "name"],
-      });
-    }
-
     const workLocations = await WorkLocationModel.findAll({
       where: {
         program_id,
         is_deleted: false,
       },
-      include: includeOptions,
       attributes: ["id", "name", "state_name"],
     });
 
@@ -416,24 +390,25 @@ export async function getAllWorkLocationsCountry(
     }
 
     if (isCountry === "true") {
-      const workLocationCountry = workLocations
-        .map(location => location.countries).filter(Boolean).flat()
-        .map((country: any) => ({
-          id: country.id,
-          name: country.name,
-        }));
+      const uniqueCountries = new Map<string, { id: string; name: string }>();
+      workLocations.forEach(location => {
+        if (!uniqueCountries.has(location.name)) {
+          uniqueCountries.set(location.name, { id: location.id, name: location.name });
+        }
+      });
 
-      response.work_location_country = workLocationCountry;
-
+      response.work_location_country = Array.from(uniqueCountries.values());
     }
 
     if (isStates === "true") {
-      const workLocationStates = workLocations.map(location => ({
-        id: location.id,
-        name: location.state_name,
-      }));
+      const uniqueStates = new Map<string, { id: string; name: string }>();
+      workLocations.forEach(location => {
+        if (!uniqueStates.has(location.state_name)) {
+          uniqueStates.set(location.state_name, { id: location.id, name: location.state_name });
+        }
+      });
 
-      response.work_location_states = workLocationStates;
+      response.work_location_states = Array.from(uniqueStates.values());
     }
 
     return reply.status(200).send(response);
@@ -442,10 +417,12 @@ export async function getAllWorkLocationsCountry(
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve work locations",
-      error
+      error,
     });
   }
 }
+
+
 
 type QueryResult = {
   program_id: string;

@@ -1990,13 +1990,20 @@ SELECT
             'id', c.id,
             'name', c.name
         )
-    ) AS countries
+    ) AS countries,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'name', wl.state_name
+        )
+    ) AS states
 FROM (
     SELECT DISTINCT 
         work_locations.program_id, 
-        work_locations.country_id 
+        work_locations.country_id,
+        work_locations.state_name
     FROM work_locations
-    WHERE work_locations.program_id = :program_id
+    WHERE work_locations.program_id =:program_id
 ) AS wl
 LEFT JOIN countries c ON wl.country_id = c.id
-GROUP BY wl.program_id;`
+GROUP BY wl.program_id;
+`
