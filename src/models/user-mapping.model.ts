@@ -9,7 +9,6 @@ import Tenant from './tenant.model';
 class UserMapping extends Model {
     user_id: any;
     user: any;
-    language_id: any;
     time_zone_id: any;
 }
 

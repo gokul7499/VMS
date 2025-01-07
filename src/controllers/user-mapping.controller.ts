@@ -202,7 +202,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             attributes: [
                 "id", "tenant_id", "role_id", "user_id",
                 "program_id", "is_activated", "is_deleted",
-                "created_on","language_id", "modified_on", "created_by",
+                "created_on", "modified_on", "created_by",
                 "modified_by", "ref_id"
             ],
             where: whereClause,
