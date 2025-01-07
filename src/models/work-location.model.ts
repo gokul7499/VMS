@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import { beforeSave } from "../hooks/timeFormatHook";
-import TimeZone from "./time-zone.model";
+import WorkLocationCurrency from "./WorkLocationCurrencyModel";
 
 class WorkLocationModel extends Model {
   id: any;
@@ -11,6 +11,7 @@ class WorkLocationModel extends Model {
   countries: any;
   states: any;
   state_name: any;
+  currency_id: any;
 }
 
 WorkLocationModel.init(
@@ -72,10 +73,6 @@ WorkLocationModel.init(
     country_id: {
       type: DataTypes.STRING,
     },
-    currency_id: {
-      type: DataTypes.STRING,
-    },
-
     real_estate_code: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -107,11 +104,7 @@ WorkLocationModel.init(
       allowNull: true,
     },
     timezone_id: {
-      type: DataTypes.UUID,
-      references: {
-        model: "time_zones",
-        key: "id",
-      },
+      type: DataTypes.STRING,
     },
     custom_fields: {
       type: DataTypes.JSON,
@@ -137,7 +130,7 @@ WorkLocationModel.init(
 
 sequelize.sync();
 
-WorkLocationModel.belongsTo(TimeZone, { foreignKey: "timezone_id", as: "time_zones" })
 WorkLocationModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
+WorkLocationModel.hasMany(WorkLocationCurrency, { foreignKey: 'work_location_id', as: 'currencies' });
 
 export default WorkLocationModel;
