@@ -70,6 +70,7 @@ RateCard.init(
     },
   }
 );
+
 sequelize.sync();
 
 export default RateCard;

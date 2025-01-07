@@ -30,7 +30,7 @@ import WorkLocationModel from '../models/work-location.model';
 import IndustriesModel from '../models/labour-category.model';
 import picklistModel from '../models/picklist.model';
 import foundationalData from '../models/foundational-data.model';
-import jobTemplateModel from '../models/jobTemplateModel';
+import jobTemplateModel from '../models/job-template.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';

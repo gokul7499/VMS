@@ -111,6 +111,10 @@ Configuration.init(
     child_config: {
       type: DataTypes.JSON,
       allowNull: true
+    },
+    placeholder_value: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   },
   {

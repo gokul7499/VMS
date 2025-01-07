@@ -136,12 +136,8 @@ User.init(
       },
     },
     language_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: 'language',
-        key: 'id',
-      },
     },
     associate_hierarchy_ids: {
       type: DataTypes.JSON,
@@ -254,7 +250,6 @@ User.init(
 User.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
 User.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries" });
 User.belongsTo(TimeZone, { foreignKey: "time_zone_id", as: "time_zone" });
-User.belongsTo(Language, { foreignKey: "language_id", as: "language" });
 User.belongsToMany(hierarchies, { through: 'user_hierarchies', foreignKey: 'user_Id' });
 User.belongsToMany(WorkLocationModel, { through: 'user_work_locations', foreignKey: 'user_Id' });
 User.belongsTo(User, { foreignKey: "supervisor", as: "supervisor_id" });

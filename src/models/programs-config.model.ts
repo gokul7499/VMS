@@ -6,6 +6,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 
 class ProgramsConfig extends Model {
   id: any;
+  configuration_id: any;
 }
 
 ProgramsConfig.init(
@@ -111,6 +112,10 @@ ProgramsConfig.init(
     },
     child_config: {
       type: DataTypes.JSON,
+      allowNull: true
+    },
+    configuration_id: {
+      type: DataTypes.UUID,
       allowNull: true
     }
   },
