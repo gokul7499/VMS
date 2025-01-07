@@ -398,7 +398,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
                 });
             }
-
             if (module_ids && event_slug2) {
                 eventId2Value = await Event.findOne({
                     where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
@@ -586,19 +585,16 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     ],
                 },
             });
-
             const approvalMethod = item.find(
                 (i) =>
                     i.dataValues.event_id === eventId1 &&
                     i.dataValues.name?.trim().toLowerCase() === "approval"
             );
-
             const reviewMethod1 = item.find(
                 (i) =>
                     i.dataValues.event_id === eventId1 &&
                     i.dataValues.name?.trim().toLowerCase() === "review"
             );
-
             const reviewMethod2 = item.find(
                 (i) =>
                     i.dataValues.event_id === eventId2 &&
@@ -667,7 +663,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 where: {
                     module_id: module_ids,
                     event_id: eventId?.id
-
                 }
             });
         } else {
