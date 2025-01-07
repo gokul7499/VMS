@@ -36,6 +36,14 @@ ChecklistTaskMapping.init(
             type: DataTypes.STRING(50),
             allowNull: false,
         },
+        dependency_task_name: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+        },
+        dependency_category_name: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+        },
         task_entity_id: {
             type: DataTypes.UUID,
             allowNull: false,
