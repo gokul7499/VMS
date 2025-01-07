@@ -137,8 +137,8 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string,job_id?:string }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string,job_id?:string  }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -289,8 +289,8 @@ export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string,job_id?:string}
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string,job_id?:string }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -434,7 +434,8 @@ export const updateReplaceLevel = async (
             status: string;
             replaced_by: string;
             user_id?: string;
-            notes?: string
+            notes?: string;
+            job_id?:string 
         };
     }>,
     reply: FastifyReply
