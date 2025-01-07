@@ -31,6 +31,9 @@ export const createDelegation = async (request: FastifyRequest, reply: FastifyRe
       });
     }
 
+    const currentDate = new Date(); 
+    const isEnabled = new Date(start_date) <= currentDate;
+
     const newDelegation: any = await Delegation.create({
       ...delegationData,
       program_id,
@@ -38,6 +41,7 @@ export const createDelegation = async (request: FastifyRequest, reply: FastifyRe
       delegated_by_user_id,
       start_date,
       end_date,
+      is_enabled: isEnabled,
     });
 
     return reply.status(201).send({
@@ -56,6 +60,7 @@ export const createDelegation = async (request: FastifyRequest, reply: FastifyRe
     });
   }
 };
+
 
 export const getDelegationById = async (
   request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
