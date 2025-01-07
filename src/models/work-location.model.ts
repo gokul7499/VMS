@@ -145,7 +145,6 @@ sequelize.sync();
 
 WorkLocationModel.belongsTo(TimeZone, { foreignKey: "timezone_id", as: "time_zones" })
 WorkLocationModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-WorkLocationModel.hasMany(WorkLocationCurrency, { foreignKey: 'work_location_id', as: 'currencies' });
-
+WorkLocationModel.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries", });
 
 export default WorkLocationModel;
