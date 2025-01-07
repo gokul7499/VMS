@@ -462,7 +462,8 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
+        const user = await fetchUserById(user_id);
+        console.log("user", user);
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
