@@ -121,36 +121,14 @@ export const getProgramConfigurations = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params as { program_id: string };
-  const { config_model, parent_config_id, title, key } = request.query as {
+  const { config_model, title } = request.query as {
     config_model?: string;
-    parent_config_id?: string;
     title?: string;
-    key?: string;
   };
 
   const queryConditions: any = { program_id };
-
-  if (title) {
-    queryConditions.title = {
-      [Op.like]: `%${title}%`
-    };
-  }
-
-  if (config_model) {
-    queryConditions.config_model = config_model;
-  }
-
-  if (parent_config_id) {
-    queryConditions.parent_config_id = parent_config_id;
-  } else {
-    queryConditions.parent_config_id = {
-      [Op.or]: [null, ""],
-    };
-  }
-
-  if (key) {
-    queryConditions.key = key;
-  }
+  if (title) queryConditions.title = { [Op.like]: `%${title}%` };
+  if (config_model) queryConditions.config_model = config_model;
 
   try {
     const configurations = await ProgramsConfig.findAll({
@@ -158,20 +136,34 @@ export const getProgramConfigurations = async (
     });
 
     if (configurations.length === 0) {
-      return reply.status(200).send({ status_code: 200,message: "Configuration Not Found", programsConfigs: [] });
+      return reply.status(200).send({ message: "Configuration Not Found", programsConfigs: [] });
     }
 
-    reply.status(200).send({
-      status_code: 200,
-      message: "Program configurations retrieved successfully",
-      configuration: configurations,
+    const configMap = new Map<string, any>();
+    configurations.forEach(config => {
+      const configData = { ...config.toJSON(), child_config: [] };
+      configMap.set(config.configuration_id, configData);
     });
-  } catch (error) {
-    console.error('Error fetching program configurations:', error);
-    reply.status(500).send({
-      status_code: 500,
+
+    configMap.forEach(config => {
+      if (config.parent_config_id) {
+        const parentConfig = configMap.get(config.parent_config_id);
+        parentConfig?.child_config.push(config);
+      }
+    });
+
+    const filteredResult = [...configMap.values()].filter(config => !config.parent_config_id);
+
+    return reply.status(200).send({
+      statusCode: 200,
+      message: "Program configurations retrieved successfully",
+      configuration: filteredResult,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      statusCode: 500,
       message: 'Internal Server Error',
-      error: error,
+      error: error.message,
     });
   }
 };

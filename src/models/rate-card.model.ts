@@ -22,10 +22,6 @@ RateCard.init(
     labor_category_id: {
       type: DataTypes.UUID,
       allowNull: true,
-      references: {
-        model: IndustriesModel,
-        key: "id",
-      },
     },
     program_id: {
       type: DataTypes.UUID,
@@ -74,8 +70,7 @@ RateCard.init(
     },
   }
 );
+
 sequelize.sync();
-RateCard.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-RateCard.belongsTo(IndustriesModel, { foreignKey: "labor_category_id", as: "LaborCategory" });
 
 export default RateCard;

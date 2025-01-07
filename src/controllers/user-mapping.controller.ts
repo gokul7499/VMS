@@ -211,11 +211,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     model: User,
                     as: "user",
                     include: [
-                        {
-                            model: Language,
-                            as: 'language',
-                            attributes: ["id", "name"]
-                        },
+                       
                         {
                             model: TimeZone,
                             as: 'time_zone',
@@ -224,11 +220,6 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                         {
                             model: CountryModel,
                             as: 'countries',
-                            attributes: ["id", "name"]
-                        },
-                        {
-                            model: Language,
-                            as: 'language',
                             attributes: ["id", "name"]
                         },
                         {

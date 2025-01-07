@@ -12,6 +12,7 @@ class RateConfigurationsModel extends Model {
     rate_configuration: any;
     is_shift_rate: any;
     name: any;
+    is_enabled: any;
 }
 
 RateConfigurationsModel.init(

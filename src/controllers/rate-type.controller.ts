@@ -6,7 +6,7 @@ import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import { getAllRateTypes } from "../utility/queries";
+import { getAllRateTypes, rateTypeShiftAndRate } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
@@ -196,6 +196,7 @@ export async function getAllRateType(request: FastifyRequest<{
     differential_on?: string;
     rate_type_category?: string;
     shift_type?: string;
+    rate_type_category_label?: string;
     page?: string;
     limit?: string;
   };
@@ -203,11 +204,11 @@ export async function getAllRateType(request: FastifyRequest<{
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, page = "1", limit = "10" } = request.query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
   try {
-    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, page, limit });
+    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
 
     if (rateType.length === 0) {
@@ -237,7 +238,7 @@ export async function getAllRateType(request: FastifyRequest<{
   } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id:traceId,
+      trace_id: traceId,
       message: "Internal server error",
       error: error.message,
     });
@@ -245,13 +246,14 @@ export async function getAllRateType(request: FastifyRequest<{
 }
 
 function getQueryParams(query: any) {
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, page = "1", limit = "10" } = query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page = "1", limit = "10" } = query;
 
   const hasName = !!name;
   const hasId = !!id;
   const hasDifferentialOn = !!differential_on;
   const hasRateTypeCategory = !!rate_type_category;
   const hasShiftType = !!shift_type;
+  const hasRateTypeCategoryLabel = !!rate_type_category_label;
   const isEnabledValue = parseBoolean(is_enabled);
   const isShiftRateValue = parseBoolean(is_shift_rate);
   const isBaseRate = parseBoolean(is_base_rate);
@@ -262,7 +264,7 @@ function getQueryParams(query: any) {
   const pageSize = parseInt(limit, 10);
   const offset = (pageNumber - 1) * pageSize;
 
-  return { id, name, differential_on, rate_type_category, shift_type, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, startDate, endDate, pageNumber, pageSize, offset };
+  return { id, name, differential_on, rate_type_category, shift_type,rate_type_category_label, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType,hasRateTypeCategoryLabel, startDate, endDate, pageNumber, pageSize, offset };
 }
 
 function parseBoolean(value: any): number | undefined {
@@ -289,7 +291,7 @@ function parseDateRange(dateRange: string): { startDate?: number, endDate?: numb
 
 async function fetchRateTypes(queryParams: any, program_id: string) {
   return await sequelize.query<{ total_records: any }>(
-    getAllRateTypes(queryParams.hasName, queryParams.hasId, !!queryParams.isEnabledValue, !!queryParams.isShiftRateValue, !!queryParams.isBaseRate, queryParams.hasDifferentialOn, queryParams.hasRateTypeCategory, queryParams.hasShiftType, queryParams.startDate, queryParams.endDate, queryParams.pageSize, queryParams.offset),
+    getAllRateTypes(queryParams.hasName, queryParams.hasId, !!queryParams.isEnabledValue, !!queryParams.isShiftRateValue, !!queryParams.isBaseRate, queryParams.hasDifferentialOn, queryParams.hasRateTypeCategory, queryParams.hasShiftType, queryParams.hasRateTypeCategoryLabel, queryParams.startDate, queryParams.endDate, queryParams.pageSize, queryParams.offset),
     {
       replacements: {
         program_id,
@@ -299,8 +301,9 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
         ...(queryParams.isShiftRateValue !== undefined && { is_shift_rate: queryParams.isShiftRateValue }),
         ...(queryParams.isBaseRate !== undefined && { is_base_rate: queryParams.isBaseRate }),
         ...(queryParams.hasDifferentialOn && { differential_on: `%${queryParams.differential_on}%` }),
-        ...(queryParams.hasRateTypeCategory && { rate_type_category: `%${queryParams.rate_type_category}%` }),
-        ...(queryParams.hasShiftType && { shift_type: `%${queryParams.shift_type}%` }),
+        ...(queryParams.hasRateTypeCategory && { rate_type_category: queryParams.rate_type_category }),
+        ...(queryParams.hasShiftType && { shift_type: queryParams.shift_type }),
+        ...(queryParams.hasRateTypeCategoryLabel && { rate_type_category_label: `%${queryParams.rate_type_category_label}%` }),
         ...(queryParams.startDate !== undefined && { startDate: queryParams.startDate }),
         ...(queryParams.endDate !== undefined && { endDate: queryParams.endDate }),
         limit: queryParams.pageSize,
@@ -511,6 +514,48 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve rate type",
+      error: error.message,
+    });
+  }
+}
+
+export async function getShiftAndRateType(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const traceId = generateCustomUUID();
+
+  try {
+    const results = await sequelize.query(rateTypeShiftAndRate, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT,
+    });
+
+    const shiftTypes = results
+      .filter((result: any) => result.shift_id && result.shift_name)
+      .map((result: any) => ({
+        id: result.shift_id,
+        name: result.shift_name,
+      }));
+
+    const rateTypeCategories = results
+      .filter((result: any) => result.rate_type_id && result.rate_type_value)
+      .map((result: any) => ({
+        id: result.rate_type_id,
+        name: result.rate_type_value,
+      }));
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      data: {
+        shift_type: shiftTypes,
+        rate_type_category: rateTypeCategories,
+      },
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Failed to retrieve shift and rate type data',
       error: error.message,
     });
   }

@@ -8,14 +8,14 @@ import RateConfigurationBaseRateTypes from '../models/rate-configuration-base-ra
 import RateConfigurationRateTypes from '../models/rate-configuration-rate-types.model';
 import RateConfigurationRateDifferentials from '../models/rate-configuration-rate-differentials.model';
 import { sequelize } from '../config/instance';
-import jobTemplateModel from '../models/jobTemplateModel';
+import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklistItemModel';
-import { getAllRateConfigurationsQuery } from '../utility/queries';
+import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
-const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
+import ShiftType from '../models/shift-type.model';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -27,6 +27,26 @@ export const createRateConfigurations = async (
     const transaction = await sequelize.transaction();
 
     try {
+        if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
+            const existingConfigurations = await sequelize.query(sameRateConfiguration, {
+                replacements: {
+                    program_id,
+                    hierarchies: rateConfigurationsPayload.hierarchies || [],
+                    job_templates: rateConfigurationsPayload.job_templates || []
+                },
+                type: QueryTypes.SELECT,
+                transaction
+            });
+
+            if (existingConfigurations.length > 0) {
+                await transaction.rollback();
+                return reply.status(409).send({
+                    status_code: 409,
+                    message: 'Rate configurations with the same hierarchy and job template already exist.',
+                    trace_id: traceId,
+                });
+            }
+        }
         const rateData = await RateConfigurationsModel.create({
             program_id,
             name: rateConfigurationsPayload.name,
@@ -72,24 +92,31 @@ export const createRateConfigurations = async (
                             rate_type_id: rate.rate_type_id,
                         }, { transaction });
 
-                        if (rate.bill_rate) {
-                            await RateConfigurationRateDifferentials.create({
-                                rate_id: rateTypeRecord.id,
-                                differential_on: rate.bill_rate.differential_on,
-                                differential_type: rate.bill_rate.differential_type,
-                                differential_value: rate.bill_rate.differential_value,
-                                type: 'BILL_RATE',
-                            }, { transaction });
+                        if (Array.isArray(rate.bill_rate)) {
+                            for (const billRate of rate.bill_rate) {
+                                await RateConfigurationRateDifferentials.create({
+                                    rate_id: rateTypeRecord.id,
+                                    differential_on: billRate.differential_on,
+                                    differential_type: billRate.differential_type,
+                                    differential_value: billRate.differential_value,
+                                    unit_of_measure:billRate.unit_of_measure,
+                                    currency:billRate.currency,
+                                    type: 'BILL_RATE',
+                                }, { transaction });
+                            }
                         }
-
-                        if (rate.pay_rate) {
-                            await RateConfigurationRateDifferentials.create({
-                                rate_id: rateTypeRecord.id,
-                                differential_on: rate.pay_rate.differential_on,
-                                differential_type: rate.pay_rate.differential_type,
-                                differential_value: rate.pay_rate.differential_value,
-                                type: 'PAY_RATE',
-                            }, { transaction });
+                        if (Array.isArray(rate.bill_rate)) {
+                            for (const payRate of rate.pay_rate) {
+                                await RateConfigurationRateDifferentials.create({
+                                    rate_id: rateTypeRecord.id,
+                                    differential_on: payRate.differential_on,
+                                    differential_type: payRate.differential_type,
+                                    differential_value: payRate.differential_value,
+                                    unit_of_measure:payRate.unit_of_measure,
+                                    currency:payRate.currency,
+                                    type: 'PAY_RATE',
+                                }, { transaction });
+                            }
                         }
                     }
                 }
@@ -140,7 +167,8 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now()
+                modified_on: Date.now(),
+                is_enabled:rateConfigurationsPayload.is_enabled
             },
             { transaction }
         );
@@ -214,40 +242,48 @@ export const updateRateConfigurations = async (
                             { transaction }
                         );
 
-                        if (rateItem.bill_rate) {
+                        if (Array.isArray(rateItem.bill_rate)) {
                             await RateConfigurationRateDifferentials.destroy({
                                 where: { rate_id: rateTypeRecord?.id, type: 'BILL_RATE' },
                                 transaction,
                             });
-                            await RateConfigurationRateDifferentials.upsert(
-                                {
-                                    id: rateItem.bill_rate.id,
-                                    rate_id: rateTypeRecord.id,
-                                    differential_on: rateItem.bill_rate.differential_on,
-                                    differential_type: rateItem.bill_rate.differential_type,
-                                    differential_value: rateItem.bill_rate.differential_value,
-                                    type: 'BILL_RATE',
-                                },
-                                { transaction }
-                            );
+                            for (const billRate of rateItem.bill_rate) {
+                                await RateConfigurationRateDifferentials.upsert(
+                                    {
+                                        id: billRate.id,
+                                        rate_id: rateTypeRecord.id,
+                                        differential_on: billRate.differential_on,
+                                        differential_type: billRate.differential_type,
+                                        differential_value: billRate.differential_value,
+                                        unit_of_measure:billRate.unit_of_measure,
+                                        currency:billRate.currency,
+                                        type: 'BILL_RATE',
+                                    },
+                                    { transaction }
+                                );
+                            }
                         }
 
-                        if (rateItem.pay_rate) {
+                        if (Array.isArray(rateItem.pay_rate)) {
                             await RateConfigurationRateDifferentials.destroy({
                                 where: { rate_id: rateTypeRecord?.id, type: 'PAY_RATE' },
                                 transaction,
                             });
-                            await RateConfigurationRateDifferentials.upsert(
-                                {
-                                    id: rateItem.pay_rate.id,
-                                    rate_id: rateTypeRecord.id,
-                                    differential_on: rateItem.pay_rate.differential_on,
-                                    differential_type: rateItem.pay_rate.differential_type,
-                                    differential_value: rateItem.pay_rate.differential_value,
-                                    type: 'PAY_RATE',
-                                },
-                                { transaction }
-                            );
+                            for (const payRate of rateItem.pay_rate) {
+                                await RateConfigurationRateDifferentials.upsert(
+                                    {
+                                        id: payRate.id,
+                                        rate_id: rateTypeRecord.id,
+                                        differential_on: payRate.differential_on,
+                                        differential_type: payRate.differential_type,
+                                        differential_value: payRate.differential_value,
+                                        unit_of_measure:payRate.unit_of_measure,
+                                        currency:payRate.currency,
+                                        type: 'PAY_RATE',
+                                    },
+                                    { transaction }
+                                );
+                            }
                         }
                     }
                 }
@@ -263,7 +299,6 @@ export const updateRateConfigurations = async (
         });
     } catch (error: any) {
         await transaction.rollback();
-
         reply.status(500).send({
             message: 'An error occurred while updating the rate configurations.',
             error: error.message,
@@ -304,7 +339,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -323,6 +358,8 @@ export async function getAllRateConfigurations(
         const replacements: any = {
             program_id,
             name: query.name ?? null,
+            job_template_id: query.job_template_id ?? null,
+            hierarchy_id: query.hierarchy_id ?? null,
             is_enabled: isEnabled,
             is_shift_rate: isShiftRate,
             startDate,
@@ -392,7 +429,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
         });
 
         if (!rateConfiguration) {
@@ -415,20 +452,21 @@ export async function getRateConfigurationById(
             ],
         }).then((data) => data.map((item) => item.hierarchy));
 
-        const jobTemplates = await sequelize.query<{ job_template_id: string; template_name: string }>(
-            ` SELECT jt.id AS job_template_id,jt.template_name FROM rate_configuration_job_templates rcjt
-              JOIN ${sourcing_db}.job_templates jt ON rcjt.job_template_id = jt.id WHERE  rcjt.rate_configuration_id = :id`,
-            {
-                replacements: { id },
-                type: QueryTypes.SELECT
-            }
-        ).then((data) =>
+        const jobTemplates = await RateConfigurationJobTemplates.findAll({
+            where: { rate_configuration_id: id },
+            include: [
+                {
+                    model: jobTemplateModel,
+                    as: 'job_template',
+                    attributes: ['id', 'template_name'],
+                },
+            ],
+        }).then((data) =>
             data.map((item) => ({
-                id: item.job_template_id,
-                name: item.template_name,
+                id: item.job_template?.id,
+                name: item.job_template?.template_name,
             }))
         );
-
 
         const baseRates = await RateConfigurationBaseRateTypes.findAll({
             where: { rate_configuration_id: id },
@@ -472,12 +510,12 @@ export async function getRateConfigurationById(
 
                         const billRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'BILL_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         const payRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'PAY_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         return {
@@ -508,6 +546,7 @@ export async function getRateConfigurationById(
         const response = {
             program_id: rateConfiguration.program_id,
             name: rateConfiguration.name,
+            is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
             hierarchie,
             job_templates: jobTemplates,
@@ -618,7 +657,14 @@ export async function getAllRateConfigurationRates(
                 model: rateType,
                 as: 'rate_type',
                 where: { is_base_rate: true },
-                attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type']
+                attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                include: [
+                    {
+                        model: ShiftType,
+                        as: 'shift_types',
+                        attributes: { exclude: ['created_on', 'modified_on', 'is_deleted', 'created_by', 'modified_by', 'program_id'] }
+                    }
+                ]
             }],
         });
 
@@ -637,7 +683,14 @@ export async function getAllRateConfigurationRates(
                         model: rateType,
                         as: 'rate_type',
                         where: { is_base_rate: false },
-                        attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type']
+                        attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                        include: [
+                            {
+                                model: ShiftType,
+                                as: 'shift_types',
+                                attributes: { exclude: ['created_on', 'modified_on', 'is_deleted', 'created_by', 'modified_by', 'program_id'] }
+                            }
+                        ]
                     }],
                 });
 
@@ -764,3 +817,56 @@ export async function getAllRateConfigurationRates(
         });
     }
 }
+
+export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, reply: FastifyReply) {
+    const { program_id } = request.params as { program_id: string };
+    const traceId = generateCustomUUID();
+
+    try {
+        const results = await sequelize.query(rateConfigHierarchiesAndJobTemplates, {
+            replacements: { program_id },
+            type: QueryTypes.SELECT,
+        });
+
+        const jobTemplates = [
+            ...new Map(
+                results
+                    .filter((result: any) => result.job_template_id && result.job_template_name)
+                    .map((result: any) => [result.job_template_id, { id: result.job_template_id, name: result.job_template_name }])
+            ).values()
+        ];
+
+        const hierarchies = [
+            ...new Map(
+                results
+                    .filter((result: any) => result.hierarchy_id && result.hierarchy_name)
+                    .map((result: any) => [result.hierarchy_id, { id: result.hierarchy_id, name: result.hierarchy_name }])
+            ).values()
+        ];
+
+        const rateType = [
+            ...new Map(
+                results
+                    .filter((result: any) => result.rate_id && result.rate_name)
+                    .map((result: any) => [result.rate_id, { id: result.rate_id, name: result.rate_name }])
+            ).values()
+        ];
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            data: {
+                hierarchies: hierarchies,
+                job_templates: jobTemplates,
+                rate_type: rateType,
+            },
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: 'Failed to retrieve hierarchies and job template data',
+            error: error.message,
+        });
+    }
+} 

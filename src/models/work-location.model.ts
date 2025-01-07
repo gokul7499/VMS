@@ -7,7 +7,6 @@ import TimeZone from "./time-zone.model";
 import WorkLocationCurrency from "./WorkLocationCurrencyModel";
 
 class WorkLocationModel extends Model {
-  currency_id: string[] | undefined;
   id: any;
   name: any;
   currencies: any;
@@ -80,11 +79,7 @@ WorkLocationModel.init(
       },
     },
     currency_id: {
-      type: DataTypes.UUID,
-      references: {
-        model: "currencies",
-        key: "id",
-      },
+      type: DataTypes.STRING,
     },
 
     real_estate_code: {
@@ -151,7 +146,5 @@ sequelize.sync();
 WorkLocationModel.belongsTo(TimeZone, { foreignKey: "timezone_id", as: "time_zones" })
 WorkLocationModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
 WorkLocationModel.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries", });
-WorkLocationModel.hasMany(WorkLocationCurrency, { foreignKey: 'work_location_id', as: 'currencies' });
-
 
 export default WorkLocationModel;

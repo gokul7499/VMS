@@ -197,7 +197,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     // If `behavior: any` is present, mark all recipients as "approved"
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id };
+                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
                                 }
 
                                 if (user_id) {
@@ -212,7 +212,7 @@ export const updateWorkflowStatus = async (
                                             created_on: new Date(),
                                             user_id: user_id,
                                         });
-                                        return { ...recipient, status: new_status, status_id: history.dataValues.id };
+                                        return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                     }
 
                                     // If the recipient does not have `replaced_by`, check `meta_data`
@@ -228,12 +228,12 @@ export const updateWorkflowStatus = async (
                                                 created_on: new Date(),
                                                 user_id: user_id,
                                             });
-                                            return { ...recipient, status: new_status, status_id: history.dataValues.id };
+                                            return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                         }
                                     }
                                 } else {
                                     // For bulk updates, update all recipients with new status
-                                    return { ...recipient, status: new_status };
+                                    return { ...recipient, status: new_status, modified_on: new Date(), };
                                 }
                                 return recipient;
                             })
@@ -289,8 +289,8 @@ export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; resone: string; user_id: string; notes?: string }
-        | { placement_order: number; new_status: string; resone: string; user_id: string; notes?: string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -324,7 +324,9 @@ export const rejectLevel = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
-        updates.forEach(({ placement_order, new_status, user_id, notes, resone }) => {
+        updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
+
+
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -346,32 +348,32 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected" };
+                                return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
-                            return { ...recipient, status: "canceled" };
+                            return { ...recipient, status: "canceled", modified_on: new Date(), notes: notes, reason: reason };
                         });
 
                         return {
                             ...level,
                             modified_on: new Date(),
-                            resone: resone,
                             status: "completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
 
 
+
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
+                        modified_on: new Date(), notes: notes, reason: reason
                     }));
 
                     return {
                         ...level,
                         modified_on: new Date(),
-                        resone: resone,
                         status: "completed",
                         recipient_types: updatedRecipientTypes,
                     };
@@ -389,7 +391,7 @@ export const rejectLevel = async (
                 placement_order,
                 new_status: "rejected",
                 program_id,
-                resone,
+                reason,
                 notes: notes || "",
                 created_on: new Date(),
                 user_id: user_id,
@@ -476,8 +478,8 @@ export const updateReplaceLevel = async (
                             ...recipient,
                             status: status,
                             replaced_by,
-                            notes,
-                            modified_on: new Date()
+                            replaced_notes: notes,
+                            replaced_modified_on: new Date()
                         };
                     }
 
@@ -490,8 +492,8 @@ export const updateReplaceLevel = async (
                             meta_data: {
                                 ...recipient.meta_data,
                             },
-                            notes,
-                            modified_on: new Date()
+                            replaced_notes: notes,
+                            replaced_modified_on: new Date()
                         };
                     }
 
@@ -873,9 +875,9 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, manager, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { method_id, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
             method_id: string;
-            manager?: string;
+            job_id?: string;
             workflow_trigger_id: string;
             hierarchy_id: any
         };
@@ -917,7 +919,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         //     if (findJobData && findJobData.hierarchy_ids) {
         //         hierarchy_ids = findJobData.hierarchy_ids;
         //     }
-        const hierarchy_ids = hierarchy_id.split(',');
+        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -929,6 +931,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 w.levels,
                 w.status,
                 w.config,
+                w.manager,
                 l.id AS level_id,
                 l.placement_order AS placement_order,
             r.recipient_type_id,
@@ -1011,6 +1014,28 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
             LIMIT 1
         ) AS imporsonate_by,
+(
+    SELECT JSON_OBJECT(
+        'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
+        'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
+        'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
+        'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+        'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+        'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
+    )
+    FROM JSON_TABLE(
+        JSON_EXTRACT(
+            w.levels,
+            CONCAT('$[', l.placement_order, '].recipient_types')
+        ),
+        '$[*]' COLUMNS (
+            value JSON PATH '$'
+        )
+    ) AS recipient
+    WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
+    LIMIT 1
+) AS recipient_details,
+
          (
             SELECT JSON_UNQUOTE(
                 JSON_EXTRACT(
@@ -1072,7 +1097,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-
+        let manager = rows[0].manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
@@ -1096,7 +1121,7 @@ ORDER BY
         let levelStatusMap: { [key: number]: string } = {};
 
         for (const row of rows) {
-            const { level_id, level_status, levels, config, recipient_status, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, imporsonate_by, event_slug } = row;
+            const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, imporsonate_by, event_slug } = row;
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                     SELECT id ,name
@@ -1220,7 +1245,7 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
+
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -1228,6 +1253,13 @@ ORDER BY
                                     replacements: { supervisor: replaced_by },
                                 });
                             }
+                            if (supervisorResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: imporsonate_by },
+                                });
+                            }
+
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
@@ -1249,10 +1281,19 @@ ORDER BY
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
                     }
                 }
-
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain") {
+                let imporsonateUserResult = null;
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
                         let replacedUserResult = null;
@@ -1280,7 +1321,12 @@ ORDER BY
                                             replacements: { user_id: replaced_by },
                                         });
                                     }
-
+                                    if (userData.length && imporsonate_by) {
+                                        imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: imporsonate_by },
+                                        });
+                                    }
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].id,
@@ -1298,6 +1344,16 @@ ORDER BY
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
+                                    imposonate_user_data = imporsonateUserResult ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+
                                 }
                             }
                         }
@@ -1307,7 +1363,8 @@ ORDER BY
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;;
+                    let replacedUserResult: Users[] | null = null;
+                    let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
                     for (const recipient of recipientTypes) {
                         if (recipient?.meta_data) {
@@ -1330,6 +1387,12 @@ ORDER BY
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
                                     type: QueryTypes.SELECT,
                                     replacements: { user_id: replaced_by },
+                                });
+                            }
+                            if (userResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { user_id: imporsonate_by },
                                 });
                             }
 
@@ -1357,7 +1420,15 @@ ORDER BY
                                         behaviour: level_behaviour,
                                     }
                                     : undefined;
-
+                                imposonate_user_data = imporsonateUserResult && imporsonateUserResult[0] ? {
+                                    id: imporsonateUserResult[0].id,
+                                    first_name: imporsonateUserResult[0].first_name,
+                                    last_name: imporsonateUserResult[0].last_name,
+                                    avatar: imporsonateUserResult[0].avatar,
+                                    role_id: imporsonateUserResult[0].role_id,
+                                    recipient_type: recipientType?.name || '',
+                                    behaviour,
+                                } : undefined;
                                 return {
                                     id: user.id,
                                     name: `${user.first_name} ${user.last_name}`.trim(),
@@ -1376,12 +1447,16 @@ ORDER BY
                     let recipients = [];
 
                     if (Array.isArray(input_value)) {
-
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
                                 level_id,
                                 status: recipient_status,
+                                modified_on: recipient_details.modified_on,
+                                notes: recipient_details.notes,
+                                reason: recipient_details.reason,
+                                replaced_date_time: recipient_details.replaced_modified_on,
+                                replaced_notes: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
@@ -1398,6 +1473,11 @@ ORDER BY
                             name: getName(input_value),
                             level_id,
                             status: recipient_status,
+                            modified_on: recipient_details.modified_on,
+                            notes: recipient_details.notes,
+                            reason: recipient_details.reason,
+                            replaced_date_time: recipient_details.replaced_modified_on,
+                            replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
@@ -1542,10 +1622,10 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        const { workflow_action, manager, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { workflow_action, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
             workflow_action: string;
+            job_id: string;
             workflow_trigger_id: string;
-            manager: string;
             hierarchy_id: any
         };
         //         const workflowquery = `
@@ -1576,7 +1656,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
         //             hierarchy_ids = findJobData.hierarchy_ids;
         //         }
-        const hierarchy_ids = hierarchy_id.split(',');
+        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const query = `
             SELECT
             w.id As job_workflow_id,
@@ -1586,6 +1666,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 w.levels,
                 w.status,
                   w.config,
+                  w.manager,
                 l.id AS level_id,
                 l.placement_order AS placement_order,
                 r.recipient_type_id,
@@ -1667,6 +1748,29 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
             LIMIT 1
         ) AS imporsonate_by,
+(
+    SELECT JSON_OBJECT(
+        'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
+        'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
+        'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
+        'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+        'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+        'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
+    )
+    FROM JSON_TABLE(
+        JSON_EXTRACT(
+            w.levels,
+            CONCAT('$[', l.placement_order, '].recipient_types')
+        ),
+        '$[*]' COLUMNS (
+            value JSON PATH '$'
+        )
+    ) AS recipient
+    WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
+    LIMIT 1
+) AS recipient_details,
+ 
+
          (
             SELECT JSON_UNQUOTE(
                 JSON_EXTRACT(
@@ -1726,6 +1830,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 levels,
                 config,
                 recipient_status,
+                recipient_details,
                 placement_order,
                 recipient_type_id,
                 meta_data,
@@ -1734,7 +1839,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-
+            let manager = row.manager
             // Initialize workflow for the job if not already initialized
             if (!workflows[job_workflow_id]) {
                 workflows[job_workflow_id] = {
@@ -1885,7 +1990,6 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 type: QueryTypes.SELECT,
                                 replacements: { supervisor: manager.supervisor },
                             });
-                            console.log("replaced_byreplaced_byreplaced_byreplaced_by", replaced_by);
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -1893,6 +1997,13 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                     replacements: { supervisor: replaced_by },
                                 });
                             }
+                            if (supervisorResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: imporsonate_by },
+                                });
+                            }
+
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
@@ -1914,13 +2025,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
+
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
                     }
                 }
-
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain") {
+                let imporsonateUserResult = null;
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
                     // Loop through each placement order
                     for (const level of levels) {
+                        let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
+
                             if (recipients?.meta_data) {
                                 if (recipientType?.id == recipients.recipient_type_id) {
                                     const metaData = recipients.meta_data;
@@ -1930,13 +2053,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     SELECT id, first_name, last_name, email, avatar
                     FROM user
                     WHERE id = :user_id
-                     AND is_enabled = true
+                    AND is_enabled = true
                     LIMIT 1
                 `;
-                                    const userData: any = await sequelize.query(userQuery, {
+                                    const userData: any = await sequelize.query<Users>(userQuery, {
                                         type: QueryTypes.SELECT,
                                         replacements: { user_id: metaValue },
                                     });
+                                    if (userData.length && replaced_by) {
+                                        replacedUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: replaced_by },
+                                        });
+                                    }
+                                    if (userData.length && imporsonate_by) {
+                                        imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: imporsonate_by },
+                                        });
+                                    }
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].id,
@@ -1945,6 +2080,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                             avatar: userData[0].avatar,
                                         };
                                     }
+                                    replaced_user_data = replacedUserResult ? {
+                                        id: replacedUserResult[0].id,
+                                        first_name: replacedUserResult[0].first_name,
+                                        last_name: replacedUserResult[0].last_name,
+                                        avatar: replacedUserResult[0].avatar,
+                                        role_id: replacedUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+                                    imposonate_user_data = imporsonateUserResult ? {
+                                        id: imporsonateUserResult[0].id,
+                                        first_name: imporsonateUserResult[0].first_name,
+                                        last_name: imporsonateUserResult[0].last_name,
+                                        avatar: imporsonateUserResult[0].avatar,
+                                        role_id: imporsonateUserResult[0].role_id,
+                                        recipient_type: recipientType?.name || '',
+                                        behaviour,
+                                    } : undefined;
+
                                 }
                             }
                         }
@@ -1954,7 +2108,8 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;;
+                    let replacedUserResult: Users[] | null = null;
+                    let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
                     for (const recipient of recipientTypes) {
                         if (recipient?.meta_data) {
@@ -1965,7 +2120,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 SELECT id, first_name, last_name, avatar, role_id, email
                                 FROM user
                                 WHERE id = :user_id
-                                 AND is_enabled = true
+                                AND is_enabled = true
                                 LIMIT 1
                             `;
                             const userResult = await sequelize.query<Users>(userQuery, {
@@ -1977,6 +2132,12 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
                                     type: QueryTypes.SELECT,
                                     replacements: { user_id: replaced_by },
+                                });
+                            }
+                            if (userResult.length && imporsonate_by) {
+                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { user_id: imporsonate_by },
                                 });
                             }
 
@@ -2004,7 +2165,15 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                         behaviour: level_behaviour,
                                     }
                                     : undefined;
-
+                                imposonate_user_data = imporsonateUserResult && imporsonateUserResult[0] ? {
+                                    id: imporsonateUserResult[0].id,
+                                    first_name: imporsonateUserResult[0].first_name,
+                                    last_name: imporsonateUserResult[0].last_name,
+                                    avatar: imporsonateUserResult[0].avatar,
+                                    role_id: imporsonateUserResult[0].role_id,
+                                    recipient_type: recipientType?.name || '',
+                                    behaviour,
+                                } : undefined;
                                 return {
                                     id: user.id,
                                     name: `${user.first_name} ${user.last_name}`.trim(),
@@ -2029,6 +2198,11 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 name: getName(user),
                                 level_id,
                                 status: recipient_status,
+                                modified_on: recipient_details.modified_on,
+                                notes: recipient_details.notes,
+                                reason: recipient_details.reason,
+                                replaced_date_time: recipient_details.replaced_modified_on,
+                                replaced_notes: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
@@ -2045,6 +2219,11 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             name: getName(input_value),
                             level_id,
                             status: recipient_status,
+                            modified_on: recipient_details.modified_on,
+                            notes: recipient_details.notes,
+                            reason: recipient_details.reason,
+                            replaced_date_time: recipient_details.replaced_modified_on,
+                            replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
