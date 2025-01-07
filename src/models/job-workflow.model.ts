@@ -21,134 +21,146 @@ class JobWorkFlowModel extends Model {
 
 JobWorkFlowModel.init(
     {
-        id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      status: {
+        type: DataTypes.STRING,
+        defaultValue: "pending",
+        allowNull: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      event_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      flow_type: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      type: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      workflow_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      workflow_trigger_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      module_type: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      method_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      job_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      candidate_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      hierarchies: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      placement_order: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      module: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      initialTrigger: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      config: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      is_enabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      is_updated: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      levels: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      created_on: {
+        type: DataTypes.DOUBLE,
+      },
+      modified_on: {
+        type: DataTypes.DOUBLE,
+      },
+      created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      modified_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      manager:{
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      program_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: "programs",
+          key: "id",
         },
-        status: {
-            type: DataTypes.STRING,
-            defaultValue: "pending",
-            allowNull: true,
-        },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
-        event_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
-        flow_type: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
-        type: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
-        workflow_id: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
-        method_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
-        job_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
-        hierarchies: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        placement_order: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        module: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
-        initialTrigger: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        config: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        is_enabled: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-        },
-        levels: {
-            type: DataTypes.JSON,
-            allowNull: true,
-        },
-        created_on: {
-            type: DataTypes.DOUBLE,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        program_id: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: "programs",
-                key: "id",
-            },
-        },
-        is_deleted: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        },
-        is_updated: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        },
-        flow_count: {
-            type: DataTypes.INTEGER,
-            defaultValue: 1
-        },
-        code: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
-        candidate_id: {
-            type: DataTypes.UUID,
-            allowNull: true
-        }
+      },
+      is_deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      flow_count: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1
+      },
+      code: {
+        type: DataTypes.STRING,
+        allowNull: true
+      }
     },
     {
-        sequelize,
-        tableName: "workflow",
-        timestamps: false,
-        hooks: {
-            beforeValidate: async (instance) => {
-                if (!instance.code && instance.program_id) {
-                    const program = await Programs.findByPk(instance.program_id);
-                    if (program?.unique_id) {
-                        const programPrefix = program.unique_id.substring(0, 3).toUpperCase();
-                        const count = await JobWorkFlowModel.count();
-                        const sequence = (count + 1).toString().padStart(5, '0');
-                        instance.code = `${programPrefix}-AF-${sequence}`;
-                    }
-                }
+      sequelize,
+      tableName: "workflow",
+      timestamps: false,
+      hooks: {
+        beforeValidate: async (instance) => {
+          if (!instance.code && instance.program_id) {
+            const program = await Programs.findByPk(instance.program_id);
+            if (program?.unique_id) {
+              const programPrefix = program.unique_id.substring(0, 3).toUpperCase();
+              const count = await JobWorkFlowModel.count();
+              const sequence = (count + 1).toString().padStart(5, '0');
+              instance.code = `${programPrefix}-AF-${sequence}`;
             }
-        },
+          }
+        }
+      },
     }
-);
+  );
 
 sequelize.sync();
 JobWorkFlowModel.belongsTo(Programs, {
