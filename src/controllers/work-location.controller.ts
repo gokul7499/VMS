@@ -161,18 +161,18 @@ export async function getAllWorkLocations(
       limit,
       offset,
       order,
-      include: [
-        {
-          model: TimeZone,
-          as: 'time_zones',
-          attributes: ['id', 'name'],
-        },
-        {
-          model: CountryModel,
-          as: 'countries',
-          attributes: ['id', 'name'],
-        }
-      ]
+      // include: [
+      //   {
+      //     model: TimeZone,
+      //     as: 'time_zones',
+      //     attributes: ['id', 'name'],
+      //   },
+      //   {
+      //     model: CountryModel,
+      //     as: 'countries',
+      //     attributes: ['id', 'name'],
+      //   }
+      // ]
     });
 
     const count = await WorkLocationModel.count({
