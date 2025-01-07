@@ -29,7 +29,7 @@ WorkflowStatusHistory.init(
                 key: "id",
             },
         },
-        resone:{
+        reason:{
             type: DataTypes.STRING,
             allowNull: true,
         },

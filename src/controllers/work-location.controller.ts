@@ -8,7 +8,11 @@ import CountryModel from "../models/countries.model";
 import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
+import { getAllCounty } from "./county.controller";
+import { request } from "http";
+import { sequelize } from "../config/instance";
+import { getWorklocation } from "../utility/queries";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -439,6 +443,51 @@ export async function getAllWorkLocationsCountry(
       trace_id: traceId,
       message: "Failed to retrieve work locations",
       error
+    });
+  }
+}
+
+type QueryResult = {
+  program_id: string;
+  countries: Array<{ id: string; name: string }> | null;
+};
+
+export async function getAllCountry(
+  request: FastifyRequest<{ Params: { program_id: string } }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params;
+
+  try {
+    const result = await sequelize.query<QueryResult>(getWorklocation,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { program_id },
+      }
+    );
+    if (!result || result.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "Work Location Not Found",
+      });
+    }
+    const countries = result[0]?.countries || [];
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: "Work Locations retrieved successfully",
+      countries,
+    });
+  } catch (error) {
+    console.error("Error Fetching Work Locations:", error);
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "Internal Server Error",
+      error,
     });
   }
 }
