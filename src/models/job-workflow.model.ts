@@ -146,19 +146,19 @@ JobWorkFlowModel.init(
       sequelize,
       tableName: "workflow",
       timestamps: false,
-      hooks: {
-        beforeValidate: async (instance) => {
-          if (!instance.code && instance.program_id) {
-            const program = await Programs.findByPk(instance.program_id);
-            if (program?.unique_id) {
-              const programPrefix = program.unique_id.substring(0, 3).toUpperCase();
-              const count = await JobWorkFlowModel.count();
-              const sequence = (count + 1).toString().padStart(5, '0');
-              instance.code = `${programPrefix}-AF-${sequence}`;
-            }
-          }
-        }
-      },
+      // hooks: {
+      //   beforeValidate: async (instance) => {
+      //     if (!instance.code && instance.program_id) {
+      //       const program = await Programs.findByPk(instance.program_id);
+      //       if (program?.unique_id) {
+      //         const programPrefix = program.unique_id.substring(0, 3).toUpperCase();
+      //         const count = await JobWorkFlowModel.count();
+      //         const sequence = (count + 1).toString().padStart(5, '0');
+      //         instance.code = `${programPrefix}-AF-${sequence}`;
+      //       }
+      //     }
+      //   }
+      // },
     }
   );
 
