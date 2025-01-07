@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import cors from "@fastify/cors";
 import { initializeSequelize, checkDatabaseConnection } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
-import scheduleDailyDelegationJob from "./utility/job.cron"; // Import the cron job scheduler
 
 dotenv.config();
 
@@ -39,8 +38,6 @@ const start = async () => {
         // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
-
-    scheduleDailyDelegationJob();
 
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
