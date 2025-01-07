@@ -137,11 +137,12 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string,job_id?:string }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string,job_id?:string  }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }[];
     }>,
     reply: FastifyReply
 ) => {
+
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     let updates = request.body;
@@ -176,6 +177,9 @@ export const updateWorkflowStatus = async (
 
         // Iterate over each update
         for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
+
+            const user = await fetchUserById(user_id);
+            console.log("user", user)
             let levelFound = false;
 
             levels = await Promise.all(
@@ -201,6 +205,7 @@ export const updateWorkflowStatus = async (
                                 }
 
                                 if (user_id) {
+
                                     // If the recipient has a `replaced_by` field, match `user_id` directly
                                     if (recipient.replaced_by && recipient.replaced_by === user_id) {
                                         const history = await WorkflowStatusHistory.create({
@@ -289,8 +294,8 @@ export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string,job_id?:string}
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string,job_id?:string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -326,7 +331,7 @@ export const rejectLevel = async (
 
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
 
-
+          
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -340,14 +345,16 @@ export const rejectLevel = async (
                     if (level.placement_order === placement_order) {
                         levelFound = true;
 
-                        const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
+                        const updatedRecipientTypes = level.recipient_types.map(async(recipient: any) => {
                             if (
                                 (recipient.replaced_by && recipient.replaced_by === user_id) ||
                                 (!recipient.replaced_by &&
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-
+                                const user = await fetchUserById(user_id);
+                                console.log("user", user);
+                                
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -435,7 +442,7 @@ export const updateReplaceLevel = async (
             replaced_by: string;
             user_id?: string;
             notes?: string;
-            job_id?:string 
+            job_id?: string
         };
     }>,
     reply: FastifyReply
@@ -549,7 +556,32 @@ export const updateReplaceLevel = async (
     }
 };
 
+async function fetchUserById(user_id: any) {
+    const userQuery = `
+        SELECT id, first_name, last_name, avatar, role_id,email
+        FROM user
+        WHERE id = :user_id
+          AND is_enabled = true
+        LIMIT 1;
+    `;
 
+    try {
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { user_id },
+        });
+
+        if (userResult.length > 0) {
+            return userResult[0]; // Return the first user found
+        } else {
+            console.warn(`User with ID ${user_id} not found.`);
+            return null; // Return null if no user is found
+        }
+    } catch (error) {
+        console.error(`Error fetching user with ID ${user_id}:`, error);
+        throw new Error("Failed to fetch user details.");
+    }
+}
 export const imporsonateLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
