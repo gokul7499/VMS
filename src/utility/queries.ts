@@ -1331,9 +1331,6 @@ export const masterDataQuery = `
     LIMIT 0, 1000;
 `;
 
-
-
-
 export const getAllExpenseConfigHierarchies = `
  SELECT 
   ec.program_id,
@@ -1350,11 +1347,6 @@ WHERE ec.program_id = :program_id
 GROUP BY ec.program_id
 LIMIT 0, 1000;
 `;
-
-
-
-
-
 
 export const configAdvancedFilter = (
   hasConfigName: boolean,
@@ -1899,7 +1891,6 @@ WHERE
 GROUP BY 
   timesheet_expense_rules.id;
 `
-
 export const getQuery = () => `
     SELECT 
         (SELECT id FROM currencies WHERE name = :currencyName LIMIT 1) AS currency,
@@ -1908,7 +1899,6 @@ export const getQuery = () => `
         (SELECT id FROM picklistitems WHERE label = :rateModelLabel LIMIT 1) AS rateModel,
         (SELECT id FROM picklistitems WHERE label = :unitOfMeasureLabel LIMIT 1) AS unitOfMeasure
 `;
-
 
 export const hierarchie = `
     SELECT 
