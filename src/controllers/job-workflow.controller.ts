@@ -1137,7 +1137,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);
+      
         
         let manager = rows[0]?.manager
         if (rows.length === 0) {
@@ -1402,16 +1402,24 @@ ORDER BY
                     }
 
                 }
+               
+                
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                 
                     let replacedUserResult: Users[] | null = null;
                     let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
+                   
                     for (const recipient of recipientTypes) {
+                    
+                        
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
                             const userId = Object.values(metaData)[0];
+                           
+                            
                             level_behaviour = Object.values(metaData)[1];
                             const userQuery = `
                                 SELECT id, first_name, last_name, avatar, role_id, email
@@ -1424,6 +1432,8 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { user_id: userId },
                             });
+                            
+                            
                             // Fetch replacement user data if applicable
                             if (userResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
@@ -1449,6 +1459,9 @@ ORDER BY
                                     });
                                 });
                             }
+
+
+
 
                             // Map users to input_value including replaced_user_data when applicable
                             input_value = users.map(user => {
@@ -1480,6 +1493,11 @@ ORDER BY
                                     level_behaviour: level_behaviour
                                 };
                             });
+                           
+                            
+                           
+                              
+                            
                         }
                     }
                 }
@@ -1508,7 +1526,11 @@ ORDER BY
                                 replaced_by: replaced_user_data,
                                 imporsonate_by: imposonate_user_data
                             };
+                            
                         });
+                      
+                     
+                        
                     } else {
                         // If input_value is a single object, create a single recipient
                         recipients = [{
@@ -1528,15 +1550,32 @@ ORDER BY
                             replaced_by: replaced_user_data,
                             imporsonate_by: imposonate_user_data
                         }];
+                      
+                      
+                        
                     }
-
+                   
+                
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
+                        
                         const existingLevel = getExistingLevel(workflow, level_id);
+                        // if (existingLevel) {
+                        //     existingLevel.recipients.push(recipient);
+                        // }
                         if (existingLevel) {
-                            existingLevel.recipients.push(recipient);
-                        } else {
-                            workflow.levels.push({
+                            
+                            const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
+                            
+                            if (duplicateIndex === -1) {
+                              
+                                existingLevel.recipients.push(recipient);
+                            }
+                  
+                        }else {
+                           
+                            
+                            workflow.levels.push({                              
                                 level_id,
                                 level_order: placement_order,
                                 placement_order,
