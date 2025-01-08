@@ -99,6 +99,8 @@ export const createRateConfigurations = async (
                                     differential_on: billRate.differential_on,
                                     differential_type: billRate.differential_type,
                                     differential_value: billRate.differential_value,
+                                    unit_of_measure:billRate.unit_of_measure,
+                                    currency:billRate.currency,
                                     type: 'BILL_RATE',
                                 }, { transaction });
                             }
@@ -110,6 +112,8 @@ export const createRateConfigurations = async (
                                     differential_on: payRate.differential_on,
                                     differential_type: payRate.differential_type,
                                     differential_value: payRate.differential_value,
+                                    unit_of_measure:payRate.unit_of_measure,
+                                    currency:payRate.currency,
                                     type: 'PAY_RATE',
                                 }, { transaction });
                             }
@@ -163,7 +167,8 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now()
+                modified_on: Date.now(),
+                is_enabled:rateConfigurationsPayload.is_enabled
             },
             { transaction }
         );
@@ -250,6 +255,8 @@ export const updateRateConfigurations = async (
                                         differential_on: billRate.differential_on,
                                         differential_type: billRate.differential_type,
                                         differential_value: billRate.differential_value,
+                                        unit_of_measure:billRate.unit_of_measure,
+                                        currency:billRate.currency,
                                         type: 'BILL_RATE',
                                     },
                                     { transaction }
@@ -270,6 +277,8 @@ export const updateRateConfigurations = async (
                                         differential_on: payRate.differential_on,
                                         differential_type: payRate.differential_type,
                                         differential_value: payRate.differential_value,
+                                        unit_of_measure:payRate.unit_of_measure,
+                                        currency:payRate.currency,
                                         type: 'PAY_RATE',
                                     },
                                     { transaction }
@@ -501,12 +510,12 @@ export async function getRateConfigurationById(
 
                         const billRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'BILL_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         const payRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'PAY_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type','unit_of_measure','currency'],
                         });
 
                         return {

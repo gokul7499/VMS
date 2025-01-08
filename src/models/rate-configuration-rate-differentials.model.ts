@@ -36,6 +36,14 @@ RateConfigurationRateDifferentials.init(
             type: DataTypes.STRING,
             allowNull: true
         },
+        unit_of_measure:{
+            type:DataTypes.STRING,
+            allowNull:true
+        },
+        currency:{
+            type:DataTypes.STRING,
+            allowNull:true
+        }
     },
     {
         sequelize,
