@@ -192,13 +192,15 @@ export async function getAllCandidate(
         if (worker_type_id) whereClause.worker_type_id = worker_type_id;
         if (availability_date) whereClause["preferences.availability_date"] = availability_date;
         if (updatedAt) whereClause.updatedAt = updatedAt;
-        if (available_candidate === 'true' && job_id) {
-            whereClause.id = {
-                [Op.notIn]: sequelize.literal(
-                    `(SELECT candidate_id FROM submission_candidate WHERE job_id = '${job_id}' AND candidate_id IS NOT NULL)`
-                )
-            };
-        }
+        // if (available_candidate === 'true' && job_id) {
+        //     whereClause.id = {
+        //         [Op.notIn]: sequelize.literal(
+        //             `(SELECT candidate_id FROM submission_candidate WHERE job_id = '${job_id}' AND candidate_id IS NOT NULL)`
+        //         )
+        //     };
+        // }
+
+        if (available_candidate === 'true' && job_id) whereClause.program_id = program_id;
 
         const includeClause = [
             {

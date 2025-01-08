@@ -1383,7 +1383,7 @@ export const configAdvancedFilter = (
           WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
         )`
     : '';
-  
+
   const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
     ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
     : '';
@@ -1573,6 +1573,7 @@ export const getAllRateTypes = (
   hasDifferentialOn: boolean,
   hasRateTypeCategory: boolean,
   hasShiftType: boolean,
+  hasRateTypeCategoryLabels: boolean,
   startDate?: number,
   endDate?: number,
   limit?: number,
@@ -1619,13 +1620,14 @@ export const getAllRateTypes = (
         ${isShiftRateValue ? "AND rt.is_shift_rate = :is_shift_rate" : ""}
         ${isBaseRate ? "AND rt.is_base_rate = :is_base_rate" : ""}
         ${hasDifferentialOn
-      ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
-      : ""}
+    ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
+    : ""}
         ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
+        ${hasRateTypeCategoryLabels ? "AND picklistitems.value IN (:rate_type_category_labels)" : ""}        
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
-      ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
-      : ""
+    ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+    : ""
   }
       GROUP BY 
         rt.id, 
@@ -1694,26 +1696,26 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
   let whereConditions = `rc.is_deleted = 0 AND rc.program_id = :program_id`;
 
   if (replacements.name) {
-      whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
+    whereConditions += ` AND rc.name LIKE CONCAT('%', :name, '%')`;
   }
   if (replacements.is_enabled !== undefined) {
-      whereConditions += ` AND rc.is_enabled = :is_enabled`;
+    whereConditions += ` AND rc.is_enabled = :is_enabled`;
   }
   if (replacements.is_shift_rate !== undefined) {
-      whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
+    whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-      whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
-      whereConditions += ` AND rc.id IN (
+    whereConditions += ` AND rc.id IN (
           SELECT DISTINCT rcjt.rate_configuration_id
           FROM rate_configuration_job_templates AS rcjt
           WHERE rcjt.job_template_id = :job_template_id
       )`;
   }
   if (replacements.hierarchy_id) {
-      whereConditions += ` AND rc.id IN (
+    whereConditions += ` AND rc.id IN (
           SELECT DISTINCT rch.rate_configuration_id
           FROM rate_configuration_hierarchies AS rch
           WHERE rch.hierarchy_id = :hierarchy_id
@@ -1755,8 +1757,8 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     LIMIT :limit OFFSET :offset;
   `;
   return await sequelize.query(sqlQuery, {
-      replacements,
-      type: QueryTypes.SELECT,
+    replacements,
+    type: QueryTypes.SELECT,
   });
 };
 
@@ -1981,3 +1983,22 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
      ${hierarchyCondition}
     `;
 };
+
+export const getWorklocation = `
+SELECT 
+    wl.program_id,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', c.id,
+            'name', c.name
+        )
+    ) AS countries
+FROM (
+    SELECT DISTINCT 
+        work_locations.program_id, 
+        work_locations.country_id 
+    FROM work_locations
+    WHERE work_locations.program_id = :program_id
+) AS wl
+LEFT JOIN countries c ON wl.country_id = c.id
+GROUP BY wl.program_id;`

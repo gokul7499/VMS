@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getAllReasoncode, getReasoncodeById, getReasoncodeByEventName, updateReasoncode, createReasoncode, deleteReasoncode, getReasonCodeBySlug } from '../controllers/reason-code-action.controller';
+import { getAllReasoncode, getReasoncodeById, getReasoncodeByEventName, updateReasoncode, createReasoncode, deleteReasoncode, getReasonCodeBySlug, getReasonCodeByProgramIdAndSlug } from '../controllers/reason-code-action.controller';
 
 async function reasoncodeRoute(fastify: FastifyInstance) {
     fastify.post('/reason-code', createReasoncode);
@@ -9,6 +9,7 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
     fastify.get('/reason-codes', getReasoncodeByEventName);
     fastify.put('/program/:program_id/reason-code/:id', updateReasoncode);
     fastify.delete('/reason-code/:id', deleteReasoncode);
+    fastify.get('/reason_codes/:slug', getReasonCodeByProgramIdAndSlug);
 }
 
 export default reasoncodeRoute;

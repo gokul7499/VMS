@@ -5,7 +5,8 @@ import {
     updateWorkLocation,
     deleteWorkLocationById,
     getAllWorkLocations,
-    getAllWorkLocationsCountry
+    getAllWorkLocationsCountry,
+    getAllCountry
 } from '../controllers/work-location.controller';
 
 async function workLocationRoutes(fastify: FastifyInstance) {
@@ -15,6 +16,8 @@ async function workLocationRoutes(fastify: FastifyInstance) {
     fastify.put('/work-location/:id', updateWorkLocation);
     fastify.delete('/program/:program_id/work-location/:id', deleteWorkLocationById);
     fastify.get('/program/:program_id/work-location-country', getAllWorkLocationsCountry);
+    fastify.get('/program/:program_id/work-location-countries', getAllCountry);
+
 }
 
 export default workLocationRoutes;

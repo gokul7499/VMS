@@ -412,7 +412,7 @@ export async function deleteReasoncode(
         const { id } = request.params;
         const [numRowsDeleted] = await ReasonCodeActionModel.update({
             is_enabled: false,
-            is_deleted:true,
+            is_deleted: true,
             modified_on: Date.now(),
         },
             { where: { id } }
@@ -528,3 +528,52 @@ export const getReasonCodeBySlug = async (
     }
 };
 
+export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId = generateCustomUUID();
+    const { slug } = request.params as { slug: string };
+    try {
+
+        const reasonCodeAction = await ReasonCodeActionModel.findOne({
+            where: { slug },
+        });
+
+        if (!reasonCodeAction) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "Reason code action not found.",
+                trace_id: traceId
+            });
+        }
+
+        const reasonCodes = await ReasonCodeModel.findAll({
+            where: {
+                reason_code_id: reasonCodeAction.id,
+            },
+            attributes: ['id', 'name', 'category', 'reason_code_id'],
+        });
+
+        if (!reasonCodes.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Reason code is not found.",
+                trace_id: traceId,
+                reason_code: []
+            });
+        }
+
+        reply.status(200).send({
+            status_code: 200,
+            message: "Reason codes retrieved successfully.",
+            trace_id: traceId,
+            reason_code: reasonCodes
+        });
+
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: "Internal Server Error.",
+            trace_id: traceId,
+            error: error.message
+        });
+    }
+};

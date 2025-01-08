@@ -29,9 +29,8 @@ export const createProgramModule = async (record: Model,transaction: any) => {
 };
 
 export const createHierarchy = async (record: Model, transaction: any) => {
-    const { id: programId, name } = record as any;
-    console.log("program", programId);
-
+    const { id: programId, name ,unique_id} = record as any;
+  
     const code = generateSlug(name, {
         trim: true,
         removedspecial: true,
@@ -40,7 +39,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
     const hierarchy = await hierarchies.create({
         program_id: programId,
         name,
-        code: "--",
+        code: unique_id,
         hierarchy_level: 1,
         hierarchy_order: 1,
         is_enabled: true,        
