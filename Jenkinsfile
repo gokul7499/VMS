@@ -1,3 +1,48 @@
+def nextVersionFromGit(scope) {
+    def latestVersion = sh( returnStdout: true, script: 'git tag --sort=v:refname | tail -n 1 || echo v1.0.0').trim()
+    def statusCode = sh(returnStatus: true, script: "git diff-index --quiet ${latestVersion}")
+    println("statusCode is ${statusCode}")
+    if ( build_env == "prod" ) {
+        def nextVersion = "${release_tag}"
+        create_tag = "false"
+        println("line 8 create_tag is ${create_tag} => build_env is ${env.build_env}")
+        return nextVersion
+    } else if ( build_env == "dev" && statusCode == 0 ) {
+        def nextVersion = "${latestVersion}"
+        create_tag = "false"
+        println("line 12 create_tag is ${create_tag} => build_env is ${env.build_env}")
+        return nextVersion
+    } else {
+    print latestVersion
+    def (major, minor, patch) = latestVersion.minus('v').tokenize('.').collect { it.toInteger() }
+    def nextVersion
+    switch (scope) {
+        case 'major':
+            nextVersion1 = "${major + 1}.0.0"
+            nextVersion = "v${nextVersion1}"
+            create_tag = "true"
+            break
+        case 'minor':
+            nextVersion1 = "${major}.${minor + 1}.0"
+            nextVersion = "v${nextVersion1}"
+            create_tag = "true"
+            break
+        case 'patch':
+            nextVersion1 = "${major}.${minor}.${patch + 1}"
+            nextVersion = "v${nextVersion1}"
+            create_tag = "true"
+            break
+        default:
+            nextVersion = "none"
+            create_tag = "false"
+            break
+    }
+    println("line 40 create_tag is ${create_tag} => build_env is ${env.build_env}")
+    println("currentTagVersion is ${latestVersion} => LatestTagVersion is ${nextVersion}")
+    return nextVersion
+  }
+}
+
 pipeline {
     agent any
 
@@ -17,6 +62,8 @@ pipeline {
         module_name = "${module_name}"
         container_port = "${container_port}"
         host_port = "${container_port}"
+        build_time = sh(script: "echo `date +%F-%T-%Z`", returnStdout: true).trim()
+        tag_name = nextVersionFromGit(env.release_type)
     }
 
     stages {
@@ -94,6 +141,24 @@ pipeline {
                 sh "/usr/local/bin/aws --region ${region} ecs update-service --cluster ${cluster_arn}/${project_env}-v4-ecs --service ${project_env}-${module_name}-service --task-definition ${task_def_arn}/${project_env}-${module_name}-task --profile ${PROFILE_NAME} --propagate-tags TASK_DEFINITION"
             }
         }
+        stage('createTag') {
+        when {
+            allOf {
+                expression { return create_tag == "true" }
+                expression { return env.build_env == "dev" }
+            }
+        }
+
+        steps {
+
+            sh "git tag -a ${tag_name} -m 'release version ${tag_name}'"
+            sh "echo ${tag_name}"
+            sshagent(['simplify_deployment_ssh_key']) {
+                sh("git push origin ${tag_name}")
+            }
+
+        }
+    }
     }
 
     post {
