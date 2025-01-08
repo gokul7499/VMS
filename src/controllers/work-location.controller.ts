@@ -3,12 +3,13 @@ import { WorkLocationInterface } from "../interfaces/work-location.interface";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Currencies from "../models/currencies.model";
-import WorkLocationCurrency from "../models/WorkLocationCurrencyModel";
+import WorkLocationCurrency from "../models/workLocationCurrency.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
 import { getWorklocation } from "../utility/queries";
 import { sequelize } from "../config/instance";
+import CountryModel from "../models/countries.model";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -69,6 +70,7 @@ export async function createWorkLocation(
           work_location_id: workLocationData.id,
           currency_id: currency.id,
           is_default: currency.is_default,
+          name:currency.name
         });
       }
     }
@@ -99,7 +101,7 @@ export async function createWorkLocation(
       },
       WorkLocationModel
     );
-  } catch (error) {
+  } catch (error:any) {
     logger(
       {
         trace_id: traceId,
@@ -125,7 +127,7 @@ export async function createWorkLocation(
       status_code: 500,
       trace_id: traceId,
       message: "Failed to create work location",
-      error,
+      error:error.message,
     });
   }
 }
@@ -172,7 +174,14 @@ export async function getAllWorkLocations(
       where: whereClause,
       limit,
       offset,
-      order
+      order,
+      include: [
+        {
+          model: CountryModel,
+          as: 'countries',
+          attributes: ['id', 'name'],
+        }
+      ]
     });
     for (const location of workLocations) {
       const currencyIds = location.currency_id as string[] || [];
@@ -244,6 +253,11 @@ export async function getWorkLocationById(
         is_deleted: false,
       },
       include: [
+        {
+          model: CountryModel,
+          as: 'countries',
+          attributes: ['id', 'name'],
+        },
         {
           model: WorkLocationCurrency,
           as: 'currencies',
@@ -339,11 +353,14 @@ export async function updateWorkLocation(
 
     if (currencies && currencies.length > 0) {
       await Promise.all(
-        currencies.map(async (currency: { id: any; is_default: any }) => {
+        currencies.map(async (currency: {
+          name: unknown; id: any; is_default: any 
+}) => {
           await WorkLocationCurrency.create({
             work_location_id: id,
             currency_id: currency.id,
             is_default: currency.is_default,
+            name:currency.name
           });
         })
       );
@@ -410,11 +427,13 @@ export async function getAllWorkLocationsCountry(
   request: FastifyRequest<{ Params: { program_id: string }; Querystring: { isCountry?: string; isStates?: string } }>,
   reply: FastifyReply
 ) {
+
   const traceId = generateCustomUUID();
   const { program_id } = request.params;
   const { isCountry, isStates } = request.query;
 
   try {
+    const includeOptions = [];
     const response: {
       status_code: number;
       trace_id: string;
@@ -427,11 +446,20 @@ export async function getAllWorkLocationsCountry(
       message: "Work locations retrieved successfully",
     };
 
+    if (isCountry === "true") {
+      includeOptions.push({
+        model: CountryModel,
+        as: "countries",
+        attributes: ["id", "name"],
+      });
+    }
+
     const workLocations = await WorkLocationModel.findAll({
       where: {
         program_id,
         is_deleted: false,
       },
+      include: includeOptions,
       attributes: ["id", "name", "state_name"],
     });
 
@@ -441,25 +469,24 @@ export async function getAllWorkLocationsCountry(
     }
 
     if (isCountry === "true") {
-      const uniqueCountries = new Map<string, { id: string; name: string }>();
-      workLocations.forEach((location: { name: string; id: any; }) => {
-        if (!uniqueCountries.has(location.name)) {
-          uniqueCountries.set(location.name, { id: location.id, name: location.name });
-        }
-      });
+      const workLocationCountry = workLocations
+        .map(location => location.countries).filter(Boolean).flat()
+        .map((country: any) => ({
+          id: country.id,
+          name: country.name,
+        }));
 
-      response.work_location_country = Array.from(uniqueCountries.values());
+      response.work_location_country = workLocationCountry;
+
     }
 
     if (isStates === "true") {
-      const uniqueStates = new Map<string, { id: string; name: string }>();
-      workLocations.forEach((location: { state_name: string; id: any; }) => {
-        if (!uniqueStates.has(location.state_name)) {
-          uniqueStates.set(location.state_name, { id: location.id, name: location.state_name });
-        }
-      });
+      const workLocationStates = workLocations.map(location => ({
+        id: location.id,
+        name: location.state_name,
+      }));
 
-      response.work_location_states = Array.from(uniqueStates.values());
+      response.work_location_states = workLocationStates;
     }
 
     return reply.status(200).send(response);
@@ -468,7 +495,7 @@ export async function getAllWorkLocationsCountry(
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve work locations",
-      error,
+      error
     });
   }
 }
