@@ -5,7 +5,7 @@ import cors from "@fastify/cors";
 import redis from "./config/redis";
 import { checkDatabaseConnection, initializeSequelize } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
-
+ 
 dotenv.config();
 
 import registerRoutes from "./routes";
@@ -13,22 +13,19 @@ import registerRoutes from "./routes";
 const app = fastify({
   logger: pino({ level: "info" }),
 });
-
-
+ 
 app.register(cors, {
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 });
-
-
-
+ 
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to Fastify API with Redis!" });
 });
-
+ 
 app.register(formBodyPlugin);
-
+ 
 // Import routes after Sequelize initialization
 let port = 8000;
 
@@ -65,20 +62,22 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
-
+ 
     // Import models and routes after Sequelize is initialized
     // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
-
+ 
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
     });
+ 
+    app.log.info(`Server listening on port ${port}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
   }
 };
-
+ 
 start();

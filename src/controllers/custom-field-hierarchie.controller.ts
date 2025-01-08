@@ -190,7 +190,7 @@ export const saveCustomFieldsHierarchies = async (custom_field_id: string, hiera
 export const getCustomFieldsByHierarchyIds = async (
   request: FastifyRequest<{
     Params: { program_id: string },
-    Querystring: { hierarchy_ids?: string, module_name?: string, is_status?: boolean }
+    Querystring: { hierarchy_ids?: string; module_name?: string; is_status?: boolean };
   }>,
   reply: FastifyReply
 ) => {
@@ -199,10 +199,10 @@ export const getCustomFieldsByHierarchyIds = async (
   const traceId = generateCustomUUID();
 
   try {
-    const result: Record<string, any[]> = {};
     const hierarchyIdsArray = hierarchy_ids
       ? Array.from(new Set(hierarchy_ids.split(',').map(id => id.trim()).filter(Boolean)))
       : [];
+    const customFieldsResult: any[] = [];
 
     if (module_name) {
       const customFields = await CustomField.findAll({
@@ -222,7 +222,7 @@ export const getCustomFieldsByHierarchyIds = async (
       const customFieldHierarchies = await customFieldHierarchie.findAll({
         where: {
           program_id,
-          ...(hierarchyIdsArray.length > 0 ? { hierarchy_id: hierarchyIdsArray } : {}), // Apply filter only if hierarchy_ids is provided
+          ...(hierarchyIdsArray.length > 0 ? { hierarchy_id: hierarchyIdsArray } : {}),
         },
       });
 
@@ -235,62 +235,8 @@ export const getCustomFieldsByHierarchyIds = async (
         });
       }
 
-      customFieldHierarchies.forEach(hierarchy => {
-        const hierarchyId = hierarchy.hierarchy_id;
-        if (!result[hierarchyId]) {
-          result[hierarchyId] = customFields.map(field => ({
-            custid: field.id,
-            program_id: field.program_id,
-            custname: field.name,
-            field_type: field.field_type,
-            label: field.label,
-            slug: field.slug,
-            placeholder: field.placeholder,
-            meta_data: field.meta_data,
-            is_all_work_location: field.is_all_work_location,
-            is_all_hierarchy: field.is_all_hierarchy,
-            supporting_text: field.supporting_text,
-            description: field.description,
-            is_required: field.is_required,
-            is_readonly: field.is_readonly,
-            is_enabled: field.is_enabled,
-            is_linked: field.is_linked,
-            is_deleted: field.is_deleted,
-            created_on: field.created_on,
-            modified_on: field.modified_on,
-            module_id: field.module_id,
-            module_name: field.module_name,
-            can_view: field.can_view,
-            can_edit: field.can_edit,
-            job_type: field.job_type,
-            linked_modules: field.linked_modules,
-          }));
-        }
-      });
-    }
-
-    if (hierarchyIdsArray.length > 0) {
-      for (const hierarchyId of hierarchyIdsArray) {
-        if (result[hierarchyId]) continue;
-
-        const customFieldHierarchies = await customFieldHierarchie.findAll({
-          where: { hierarchy_id: hierarchyId, program_id },
-        });
-
-        if (!customFieldHierarchies.length) {
-          result[hierarchyId] = [];
-          continue;
-        }
-
-        const customFieldIds = Array.from(
-          new Set(customFieldHierarchies.map(field => field.custom_field_id))
-        );
-
-        const customFields = await CustomField.findAll({
-          where: { id: customFieldIds, program_id, is_deleted: false, is_enabled: true },
-        });
-
-        result[hierarchyId] = customFields.map(field => ({
+      customFields.forEach(field => {
+        customFieldsResult.push({
           custid: field.id,
           program_id: field.program_id,
           custname: field.name,
@@ -316,32 +262,79 @@ export const getCustomFieldsByHierarchyIds = async (
           can_edit: field.can_edit,
           job_type: field.job_type,
           linked_modules: field.linked_modules,
-        }));
+        });
+      });
+    }
+
+    if (hierarchyIdsArray.length > 0) {
+      for (const hierarchyId of hierarchyIdsArray) {
+        const customFieldHierarchies = await customFieldHierarchie.findAll({
+          where: { hierarchy_id: hierarchyId, program_id },
+        });
+
+        if (customFieldHierarchies.length > 0) {
+          const customFieldIds = Array.from(
+            new Set(customFieldHierarchies.map(field => field.custom_field_id))
+          );
+
+          const customFields = await CustomField.findAll({
+            where: { id: customFieldIds, program_id, is_deleted: false, is_enabled: true },
+          });
+
+          customFields.forEach(field => {
+            customFieldsResult.push({
+              custid: field.id,
+              program_id: field.program_id,
+              custname: field.name,
+              field_type: field.field_type,
+              label: field.label,
+              slug: field.slug,
+              placeholder: field.placeholder,
+              meta_data: field.meta_data,
+              is_all_work_location: field.is_all_work_location,
+              is_all_hierarchy: field.is_all_hierarchy,
+              supporting_text: field.supporting_text,
+              description: field.description,
+              is_required: field.is_required,
+              is_readonly: field.is_readonly,
+              is_enabled: field.is_enabled,
+              is_linked: field.is_linked,
+              is_deleted: field.is_deleted,
+              created_on: field.created_on,
+              modified_on: field.modified_on,
+              module_id: field.module_id,
+              module_name: field.module_name,
+              can_view: field.can_view,
+              can_edit: field.can_edit,
+              job_type: field.job_type,
+              linked_modules: field.linked_modules,
+            });
+          });
+        }
       }
     }
 
     const response: Record<string, any> = {
       status_code: 200,
       trace_id: traceId,
-      message:"Custom feild get successfully",
+      message: 'Custom fields retrieved successfully',
       program_id,
-      total_record: Object.keys(result).length,
-      custom_fields: is_status ? Object.keys(result).length : result,
+      total_record: customFieldsResult.length,
+      custom_fields: customFieldsResult,
     };
+
     if (is_status) {
       response.is_status = is_status;
     }
 
     return reply.status(200).send(response);
 
-  } catch (error:any) {
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields.',
       trace_id: traceId,
-      error:error.message
+      error: error.message,
     });
   }
 };
-
-

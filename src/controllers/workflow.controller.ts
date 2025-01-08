@@ -30,7 +30,7 @@ import WorkLocationModel from '../models/work-location.model';
 import IndustriesModel from '../models/labour-category.model';
 import picklistModel from '../models/picklist.model';
 import foundationalData from '../models/foundational-data.model';
-import jobTemplateModel from '../models/jobTemplateModel';
+import jobTemplateModel from '../models/job-template.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
@@ -140,8 +140,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             }
 
             for (const recipient of level.recipient_types || []) {
-              
-                
+
+
                 await WorkflowRecepientType.create({
                     level_id: createdLevel.id,
                     program_id: program_id,
@@ -283,7 +283,7 @@ export const updateReorder = async (
         const workflowsMap = new Map(workflows.map(workflow => [workflow.id, workflow]));
         const reorderedWorkflows = flow_order
             .map(id => workflowsMap.get(id))
-            .filter(workflow => workflow !== undefined); // Ensure only valid workflows are included
+            .filter(workflow => workflow !== undefined);
 
         // Check if any IDs from flow_order are missing in the fetched workflows
         const existingIds = workflows.map(workflow => workflow.id);
@@ -445,7 +445,7 @@ export async function getAllWorkflows(
                 })),
             };
         }));
-       
+
         reply.status(200).send({
             status_code: 200,
             message: "workflow get successfully",

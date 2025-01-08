@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import RateConfigurationsModel from '../models/rate-configurations.model';
-import { RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
+import { RateConfigurationsBudget, RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import RateConfigurationHierarchies from '../models/rate_configuration_hierarchies.model';
 import RateConfigurationJobTemplates from '../models/rate-configuration-job-templates.model';
@@ -8,7 +8,7 @@ import RateConfigurationBaseRateTypes from '../models/rate-configuration-base-ra
 import RateConfigurationRateTypes from '../models/rate-configuration-rate-types.model';
 import RateConfigurationRateDifferentials from '../models/rate-configuration-rate-differentials.model';
 import { sequelize } from '../config/instance';
-import jobTemplateModel from '../models/jobTemplateModel';
+import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklistItemModel';
@@ -16,7 +16,6 @@ import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sa
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
-const sourcing_db = process.env.SOURCING_DB ?? "qa_vms_sourcing";
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -100,6 +99,8 @@ export const createRateConfigurations = async (
                                     differential_on: billRate.differential_on,
                                     differential_type: billRate.differential_type,
                                     differential_value: billRate.differential_value,
+                                    unit_of_measure: billRate.unit_of_measure,
+                                    currency: billRate.currency,
                                     type: 'BILL_RATE',
                                 }, { transaction });
                             }
@@ -111,6 +112,8 @@ export const createRateConfigurations = async (
                                     differential_on: payRate.differential_on,
                                     differential_type: payRate.differential_type,
                                     differential_value: payRate.differential_value,
+                                    unit_of_measure: payRate.unit_of_measure,
+                                    currency: payRate.currency,
                                     type: 'PAY_RATE',
                                 }, { transaction });
                             }
@@ -164,7 +167,8 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now()
+                modified_on: Date.now(),
+                is_enabled: rateConfigurationsPayload.is_enabled
             },
             { transaction }
         );
@@ -251,6 +255,8 @@ export const updateRateConfigurations = async (
                                         differential_on: billRate.differential_on,
                                         differential_type: billRate.differential_type,
                                         differential_value: billRate.differential_value,
+                                        unit_of_measure: billRate.unit_of_measure,
+                                        currency: billRate.currency,
                                         type: 'BILL_RATE',
                                     },
                                     { transaction }
@@ -271,6 +277,8 @@ export const updateRateConfigurations = async (
                                         differential_on: payRate.differential_on,
                                         differential_type: payRate.differential_type,
                                         differential_value: payRate.differential_value,
+                                        unit_of_measure: payRate.unit_of_measure,
+                                        currency: payRate.currency,
                                         type: 'PAY_RATE',
                                     },
                                     { transaction }
@@ -331,7 +339,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -350,6 +358,8 @@ export async function getAllRateConfigurations(
         const replacements: any = {
             program_id,
             name: query.name ?? null,
+            job_template_id: query.job_template_id ?? null,
+            hierarchy_id: query.hierarchy_id ?? null,
             is_enabled: isEnabled,
             is_shift_rate: isShiftRate,
             startDate,
@@ -419,7 +429,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate','is_enabled'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
         });
 
         if (!rateConfiguration) {
@@ -442,17 +452,19 @@ export async function getRateConfigurationById(
             ],
         }).then((data) => data.map((item) => item.hierarchy));
 
-        const jobTemplates = await sequelize.query<{ job_template_id: string; template_name: string }>(
-            ` SELECT jt.id AS job_template_id,jt.template_name FROM rate_configuration_job_templates rcjt
-              JOIN ${sourcing_db}.job_templates jt ON rcjt.job_template_id = jt.id WHERE  rcjt.rate_configuration_id = :id`,
-            {
-                replacements: { id },
-                type: QueryTypes.SELECT
-            }
-        ).then((data) =>
+        const jobTemplates = await RateConfigurationJobTemplates.findAll({
+            where: { rate_configuration_id: id },
+            include: [
+                {
+                    model: jobTemplateModel,
+                    as: 'job_template',
+                    attributes: ['id', 'template_name'],
+                },
+            ],
+        }).then((data) =>
             data.map((item) => ({
-                id: item.job_template_id,
-                name: item.template_name,
+                id: item.job_template?.id,
+                name: item.job_template?.template_name,
             }))
         );
 
@@ -498,12 +510,12 @@ export async function getRateConfigurationById(
 
                         const billRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'BILL_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type', 'unit_of_measure', 'currency'],
                         });
 
                         const payRates = await RateConfigurationRateDifferentials.findAll({
                             where: { rate_id: rate.id, type: 'PAY_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type'],
+                            attributes: ['differential_on', 'differential_type', 'differential_value', 'type', 'unit_of_measure', 'currency'],
                         });
 
                         return {
@@ -832,12 +844,21 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
             ).values()
         ];
 
+        const rateType = [
+            ...new Map(
+                results
+                    .filter((result: any) => result.rate_id && result.rate_name)
+                    .map((result: any) => [result.rate_id, { id: result.rate_id, name: result.rate_name }])
+            ).values()
+        ];
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             data: {
                 hierarchies: hierarchies,
                 job_templates: jobTemplates,
+                rate_type: rateType,
             },
         });
     } catch (error: any) {
@@ -848,4 +869,87 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
             error: error.message,
         });
     }
-} 
+}
+
+function calculateRates(
+    rates: any[],
+    baseRateMin: number,
+    baseRateMax: number
+) {
+    return rates.map(rate => ({
+        ...rate,
+        min_rate:
+            rate.differential_type === "Factor Differential"
+                ? baseRateMin * rate.differential_value
+                : baseRateMin + rate.differential_value,
+        max_rate:
+            rate.differential_type === "Factor Differential"
+                ? baseRateMax * rate.differential_value
+                : baseRateMax + rate.differential_value,
+    }));
+}
+
+export async function getAllRateConfigurationBudget(
+    request: FastifyRequest<{ Body: RateConfigurationsBudget }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = request.body;
+
+        const rateConfigurationDetails = rate_configuration.map(config => {
+            const baseRateMin = config.base_rate.rate_type.min_rate;
+            const baseRateMax = config.base_rate.rate_type.max_rate;
+
+            const base_rate = {
+                ...config.base_rate,
+                rates: config.base_rate.rates.map(rate => ({
+                    ...rate,
+                    bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax),
+                    pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax),
+                })),
+            };
+
+            const rate = config.rate.map(rateConfig => ({
+                ...rateConfig,
+                bill_rate: calculateRates(rateConfig.bill_rate, baseRateMin, baseRateMax),
+                pay_rate: calculateRates(rateConfig.pay_rate, baseRateMin, baseRateMax),
+                rates: rateConfig.rates.map(nestedRate => ({
+                    ...nestedRate,
+                    bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax),
+                    pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax),
+                })),
+            }));
+
+            return {
+                base_rate,
+                rate,
+            };
+        });
+
+        const response = {
+            program_id,
+            name,
+            is_shift_rate,
+            hierarchies,
+            job_templates,
+            rate_configuration: rateConfigurationDetails,
+        };
+
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: "Rate configurations fetched successfully.",
+            rate_configurations: [response],
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+}
+

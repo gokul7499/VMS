@@ -8,7 +8,7 @@ import {
 } from '../controllers/foundational-datatypes.controller';
 
 async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
-    fastify.post('/foundational-datatypes', async (request, reply) => {
+    fastify.post('/program/:program_id/foundational-datatypes', async (request, reply) => {
         await createFoundationalDataTypes(request, reply);
     });
     fastify.put('/program/:program_id/foundational-datatypes/:id', updateFoundationalDataTypes);
