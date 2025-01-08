@@ -33,12 +33,12 @@ export async function createTimesheetExpenseRule(
 export const getTimesheetExpenseRule = async (
     request: FastifyRequest<{
         Params: { program_id: string };
-        Querystring: { rule_name?: string; is_enabled?: boolean | string; modified_on?: string; page?: string; limit?: string };
+        Querystring: { rule_name?: string;rule_type?:string, is_enabled?: boolean | string; modified_on?: string; page?: string; limit?: string };
     }>,
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
-    const { rule_name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+    const { rule_name,rule_type, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
     const traceId = generateCustomUUID();
 
     try {
@@ -50,6 +50,9 @@ export const getTimesheetExpenseRule = async (
 
         if (rule_name) {
             whereCondition.rule_name = { [Op.like]: `%${rule_name}%` };
+        }
+        if (rule_type) {
+            whereCondition.rule_type = { [Op.like]: `%${rule_type}%` };
         }
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
