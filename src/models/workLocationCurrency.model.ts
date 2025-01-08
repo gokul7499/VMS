@@ -35,6 +35,9 @@ WorkLocationCurrency.init(
     name:{
       type:DataTypes.STRING
     },
+    code:{
+      type:DataTypes.STRING
+    },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
