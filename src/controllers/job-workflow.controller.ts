@@ -179,7 +179,7 @@ export const updateWorkflowStatus = async (
         for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
 
             const user = await fetchUserById(user_id);
-             // Here, you can do any other operations that depend on the fetched user add here notification code
+            // Here, you can do any other operations that depend on the fetched user add here notification code
             console.log("user", user)
             let levelFound = false;
 
@@ -331,8 +331,8 @@ export const rejectLevel = async (
         let updatedLevels = false;
 
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-           
-          
+
+
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -353,14 +353,14 @@ export const rejectLevel = async (
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-                               
+
                                 fetchUserById(user_id).then(user => {
                                     console.log("user", user);
                                     // Here, you can do any other operations that depend on the fetched user add here notification code
                                 }).catch(error => {
                                     console.error("Error fetching user", error);
                                 });
-                        
+
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -376,8 +376,8 @@ export const rejectLevel = async (
                         };
                     }
 
-                   
-                  
+
+
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
@@ -1137,8 +1137,8 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-      
-        
+
+
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -1402,24 +1402,24 @@ ORDER BY
                     }
 
                 }
-               
-                
+
+
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                 
+
                     let replacedUserResult: Users[] | null = null;
                     let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
-                   
+
                     for (const recipient of recipientTypes) {
-                    
-                        
+
+
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
                             const userId = Object.values(metaData)[0];
-                           
-                            
+
+
                             level_behaviour = Object.values(metaData)[1];
                             const userQuery = `
                                 SELECT id, first_name, last_name, avatar, role_id, email
@@ -1432,8 +1432,8 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { user_id: userId },
                             });
-                            
-                            
+
+
                             // Fetch replacement user data if applicable
                             if (userResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
@@ -1493,11 +1493,11 @@ ORDER BY
                                     level_behaviour: level_behaviour
                                 };
                             });
-                           
-                            
-                           
-                              
-                            
+
+
+
+
+
                         }
                     }
                 }
@@ -1526,11 +1526,11 @@ ORDER BY
                                 replaced_by: replaced_user_data,
                                 imporsonate_by: imposonate_user_data
                             };
-                            
+
                         });
-                      
-                     
-                        
+
+
+
                     } else {
                         // If input_value is a single object, create a single recipient
                         recipients = [{
@@ -1550,32 +1550,32 @@ ORDER BY
                             replaced_by: replaced_user_data,
                             imporsonate_by: imposonate_user_data
                         }];
-                      
-                      
-                        
+
+
+
                     }
-                   
-                
+
+
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
-                        
+
                         const existingLevel = getExistingLevel(workflow, level_id);
                         // if (existingLevel) {
                         //     existingLevel.recipients.push(recipient);
                         // }
                         if (existingLevel) {
-                            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
-                        }else {
-                           
-                            
-                            workflow.levels.push({                              
+
+                        } else {
+
+
+                            workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
                                 placement_order,
@@ -2322,16 +2322,16 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         //     existingLevel.recipients.push(recipient);
                         // }
                         if (existingLevel) {
-            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
+
                         }
-                         else {
+                        else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
