@@ -2318,9 +2318,20 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
+                        // if (existingLevel) {
+                        //     existingLevel.recipients.push(recipient);
+                        // }
                         if (existingLevel) {
-                            existingLevel.recipients.push(recipient);
-                        } else {
+            
+                            const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
+                            
+                            if (duplicateIndex === -1) {
+                              
+                                existingLevel.recipients.push(recipient);
+                            }
+                  
+                        }
+                         else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
