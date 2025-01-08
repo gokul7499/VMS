@@ -26,13 +26,16 @@ WorkLocationCurrency.init(
     },
     currency_id: {
       type: DataTypes.UUID,
-      allowNull: true
+      allowNull: true,      
     },
     is_default: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
     },
     name:{
+      type:DataTypes.STRING
+    },
+    code:{
       type:DataTypes.STRING
     },
     createdAt: {
