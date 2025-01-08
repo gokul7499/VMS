@@ -335,19 +335,19 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
 
             const createReviewMethod = item.find(
                 i => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
+                    i.dataValues.name?.trim().toLowerCase() == "review"
             );
             const updateReviewMethod = item.find(
                 i => i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
+                    i.dataValues.name?.trim().toLowerCase() == "review"
             );
             const createApprovalMethod = item.find(
                 i => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
+                    i.dataValues.name?.trim().toLowerCase() == "approval"
             );
             const updateApprovalMethod = item.find(
                 i => i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
+                    i.dataValues.name?.trim().toLowerCase() == "approval"
             );
 
             if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
@@ -367,11 +367,17 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                         ]
                     }
                 ];
+                const sortedResponse = response.sort((a, b) => {
+                    if (a.name?.trim().toLowerCase() === 'review') return -1;
+                    if (b.name?.trim().toLowerCase() === 'review') return 1;
+                    return 0; // No change for other cases
+                });
+            
 
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_method: response,
+                    workflow_method: sortedResponse,
                 });
             } else {
                 return reply.status(400).send({
@@ -455,10 +461,16 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                         ]
                     }
                 ];
+                const sortedResponse = response.sort((a, b) => {
+                    if (a.name?.trim().toLowerCase() === 'review') return -1;
+                    if (b.name?.trim().toLowerCase() === 'review') return 1;
+                    return 0; // No change for other cases
+                });
+            
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_methods: response,
+                    workflow_methods: sortedResponse,
                 });
             } else {
                 return reply.status(400).send({
@@ -538,11 +550,16 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                         ]
                     }
                 ];
-
+                const sortedResponse = response.sort((a, b) => {
+                    if (a.name?.trim().toLowerCase() === 'review') return -1;
+                    if (b.name?.trim().toLowerCase() === 'review') return 1;
+                    return 0; // No change for other cases
+                });
+            
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_methods: response,
+                    workflow_methods: sortedResponse,
                 });
             } else {
                 return reply.status(400).send({
