@@ -31,19 +31,44 @@ export async function createWorkLocation(
   if (!user) {
     return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
   }
+
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
-      where: { code: workLocation.code, program_id },
+      where: {
+        program_id,
+        [Op.or]: [
+          { code: workLocation.code },
+          { name: workLocation.name },
+        ],
+      },
       defaults: { ...workLocation },
     });
 
     if (!created) {
+      const existingWorkLocation = await WorkLocationModel.findOne({
+        where: {
+          program_id,
+          [Op.or]: [
+            { code: workLocation.code },
+            { name: workLocation.name },
+          ],
+        },
+        attributes: ['code', 'name'],
+      });
+
+      const duplicateField = 
+        existingWorkLocation?.name === workLocation.name
+          ? 'name'
+          : 'code';
+
       return reply.status(400).send({
         status_code: 400,
-        message: `Work location with code '${workLocation.code}' already exists.`,
+        message: `Work location with ${duplicateField} '${workLocation[duplicateField]}' already exists.`,
         trace_id: traceId,
       });
     }
+
+    // Log creation event
     logger(
       {
         trace_id: traceId,
@@ -63,14 +88,14 @@ export async function createWorkLocation(
       },
       WorkLocationModel
     );
-
     if (workLocation.currencies && workLocation.currencies.length > 0) {
       for (const currency of workLocation.currencies) {
         await WorkLocationCurrency.create({
           work_location_id: workLocationData.id,
           currency_id: currency.id,
           is_default: currency.is_default,
-          name:currency.name
+          name: currency.name,
+          code: currency.code,
         });
       }
     }
@@ -101,7 +126,7 @@ export async function createWorkLocation(
       },
       WorkLocationModel
     );
-  } catch (error:any) {
+  } catch (error: any) {
     logger(
       {
         trace_id: traceId,
@@ -127,10 +152,11 @@ export async function createWorkLocation(
       status_code: 500,
       trace_id: traceId,
       message: "Failed to create work location",
-      error:error.message,
+      error: error.message,
     });
   }
 }
+
 
 export async function getAllWorkLocations(
   request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
@@ -233,9 +259,7 @@ export async function getWorkLocationById(
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
-
   const traceId = generateCustomUUID();
-
   const { id, program_id } = request.params;
 
   if (!id || !program_id) {
@@ -245,24 +269,16 @@ export async function getWorkLocationById(
       message: "Invalid parameters",
     });
   }
+
   try {
     const workLocation = await WorkLocationModel.findOne({
-      where: {
-        id,
-        program_id,
-        is_deleted: false,
-      },
+      where: { id, program_id, is_deleted: false },
       include: [
         {
           model: CountryModel,
           as: 'countries',
           attributes: ['id', 'name'],
-        },
-        {
-          model: WorkLocationCurrency,
-          as: 'currencies',
-          attributes: ['currency_id', 'is_default'],
-        },
+        }
       ],
     });
 
@@ -273,25 +289,12 @@ export async function getWorkLocationById(
         message: "Work Location Not Found",
       });
     }
-
-    const currencyIds = workLocation.currencies.map((currency: { currency_id: any; }) => currency.currency_id);
-
-    const currencies = await Currencies.findAll({
-      where: {
-        id: currencyIds,
-      },
-      attributes: ['id', 'name'],
+    const workLocationCurrencies = await WorkLocationCurrency.findAll({
+      where: { work_location_id: id },
+      attributes: ['name', 'is_default','code'],
     });
-
-    const responseCurrencies = workLocation.currencies.map((currency: { currency_id: any; is_default: any; }) => {
-      const foundCurrency = currencies.find((curr: { id: any; }) => curr.id === currency.currency_id);
-      return {
-        id: currency.currency_id,
-        name: foundCurrency ? foundCurrency.name : null,
-        is_default: currency.is_default,
-      };
-    });
-
+    const responseCurrencies = workLocationCurrencies
+      .filter((currency: any) => currency.name && currency.is_default !== undefined && currency.code);
     const responseWorkLocation = {
       ...workLocation.dataValues,
       currencies: responseCurrencies,
@@ -302,17 +305,18 @@ export async function getWorkLocationById(
       work_location: responseWorkLocation,
       trace_id: traceId,
     });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "Failed To Retrieve Work Location",
-      error,
+      error: error.message,
     });
   }
 }
+
+
 
 export async function updateWorkLocation(
   request: FastifyRequest<{
@@ -354,13 +358,14 @@ export async function updateWorkLocation(
     if (currencies && currencies.length > 0) {
       await Promise.all(
         currencies.map(async (currency: {
-          name: unknown; id: any; is_default: any 
+          name: unknown; id: any; is_default: any,code:any 
 }) => {
           await WorkLocationCurrency.create({
             work_location_id: id,
             currency_id: currency.id,
             is_default: currency.is_default,
-            name:currency.name
+            name:currency.name,
+            code:currency.code
           });
         })
       );
