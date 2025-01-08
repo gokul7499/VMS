@@ -1137,7 +1137,9 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        let manager = rows[0].manager
+        console.log(rows);
+        
+        let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
@@ -1879,7 +1881,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-            let manager = row.manager
+            let manager = row?.manager
             // Initialize workflow for the job if not already initialized
             if (!workflows[job_workflow_id]) {
                 workflows[job_workflow_id] = {
