@@ -67,6 +67,44 @@ pipeline {
     }
 
     stages {
+        stage('SonarQube analysis') {
+        when{
+            allOf {
+                expression { return env.build_env == "dev" }
+                expression { return env.branch == "*/core-release" }
+            }
+        }
+            environment{
+            JAVA_HOME= '/usr/lib/jvm/jdk-17-oracle-x64'
+        }
+        steps{
+            script{
+                def scannerHome = tool env.sonarqube_scanner;
+                def project_key=env.sonar_project_key;
+                withSonarQubeEnv(env.sonarqube_env) {
+                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=${project_key}"
+                }
+            }
+        }
+    }
+    stage('Quality Gate') {
+        when{
+            allOf {
+                expression { return env.build_env == "dev"}
+                expression { return env.branch == "*/core-release" }
+            }
+        }
+        steps {
+            timeout(time: 5, unit: 'MINUTES') {
+                script {
+                    def qualityGate = waitForQualityGate()
+                    if (qualityGate.status != 'OK') {
+                        echo "Quality Gate did not pass. Quality Gate status: ${qualityGate.status}"
+                    }
+                }
+            }
+        }
+    }
         stage('Add Config files') {
             steps {
                 configFileProvider([configFile(fileId: 'v4-common-config', replaceTokens: true, targetLocation: 'taskdef.json')]) {
@@ -157,6 +195,46 @@ pipeline {
                 sh("git push origin ${tag_name}")
             }
 
+        }
+    }
+    stage('BOM file creation') {
+        when{
+            allOf {
+                expression { return env.build_env == "dev" }
+                expression { return env.branch == "*/core-release" }
+            }
+        }
+        steps {
+            sh 'composer global require cyclonedx/cyclonedx-php-composer'
+            sh 'composer CycloneDX:make-sbom'
+           }
+    }
+
+    stage('Upload BOM to DependencyTrack') {
+        when{
+            allOf {
+                expression { return env.build_env == "dev" }
+                expression { return env.branch == "*/core-release" }
+            }
+        }
+        steps {
+            dependencyTrackPublisher(
+                artifact: 'bom.xml',
+                autoCreateProjects: true,
+                dependencyTrackApiKey: 'Inspector-DT', // Your DependencyTrack API key.
+                dependencyTrackFrontendUrl: 'https://${url}', // The URL to your DependencyTrack instance.
+                //dependencyTrackUrl: '', // Leave this empty if you're using the default URL.
+                overrideGlobals: true,
+                projectName: env.sonar_project_key,
+                projectVersion: '1.0',
+                projectProperties: [
+                    description: 'php-project', // Project description
+                    group: 'php-project', // Project group
+                    parentId: 'b873cdc5-cc35-4e95-849f-c2b66b71a14c' // Parent project ID
+                ],
+                //parentId: 'b873cdc5-cc35-4e95-849f-c2b66b71a14c',
+                synchronous: true,
+            )
         }
     }
     }
