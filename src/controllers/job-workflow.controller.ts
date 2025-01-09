@@ -144,6 +144,17 @@ export const updateWorkflowStatus = async (
 ) => {
 
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -160,7 +171,7 @@ export const updateWorkflowStatus = async (
             trace_id: traceId,
         });
     }
-
+   
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
@@ -171,6 +182,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
+   let managerData=await getManagerDetails(program_id,id)
 
         let levels = workflow.levels || [];
         let updatedLevels = false;
@@ -179,7 +191,7 @@ export const updateWorkflowStatus = async (
         for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
 
             const user = await fetchUserById(user_id);
-             // Here, you can do any other operations that depend on the fetched user add here notification code
+            // Here, you can do any other operations that depend on the fetched user add here notification code
             console.log("user", user)
             let levelFound = false;
 
@@ -290,7 +302,51 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+async function getManagerDetails(program_id:any, workflowId:any) {
+    try {
+        // Step 1: Query the workflow table to get the manager ID
+        const workflowQuery = `
+            SELECT id, manager
+            FROM workflow
+            WHERE id = :id
+            AND is_enabled = true
+            LIMIT 1
+        `;
 
+        const workflowResult:any = await sequelize.query(workflowQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { id: workflowId },
+        });
+
+        if (workflowResult.length === 0) {
+            return { status: 'Error', message: 'Workflow not found or disabled' };
+        }
+
+        const managerId = workflowResult[0].manager;
+
+        // Step 2: Query the user table to get the manager details
+        const userQuery = `
+            SELECT id, name, email, role
+            FROM user
+            WHERE id = :managerId
+            LIMIT 1
+        `;
+
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { managerId },
+        });
+
+        if (userResult.length === 0) {
+            return { status: 'Error', message: 'Manager not found' };
+        }
+
+        return { status: 'Success', data: userResult[0] };
+    } catch (error) {
+        console.error('Error fetching manager details:', error);
+        return { status: 'Error', message: 'An error occurred while fetching manager details', error };
+    }
+}
 export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -301,6 +357,17 @@ export const rejectLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -315,7 +382,7 @@ export const rejectLevel = async (
             trace_id: traceId,
         });
     }
-
+    let managerData=await getManagerDetails(program_id,id)
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
@@ -331,8 +398,8 @@ export const rejectLevel = async (
         let updatedLevels = false;
 
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-           
-          
+
+
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -353,14 +420,14 @@ export const rejectLevel = async (
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-                               
+
                                 fetchUserById(user_id).then(user => {
                                     console.log("user", user);
                                     // Here, you can do any other operations that depend on the fetched user add here notification code
                                 }).catch(error => {
                                     console.error("Error fetching user", error);
                                 });
-                        
+
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -376,8 +443,8 @@ export const rejectLevel = async (
                         };
                     }
 
-                   
-                  
+
+
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
@@ -454,6 +521,17 @@ export const updateReplaceLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
 
@@ -467,6 +545,7 @@ export const updateReplaceLevel = async (
     }
 
     try {
+        let managerData=await getManagerDetails(program_id,id)
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         const user = await fetchUserById(user_id);
         console.log("user", user);
@@ -599,6 +678,17 @@ export const imporsonateLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -1137,8 +1227,8 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);
-        
+
+
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -1402,16 +1492,24 @@ ORDER BY
                     }
 
                 }
+
+
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+
                     let replacedUserResult: Users[] | null = null;
                     let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
+
                     for (const recipient of recipientTypes) {
+
+
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
                             const userId = Object.values(metaData)[0];
+
+
                             level_behaviour = Object.values(metaData)[1];
                             const userQuery = `
                                 SELECT id, first_name, last_name, avatar, role_id, email
@@ -1424,6 +1522,8 @@ ORDER BY
                                 type: QueryTypes.SELECT,
                                 replacements: { user_id: userId },
                             });
+
+
                             // Fetch replacement user data if applicable
                             if (userResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(userQuery, {
@@ -1449,6 +1549,9 @@ ORDER BY
                                     });
                                 });
                             }
+
+
+
 
                             // Map users to input_value including replaced_user_data when applicable
                             input_value = users.map(user => {
@@ -1480,6 +1583,11 @@ ORDER BY
                                     level_behaviour: level_behaviour
                                 };
                             });
+
+
+
+
+
                         }
                     }
                 }
@@ -1508,7 +1616,11 @@ ORDER BY
                                 replaced_by: replaced_user_data,
                                 imporsonate_by: imposonate_user_data
                             };
+
                         });
+
+
+
                     } else {
                         // If input_value is a single object, create a single recipient
                         recipients = [{
@@ -1528,10 +1640,15 @@ ORDER BY
                             replaced_by: replaced_user_data,
                             imporsonate_by: imposonate_user_data
                         }];
+
+
+
                     }
+
 
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
+
                         const existingLevel = getExistingLevel(workflow, level_id);
                         // if (existingLevel) {
                         //     existingLevel.recipients.push(recipient);
