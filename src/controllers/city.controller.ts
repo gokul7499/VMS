@@ -5,83 +5,68 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { handleError } from "../utility/errorHandler";
 import { sequelize } from "../config/instance";
 import { Op } from "sequelize";
-import { checkPermission } from "../utility/check-permissions";
 
 export async function createCity(
-    request: FastifyRequest<{ Params: { state_id: string; program_id: string } }>,
-    reply: FastifyReply
-  ) {
-    const transaction = await sequelize.transaction();
-    try {
-      const { state_id } = request.params;
-      const data = request.body;
-      const { program_id } = request.params;
-  
-      // Check if the user has the required permissions
-      await checkPermission(
-        request.routeOptions.config, // Permissions from route config
-        request.headers.authorization,           // Authorization token
-        program_id                               // Program ID from route params
-      );
-  
-      const cityDataArray = Array.isArray(data) ? data : [data];
-  
-      const cityNames = cityDataArray.map((city) => city.name);
-      const existingCities = await city.findAll({
-        where: {
-          name: {
-            [Op.in]: cityNames,
-          },
-          state_id,
+  request: FastifyRequest<{ Params: { state_id: string; program_id: string } }>,
+  reply: FastifyReply
+) {
+  const transaction = await sequelize.transaction();
+  try {
+    const { state_id } = request.params;
+    const data = request.body;
+
+    const cityDataArray = Array.isArray(data) ? data : [data];
+    const cityNames = cityDataArray.map((city) => city.name);
+
+    const existingCities = await city.findAll({
+      where: {
+        name: {
+          [Op.in]: cityNames,
         },
-        transaction,
-      });
-  
-      if (existingCities.length > 0) {
-        const existingCityNames = existingCities.map((city) => city.name);
-        await transaction.rollback();
-        return reply.status(400).send({
-          status_code: 400,
-          message: `Cities with the following names already exist in the given state: ${existingCityNames.join(", ")}`,
-          trace_id: generateCustomUUID(),
-        });
-      }
-  
-      const newCities = await city.bulkCreate(
-        cityDataArray.map((cityData) => ({ ...cityData, state_id })),
-        { transaction }
-      );
-  
-      await transaction.commit();
-  
-      reply.status(201).send({
-        status_code: 201,
-        city: newCities.map((city) => city.id),
-        trace_id: generateCustomUUID(),
-      });
-    } catch (error: any) {
+        state_id,
+      },
+      transaction,
+    });
+
+    if (existingCities.length > 0) {
+      const existingCityNames = existingCities.map((city) => city.name);
       await transaction.rollback();
-      if (error.message.includes("already exists")) {
-        return reply.status(400).send({
-          message: error.message,
-          trace_id: generateCustomUUID(),
-        });
-      }
-      if (error.message.includes("Unauthorized")) {
-        return reply.status(401).send({
-          status_code: 401,
-          message: error.message,
-          trace_id: generateCustomUUID(),
-        });
-      }
-      console.error(error);
-      reply.status(500).send({
-        message: "Failed to create city(s)",
-        error,
+      return reply.status(400).send({
+        status_code: 400,
+        message: `Cities with the following names already exist in the given state: ${existingCityNames.join(", ")}`,
         trace_id: generateCustomUUID(),
       });
     }
+
+    const newCities = await city.bulkCreate(
+      cityDataArray.map((cityData) => ({ ...cityData, state_id })),
+      { transaction }
+    );
+
+    await transaction.commit();
+
+    reply.status(201).send({
+      status_code: 201,
+      city: newCities.map((city) => city.id),
+      trace_id: generateCustomUUID(),
+    });
+  } catch (error: any) {
+    await transaction.rollback();
+    if (error.message.includes("already exists")) {
+      return reply.status(400).send({
+        message: error.message,
+        trace_id: generateCustomUUID(),
+      });
+    }
+    console.error(error);
+    reply.status(500).send({
+      message: "Failed to create city(s)",
+      error,
+      trace_id: generateCustomUUID(),
+    });
   }
+}
+
 export async function getCity(
   request: FastifyRequest<{
     Querystring: { name?: string; state_id?: string[]; county_id?: string[] };

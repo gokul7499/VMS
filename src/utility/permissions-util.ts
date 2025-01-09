@@ -7,6 +7,11 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
   // Function to get policies
   async function getPolicies(programId: string, token: string) {
+
+    if (!programId || !token) {
+      throw new Error("Missing programId or token");
+    }
+
     let groupPolicies = null;
 
     const redisKey = getRedisKeyForAuth(token, programId, null);
@@ -32,7 +37,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
     if (!groupPolicies || groupPolicies.length === 0) {
       try {
         const apiResponse = await axios.get(
-          `http://ssp-devnlb.simplifysandbox.net:9091/auth/v1/api/policy/user/tenant/${programId}`,
+          `https://v4-dev.simplifysandbox.net/auth/v1/api/policy/user/tenant/${programId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`, // Pass the token in the API request
@@ -40,26 +45,44 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             params: {
               programId,
             },
-            timeout: 50000, // Add timeout to avoid hanging indefinitely
+            timeout: 50000,
           }
         );
-        //   const apiResponse={
-        //     "message": "Successfully fetched all user policies for the tenant",
-        //     "response": [
-        //         {
-        //             "permissions": {
-        //                 "srn": "srn:createCity",
-        //                 "policy": "ALLOW",
-        //                 "actions": [
-        //                     "*"
-        //                 ]
-        //             },
-        //             "type": "service",
-        //             "visibility": false,
-        //             "entityId": "49efd9c4-b822-4770-9143-8275f86672be"
-        //         }
-        //     ]
-        //  }
+        
+        // const apiResponse={
+        //   "response":[
+        //     {
+        //       "permissions": {
+        //         "srn": "srn:vms:config:configurations:pc",
+        //         "policy": "DENY",
+        //         "actions": ["V", "U"]
+        //       },
+        //       "type": "service",
+        //       "visibility": false,
+        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
+        //     },
+        //     {
+        //       "permissions": {
+        //         "srn": "srn:vms:config:configurations:fc",
+        //         "policy": "ALLOW",
+        //         "actions": ["U", "C", "D", "V"]
+        //       },
+        //       "type": "service",
+        //       "visibility": false,
+        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
+        //     },
+        //     {
+        //       "permissions": {
+        //         "srn": "srn:vms:config:configurations:ic",
+        //         "policy": "ALLOW",
+        //         "actions": ["V"]
+        //       },
+        //       "type": "service",
+        //       "visibility": false,
+        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
+        //     }
+        //   ]
+        // }
 
         groupPolicies = apiResponse.data.response; // Adjust based on actual API response structure
 

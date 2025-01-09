@@ -9,10 +9,11 @@ import formBodyPlugin from "@fastify/formbody";
 
 dotenv.config();
 
+import registerRoutes from "./routes";
+
 const app = fastify({
   logger: pino({ level: "info" }),
 });
-
 
 app.register(cors, {
   origin: "*",
@@ -20,32 +21,39 @@ app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
+app.get("/", async (request, reply) => {
+  reply.send({ message: "Welcome to Fastify API with Redis!" });
+});
 
 app.register(formBodyPlugin);
-
 
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to v4-config-api-dev service" });
 });
 
-app.get("/config/v1/api/health-check", async (request, reply) => {
-  const startTime = Date.now(); // Start time for latency measurement
+let port = 8000;
+
+app.post("/store", async (request, reply) => {
+  const { key, value } = request.body as { key: string; value: any };
 
   try {
-    app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
+    await redis.set(key, JSON.stringify(value));
+    reply.send({ message: "Data stored in Redis", key, value });
+  } catch (error) {
+    reply.status(500).send({ error: "Failed to store data", details: error });
+  }
+});
 
-    const connectionStatus = await checkDatabaseConnection(); // Check database connection
+app.get("/fetch/:key", async (request, reply) => {
+  const { key } = request.params as { key: string };
 
-    const latency = Date.now() - startTime; // Calculate latency
-
-    return reply.status(connectionStatus.connected ? 200 : 503).send({
-      status: connectionStatus.connected ? "connected" : "disconnected",
-      message: connectionStatus.message,
-      database: connectionStatus.database,
-      service: "config",
-      timestamp: new Date().toISOString(),
-      latency: latency, // Include latency in milliseconds
-    });
+  try {
+    const data = await redis.get(key);
+    if (data) {
+      reply.send({ key, value: JSON.parse(data) });
+    } else {
+      reply.send({ message: "No data found for the provided key" });
+    }
   } catch (error) {
     return reply.status(500).send({
       status: "error",
@@ -70,7 +78,6 @@ const start = async () => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
     });
-
 
     app.log.info(`Server listening on port ${port}`);
   } catch (err) {
