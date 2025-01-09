@@ -23,10 +23,6 @@ ChecklistTaskMapping.init(
         checklist_entity_id: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: {
-                model: 'checklist',
-                key: 'entity_id',
-            },
         },
         category_id: {
             type: DataTypes.UUID,
@@ -143,11 +139,10 @@ ChecklistTaskMapping.init(
         sequelize,
         tableName: 'checklist_task_mapping',
         timestamps: false,
-
+        indexes: [],
     }
 );
 sequelize.sync();
 ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_version_id', as: 'checklistVersion', targetKey: 'version_id' });
-ChecklistTaskMapping.belongsTo(ChecklistModel, { foreignKey: 'checklist_entity_id', as: 'checklistEntity', targetKey: 'entity_id' });
 
 export default ChecklistTaskMapping;

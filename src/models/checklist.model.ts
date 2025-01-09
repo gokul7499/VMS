@@ -116,18 +116,7 @@ Checklist.init(
         sequelize,
         tableName: 'checklist',
         timestamps: false,
-        indexes: [
-            // {
-            //     fields: ['version_id'],
-            // },
-            // {
-            //     fields: ['entity_id'],
-            // },
-            // {
-            //     fields: ['tenant_id'],
-            // },
-        ],
-       
+        indexes: [],
     }
 );
 
