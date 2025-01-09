@@ -13,7 +13,7 @@ class TimesheetTypeConfig extends Model {
   master_data_types: never[] | undefined;
   allocations: any;
   title!: string;
-  slug!:string
+  slug!: string
 }
 
 TimesheetTypeConfig.init(
@@ -82,7 +82,7 @@ TimesheetTypeConfig.init(
         model: Programs,
         key: "id",
       }
-      },
+    },
     notes: {
       type: DataTypes.JSON,
       allowNull: true,
@@ -153,9 +153,21 @@ TimesheetTypeConfig.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    slug:{
-      type:DataTypes.STRING,
-      allowNull:true
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    hierarchies: {
+      type: DataTypes.JSON,
+      allowNull: true
+    },
+    labor_category: {
+      type: DataTypes.JSON,
+      allowNull: true
+    },
+    master_data_types: {
+      type: DataTypes.JSON,
+      allowNull: true
     }
   },
   {
@@ -166,15 +178,15 @@ TimesheetTypeConfig.init(
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
       },
-      beforeSave:async (instance) => { 
+      beforeSave: async (instance) => {
         beforeSave(instance);
         if (instance.title) {
           instance.slug = generateSlug(instance.title, {
-              lowercase: true,
-              removedspecial: true,
-              replacewithhyphens: true
+            lowercase: true,
+            removedspecial: true,
+            replacewithhyphens: true
           });
-      }
+        }
       },
     },
   }
