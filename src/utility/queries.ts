@@ -1280,7 +1280,6 @@ export const masterDataQuery = `
         h.parent_hierarchy_id,
         h.name,
         h.is_enabled,
-        h.is_rate_card_enforced,
         h.rate_model,
         h.created_on,
         h.modified_on,
