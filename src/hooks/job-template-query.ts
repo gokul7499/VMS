@@ -334,40 +334,46 @@ class JobTempletRepository {
         FROM job_template_custom_field
         WHERE job_template_custom_field.job_temp_id = job_templates.id
     ), JSON_ARRAY()) AS job_template_custom_fields,
-    COALESCE(JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'qualification_type_id', qualification_types.id,
-            'name', qualification_types.name,
-            'code', qualification_types.code,
-            'is_required', job_template_qualification.is_required,
-            'qualifications', COALESCE(
-                (
-                    SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'qualification_id', q.id,
-                            'name', q.name,
-                            'is_locked', jq.is_locked,
-                            'is_required', jq.is_required,
-                            'level', jq.level
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'qualification_type_id', qualification_types.id,
+                'name', qualification_types.name,
+                'code', qualification_types.code,
+                'is_required', job_template_qualification.is_required,
+                'qualifications', COALESCE(
+                    (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'qualification_id', q.id,
+                                'name', q.name,
+                                'is_locked', jq.is_locked,
+                                'is_required', jq.is_required,
+                                'level', jq.level
+                            )
                         )
-                    )
-                    FROM qualifications q
-                    JOIN JSON_TABLE(
-                        CASE
-                            WHEN JSON_VALID(job_template_qualification.qualifications) THEN job_template_qualification.qualifications
-                            ELSE '[]' -- Fallback to an empty array if JSON is invalid
-                        END,
-                        '$[*]' COLUMNS(
-                            qualification_id CHAR(36) PATH '$.qualification_id',
-                            is_locked BOOLEAN PATH '$.is_locked',
-                            is_required BOOLEAN PATH '$.is_required',
-                            level JSON PATH '$.level'
-                        )
-                    ) AS jq ON q.id = jq.qualification_id
-                ),
-                JSON_ARRAY() -- Default to an empty array
+                        FROM qualifications q
+                        JOIN JSON_TABLE(
+                            CASE
+                                WHEN JSON_VALID(job_template_qualification.qualifications) THEN job_template_qualification.qualifications
+                                ELSE '[]'
+                            END,
+                            '$[*]' COLUMNS(
+                                qualification_id CHAR(36) PATH '$.qualification_id',
+                                is_locked BOOLEAN PATH '$.is_locked',
+                                is_required BOOLEAN PATH '$.is_required',
+                                level JSON PATH '$.level'
+                            )
+                        ) AS jq ON q.id = jq.qualification_id
+                    ),
+                    JSON_ARRAY()
+                )
             )
         )
+        FROM job_template_qualification
+        LEFT JOIN qualification_types ON job_template_qualification.qualification_type_id = qualification_types.id
+        WHERE job_template_qualification.job_temp_id = job_templates.id
+        AND job_template_qualification.qualification_type_id IS NOT NULL -- Filter out NULL qualifications
     ), JSON_ARRAY()) AS job_template_qualifications,
     COALESCE((
         SELECT JSON_ARRAYAGG(
@@ -416,10 +422,6 @@ FROM
 LEFT JOIN 
     job_category ON job_templates.category = job_category.id
 LEFT JOIN 
-    job_template_qualification ON job_templates.id = job_template_qualification.job_temp_id
-LEFT JOIN 
-   qualification_types ON job_template_qualification.qualification_type_id = qualification_types.id
-LEFT JOIN 
    labour_category ON job_templates.labour_category = labour_category.id
 WHERE 
     job_templates.program_id = :program_id
@@ -433,6 +435,7 @@ GROUP BY
     });
     return jobTemplate;
   }
+
   
   async managerQuery(job_manager_id: string){
     const managerData = await sequelize.query<{

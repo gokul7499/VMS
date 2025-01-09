@@ -569,17 +569,16 @@ export async function getRateConfigurationById(
     }
 }
 
-export async function getAllRateConfigurationRates(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Querystring: {
-            hierarchie_id?: string;
-            job_templates?: string;
-            is_shift_rate?: boolean;
-            currency_id?: string;
-            unit_of_measure?: string;
-        };
-    }>,
+export async function getAllRateConfigurationRates(request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: {
+        hierarchie_id?: string;
+        job_templates?: string;
+        is_shift_rate?: boolean;
+        currency_id?: string;
+        unit_of_measure?: string;
+    };
+}>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -640,15 +639,6 @@ export async function getAllRateConfigurationRates(
 
         const uniqueHierarchies = Array.from(
             new Set(hierarchie.map((item) => JSON.stringify({ id: item.hierarchy.id, name: item.hierarchy.name })))
-        ).map((item) => JSON.parse(item));
-
-        const jobTemplates = await RateConfigurationJobTemplates.findAll({
-            where: { rate_configuration_id: finalRateConfigurationIds },
-            include: [{ model: jobTemplateModel, as: 'job_template', attributes: ['id', 'template_name'] }],
-        });
-
-        const uniqueJobTemplates = Array.from(
-            new Set(jobTemplates.map((item) => JSON.stringify({ id: item.job_template?.id, name: item.job_template?.template_name })))
         ).map((item) => JSON.parse(item));
 
         const baseRates = await RateConfigurationBaseRateTypes.findAll({
@@ -716,8 +706,8 @@ export async function getAllRateConfigurationRates(
                             (record) => record.rate_type_id === baseRate.rate_type?.id
                         );
                         const bill_rate = billRates.map((billRate) => {
-                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
-                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
+                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
                             return {
                                 ...billRate.get(),
@@ -730,8 +720,8 @@ export async function getAllRateConfigurationRates(
                             };
                         });
                         const pay_rate = payRates.map((payRate) => {
-                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
-                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
+                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
                             return {
                                 ...payRate.get(),
@@ -783,8 +773,8 @@ export async function getAllRateConfigurationRates(
                         rate_type: {
                             ...baseRate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord?.min_rate.amount || 0,
-                            max_rate: matchingDecisionRecord?.max_rate.amount || 0,
+                            min_rate: Number(matchingDecisionRecord?.min_rate.amount) || 0,
+                            max_rate: Number(matchingDecisionRecord?.max_rate.amount) || 0,
                         },
                         rates: filteredRateType,
                     },
@@ -794,11 +784,9 @@ export async function getAllRateConfigurationRates(
         );
 
         const response = {
-            program_id: rateConfiguration.program_id,
             name: rateConfiguration.name,
             is_shift_rate: rateConfiguration.is_shift_rate,
             hierarchies: uniqueHierarchies,
-            job_templates: uniqueJobTemplates,
             rate_configuration: rateConfigurationDetails,
         };
 
@@ -871,11 +859,7 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(
-    rates: any[],
-    baseRateMin: number,
-    baseRateMax: number
-) {
+function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number) {
     return rates.map(rate => ({
         ...rate,
         min_rate:
@@ -889,59 +873,55 @@ function calculateRates(
     }));
 }
 
-export async function getAllRateConfigurationBudget(
-    request: FastifyRequest<{ Body: RateConfigurationsBudget }>,
-    reply: FastifyReply
-) {
+export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
 
     try {
-        const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = request.body;
+        const response = request.body.map(config => {
+            const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
 
-        const rateConfigurationDetails = rate_configuration.map(config => {
-            const baseRateMin = config.base_rate.rate_type.min_rate;
-            const baseRateMax = config.base_rate.rate_type.max_rate;
+            const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
+                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate);
+                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate);
 
-            const base_rate = {
-                ...config.base_rate,
-                rates: config.base_rate.rates.map(rate => ({
-                    ...rate,
-                    bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax),
-                    pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax),
-                })),
-            };
+                const base_rate = {
+                    ...rateConfig.base_rate,
+                    rates: rateConfig.base_rate.rates.map(rate => ({
+                        ...rate,
+                        bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax),
+                        pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax),
+                    })),
+                };
 
-            const rate = config.rate.map(rateConfig => ({
-                ...rateConfig,
-                bill_rate: calculateRates(rateConfig.bill_rate, baseRateMin, baseRateMax),
-                pay_rate: calculateRates(rateConfig.pay_rate, baseRateMin, baseRateMax),
-                rates: rateConfig.rates.map(nestedRate => ({
-                    ...nestedRate,
-                    bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax),
-                    pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax),
-                })),
-            }));
+                const rates = rateConfig.rate?.map(rateConfigNested => ({
+                    ...rateConfigNested,
+                    bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax),
+                    pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax),
+                    rates: rateConfigNested.rates.map((nestedRate: { bill_rate: any[]; pay_rate: any[]; }) => ({
+                        ...nestedRate,
+                        bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax),
+                        pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax),
+                    })),
+                }));
+
+                return { base_rate, rate: rates };
+            });
 
             return {
-                base_rate,
-                rate,
+                program_id,
+                name,
+                is_shift_rate,
+                hierarchies,
+                job_templates,
+                rate_configuration: rateConfigurationDetails,
             };
         });
-
-        const response = {
-            program_id,
-            name,
-            is_shift_rate,
-            hierarchies,
-            job_templates,
-            rate_configuration: rateConfigurationDetails,
-        };
 
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             message: "Rate configurations fetched successfully.",
-            rate_configurations: [response],
+            rate_configurations: response,
         });
     } catch (error: any) {
         return reply.status(500).send({
@@ -952,4 +932,3 @@ export async function getAllRateConfigurationBudget(
         });
     }
 }
-
