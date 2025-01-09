@@ -799,6 +799,7 @@ export async function getAllJobTempletsByHierarchies(
 
     reply.status(200).send({
       status_code: 200,
+      message:"Job template fetched successfully",
       job_templates: data,
       trace_id: traceId,
     });
