@@ -137,12 +137,23 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }[];
     }>,
     reply: FastifyReply
 ) => {
+
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -161,6 +172,7 @@ export const updateWorkflowStatus = async (
     }
 
     try {
+
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
@@ -170,12 +182,16 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
+let managerData=await getManagerDetails(program_id,id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
         // Iterate over each update
         for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
+
+            const user = await fetchUserById(user_id);
+             // Here, you can do any other operations that depend on the fetched user add here notification code
+            console.log("user", user)
             let levelFound = false;
 
             levels = await Promise.all(
@@ -201,6 +217,7 @@ export const updateWorkflowStatus = async (
                                 }
 
                                 if (user_id) {
+
                                     // If the recipient has a `replaced_by` field, match `user_id` directly
                                     if (recipient.replaced_by && recipient.replaced_by === user_id) {
                                         const history = await WorkflowStatusHistory.create({
@@ -284,20 +301,74 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+async function getManagerDetails(program_id:any, workflowId:any) {
+    try {
+        // Step 1: Query the workflow table to get the manager ID
+        const workflowQuery = `
+            SELECT id, manager
+            FROM workflow
+            WHERE id = :id
+            AND is_enabled = true
+            LIMIT 1
+        `;
 
+        const workflowResult:any = await sequelize.query(workflowQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { id: workflowId },
+        });
+
+        if (workflowResult.length === 0) {
+            return { status: 'Error', message: 'Workflow not found or disabled' };
+        }
+
+        const managerId = workflowResult[0].manager;
+
+        // Step 2: Query the user table to get the manager details
+        const userQuery = `
+            SELECT id, name, email, role
+            FROM user
+            WHERE id = :managerId
+            LIMIT 1
+        `;
+
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { managerId },
+        });
+
+        if (userResult.length === 0) {
+            return { status: 'Error', message: 'Manager not found' };
+        }
+
+        return { status: 'Success', data: userResult[0] };
+    } catch (error) {
+        console.error('Error fetching manager details:', error);
+        return { status: 'Error', message: 'An error occurred while fetching manager details', error };
+    }
+}
 export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }[];
     }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     let updates = request.body;
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
@@ -323,10 +394,10 @@ export const rejectLevel = async (
         // Parse levels array
         let levels = workflow.levels || [];
         let updatedLevels = false;
-
+        let managerData=await getManagerDetails(program_id,id)
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-
-
+           
+          
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -347,7 +418,14 @@ export const rejectLevel = async (
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-
+                               
+                                fetchUserById(user_id).then(user => {
+                                    console.log("user", user);
+                                    // Here, you can do any other operations that depend on the fetched user add here notification code
+                                }).catch(error => {
+                                    console.error("Error fetching user", error);
+                                });
+                        
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -363,8 +441,8 @@ export const rejectLevel = async (
                         };
                     }
 
-
-
+                   
+                  
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
@@ -434,7 +512,8 @@ export const updateReplaceLevel = async (
             status: string;
             replaced_by: string;
             user_id?: string;
-            notes?: string
+            notes?: string;
+            job_id?: string
         };
     }>,
     reply: FastifyReply
@@ -442,7 +521,17 @@ export const updateReplaceLevel = async (
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     // Validate input parameters
     if (!program_id || !id || !placement_order || !status || !replaced_by) {
         return reply.status(400).send({
@@ -454,7 +543,9 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
+        let managerData=await getManagerDetails(program_id,id)
+        const user = await fetchUserById(user_id);
+        console.log("user", user);
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -548,7 +639,32 @@ export const updateReplaceLevel = async (
     }
 };
 
+async function fetchUserById(user_id: any) {
+    const userQuery = `
+        SELECT id, first_name, last_name, avatar, role_id,email
+        FROM user
+        WHERE id = :user_id
+          AND is_enabled = true
+        LIMIT 1;
+    `;
 
+    try {
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { user_id },
+        });
+
+        if (userResult.length > 0) {
+            return userResult[0]; // Return the first user found
+        } else {
+            console.warn(`User with ID ${user_id} not found.`);
+            return null; // Return null if no user is found
+        }
+    } catch (error) {
+        console.error(`Error fetching user with ID ${user_id}:`, error);
+        throw new Error("Failed to fetch user details.");
+    }
+}
 export const imporsonateLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -559,6 +675,17 @@ export const imporsonateLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -1097,7 +1224,9 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        let manager = rows[0].manager
+        console.log(rows);
+        
+        let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
@@ -1491,9 +1620,20 @@ ORDER BY
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
+                        // if (existingLevel) {
+                        //     existingLevel.recipients.push(recipient);
+                        // } 
                         if (existingLevel) {
-                            existingLevel.recipients.push(recipient);
-                        } else {
+            
+                            const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
+                            
+                            if (duplicateIndex === -1) {
+                              
+                                existingLevel.recipients.push(recipient);
+                            }
+                  
+                        }
+                        else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
@@ -1839,7 +1979,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-            let manager = row.manager
+            let manager = row?.manager
             // Initialize workflow for the job if not already initialized
             if (!workflows[job_workflow_id]) {
                 workflows[job_workflow_id] = {
@@ -2237,9 +2377,20 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
+                        // if (existingLevel) {
+                        //     existingLevel.recipients.push(recipient);
+                        // }
                         if (existingLevel) {
-                            existingLevel.recipients.push(recipient);
-                        } else {
+            
+                            const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
+                            
+                            if (duplicateIndex === -1) {
+                              
+                                existingLevel.recipients.push(recipient);
+                            }
+                  
+                        }
+                         else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,

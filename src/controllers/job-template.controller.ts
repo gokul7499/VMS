@@ -154,6 +154,15 @@ export async function getJobTemplateById(
         "is_tiered_distribute_final_approval",
         "is_manual_distribute_submit",
         "is_manual_distribute_final_approval",
+        "is_shift_rate",
+        "is_description_required",
+        "is_description_upload_required",
+        "is_country_mandatory",
+        "is_address_mandatory",
+        "default_expense_value",
+        "allow_pre_identified_candidate",
+        "resume_mandatory",
+        "job_submitted_count",
       ];
       booleanFields.forEach((field) => {
         if (field in obj) {

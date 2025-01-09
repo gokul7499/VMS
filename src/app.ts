@@ -1,8 +1,9 @@
+// app.ts
 import fastify from "fastify";
 import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
-import { initializeSequelize, checkDatabaseConnection } from "./config/instance";
+import { initializeSequelize, checkDatabaseConnection } from "./config/instance"; 
 import formBodyPlugin from "@fastify/formbody";
 
 dotenv.config();
@@ -17,14 +18,40 @@ app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
+
+app.register(formBodyPlugin);
+
+
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to v4-config-api-dev service" });
 });
 
-app.register(formBodyPlugin);
+app.get("/config/v1/api/health-check", async (request, reply) => {
+  const startTime = Date.now(); // Start time for latency measurement
 
-// Import routes after Sequelize initialization
-let port = 8000;
+  try {
+    app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
+
+    const connectionStatus = await checkDatabaseConnection(); // Check database connection
+
+    const latency = Date.now() - startTime; // Calculate latency
+
+    return reply.status(connectionStatus.connected ? 200 : 503).send({
+      status: connectionStatus.connected ? "connected" : "disconnected",
+      message: connectionStatus.message,
+      database: connectionStatus.database,
+      service: "config",
+      timestamp: new Date().toISOString(),
+      latency: latency, // Include latency in milliseconds
+    });
+  } catch (error) {
+    return reply.status(500).send({
+      status: "error",
+      message: "Failed to check database connection",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 const start = async () => {
   try {
@@ -33,12 +60,10 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
-
-    // Import models and routes after Sequelize is initialized
-        // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
-
+ 
+    const port = 8000; 
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
     });
