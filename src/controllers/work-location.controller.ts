@@ -196,6 +196,20 @@ export async function getAllWorkLocations(
     if (query.name) {
       whereClause.name = { [Op.like]: `%${query.name}%` };
     }
+    if(query.code){
+      whereClause.code=query.code
+    }
+    if(query.zipcode){
+      whereClause.zipcode=query.zipcode
+    }
+    if (query.modified_on) {
+      const dateRange = query.modified_on.split(',');
+      if (dateRange.length === 2) {
+          const startDate = parseFloat(dateRange[0].trim());
+          const endDate = parseFloat(dateRange[1].trim());
+          whereClause.modified_on = { [Op.between]: [startDate, endDate] };
+      }
+  }
     const workLocations = await WorkLocationModel.findAll({
       where: whereClause,
       limit,
