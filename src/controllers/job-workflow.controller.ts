@@ -11,6 +11,8 @@ import { Module } from '../models/module.model';
 import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
+import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
+import { sendNotification } from '../utility/notificationservice';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
@@ -182,15 +184,34 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-let managerData=await getManagerDetails(program_id,id)
+        let managerData:any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
         // Iterate over each update
-        for (const { placement_order, new_status, user_id, notes, behavior } of updates) {
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id } of updates) {
 
             const user = await fetchUserById(user_id);
-             // Here, you can do any other operations that depend on the fetched user add here notification code
+            // Here, you can do any other operations that depend on the fetched user add here notification code
+
+
+            const payload: any = {
+                job_id: job_id
+            };
+
+            const eventCode = "JOB_APPROVAL_COMPLETE"
+
+            const notificationPayload: NotificationDataPayload = {
+                program_id,
+                token,
+                traceId,
+                eventCode,
+                recipientEmail: managerData.email || "",
+                payload,
+                userId: user_id ?? ""
+            };
+            sendNotification(notificationPayload);
+
             console.log("user", user)
             let levelFound = false;
 
@@ -301,7 +322,7 @@ let managerData=await getManagerDetails(program_id,id)
         });
     }
 };
-async function getManagerDetails(program_id:any, workflowId:any) {
+async function getManagerDetails(program_id: any, workflowId: any) {
     try {
         // Step 1: Query the workflow table to get the manager ID
         const workflowQuery = `
@@ -312,7 +333,7 @@ async function getManagerDetails(program_id:any, workflowId:any) {
             LIMIT 1
         `;
 
-        const workflowResult:any = await sequelize.query(workflowQuery, {
+        const workflowResult: any = await sequelize.query(workflowQuery, {
             type: QueryTypes.SELECT,
             replacements: { id: workflowId },
         });
@@ -325,7 +346,7 @@ async function getManagerDetails(program_id:any, workflowId:any) {
 
         // Step 2: Query the user table to get the manager details
         const userQuery = `
-            SELECT id, name, email, role
+            SELECT id, email
             FROM user
             WHERE id = :managerId
             LIMIT 1
@@ -394,10 +415,10 @@ export const rejectLevel = async (
         // Parse levels array
         let levels = workflow.levels || [];
         let updatedLevels = false;
-        let managerData=await getManagerDetails(program_id,id)
+        let managerData = await getManagerDetails(program_id, id)
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-           
-          
+
+
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");
             }
@@ -418,14 +439,14 @@ export const rejectLevel = async (
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-                               
+
                                 fetchUserById(user_id).then(user => {
                                     console.log("user", user);
                                     // Here, you can do any other operations that depend on the fetched user add here notification code
                                 }).catch(error => {
                                     console.error("Error fetching user", error);
                                 });
-                        
+
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
 
@@ -441,8 +462,8 @@ export const rejectLevel = async (
                         };
                     }
 
-                   
-                  
+
+
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
@@ -543,7 +564,7 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-        let managerData=await getManagerDetails(program_id,id)
+        let managerData = await getManagerDetails(program_id, id)
         const user = await fetchUserById(user_id);
         console.log("user", user);
         if (!workflow) {
@@ -1225,7 +1246,7 @@ ORDER BY
             type: QueryTypes.SELECT,
         });
         console.log(rows);
-        
+
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -1624,14 +1645,14 @@ ORDER BY
                         //     existingLevel.recipients.push(recipient);
                         // } 
                         if (existingLevel) {
-            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
+
                         }
                         else {
                             workflow.levels.push({
@@ -2381,16 +2402,16 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         //     existingLevel.recipients.push(recipient);
                         // }
                         if (existingLevel) {
-            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
+
                         }
-                         else {
+                        else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
