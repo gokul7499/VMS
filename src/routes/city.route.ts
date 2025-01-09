@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { Permissions } from '../constants/permissions';
+import { Actions, Permissions } from '../constants/permissions';
 import {
     getCity,
     createCity,
@@ -14,7 +14,8 @@ export default async function resourceCityRoutes(fastify: FastifyInstance) {
     "/state/:state_id/:program_id/city",
     {
       config: {
-        permissions: [Permissions.CREATE_CITY]
+        permissions: [Permissions.CITY],
+        action: Actions.CREATE    
       }
     },
     createCity

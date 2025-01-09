@@ -15,13 +15,19 @@ export async function createCity(
     try {
       const { state_id } = request.params;
       const data = request.body;
-      const { program_id } = request.params;
-  
-      // Check if the user has the required permissions
+      const { permissions, action } = request.routeOptions.config as {
+        permissions?: string[];
+        action?: string;
+      };  // Extract permissions and action from route config
+      const token = request.headers.authorization;                    // Authorization token
+      const programId = request.params.program_id;                    // Program ID from route params
+
+      // Check permissions before proceeding
       await checkPermission(
-        request.routeOptions.config, // Permissions from route config
-        request.headers.authorization,           // Authorization token
-        program_id                               // Program ID from route params
+        { permissions },           // Permissions required for the action              // Action being performed (e.g., 'CREATE')
+        token,                     // Authorization token
+        programId,
+        action                    // Program ID
       );
   
       const cityDataArray = Array.isArray(data) ? data : [data];
