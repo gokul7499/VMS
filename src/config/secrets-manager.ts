@@ -16,6 +16,8 @@ export const getSecretsManager = async () => {
             user: process.env.DATABASE_USERNAME,
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME,
+            redis_port:process.env.REDIS_PORT,
+            redis_host:process.env.REDIS_HOST
         };
     }
  
@@ -31,6 +33,10 @@ export const getSecretsManager = async () => {
                 user: secret.DATABASE_USER,
                 password: secret.DATABASE_PASSWORD,
                 database: secret.DATABASE_NAME,
+                redis_host:secret.REDIS_HOST,
+                redis_port:secret.REDIS_PORT,
+                redis_auth:secret.REDIS_AUTH,
+                redis_replica_host:secret.REDIS_REPLICA_HOST
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");

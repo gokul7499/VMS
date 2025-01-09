@@ -9,7 +9,6 @@ import formBodyPlugin from "@fastify/formbody";
 
 dotenv.config();
 
-import registerRoutes from "./routes";
 
 const app = fastify({
   logger: pino({ level: "info" }),
@@ -26,11 +25,6 @@ app.get("/", async (request, reply) => {
 });
  
 app.register(formBodyPlugin);
-
-
-app.get("/", async (request, reply) => {
-  reply.send({ message: "Welcome to v4-config-api-dev service" });
-});
 
 app.post("/store", async (request, reply) => {
   const { key, value } = request.body as { key: string; value: any };
