@@ -59,7 +59,9 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
-
+    const registerRoutes = require("./routes").default;
+    app.register(registerRoutes);
+ 
     const port = 8000; 
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
