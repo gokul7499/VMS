@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { fetchUnavailableCandidates } from "../utility/submite-candidate";
+import { fetchUnavailableCandidates } from "../utility/submission-candidate";
 
 export async function createCandidate(
     request: FastifyRequest,
