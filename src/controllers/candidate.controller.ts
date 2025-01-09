@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { sequelize } from "../config/instance";
+import { fetchUnavailableCandidates } from "../utility/submission-candidate";
 
 export async function createCandidate(
     request: FastifyRequest,
@@ -21,14 +21,14 @@ export async function createCandidate(
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
 
     try {
@@ -192,16 +192,23 @@ export async function getAllCandidate(
         if (worker_type_id) whereClause.worker_type_id = worker_type_id;
         if (availability_date) whereClause["preferences.availability_date"] = availability_date;
         if (updatedAt) whereClause.updatedAt = updatedAt;
-        // if (available_candidate === 'true' && job_id) {
-        //     whereClause.id = {
-        //         [Op.notIn]: sequelize.literal(
-        //             `(SELECT candidate_id FROM submission_candidate WHERE job_id = '${job_id}' AND candidate_id IS NOT NULL)`
-        //         )
-        //     };
-        // }
-
-        if (available_candidate === 'true' && job_id) whereClause.program_id = program_id;
-
+        if (available_candidate === "true" && job_id) {
+            try {
+                const unavailableCandidateIds = await fetchUnavailableCandidates(
+                    program_id,
+                    job_id,
+                    traceId
+                );
+                whereClause.id = { [Op.notIn]: unavailableCandidateIds };
+            } catch (error: any) {
+                return reply.status(500).send({
+                    status_code: 500,
+                    trace_id: traceId,
+                    message: "Error fetching unavailable candidates from sourcing service",
+                    error: error.message,
+                });
+            }
+        }
         const includeClause = [
             {
                 model: ProgramVendor,
@@ -252,7 +259,7 @@ export async function getAllCandidate(
 
         return reply.status(200).send({
             status_code: 200,
-            message:"Candidate get successfully",
+            message: "Candidate get successfully",
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
@@ -308,7 +315,7 @@ export async function getCandidateByIdAndProgramId(
         }
         return reply.status(200).send({
             status_code: 200,
-            message:"Candidate not found",
+            message: "Candidate not found",
             candidate,
             trace_id: traceId,
         });
@@ -354,7 +361,7 @@ export async function updateCandidateByIdAndProgramId(
         });
         return reply.status(200).send({
             status_code: 200,
-            message:"Candidate update successfully",
+            message: "Candidate update successfully",
             record: updatedRecord,
             trace_id: traceId,
         });
