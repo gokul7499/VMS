@@ -68,6 +68,8 @@ import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.rout
 import expenseTypeRoute from "./expense-type.routes";
 import rateCardsRoutes from "./rate-card.route";
 import rateConfigurationsRoutes from "./rate-configurations.route";
+import delegationRoutes from "./delegation.route";
+import checkListRoutes from "./checklist.routes";
 import jobTemplate from "./job-template.routes";
 import JobCategoryRoutes from "./job-category.routes";
 import checklistRoutes from "./checklist.routes";
@@ -143,7 +145,8 @@ export default async function (app: FastifyInstance) {
   app.register(expenseTypeRoute,{prefix:`${basePrefix}`})
   app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
   app.register(rateConfigurationsRoutes,{prefix:`${basePrefix}`})
+  app.register(delegationRoutes,{prefix:`${basePrefix}`})
+  app.register(checkListRoutes,{prefix:`${basePrefix}`})
   app.register(jobTemplate, { prefix: `${basePrefix}` });
   app.register(JobCategoryRoutes, { prefix: `${basePrefix}` });
-  app.register(checklistRoutes,{prefix:`${basePrefix}`})
 }

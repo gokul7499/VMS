@@ -26,9 +26,11 @@ app.get("/", async (request, reply) => {
 });
  
 app.register(formBodyPlugin);
- 
-// Import routes after Sequelize initialization
-let port = 8000;
+
+
+app.get("/", async (request, reply) => {
+  reply.send({ message: "Welcome to v4-config-api-dev service" });
+});
 
 app.post("/store", async (request, reply) => {
   const { key, value } = request.body as { key: string; value: any };
@@ -67,14 +69,10 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
-
-    // Import models and routes after Sequelize is initialized
-    // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
-
-
-    const port = 8000;
+ 
+    const port = 8000; 
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);

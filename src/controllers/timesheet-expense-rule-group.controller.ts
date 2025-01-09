@@ -28,44 +28,55 @@ export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
     }
 };
 
-export const getAllTimesheetExpenseRuleGroups = async (request: FastifyRequest, reply: FastifyReply) => {
+export const getAllTimesheetExpenseRuleGroups = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
     const traceId = generateCustomUUID();
+  
     try {
-        const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, rule_category } = request.query as {
-            page?: number;
-            limit?: number;
-            rule_category?: string;
-        };
-        const offset = (page - 1) * limit;
+      const { program_id } = request.params as { program_id: string };
+      const { page = 1, limit = 10, rule_category } = request.query as {
+        page?: string | number;
+        limit?: string | number;
+        rule_category?: string;
+      };
+  
+      const pageNumber = parseInt(page as unknown as string, 10);
+      const limitNumber = parseInt(limit as unknown as string, 10);
+        const offset = (pageNumber - 1) * limitNumber;
         const searchConditions: Record<string, any> = { is_deleted: false };
-        if (program_id) {
-            searchConditions.program_id = program_id;
-        }
-        if (rule_category) {
-            searchConditions.rule_category = rule_category;
-        }
+  
+      if (program_id) {
+        searchConditions.program_id = program_id;
+      }
+  
+      if (rule_category) {
+        searchConditions.rule_category = rule_category;
+      }
         const { rows: ruleGroups, count } = await TimesheetExpenseRuleGroup.findAndCountAll({
-            where: searchConditions,
-            limit,
-            offset,
-        });
-        reply.status(200).send({
-            status_code: 200,
-            message:" Rule groups retrieved successfully.",
-            items_per_page: limit,
-            total_records: count,
-            timesheet_expense_rule_group: ruleGroups,
-            trace_id: traceId,
-        });
-    } catch (error) {
-        reply.status(500).send({
-            message: 'Error fetching timesheet expense rule groups.',
-            error,
-            trace_id: traceId,
-        });
+        where: searchConditions,
+        limit: limitNumber,
+        offset,
+      });
+  
+      reply.status(200).send({
+        status_code: 200,
+        message: "Rule groups retrieved successfully.",
+        items_per_page: limitNumber,
+        total_records: count,
+        timesheet_expense_rule_group: ruleGroups,
+        trace_id: traceId,
+      });
+    } catch (error: any) {
+      reply.status(500).send({
+        message: "Error fetching timesheet expense rule groups.",
+        error: error.message,
+        trace_id: traceId,
+      });
     }
-};
+  };
+  
 
 export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
