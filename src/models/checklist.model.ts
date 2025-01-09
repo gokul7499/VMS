@@ -2,6 +2,7 @@ import { sequelize } from '../config/instance';
 import { DataTypes } from 'sequelize';
 import { Model } from 'sequelize';
 import { Programs } from '../models/programs.model';
+import ChecklistTaskMapping from './checklist-mapping.model';
 
 class Checklist extends Model {
     version_id: any;
@@ -124,5 +125,10 @@ sequelize.sync();
 
 Checklist.belongsTo(Checklist, { foreignKey: 'previous_version_id', as: 'previousVersion' });
 Checklist.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
+Checklist.hasMany(ChecklistTaskMapping, { 
+    foreignKey: 'checklist_version_id',
+    sourceKey: 'version_id',
+    as: 'checklistTasks'
+  });
 
 export default Checklist;
