@@ -149,5 +149,4 @@ export default async function (app: FastifyInstance) {
   app.register(checkListRoutes,{prefix:`${basePrefix}`})
   app.register(jobTemplate, { prefix: `${basePrefix}` });
   app.register(JobCategoryRoutes, { prefix: `${basePrefix}` });
-  app.register(checklistRoutes,{prefix:`${basePrefix}`})
 }
