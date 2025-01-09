@@ -783,8 +783,8 @@ export async function getAllRateConfigurationRates(
                         rate_type: {
                             ...baseRate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord?.min_rate.amount || null,
-                            max_rate: matchingDecisionRecord?.max_rate.amount || null,
+                            min_rate: matchingDecisionRecord?.min_rate.amount || 0,
+                            max_rate: matchingDecisionRecord?.max_rate.amount || 0,
                         },
                         rates: filteredRateType,
                     },
