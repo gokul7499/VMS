@@ -13,7 +13,7 @@ dotenv.config();
 const app = fastify({
   logger: pino({ level: "info" }),
 });
- 
+
 app.register(cors, {
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -23,7 +23,7 @@ app.register(cors, {
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to Fastify API with Redis!" });
 });
- 
+
 app.register(formBodyPlugin);
 
 app.post("/store", async (request, reply) => {
@@ -71,7 +71,7 @@ const start = async () => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
     });
- 
+
     app.log.info(`Server listening on port ${port}`);
   } catch (err) {
     app.log.error(err);
