@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import jobTemplateModel from "./jobTemplateModel";
+import jobTemplateModel from "./job-template.model";
 
 class RateConfigurationJobTemplates extends Model {
     job_template: any;

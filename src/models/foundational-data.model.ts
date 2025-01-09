@@ -79,7 +79,7 @@ FoundationalData.init({
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-            model: 'tenant',
+            model: 'user',
             key: 'id',
         },
     },

@@ -25,7 +25,7 @@ import picklistRoutes from "./picklist.routes";
 import foundationalDataRoutes from "./foundational-data-routes";
 import WorkflowRoutes from "./workflow.routes";
 import customFieldsRoutes from "./custom-fields.routes";
-import reasoncodeRoute from "./reason-code.routes";
+import reasoncodeRoute from "./reason-code-action.routes";
 import EventRoutes from "./event.routes";
 import passwordPolicyRoutes from "./password-policy.routes";
 import vendorDistributionScheduleRoutes from "./vendor-distribution-schedule.routes";
@@ -68,6 +68,9 @@ import timesheetExpenseRuleGroupRoutes from "./timesheet-expense-rule-group.rout
 import expenseTypeRoute from "./expense-type.routes";
 import rateCardsRoutes from "./rate-card.route";
 import rateConfigurationsRoutes from "./rate-configurations.route";
+import jobTemplate from "./job-template.routes";
+import JobCategoryRoutes from "./job-category.routes";
+import checklistRoutes from "./checklist.routes";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -140,4 +143,7 @@ export default async function (app: FastifyInstance) {
   app.register(expenseTypeRoute,{prefix:`${basePrefix}`})
   app.register(rateCardsRoutes,{prefix:`${basePrefix}`})
   app.register(rateConfigurationsRoutes,{prefix:`${basePrefix}`})
+  app.register(jobTemplate, { prefix: `${basePrefix}` });
+  app.register(JobCategoryRoutes, { prefix: `${basePrefix}` });
+  app.register(checklistRoutes,{prefix:`${basePrefix}`})
 }

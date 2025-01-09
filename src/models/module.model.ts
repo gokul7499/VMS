@@ -5,6 +5,8 @@ import { beforeSave } from '../hooks/timeFormatHook';
 
 class Module extends Model {
     id: any;
+    name: any;
+    slug!: string;
 }
 
 Module.init(
@@ -24,6 +26,10 @@ Module.init(
             }
         },
         name: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        slug: {
             type: DataTypes.STRING,
             allowNull: true,
         },
@@ -82,5 +88,7 @@ Module.init(
 );
 
 sequelize.sync();
-Module.belongsTo(Module, { foreignKey: 'parent_module_id', as: 'modules' });
+
+
+
 export { Module };

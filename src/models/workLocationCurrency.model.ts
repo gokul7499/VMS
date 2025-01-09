@@ -26,15 +26,17 @@ WorkLocationCurrency.init(
     },
     currency_id: {
       type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'currencies',
-        key: 'id',
-      },
+      allowNull: true,      
     },
     is_default: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+    },
+    name:{
+      type:DataTypes.STRING
+    },
+    code:{
+      type:DataTypes.STRING
     },
     createdAt: {
       type: DataTypes.DATE,

@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import ShiftType from "./shift-type.model";
 class RateType extends Model {
   id!: string;
   type!: string
@@ -56,7 +57,11 @@ RateType.init(
     },
     shift_type: {
       type: DataTypes.UUID,
-      defaultValue: true,
+      allowNull: true,
+      references: {
+        model: ShiftType,
+        key: "id",
+      },
     },
     is_shift_rate: {
       type: DataTypes.BOOLEAN,
@@ -68,7 +73,7 @@ RateType.init(
     },
     is_base_rate: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
+      defaultValue:false,
       allowNull: true,
     },
     program_id: {
@@ -99,4 +104,5 @@ RateType.init(
 );
 
 sequelize.sync();
+RateType.belongsTo(ShiftType, { foreignKey: "shift_type", as: "shift_types" });
 export default RateType;

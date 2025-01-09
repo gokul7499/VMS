@@ -1,14 +1,11 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { beforeSave } from "../hooks/timeFormatHook";
 import { Programs } from "./programs.model";
-import WorkflowLevel from "./workflowLevelModel";
-import RecipientType from "./recipient-types.model";
+import WorkflowLevel from "./workflow-triggering-level-model";
 
-class WorkflowRecipientType extends Model { }
+class WorkflowTriggeredRecipientType extends Model { }
 
-WorkflowRecipientType.init(
+WorkflowTriggeredRecipientType.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -47,7 +44,7 @@ WorkflowRecipientType.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: "workflow_level",
+                model: "workflow_triggered_level",
                 key: "id",
             },
         },
@@ -61,46 +58,41 @@ WorkflowRecipientType.init(
         },
         recipient_type_id: {
             type: DataTypes.UUID,
-            allowNull: false,
-            references: {
-                model: "recipient_type",
-                key: "id",
-            },
+            allowNull: true,
         },
         behaviour: {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        workflow_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        workflow_trigger_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        job_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        }
     },
     {
         sequelize,
-        tableName: "workflow_recepient_type",
+        tableName: "workflow_triggered_recepient",
         timestamps: false,
-        hooks: {
-            beforeValidate: (instance) => {
-                convertEmptyStringsToNull(instance);
-            },
-            beforeSave: (instance) => {
-                beforeSave(instance);
-            },
-        },
     }
 );
 
 sequelize.sync();
-WorkflowRecipientType.belongsTo(Programs, {
+WorkflowTriggeredRecipientType.belongsTo(Programs, {
     foreignKey: "program_id",
     as: "programs",
 });
 
-WorkflowRecipientType.belongsTo(WorkflowLevel, {
+WorkflowTriggeredRecipientType.belongsTo(WorkflowLevel, {
     foreignKey: "level_id",
-    as: "workflow_level",
+    as: "workflow_triggered_level",
 });
 
-WorkflowRecipientType.belongsTo(RecipientType, {
-    foreignKey: "recipient_type_id",
-    as: "recipientType",
-});
-
-export default WorkflowRecipientType;
+export default WorkflowTriggeredRecipientType;

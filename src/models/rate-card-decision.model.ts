@@ -3,9 +3,9 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import hierarchies from "./hierarchies.model";
-import jobTemplateModel from "./jobTemplateModel";
 import rateType from "./rate-type.model";
-import Currencies from "./currencies.model";
+import JobTemplateModel from "./job-template.model";
+
 
 class DecisionTable extends Model {
     rate_card_id: any;
@@ -19,6 +19,8 @@ class DecisionTable extends Model {
     created_on: any;
     modified_on: any;
     id: any;
+    rate_type_id: any;
+    currency_id: any;
 }
 
 DecisionTable.init(
@@ -45,7 +47,7 @@ DecisionTable.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: jobTemplateModel,
+                model: JobTemplateModel,
                 key: 'id'
             }
         },
@@ -62,12 +64,8 @@ DecisionTable.init(
             allowNull: true,
         },
         currency_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.STRING,
             allowNull: true,
-            references: {
-                model: Currencies,
-                key: 'id'
-            }
         },
         min_rate: {
             type: DataTypes.JSON,
@@ -105,8 +103,7 @@ DecisionTable.init(
 );
 
 DecisionTable.belongsTo(hierarchies, { foreignKey: "hierarchy_id", as: "hierarchy" });
-DecisionTable.belongsTo(jobTemplateModel, { foreignKey: "job_template_id", as: "job_template" });
+DecisionTable.belongsTo(JobTemplateModel, { foreignKey: "job_template_id", as: "job_template" });
 DecisionTable.belongsTo(rateType, { foreignKey: "rate_type_id", as: "rate_type" });
-DecisionTable.belongsTo(Currencies, { foreignKey: "currency_id", as: "currency" });
 sequelize.sync();
 export default DecisionTable;

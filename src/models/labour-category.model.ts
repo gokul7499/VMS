@@ -3,9 +3,12 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import { industriesHooks } from '../hooks/afterRateCard';
 
 class IndustriesModel extends Model {
   id: any;
+    program_id: unknown;
+    is_enabled: unknown;
 }
 
 IndustriesModel.init(
@@ -58,6 +61,7 @@ IndustriesModel.init(
       beforeSave: (instance) => {
         beforeSave(instance);
       },
+      afterCreate:industriesHooks.afterCreate
     },
   }
 );

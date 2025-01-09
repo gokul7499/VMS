@@ -93,28 +93,39 @@ export async function getUserHierarchiesByProgram(
     const associateHierarchyIds = user.associate_hierarchy_ids ?? [];
     const workLocationIds = user.work_location_ids ?? [];
 
-    const hierarchiesData = associateHierarchyIds.length
-      ? await hierarchies.findAll({
-        where: { id: associateHierarchyIds },
-        attributes: ['id', 'name'],
-      })
-      : [];
+    const [hierarchiesData, workLocationsData, defaultWorkLocation] = await Promise.all([
+      associateHierarchyIds.length
+        ? hierarchies.findAll({
+          where: { id: associateHierarchyIds },
+          attributes: ['id', 'name', 'parent_hierarchy_id'],
+        })
+        : [],
+      workLocationIds.length
+        ? WorkLocationModel.findAll({
+          where: { id: workLocationIds },
+          attributes: ['id', 'name'],
+        })
+        : [],
+      user.default_work_location_id
+        ? WorkLocationModel.findByPk(user.default_work_location_id, {
+          attributes: ['id', 'name'],
+        })
+        : null,
+    ]);
 
-    const workLocationsData = workLocationIds.length
-      ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds },
-        attributes: ['id', 'name'],
-      })
-      : [];
+    const buildHierarchyTree = (items: any, parentId = null) => {
+      return items
+        .filter((item: { parent_hierarchy_id: null; }) => item.parent_hierarchy_id === parentId)
+        .map((item: { id: null | undefined; name: any; }) => ({
+          id: item.id,
+          name: item.name,
+          hierarchies: buildHierarchyTree(items, item.id),
+        }));
+    };
 
-    const defaultWorkLocation = user.default_work_location_id
-      ? await WorkLocationModel.findByPk(user.default_work_location_id, {
-        attributes: ['id', 'name'],
-      })
-      : null;
-
-    const is_all_hierarchy_associate = hierarchiesData.length > 0 ? false : true;
-    const is_all_work_location_associate = workLocationsData.length > 0 ? false : true;
+    const hierarchyTree = buildHierarchyTree(hierarchiesData);
+    const is_all_hierarchy_associate = hierarchiesData.length === 0;
+    const is_all_work_location_associate = workLocationsData.length === 0;
 
     return reply.status(200).send({
       status_code: 200,
@@ -123,12 +134,9 @@ export async function getUserHierarchiesByProgram(
         user_id,
         program_id,
         is_all_hierarchy_associate,
-        hierarchies: hierarchiesData.map((hierarchy) => ({
-          id: hierarchy.id,
-          name: hierarchy.name,
-        })),
+        hierarchies: hierarchyTree,
         is_all_work_location_associate,
-        work_locations: workLocationsData.map((location) => ({
+        work_locations: workLocationsData.map(location => ({
           id: location.id,
           name: location.name,
         })),
@@ -138,10 +146,10 @@ export async function getUserHierarchiesByProgram(
         : null,
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
-      message: (error as any).message,
+      message: error.message,
       trace_id: traceId,
     });
   }
@@ -407,17 +415,15 @@ export async function getAllUserIDAndUserId(
     const defaultWorkLocationIds = users.flatMap(user => user.default_work_location_id ? [user.default_work_location_id] : []);
     const countryIds = users.flatMap(user => user.country_id ? [user.country_id] : []);
     const tenantIds = users.flatMap(user => user.tenant_id ? [user.tenant_id] : []);
-    const languageIds = users.flatMap(user => user.language_id ? [user.language_id] : []);
     const timeZoneIds = users.flatMap(user => user.time_zone_id ? [user.time_zone_id] : []);
 
-    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, languagesData, timeZonesData] = await Promise.all([
+    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, timeZonesData] = await Promise.all([
       hierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
       workLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: workLocationIds }, attributes: ['id', 'name'] }) : [],
       defaultHierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: defaultHierarchyIds }, attributes: ['id', 'name'] }) : [],
       defaultWorkLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: defaultWorkLocationIds }, attributes: ['id', 'name'] }) : [],
       countryIds.length > 0 ? CountryModel.findAll({ where: { id: countryIds }, attributes: ['id', 'name'] }) : [],
       tenantIds.length > 0 ? Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name'] }) : [],
-      languageIds.length > 0 ? Language.findAll({ where: { id: languageIds }, attributes: ['id', 'name'] }) : [],
       timeZoneIds.length > 0 ? TimeZone.findAll({ where: { id: timeZoneIds }, attributes: ['id', 'name'] }) : [],
     ]);
 
@@ -428,7 +434,6 @@ export async function getAllUserIDAndUserId(
       const defaultWorkLocation = defaultWorkLocationsData.find(location => location.id === user.default_work_location_id);
       const country = countriesData.find(country => country.id === user.country_id);
       const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
-      const language = languagesData.find(language => language.id === user.language_id);
       const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
       const userMasterData = masterDataDetails.find(data => data.user_id === user.id)?.master_data || [];
 
@@ -440,7 +445,6 @@ export async function getAllUserIDAndUserId(
         default_work_location_id: defaultWorkLocation ? { id: defaultWorkLocation.id, name: defaultWorkLocation.name } : null,
         country_id: country ? { id: country.id, name: country.name } : null,
         tenant_id: tenant ? { id: tenant.id, name: tenant.name } : null,
-        language_id: language ? { id: language.id, name: language.name } : null,
         time_zone_id: timeZone ? { id: timeZone.id, name: timeZone.name } : null,
         foundational_data: userMasterData,
       };
@@ -450,7 +454,7 @@ export async function getAllUserIDAndUserId(
 
     reply.status(200).send({
       status_code: 200,
-      message:" Users fetched successfully",
+      message: " Users fetched successfully",
       trace_id: traceId,
       users: enrichedUsers,
       total_count: totalCount,

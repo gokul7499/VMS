@@ -6,6 +6,8 @@ interface IndustriesInterface {
   is_enabled: boolean | string;
   page?: string;
   limit?: string;
+  modified_on?:number;
 }
+
 
 export { IndustriesInterface, };
