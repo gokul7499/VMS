@@ -160,7 +160,7 @@ export const updateWorkflowStatus = async (
             trace_id: traceId,
         });
     }
-
+   
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
@@ -171,6 +171,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
+   let managerData=await getManagerDetails(program_id,id)
 
         let levels = workflow.levels || [];
         let updatedLevels = false;
@@ -290,7 +291,51 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+async function getManagerDetails(program_id:any, workflowId:any) {
+    try {
+        // Step 1: Query the workflow table to get the manager ID
+        const workflowQuery = `
+            SELECT id, manager
+            FROM workflow
+            WHERE id = :id
+            AND is_enabled = true
+            LIMIT 1
+        `;
 
+        const workflowResult:any = await sequelize.query(workflowQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { id: workflowId },
+        });
+
+        if (workflowResult.length === 0) {
+            return { status: 'Error', message: 'Workflow not found or disabled' };
+        }
+
+        const managerId = workflowResult[0].manager;
+
+        // Step 2: Query the user table to get the manager details
+        const userQuery = `
+            SELECT id, name, email, role
+            FROM user
+            WHERE id = :managerId
+            LIMIT 1
+        `;
+
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { managerId },
+        });
+
+        if (userResult.length === 0) {
+            return { status: 'Error', message: 'Manager not found' };
+        }
+
+        return { status: 'Success', data: userResult[0] };
+    } catch (error) {
+        console.error('Error fetching manager details:', error);
+        return { status: 'Error', message: 'An error occurred while fetching manager details', error };
+    }
+}
 export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -315,7 +360,7 @@ export const rejectLevel = async (
             trace_id: traceId,
         });
     }
-
+    let managerData=await getManagerDetails(program_id,id)
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
@@ -467,6 +512,7 @@ export const updateReplaceLevel = async (
     }
 
     try {
+        let managerData=await getManagerDetails(program_id,id)
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         const user = await fetchUserById(user_id);
         console.log("user", user);
