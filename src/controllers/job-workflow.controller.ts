@@ -144,6 +144,17 @@ export const updateWorkflowStatus = async (
 ) => {
 
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -346,6 +357,17 @@ export const rejectLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -499,6 +521,17 @@ export const updateReplaceLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
 
@@ -645,6 +678,17 @@ export const imporsonateLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
