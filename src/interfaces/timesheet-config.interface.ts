@@ -3,8 +3,9 @@ export interface TimesheetTypeConfigInterface {
   title?: string;
   display_title?: string;
   program_id?: string;
-  hierarchies?: { hierarchy_id: string }[];
-  labor_categorys?: { labor_category_id: string }[];
+  hierarchies?: string[];
+  labor_category?: string[];
+  master_data_types?: string[];
   is_all_labor_category_associate?: boolean;
   work_period?: string;
   work_start_day?: string;
@@ -13,18 +14,18 @@ export interface TimesheetTypeConfigInterface {
   project?: any;
   allocations?: any;
   allow_non_billable_hours?: boolean;
-  break?:any;
-  timesheet_rounding?:any;
-  notes?:any;
+  break?: any;
+  timesheet_rounding?: any;
+  notes?: any;
   st_per_week?: number;
   st_per_day?: number;
   st_days_per_week?: number;
   daily_limit?: any;
   weekly_limit?: any;
   weekend?: any;
-  modification_rules?:any;
-  thresholds?:any;
-  copy_timesheet?:any;
+  modification_rules?: any;
+  thresholds?: any;
+  copy_timesheet?: any;
   is_overnight_allowed?: boolean;
   soft_delete?: any;
   allow_timesheet_to_be_submitted?: string;
@@ -34,5 +35,5 @@ export interface TimesheetTypeConfigInterface {
   created_by?: string;
   modified_by?: string;
   is_deleted?: boolean;
-  slug?:string;
+  slug?: string;
 }
