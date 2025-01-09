@@ -144,6 +144,16 @@ export const updateWorkflowStatus = async (
 ) => {
 
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -162,6 +172,7 @@ export const updateWorkflowStatus = async (
     }
 
     try {
+
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
@@ -171,7 +182,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
+let managerData=await getManagerDetails(program_id,id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
@@ -290,7 +301,51 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+async function getManagerDetails(program_id:any, workflowId:any) {
+    try {
+        // Step 1: Query the workflow table to get the manager ID
+        const workflowQuery = `
+            SELECT id, manager
+            FROM workflow
+            WHERE id = :id
+            AND is_enabled = true
+            LIMIT 1
+        `;
 
+        const workflowResult:any = await sequelize.query(workflowQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { id: workflowId },
+        });
+
+        if (workflowResult.length === 0) {
+            return { status: 'Error', message: 'Workflow not found or disabled' };
+        }
+
+        const managerId = workflowResult[0].manager;
+
+        // Step 2: Query the user table to get the manager details
+        const userQuery = `
+            SELECT id, name, email, role
+            FROM user
+            WHERE id = :managerId
+            LIMIT 1
+        `;
+
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { managerId },
+        });
+
+        if (userResult.length === 0) {
+            return { status: 'Error', message: 'Manager not found' };
+        }
+
+        return { status: 'Success', data: userResult[0] };
+    } catch (error) {
+        console.error('Error fetching manager details:', error);
+        return { status: 'Error', message: 'An error occurred while fetching manager details', error };
+    }
+}
 export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -303,7 +358,17 @@ export const rejectLevel = async (
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     let updates = request.body;
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
@@ -329,7 +394,7 @@ export const rejectLevel = async (
         // Parse levels array
         let levels = workflow.levels || [];
         let updatedLevels = false;
-
+        let managerData=await getManagerDetails(program_id,id)
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
            
           
@@ -456,7 +521,17 @@ export const updateReplaceLevel = async (
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     // Validate input parameters
     if (!program_id || !id || !placement_order || !status || !replaced_by) {
         return reply.status(400).send({
@@ -468,6 +543,7 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        let managerData=await getManagerDetails(program_id,id)
         const user = await fetchUserById(user_id);
         console.log("user", user);
         if (!workflow) {
@@ -599,6 +675,17 @@ export const imporsonateLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
     const { program_id, id } = request.params;
     let updates = request.body;
 
