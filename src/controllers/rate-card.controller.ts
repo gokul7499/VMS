@@ -102,7 +102,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             where: whereConditions,
             limit: parsedLimit,
             offset,
-            order: [["created_on", "DESC"]]
+            order: [["created_on", "DESC"]],
         });
 
         if (!rateCards.length) {
@@ -150,14 +150,25 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                     as: 'rate_type',
                     attributes: ['id', 'name'],
                 },
-               
             ],
         });
 
+const currencyNames = [...new Set(decisionTables.map((dt) => dt.currency).filter(Boolean))];
+const currencies = await Currencies.findAll({
+    where: { name: currencyNames },
+    attributes: ['id', 'name', 'label', 'symbol'],
+});
+const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
+
+const decisionTableDetails = decisionTables.map((dt) => ({
+    ...dt.toJSON(),
+    currency: currencyMap[dt.currency] || null,
+}));
+
         const rateCardsWithDetails = rateCards.map((rateCard) => {
             const laborCategory = laborCategoryMap[rateCard.labor_category_id] || null;
-            const relatedDecisionTables = decisionTables.filter(
-                (decisionTable) => decisionTable.rate_card_id === rateCard.id
+            const relatedDecisionTables = decisionTableDetails.filter(
+                (dt) => dt.rate_card_id === rateCard.id
             );
             return {
                 ...rateCard.toJSON(),
@@ -168,7 +179,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                     hierarchy: dt.hierarchy,
                     job_template: dt.job_template,
                     rate_type: dt.rate_type,
-                    currency: dt.currency_id,
+                    currency: dt.currency,
                     unit_of_measure: dt.unit_of_measure,
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
@@ -241,22 +252,33 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
             ],
         });
 
+        const decisionTableDetails = await Promise.all(
+            decisionTables.map(async (dt) => {
+                const currencyDetails = dt.currency
+                    ? await Currencies.findOne({
+                          where: { name: dt.currency},
+                          attributes: ["id", "name", "label","symbol"],
+                      })
+                    : null;
+
+                return {
+                    id: dt.id,
+                    rate_card_id: dt.rate_card_id,
+                    hierarchy: dt.hierarchy,
+                    job_template: dt.job_template,
+                    rate_type: dt.rate_type,
+                    currency: currencyDetails, 
+                    unit_of_measure: dt.unit_of_measure,
+                    min_rate: dt.min_rate,
+                    max_rate: dt.max_rate,
+                    created_on: dt.created_on,
+                    modified_on: dt.modified_on,
+                }}),
+        );
         const rateCardWithDetails = {
             ...rateCard.toJSON(),
             labor_category: laborCategory,
-            decision_table: decisionTables.map((dt) => ({
-                id: dt.id,
-                rate_card_id: dt.rate_card_id,
-                hierarchy: dt.hierarchy,
-                job_template: dt.job_template,
-                rate_type: dt.rate_type,
-                currency: dt.currency_id,
-                unit_of_measure: dt.unit_of_measure,
-                min_rate: dt.min_rate,
-                max_rate: dt.max_rate,
-                created_on: dt.created_on,
-                modified_on: dt.modified_on,
-            })),
+            decision_table: decisionTableDetails,
         };
         reply.status(200).send({
             status_code: 200,
