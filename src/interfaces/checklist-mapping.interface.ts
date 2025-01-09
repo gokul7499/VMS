@@ -23,6 +23,8 @@ export interface ChecklistMappingInterface {
     sequence_number: number;
     is_mandatory: boolean;
     has_dependency: boolean;
+    dependency_task_name?: string;
+    dependency_category_name?: string; 
     dependency_task_entity_id?: string;
     dependency_category_id?: string;
     trigger: string;

@@ -6,6 +6,7 @@ import hierarchies from "./hierarchies.model";
 import rateType from "./rate-type.model";
 import JobTemplateModel from "./job-template.model";
 
+
 class DecisionTable extends Model {
     rate_card_id: any;
     hierarchy: any;
