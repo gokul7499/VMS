@@ -1,3 +1,4 @@
+// app.ts
 import fastify from "fastify";
 import pino from "pino";
 import dotenv from "dotenv";
@@ -5,7 +6,7 @@ import cors from "@fastify/cors";
 import redis from "./config/redis";
 import { checkDatabaseConnection, initializeSequelize } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
- 
+
 dotenv.config();
 
 import registerRoutes from "./routes";
@@ -51,7 +52,11 @@ app.get("/fetch/:key", async (request, reply) => {
       reply.send({ message: "No data found for the provided key" });
     }
   } catch (error) {
-    reply.status(500).send({ error: "Failed to fetch data", details: error });
+    return reply.status(500).send({
+      status: "error",
+      message: "Failed to check database connection",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 });
 
@@ -62,12 +67,14 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
- 
+
     // Import models and routes after Sequelize is initialized
     // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
- 
+
+
+    const port = 8000;
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
@@ -79,5 +86,5 @@ const start = async () => {
     process.exit(1);
   }
 };
- 
+
 start();
