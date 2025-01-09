@@ -175,6 +175,7 @@ class JobTempletRepository {
         SELECT
           job_templates.template_name,
           MIN(job_templates.id) AS id,
+          MIN(job_templates.is_shift_rate) AS is_shift_rate,
           MIN(job_templates.program_id) AS program_id,
           MIN(job_templates.job_type) AS job_type,
           MIN(job_templates.description) AS description,
