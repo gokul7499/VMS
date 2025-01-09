@@ -58,7 +58,7 @@ JobTemplateModel.init(
             allowNull: false
         },
         level: {
-            type: DataTypes.STRING,
+            type: DataTypes.NUMBER,
             allowNull: true
         },
         labour_category: {
@@ -150,6 +150,11 @@ JobTemplateModel.init(
             allowNull: true
         },
         is_deleted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            allowNull: true
+        },
+        is_description_editable: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
             allowNull: true

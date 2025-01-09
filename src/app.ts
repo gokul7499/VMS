@@ -23,6 +23,7 @@ app.register(cors, {
 
 app.register(formBodyPlugin);
 
+
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to v4-config-api-dev service" });
 });
@@ -61,12 +62,8 @@ const start = async () => {
     if (!dbStatus.connected) {
       throw new Error(dbStatus.message);
     }
-
-    // Import models and routes after Sequelize is initialized
-    // require("./models");
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
-
 
     const port = 8000;
     app.listen({ port, host: "0.0.0.0" }, (err) => {
