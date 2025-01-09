@@ -2,7 +2,8 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import { beforeSave } from "../hooks/timeFormatHook";
-import WorkLocationCurrency from "./WorkLocationCurrencyModel";
+import WorkLocationCurrency from "./workLocationCurrency.model";
+import CountryModel from "./countries.model";
 
 class WorkLocationModel extends Model {
   id: any;
@@ -71,7 +72,11 @@ WorkLocationModel.init(
       allowNull: false,
     },
     country_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
+      references: {
+        model: "countries",
+        key: "id",
+      },
     },
     real_estate_code: {
       type: DataTypes.STRING,
@@ -131,6 +136,6 @@ WorkLocationModel.init(
 sequelize.sync();
 
 WorkLocationModel.belongsTo(Programs, { foreignKey: "program_id", as: "program" });
-WorkLocationModel.hasMany(WorkLocationCurrency, { foreignKey: 'work_location_id', as: 'currencies' });
+WorkLocationModel.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries", });
 
 export default WorkLocationModel;

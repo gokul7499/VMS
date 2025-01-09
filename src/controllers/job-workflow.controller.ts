@@ -1652,19 +1652,18 @@ ORDER BY
                         const existingLevel = getExistingLevel(workflow, level_id);
                         // if (existingLevel) {
                         //     existingLevel.recipients.push(recipient);
-                        // }
+                        // } 
                         if (existingLevel) {
-
+            
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-
+                            
                             if (duplicateIndex === -1) {
-
+                              
                                 existingLevel.recipients.push(recipient);
                             }
-
-                        } else {
-
-
+                  
+                        }
+                        else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
@@ -2412,16 +2411,16 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         //     existingLevel.recipients.push(recipient);
                         // }
                         if (existingLevel) {
-
+            
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-
+                            
                             if (duplicateIndex === -1) {
-
+                              
                                 existingLevel.recipients.push(recipient);
                             }
-
+                  
                         }
-                        else {
+                         else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,
