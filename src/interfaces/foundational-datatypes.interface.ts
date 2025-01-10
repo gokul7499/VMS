@@ -10,5 +10,6 @@ export interface FoundationalDataTypesInterface {
     program_id: string,
     is_deleted: boolean,
     configuration: any
-    associations: any
+    associations: any,
+    timesheet__master_data:boolean
 }   

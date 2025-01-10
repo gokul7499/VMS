@@ -35,6 +35,8 @@ export default interface ChecklistInterface {
         has_dependency: boolean;
         dependency_task_entity_id?: string;
         dependency_category_id?: string;
+        dependency_task_name?: string;
+        dependency_category_name?: string;
     }[];
     created_by: string;
     updated_by?: string;

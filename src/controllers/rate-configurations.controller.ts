@@ -569,17 +569,16 @@ export async function getRateConfigurationById(
     }
 }
 
-export async function getAllRateConfigurationRates(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Querystring: {
-            hierarchie_id?: string;
-            job_templates?: string;
-            is_shift_rate?: boolean;
-            currency_id?: string;
-            unit_of_measure?: string;
-        };
-    }>,
+export async function getAllRateConfigurationRates(request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: {
+        hierarchie_id?: string;
+        job_templates?: string;
+        is_shift_rate?: boolean;
+        currency_id?: string;
+        unit_of_measure?: string;
+    };
+}>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -628,7 +627,7 @@ export async function getAllRateConfigurationRates(
                 hierarchy_id: { [Op.in]: hierarchyIds },
                 job_template_id: { [Op.in]: jobTemplateIds },
                 unit_of_measure,
-                currency_id,
+                currency:currency_id,
             },
             attributes: ['id', 'rate_card_id', 'rate_type_id', 'min_rate', 'max_rate'],
         });
@@ -707,8 +706,8 @@ export async function getAllRateConfigurationRates(
                             (record) => record.rate_type_id === baseRate.rate_type?.id
                         );
                         const bill_rate = billRates.map((billRate) => {
-                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
-                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
+                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
                             return {
                                 ...billRate.get(),
@@ -721,8 +720,8 @@ export async function getAllRateConfigurationRates(
                             };
                         });
                         const pay_rate = payRates.map((payRate) => {
-                            const minRate = matchingDecisionRecord?.min_rate.amount || 0;
-                            const maxRate = matchingDecisionRecord?.max_rate.amount || 0;
+                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
                             return {
                                 ...payRate.get(),
@@ -774,8 +773,8 @@ export async function getAllRateConfigurationRates(
                         rate_type: {
                             ...baseRate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord?.min_rate.amount || 0,
-                            max_rate: matchingDecisionRecord?.max_rate.amount || 0,
+                            min_rate: Number(matchingDecisionRecord?.min_rate.amount) || 0,
+                            max_rate: Number(matchingDecisionRecord?.max_rate.amount) || 0,
                         },
                         rates: filteredRateType,
                     },
@@ -860,11 +859,7 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(
-    rates: any[],
-    baseRateMin: number,
-    baseRateMax: number
-) {
+function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number) {
     return rates.map(rate => ({
         ...rate,
         min_rate:
@@ -878,10 +873,7 @@ function calculateRates(
     }));
 }
 
-export async function getAllRateConfigurationBudget(
-    request: FastifyRequest<{ Body: any[] }>,
-    reply: FastifyReply
-) {
+export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
 
     try {
@@ -889,8 +881,8 @@ export async function getAllRateConfigurationBudget(
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
-                const baseRateMin = rateConfig.base_rate.rate_type.min_rate;
-                const baseRateMax = rateConfig.base_rate.rate_type.max_rate;
+                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate);
+                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate);
 
                 const base_rate = {
                     ...rateConfig.base_rate,
@@ -940,4 +932,3 @@ export async function getAllRateConfigurationBudget(
         });
     }
 }
-

@@ -9,6 +9,7 @@ class IndustriesModel extends Model {
   id: any;
     program_id: unknown;
     is_enabled: unknown;
+    name: any;
 }
 
 IndustriesModel.init(

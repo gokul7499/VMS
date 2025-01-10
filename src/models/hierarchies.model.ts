@@ -29,7 +29,6 @@ hierarchies.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-   
     rate_model: {
       type: DataTypes.ENUM(
         'bill_rate',
@@ -50,12 +49,11 @@ hierarchies.init(
     modified_by: {
       type: DataTypes.UUID,
     },
-  
     code: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    support_email:{
+    support_email: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -63,7 +61,7 @@ hierarchies.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-     program_id: {
+    program_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
@@ -75,7 +73,6 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-   
     default_timezone: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -83,7 +80,6 @@ hierarchies.init(
     default_date_format: {
       type: DataTypes.STRING,
       allowNull: true,
-     
     },
     default_time_format: {
       type: DataTypes.STRING,
@@ -109,7 +105,6 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-
     manage_adjustment: {
       type: DataTypes.JSON,
       allowNull: true,
@@ -123,9 +118,6 @@ hierarchies.init(
       allowNull: false,
       defaultValue: true,
     },
-
-
-
   },
   {
     sequelize,
