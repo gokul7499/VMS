@@ -70,27 +70,35 @@ export async function createReasoncode(
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+
     try {
         const { page = 1, limit = 10, module_name, reasons_count, event_name } = request.query as {
-            page?: number,
-            limit?: number,
-            module_name?: string,
-            reasons_count?: number,
-            event_name?: string
+            page?: string | number;
+            limit?: string | number;
+            module_name?: string;
+            reasons_count?: number;
+            event_name?: string;
         };
 
-        const offset = (page - 1) * limit;
+        const pageNumber = parseInt(page as unknown as string, 10);
+        const limitNumber = parseInt(limit as unknown as string, 10);
+        const offset = (pageNumber - 1) * limitNumber;
 
-        const reasoncodes = await ReasonCodeActionModel.findAll({
-            where: {
-                is_deleted: false,
-                ...(module_name && {
-                    '$module.name$': { [Op.like]: `%${module_name}%` }
-                }),
-                ...(event_name && {
-                    '$supporting_text_event.name$': { [Op.like]: `%${event_name}%` }
-                })
-            },
+        const whereClause: any = {
+            is_deleted: false,
+            ...(module_name && {
+                '$module.name$': { [Op.like]: `%${module_name}%` }
+            }),
+            ...(event_name && {
+                '$supporting_text_event.name$': { [Op.like]: `%${event_name}%` }
+            }),
+            ...(reasons_count !== undefined && {
+                reasons_count: reasons_count
+            })
+        };
+
+        const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
+            where: whereClause,
             attributes: {
                 exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
             },
@@ -109,8 +117,8 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
                 },
             ],
             order: [['created_on', 'DESC']],
-            limit: Number(limit),
-            offset: Number(offset),
+            limit: limitNumber,
+            offset,
         });
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
@@ -127,41 +135,25 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
             };
         });
 
-        const filteredReasoncodes = reasons_count !== undefined
-            ? reasoncodesWithDetails.filter((rc) => rc.reasons_count === reasons_count)
-            : reasoncodesWithDetails;
-
-        const totalRecords = await ReasonCodeActionModel.count({
-            where: {
-                is_deleted: false,
-            }
-        });
-
-        if (!filteredReasoncodes || filteredReasoncodes.length === 0) {
-            return reply.status(200).send({
-                message: "Reasoncode not found",
-                reason_code_action: [],
-                totalRecords
-            });
-        }
-
         reply.status(200).send({
             status_code: 200,
-            message: 'Reasoncode retrive successfully ',
-            trace_id: traceId,
-            reason_code_action: filteredReasoncodes,
+            message: reasoncodesWithDetails.length
+                ? 'Reasoncode retrieved successfully'
+                : 'Reasoncode not found',
+            items_per_page: limitNumber,
             total_records: totalRecords,
+            reason_code_action: reasoncodesWithDetails,
+            trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
             trace_id: traceId,
-            error: error,
+            error: error.message,
         });
     }
 }
-
 
 export async function getReasoncodeById(
     request: FastifyRequest<{ Params: { program_id?: string; id: string } }>,
