@@ -151,7 +151,6 @@ export const updateWorkflowStatus = async (
     }
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
@@ -171,8 +170,9 @@ export const updateWorkflowStatus = async (
             trace_id: traceId,
         });
     }
-   
+
     try {
+
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
@@ -182,8 +182,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-   let managerData=await getManagerDetails(program_id,id)
-
+        let managerData = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
@@ -302,7 +301,8 @@ export const updateWorkflowStatus = async (
         });
     }
 };
-async function getManagerDetails(program_id:any, workflowId:any) {
+
+async function getManagerDetails(program_id: any, workflowId: any) {
     try {
         // Step 1: Query the workflow table to get the manager ID
         const workflowQuery = `
@@ -313,7 +313,7 @@ async function getManagerDetails(program_id:any, workflowId:any) {
             LIMIT 1
         `;
 
-        const workflowResult:any = await sequelize.query(workflowQuery, {
+        const workflowResult: any = await sequelize.query(workflowQuery, {
             type: QueryTypes.SELECT,
             replacements: { id: workflowId },
         });
@@ -357,6 +357,9 @@ export const rejectLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+
+    const { program_id, id } = request.params;
+    let updates = request.body;
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -368,9 +371,6 @@ export const rejectLevel = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    const { program_id, id } = request.params;
-    let updates = request.body;
-
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
@@ -382,7 +382,7 @@ export const rejectLevel = async (
             trace_id: traceId,
         });
     }
-    let managerData=await getManagerDetails(program_id,id)
+    let managerData = await getManagerDetails(program_id, id)
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
@@ -396,7 +396,7 @@ export const rejectLevel = async (
         // Parse levels array
         let levels = workflow.levels || [];
         let updatedLevels = false;
-
+        let managerData = await getManagerDetails(program_id, id)
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
 
 
@@ -521,6 +521,9 @@ export const updateReplaceLevel = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+
+    const { program_id, id } = request.params;
+    const { placement_order, status, replaced_by, user_id, notes } = request.body;
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -532,9 +535,6 @@ export const updateReplaceLevel = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    const { program_id, id } = request.params;
-    const { placement_order, status, replaced_by, user_id, notes } = request.body;
-
     // Validate input parameters
     if (!program_id || !id || !placement_order || !status || !replaced_by) {
         return reply.status(400).send({
@@ -545,8 +545,9 @@ export const updateReplaceLevel = async (
     }
 
     try {
-        let managerData=await getManagerDetails(program_id,id)
+        let managerData = await getManagerDetails(program_id, id)
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+
         const user = await fetchUserById(user_id);
         console.log("user", user);
         if (!workflow) {
@@ -1654,14 +1655,14 @@ ORDER BY
                         //     existingLevel.recipients.push(recipient);
                         // } 
                         if (existingLevel) {
-            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
+
                         }
                         else {
                             workflow.levels.push({
@@ -2411,16 +2412,16 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         //     existingLevel.recipients.push(recipient);
                         // }
                         if (existingLevel) {
-            
+
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-                            
+
                             if (duplicateIndex === -1) {
-                              
+
                                 existingLevel.recipients.push(recipient);
                             }
-                  
+
                         }
-                         else {
+                        else {
                             workflow.levels.push({
                                 level_id,
                                 level_order: placement_order,

@@ -21,6 +21,7 @@ app.register(cors, {
 
 app.register(formBodyPlugin);
 
+
 app.get("/", async (request, reply) => {
   reply.send({ message: "Welcome to v4-config-api-dev service" });
 });

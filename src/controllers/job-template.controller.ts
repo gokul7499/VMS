@@ -155,15 +155,12 @@ export async function getJobTemplateById(
         "is_manual_distribute_submit",
         "is_manual_distribute_final_approval",
         "is_shift_rate",
-        "default_working_day_per_week",
         "is_description_required",
         "is_description_upload_required",
-        "default_hours_per_day",
         "is_country_mandatory",
         "is_address_mandatory",
         "default_expense_value",
         "allow_pre_identified_candidate",
-        "submission_limit_vendor",
         "resume_mandatory",
         "job_submitted_count",
       ];
@@ -802,6 +799,7 @@ export async function getAllJobTempletsByHierarchies(
 
     reply.status(200).send({
       status_code: 200,
+      message:"Job template fetched successfully",
       job_templates: data,
       trace_id: traceId,
     });

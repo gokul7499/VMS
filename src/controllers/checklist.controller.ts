@@ -3,15 +3,17 @@ import ChecklistInterface from "../interfaces/checklist.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { sequelize } from "../config/instance";
-import TaskChecklistMappingInterface from "../interfaces/checklist-mapping.interface";
-import { Op } from "sequelize";
+import { col, fn, Op } from "sequelize";
 import Checklist from "../models/checklist.model";
 import ChecklistMapping from "../models/checklist-mapping.model";
+import ChecklistTaskMapping from "../models/checklist-mapping.model";
+import { includes } from "lodash";
 
 export async function createCheckList(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) {
+    console.log("inside function")
     const traceId = generateCustomUUID();
     const program_id = request.params.program_id;
     try {
@@ -30,7 +32,7 @@ export async function createCheckList(
                     checklist_version_id: createdCheckList.version_id,
                     checklist_entity_id: createdCheckList.entity_id,
                     seq_no: config.seq_no,
-                    is_mandatory: config.is_mandatory ?? true,
+                    is_mandatory: config.is_mandatory ?? false,
                     trigger: config.trigger,
                     actor_org_type: config.actor_org_type,
                     actor_role_id: config.actor_role_id,
@@ -51,7 +53,9 @@ export async function createCheckList(
                     task_name: config.task_name,
                     has_dependency: config.has_dependency ?? false,
                     dependency_task_entity_id: config.dependency_task_entity_id,
+                    dependency_task_name: config.dependency_task_name,
                     dependency_category_id: config.dependency_category_id,
+                    dependency_category_name: config.dependency_category_name,
                 }));
 
                 await ChecklistMapping.bulkCreate(taskCategoryMappings, { transaction });
@@ -60,7 +64,7 @@ export async function createCheckList(
             reply.status(201).send({
                 status_code: 201,
                 message: 'Checklist created successfully',
-                checklist_id: createdCheckList.version_id,
+                checklist: createdCheckList,
                 traceId,
             });
 
@@ -69,6 +73,7 @@ export async function createCheckList(
             throw innerError;
         }
     } catch (error: any) {
+        console.log(error)
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating the checklist',
@@ -89,19 +94,18 @@ export async function getChecklistById(
                 entity_id,
                 ...(version ? { version } : { latest: true }),
             },
+            includes: []
         };
         const checklistData: any = await Checklist.findOne(checklistOptions);
         if (checklistData) {
             const taskOptions: any = {
                 where: {
-                    checklist_entity_id: checklistData.entity_id,
                     checklist_version_id: checklistData.version_id,
                 },
             };
             const taskMappings = await ChecklistMapping.findAll(taskOptions);
             const checklistResponse = {
-                entity_id: checklistData.entity_id,
-                version_id: checklistData.version_id,
+                ...checklistData.dataValues,
                 task_category_configs: taskMappings.map((task_category: any) => ({
                     ...task_category.dataValues
                 })),
@@ -312,14 +316,14 @@ export async function listChecklists(
             latest: true,
             is_enabled: true,
             program_id,
-            ...(name ? {} : {name: { [Op.like]: `%${name}%` }})
+            ...(!name ? {} : {name: { [Op.like]: `%${name}%` }})
         };
 
         const checklists = await Checklist.findAll({
             where: whereConditions,
             order: [['name', 'ASC']],
             attributes: [
-                'name', 'entity_id', 'version'
+                'name', 'entity_id', 'version', 'version_id'
             ],
         });
         if (!checklists.length) {
@@ -356,8 +360,9 @@ export async function filterChecklists(
             task_ids?: string;
             is_enabled?: boolean;
             entity_id?: string;
+            name?: string;
             limit?: number;
-            offset?: number;
+            page?: number;
         };
         Params: { 
             program_id: string 
@@ -365,28 +370,59 @@ export async function filterChecklists(
     }>,
     reply: FastifyReply
 ) {
-    const { task_ids, is_enabled, entity_id, limit = 10, offset = 0 } = request.query;
+    const {is_enabled, name, limit = 10, page = 1 } = request.query;
     const program_id = request.params.program_id;
     const traceId = generateCustomUUID();
+
+    const offset = (page - 1) * limit;
     try {
         const whereConditions: any = {
             latest: true,
-        };
-        if (entity_id) {
-            whereConditions.entity_id = entity_id;
-        }
-        if (program_id) {
-            whereConditions.program_id = program_id;
+            is_deleted: false,
+            program_id,
         }
         if (is_enabled !== undefined) {
             whereConditions.is_enabled = is_enabled;
         }
+        if (name !== undefined) {
+            whereConditions.name = {
+                [Op.like]: `%${name}%`, 
+            };
+        }
+
         const checklists = await Checklist.findAndCountAll({
+            attributes: [
+              'version_id',
+              'entity_id',
+              'name',
+              'description',
+              'version',
+              'program_id',
+              'is_enabled',
+              [fn('COUNT', col('checklistTasks.id')), 'task_count']
+            ],
+            include: [
+              {
+                model: ChecklistTaskMapping,
+                as: 'checklistTasks',
+                attributes: [],
+                where: {
+                  is_deleted: false,
+                  is_enabled: true
+                },
+                required: false
+              }
+            ],
             where: whereConditions,
+            group: [
+              'Checklist.version_id',
+            ],
+            order: [['created_on', 'DESC']],
             limit,
             offset,
-            order: [['name', 'ASC']],
-        });
+            subQuery: false
+          });
+        console.log(checklists);
         if (!checklists.rows.length) {
             return reply.status(404).send({
                 status_code: 404,
@@ -394,28 +430,13 @@ export async function filterChecklists(
                 traceId: traceId,
             });
         }
-        const checklistIds = checklists.rows.map((checklist: any) => checklist.entity_id);
-        const tasks = await ChecklistMapping.findAll({
-            where: {
-                checklist_entity_id: {
-                    [Op.in]: checklistIds,
-                },
-                ...(task_ids ? { task_version_id: task_ids.split(',') } : {}),
-            },
-            attributes: ['checklist_entity_id', 'task_version_id'],
-        });
-        const checklistsWithTasks = checklists.rows.map((checklist: any) => ({
-            ...checklist.get(),
-            tasks: tasks
-                .filter((task: any) => task.checklist_entity_id === checklist.entity_id)
-                .map((task: any) => ({ task_version_id: task.task_version_id })),
-        }));
+
         return reply.status(200).send({
             status_code: 200,
-            data: checklistsWithTasks,
-            total_count: checklists.count,
-            total_pages: Math.ceil(checklists.count / limit),
-            current_page: Math.floor(offset / limit) + 1,
+            message:  "Checklists fetched successfully",
+            data: checklists.rows.map((checklist: any) => ({...checklist.get()})),
+            total_count: checklists.count.length,
+            current_page: page,
             traceId: traceId,
         });
     } catch (error) {
