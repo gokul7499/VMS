@@ -627,7 +627,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 hierarchy_id: { [Op.in]: hierarchyIds },
                 job_template_id: { [Op.in]: jobTemplateIds },
                 unit_of_measure,
-                currency_id,
+                currency:currency_id,
             },
             attributes: ['id', 'rate_card_id', 'rate_type_id', 'min_rate', 'max_rate'],
         });
