@@ -36,9 +36,9 @@ export const getHierarchiesByProgram = async (
     });
 
     if (hierarchiesWithChildren.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'No hierarchy found for the given program',
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'No hierarchies found for the given program',
         trace_id: traceId,
         hierarchies: [],
       });
@@ -78,7 +78,7 @@ export const getHierarchiesByProgram = async (
   } catch (error) {
     return reply.status(500).send({
       status_code: 500,
-      message: 'An error occurred while fetching hierarchy by program',
+      message: 'An error occurred while fetching hierarchies by program',
       trace_id: traceId,
     });
   }
@@ -123,10 +123,10 @@ export const getHierarchies = async (
     });
 
     if (hierarchies.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
+      return reply.status(404).send({
+        status_code: 404,
         trace_id: traceId,
-        message: "No hierarchy found for the given program",
+        message: "No hierarchies found for the given program",
         total_records: 0,
         hierarchies: [],
       });
@@ -135,7 +135,7 @@ export const getHierarchies = async (
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "Hierarchy fetched successfully.",
+      message: "hierarchies fetched successfully.",
       total_records: hierarchies.length,
       hierarchies,
     });
@@ -194,15 +194,15 @@ export async function getHierarchiesById(
         hierarchies: hierarchy,
       });
     } else {
-      return reply.status(200).send({
-        message: 'Hierarchy not found',
+      return reply.status(404).send({
+        message: 'hierarchies not found',
         hierarchies: [],
       });
     }
   } catch (error) {
     console.error(error);
     return reply.status(500).send({
-      message: 'An error occurred while fetching Hierarchy by ID',
+      message: 'An error occurred while fetching hierarchies by ID',
       error: (error as Error).message,
     });
   }
@@ -251,7 +251,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       await transaction.rollback();
       return reply.status(409).send({
         status_code: 409,
-        message: "Hierarchy code is already in use",
+        message: "hierarchies code is already in use",
       });
     }
 
@@ -278,7 +278,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
     return reply.status(201).send({
       status_code: 201,
-      message: 'Hierarchy Created Successfully',
+      message: 'hierarchies Created Successfully',
       data: newItem,
       trace_id:traceId,
     });
@@ -303,7 +303,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
     console.error(error);
     return reply.status(500).send({
-      message: "Failed To Create Hierarchy",
+      message: "Failed To Create hierarchies",
       error: (error as any).message,
     });
   }
@@ -328,7 +328,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     if (!hierarchy) {
       return reply.status(404).send({
         status_code: 404,
-        message: "Hierarchy not found",
+        message: "hierarchies not found",
         trace_id: traceId,
       });
     }
@@ -345,14 +345,14 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,
-        message: "Hierarchy updated successfully",
+        message: "hierarchies updated successfully",
         trace_id: traceId,
       });
     } catch (error) {
       await transaction.rollback();
       return reply.status(500).send({
         status_code: 500,
-        message: "Failed to update hierarchy",
+        message: "Failed to update hierarchies",
         trace_id: traceId,
       });
     }
@@ -374,7 +374,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     if (!hierarchy) {
       return reply.status(404).send({
         status_code: 404,
-        message: 'Hierarchy not found',
+        message: 'hierarchies not found',
         trace_id: traceId
       });
     }
@@ -382,7 +382,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     if (hierarchy.parent_hierarchy_id === null) {
       return reply.status(400).send({
         status_code: 400,
-        message: "This hierarchy cannot be deleted because it has no parent.",
+        message: "This hierarchies cannot be deleted because it has no parent.",
         trace_id: traceId
       });
     }
@@ -399,13 +399,13 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     if (updatedRows > 0) {
       reply.status(200).send({
         status_code: 200,
-        message: "Hierarchy deleted successfully",
+        message: "hierarchies deleted successfully",
         trace_id: traceId
       });
     } else {
       reply.status(404).send({
         status_code: 404,
-        message: "Hierarchy not found",
+        message: "hierarchies not found",
         trace_id: traceId
       });
     }
@@ -413,7 +413,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     console.error('Error deleting hierarchy:', error);
     reply.status(500).send({
       status_code: 500,
-      message: 'An error occurred while deleting the hierarchy.',
+      message: 'An error occurred while deleting the hierarchies.',
       error,
       trace_id: traceId
     });
@@ -579,10 +579,10 @@ export const getMasterDataForHeirarchies = async (
     });
 
     if (!results || results.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
+      return reply.status(404).send({
+        status_code: 404,
         trace_id: traceId,
-        message: 'No master data found for the provided hierarchy IDs.',
+        message: 'No master data found for the provided hierarchies IDs.',
         master_data: []
       });
     }
@@ -604,7 +604,8 @@ export const getMasterDataForHeirarchies = async (
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
-      message: error.message
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 };
