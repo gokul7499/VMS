@@ -506,7 +506,6 @@ fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: any[], program_id: any }
         FROM user u
         WHERE u.program_id = :program_id
          AND u.user_type IN ('msp', 'vendor')
-        AND (
             u.is_all_hierarchy_associate = true
             OR (
                 u.is_all_hierarchy_associate = false
