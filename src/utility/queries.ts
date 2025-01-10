@@ -2000,3 +2000,73 @@ FROM (
 ) AS wl
 LEFT JOIN countries c ON wl.country_id = c.id
 GROUP BY wl.program_id;`
+
+
+export const userQuery = (
+  first_name?:string,
+  email?:string,
+  tenant_id?:string,
+  role_id?:string,
+  is_activated?:string,
+  user_type?:string,
+  user_id?:string
+) =>`
+WITH user_data AS (
+  SELECT u.id,
+         u.username,
+         u.last_name,
+         u.middle_name,
+         u.first_name,
+         u.name_suffix,
+         u.program_id,
+         u.email,
+         u.created_on,
+         u.modified_on, 
+         u.avatar,
+         u.language_id,
+         u.is_enabled,
+         u.is_deleted,
+         u.is_activated,
+         u.user_type,
+         u.is_associated,
+         u.name_prefix,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', h.id, 'name', h.name)
+             ) 
+             FROM hierarchies h 
+             WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+         ) AS associate_hierarchy_ids,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', wl.id, 'name', wl.name)
+             ) 
+             FROM work_locations wl 
+             WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+         ) AS work_location_ids,
+         JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
+         JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
+         JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
+         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
+         JSON_OBJECT('id', tz.id, 'name', tz.name) AS time_zone_id
+  FROM user u
+  LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
+  LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
+  LEFT JOIN countries c ON u.country_id = c.id
+  LEFT JOIN tenant t ON u.tenant_id = t.id
+  LEFT JOIN time_zones tz ON u.time_zone_id = tz.id
+  WHERE u.is_deleted = false AND u.program_id = :program_id
+    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${role_id ? 'AND u.role_id = :role_id' : ''}
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
+    ${email ? 'AND u.email = :email' : ''}
+    ${first_name ? 'AND u.first_name = :first_name' : ''}
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, tz.id
+)
+SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
+FROM user_data
+ORDER BY created_on DESC
+LIMIT :limit OFFSET :offset;
+`;
