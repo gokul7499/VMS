@@ -157,6 +157,11 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        do_not_rehire: {
+            type: DataTypes.TINYINT,
+            defaultValue: false,
+            allowNull: true,
+        },
         created_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
