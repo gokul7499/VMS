@@ -362,8 +362,9 @@ export async function deleteUser(
   }
 }
 
+
 export async function getAllUserIDAndUserId(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string,page?:string,limit?:string } }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
@@ -375,6 +376,10 @@ export async function getAllUserIDAndUserId(
       program_id,
     };
 
+    const page = parseInt(request.query.page ?? "1");
+    const limit = parseInt(request.query.limit ?? "10");
+    const offset = (page - 1) * limit;
+ 
     if (user_type) whereClause.user_type = user_type;
     if (user_id) whereClause.id = user_id;
     if (typeof is_activated === 'string') whereClause.is_activated = is_activated === 'true';
@@ -382,7 +387,7 @@ export async function getAllUserIDAndUserId(
     if (tenant_id) whereClause.tenant_id = tenant_id;
     if (email) whereClause.email = email;
     if (first_name) whereClause.first_name = first_name;
-
+ 
     const attributes = info_level === "detail" ? undefined : [
       "id", "name_prefix", "first_name", "middle_name", "last_name", "username",
       "name_suffix", "program_id", "email", "avatar", "country_id",
@@ -391,13 +396,15 @@ export async function getAllUserIDAndUserId(
       "associate_hierarchy_ids", "work_location_ids",
       "default_hierarchy_id", "default_work_location_id", "user_type", "is_associated"
     ];
-
-    const users = await User.findAll({
+ 
+    const { count, rows: users } = await User.findAndCountAll({
       where: whereClause,
       attributes,
       order: [['created_on', 'DESC']],
-    });
-
+      limit,
+      offset
+  });
+ 
     const masterDataDetails = await Promise.all(users.map(async user => {
       const masterDataResult = await sequelize.query(getMasterData, {
         replacements: { id: user.id },
@@ -408,7 +415,7 @@ export async function getAllUserIDAndUserId(
         master_data: masterDataResult,
       };
     }));
-
+ 
     const hierarchyIds = users.flatMap(user => user.associate_hierarchy_ids || []);
     const workLocationIds = users.flatMap(user => user.work_location_ids || []);
     const defaultHierarchyIds = users.flatMap(user => user.default_hierarchy_id ? [user.default_hierarchy_id] : []);
@@ -416,7 +423,7 @@ export async function getAllUserIDAndUserId(
     const countryIds = users.flatMap(user => user.country_id ? [user.country_id] : []);
     const tenantIds = users.flatMap(user => user.tenant_id ? [user.tenant_id] : []);
     const timeZoneIds = users.flatMap(user => user.time_zone_id ? [user.time_zone_id] : []);
-
+ 
     const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, timeZonesData] = await Promise.all([
       hierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
       workLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: workLocationIds }, attributes: ['id', 'name'] }) : [],
@@ -426,7 +433,7 @@ export async function getAllUserIDAndUserId(
       tenantIds.length > 0 ? Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name'] }) : [],
       timeZoneIds.length > 0 ? TimeZone.findAll({ where: { id: timeZoneIds }, attributes: ['id', 'name'] }) : [],
     ]);
-
+ 
     const enrichedUsers = users.map(user => {
       const userHierarchies = hierarchiesData.filter(hierarchy => user.associate_hierarchy_ids?.includes(hierarchy.id));
       const userWorkLocations = workLocationsData.filter(location => user.work_location_ids?.includes(location.id));
@@ -436,7 +443,7 @@ export async function getAllUserIDAndUserId(
       const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
       const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
       const userMasterData = masterDataDetails.find(data => data.user_id === user.id)?.master_data || [];
-
+ 
       return {
         ...user.toJSON(),
         associate_hierarchy_ids: userHierarchies.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
@@ -449,19 +456,19 @@ export async function getAllUserIDAndUserId(
         foundational_data: userMasterData,
       };
     });
-
-    const totalCount = await User.count({ where: whereClause });
-
+ 
     reply.status(200).send({
       status_code: 200,
       message: " Users fetched successfully",
       trace_id: traceId,
       users: enrichedUsers,
-      total_count: totalCount,
+      total_count: count,
+      page,
+      limit
     });
   } catch (error: any) {
     console.log("Error:", error.stack);
-
+ 
     reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
@@ -470,6 +477,7 @@ export async function getAllUserIDAndUserId(
     });
   }
 }
+ 
 
 export async function searchUser(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'program_id', 'first_name'];
