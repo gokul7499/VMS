@@ -132,12 +132,14 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     created_by_last_name
   };
 
+console.log(notificationData.recipient.email);
+
   try {
     const response = await axios.post(
       `${notificationUrl}/notification-message/`,
-      {
-        notificationData
-      },
+      
+        notificationData,
+      
       {
         headers: {
           'Content-Type': 'application/json',
@@ -146,8 +148,9 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
       }
     );
 
+console.log(response);
 
   } catch (error: any) {
-    console.error('Failed to send notification:', error.message, error.response?.data);
+    console.error('Failed to send notification:', error);
   }
 }

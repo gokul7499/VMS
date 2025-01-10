@@ -321,9 +321,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    const payload = {
-        job_id: updates[0].job_id,
-    };
+
 
 
     // if (workflowStatus === "completed" && workflow.event === "update_job") {
@@ -399,13 +397,16 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
-
+            const payload = {
+                fullName: managerData.data.first_name,
+                job_id: updates[0].job_id,
+            };
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
                 // const eventCode = "JOB_APPROVAL_COMPLETE";
-                console.log(workflow);
+              
 
-                let eventCode = await getEventsCode(workflow.dataValues.events)
+                let eventCode = await getRejectEventsCode(workflow.flow_type, workflow.events)
                 const notificationPayload = {
                     program_id,
                     token,
@@ -423,7 +424,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
-                let eventCode = await getEventsCode(workflow.events)
+                let eventCode = await getRejectEventsCode(workflow.flow_type, workflow.events)
 
                 for (const user of mspUserData) {
                     if (user.email) {
@@ -437,6 +438,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                             userId: user?.id ?? "", // Assuming `id` is the user ID field in your response
                         };
                         sendNotification(notificationPayload);
+                        console.log("notificationPayload", notificationPayload);
 
                     }
                 }
@@ -457,6 +459,25 @@ async function getEventsCode(event: any) {
         return "JOB_APPROVAL_COMPLETE";
     } else if (event === "update_job") {
         return "JOB_UPDATE_APPROVAL";
+    } else if (event === "job_delete") {
+        return "JOB_DELETE_CODE";
+    } else if (event === "job_review") {
+        return "JOB_REVIEW_SECOND";
+    } else {
+        throw new Error(`Event code not found for event: ${event}`);
+    }
+
+}
+async function getRejectEventsCode(flow_type: any, event: any) {
+    if (flow_type == "Approval" && event === "job_create") {
+        return "JOB_APPROVAL_REJECT";
+    } if (flow_type == "Review" && event === "job_create") {
+        return "JOB_REVIEW_REJECT";
+    } else if (flow_type == "Approval" && event === "update_job") {
+        return "JOB_UPDATE_APPROVAL_REJECTED";
+    } else if (flow_type == "Review" && event === "update_job") {
+        return "JOB_UPDATE_REVIEW_REJECT";
+        
     } else if (event === "job_delete") {
         return "JOB_DELETE_CODE";
     } else if (event === "job_review") {
