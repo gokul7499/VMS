@@ -7,7 +7,6 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
   // Function to get policies
   async function getPolicies(programId: string, token: string) {
-
     if (!programId || !token) {
       throw new Error("Missing programId or token");
     }
@@ -48,7 +47,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             timeout: 50000,
           }
         );
-        
+
         // const apiResponse={
         //   "response":[
         //     {

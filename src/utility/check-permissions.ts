@@ -6,9 +6,10 @@ function validateInputs(token: string, programId: string): void {
   if (!programId) {
     throw new Error('Missing program-id parameter');
   }
-  if (!token || !token.startsWith('Bearer ')) {
+  if (!token?.startsWith('Bearer ')) {
     throw new Error("Unauthorized: Token not found or invalid");
-  }
+}
+
 }
 
 // Function to check permission
