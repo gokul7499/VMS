@@ -405,9 +405,6 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
                 // const eventCode = "JOB_APPROVAL_COMPLETE";
-              
-
-             
                 const notificationPayload = {
                     program_id,
                     token,
@@ -461,10 +458,10 @@ async function getEventsCode(workflow: { flow_type: any, events: any}) {
         return "JOB_APPROVAL_COMPLETE";
     } else if (flow_type=="Approval"&&events === "update_job") {
         return "JOB_UPDATE_APPROVAL";
-    } else if (events === "job_delete") {
-        return "JOB_DELETE_CODE";
-    } else if (events === "job_review") {
-        return "JOB_REVIEW_SECOND";
+    } else if (flow_type=="Approval"&& events === "create_offer") {
+        return "OFFER_APPROVAL_COMPLETE";
+    } else if (events === "counter_offer") {
+        return "COUNTER_OFFER_APPROVAL_COMPLETE";
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -481,8 +478,16 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     } else if (flow_type == "Review" && events === "update_job") {
         return "JOB_UPDATE_REVIEW_REJECT";
         
-    } else if (events === "job_delete") {
-        return "JOB_DELETE_CODE";
+    } else if (flow_type == "Review" &&events === "create_offer") {
+        return "OFFER_REVIEW_REJECT";
+    } else if (flow_type == "Approval" &&events === "create_offer") {
+        return "OFFER_APPROVAL_REJECT";
+
+    } else  if (flow_type == "Review" &&events === "counter_offer") {
+        return "COUNTER_OFFER_REVIEW_REJECT";
+    } else if (flow_type == "Approval" &&events === "counter_offer") {
+        return "COUNTER_OFFER_APPROVAL_REJECT";
+        
     } else if (events === "job_review") {
         return "JOB_REVIEW_SECOND";
     } else {
@@ -490,7 +495,8 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     }
 
 }
-export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: any[], program_id: any }) {
+export async function 
+fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: any[], program_id: any }) {
     try {
         const { hierarchy_ids, program_id } = allPayload;
 
@@ -499,6 +505,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
         SELECT u.*
         FROM user u
         WHERE u.program_id = :program_id
+         AND u.user_type IN ('msp', 'vendor')
         AND (
             u.is_all_hierarchy_associate = true
             OR (
