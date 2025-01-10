@@ -6,12 +6,7 @@ interface Params {
   program_id: string;
 }
 
-// Pre-handler to check permissions (Fixed for SonarQube)
-export function validatePermissions(
-  request: FastifyRequest<{ Params: Params }>, 
-  reply: FastifyReply, 
-  done: HookHandlerDoneFunction
-): void {
+export function validatePermissions(request: FastifyRequest<{ Params: Params }>, reply: FastifyReply, done: HookHandlerDoneFunction): void {
   const config = request.routeOptions.config ?? {};
   const { permissions = [], action = '' } = config as {
     permissions?: string[];
@@ -39,15 +34,14 @@ export function validatePermissions(
     return done();
   }
 
-  // Handle async call correctly with callback-style handling
   checkPermission(token, programId, { permissions }, action)
-    .then(() => done())  // Call `done()` on success
+    .then(() => done())
     .catch((error) => {
       reply.status(401).send({
         status_code: 401,
         message: "Unauthorized: Access denied",
         trace_id: generateCustomUUID(),
       });
-      done(error);  // Pass the error to `done()` for proper handling
+      done(error);
     });
 }

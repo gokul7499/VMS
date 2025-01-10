@@ -1,45 +1,36 @@
 import fastify from "fastify";
 import permissionsUtilAuth from "./permissions-util";
 
-// Validate input parameters
 function validateInputs(token: string, programId: string): void {
   if (!programId) {
     throw new Error('Missing program-id parameter');
   }
   if (!token?.startsWith('Bearer ')) {
     throw new Error("Unauthorized: Token not found or invalid");
+  }
 }
 
-}
-
-// Function to check permission
 export async function checkPermission(
-  token: any, 
+  token: any,
   programId: string,
-  requiredPermissions: { permissions: string[] }, 
-  action: string, // Action to check (e.g., "V", "U", "C", etc.)
+  requiredPermissions: { permissions: string[] },
+  action: string,
 ): Promise<void> {
   try {
     validateInputs(token, programId);
 
-    const tokenValue = token.split(' ')[1]; // Extract the token
+    const tokenValue = token.split(' ')[1];
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
     const policies = await getPolicies(programId, tokenValue);
-
-    // Log the fetched policies for debugging
-    console.log("Fetched policies:", JSON.stringify(policies, null, 2));
 
     if (!Array.isArray(policies)) {
       throw new Error('Invalid policies returned');
     }
 
-    // Ensure requiredPermissions.permissions is an array
     const permissionArray = Array.isArray(requiredPermissions.permissions) ? requiredPermissions.permissions : [requiredPermissions.permissions];
 
-    // Check each required permission
     for (const permission of permissionArray) {
-      console.log("Validating permission:", permission);
-      validatePermissions(policies, [permission], action); // Pass the permission to validate
+      validatePermissions(policies, [permission], action);
     }
   } catch (error: any) {
     console.error(error.stack);
@@ -47,14 +38,11 @@ export async function checkPermission(
   }
 }
 
-// Function to match resources
 function matchesResource(resource: string, permissionResource: string): boolean {
   if (!resource || !permissionResource) return false;
 
   const resourceParts = resource.split(':');
   const permissionParts = permissionResource.split(':');
-
-  console.log("Matching resource:", resource, "with permission resource:", permissionResource);
 
   if (permissionParts.length <= resourceParts.length) {
     for (let i = 0; i < permissionParts.length; i++) {
@@ -67,7 +55,6 @@ function matchesResource(resource: string, permissionResource: string): boolean 
   return permissionResource.replace(':*', '') === resource;
 }
 
-// Function to check if a policy has the required permission for an action
 function hasPermission(policies: any[], action?: string): boolean {
   let allow = false;
 
@@ -90,53 +77,36 @@ function validatePermissions(policies: any[], requiredPermissions: string[], act
   let hasValidPermission = false;
 
   for (const requiredPermission of requiredPermissions) {
-      console.log(`Checking required permission: ${requiredPermission}`);
-      
-      // Filter policies for the required permission
-      const resourcePolicies = policies.filter(policy =>
-          matchesResource(policy.permissions.srn, requiredPermission)
-      );
+    const resourcePolicies = policies.filter(policy =>
+      matchesResource(policy.permissions.srn, requiredPermission)
+    );
 
-      console.log(`Filtered policies for ${requiredPermission}:`, resourcePolicies);
+    if (resourcePolicies.length === 0) {
+      console.log(`No matching policies for permission: ${requiredPermission}`);
+      continue;
+    }
 
-      // If no matching policy exists, continue checking other permissions
-      if (resourcePolicies.length === 0) {
-          console.log(`No matching policies for permission: ${requiredPermission}`);
-          continue;
-      }
+    const allowedActions = resourcePolicies.some(policy =>
+      policy.permissions.policy === "ALLOW" &&
+      (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
+    );
 
-      // Check if the action is allowed for the matching policies
-      const allowedActions = resourcePolicies.some(policy => 
-          policy.permissions.policy === "ALLOW" && 
-          (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
-      );
+    if (allowedActions) {
+      hasValidPermission = true;
+    }
 
-      console.log(`Allowed actions for permission ${requiredPermission}:`, allowedActions);
+    const deniedActions = resourcePolicies.some(policy =>
+      policy.permissions.policy === "DENY" && policy.permissions.actions.includes(action)
+    );
 
-      // If any policy allows the action, mark as valid
-      if (allowedActions) {
-          hasValidPermission = true;
-      }
-
-      // If any policy explicitly denies the action, deny it immediately
-      const deniedActions = resourcePolicies.some(policy => 
-          policy.permissions.policy === "DENY" && policy.permissions.actions.includes(action)
-      );
-      
-      if (deniedActions) {
-          console.log(`Action "${action}" explicitly denied for permission: ${requiredPermission}`);
-          throw new Error('Unauthorized: Action explicitly denied for the resource.');
-      }
+    if (deniedActions) {
+      console.log(`Action "${action}" explicitly denied for permission: ${requiredPermission}`);
+      throw new Error('Unauthorized: Action explicitly denied for the resource.');
+    }
   }
 
-  // If none of the permissions allowed the action
   if (!hasValidPermission) {
-      console.log('No valid permissions found for the action.');
-      throw new Error('Unauthorized: User does not have permission for any provided resources.');
+    console.log('No valid permissions found for the action.');
+    throw new Error('Unauthorized: User does not have permission for any provided resources.');
   }
 }
-
-
-
-
-

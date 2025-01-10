@@ -1,11 +1,14 @@
 import Redis from "ioredis";
 import dotenv from "dotenv";
+import { databaseConfig } from './db';
 
 dotenv.config();
 
+const { redis_host, redis_port } = databaseConfig.config;
+
 const redis = new Redis({
-  host: process.env.REDIS_HOST,
-  port: Number(process.env.REDIS_PORT),
+  host: redis_host,
+  port: redis_port
 });
 
 redis.on("connect", () => {

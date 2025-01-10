@@ -3,9 +3,8 @@ import Redis from "ioredis";
 import { getRedisKeyForAuth } from "./get-redis-key";
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
-  const redis = new Redis(); // Initialize Redis client
+  const redis = new Redis();
 
-  // Function to get policies
   async function getPolicies(programId: string, token: string) {
     if (!programId || !token) {
       throw new Error("Missing programId or token");
@@ -16,7 +15,6 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
     const redisKey = getRedisKeyForAuth(token, programId, null);
 
     try {
-      // Fetch from Redis cache
       const cachedPolicies = await redis.get(redisKey);
       if (cachedPolicies) {
         groupPolicies = JSON.parse(cachedPolicies);
@@ -32,14 +30,13 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
       }
     }
 
-    // If no policies in cache, fetch from external API
     if (!groupPolicies || groupPolicies.length === 0) {
       try {
         const apiResponse = await axios.get(
-          `https://v4-dev.simplifysandbox.net/auth/v1/api/policy/user/tenant/${programId}`,
+          `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`, // Pass the token in the API request
+              Authorization: `Bearer ${token}`,
             },
             params: {
               programId,
@@ -48,44 +45,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
           }
         );
 
-        // const apiResponse={
-        //   "response":[
-        //     {
-        //       "permissions": {
-        //         "srn": "srn:vms:config:configurations:pc",
-        //         "policy": "DENY",
-        //         "actions": ["V", "U"]
-        //       },
-        //       "type": "service",
-        //       "visibility": false,
-        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
-        //     },
-        //     {
-        //       "permissions": {
-        //         "srn": "srn:vms:config:configurations:fc",
-        //         "policy": "ALLOW",
-        //         "actions": ["U", "C", "D", "V"]
-        //       },
-        //       "type": "service",
-        //       "visibility": false,
-        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
-        //     },
-        //     {
-        //       "permissions": {
-        //         "srn": "srn:vms:config:configurations:ic",
-        //         "policy": "ALLOW",
-        //         "actions": ["V"]
-        //       },
-        //       "type": "service",
-        //       "visibility": false,
-        //       "entityId": "e79bf0b4-7fd9-44f7-9e76-ec8850529139"
-        //     }
-        //   ]
-        // }
-
-        groupPolicies = apiResponse.data.response; // Adjust based on actual API response structure
-
-        // Set the policies in Redis cache
+        groupPolicies = apiResponse.data.response;
         await redis.set(redisKey, JSON.stringify(groupPolicies));
 
         if (fastify.log) {
