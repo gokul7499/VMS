@@ -21,12 +21,14 @@ export async function createWorkLocation(
 
   const authHeader = request.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new Error("Unauthorized: Token not found or invalid");
+}
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
+
+  const transaction = await sequelize.transaction();
 
   if (!user) {
     return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
@@ -42,6 +44,7 @@ export async function createWorkLocation(
         ],
       },
       defaults: { ...workLocation },
+      transaction,
     });
 
     if (!created) {
@@ -54,6 +57,7 @@ export async function createWorkLocation(
           ],
         },
         attributes: ['code', 'name'],
+        transaction,
       });
 
       const duplicateField = 
@@ -61,6 +65,7 @@ export async function createWorkLocation(
           ? 'name'
           : 'code';
 
+      await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
         message: `Work location with ${duplicateField} '${workLocation[duplicateField]}' already exists.`,
@@ -96,10 +101,10 @@ export async function createWorkLocation(
           is_default: currency.is_default,
           name: currency.name,
           code: currency.code,
-        });
+        }, { transaction });
       }
     }
-
+    await transaction.commit();
     reply.status(201).send({
       status_code: 201,
       message: "Work location created successfully",
@@ -127,6 +132,7 @@ export async function createWorkLocation(
       WorkLocationModel
     );
   } catch (error: any) {
+    await transaction.rollback();
     logger(
       {
         trace_id: traceId,
