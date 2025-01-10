@@ -35,6 +35,10 @@ JobWorkFlowModel.init(
         type: DataTypes.STRING,
         allowNull: true,
       },
+      events: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       event_id: {
         type: DataTypes.UUID,
         allowNull: true

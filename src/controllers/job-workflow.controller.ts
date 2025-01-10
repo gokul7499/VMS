@@ -12,7 +12,7 @@ import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
-import { sendNotification } from '../utility/notificationservice';
+import { sendNotification } from '../utility/notificationService';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
@@ -139,8 +139,8 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -175,7 +175,7 @@ export const updateWorkflowStatus = async (
 
     try {
 
-        const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
             return reply.status(404).send({
@@ -184,35 +184,12 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-        let managerData:any = await getManagerDetails(program_id, id)
+        let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
         // Iterate over each update
-        for (const { placement_order, new_status, user_id, notes, behavior, job_id } of updates) {
-
-            const user = await fetchUserById(user_id);
-            // Here, you can do any other operations that depend on the fetched user add here notification code
-
-
-            const payload: any = {
-                job_id: job_id
-            };
-
-            const eventCode = "JOB_APPROVAL_COMPLETE"
-
-            const notificationPayload: NotificationDataPayload = {
-                program_id,
-                token,
-                traceId,
-                eventCode,
-                recipientEmail: managerData.email || "",
-                payload,
-                userId: user_id ?? ""
-            };
-            sendNotification(notificationPayload);
-
-            console.log("user", user)
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
             let levelFound = false;
 
             levels = await Promise.all(
@@ -290,10 +267,22 @@ export const updateWorkflowStatus = async (
                     return level;
                 })
             );
-
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
+
+            await workflow.update({ levels, modified_on: new Date() });
+            const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+            const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+
+
+            workflow.status = workflowStatus;
+            console.log("Workflow Status:", workflowStatus);
+            let allPayload = {
+                hierarchy_ids: hierarchy_ids,
+                program_id: program_id
+            }
+            let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload)
         }
 
         if (!updatedLevels) {
@@ -304,8 +293,6 @@ export const updateWorkflowStatus = async (
             });
         }
 
-        // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on: new Date() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -322,11 +309,207 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any) {
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+    const payload = {
+        job_id: updates[0].job_id,
+    };
+
+
+    // if (workflowStatus === "completed" && workflow.event === "update_job") {
+    //     const users = await fetchUserById(updates.user_id);
+    //     if (user.user_type === "client") {
+    //         let managerData:any = await getManagerDetails(program_id, id);
+    //         const eventCode = "JOB_APPROVAL_COMPLETE";
+
+    //         const notificationPayload = {
+    //             program_id,
+    //             token,
+    //             traceId,
+    //             eventCode,
+    //             recipientEmail: managerData.email || "",
+    //             payload,
+    //             userId: user?.sub ?? "",
+    //         };
+    //         sendNotification(notificationPayload);
+    //     } else if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
+    //         let mspUserData:any = await fetchUsersBasedOnHierarchy(allPayload);
+    //         const eventCode = "JOB_REVIEW_COMPLETE";
+
+    //         const notificationPayload = {
+    //             program_id,
+    //             token,
+    //             traceId,
+    //             eventCode,
+    //             recipientEmail: mspUserData.email || "",
+    //             payload,
+    //             userId: user?.sub ?? "",
+    //         };
+    //         sendNotification(notificationPayload);
+
+    //     } else {
+    //         console.log("User type is not CLIENT, skipping update_job logic");
+    //     }
+    // } else
+    if (workflowStatus === "completed") {
+        // const users = await fetchUserById(updates.user_id);
+        // if (user.userType == "client" || user.userType == "msp" || user.userType == "super_user") {
+        //     let managerData: any = await getManagerDetails(program_id, id);
+        //     const eventCode = "JOB_APPROVAL_COMPLETE";
+        //     const notificationPayload = {
+        //         program_id,
+        //         token,
+        //         traceId,
+        //         eventCode,
+        //         recipientEmail: managerData.data.email || "",
+        //         payload,
+        //         userId: user?.sub ?? "",
+        //     };
+        //     sendNotification(notificationPayload);
+
+        // } else
+        //  if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
+        //     let managerData = await getManagerDetails(program_id, id);
+        //     let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+        //     const eventCode = "JOB_APPROVAL_COMPLETE";
+        //     const notificationPayload = {
+        //         program_id,
+        //         token,
+        //         traceId,
+        //         eventCode,
+        //         recipientEmail: mspUserData.email || "",
+        //         payload,
+        //         userId: user?.sub ?? "",
+        //     };
+        //     sendNotification(notificationPayload);
+        //     console.log("Executing logic for CLIENT user in create_job event");
+        // } else {
+        //     console.log("User type is not CLIENT, skipping create_job logic");
+        // }
+        if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
+            // Fetch manager details
+            let managerData: any = await getManagerDetails(program_id, id);
+
+            // Prepare and send notification for manager data
+            if (managerData && managerData.data && managerData.data.email) {
+                // const eventCode = "JOB_APPROVAL_COMPLETE";
+                console.log(workflow);
+
+                let eventCode = await getEventsCode(workflow.dataValues.events)
+                const notificationPayload = {
+                    program_id,
+                    token,
+                    traceId,
+                    eventCode,
+                    recipientEmail: managerData.data.email || "",
+                    payload,
+                    userId: user?.sub ?? "",
+                };
+                sendNotification(notificationPayload);
+            } else {
+                console.log("Manager data is missing or email not found.");
+            }
+            let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+
+            // Check if mspUserData is an array and send emails to each user
+            if (Array.isArray(mspUserData) && mspUserData.length > 0) {
+                let eventCode = await getEventsCode(workflow.events)
+
+                for (const user of mspUserData) {
+                    if (user.email) {
+                        const notificationPayload = {
+                            program_id,
+                            token,
+                            traceId,
+                            eventCode,
+                            recipientEmail: user.email || "",
+                            payload,
+                            userId: user?.id ?? "", // Assuming `id` is the user ID field in your response
+                        };
+                        sendNotification(notificationPayload);
+
+                    }
+                }
+
+
+            } else {
+                console.log("No MSP users found or no email available for notification.");
+            }
+
+        } else {
+            console.log("User type is not CLIENT/MSP/SUPER_USER, skipping logic.");
+        }
+
+    }
+}
+async function getEventsCode(event: any) {
+    if (event === "job_create") {
+        return "JOB_APPROVAL_COMPLETE";
+    } else if (event === "update_job") {
+        return "JOB_UPDATE_APPROVAL";
+    } else if (event === "job_delete") {
+        return "JOB_DELETE_CODE";
+    } else if (event === "job_review") {
+        return "JOB_REVIEW_SECOND";
+    } else {
+        throw new Error(`Event code not found for event: ${event}`);
+    }
+
+}
+export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: any[], program_id: any }) {
+    try {
+        const { hierarchy_ids, program_id } = allPayload;
+
+        // Query to fetch users based on hierarchy_ids and program_id
+        const query = `
+        SELECT u.*
+        FROM user u
+        WHERE u.program_id = :program_id
+        AND (
+            u.is_all_hierarchy_associate = true
+            OR (
+                u.is_all_hierarchy_associate = false
+                AND EXISTS (
+                    SELECT 1
+                    FROM JSON_TABLE(
+                        u.associate_hierarchy_ids, 
+                        '$[*]' COLUMNS (hierarchy_id INT PATH '$')
+                    ) AS jt
+                    WHERE jt.hierarchy_id IN (:hierarchy_ids)
+                )
+            )
+        );
+    `;
+
+        const users = await sequelize.query(query, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                program_id: program_id,
+                hierarchy_ids: hierarchy_ids,
+            },
+        });
+        return users; // Return the list of users that match the criteria.
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new Error("Error fetching users based on hierarchy and program_id.");
+    }
+}
+
 async function getManagerDetails(program_id: any, workflowId: any) {
     try {
         // Step 1: Query the workflow table to get the manager ID
         const workflowQuery = `
-            SELECT id, manager
+            SELECT id, manager,events
             FROM workflow
             WHERE id = :id
             AND is_enabled = true
@@ -371,8 +554,8 @@ export const rejectLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }
-        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string }[];
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string, hierarchy_ids: any[] }
+        | { placement_order: number; new_status: string; reason: string; user_id: string; notes?: string, job_id?: string, hierarchy_ids: any[] }[];
     }>,
     reply: FastifyReply
 ) => {
@@ -496,7 +679,10 @@ export const rejectLevel = async (
                 user_id: user_id,
             });
         });
-
+        let allPayload = {
+            hierarchy_ids: updates[0].hierarchy_ids,
+            program_id: program_id
+        }
 
         if (!updatedLevels) {
             return reply.status(400).send({
@@ -508,6 +694,9 @@ export const rejectLevel = async (
 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
+
+        let workflowStatus = "completed"
+        let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload)
 
         return reply.status(200).send({
             status_code: 200,
@@ -659,6 +848,7 @@ export const updateReplaceLevel = async (
         });
     }
 };
+
 
 async function fetchUserById(user_id: any) {
     const userQuery = `
