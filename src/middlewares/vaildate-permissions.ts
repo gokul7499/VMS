@@ -2,20 +2,19 @@ import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { checkPermission } from '../utility/check-permissions';
 import generateCustomUUID from '../utility/genrateTraceId';
 
-interface Params {
-  program_id: string;
-}
-
-export function validatePermissions(request: FastifyRequest<{ Params: Params }>, reply: FastifyReply, done: HookHandlerDoneFunction): void {
-  const config = request.routeOptions.config ?? {};
+export function validatePermissions(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply, done: HookHandlerDoneFunction): void {
+  const config = request.routeOptions?.config || {};
   const { permissions = [], action = '' } = config as {
     permissions?: string[];
     action?: string;
   };
 
   const token = request.headers.authorization;
-  const programId = request.params.program_id;
 
+  // Retrieve `program_id` from request parameters
+  const { program_id } = request.params;
+
+  // Handle missing authorization token
   if (!token) {
     reply.status(401).send({
       status_code: 401,
@@ -25,7 +24,8 @@ export function validatePermissions(request: FastifyRequest<{ Params: Params }>,
     return done();
   }
 
-  if (!programId) {
+  // Handle missing program_id
+  if (!program_id) {
     reply.status(401).send({
       status_code: 401,
       message: "Unauthorized: Missing program ID",
@@ -34,9 +34,11 @@ export function validatePermissions(request: FastifyRequest<{ Params: Params }>,
     return done();
   }
 
-  checkPermission(token, programId, { permissions }, action)
-    .then(() => done())
+  // Check permissions using the `checkPermission` function
+  checkPermission(token, program_id, { permissions }, action)
+    .then(() => done())  // Permission check passed
     .catch((error) => {
+      // Handle permission check failure
       reply.status(401).send({
         status_code: 401,
         message: "Unauthorized: Access denied",
@@ -45,3 +47,4 @@ export function validatePermissions(request: FastifyRequest<{ Params: Params }>,
       done(error);
     });
 }
+
