@@ -282,7 +282,8 @@ export const updateWorkflowStatus = async (
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id
             }
-            let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload)
+            let eventCode = await getEventsCode(workflow)
+            let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload,eventCode)
         }
 
         if (!updatedLevels) {
@@ -309,7 +310,7 @@ export const updateWorkflowStatus = async (
         });
     }
 };
-async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any) {
+async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any,eventCode:any) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -406,7 +407,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 // const eventCode = "JOB_APPROVAL_COMPLETE";
               
 
-                let eventCode = await getRejectEventsCode(workflow.flow_type, workflow.events)
+             
                 const notificationPayload = {
                     program_id,
                     token,
@@ -424,7 +425,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
-                let eventCode = await getRejectEventsCode(workflow.flow_type, workflow.events)
+              
 
                 for (const user of mspUserData) {
                     if (user.email) {
@@ -454,36 +455,38 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
     }
 }
-async function getEventsCode(event: any) {
-    if (event === "job_create") {
+async function getEventsCode(workflow: { flow_type: any, events: any}) {
+    let {flow_type,events}=workflow
+    if (flow_type=="Approval"&& events === "job_create") {
         return "JOB_APPROVAL_COMPLETE";
-    } else if (event === "update_job") {
+    } else if (flow_type=="Approval"&&events === "update_job") {
         return "JOB_UPDATE_APPROVAL";
-    } else if (event === "job_delete") {
+    } else if (events === "job_delete") {
         return "JOB_DELETE_CODE";
-    } else if (event === "job_review") {
+    } else if (events === "job_review") {
         return "JOB_REVIEW_SECOND";
     } else {
-        throw new Error(`Event code not found for event: ${event}`);
+        throw new Error(`Event code not found for event: ${events}`);
     }
 
 }
-async function getRejectEventsCode(flow_type: any, event: any) {
-    if (flow_type == "Approval" && event === "job_create") {
+async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
+   let {flow_type,events}=workflow
+    if (flow_type == "Approval" && events === "job_create") {
         return "JOB_APPROVAL_REJECT";
-    } if (flow_type == "Review" && event === "job_create") {
+    } if (flow_type == "Review" && events === "job_create") {
         return "JOB_REVIEW_REJECT";
-    } else if (flow_type == "Approval" && event === "update_job") {
+    } else if (flow_type == "Approval" && events === "update_job") {
         return "JOB_UPDATE_APPROVAL_REJECTED";
-    } else if (flow_type == "Review" && event === "update_job") {
+    } else if (flow_type == "Review" && events === "update_job") {
         return "JOB_UPDATE_REVIEW_REJECT";
         
-    } else if (event === "job_delete") {
+    } else if (events === "job_delete") {
         return "JOB_DELETE_CODE";
-    } else if (event === "job_review") {
+    } else if (events === "job_review") {
         return "JOB_REVIEW_SECOND";
     } else {
-        throw new Error(`Event code not found for event: ${event}`);
+        throw new Error(`events code not found for event: ${events}`);
     }
 
 }
@@ -607,7 +610,7 @@ export const rejectLevel = async (
     }
 
     try {
-        const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        const workflow:any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
             return reply.status(404).send({
@@ -717,7 +720,8 @@ export const rejectLevel = async (
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
 
         let workflowStatus = "completed"
-        let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload)
+        let eventCode = await getRejectEventsCode(workflow)
+        let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload,eventCode)
 
         return reply.status(200).send({
             status_code: 200,
