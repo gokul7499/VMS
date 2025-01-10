@@ -21,9 +21,9 @@ export async function createWorkLocation(
 
   const authHeader = request.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new Error("Unauthorized: Token not found or invalid");
+}
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
@@ -31,6 +31,8 @@ export async function createWorkLocation(
   if (!user) {
     return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
   }
+
+  const transaction = await sequelize.transaction();
 
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
@@ -42,6 +44,7 @@ export async function createWorkLocation(
         ],
       },
       defaults: { ...workLocation },
+      transaction,
     });
 
     if (!created) {
@@ -54,12 +57,15 @@ export async function createWorkLocation(
           ],
         },
         attributes: ['code', 'name'],
+        transaction,
       });
 
       const duplicateField = 
         existingWorkLocation?.name === workLocation.name
           ? 'name'
           : 'code';
+
+      await transaction.rollback();
 
       return reply.status(400).send({
         status_code: 400,
@@ -68,26 +74,6 @@ export async function createWorkLocation(
       });
     }
 
-    // Log creation event
-    logger(
-      {
-        trace_id: traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: user?.sub,
-        },
-        data: request.body,
-        eventname: "creating work location",
-        status: "success",
-        description: `Creating work location for ${program_id}`,
-        level: "info",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },
-      WorkLocationModel
-    );
     if (workLocation.currencies && workLocation.currencies.length > 0) {
       for (const currency of workLocation.currencies) {
         await WorkLocationCurrency.create({
@@ -96,9 +82,11 @@ export async function createWorkLocation(
           is_default: currency.is_default,
           name: currency.name,
           code: currency.code,
-        });
+        }, { transaction });
       }
     }
+
+    await transaction.commit();
 
     reply.status(201).send({
       status_code: 201,
@@ -107,26 +95,9 @@ export async function createWorkLocation(
       trace_id: traceId,
     });
 
-    logger(
-      {
-        traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: user?.sub,
-        },
-        data: request.body,
-        eventname: "created work location",
-        status: "success",
-        description: `Created work location for ${program_id} successfully: ${workLocationData.id}`,
-        level: "success",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },
-      WorkLocationModel
-    );
   } catch (error: any) {
+    await transaction.rollback();
+
     logger(
       {
         trace_id: traceId,
@@ -155,7 +126,7 @@ export async function createWorkLocation(
       error: error.message,
     });
   }
-}
+} 
 
 
 export async function getAllWorkLocations(
