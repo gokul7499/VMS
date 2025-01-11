@@ -7,7 +7,7 @@ import shiftConfigurationHierarchies from "../models/shift-configuration-hierarc
 import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
-import shiftTypeConfiguration from "../models/shiftTypeConfigurationModel";
+import shiftTypeConfiguration from "../models/shift-type-configuration.model";
 
 export const getAllshiftConfiguration = async (
   request: FastifyRequest<{

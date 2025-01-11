@@ -11,7 +11,7 @@ import { sequelize } from '../config/instance';
 import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
-import picklistItemModel from '../models/picklistItemModel';
+import picklistItemModel from '../models/picklist-item.model';
 import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
@@ -773,8 +773,8 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         rate_type: {
                             ...baseRate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
-                            min_rate: Number(matchingDecisionRecord?.min_rate.amount) || 0,
-                            max_rate: Number(matchingDecisionRecord?.max_rate.amount) || 0,
+                            min_rate: matchingDecisionRecord?.min_rate,
+                            max_rate: matchingDecisionRecord?.max_rate,
                         },
                         rates: filteredRateType,
                     },
