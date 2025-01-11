@@ -159,7 +159,15 @@ Candidate.init(
         },
         do_not_rehire: {
             type: DataTypes.TINYINT,
-            defaultValue: false,
+            allowNull: true,
+            defaultValue: false
+        },
+        do_not_rehire_reason: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        do_not_rehire_notes: {
+            type: DataTypes.TEXT,
             allowNull: true,
         },
         created_on: {
@@ -168,10 +176,6 @@ Candidate.init(
         },
         modified_on: {
             type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        state_national_id: {
-            type: DataTypes.NUMBER,
             allowNull: true,
         }
     },
