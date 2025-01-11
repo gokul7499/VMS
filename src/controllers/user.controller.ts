@@ -89,39 +89,28 @@ export async function getUserHierarchiesByProgram(
     const associateHierarchyIds = user.associate_hierarchy_ids ?? [];
     const workLocationIds = user.work_location_ids ?? [];
 
-    const [hierarchiesData, workLocationsData, defaultWorkLocation] = await Promise.all([
-      associateHierarchyIds.length
-        ? hierarchies.findAll({
-          where: { id: associateHierarchyIds },
-          attributes: ['id', 'name', 'parent_hierarchy_id'],
-        })
-        : [],
-      workLocationIds.length
-        ? WorkLocationModel.findAll({
-          where: { id: workLocationIds },
-          attributes: ['id', 'name'],
-        })
-        : [],
-      user.default_work_location_id
-        ? WorkLocationModel.findByPk(user.default_work_location_id, {
-          attributes: ['id', 'name'],
-        })
-        : null,
-    ]);
+    const hierarchiesData = associateHierarchyIds.length
+      ? await hierarchies.findAll({
+        where: { id: associateHierarchyIds },
+        attributes: ['id', 'name'],
+      })
+      : [];
 
-    const buildHierarchyTree = (items: any, parentId = null) => {
-      return items
-        .filter((item: { parent_hierarchy_id: null; }) => item.parent_hierarchy_id === parentId)
-        .map((item: { id: null | undefined; name: any; }) => ({
-          id: item.id,
-          name: item.name,
-          hierarchies: buildHierarchyTree(items, item.id),
-        }));
-    };
+    const workLocationsData = workLocationIds.length
+      ? await WorkLocationModel.findAll({
+        where: { id: workLocationIds },
+        attributes: ['id', 'name'],
+      })
+      : [];
 
-    const hierarchyTree = buildHierarchyTree(hierarchiesData);
-    const is_all_hierarchy_associate = hierarchiesData.length === 0;
-    const is_all_work_location_associate = workLocationsData.length === 0;
+    const defaultWorkLocation = user.default_work_location_id
+      ? await WorkLocationModel.findByPk(user.default_work_location_id, {
+        attributes: ['id', 'name'],
+      })
+      : null;
+
+    const is_all_hierarchy_associate = hierarchiesData.length > 0 ? false : true;
+    const is_all_work_location_associate = workLocationsData.length > 0 ? false : true;
 
     return reply.status(200).send({
       status_code: 200,
@@ -130,9 +119,12 @@ export async function getUserHierarchiesByProgram(
         user_id,
         program_id,
         is_all_hierarchy_associate,
-        hierarchies: hierarchyTree,
+        hierarchies: hierarchiesData.map((hierarchy) => ({
+          id: hierarchy.id,
+          name: hierarchy.name,
+        })),
         is_all_work_location_associate,
-        work_locations: workLocationsData.map(location => ({
+        work_locations: workLocationsData.map((location) => ({
           id: location.id,
           name: location.name,
         })),
@@ -142,10 +134,10 @@ export async function getUserHierarchiesByProgram(
         : null,
       trace_id: traceId,
     });
-  } catch (error: any) {
+  } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      message: error.message,
+      message: (error as any).message,
       trace_id: traceId,
     });
   }
