@@ -17,7 +17,7 @@ export async function createInvoiceConfig(
         reply.status(201).send({
             status_code: 201,
             message: "Invoice config created succesfully",
-            invoice_config_data: invoiceConfigData?.id,
+            invoice_config_data: invoiceConfigData?.uuid,
             trace_id: traceId,
         });
     } catch (error: any) {
@@ -38,7 +38,7 @@ export async function getInvoiceConfigById(
         const { id, program_id } = request.params;
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: {
-                id,
+                uuid: id,
                 program_id,
                 is_deleted: false,
             },
@@ -68,35 +68,50 @@ export async function getInvoiceConfigById(
     }
 }
 
-export async function updateInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
-    const { id, program_id } = request.params as { id: string; program_id: string };
-    const updates = request.body as Partial<InvoiceConfigInterface>;
+export async function updateInvoiceConfigById(
+    request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: Partial<InvoiceConfigInterface> }>,
+    reply: FastifyReply
+) {
+    const { id, program_id } = request.params;
     const traceId = generateCustomUUID();
+
     try {
-        const [updatedCount] = await InvoiceConfigModel.update(updates, {
-            where: { id, program_id }
+        const invoiceConfig = await InvoiceConfigModel.findOne({
+            where: { uuid: id, program_id },
+            order: [['id', 'DESC']],
         });
 
-        if (updatedCount === 0) {
-            return reply.status(200).send({
+        if (!invoiceConfig) {
+            return reply.status(404).send({
+                status_code: 404,
                 message: "Invoice config data not found",
                 trace_id: traceId,
-                invoice_config: []
+                invoice_config: null,
             });
         }
+
+        const newPayload = {
+            ...request.body,
+            parent_id: invoiceConfig.id,
+            grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
+        };
+
+        const newInvoiceConfig = await InvoiceConfigModel.create(newPayload);
 
         return reply.status(201).send({
             status_code: 201,
             message: "Invoice config updated successfully",
-            invoice_config_id: id,
-            trace_id: traceId
+            invoice_config_id: newInvoiceConfig.uuid,
+            trace_id: traceId,
         });
     } catch (error: any) {
+        console.error("Error updating invoice config:", error);
+
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
@@ -114,7 +129,7 @@ export async function deleteInvoiceConfigById(
                 is_enabled: false,
                 modified_on: Date.now(),
             },
-            { where: { id, program_id } }
+            { where: { uuid: id, program_id } }
         );
         if (invoiceConfig > 0) {
             reply.status(200).send({

@@ -1,18 +1,30 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
+import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import generateSlug from '../plugins/slugGenerate';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 class InvoiceConfigModel extends Model {
     id: any;
+    uuid: any;
+    name: any;
+    slug: any;
+    parent_id: any;
 
 }
 
 InvoiceConfigModel.init(
     {
         id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            allowNull: false,
+            primaryKey: true
+        },
+        uuid: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
             allowNull: false,
-            primaryKey: true,
         },
         program_id: {
             type: DataTypes.STRING,
@@ -28,6 +40,14 @@ InvoiceConfigModel.init(
         },
         slug: {
             type: DataTypes.STRING,
+            allowNull: true,
+        },
+        parent_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        grand_parent_id: {
+            type: DataTypes.INTEGER,
             allowNull: true,
         },
         is_active: {
@@ -51,7 +71,7 @@ InvoiceConfigModel.init(
             allowNull: true,
         },
         consolidation_cycle: {
-            type: DataTypes.ENUM('daily', 'weekly', 'monthly'),
+            type: DataTypes.ENUM('weekly'),
             allowNull: true,
         },
         billing_period_start_day: {
@@ -187,6 +207,21 @@ InvoiceConfigModel.init(
         sequelize,
         tableName: "invoice_config",
         timestamps: false,
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: async (instance) => {
+                beforeSave(instance);
+                if (instance.name) {
+                    instance.slug = generateSlug(instance.name, {
+                        lowercase: true,
+                        removedspecial: true,
+                        replacewithhyphens: true
+                    });
+                }
+            }
+        }
     }
 );
 
