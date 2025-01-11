@@ -1,4 +1,4 @@
-import Qualifications from '../models/qualificationsModel';
+import Qualifications from '../models/qualifications.model';
 import qualificationTypeModel from '../models/qualification-type-model';
 
 export const generateQualificationCode = async (qualification_type_id: string, title: string): Promise<string> => {
