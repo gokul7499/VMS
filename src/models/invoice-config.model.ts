@@ -24,10 +24,10 @@ InvoiceConfigModel.init(
         uuid: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
-            allowNull: false,
+            allowNull: false,    
         },
         program_id: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: 'programs',
