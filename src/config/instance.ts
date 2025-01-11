@@ -1,11 +1,10 @@
-// instance.ts
 import { Sequelize } from 'sequelize';
-import { databaseConfig, initializeDatabase } from './db'; // Adjust the import based on your project structure
+import { databaseConfig, initializeDatabase } from './db';
 
 let sequelize: Sequelize;
 
 const initializeSequelize = async () => {
-  await initializeDatabase(); 
+  await initializeDatabase();
   sequelize = new Sequelize(
     databaseConfig.config.database,
     databaseConfig.config.user,
@@ -14,7 +13,7 @@ const initializeSequelize = async () => {
       host: databaseConfig.config.host,
       port: databaseConfig.config.port,
       dialect: 'mysql',
-      logging: false 
+      logging: false
     }
   );
 };
@@ -23,18 +22,18 @@ interface DatabaseConnectionStatus {
   connected: boolean;
   message: string;
   database: string;
-  error?: string; 
+  error?: string;
 }
 
 const checkDatabaseConnection = async (): Promise<DatabaseConnectionStatus> => {
   try {
-     await sequelize.authenticate();
-     await sequelize.sync({ alter: true });
+    await sequelize.authenticate();
+    await sequelize.sync({ alter: true });
     console.log('Database connected successfully');
     return {
       connected: true,
       message: 'Database connected successfully',
-      database: databaseConfig.config.database 
+      database: databaseConfig.config.database
     };
   } catch (error) {
     console.error('Unable to connect to the database:', error);
@@ -42,7 +41,7 @@ const checkDatabaseConnection = async (): Promise<DatabaseConnectionStatus> => {
       connected: false,
       message: 'Database connection failed',
       database: databaseConfig.config.database,
-      error: error instanceof Error ? error.message : String(error) 
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 };
