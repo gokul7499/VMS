@@ -157,6 +157,23 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        do_not_rehire: {
+            type: DataTypes.TINYINT,
+            allowNull: true,
+            defaultValue: false
+        },
+        do_not_rehire_reason: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        do_not_rehire_notes: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        state_national_id: {
+            type: DataTypes.NUMBER,
+            allowNull: true,
+        },
         created_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
