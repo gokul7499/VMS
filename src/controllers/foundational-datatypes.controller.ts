@@ -286,7 +286,11 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Quer
         }
 
         if (timesheet_master_data !== undefined) {
-            filters.timesheet_master_data = timesheet_master_data === 'true';
+            if (timesheet_master_data === 'true') {
+                filters['configuration.timesheet_master_data'] = true;  
+            } else {
+                filters['configuration.timesheet_master_data'] = false; 
+            }
         }
 
         const pageNum = Number(page);
