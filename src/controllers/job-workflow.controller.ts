@@ -454,14 +454,16 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 }
 async function getEventsCode(workflow: { flow_type: any, events: any}) {
     let {flow_type,events}=workflow
-    if (flow_type=="Approval"&& events === "job_create") {
+    if (flow_type=="Approval"&& events === "create_job") {
         return "JOB_APPROVAL_COMPLETE";
     } else if (flow_type=="Approval"&&events === "update_job") {
         return "JOB_UPDATE_APPROVAL";
     } else if (flow_type=="Approval"&& events === "create_offer") {
         return "OFFER_APPROVAL_COMPLETE";
-    } else if (events === "counter_offer") {
+    } else if (flow_type=="Approval"&&events === "counter_offer") {
         return "COUNTER_OFFER_APPROVAL_COMPLETE";
+    } else if (flow_type == "Approval" &&events === "submit_candidate_rehire_check") {
+        return "REHIRE_APPROVED";
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -469,9 +471,9 @@ async function getEventsCode(workflow: { flow_type: any, events: any}) {
 }
 async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
    let {flow_type,events}=workflow
-    if (flow_type == "Approval" && events === "job_create") {
+    if (flow_type == "Approval" && events === "create_job") {
         return "JOB_APPROVAL_REJECT";
-    } if (flow_type == "Review" && events === "job_create") {
+    } if (flow_type == "Review" && events === "create_job") {
         return "JOB_REVIEW_REJECT";
     } else if (flow_type == "Approval" && events === "update_job") {
         return "JOB_UPDATE_APPROVAL_REJECTED";
@@ -488,8 +490,12 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     } else if (flow_type == "Approval" &&events === "counter_offer") {
         return "COUNTER_OFFER_APPROVAL_REJECT";
         
-    } else if (events === "job_review") {
-        return "JOB_REVIEW_SECOND";
+    } else if (flow_type == "Review" &&events === "submit_candidate_shortlist") {
+        return "CANDIDATE_SHORTLIST_REJECTED";
+    } else if (flow_type == "Review" &&events === "submit_candidate_rehire_check") {
+        return "REHIRE_REVIEW_REJECT";
+    } else  if (flow_type == "Approval" &&events === "submit_candidate_rehire_check") {
+        return "REHIRE_REJECT";
     } else {
         throw new Error(`events code not found for event: ${events}`);
     }
