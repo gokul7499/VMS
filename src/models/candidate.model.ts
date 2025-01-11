@@ -170,6 +170,10 @@ Candidate.init(
             type: DataTypes.TEXT,
             allowNull: true,
         },
+        state_national_id: {
+            type: DataTypes.NUMBER,
+            allowNull: true,
+        },
         created_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
