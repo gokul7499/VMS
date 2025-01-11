@@ -27,5 +27,6 @@ export default interface CandidateInterface {
     is_active: boolean;
     is_deleted: boolean;
     birth_date?: number;
-    candidate_source?: string
+    candidate_source?: string;
+    state_national_id?: number
 }
