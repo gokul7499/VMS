@@ -18,7 +18,6 @@ export async function checkPermission(
 ): Promise<void> {
   try {
     validateInputs(token, programId);
-
     const tokenValue = token.split(' ')[1];
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
     const policies = await getPolicies(programId, tokenValue);
@@ -53,24 +52,6 @@ function matchesResource(resource: string, permissionResource: string): boolean 
   }
 
   return permissionResource.replace(':*', '') === resource;
-}
-
-function hasPermission(policies: any[], action?: string): boolean {
-  let allow = false;
-
-  policies.forEach(policy => {
-    const { policy: policyType, actions } = policy.permissions;
-    console.log("Checking policy:", policyType, actions);
-
-    if (policyType === 'ALLOW' && (actions.includes('*') || actions.includes(action))) {
-      allow = true;
-    } else if (policyType === 'DENY' && actions.includes(action)) {
-      allow = false;
-      return false;
-    }
-  });
-
-  return allow;
 }
 
 function validatePermissions(policies: any[], requiredPermissions: string[], action?: string): void {

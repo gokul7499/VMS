@@ -8,7 +8,7 @@ WORKDIR /app
 ENV NODE_ENV=development
 
 # Install dependencies
-COPY package.json package-lock.json ./
+COPY package*.json tsconfig*.json /app/
 
 RUN npm install
 
@@ -19,8 +19,6 @@ COPY src /app/src
 RUN npx tsc
 
 # Expose the port the app will run on
-COPY . .
-
 EXPOSE 8000
 
 # Command to run the app in development mode

@@ -11,10 +11,8 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
 
   const token = request.headers.authorization;
 
-  // Retrieve `program_id` from request parameters
   const { program_id } = request.params;
 
-  // Handle missing authorization token
   if (!token) {
     reply.status(401).send({
       status_code: 401,
@@ -24,7 +22,6 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
     return done();
   }
 
-  // Handle missing program_id
   if (!program_id) {
     reply.status(401).send({
       status_code: 401,
@@ -34,11 +31,9 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
     return done();
   }
 
-  // Check permissions using the `checkPermission` function
   checkPermission(token, program_id, { permissions }, action)
-    .then(() => done())  // Permission check passed
+    .then(() => done())
     .catch((error) => {
-      // Handle permission check failure
       reply.status(401).send({
         status_code: 401,
         message: "Unauthorized: Access denied",
@@ -47,4 +42,3 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
       done(error);
     });
 }
-

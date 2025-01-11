@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import cors from "@fastify/cors";
 import { checkDatabaseConnection, initializeSequelize } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
-import redis from "./config/redis";
 
 dotenv.config();
 
