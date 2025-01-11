@@ -11,7 +11,7 @@ import { sequelize } from '../config/instance';
 import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
-import picklistItemModel from '../models/picklistItemModel';
+import picklistItemModel from '../models/picklist-item.model';
 import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
