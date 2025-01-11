@@ -435,7 +435,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                         eventCode,
                         recipientEmail: user.email || "",
                         payload,
-                        userId: user?.id ?? "", // Assuming `id` is the user ID field in your response
+                        userId: user?.sub ?? "", // Assuming `id` is the user ID field in your response
                     };
                     sendNotification(notificationPayload);
                     console.log("notificationPayload", notificationPayload);
