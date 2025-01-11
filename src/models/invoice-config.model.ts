@@ -224,5 +224,6 @@ InvoiceConfigModel.init(
         }
     }
 );
+sequelize.sync();
 
 export default InvoiceConfigModel;
