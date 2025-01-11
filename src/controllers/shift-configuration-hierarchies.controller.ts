@@ -6,7 +6,7 @@ import ShiftConfiguration from "../models/shift-configuration.model";
 import { ShiftConfigurationHierarchiesAttributes } from "../interfaces/shift-configuration-hierarchies.interfaces";
 import rateType from "../models/rate-type.model"
 import { CreateRateTypeData } from "../interfaces/rate-type-interface"
-import shiftTypeConfiguration from "../models/shiftTypeConfigurationModel"
+import shiftTypeConfiguration from "../models/shift-type-configuration.model"
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
 interface ShiftRateTypesResponse {

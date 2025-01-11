@@ -12,8 +12,8 @@ import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getMasterData, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
-import { Op, QueryTypes } from "sequelize";
-import UserMasterDataModel from "../models/userMasterDataModel";
+import { QueryTypes } from "sequelize";
+import UserMasterDataModel from "../models/user-master-data.model";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
