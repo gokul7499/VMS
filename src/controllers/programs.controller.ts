@@ -22,19 +22,19 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' ,trace_id:traceId});
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
   }
 
   logger(
     {
-      trace_id:traceId,
+      trace_id: traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -60,12 +60,12 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       status_code: 201,
       id: item.id,
       message: "Program Created Successfully",
-      trace_id:traceId,
+      trace_id: traceId,
     });
 
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -98,13 +98,13 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         });
 
         await ProgramConfig.bulkCreate(programConfigs, { transaction });
-    
+
         await transaction.commit();
       } catch (error) {
 
         logger(
           {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -122,11 +122,11 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         );
 
         await transaction.rollback();
-        console.error("Error in async configuration setup:", error);       
+        console.error("Error in async configuration setup:", error);
       }
     });
   } catch (error: any) {
-    
+
     await transaction.rollback();
 
     reply.status(500).send({
@@ -138,7 +138,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -157,12 +157,9 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   }
 };
 
-export const getAllProgram = async (
-  request: FastifyRequest<{ Querystring: ProgramQuery }>,
-  reply: FastifyReply
-) => {
+export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>,reply: FastifyReply) => {
   const { name, is_activated, start_date } = request.query as Partial<ProgramQuery>;
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const query = request.query as any;
     const page = parseInt(query.page ?? "1");
@@ -207,7 +204,7 @@ export const getAllProgram = async (
       },
     });
     if (programs.length === 0) {
-      return reply.status(200).send({status_code:200, message: "Programs not found", programs: [],trace_id:traceId });
+      return reply.status(200).send({ status_code: 200, message: "Programs not found", programs: [], trace_id: traceId });
     }
     reply.status(200).send({
       status_code: 200,
@@ -227,12 +224,9 @@ export const getAllProgram = async (
   }
 };
 
-export const getProgramById = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
+export const getProgramById = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id } = request.params as { id: string };
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const programs = await Programs.findOne({
       where: {
@@ -287,22 +281,16 @@ export const getProgramById = async (
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server error",
-      trace_id:traceId,
+      trace_id: traceId,
       error: error,
     });
   }
 };
 
-export const updateProgramById = async (
-  request: FastifyRequest<{
-    Params: { id: string };
-    Body: Partial<CreateProgramData>;
-  }>,
-  reply: FastifyReply
-) => {
+export const updateProgramById = async (request: FastifyRequest<{ Params: { id: string }; Body: Partial<CreateProgramData>; }>, reply: FastifyReply) => {
   const { id } = request.params;
   const updates = request.body as CreateProgramData;
-  const traceId=generateCustomUUID();
+  const traceId = generateCustomUUID();
   try {
     const program = await Programs.findOne({
       where: {
@@ -345,12 +333,9 @@ export const updateProgramById = async (
   }
 };
 
-export const deleteProgramById = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-) => {
-  const { id } = request.params;
-  const traceId=generateCustomUUID();
+export async function deleteProgramById(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const traceId = generateCustomUUID();
   try {
     const program = await Programs.findByPk(id);
     if (program) {
@@ -380,10 +365,7 @@ export const deleteProgramById = async (
   }
 };
 
-export async function advancedFilter(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function advancedFilter(request: FastifyRequest,reply: FastifyReply) {
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);

@@ -215,15 +215,19 @@ export async function getConfigByProgramIdAndTitles(
 }
 
 export const getTransformedConfig = async (
-  request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string; id: string }, Querystring: { config_model?: string, key?: string } }>,
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { config_model, key } = request.query as { config_model?: string, key?: string };
+  const { config_model, key } = request.query;
 
   try {
+    const whereClause: Record<string, any> = { program_id };
+    if (config_model) whereClause.config_model = config_model;
+    if (key) whereClause.key = key;
+
     const configuration = await ProgramsConfig.findOne({
-      where: { program_id, config_model, key },
+      where: whereClause,
     });
 
     if (!configuration) {
@@ -255,29 +259,33 @@ function transformConfiguration(config: any) {
   const transformed: any = {
     id: config.id,
   };
-  config.value?.forEach((entry: any) => {
-    const scope = entry.title.toLowerCase().replace(" ", "_");
-    entry.fields?.forEach((field: any) => {
-      if (field.type === "group") {
-        const key = field.label
-          .toLowerCase()
-          .replace(/[^a-zA-Z0-9]+/g, "_")
-          .replace(/(^_|_$)/g, "");
-        transformed[`${key}`] = {
-          name: field.label,
-          scale: getScaleValue(field.fields, "Scaling Limit"),
-          threshold: getScaleValue(field.fields, "Scaling Threshold"),
-          precision_type: getFieldValue(field.fields, "Scaling Type"),
-          scope: scope,
-        };
+
+  if (Array.isArray(config.value)) {
+    config.value.forEach((entry: any) => {
+      const scope = entry.title.toLowerCase().replace(" ", "_");
+      if (Array.isArray(entry.fields)) {
+        entry.fields.forEach((field: any) => {
+          if (field.type === "group") {
+            const key = field.label
+              .toLowerCase()
+              .replace(/[^a-zA-Z0-9]+/g, "_")
+              .replace(/(^_|_$)/g, "");
+            transformed[`${key}`] = {
+              name: field.label,
+              scale: getScaleValue(field.fields, "Scaling Limit"),
+              threshold: getScaleValue(field.fields, "Scaling Threshold"),
+              precision_type: getFieldValue(field.fields, "Scaling Type"),
+              scope: scope,
+            };
+          }
+        });
       }
     });
-  });
+  }
 
   return transformed;
 }
 
-// Utility functions to extract field data
 function getScaleValue(fields: any[], label: string) {
   return fields.find((field: any) => field.label === label)?.value || 1; // Default to 1 if not found
 }

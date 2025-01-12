@@ -263,11 +263,11 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
     }
 }
 
-export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Querystring: { name?: string, is_enabled?: string, modified_on?: string, page?: string, limit?: string } }>, reply: FastifyReply) {
+export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Querystring: { name?: string, is_enabled?: string, modified_on?: string, timesheet_master_data?:string, page?: string, limit?: string } }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const responseFields = ['id', 'program_id', 'name', 'is_enabled', 'modified_on', 'description', 'configuration'];
     const { program_id } = request.params as { program_id: string };
-    const { name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+    const { name, is_enabled, modified_on, timesheet_master_data, page = '1', limit = '10' } = request.query;
     try {
         const filters: any = { program_id, is_deleted: false };
         if (name) {
@@ -282,6 +282,14 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Quer
             const modifiedOnRange = modified_on.split(',').map(Number);
             if (modifiedOnRange.length === 2) {
                 filters.modified_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
+            }
+        }
+
+        if (timesheet_master_data !== undefined) {
+            if (timesheet_master_data === 'true') {
+                filters['configuration.timesheet_master_data'] = true;  
+            } else {
+                filters['configuration.timesheet_master_data'] = false; 
             }
         }
 

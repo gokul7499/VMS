@@ -63,7 +63,7 @@ FoundationalDataTypes.init(
     },
     timesheet_master_data:{
       type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: true,
     }
   },
   {
