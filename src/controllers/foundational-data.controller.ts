@@ -161,24 +161,25 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
-
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
-
     if (!user) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
+    const userId = user?.sub;
+    console.log("uuu",userId)
+
     logger(
         {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
                 user_name: user?.preferred_username,
-                user_id: user?.sub,
+                user_id: userId,
             },
             data: request.body,
             eventname: "creating foundational data",
@@ -192,6 +193,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         },
         foundationalData
     );
+
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
             where: { name, program_id },
@@ -201,22 +203,23 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
             return reply.status(400).send({
                 status_code: 400,
                 message: "Master Data Already Exist.",
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
-
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
+            created_by: userId,
+            modified_by: userId,
             created_on: Date.now(),
             modified_on: Date.now(),
         });
 
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId,
                 },
                 data: request.body,
                 eventname: "created foundational data",
@@ -234,17 +237,17 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         reply.status(201).send({
             status_code: 201,
             foundational_data_id: foundational_Data.id,
-            trace_id:traceId,
+            trace_id: traceId,
             message: 'FoundationalData Created Successfully.',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId,
                 },
                 data: request.body,
                 eventname: "creating foundational data",
@@ -262,56 +265,81 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating FoundationalData.',
-            trace_id:traceId,
+            trace_id: traceId,
+            error: error.message
         });
     }
 }
 
+
 export async function updateFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string, id: string };
-    let { name } = request.body as { name: string }
+    let { name } = request.body as { name: string };
     name = name.trim();
+
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
             where: {
                 name: sequelize.where(sequelize.fn('lower', sequelize.col('name')), sequelize.fn('lower', name)),
-                id: { [Op.ne]: id },  // Exclude the current record's ID from the search
-                program_id,  // Only consider records from the specified program_id
-                is_deleted: false,     // Only consider records that are not deleted
-            }
+                id: { [Op.ne]: id },
+                program_id,
+                is_deleted: false,
+            },
         });
 
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
                 status_code: 400,
                 message: "Master Data Already Exist.",
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
 
-        const [updatedCount] = await foundationalData.update({ ...request.body as FoundationalDataInterface, modified_on: Date.now() }, { where: { program_id, id } });
+        const [updatedCount] = await foundationalData.update(
+            {
+                ...request.body as FoundationalDataInterface,
+                modified_on: Date.now(),
+                modified_by:userId,
+            },
+            { where: { program_id, id } }
+        );
+
         if (updatedCount > 0) {
             reply.send({
                 status_code: 201,
                 message: 'FoundationalData updated successfully.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'FoundationalData not found.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server error',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 }
+
 
 export async function deleteFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
