@@ -3,7 +3,7 @@ import { WorkLocationInterface } from "../interfaces/work-location.interface";
 import { FastifyRequest, FastifyReply } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import Currencies from "../models/currencies.model";
-import WorkLocationCurrency from "../models/workLocationCurrency.model";
+import WorkLocationCurrency from "../models/work-location-currency.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";

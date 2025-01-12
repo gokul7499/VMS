@@ -26,6 +26,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             first_name: string;
             page?: string;
             limit?: string;
+            is_billable?:string;
         };
 
         const page = parseInt(query.page ?? '1');
@@ -54,10 +55,16 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,
             first_name: query.first_name ? `%${query.first_name}%` : null,
+            is_billable: query.is_billable !== undefined ? query.is_billable === 'true' : null, 
             limit,
             offset
         };
 
+
+       
+        // if (query.is_billable !== undefined) {
+        //     filters.is_billable = query.is_billable === 'true';
+        // }
         const [foundationalDataResult, countResult] = await Promise.all([
             sequelize.query(foundationDataQuery, {
                 replacements: filters,
@@ -238,7 +245,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
             message: 'FoundationalData Created Successfully.',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger(
             {
                 trace_id:traceId,
@@ -263,6 +270,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
             status_code: 500,
             message: 'An error occurred while creating FoundationalData.',
             trace_id:traceId,
+            error:error.message
         });
     }
 }

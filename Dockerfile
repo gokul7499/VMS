@@ -9,6 +9,7 @@ ENV NODE_ENV=development
 
 # Install dependencies
 COPY package*.json tsconfig*.json /app/
+
 RUN npm install
 
 # Copy source code
