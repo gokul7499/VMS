@@ -2030,6 +2030,8 @@ WITH user_data AS (
          u.user_type,
          u.is_associated,
          u.name_prefix,
+         u.role_id,
+
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
