@@ -30,15 +30,17 @@ export async function createVendorComplianceDocument(
   const token = authHeader.split(" ")[1];
   let user: any = await decodeToken(token);
 
+
   if (!user) {
     return reply.status(401).send({status_code:401, message: "Unauthorized - Invalid token", trace_id: traceId });
   }
+  const userId=user?.sub
   logger(
     {
       traceId,
       actor: {
         user_name: user?.preferred_username,
-        user_id: user?.sub,
+        user_id: userId,
       },
       data: request.body,
       eventname: "create vendor compliance document",
@@ -80,6 +82,8 @@ export async function createVendorComplianceDocument(
     const vendor_comp_document = await VendorComplianceDocumentModel.create({
       ...vendor_comp_doc,
       program_id,
+      created_by: userId,
+      modified_by: userId,
     });
     logger(
       {
@@ -201,6 +205,16 @@ export async function updateVendorComplianceDocumentById(
   const { id, program_id } = request.params;
   const vendorDocuments = request.body as Partial<VendorComplianceDocumentInterface>;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
 
   try {
     const existingDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
@@ -217,7 +231,7 @@ export async function updateVendorComplianceDocumentById(
       });
     }
 
-    await vendorComplianceDocumentService.updateById(request, { program_id, id });
+    await vendorComplianceDocumentService.updateById(request, { program_id, id,modified_by:userId, });
 
     if (vendorDocuments.uploaded_document && Array.isArray(vendorDocuments.uploaded_document)) {
       for (const doc of vendorDocuments.uploaded_document) {
@@ -251,10 +265,20 @@ export async function deleteVendorComplianceDocumentById(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
   try {
     const { program_id, id } = request.params;
 
-    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id });
+    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id ,modified_by:userId,});
 
     if (deletedCount > 0) {
       reply.status(200).send({
