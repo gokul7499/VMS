@@ -2031,6 +2031,9 @@ WITH user_data AS (
          u.is_associated,
          u.name_prefix,
          u.role_id,
+         u.title,
+         u.contacts,
+         u.addresses,
 
          (
              SELECT JSON_ARRAYAGG(
