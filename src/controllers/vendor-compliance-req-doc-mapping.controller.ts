@@ -3,6 +3,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendor-compliance-req-doc-mapping.interface';
 import { baseSearch } from "../utility/baseService";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function createVendorComplianceReqDoc(
     request: FastifyRequest,
@@ -10,9 +11,21 @@ export async function createVendorComplianceReqDoc(
 ) {
     const traceId = generateCustomUUID();
     const vendorComplianceMapping = request.body as VendorComplianceReqDocMappingInterface;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const vendorComplianceMappingData: any = await VendorComplianceReqDocMappingModel.create({
             ...vendorComplianceMapping,
+            created_by: userId,
+            modified_by: userId,
         });
  
         return reply.status(201).send({
@@ -75,9 +88,19 @@ export async function updateVendorComplianceReqDoc(
 ) {
     const { program_id, id } = request.params;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const [updatedCount] = await VendorComplianceReqDocMappingModel.update(request.body as VendorComplianceReqDocMappingInterface, {
-            where: { program_id, id, is_deleted: false },
+            where: { program_id, id, is_deleted: false,modified_by:userId },
         });
         if (updatedCount > 0) {
             reply.send({
@@ -107,6 +130,16 @@ export async function deleteVendorComplianceReqDoc(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { program_id, id } = request.params;
         const vendorComplianceMapping = await VendorComplianceReqDocMappingModel.findOne({
@@ -114,7 +147,7 @@ export async function deleteVendorComplianceReqDoc(
         });
         if (vendorComplianceMapping) {
             await VendorComplianceReqDocMappingModel.update(
-                { is_deleted: true, is_enabled: false },
+                { is_deleted: true, is_enabled: false,modified_by:userId, },
                 { where: { program_id, id } }
             );
             reply.status(204).send({

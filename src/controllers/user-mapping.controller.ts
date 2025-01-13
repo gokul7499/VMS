@@ -9,7 +9,7 @@ import WorkLocationModel from "../models/work-location.model";
 import Language from "../models/language.model";
 import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
-
+import { decodeToken } from "../middlewares/verifyToken";
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId=generateCustomUUID();
     try {
@@ -111,7 +111,20 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
     const updates = request.body as Partial<UserMappingAttributes>;
     const traceId=generateCustomUUID();
     try {
-        const [updatedCount] = await UserMapping.update(updates, { where: { id: id } });
+        const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+        const [updatedCount] = await UserMapping.update({updates,modified_by: userId,}, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -140,6 +153,19 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
 export const deleteUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const traceId=generateCustomUUID();
+    const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const deletedCount = await UserMapping.destroy({ where: { id: id } });
         if (deletedCount > 0) {

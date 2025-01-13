@@ -4,6 +4,7 @@ import vendorMarkupConfigInterface from '../interfaces/vendor-markup-config.inte
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
 import { Sequelize } from 'sequelize';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function getAllVendorMarkupConfig(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['tenant_id', 'is_enabled', 'rate_model', 'sourced_markup', 'program_id'];
@@ -12,7 +13,7 @@ export async function getAllVendorMarkupConfig(request: FastifyRequest, reply: F
 }
 
 export async function getVendorMarkupConfigById(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await vendorMarkupConfig.findOne({
@@ -26,13 +27,13 @@ export async function getVendorMarkupConfigById(request: FastifyRequest, reply: 
             reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Markup Config found',
-                trace_id:traceId,
+                trace_id: traceId,
                 vendor_markup_config: item
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
-                trace_id:traceId,
+                trace_id: traceId,
                 vendor_markup_config: [],
                 message: 'vendorMarkupConfig not found.',
             });
@@ -40,7 +41,7 @@ export async function getVendorMarkupConfigById(request: FastifyRequest, reply: 
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id:traceId,
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -51,7 +52,17 @@ export async function createVendorMarkupConfig(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const { program_id } = request.params;
         const vendor = request.body as vendorMarkupConfigInterface;
@@ -59,7 +70,7 @@ export async function createVendorMarkupConfig(
         if (!program_id) {
             return reply.status(400).send({
                 status_code: 400,
-                trace_id:traceId,
+                trace_id: traceId,
                 message: 'Program id is required.',
             });
         }
@@ -75,15 +86,15 @@ export async function createVendorMarkupConfig(
             await existingVendor.update({ ...vendor, program_id });
             return reply.status(200).send({
                 status_code: 200,
-                trace_id:traceId,
+                trace_id: traceId,
                 message: 'VendorMarkupConfig updated successfully.',
                 vendor: existingVendor
             });
         } else {
-            const newVendor = await vendorMarkupConfig.create({ ...vendor, program_id });
+            const newVendor = await vendorMarkupConfig.create({ ...vendor, program_id, created_by: userId, });
             return reply.status(201).send({
                 status_code: 201,
-                trace_id:traceId,
+                trace_id: traceId,
                 message: 'VendorMarkupConfig created successfully.',
                 vendor: newVendor
             });
@@ -91,15 +102,25 @@ export async function createVendorMarkupConfig(
     } catch (error) {
         return reply.status(500).send({
             status_code: 500,
-            trace_id:traceId,
+            trace_id: traceId,
             message: "Internal Server Error",
-            error: error
+            error: (error as Error).message
         });
     }
 }
 
 export async function updateVendorMarkupConfig(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = request.body as vendorMarkupConfigInterface;
@@ -111,46 +132,56 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
         if (!vendorData) {
             return reply.status(200).send({
                 status_code: 200,
-                trace_id:traceId,
+                trace_id: traceId,
                 message: 'vendorMarkupConfig data not found.',
                 vendor_markup_config: [],
             });
         }
-        await vendorData.update(data);
+        await vendorData.update({ data, modified_by: userId });
         reply.status(201).send({
             status_code: 201,
             message: 'vendorMarkupConfig updated successfully.',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 }
 
 export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const vendorData = await vendorMarkupConfig.findOne({
             where: { id, program_id, is_deleted: false },
         });
         if (!vendorData) {
-            return reply.status(200).send({status_code:200, message: 'vendorMarkupConfig data not found.', vendor_markup_config: [] ,trace_id:traceId });
+            return reply.status(200).send({ status_code: 200, message: 'vendorMarkupConfig data not found.', vendor_markup_config: [], trace_id: traceId });
         }
-        await vendorData.update({ is_enabled: false, is_deleted: true });
+        await vendorData.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
         reply.status(204).send({
             status_code: 204,
-            trace_id:traceId,
+            trace_id: traceId,
             message: 'vendorMarkupConfig Deleted Successfully.'
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
-            trace_id:traceId,
+            trace_id: traceId,
             message: "Internal Server Error",
             error
         });
@@ -231,13 +262,13 @@ export async function calculateAverageVendorMarkupConfig(request: FastifyRequest
                 max_bill_rate,
                 average_bill_rate
             },
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: (error as Error).message,
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 }

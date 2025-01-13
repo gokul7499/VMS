@@ -4,7 +4,7 @@ import jobCategoryModel from '../models/job-category.model';
 import { JobCategoryInterface } from '../interfaces/job-category.interface';
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function getAllJobCategory(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['id'];
@@ -43,9 +43,26 @@ export async function createJobCategory(
   reply: FastifyReply,
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
+
   try {
     const JobCategoryData: JobCategoryInterface = request.body as JobCategoryInterface;
-    const newJobCategory = await jobCategoryModel.create({ ...JobCategoryData});
+    const newJobCategory = await jobCategoryModel.create({
+      ...JobCategoryData,
+      created_by: userId,
+      modified_by: userId,
+      created_on: Date.now(),
+      modified_on: Date.now()
+    });
 
     reply.status(201).send({
       statusCode: 201,
@@ -67,18 +84,31 @@ export async function updateJobCategory(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
+
   try {
     const { id } = request.params;
     const jobcategory = request.body as JobCategoryInterface;
-    const [numRowsUpdated] = await jobCategoryModel.update(
-      { ...jobcategory},
-      { where: { id } }
+    const [numRowsUpdated] = await jobCategoryModel.update({
+      ...jobcategory,
+      modified_by: userId,
+      modified_on: Date.now()
+    }, { where: { id } }
     );
-      reply.status(200).send({
-        statusCode: 200,
-        message: "Job category updated successfully.",
-        trace_id: traceId,
-      });
+    reply.status(200).send({
+      statusCode: 200,
+      message: "Job category updated successfully.",
+      trace_id: traceId,
+    });
   }
   catch (error) {
     reply.status(500).send({

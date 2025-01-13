@@ -3,12 +3,23 @@ import FieldOperatorModel from '../models/field-operator.model';
 import { FieldOperatorData } from '../interfaces/field-operator.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createFieldOperator = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const FieldOperatorPayload = request.body as Omit<FieldOperatorData, '_id'>;
-        const FieldOperator: any = await FieldOperatorModel.create({ ...FieldOperatorPayload });
+        const FieldOperator: any = await FieldOperatorModel.create({ ...FieldOperatorPayload,created_by: userId, modified_by: userId, });
         reply.status(201).send({
             statusCode: 201,
             field_operator_id: FieldOperator.id,
@@ -28,6 +39,16 @@ export const updateFieldOperator = async (request: FastifyRequest, reply: Fastif
     const traceId = generateCustomUUID();
     const { id } = request.params as { id: string };
     const fieldOperator = request.body as FieldOperatorData;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub;
     try {
         const data = await FieldOperatorModel.findOne({
             where: {
@@ -35,7 +56,8 @@ export const updateFieldOperator = async (request: FastifyRequest, reply: Fastif
             }
         });
         if (data) {
-            await data.update(fieldOperator);
+            await data.update(fieldOperator,{
+                where:{created_by: userId, modified_by: userId,}});
             reply.status(201).send({
                 statusCode: 201,
                 field_operator_id: id,
@@ -60,6 +82,16 @@ export const updateFieldOperator = async (request: FastifyRequest, reply: Fastif
 
 export const deleteFieldOperator = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub;
     try {
         const { id } = request.params as { id: string };
         const data = await FieldOperatorModel.findOne({
@@ -74,7 +106,8 @@ export const deleteFieldOperator = async (request: FastifyRequest, reply: Fastif
             });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true });
+        await data.update({ is_enabled: false, is_deleted: true,created_by: userId,
+            modified_by: userId, });
         reply.status(200).send({
             statusCode: 200,
             field_operator_id: id,

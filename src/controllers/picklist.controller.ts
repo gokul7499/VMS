@@ -6,6 +6,8 @@ import picklist_item_model from '../models/picklist-item.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
+import { logger } from '../utility/loggerService';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -176,15 +178,50 @@ const generateRandomPrefix = () => {
   return result;
 };
 
-export const createPicklist = async (request: FastifyRequest<{ Body: any, Params: { program_id: string } }>, reply: FastifyReply) => {
-  const { picklist_items, ...picklist_data } = request.body as { picklistItems?: PicklistItem[];[key: string]: any };
+export const createPicklist = async (
+  request: FastifyRequest<{ Body: any; Params: { program_id: string } }>,
+  reply: FastifyReply
+) => {
+  const { picklist_items, ...picklist_data } = request.body as {
+    picklistItems?: PicklistItem[];
+    [key: string]: any;
+  };
   const { program_id } = request.params;
   const traceId = generateCustomUUID();
+
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
+
+  logger(
+    {
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "creating picklist",
+      status: "in_progress",
+      description: `Creating picklist for program_id: ${program_id}`,
+      level: "info",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    },
+    picklist_model
+  );
+
   try {
     const programData = await Programs.findOne({ where: { id: program_id } });
     if (!programData) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: "Program not found",
         trace_id: traceId,
       });
@@ -206,6 +243,7 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
         });
       }
     }
+
     if (picklist_data.slug === undefined) {
       picklist_data.slug = picklist_data.name.toLowerCase();
     }
@@ -221,7 +259,7 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
     typed_picklist_data.picklist_id = generatedPicklistId;
 
     try {
-      const picklist = await picklist_model.create(typed_picklist_data, {
+      const picklist = await picklist_model.create({ ...typed_picklist_data, modified_by: userId, created_by: userId }, {
         transaction,
       });
 
@@ -231,10 +269,27 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
           picklist_id: picklist.id,
         }));
 
-        await picklist_item_model.bulkCreate(items, { transaction });
+        await picklist_item_model.bulkCreate({ ...items, modified_by: userId, created_by: userId }, { transaction });
       }
 
       await transaction.commit();
+
+      logger(
+        {
+          trace_id: traceId,
+          actor: { user_name: user?.preferred_username, user_id: userId },
+          data: request.body,
+          eventname: "created picklist",
+          status: "success",
+          description: `Created picklist for program_id: ${program_id} successfully: ${picklist.id}`,
+          level: "success",
+          action: request.method,
+          url: request.url,
+          entity_id: program_id,
+          is_deleted: false,
+        },
+        picklist_model
+      );
 
       reply.status(201).send({
         status_code: 201,
@@ -245,6 +300,23 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
     } catch (error) {
       await transaction.rollback();
 
+      logger(
+        {
+          trace_id: traceId,
+          actor: { user_name: user?.preferred_username, user_id: userId },
+          data: request.body,
+          eventname: "creating picklist",
+          status: "error",
+          description: `Error creating picklist for program_id: ${program_id}`,
+          level: "error",
+          action: request.method,
+          url: request.url,
+          entity_id: program_id,
+          is_deleted: false,
+        },
+        picklist_model
+      );
+
       reply.status(500).send({
         status_code: 500,
         message: `Error creating picklist: ${error}.`,
@@ -252,6 +324,23 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
       });
     }
   } catch (error) {
+    logger(
+      {
+        trace_id: traceId,
+        actor: { user_name: user?.preferred_username, user_id: userId },
+        data: request.body,
+        eventname: "creating picklist",
+        status: "error",
+        description: `Error fetching picklist data for program_id: ${program_id}`,
+        level: "error",
+        action: request.method,
+        url: request.url,
+        entity_id: program_id,
+        is_deleted: false,
+      },
+      picklist_model
+    );
+
     reply.status(500).send({
       status_code: 500,
       message: `Error fetching picklist data: ${error}`,
@@ -260,12 +349,20 @@ export const createPicklist = async (request: FastifyRequest<{ Body: any, Params
   }
 };
 
-
-
 export async function deletePicklist(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as {
     id: string;
@@ -282,6 +379,7 @@ export async function deletePicklist(
     await picklist.update({
       is_enabled: false,
       is_deleted: true,
+      modified_by: userId
     });
 
     return reply.status(200).send({
@@ -308,7 +406,16 @@ export const updatePicklistAndItem = async (
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const { picklist_items, ...picklist_data } = request.body;
-
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
   try {
     let picklist;
     if (picklist_data.defined_by === "PREDEFINED") {
@@ -365,8 +472,8 @@ export const updatePicklistAndItem = async (
     }
 
     if (!picklist) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: `Picklist with ID ${id} not found`,
         trace_id: traceId,
       });
@@ -375,7 +482,7 @@ export const updatePicklistAndItem = async (
     const transaction = await sequelize.transaction();
 
     try {
-      await picklist.update(picklist_data, { transaction });
+      await picklist.update({ ...picklist_data, modified_by: userId }, { transaction });
 
       if (picklist_items && picklist_items.length > 0) {
         for (const item of picklist_items) {
@@ -387,14 +494,14 @@ export const updatePicklistAndItem = async (
 
             if (!existingPicklistItem) {
               await transaction.rollback();
-              return reply.status(404).send({
-                status_code: 404,
+              return reply.status(200).send({
+                status_code: 200,
                 message: `Picklist item with ID "${item.id}" not found`,
                 trace_id: traceId,
               });
             }
 
-            await existingPicklistItem.update(item, { transaction });
+            await existingPicklistItem.update({ ...item, modified_by: userId }, { transaction });
           } else {
             await picklist_item_model.create(
               {
@@ -488,7 +595,7 @@ export const getPicklistAndPicklistItem = async (
       const picklist = picklists[0];
       const response = {
         status_code: 200,
-        message:"Get PicklistAndPicklistItemt successfully",
+        message: "Get PicklistAndPicklistItemt successfully",
         trace_id: traceId,
         picklist,
       };
@@ -578,10 +685,10 @@ export async function getAllPickListByProgramId(
       });
     }
     let responseData;
-    if(slug && slug=="rate type category"){
+    if (slug && slug == "rate type category") {
       const customOrder = ["Standard", "Over Time", "Double Time", "Holiday", "Weekend", "Other"];
       const orderMap = Object.fromEntries(customOrder.map((value, index) => [value, index]));
-       responseData = picklistData.map(picklist => ({
+      responseData = picklistData.map(picklist => ({
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
@@ -595,35 +702,35 @@ export async function getAllPickListByProgramId(
             (orderMap[a.value] ?? Infinity) - (orderMap[b.value] ?? Infinity)
         ),
       }));
-      
+
     }
-    else{
-    responseData = picklistData.map((picklist) => ({
-      id: picklist.id,
-      program_id: picklist.program_id,
-      name: picklist.name,
-      is_enabled: picklist.is_enabled,
-      is_deleted: picklist.is_deleted,
-      is_visible: picklist.is_visible,
-      defined_by: picklist.defined_by,
-      created_on: picklist.created_on,
-      picklistItems: picklist.picklistItems
-        .map((item: any) => ({
-          id:item.id,
-          picklist_id: item.picklist_id,
-          label: item.label,
-          value: item.value,
-          is_deleted: item.is_deleted,
-          is_enabled: item.is_enabled,
-          defined_by: item.defined_by,
-          meta_data: item.meta_data,
-          slug: item.slug,
-        }))
-        .sort((a: { label: string }, b: { label: any }) =>
-          a.label.localeCompare(b.label)
-        ),
-    }));
-  }
+    else {
+      responseData = picklistData.map((picklist) => ({
+        id: picklist.id,
+        program_id: picklist.program_id,
+        name: picklist.name,
+        is_enabled: picklist.is_enabled,
+        is_deleted: picklist.is_deleted,
+        is_visible: picklist.is_visible,
+        defined_by: picklist.defined_by,
+        created_on: picklist.created_on,
+        picklistItems: picklist.picklistItems
+          .map((item: any) => ({
+            id: item.id,
+            picklist_id: item.picklist_id,
+            label: item.label,
+            value: item.value,
+            is_deleted: item.is_deleted,
+            is_enabled: item.is_enabled,
+            defined_by: item.defined_by,
+            meta_data: item.meta_data,
+            slug: item.slug,
+          }))
+          .sort((a: { label: string }, b: { label: any }) =>
+            a.label.localeCompare(b.label)
+          ),
+      }));
+    }
     return reply.status(200).send({
       status_code: 200,
       message: "Pick list data retrieved successfully",

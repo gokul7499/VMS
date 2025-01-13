@@ -5,12 +5,23 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { handleError } from "../utility/errorHandler";
 import { sequelize } from "../config/instance";
 import { Op } from "sequelize";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function createCity(
   request: FastifyRequest<{ Params: { state_id: string; program_id: string } }>,
   reply: FastifyReply
 ) {
   const transaction = await sequelize.transaction();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const { state_id } = request.params;
     const data = request.body;
@@ -39,7 +50,12 @@ export async function createCity(
     }
 
     const newCities = await city.bulkCreate(
-      cityDataArray.map((cityData) => ({ ...cityData, state_id })),
+      cityDataArray.map((cityData) => ({
+        ...cityData,
+        state_id,
+        created_by: userId,
+        modified_by: userId,
+      })),
       { transaction }
     );
 
@@ -133,12 +149,25 @@ export async function updateCity(
 ) {
   const { id, state_id } = request.params;
   const cityData = request.body as CityData;
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const City: city | null = await city.findOne({
       where: { id, state_id, is_deleted: false },
     });
     if (City) {
-      await City.update(cityData);
+      await City.update({
+        cityData,
+        modified_by: userId,
+      });
       reply.status(200).send({
         status_code: 200,
         City_id: id,
@@ -166,11 +195,23 @@ export async function deleteCity(
   reply: FastifyReply
 ) {
   const { id, state_id } = request.params;
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
+  console.log("uuu", userId)
   try {
     const Citys = await city.update(
       {
         is_deleted: true,
         is_enabled: false,
+        modified_by: userId,
       },
       {
         where: {
