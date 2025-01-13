@@ -324,7 +324,6 @@ export async function updateExpenseConfiguration(
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params;
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
-
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
 
@@ -349,6 +348,9 @@ export async function updateExpenseConfiguration(
                 trace_id: traceId,
             });
         }
+        await ExpenseConfigurationModel.update(expenseConfigData, {
+            where: { id, program_id }
+        });
 
         if (
             Array.isArray(expenseConfigData.expense_item_type_config) &&
@@ -561,7 +563,17 @@ export const getAllExpenseConfigurationHierarchies = async (
             replacements: { program_id },
             type: QueryTypes.SELECT,
         });
-        const hierarchies = results[0].hierarchies_d || [];
+
+        if (results.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'No hierarchies found for the specified program.',
+                hierarchies:[],
+                trace_id: traceId,
+            });
+        }
+        const hierarchies = Array.from(new Map(results[0].hierarchy.map((item: any) => [item.id, item])).values());
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -569,6 +581,7 @@ export const getAllExpenseConfigurationHierarchies = async (
             hierarchies,
         });
     } catch (error: any) {
+        console.error("Error retrieving hierarchies:", error);
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
@@ -629,11 +642,12 @@ export async function expenseConfigurationAdvancedFilter(
             offset,
         };
 
-        // Add placeholders for each date in modified_on array
         modifiedOnArray.forEach((_, index) => {
             replacements[`modified_on${index}`] = modifiedOnArray[index];
         });
-
+        hierarchyIdsArray.forEach((_, index) => {
+            replacements[`hierarchy${index}`] = hierarchyIdsArray[index];
+        });
         const data = await sequelize.query(query, {
             replacements,
             type: QueryTypes.SELECT,
