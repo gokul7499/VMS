@@ -9,12 +9,25 @@ import IndustriesModel from '../models/labour-category.model';
 import { QueryTypes } from 'sequelize';
 import { timesheetConfigAdvancedFilter } from '../utility/queries';
 import hierarchies from '../models/hierarchies.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const data = request.body as TimesheetTypeConfigInterface;
+        
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    console.log("uuu",userId)
         const existingConfig = await TimesheetTypeConfig.findOne({
             where: {
                 program_id,
@@ -30,7 +43,8 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             });
         }
         const newConfig = await TimesheetTypeConfig.create(
-            { program_id, ...data },
+            { program_id, ...data ,  created_by: userId,
+                modified_by: userId,},
         );
         reply.status(201).send({
             status_code: 201,
@@ -194,6 +208,18 @@ export const getTimesheetTypeConfigById = async (
 export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const configData = request.body as TimesheetTypeConfigInterface;
@@ -208,7 +234,8 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         }
         await config.update({
             program_id,
-            ...configData
+            ...configData,
+            modified_by:userId,
         });
         reply.status(200).send({
             status_code: 200,
@@ -228,6 +255,18 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 
 export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
      try {
          const { id } = request.params as { id: string };
          const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
@@ -240,7 +279,7 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
              });
          }
  
-         await config.update({ is_enabled: false, is_deleted: true });
+         await config.update({ is_enabled: false, is_deleted: true ,   modified_by:userId,});
  
          reply.status(200).send({
              status_code: 200,

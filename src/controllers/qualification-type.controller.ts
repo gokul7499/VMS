@@ -1,10 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import qualificationTypeModel from '../models/qualification-type-model';
-import Qualifications from '../models/qualificationsModel';
+import Qualifications from '../models/qualifications.model';
 import qualificationType from '../interfaces/qualification-type.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { sequelize } from '../config/instance';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
@@ -92,6 +93,19 @@ export async function getQualificationTypes(
 export async function createQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const traceId=generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const { name } = request.body as qualificationType;
     const existingQualificationType = await qualificationTypeModel.findOne({
@@ -107,7 +121,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     }
 
     const qualification_types = request.body as qualificationType;
-    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id });
+    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id ,created_by: userId,modified_by: userId,});
     reply.status(201).send({
       status_code: 201,
       message: 'Qualification type created successfully',
@@ -183,6 +197,19 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
       trace_id: traceId,
     });
   }
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const existingQualificationTypeWithSameName = await qualificationTypeModel.findOne({
       where: {
@@ -211,7 +238,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
         trace_id: traceId,
       });
     }
-    await data.update(updates);
+    await data.update({updates,modified_by: userId,});
 
     return reply.status(200).send({
       status_code: 200,
@@ -229,6 +256,19 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
 
 export async function deleteQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const traceId=generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params as { id: string };
     const qualificationType = await qualificationTypeModel.findByPk(id);
@@ -236,6 +276,7 @@ export async function deleteQualificationTypes(request: FastifyRequest, reply: F
       await qualificationType.update({
         is_enabled: false,
         is_deleted: true,
+        modified_by: userId,
       })
       reply.status(200).send({
         status_code: 200,

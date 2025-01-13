@@ -221,7 +221,11 @@ ProgramVendor.init(
             type: DataTypes.STRING,
             allowNull: true,
             defaultValue: "0"
-        }
+        },
+        is_job_auto_opt_in: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+        },
     },
     {
         sequelize,

@@ -1,6 +1,6 @@
 import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateRateTypeData } from "../interfaces/rate-type-interface";
+import { CreateRateTypeData} from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
@@ -17,19 +17,19 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ satus_code:401,message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ satus_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({satus_code:401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ satus_code: 401, message: 'Unauthorized - Invalid token' });
   }
 
   logger(
     {
-      trace_id:traceId,
+      trace_id: traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -55,7 +55,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     if (existingRateTypeWithSameName) {
       logger(
         {
-          trace_id:traceId,
+          trace_id: traceId,
           actor: {
             user_name: user?.preferred_username,
             user_id: user?.sub,
@@ -76,7 +76,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       return reply.status(400).send({
         status_code: 400,
         message: "A rate type with this name already exists.",
-        trace_id:traceId,
+        trace_id: traceId,
       });
     }
 
@@ -92,7 +92,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       if (existingRateTypeWithSameBaseDifferential) {
         logger(
           {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -113,7 +113,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
         return reply.status(400).send({
           status_code: 400,
           message: "A rate type with the same base differential already exists.",
-          trace_id:traceId,
+          trace_id: traceId,
         });
       }
     }
@@ -127,7 +127,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -149,16 +149,16 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       status_code: 201,
       id: item.id,
       message: "Rate Type created successfully.",
-      trace_id:traceId,
+      trace_id: traceId,
     });
   } catch (error: any) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
-      return reply.status(400).send({ satus_code:400,trace_id: traceId, message: `${field} already in use!` });
+      return reply.status(400).send({ satus_code: 400, trace_id: traceId, message: `${field} already in use!` });
     }
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -179,7 +179,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
-      trace_id:traceId,
+      trace_id: traceId,
       error: error
     });
   }
@@ -204,11 +204,11 @@ export async function getAllRateType(request: FastifyRequest<{
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page = "1", limit = "10" } = request.query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
   try {
-    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page, limit });
+    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
 
     if (rateType.length === 0) {
@@ -246,7 +246,7 @@ export async function getAllRateType(request: FastifyRequest<{
 }
 
 function getQueryParams(query: any) {
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type,rate_type_category_label, page = "1", limit = "10" } = query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = query;
 
   const hasName = !!name;
   const hasId = !!id;
@@ -264,12 +264,12 @@ function getQueryParams(query: any) {
   const pageSize = parseInt(limit, 10);
   const offset = (pageNumber - 1) * pageSize;
 
-  return { id, name, differential_on, rate_type_category, shift_type,rateTypeCategoryLabels, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, startDate, endDate, pageNumber, pageSize, offset };
+  return { id, name, differential_on, rate_type_category, shift_type, rateTypeCategoryLabels, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, startDate, endDate, pageNumber, pageSize, offset };
 }
 
 function parseBoolean(value: any): number | undefined {
   if (typeof value === "string") {
-    return value === "true" ? 1 : 0;
+    return value.toLowerCase() === "true" ? 1 : value.toLowerCase() === "false" ? 0 : undefined;
   }
   if (typeof value === "boolean") {
     return value ? 1 : 0;
@@ -291,7 +291,21 @@ function parseDateRange(dateRange: string): { startDate?: number, endDate?: numb
 
 async function fetchRateTypes(queryParams: any, program_id: string) {
   return await sequelize.query<{ total_records: any }>(
-    getAllRateTypes(queryParams.hasName, queryParams.hasId, !!queryParams.isEnabledValue, !!queryParams.isShiftRateValue, !!queryParams.isBaseRate, queryParams.hasDifferentialOn, queryParams.hasRateTypeCategory, queryParams.hasShiftType, queryParams.rateTypeCategoryLabels.length > 0, queryParams.startDate, queryParams.endDate, queryParams.pageSize, queryParams.offset),
+    getAllRateTypes(
+      queryParams.hasName, 
+      queryParams.hasId,
+      queryParams.isEnabledValue !== undefined,
+      queryParams.isShiftRateValue !== undefined,
+      queryParams.isBaseRate !== undefined,
+      queryParams.hasDifferentialOn,
+      queryParams.hasRateTypeCategory,
+      queryParams.hasShiftType,
+      queryParams.rateTypeCategoryLabels.length > 0,
+      queryParams.startDate,
+      queryParams.endDate,
+      queryParams.pageSize,
+      queryParams.offset
+    ),
     {
       replacements: {
         program_id,
@@ -323,7 +337,7 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
   if (!id || !program_id) {
     return reply.status(400).send({
       status_code: 400,
-      trace_id:traceId,
+      trace_id: traceId,
       message: "Invalid parameters"
     });
   }
@@ -357,7 +371,7 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
 
     return reply.status(200).send({
       status_code: 200,
-      message:"Get Ratetype succesfully",
+      message: "Get Ratetype succesfully",
       rate_type: rateTypeRecord,
       trace_id: traceId,
     });
@@ -374,8 +388,19 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
 export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as CreateRateTypeData;
-  const { name } = request.body as CreateRateTypeData;
   const traceId = generateCustomUUID();
+  let { name } = request.body as { name: string }
+  name = name.trim();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const existingRateTypeWithSameName = await rateType.findOne({
       where: {
@@ -406,9 +431,13 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
         trace_id: traceId,
       });
     }
-    const updatedCount: any = await rateType.update(updates, {
-      where: { id: id }
-    });
+    const updatedCount: any = await rateType.update({
+      updates,
+      modified_on: Date.now(),
+      modified_by: userId,
+    },
+      { where: { id: id } }
+    );
     reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
@@ -428,12 +457,26 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
 export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   const { id } = request.params;
   const traceId = generateCustomUUID();
+  let { name } = request.body as { name: string };
+  name = name.trim();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const rateTypes = await rateType.findByPk(id);
     if (rateTypes) {
       await rateTypes.update({
         is_enabled: false,
         is_deleted: true,
+        modified_on: Date.now(),
+        modified_by: userId,
       })
       reply.status(204).send({
         status_code: 204,
@@ -492,7 +535,7 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
     if (is_shift_rate === "false") {
       return reply.status(200).send({
         status_code: 200,
-        message:"RateType get successfully",
+        message: "RateType get successfully",
         trace_id: traceId,
         differential_on: {
           standard
@@ -502,7 +545,7 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
 
     return reply.status(200).send({
       status_code: 200,
-      message:"Rate type get successfully",
+      message: "Rate type get successfully",
       trace_id: traceId,
       differential_on: {
         standard,

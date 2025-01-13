@@ -7,7 +7,8 @@ import shiftConfigurationHierarchies from "../models/shift-configuration-hierarc
 import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
-import shiftTypeConfiguration from "../models/shiftTypeConfigurationModel";
+import shiftTypeConfiguration from "../models/shift-type-configuration.model";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export const getAllshiftConfiguration = async (
   request: FastifyRequest<{
@@ -270,6 +271,16 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
 export async function createShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const shiftTypeData = request.body as ShiftConfigurationAttributes;
     const { hierarchy_ids, shift_type_ids, name, ...rest } = shiftTypeData;
@@ -285,7 +296,8 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
         message: `Shift configuration with the name ${name} already exists`,
       });
     }
-    const shiftType = await ShiftConfiguration.create({ name, ...rest }, { transaction });
+    const shiftType = await ShiftConfiguration.create({ name, ...rest ,created_by: userId,
+      modified_by: userId,}, { transaction });
 
     if (Array.isArray(hierarchy_ids)) {
       const hierarchyPromises = hierarchy_ids.map((hierarchy_id: any) => {
@@ -330,7 +342,16 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
   const shiftTypeData = request.body as ShiftConfigurationAttributes;
   const { hierarchy_ids, shift_type_ids, ...rest } = shiftTypeData;
   const traceId = generateCustomUUID();
-
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const shiftType = await ShiftConfiguration.findOne({
       where: {
@@ -365,7 +386,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       });
     }
 
-    await shiftType.update(rest);
+    await shiftType.update(rest,{where:{modified_by: userId}});
 
     if (Array.isArray(hierarchy_ids)) {
       const existingHierarchies = await shiftConfigurationHierarchies.findAll({
@@ -442,6 +463,16 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
 export async function deleteShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const shiftConfiguration = await ShiftConfiguration.findOne({
       where: {
@@ -451,7 +482,7 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
       },
     });
     if (shiftConfiguration) {
-      await shiftConfiguration.update({ is_deleted: true, is_enabled: false });
+      await shiftConfiguration.update({ is_deleted: true, is_enabled: false ,modified_by: userId});
       reply.status(200).send({
         status_code: 200,
         trace_id:traceId,

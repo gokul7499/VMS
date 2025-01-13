@@ -301,147 +301,158 @@ class JobTempletRepository {
         job_templates.created_on DESC
       LIMIT :limit OFFSET :offset;
     `;
-  
+
     return sequelize.query(query, {
       replacements: { ...replacements, limit, offset },
       type: QueryTypes.SELECT,
     });
   }
-  
+
 
   async getJobTempletById(program_id: string, id: string) {
     const query = `
-   SELECT 
-    job_templates.*,
-    JSON_OBJECT(
-        'id', job_category.id,
-        'title', job_category.title
-    ) AS job_category,
-    JSON_OBJECT(
-        'id', labour_category.id,
-        'name', labour_category.name
-    ) AS industries,
-    COALESCE(( 
-        SELECT JSON_ARRAYAGG(
+        SELECT 
+            job_templates.*,
             JSON_OBJECT(
-                'id', hierarchies.id,
-                'name', hierarchies.name
-            )
-        )
-        FROM job_template_hierarchies
-        JOIN hierarchies ON job_template_hierarchies.hierarchy = hierarchies.id
-        WHERE job_template_hierarchies.job_temp_id = job_templates.id
-    ), JSON_ARRAY()) AS hierarchies,
-    JSON_OBJECT(
-        'id', primary_hierarchy.id,
-        'name', primary_hierarchy.name
-    ) AS primary_hierarchy, -- Added for primary hierarchy
-    COALESCE(( 
-        SELECT JSON_ARRAYAGG(
+                'id', job_category.id,
+                'title', job_category.title
+            ) AS job_category,
             JSON_OBJECT(
-                'custom_field_id', job_template_custom_field.custom_field_id,
-                'value', job_template_custom_field.value
-            )
-        )
-        FROM job_template_custom_field
-        WHERE job_template_custom_field.job_temp_id = job_templates.id
-    ), JSON_ARRAY()) AS job_template_custom_fields,
-    COALESCE(( 
-        SELECT JSON_ARRAYAGG(
+              'id',checklist.entity_id,
+              'name',checklist.name
+          )AS checklist_entity_id	,
             JSON_OBJECT(
-                'qualification_type_id', qualification_types.id,
-                'name', qualification_types.name,
-                'code', qualification_types.code,
-                'is_required', job_template_qualification.is_required,
-                'qualifications', COALESCE(
-                    (
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'qualification_id', q.id,
-                                'name', q.name,
-                                'is_locked', jq.is_locked,
-                                'is_required', jq.is_required,
-                                'level', jq.level
-                            )
-                        )
-                        FROM qualifications q
-                        JOIN JSON_TABLE(
-                            CASE
-                                WHEN JSON_VALID(job_template_qualification.qualifications) THEN job_template_qualification.qualifications
-                                ELSE '[]'
-                            END,
-                            '$[*]' COLUMNS(
-                                qualification_id CHAR(36) PATH '$.qualification_id',
-                                is_locked BOOLEAN PATH '$.is_locked',
-                                is_required BOOLEAN PATH '$.is_required',
-                                level JSON PATH '$.level'
-                            )
-                        ) AS jq ON q.id = jq.qualification_id
-                    ),
-                    JSON_ARRAY()
+                'id', labour_category.id,
+                'name', labour_category.name
+            ) AS industries,
+            COALESCE(( 
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', hierarchies.id,
+                        'name', hierarchies.name
+                    )
                 )
-            )
-        )
-        FROM job_template_qualification
-        LEFT JOIN qualification_types ON job_template_qualification.qualification_type_id = qualification_types.id
-        WHERE job_template_qualification.job_temp_id = job_templates.id
-        AND job_template_qualification.qualification_type_id IS NOT NULL
-    ), JSON_ARRAY()) AS job_template_qualifications,
-      COALESCE((
-        SELECT JSON_ARRAYAGG(
+                FROM job_template_hierarchies
+                JOIN hierarchies ON job_template_hierarchies.hierarchy = hierarchies.id
+                WHERE job_template_hierarchies.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS hierarchies,
             JSON_OBJECT(
-                'id', job_template_rate_type.id,
-                'abbreviation', job_template_rate_type.abbreviation,
-                'billable', job_template_rate_type.billable,
-                'name', job_template_rate_type.name,
-                'bill_rate', job_template_rate_type.bill_rate,
-                'pay_rate', job_template_rate_type.pay_rate
-            )
-        )
-        FROM job_template_rate_type
-        JOIN rate_type ON job_template_rate_type.rate_type_id = rate_type.id
-        WHERE job_template_rate_type.job_temp_id = job_templates.id
-    ), JSON_ARRAY()) AS job_template_rate_types,
-    COALESCE((
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', job_template_dist_schedules.id,
-                'dist_shedule_id', job_template_dist_schedules.dist_shedule_id,
-                'schedule_value', job_template_dist_schedules.schedule_value,
-                'schedule_unit', job_template_dist_schedules.schedule_unit,
-                'vendors', job_template_dist_schedules.vendors
-            )
-        )
-        FROM job_template_dist_schedules
-        WHERE job_template_dist_schedules.job_temp_id = job_templates.id
-    ), JSON_ARRAY()) AS job_template_distribution_schedules,
-    COALESCE((
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', job_template_master_data.id,
-                'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
-                'foundation_data_type_name', master_data_type.name,
-                'foundation_data_id', JSON_EXTRACT(job_template_master_data.foundation_data_id, '$'),
-                'is_read_only', job_template_master_data.is_read_only
-            )
-        )
-        FROM job_template_master_data
-        LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
-        WHERE job_template_master_data.job_temp_id = job_templates.id
-    ), JSON_ARRAY()) AS job_master_data
-FROM 
-    job_templates
-LEFT JOIN 
-    job_category ON job_templates.category = job_category.id
-LEFT JOIN 
-    labour_category ON job_templates.labour_category = labour_category.id
-LEFT JOIN 
-    hierarchies AS primary_hierarchy ON job_templates.primary_hierarchy = primary_hierarchy.id -- Join to fetch primary hierarchy details
-WHERE 
-    job_templates.program_id = :program_id
-    AND job_templates.id = :id
-GROUP BY
-    job_templates.id;
+                'id', primary_hierarchy.id,
+                'name', primary_hierarchy.name
+            ) AS primary_hierarchy,
+            COALESCE(( 
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'custom_field_id', job_template_custom_field.custom_field_id,
+                        'value', job_template_custom_field.value
+                    )
+                )
+                FROM job_template_custom_field
+                WHERE job_template_custom_field.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS job_template_custom_fields,
+            COALESCE(( 
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'qualification_type_id', qualification_types.id,
+                        'name', qualification_types.name,
+                        'code', qualification_types.code,
+                        'is_required', job_template_qualification.is_required = 1,
+                        'qualifications', COALESCE((
+                            SELECT JSON_ARRAYAGG(
+                                JSON_OBJECT(
+                                    'qualification_id', qualifications.id,
+                                    'name', qualifications.name,
+                                    'code', qualification_types.code,
+                                    'is_locked', jq.is_locked,
+                                    'is_required', jq.is_required,
+                                    'level', jq.level
+                                )
+                            )
+                            FROM qualifications
+                            JOIN JSON_TABLE(
+                                CASE
+                                    WHEN JSON_VALID(job_template_qualification.qualifications) THEN job_template_qualification.qualifications
+                                    ELSE '[]'
+                                END,
+                                '$[*]' COLUMNS(
+                                    qualification_id CHAR(36) PATH '$.qualification_id',
+                                    is_locked BOOLEAN PATH '$.is_locked',
+                                    is_required BOOLEAN PATH '$.is_required',
+                                    level JSON PATH '$.level'
+                                )
+                            ) AS jq ON qualifications.id = jq.qualification_id
+                        ), JSON_ARRAY())
+                    )
+                )
+                FROM job_template_qualification
+                LEFT JOIN qualification_types ON job_template_qualification.qualification_type_id = qualification_types.id
+                WHERE job_template_qualification.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS job_template_qualifications,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', job_template_rate_type.id,
+                        'abbreviation', job_template_rate_type.abbreviation,
+                        'billable', job_template_rate_type.billable,
+                        'name', job_template_rate_type.name,
+                        'bill_rate', job_template_rate_type.bill_rate,
+                        'pay_rate', job_template_rate_type.pay_rate
+                    )
+                )
+                FROM job_template_rate_type
+                JOIN rate_type ON job_template_rate_type.rate_type_id = rate_type.id
+                WHERE job_template_rate_type.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS job_template_rate_types,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', job_template_dist_schedules.id,
+                        'dist_shedule_id', job_template_dist_schedules.dist_shedule_id,
+                        'schedule_value', job_template_dist_schedules.schedule_value,
+                        'schedule_unit', job_template_dist_schedules.schedule_unit,
+                        'vendors', job_template_dist_schedules.vendors
+                    )
+                )
+                FROM job_template_dist_schedules
+                WHERE job_template_dist_schedules.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS job_template_distribution_schedules,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', job_template_master_data.id,
+                        'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
+                        'foundation_data_type_name', master_data_type.name,
+                        'foundation_data_id', JSON_EXTRACT(job_template_master_data.foundation_data_id, '$'),
+                        'is_read_only', job_template_master_data.is_read_only
+                    )
+                )
+                FROM job_template_master_data
+                LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
+                WHERE job_template_master_data.job_temp_id = job_templates.id
+            ), JSON_ARRAY()) AS job_master_data
+        FROM 
+            job_templates
+        LEFT JOIN 
+            job_category ON job_templates.category = job_category.id
+        LEFT JOIN 
+            labour_category ON job_templates.labour_category = labour_category.id
+        LEFT JOIN 
+            hierarchies AS primary_hierarchy ON job_templates.primary_hierarchy = primary_hierarchy.id
+        LEFT join checklist on job_templates.checklist_entity_id =checklist.entity_id
+        WHERE 
+            job_templates.program_id = :program_id
+            AND job_templates.id = :id
+        GROUP BY
+    job_templates.id,
+    job_category.id,
+    job_category.title,
+    checklist.entity_id,
+    checklist.name,
+    labour_category.id,
+    labour_category.name,
+    primary_hierarchy.id,
+    primary_hierarchy.name;
+
     `;
     const jobTemplate = await sequelize.query(query, {
       replacements: { program_id, id },
@@ -449,6 +460,7 @@ GROUP BY
     });
     return jobTemplate;
   }
+
 
 
   async managerQuery(job_manager_id: string) {

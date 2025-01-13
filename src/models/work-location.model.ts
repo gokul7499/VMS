@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import { beforeSave } from "../hooks/timeFormatHook";
-import WorkLocationCurrency from "./workLocationCurrency.model";
+import WorkLocationCurrency from "./work-location-currency.model";
 import CountryModel from "./countries.model";
 
 class WorkLocationModel extends Model {

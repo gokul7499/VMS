@@ -6,6 +6,7 @@ import { ShiftTypeAttributes } from "../interfaces/shift-type.interface";
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
 import { getShiftTypesByHierarchiesQuery } from "../utility/queries";
+import { decodeToken } from "../middlewares/verifyToken";
 
 
 
@@ -57,6 +58,16 @@ export async function createShiftType(
     reply: FastifyReply,
 ) {
     const traceId=generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const shiftType = request.body as ShiftTypeAttributes;
         const existingShiftType = await ShiftTypeModel.findOne({
@@ -69,7 +80,8 @@ export async function createShiftType(
                 trace_id: traceId,
             });
         }
-        const state_data: any = await ShiftTypeModel.create({ ...shiftType });
+        const state_data: any = await ShiftTypeModel.create({ ...shiftType ,created_by: userId,
+            modified_by: userId,});
         reply.status(201).send({
             status_code: 201,
             message: "shift type created succesfully",
@@ -90,6 +102,16 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
     const { id, program_id } = request.params as { id: string, program_id: string };
     const shiftTypeData = request.body as ShiftTypeAttributes;
     const traceId=generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const shiftType = await ShiftTypeModel.findOne({
             where: {
@@ -115,7 +137,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
                 });
             }
             console.log("existingShiftTypeWithSameName", existingShiftTypeWithSameName)
-            await shiftType.update(shiftTypeData);
+            await shiftType.update(shiftTypeData,{where:{modified_by: userId}});
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -141,6 +163,16 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
 export async function deleteShiftType(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const traceId=generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const shiftType = await ShiftTypeModel.findOne({
             where: {
@@ -150,7 +182,7 @@ export async function deleteShiftType(request: FastifyRequest, reply: FastifyRep
             },
         });
         if (shiftType) {
-            await shiftType.update({ is_deleted: true });
+            await shiftType.update({ is_deleted: true ,modified_by: userId});
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,

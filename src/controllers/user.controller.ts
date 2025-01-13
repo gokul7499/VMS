@@ -8,16 +8,13 @@ import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
-import TimeZone from "../models/time-zone.model";
-import Language from "../models/language.model";
-import Tenant from "../models/tenant.model";
-import CountryModel from "../models/countries.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getMasterData, getWorkLocationTimeZoneByUserId } from "../utility/queries";
+import { getMasterData, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
-import UserMasterDataModel from "../models/userMasterDataModel";
+import UserMasterDataModel from "../models/user-master-data.model";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -93,39 +90,28 @@ export async function getUserHierarchiesByProgram(
     const associateHierarchyIds = user.associate_hierarchy_ids ?? [];
     const workLocationIds = user.work_location_ids ?? [];
 
-    const [hierarchiesData, workLocationsData, defaultWorkLocation] = await Promise.all([
-      associateHierarchyIds.length
-        ? hierarchies.findAll({
-          where: { id: associateHierarchyIds },
-          attributes: ['id', 'name', 'parent_hierarchy_id'],
-        })
-        : [],
-      workLocationIds.length
-        ? WorkLocationModel.findAll({
-          where: { id: workLocationIds },
-          attributes: ['id', 'name'],
-        })
-        : [],
-      user.default_work_location_id
-        ? WorkLocationModel.findByPk(user.default_work_location_id, {
-          attributes: ['id', 'name'],
-        })
-        : null,
-    ]);
+    const hierarchiesData = associateHierarchyIds.length
+      ? await hierarchies.findAll({
+        where: { id: associateHierarchyIds },
+        attributes: ['id', 'name'],
+      })
+      : [];
 
-    const buildHierarchyTree = (items: any, parentId = null) => {
-      return items
-        .filter((item: { parent_hierarchy_id: null; }) => item.parent_hierarchy_id === parentId)
-        .map((item: { id: null | undefined; name: any; }) => ({
-          id: item.id,
-          name: item.name,
-          hierarchies: buildHierarchyTree(items, item.id),
-        }));
-    };
+    const workLocationsData = workLocationIds.length
+      ? await WorkLocationModel.findAll({
+        where: { id: workLocationIds },
+        attributes: ['id', 'name'],
+      })
+      : [];
 
-    const hierarchyTree = buildHierarchyTree(hierarchiesData);
-    const is_all_hierarchy_associate = hierarchiesData.length === 0;
-    const is_all_work_location_associate = workLocationsData.length === 0;
+    const defaultWorkLocation = user.default_work_location_id
+      ? await WorkLocationModel.findByPk(user.default_work_location_id, {
+        attributes: ['id', 'name'],
+      })
+      : null;
+
+    const is_all_hierarchy_associate = hierarchiesData.length > 0 ? false : true;
+    const is_all_work_location_associate = workLocationsData.length > 0 ? false : true;
 
     return reply.status(200).send({
       status_code: 200,
@@ -134,9 +120,12 @@ export async function getUserHierarchiesByProgram(
         user_id,
         program_id,
         is_all_hierarchy_associate,
-        hierarchies: hierarchyTree,
+        hierarchies: hierarchiesData.map((hierarchy) => ({
+          id: hierarchy.id,
+          name: hierarchy.name,
+        })),
         is_all_work_location_associate,
-        work_locations: workLocationsData.map(location => ({
+        work_locations: workLocationsData.map((location) => ({
           id: location.id,
           name: location.name,
         })),
@@ -146,10 +135,10 @@ export async function getUserHierarchiesByProgram(
         : null,
       trace_id: traceId,
     });
-  } catch (error: any) {
+  } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      message: error.message,
+      message: (error as any).message,
       trace_id: traceId,
     });
   }
@@ -158,6 +147,19 @@ export async function getUserHierarchiesByProgram(
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
 
   try {
     const { user, user_group_mapping } = request.body as {
@@ -197,24 +199,24 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type : user_group_mapping.user_type;
 
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...user, user_type: userType }, { transaction });
+      newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
       const candidateId = await generateCandidateCode(program_id);
-      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId }, { transaction });
+      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId,created_by: userId,modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_type: userType }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
         const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName }, { transaction });
+        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName,created_by: userId,modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...user, user_type: userType }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...user, user_type: userType }, { transaction });
+      newUser = await User.create({ ...user, user_type: userType ,created_by: userId,modified_by: userId,}, { transaction });
     }
 
     const foundationalData = user.foundational_data;
@@ -230,6 +232,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
                 foundation_data_ids: masterData.foundation_data_ids,
                 default_master_data: masterData.default_master_data,
                 is_associated: masterData.is_associated || false,
+                created_by: userId,
+                modified_by: userId,
               },
               { transaction }
             );
@@ -241,10 +245,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping }, { transaction });
+        await UserMapping.create({ ...mapping,created_by: userId,modified_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping }, { transaction });
+      await UserMapping.create({ ...user_group_mapping,created_by: userId,modified_by: userId, }, { transaction });
     }
 
     await transaction.commit();
@@ -279,6 +283,19 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const user = await User.findOne({
       where: { id, program_id }
@@ -292,7 +309,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user: []
       });
     }
-    await user.update(updates);
+    await user.update({updates,modified_by: userId,});
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
 
@@ -336,6 +353,19 @@ export async function deleteUser(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params;
     const numRowsDeleted = await User.destroy({ where: { id } });
@@ -363,101 +393,43 @@ export async function deleteUser(
 }
 
 export async function getAllUserIDAndUserId(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string,page?:string,limit?:string } }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email } = request.query;
+  const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email, page = '1', limit = '10' } = request.query;
   const traceId = generateCustomUUID();
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
+
   try {
-    const whereClause: any = {
-      is_deleted: false,
-      program_id,
-    };
+    
+    // Fetch Users Data
+    const users = await sequelize.query(userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id), {
+      replacements: { program_id, user_id, user_type, is_activated: isActivatedStr === 'true', role_id, tenant_id, email, first_name, limit: parseInt(limit), offset },
+      type: QueryTypes.SELECT
+    }) as any[];
 
-    if (user_type) whereClause.user_type = user_type;
-    if (user_id) whereClause.id = user_id;
-    if (typeof is_activated === 'string') whereClause.is_activated = is_activated === 'true';
-    if (role_id) whereClause.role_id = role_id;
-    if (tenant_id) whereClause.tenant_id = tenant_id;
-    if (email) whereClause.email = email;
-    if (first_name) whereClause.first_name = first_name;
-
-    const attributes = info_level === "detail" ? undefined : [
-      "id", "name_prefix", "first_name", "middle_name", "last_name", "username",
-      "name_suffix", "program_id", "email", "avatar", "country_id",
-      "tenant_id", "language_id", "time_zone_id",
-      "is_enabled", "is_activated", "is_deleted",
-      "associate_hierarchy_ids", "work_location_ids",
-      "default_hierarchy_id", "default_work_location_id", "user_type", "is_associated"
-    ];
-
-    const users = await User.findAll({
-      where: whereClause,
-      attributes,
-      order: [['created_on', 'DESC']],
-    });
-
-    const masterDataDetails = await Promise.all(users.map(async user => {
-      const masterDataResult = await sequelize.query(getMasterData, {
+    // Fetch Master Data for Each User
+    for (const user of users) {
+      const masterData = await sequelize.query(getMasterData, {
         replacements: { id: user.id },
-        type: QueryTypes.SELECT,
+        type: QueryTypes.SELECT
       });
-      return {
-        user_id: user.id,
-        master_data: masterDataResult,
-      };
-    }));
+      user.foundational_data = masterData;
+    }
 
-    const hierarchyIds = users.flatMap(user => user.associate_hierarchy_ids || []);
-    const workLocationIds = users.flatMap(user => user.work_location_ids || []);
-    const defaultHierarchyIds = users.flatMap(user => user.default_hierarchy_id ? [user.default_hierarchy_id] : []);
-    const defaultWorkLocationIds = users.flatMap(user => user.default_work_location_id ? [user.default_work_location_id] : []);
-    const countryIds = users.flatMap(user => user.country_id ? [user.country_id] : []);
-    const tenantIds = users.flatMap(user => user.tenant_id ? [user.tenant_id] : []);
-    const timeZoneIds = users.flatMap(user => user.time_zone_id ? [user.time_zone_id] : []);
-
-    const [hierarchiesData, workLocationsData, defaultHierarchiesData, defaultWorkLocationsData, countriesData, tenantsData, timeZonesData] = await Promise.all([
-      hierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
-      workLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: workLocationIds }, attributes: ['id', 'name'] }) : [],
-      defaultHierarchyIds.length > 0 ? hierarchies.findAll({ where: { id: defaultHierarchyIds }, attributes: ['id', 'name'] }) : [],
-      defaultWorkLocationIds.length > 0 ? WorkLocationModel.findAll({ where: { id: defaultWorkLocationIds }, attributes: ['id', 'name'] }) : [],
-      countryIds.length > 0 ? CountryModel.findAll({ where: { id: countryIds }, attributes: ['id', 'name'] }) : [],
-      tenantIds.length > 0 ? Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name'] }) : [],
-      timeZoneIds.length > 0 ? TimeZone.findAll({ where: { id: timeZoneIds }, attributes: ['id', 'name'] }) : [],
-    ]);
-
-    const enrichedUsers = users.map(user => {
-      const userHierarchies = hierarchiesData.filter(hierarchy => user.associate_hierarchy_ids?.includes(hierarchy.id));
-      const userWorkLocations = workLocationsData.filter(location => user.work_location_ids?.includes(location.id));
-      const defaultHierarchy = defaultHierarchiesData.find(hierarchy => hierarchy.id === user.default_hierarchy_id);
-      const defaultWorkLocation = defaultWorkLocationsData.find(location => location.id === user.default_work_location_id);
-      const country = countriesData.find(country => country.id === user.country_id);
-      const tenant = tenantsData.find(tenant => tenant.id === user.tenant_id);
-      const timeZone = timeZonesData.find(timeZone => timeZone.id === user.time_zone_id);
-      const userMasterData = masterDataDetails.find(data => data.user_id === user.id)?.master_data || [];
-
-      return {
-        ...user.toJSON(),
-        associate_hierarchy_ids: userHierarchies.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
-        work_location_ids: userWorkLocations.map(location => ({ id: location.id, name: location.name })),
-        default_hierarchy_id: defaultHierarchy ? { id: defaultHierarchy.id, name: defaultHierarchy.name } : null,
-        default_work_location_id: defaultWorkLocation ? { id: defaultWorkLocation.id, name: defaultWorkLocation.name } : null,
-        country_id: country ? { id: country.id, name: country.name } : null,
-        tenant_id: tenant ? { id: tenant.id, name: tenant.name } : null,
-        time_zone_id: timeZone ? { id: timeZone.id, name: timeZone.name } : null,
-        foundational_data: userMasterData,
-      };
-    });
-
-    const totalCount = await User.count({ where: whereClause });
+    const total_count = users.length > 0 ? users[0].total_count : 0;
 
     reply.status(200).send({
       status_code: 200,
-      message: " Users fetched successfully",
+      message: "Users fetched successfully!",
       trace_id: traceId,
-      users: enrichedUsers,
-      total_count: totalCount,
+      users,
+      total_count,
+      page: parseInt(page),
+      limit: parseInt(limit)
     });
   } catch (error: any) {
     console.log("Error:", error.stack);
@@ -470,7 +442,7 @@ export async function getAllUserIDAndUserId(
     });
   }
 }
-
+ 
 export async function searchUser(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'program_id', 'first_name'];
   const responseFields = ['id', 'program_id', 'country_id', 'title', 'name_prefix', 'middle_name', 'is_enabled', 'addresses', 'contacts', 'name_suffix', 'email', 'created_on', 'modified_on', 'created_by', 'modified_by', 'is_deleted', 'ref_id'];

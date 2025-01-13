@@ -3,6 +3,7 @@ import ProgramsConfig from "../models/programs-config.model";
 import { ProgramConfigAttributes } from "../interfaces/program-config.interface";
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from "sequelize";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export const getConfigurations = async (
   request: FastifyRequest,
@@ -36,7 +37,7 @@ export const getConfigurationById = async (
       trace_id: traceId,
     });
   } else {
-    reply.status(200).send({ status_code: 200,message: "Configuration Not Found", programsConfig: [] });
+    reply.status(200).send({ status_code: 200, message: "Configuration Not Found", programsConfig: [] });
   }
 };
 
@@ -47,6 +48,20 @@ export const createConfiguration = async (
   const traceId = generateCustomUUID();
   const configData = request.body as Partial<ProgramConfigAttributes>;
   const newConfiguration = await ProgramsConfig.create(configData);
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
+  configData.created_by = userId;
+  configData.modified_by = userId;
+
+
   reply.status(200).send({
     status_code: 200,
     message: "program configuration created successfully",
@@ -60,6 +75,16 @@ export const updateConfiguration = async (
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const { program_id } = request.params as { program_id: string };
     const configs = request.body as Array<Partial<ProgramConfigAttributes & { id: string; value: any }>>;
@@ -77,10 +102,10 @@ export const updateConfiguration = async (
       });
 
       if (configuration) {
-        await configuration.update({ value, child_config });
+        await configuration.update({ value, child_config, modified_by: userId, });
         updatedConfigurations.push(configuration);
       } else {
-        return reply.status(200).send({ status_code: 200,message: `Configuration With ID ${id} Not Found` });
+        return reply.status(200).send({ status_code: 200, message: `Configuration With ID ${id} Not Found` });
       }
     }
 
@@ -92,10 +117,10 @@ export const updateConfiguration = async (
     });
   } catch (error) {
     reply.status(500).send({
-        stutus_code: 500,
-        message: "Failed to update the configurations", error,
-        trace_id: traceId,
-      });
+      stutus_code: 500,
+      message: "Failed to update the configurations", error,
+      trace_id: traceId,
+    });
   }
 };
 
@@ -104,15 +129,27 @@ export const deleteConfiguration = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params as { id: string };
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   const configuration = await ProgramsConfig.findByPk(id);
   if (configuration) {
+  
+    
     await configuration.destroy();
     reply.status(204).send({
-      status_code:204,
-      message:"Configuration delete successfully",
+      status_code: 204,
+      message: "Configuration delete successfully",
     });
   } else {
-    reply.status(200).send({ status_code: 200,message: "Configuration Not Found" });
+    reply.status(200).send({ status_code: 200, message: "Configuration Not Found" });
   }
 };
 
@@ -215,15 +252,19 @@ export async function getConfigByProgramIdAndTitles(
 }
 
 export const getTransformedConfig = async (
-  request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string; id: string }, Querystring: { config_model?: string, key?: string } }>,
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { config_model, key } = request.query as { config_model?: string, key?: string };
+  const { config_model, key } = request.query;
 
   try {
+    const whereClause: Record<string, any> = { program_id };
+    if (config_model) whereClause.config_model = config_model;
+    if (key) whereClause.key = key;
+
     const configuration = await ProgramsConfig.findOne({
-      where: { program_id, config_model, key },
+      where: whereClause,
     });
 
     if (!configuration) {
@@ -255,29 +296,33 @@ function transformConfiguration(config: any) {
   const transformed: any = {
     id: config.id,
   };
-  config.value?.forEach((entry: any) => {
-    const scope = entry.title.toLowerCase().replace(" ", "_");
-    entry.fields?.forEach((field: any) => {
-      if (field.type === "group") {
-        const key = field.label
-          .toLowerCase()
-          .replace(/[^a-zA-Z0-9]+/g, "_")
-          .replace(/(^_|_$)/g, "");
-        transformed[`${key}`] = {
-          name: field.label,
-          scale: getScaleValue(field.fields, "Scaling Limit"),
-          threshold: getScaleValue(field.fields, "Scaling Threshold"),
-          precision_type: getFieldValue(field.fields, "Scaling Type"),
-          scope: scope,
-        };
+
+  if (Array.isArray(config.value)) {
+    config.value.forEach((entry: any) => {
+      const scope = entry.title.toLowerCase().replace(" ", "_");
+      if (Array.isArray(entry.fields)) {
+        entry.fields.forEach((field: any) => {
+          if (field.type === "group") {
+            const key = field.label
+              .toLowerCase()
+              .replace(/[^a-zA-Z0-9]+/g, "_")
+              .replace(/(^_|_$)/g, "");
+            transformed[`${key}`] = {
+              name: field.label,
+              scale: getScaleValue(field.fields, "Scaling Limit"),
+              threshold: getScaleValue(field.fields, "Scaling Threshold"),
+              precision_type: getFieldValue(field.fields, "Scaling Type"),
+              scope: scope,
+            };
+          }
+        });
       }
     });
-  });
+  }
 
   return transformed;
 }
 
-// Utility functions to extract field data
 function getScaleValue(fields: any[], label: string) {
   return fields.find((field: any) => field.label === label)?.value || 1; // Default to 1 if not found
 }

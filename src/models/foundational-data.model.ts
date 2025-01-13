@@ -89,7 +89,7 @@ FoundationalData.init({
     },
     is_billable:{
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: true,
     }
 }, {
     sequelize,

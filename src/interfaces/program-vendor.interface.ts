@@ -72,6 +72,8 @@ export interface programVendorInterface {
     compliance_status: any;
     job: string;
     candidate: string;
+    is_job_auto_opt_in: boolean;
+    
 }
 
 export interface programVendorQueryInterface {
