@@ -427,6 +427,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
 
             for (const user of mspUserData) {
+                const payload = {
+                    fullName: user.first_name,
+                    job_id: updates[0].job_id,
+                };
                 if (user.email) {
                     const notificationPayload = {
                         program_id,
