@@ -181,6 +181,14 @@ Candidate.init(
         modified_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        modified_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         }
     },
     {
