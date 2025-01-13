@@ -2,22 +2,35 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import GlobalConfigModel from '../models/global-config.model';
 import GlobalConfigInterface from '../interfaces/global-config.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
+import { decodeToken } from '../middlewares/verifyToken';
 
 
 export async function createGlobalConfig(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const industries = request.body as GlobalConfigInterface;
     const item: any = await GlobalConfigModel.create({ ...industries });
     reply.status(201).send({
       status_code: 201,
-      message:"Global config created successfully",
+      message: "Global config created successfully",
+      created_by: userId,
+      modified_by: userId,
       data: item?.id,
       trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: 'An error occurred while creating',
       error
     });
@@ -44,11 +57,11 @@ export async function getGlobalConfig(
       offset: offset,
     });
     if (flags.length === 0) {
-      return reply.status(200).send({ status_code:200,message: "GlobalConfig not found", globalConfigs: [] });
+      return reply.status(200).send({ status_code: 200, message: "GlobalConfig not found", globalConfigs: [] });
     }
     reply.status(200).send({
       status_code: 200,
-      message:"Global Config data get successfully",
+      message: "Global Config data get successfully",
       items_per_page: limit,
       total_records: count,
       industries: flags,
@@ -79,7 +92,7 @@ export async function getGlobalConfigById(
   if (globalConfig) {
     reply.status(200).send({
       status_code: 200,
-      message:"Global config get successfully",
+      message: "Global config get successfully",
       global_launch_data: globalConfig,
       trace_id: traceId,
     });
@@ -98,13 +111,23 @@ export async function updateGlobalConfig(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const { id } = request.params as { id: string };
     const { ...config } = request.body as GlobalConfigInterface;
-    const globalConfig = await GlobalConfigModel.update({ ...config }, { where: { id } });
+    const globalConfig = await GlobalConfigModel.update({ ...config, modified_by: userId }, { where: { id } },);
     if (globalConfig) {
       reply.status(200).send({
-        status_code:200,
+        status_code: 200,
         message: 'GlobalConfig Updated Successfully',
         data: globalConfig,
         trace_id: traceId,
@@ -129,11 +152,21 @@ export async function updateGlobalConfigFlags(
 ) {
   const traceId = generateCustomUUID();
   const { global_launches } = request.body;
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     await GlobalConfigModel.sequelize?.transaction(async (t) => {
       await Promise.all(global_launches.map(async (launch) => {
         await GlobalConfigModel.update(
-          { is_enabled: launch.is_enabled },
+          { is_enabled: launch.is_enabled, modified_by: userId, },
           { where: { id: launch.id }, transaction: t }
         );
       }));
@@ -157,6 +190,16 @@ export async function deleteGlobalConfig(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const { id } = request.params;
     const globalConfig = await GlobalConfigModel.findByPk(id);
@@ -164,6 +207,7 @@ export async function deleteGlobalConfig(
       await globalConfig.update({
         is_enabled: false,
         is_deleted: true,
+        modified_by: userId,
       })
       reply.status(200).send({
         status_code: 200,
@@ -171,14 +215,14 @@ export async function deleteGlobalConfig(
         message: 'Global Config Deleted Successfully'
       });
     } else {
-      reply.status(404).send({ status_code:404,message: 'Global Config Not Found' });
+      reply.status(404).send({ status_code: 404, message: 'Global Config Not Found' });
     }
   } catch (error) {
     reply.status(500).send({
-      status_code:500,
-        message: 'An error occurred while deleting GlobalConfig',
-        error: error,
-      });
+      status_code: 500,
+      message: 'An error occurred while deleting GlobalConfig',
+      error: error,
+    });
   }
 }
 
