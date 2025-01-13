@@ -26,6 +26,7 @@ export async function createCandidate(
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
+    const userId = user?.sub;
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
@@ -75,7 +76,9 @@ export async function createCandidate(
 
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
-            candidate_id: candidateId
+            candidate_id: candidateId,
+            created_by: userId,
+            modified_by: userId,
         });
 
         logger(
@@ -337,8 +340,18 @@ export async function updateCandidateByIdAndProgramId(
     try {
         const { program_id, id, } = request.params as { program_id: string, id: string; };
         const updates = request.body as candidateInterface;
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update(updates, {
+        const [updatedRows] = await candidateModel.update({...updates,modified_by:userId}, {
             where: {
                 program_id,
                 id,
@@ -380,11 +393,23 @@ export async function deleteCandidateByIdAndProgramId(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
 
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+       
         const [updatedRows] = await candidateModel.update(
-            { is_deleted: true },
+            { is_deleted: true,
+              modified_by: userId,},
             {
                 where: {
                     id,

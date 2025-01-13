@@ -4,16 +4,29 @@ import { InvoiceConfigInterface } from "../interfaces/invoice-config.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function createInvoiceConfig(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
         const { program_id } = request.params as any
         const invoiceConfig = request.body as InvoiceConfigInterface;
-        const invoiceConfigData: any = await InvoiceConfigModel.create({ ...invoiceConfig, program_id });
+        const invoiceConfigData: any = await InvoiceConfigModel.create({ ...invoiceConfig, program_id,created_by: userId,
+        modified_by: userId, });
         reply.status(201).send({
             status_code: 201,
             message: "Invoice config created succesfully",
@@ -74,8 +87,18 @@ export async function updateInvoiceConfigById(
 ) {
     const { id, program_id } = request.params;
     const traceId = generateCustomUUID();
-
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+
+        const userId = user?.sub;
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: { uuid: id, program_id },
             order: [['id', 'DESC']],
@@ -96,7 +119,8 @@ export async function updateInvoiceConfigById(
             grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
         };
 
-        const newInvoiceConfig = await InvoiceConfigModel.create(newPayload);
+        const newInvoiceConfig = await InvoiceConfigModel.create({newPayload,created_by: userId,
+        modified_by: userId,});
 
         return reply.status(201).send({
             status_code: 201,
@@ -121,13 +145,26 @@ export async function deleteInvoiceConfigById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const { id, program_id } = request.params;
+
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
         const [invoiceConfig] = await InvoiceConfigModel.update(
             {
                 is_deleted: true,
                 is_enabled: false,
                 modified_on: Date.now(),
+                modified_by:userId
             },
             { where: { uuid: id, program_id } }
         );
