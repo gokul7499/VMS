@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { Module } from "./module.model";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import generateSlug from '../plugins/slugGenerate';
 
 class Event extends Model {
   id: any;
