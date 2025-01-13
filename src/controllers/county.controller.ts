@@ -4,15 +4,27 @@ import { CountyInterface } from "../interfaces/county.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function createCounty(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const county = request.body as CountyInterface;
-        const county_data: any = await countyModel.create({ ...county });
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
+        const county_data: any = await countyModel.create({ ...county, created_by: userId, modified_by: userId });
         reply.status(201).send({
             status_code: 201,
             message: "county created succesfully",
@@ -62,10 +74,22 @@ export async function getCountyById(
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<CountyInterface>;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
         const [county] = await countyModel.update(updates, {
+           
             where: { id }
         });
         if (county === 0) {
@@ -87,13 +111,25 @@ export async function deleteCountyById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
         const [county] = await countyModel.update(
             {
                 is_deleted: true,
                 is_enabled: false,
                 modified_on: Date.now(),
+                modified_by: userId
             },
             { where: { id } }
         );

@@ -9,6 +9,7 @@ class IndustriesModel extends Model {
   id: any;
     program_id: unknown;
     is_enabled: unknown;
+    name: any;
 }
 
 IndustriesModel.init(
@@ -33,6 +34,14 @@ IndustriesModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+    },
+    created_by:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    modified_by:{
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     modified_on: {
       type: DataTypes.DOUBLE,

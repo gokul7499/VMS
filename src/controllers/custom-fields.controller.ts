@@ -13,32 +13,38 @@ import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controlle
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
+import { update } from 'lodash';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
 
-  // Validate Program ID
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
+  console.log("uuu", userId)
+
   if (!validateProgramId(program_id, reply, traceId)) return;
 
-  // Generate slug if name is present
   generateSlugIfNeeded(name, customFieldData);
 
-  // Validate label length
   if (!validateLabelLength(label, reply, traceId)) return;
 
-  // Validate name length
+
   if (!validateNameLength(name, reply, traceId)) return;
 
-  // Validate Authorization Header
-  const user = await validateAuthHeader(request, reply);
-  if (!user) return;
 
-  // Log creating customField
   logCreatingCustomField(traceId, user, request, program_id);
 
   try {
-    const customField = await createCustomField({ program_id, label, name, ...customFieldData });
+    const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -55,7 +61,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
     return reply.status(201).send({
       status_code: 201,
       message: 'Custom field created successfully.',
-      trace_id:traceId,
+      trace_id: traceId,
     });
 
   } catch (error) {
@@ -120,14 +126,14 @@ const validateNameLength = (name: string | undefined, reply: FastifyReply, trace
 const validateAuthHeader = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const authHeader = request.headers.authorization;
   if (!(authHeader?.startsWith('Bearer '))) {
-    reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+    reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     return null;
   }
 
   const token = authHeader.split(' ')[1];
   const user: any = await decodeToken(token);
   if (!user) {
-    reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     return null;
   }
   return user;
@@ -190,10 +196,11 @@ const logError = (trace_id: string, user: any, request: FastifyRequest<{}>, prog
   }, CustomField);
 };
 
-export const createCustomField = async (data: any) => {
+export const createCustomField = async (data: any, user: any) => {
   try {
     console.log("Data to be inserted:", data);
-    const customFieldData = await CustomField.create(data);
+    const userId = user?.sub
+    const customFieldData = await CustomField.create({ ...data, created_by: userId, modified_by: userId });
     console.log("Inserted customFieldData:", customFieldData);
     return customFieldData;
   } catch (error) {
@@ -263,7 +270,7 @@ export async function getAllCustomFields(
         "label",
         "meta_data"
       ],
-      order: [["modified_on", "DESC"]], // Sort by modified_on in descending order
+      order: [["modified_on", "DESC"]],
       offset: (page - 1) * limit,
       limit: limit,
     });
@@ -374,6 +381,7 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
   }
 };
 
+
 export const updateCustomFieldById = async (
   request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFields }>,
   reply: FastifyReply
@@ -381,6 +389,30 @@ export const updateCustomFieldById = async (
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
+  let { name } = request.body as { name: string };
+  name = name.trim();
+
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Token not found',
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Invalid token',
+    });
+  }
+
+  const userId = user?.sub;
+
   const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids } = updates as {
     hierarchy_ids?: string[];
     work_location_ids?: string[];
@@ -401,7 +433,16 @@ export const updateCustomFieldById = async (
 
     const changes = await detectChanges(updates, customFieldRecord);
     if (changes) {
-      await CustomField.update(updates, { where: { id, program_id } });
+      await CustomField.update(
+        {
+          ...updates,
+          modified_on: new Date(),
+          modified_by: userId,
+        },
+        {
+          where: { id, program_id },
+        }
+      );
     }
 
     await processHierarchyIds(hierarchy_ids, id);
@@ -411,16 +452,15 @@ export const updateCustomFieldById = async (
 
     return reply.status(200).send({
       status_code: 200,
-      message: "Custom field updated successfully.",
+      message: 'Custom field updated successfully.',
       trace_id: traceId,
     });
   } catch (error) {
-    console.error("Error updating custom field:", error);
+    console.error('Error updating custom field:', error);
     return sendError(reply, 500, 'Internal Server Error: Failed to update Custom Fields');
   }
 };
 
-// Helper functions
 const sendError = (reply: FastifyReply, statusCode: number, message: string) => {
   const traceId = generateCustomUUID();
   reply.status(statusCode).send({
@@ -518,12 +558,22 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
 
     if (customFieldItem) {
-
-      // Check if customFieldItem is linked with modules
-      // Assuming you have a function to check this, replace it with your actual logic
-
+      let { name } = request.body as { name: string };
+      name = name.trim();
+      const authHeader = request.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+      }
+      const token = authHeader.split(' ')[1];
+      let user: any = await decodeToken(token);
+      if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+      }
+      const userId = user?.sub
       if ((customFieldItem as any).is_linked === false) {
-        await customFieldItem.update({ is_deleted: true }, { where: { id, program_id } });
+        await customFieldItem.update({
+          is_deleted: true, modified_on: Date.now(), modified_by: userId,
+        }, { where: { id, program_id } });
         reply.status(200).send({
           status_code: 200,
           message: 'Custom Field marked as deleted successfully',
@@ -556,6 +606,9 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
 
 
 
+
+
+
 export async function updateCustomFieldsIsdisable(
   request: FastifyRequest<{ Params: { id: string, program_id: string }; Body: { is_enabled: boolean } }>,
   reply: FastifyReply
@@ -564,17 +617,26 @@ export async function updateCustomFieldsIsdisable(
   const { id, program_id } = request.params;
   const { is_enabled } = request.body;
 
-  const allowedFields = ['is_enabled'];
-  const requestBodyFields = Object.keys(request.body);
+  const authHeader = request.headers.authorization;
 
-  const invalidFields = requestBodyFields.filter(field => !allowedFields.includes(field));
-  if (invalidFields.length > 0) {
-    return reply.status(400).send({
-      status_code: 400,
-      message: `Invalid request: fields ${invalidFields.join(', ')} are not allowed.`,
-      trace_id: traceId
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Token not found',
     });
   }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Invalid token',
+    });
+  }
+
+  const userId = user?.sub;
 
   if (is_enabled === undefined || is_enabled === null) {
     return reply.status(400).send({
@@ -585,46 +647,48 @@ export async function updateCustomFieldsIsdisable(
   }
 
   try {
-    // Retrieve the record first
     const customFieldRecord = await CustomField.findOne({ where: { id, program_id } });
 
-    if (customFieldRecord) {
-      // Update the is_enabled field
-      await CustomField.update(
-        { is_enabled },
-        {
-          where: { id, program_id },
-        }
-      );
-
-      const linkedModules = customFieldRecord.linked_modules;
-      const updatedLinkedModules = linkedModules.map((module: any) => ({
-        ...module,
-        is_linked: is_enabled,
-      }));
-
-      // Save the updated linked_modules back to the database
-      await CustomField.update(
-        { linked_modules: updatedLinkedModules },
-        {
-          where: { id, program_id },
-        }
-      );
-
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Custom field updated successfully.',
-        trace_id: traceId,
-      });
-    } else {
+    if (!customFieldRecord) {
       return reply.status(404).send({
         status_code: 404,
         message: 'Custom field not found',
         trace_id: traceId,
       });
     }
+
+    await CustomField.update(
+      {
+        is_enabled,
+        modified_on: new Date(),
+        modified_by: userId,
+      },
+      {
+        where: { id, program_id },
+      }
+    );
+
+    if (customFieldRecord.linked_modules) {
+      const updatedLinkedModules = customFieldRecord.linked_modules.map((module: any) => ({
+        ...module,
+        is_linked: is_enabled,
+      }));
+
+      await CustomField.update(
+        { linked_modules: updatedLinkedModules },
+        {
+          where: { id, program_id },
+        }
+      );
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: 'Custom field updated successfully.',
+      trace_id: traceId,
+    });
   } catch (error) {
-    console.error('Error updating custom field:', error); // Log the error details
+    console.error('Error updating custom field:', error);
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error: Failed to update Custom Field',
@@ -663,19 +727,19 @@ export async function searchCustomFields(
     });
 
     if (result.rows.length === 0) {
-      reply.status(200).send({status_code:200, message: "Modules not found", modules: [] });
+      reply.status(200).send({ status_code: 200, message: "Modules not found", modules: [] });
       return;
     }
 
     reply.status(200).send({
       status_code: 200,
-      message:"Custom search successfully",
+      message: "Custom search successfully",
       total_records: result.count,
       items: result.rows,
     });
   } catch (error: any) {
     console.log(error.stack);
-    reply.status(500).send({status_code:500, error: "Internal Server Error" });
+    reply.status(500).send({ status_code: 500, error: "Internal Server Error" });
   }
 }
 

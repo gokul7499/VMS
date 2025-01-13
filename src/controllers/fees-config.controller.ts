@@ -23,22 +23,23 @@ export async function createFeesConfiguration(
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-
+  const userId = user?.sub;
+  console.log("uuu", userId)
   logger(
     {
       trace_id: traceId,
       actor: {
         user_name: user?.preferred_username,
-        user_id: user?.sub,
+        user_id: userId
       },
       data: request.body,
       eventname: "creating fees configuration",
@@ -63,11 +64,14 @@ export async function createFeesConfiguration(
 
     if (existingConfig) {
       return reply.status(409).send({
-        status_code:409,
+        status_code: 409,
         message: 'Fees configuration with this name already exists'
       });
     }
-    const fees: any = await feesConfiguration.create({ ...feesConfig, program_id });
+    const fees: any = await feesConfiguration.create({
+      ...feesConfig, program_id, created_by: userId,
+      modified_by: userId,
+    });
     reply.status(201).send({
       status_code: 201,
       message: "fess configration created succesfully",
@@ -80,7 +84,7 @@ export async function createFeesConfiguration(
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId
         },
         data: request.body,
         eventname: "created fees configuration",
@@ -100,7 +104,7 @@ export async function createFeesConfiguration(
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId
         },
         data: request.body,
         eventname: "created fees configuration",
@@ -116,7 +120,7 @@ export async function createFeesConfiguration(
     );
 
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: 'An error occurred while creating fees configuration',
       error
     });
@@ -196,7 +200,7 @@ export async function getFeesConfigurationById(
     }
   } catch (error) {
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: "An error occurred while fetching fees configuration",
       error,
     });
@@ -207,12 +211,27 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const feesConfigData = await feesConfiguration.findByPk(id);
     if (!feesConfigData) {
       return reply.status(200).send({ message: 'fees configuration data not found' });
     }
-    const [feesConfig] = await feesConfiguration.update(updates, { where: { id, program_id } });
+    const [feesConfig] = await feesConfiguration.update(updates, {
+      where: {
+        id, program_id, modified_on: Date.now(),
+        modified_by: userId,
+      }
+    });
     return reply.status(201).send({
       status_code: 201,
       message: 'fees configuration updated successfully',
@@ -222,7 +241,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
     });
   } catch (error) {
     console.error('error updating fees configuration fees configuration', error);
-    return reply.status(500).send({ status_code:500,message: 'Internal Server Error', error });
+    return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', error });
   }
 }
 
@@ -231,6 +250,16 @@ export async function deleteFeesConfigurationById(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId=user?.sub
   try {
     const { id } = request.params;
     const [feesConfig] = await feesConfiguration.update(
@@ -238,6 +267,8 @@ export async function deleteFeesConfigurationById(
         is_deleted: true,
         is_enabled: false,
         modified_on: Date.now(),
+        created_by: userId,
+        modified_by: userId,
       },
       { where: { id } }
     );
@@ -249,11 +280,11 @@ export async function deleteFeesConfigurationById(
         trace_id: traceId,
       });
     } else {
-      reply.status(200).send({status_code:200, message: 'Fees configuration not found' });
+      reply.status(200).send({ status_code: 200, message: 'Fees configuration not found' });
     }
   } catch (error) {
     console.error('Error deleting fees configuration:', error);
-    reply.status(500).send({ status_code:500,message: 'An error occurred while deleting fees configuration', error });
+    reply.status(500).send({ status_code: 500, message: 'An error occurred while deleting fees configuration', error });
   }
 }
 
@@ -275,7 +306,7 @@ export async function advancedSearchFeesConfiguration(
     if (result.count > 0) {
       return reply.status(200).send({
         status_code: 200,
-        message:"Data search successfully",
+        message: "Data search successfully",
         total_records: result.count,
         items: result.rows,
       });
@@ -360,15 +391,15 @@ export async function getFeesConfig(
 
     reply.status(200).send({
       status_code: 200,
-      message:"Fees config get successfully",
+      message: "Fees config get successfully",
       fees: data,
-      trace_id:traceId,
+      trace_id: traceId,
     });
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id:traceId,
+      trace_id: traceId,
     });
   }
 }

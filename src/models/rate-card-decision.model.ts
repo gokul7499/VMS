@@ -6,6 +6,7 @@ import hierarchies from "./hierarchies.model";
 import rateType from "./rate-type.model";
 import JobTemplateModel from "./job-template.model";
 
+
 class DecisionTable extends Model {
     rate_card_id: any;
     hierarchy: any;
@@ -16,10 +17,9 @@ class DecisionTable extends Model {
     min_rate: any;
     max_rate: any;
     created_on: any;
-    modified_on: any;
+    modified_on: any;   
     id: any;
     rate_type_id: any;
-    currency_id: any;
 }
 
 DecisionTable.init(
@@ -62,7 +62,7 @@ DecisionTable.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-        currency_id: {
+        currency: {
             type: DataTypes.STRING,
             allowNull: true,
         },

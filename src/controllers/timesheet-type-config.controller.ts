@@ -1,76 +1,69 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import generateCustomUUID from '../utility/genrateTraceId';
-import TimesheetTypeLaborCategorys from '../models/timesheet-type-labor-categorys.model';
 import { TimesheetTypeConfigInterface } from '../interfaces/timesheet-config.interface';
-import TimesheetTypeHierarchies from '../models/timesheet-type-hierarchies.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
-import TimesheetMasterData from '../models/timesheet-type-master-data.Model';
 import { sequelize } from '../config/instance';
 import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
-import Hierarchies from '../models/hierarchies.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import IndustriesModel from '../models/labour-category.model';
 import { QueryTypes } from 'sequelize';
 import { timesheetConfigAdvancedFilter } from '../utility/queries';
+import hierarchies from '../models/hierarchies.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
-    const transaction = await TimesheetTypeConfig.sequelize?.transaction();
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { labor_categories , hierarchies, master_data_types, program_id: _ignoredProgramId, ...data } = request.body as any;
+        const data = request.body as TimesheetTypeConfigInterface;
+        
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    console.log("uuu",userId)
+        const existingConfig = await TimesheetTypeConfig.findOne({
+            where: {
+                program_id,
+                title: data.title, 
+            },
+        });
+
+        if (existingConfig) {
+            return reply.status(409).send({
+                status_code: 409,
+                trace_id: traceId,
+                message: "Timesheet type config with the same name already exists."
+            });
+        }
         const newConfig = await TimesheetTypeConfig.create(
-            { program_id, ...data },
-            { transaction }
+            { program_id, ...data ,  created_by: userId,
+                modified_by: userId,},
         );
-        if (Array.isArray(labor_categories ) && labor_categories .length > 0) {
-            await TimesheetTypeLaborCategorys.bulkCreate(
-                labor_categories .map(laborCategory => ({
-                    timesheet_type_config_id: newConfig.id,
-                    labor_category_id: laborCategory,
-                })),
-                { transaction }
-            );
-        }
-        if (Array.isArray(hierarchies) && hierarchies.length > 0) {
-            await TimesheetTypeHierarchies.bulkCreate(
-                hierarchies.map(hierarchy => ({
-                    timesheet_type_config_id: newConfig.id,
-                    hierarchy_id: hierarchy,
-                })),
-                { transaction }
-            );
-        }
-        if (master_data_types?.value && Array.isArray(master_data_types.value)) {
-            await TimesheetMasterData.bulkCreate(
-                master_data_types.value.map((masterDataId: any) => ({
-                    timesheet_type_config_id: newConfig.id,
-                    value: masterDataId,
-                    is_allow: master_data_types.is_allow,
-                })),
-                { transaction }
-            );
-        }
-        await transaction?.commit();
         reply.status(201).send({
             status_code: 201,
+            trace_id: traceId,
+            message: 'Timesheet type config created successfully.',
             id: newConfig.id,
-            message: 'Timesheet Type Config created successfully.',
-            trace_id:traceId,
         });
     } catch (error: any) {
-        await transaction?.rollback();
         reply.status(500).send({
             status_code: 500,
-            message: 'Error while creating Timesheet Type Config.',
-            error: error.message || error,
-            trace_id:traceId,
+            traceId: traceId,
+            message: 'Error while creating timesheet type config.',
+            error: error.message,
         });
     }
 };
 
-export const getAllTimesheetTypeConfigs = async (
-    request: FastifyRequest<{Params: { program_id: string }; Querystring: { page?: number; limit?: number };}>,
+export const getAllTimesheetTypeConfigs = async (   
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: number; limit?: number } }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
@@ -78,162 +71,127 @@ export const getAllTimesheetTypeConfigs = async (
     try {
         const { program_id } = request.params;
         const { page = 1, limit = 10 } = request.query;
+
         const sanitizedPage = Math.max(Number(page), 1);
         const sanitizedLimit = Math.max(Number(limit), 1);
         const offset = (sanitizedPage - 1) * sanitizedLimit;
+
         const searchConditions: Record<string, any> = { is_deleted: false };
         if (program_id) searchConditions.program_id = program_id;
+
         const { rows: configs, count } = await TimesheetTypeConfig.findAndCountAll({
             where: searchConditions,
             limit: sanitizedLimit,
             offset,
+            attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category'],
         });
-        const configIds = configs.map((config) => config.id);
-        const hierarchyRelations = await TimesheetTypeHierarchies.findAll({
-            where: { timesheet_type_config_id: configIds },
-            include: [
-                {
-                    model: Hierarchies,
-                    as: 'hierarchies',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        });
-        const hierarchiesMap = hierarchyRelations.reduce((acc: Record<string, any[]>, relation) => {
-            const configId = relation.timesheet_type_config_id;
-            acc[configId] = acc[configId] || [];
-            if (relation.hierarchies) acc[configId].push(relation.hierarchies);
-            return acc;
-        }, {});
-        const laborRelations = await TimesheetTypeLaborCategorys.findAll({
-            where: { timesheet_type_config_id: configIds },
-            include: [
-                {
-                    model: IndustriesModel,
-                    as: 'labor_categorys',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        });
-        const labourCategoryMap = laborRelations.reduce((acc: Record<string, any[]>, relation) => {
-            const configId = relation.timesheet_type_config_id;
-            acc[configId] = acc[configId] || [];
-            if (relation.labor_categorys) acc[configId].push(relation.labor_categorys);
-            return acc;
-        }, {});
-        const ruleGroupIds = configs
-            .map((config) => config.allocations?.timesheet_rule_group_association)
-            .filter(Boolean);
-        const ruleGroups = await TimesheetExpenseRuleGroup.findAll({
-            where: { id: ruleGroupIds },
-            attributes: ['id', 'rule_group_name'],
-        });
-        const ruleGroupMap = ruleGroups.reduce((acc: Record<string, any>, ruleGroup) => {
-            acc[ruleGroup.id] = ruleGroup;
-            return acc;
-        }, {});
 
-        const data = configs.map((config) => ({
+        const hierarchyIds = [...new Set(configs.flatMap(config => config.hierarchies || []))];
+        const laborIds = [...new Set(configs.flatMap(config => config.labor_category || []))];
+
+        const [hierarchiesData, laborsData, ruleGroups] = await Promise.all([
+            hierarchyIds.length ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'], }) : [],
+            laborIds.length ? IndustriesModel.findAll({ where: { id: laborIds }, attributes: ['id', 'name'], }) : [],
+            TimesheetExpenseRuleGroup.findAll({
+                where: {
+                    id: configs.map(config => config.allocations?.timesheet_rule_group).filter(Boolean)
+                },
+                attributes: ['id', 'rule_group_name'],
+            })
+        ]);
+
+        const hierarchyMap = Object.fromEntries(hierarchiesData.map(hierarchy => [hierarchy.id, hierarchy.name]));
+        const laborCategoryMap = Object.fromEntries(laborsData.map(labor => [labor.id, labor.name]));
+        const ruleGroupMap = Object.fromEntries(ruleGroups.map(ruleGroup => [ruleGroup.id, ruleGroup]));
+
+        const data = configs.map(config => ({
             ...config.toJSON(),
-            hierarchies: hierarchiesMap[config.id] || [],
-            labour_category: labourCategoryMap[config.id] || [],
+            hierarchies: (config.hierarchies || []).map((id: string | number) => ({ id, name: hierarchyMap[id] || null, })),
+            labor_category: (config.labor_category || []).map((id: string | number) => ({ id, name: laborCategoryMap[id] || null, })),
             allocations: {
                 ...config.allocations,
-                timesheet_rule_group_association: ruleGroupMap[config.allocations?.timesheet_rule_group_association] || null,
+                timesheet_rule_group:
+                    ruleGroupMap[config.allocations?.timesheet_rule_group] || null,
             },
         }));
+
         reply.status(200).send({
             status_code: 200,
-            message:" Timesheet Type Configs Retrieved Successfully",
+            message: "Timesheet type config fetched succesfully",
+            trace_id: traceId,
             items_per_page: sanitizedLimit,
             total_records: count,
             data,
-            trace_id:traceId,
         });
-    } catch (error) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
-            message: 'Error fetching Timesheet Type Configs.',
-            error: error || 'Unknown error',
-            trace_id:traceId,
+            trace_id: traceId,
+            message: 'Error while fetching timesheet type configs.',
+            error: error.message,
         });
     }
 };
 
-
-export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply: FastifyReply) => {
+export const getTimesheetTypeConfigById = async (
+    request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+    reply: FastifyReply
+) => {
     const traceId = generateCustomUUID();
+
     try {
-        const { id, program_id } = request.params as { id: string; program_id: string };
+        const { id, program_id } = request.params;
+
         const config = await TimesheetTypeConfig.findOne({
             where: { id, program_id, is_deleted: false },
         });
+
         if (!config) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
                 trace_id:traceId,
+                config: []
             });
         }
-        const timesheetHierarchies = await TimesheetTypeHierarchies.findAll({
-            where: { timesheet_type_config_id: id },
-            include: [
-                {
-                    model: Hierarchies,
-                    as: 'hierarchies',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        });
-        const hierarchyData = timesheetHierarchies
-            .map(item => item.hierarchies)
-            .filter(hierarchy => hierarchy);
-        const timesheetMasterDatas = await TimesheetMasterData.findAll({
-            where: { timesheet_type_config_id: id },
-            include: [
-                {
-                    model: FoundationalDataTypes,
-                    as: 'master_data',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        });
-        const masterDataMap = new Map();
-        timesheetMasterDatas.forEach(item => {
-            const value = item.master_data ?
-                (Array.isArray(item.master_data) ?
-                    item.master_data.map(data => ({ id: data.id, name: data.name })) :
-                    [{ id: item.master_data.id, name: item.master_data.name }]
-                ) : [];
 
-            const isAllow = item.is_allow;
-            if (!masterDataMap.has(isAllow)) {
-                masterDataMap.set(isAllow, { value: [], is_allow: isAllow });
-            }
-            masterDataMap.get(isAllow).value.push(...value);
-        });
-        const masterData = Array.from(masterDataMap.values());
-        const timesheetLaborCategorys = await TimesheetTypeLaborCategorys.findAll({
-            where: { timesheet_type_config_id: id },
-            include: [
-                {
-                    model: IndustriesModel,
-                    as: 'labor_categorys',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        });
-        const laborCategoryData = timesheetLaborCategorys
-            .map(item => item.labor_categorys)
-            .filter(labor_categorys => labor_categorys);
+        const hierarchyIds = config.hierarchies || [];
+        const laborCategoryIds = config.labor_category || [];
+        const ruleGroupId = config.allocations?.timesheet_rule_group;
+        const masterDataTypeIds = config.allocations?.master_data_types?.value || [];
+
+        const [hierarchiesData, laborCategories, ruleGroup, masterDataTypeValues] = await Promise.all([
+            hierarchyIds.length > 0
+                ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] })
+                : [],
+            laborCategoryIds.length > 0
+                ? IndustriesModel.findAll({ where: { id: laborCategoryIds }, attributes: ['id', 'name'] })
+                : [],
+            ruleGroupId
+                ? TimesheetExpenseRuleGroup.findOne({ where: { id: ruleGroupId }, attributes: ['id', 'rule_group_name'] })
+                : null,
+            masterDataTypeIds.length > 0
+                ? FoundationalDataTypes.findAll({ where: { id: masterDataTypeIds }, attributes: ['id', 'name'] })
+                : [],
+        ]);
+
         const data = {
             ...config.toJSON(),
-            hierarchies: hierarchyData,
-            labor_categorys: laborCategoryData,
-            master_data: masterData,
+            hierarchies: hierarchiesData.map(hierarchy => hierarchy.toJSON()),
+            labor_category: laborCategories.map(category => category.toJSON()),
+            allocations: {
+                ...config.allocations,
+                timesheet_rule_group: ruleGroup ? ruleGroup.toJSON() : null,
+                master_data_types: {
+                    value: masterDataTypeValues.map(data => data.toJSON()),
+                    is_allow: config.allocations?.master_data_types?.is_allow || false,
+                },
+            }
         };
+
         reply.status(200).send({
             status_code: 200,
+            message: 'Timesheet Type Config found successfully.',
             config: data,
             trace_id:traceId,
         });
@@ -241,7 +199,7 @@ export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply:
         reply.status(500).send({
             status_code: 500,
             message: 'Error fetching Timesheet Type Config.',
-            error: error.message || 'Unknown error',
+            error: error.message,
             trace_id:traceId,
         });
     }
@@ -250,66 +208,35 @@ export const getTimesheetTypeConfigById = async (request: FastifyRequest, reply:
 export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
-        const { id } = request.params as { id: string };
-        const { program_id, labor_categorys, hierarchies, master_data_types, ...configData } = request.body as {
-            program_id?: string;
-            labor_categorys?: string[];
-            hierarchies?: string[];
-            master_data_types?: { value: string[]; is_allow: boolean };
-        } & TimesheetTypeConfigInterface;
+        const { id, program_id } = request.params as { id: string; program_id: string };
+        const configData = request.body as TimesheetTypeConfigInterface;
         const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
         if (!config) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
                 trace_id:traceId,
+                config: []
             });
         }
         await config.update({
             program_id,
-            ...configData
-        }, { transaction });
-
-        await config.update({ program_id }, { transaction });
-        if (Array.isArray(labor_categorys)) {
-            await TimesheetTypeLaborCategorys.destroy({ where: { timesheet_type_config_id: id }, transaction });
-            if (labor_categorys.length > 0) {
-                await TimesheetTypeLaborCategorys.bulkCreate(
-                    labor_categorys.map(laborCategory => ({
-                        timesheet_type_config_id: id,
-                        labor_category_id: laborCategory,
-                    })),
-                    { transaction }
-                );
-            }
-        }
-        if (Array.isArray(hierarchies)) {
-            await TimesheetTypeHierarchies.destroy({ where: { timesheet_type_config_id: id }, transaction });
-            if (hierarchies.length > 0) {
-                await TimesheetTypeHierarchies.bulkCreate(
-                    hierarchies.map(hierarchy => ({
-                        timesheet_type_config_id: id,
-                        hierarchy_id: hierarchy,
-                    })),
-                    { transaction }
-                );
-            }
-        }
-        if (master_data_types?.value && Array.isArray(master_data_types.value)) {
-            await TimesheetMasterData.destroy({ where: { timesheet_type_config_id: id }, transaction });
-            if (master_data_types.value.length > 0) {
-                await TimesheetMasterData.bulkCreate(
-                    master_data_types.value.map(masterDataId => ({
-                        timesheet_type_config_id: id,
-                        value: masterDataId,
-                        is_allow: master_data_types.is_allow,
-                    })),
-                    { transaction }
-                );
-            }
-        }
-        await transaction.commit();
+            ...configData,
+            modified_by:userId,
+        });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet Type Config updated successfully.',
@@ -328,36 +255,48 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 
 export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    try {
-        const { id } = request.params as { id: string };
-        const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
-
-        if (!config) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'Timesheet Type Config not found.',
-                trace_id: traceId,
-            });
-        }
-
-        await config.update({ is_deleted: true });
-
-        reply.status(200).send({
-            status_code: 200,
-            message: 'Timesheet Type Config deleted successfully.',
-            trace_id: traceId,
-        });
-    } catch (error) {
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Error deleting Timesheet Type Config.',
-            error: error,
-            trace_id: traceId,
-        });
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
-};
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
+     try {
+         const { id } = request.params as { id: string };
+         const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
+ 
+         if (!config) {
+             return reply.status(200).send({
+                 status_code: 200,
+                 message: 'Timesheet Type Config not found.',
+                 trace_id: traceId,
+             });
+         }
+ 
+         await config.update({ is_enabled: false, is_deleted: true ,   modified_by:userId,});
+ 
+         reply.status(200).send({
+             status_code: 200,
+             message: 'Timesheet Type Config deleted successfully.',
+             trace_id: traceId,
+         });
+     } catch (error) {
+         reply.status(500).send({
+             status_code: 500,
+             message: 'Error deleting Timesheet Type Config.',
+             error: error,
+             trace_id: traceId,
+         });
+     }
+ };
 
-export async function timesheetTypeConfigFilter(
+ export async function timesheetTypeConfigFilter(
     request: FastifyRequest<{
         Params: { program_id: string };
         Body: {

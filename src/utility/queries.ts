@@ -77,7 +77,7 @@ export const fetchProgramConfigValues = `
 
 FROM programs_config
 
-WHERE 
+WHERE
 
     programs_config.program_id =:programId
 
@@ -421,7 +421,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.name,
     h.is_enabled,
-    h.preferred_date_format,
+    h.default_date_format,
     h.rate_model,
     h.created_on,
     h.modified_on,
@@ -439,7 +439,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.name,
     h.is_enabled,
-    h.preferred_date_format,
+    h.default_date_format,
     h.rate_model,
     h.created_on,
     h.modified_on,
@@ -1275,12 +1275,11 @@ export const getMasterDataForHeirarchiesQuery = () => {
     `;
 };
 export const masterDataQuery = `
-    SELECT 
+    SELECT
         h.id,
         h.parent_hierarchy_id,
         h.name,
         h.is_enabled,
-        h.is_rate_card_enforced,
         h.rate_model,
         h.created_on,
         h.modified_on,
@@ -1299,6 +1298,7 @@ export const masterDataQuery = `
         h.default_currency,
         h.unit_of_measure,
         h.support_email,
+        h.is_not_editable,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
@@ -1310,23 +1310,23 @@ export const masterDataQuery = `
             )
         ) AS foundational_data,
         ph.name AS parent_hierarchy_name
-    FROM 
+    FROM
         hierarchies h
-    LEFT JOIN 
-        hierarchies_master_data hmd 
+    LEFT JOIN
+        hierarchies_master_data hmd
         ON h.id = hmd.hierarchy_id
-    LEFT JOIN 
-        master_data_type fdt 
+    LEFT JOIN
+        master_data_type fdt
         ON hmd.foundation_data_type_id = fdt.id
-    LEFT JOIN 
-        hierarchies ph 
+    LEFT JOIN
+        hierarchies ph
         ON h.parent_hierarchy_id = ph.id
-    LEFT JOIN 
-        picklistitems uom 
+    LEFT JOIN
+        picklistitems uom
         ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
-    WHERE 
+    WHERE
         h.id = :hierarchy_id
-    GROUP BY 
+    GROUP BY
         h.id, ph.name, uom.id, uom.label
     LIMIT 0, 1000;
 `;
@@ -1379,7 +1379,7 @@ export const configAdvancedFilter = (
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `AND ec.id IN (
           SELECT expense_config_id
-          FROM expense_type_hierarchies 
+          FROM expense_type_hierarchies
           WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
         )`
     : '';
@@ -1403,7 +1403,7 @@ export const configAdvancedFilter = (
             'name', h.name
           )
         )
-        FROM expense_type_hierarchies 
+        FROM expense_type_hierarchies
         LEFT JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
         WHERE expense_type_hierarchies.expense_config_id = ec.id
       ) AS hierarchy,
@@ -1461,7 +1461,7 @@ export const getAllExpenseTypeByHierarchies = (
 };
 
 export const resonCode = `
-SELECT 
+SELECT
     reason_codes.id,
     reason_codes.program_id,
     reason_codes.event_id,
@@ -1489,11 +1489,11 @@ export const timesheetConfigAdvancedFilter = (
   hasIsEnabled: boolean
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length ?
-    `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable 
+    `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
     ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})` : ''
 
   const laborCategoryClause = laborCategoryIdsArray.length ?
-    `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS labourTable 
+    `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS labourTable
     ON labourTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})` : ''
 
   return `
@@ -1522,7 +1522,7 @@ export const timesheetConfigAdvancedFilter = (
 };
 
 export const getMasterData = `
-SELECT 
+SELECT
  JSON_OBJECT(
      'id',hierarchies.id,
      'name',hierarchies.name
@@ -1550,17 +1550,17 @@ SELECT
             'is_associated', TRUE
         )
     ) AS master_data
-FROM 
+FROM
     user_master_data
-LEFT JOIN 
+LEFT JOIN
     master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
-LEFT JOIN 
+LEFT JOIN
     hierarchies ON user_master_data.hierarchy_id = hierarchies.id
-LEFT JOIN 
+LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
-WHERE 
+WHERE
     user_master_data.user_id = :id
-GROUP BY 
+GROUP BY
     hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
 `;
 
@@ -1591,14 +1591,14 @@ export const getAllRateTypes = (
         rt.rate,
         rt.modified_on,
         COUNT(*) OVER() AS total_records,
-        CASE 
+        CASE
           WHEN shift_types.id IS NULL THEN NULL
           ELSE JSON_OBJECT(
               'id', shift_types.id,
               'name', shift_types.shift_type_name
           )
         END AS shift_type,
-        CASE 
+        CASE
           WHEN picklistitems.id IS NULL THEN NULL
           ELSE JSON_OBJECT(
             'id', picklistitems.id,
@@ -1608,9 +1608,9 @@ export const getAllRateTypes = (
         END AS rate_type_category,
         JSON_EXTRACT(rt.rate, '$[0].differential_on') AS differential_on
       FROM rate_type rt
-      LEFT JOIN shift_types 
+      LEFT JOIN shift_types
         ON rt.shift_type = shift_types.id
-      LEFT JOIN picklistitems 
+      LEFT JOIN picklistitems
         ON rt.rate_type_category = picklistitems.id
       WHERE rt.program_id = :program_id
         AND rt.is_deleted = false
@@ -1623,34 +1623,34 @@ export const getAllRateTypes = (
     ? "AND JSON_EXTRACT(rt.rate, '$[0].differential_on') LIKE CONCAT('%', :differential_on, '%')"
     : ""}
         ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
-        ${hasRateTypeCategoryLabels ? "AND picklistitems.value IN (:rate_type_category_labels)" : ""}        
+        ${hasRateTypeCategoryLabels ? "AND picklistitems.value IN (:rate_type_category_labels)" : ""}
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
     ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
     : ""
   }
-      GROUP BY 
-        rt.id, 
-        rt.name, 
-        rt.program_id, 
-        rt.is_enabled, 
-        rt.is_shift_rate, 
-        rt.abbreviation, 
-        rt.is_base_rate, 
-        rt.rate, 
-        rt.modified_on, 
-        picklistitems.picklist_id, 
-        picklistitems.label, 
+      GROUP BY
+        rt.id,
+        rt.name,
+        rt.program_id,
+        rt.is_enabled,
+        rt.is_shift_rate,
+        rt.abbreviation,
+        rt.is_base_rate,
+        rt.rate,
+        rt.modified_on,
+        picklistitems.picklist_id,
+        picklistitems.label,
         picklistitems.value
     )
     SELECT *
     FROM rate_type
-    ORDER BY modified_on DESC 
+    ORDER BY modified_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
 export const getExpenseType = `
-   SELECT 
+   SELECT
     ec.config_name,
     ec.id AS expense_config_id,
     ec.program_id,
@@ -1676,7 +1676,7 @@ WHERE ec.program_id =:program_id
 GROUP BY ec.id, et.id;
 `
 export const getAllExpenseTypeHierarchy = `
-SELECT 
+SELECT
     ec.id AS config_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -1722,7 +1722,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       )`;
   }
   const sqlQuery = `
-    SELECT 
+    SELECT
       rc.id AS rate_configuration_id,
       rc.name,
       rc.is_enabled,
@@ -1732,7 +1732,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
-    FROM 
+    FROM
       rate_configurations AS rc
     LEFT JOIN (
       SELECT rch.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name)) AS hierarchies
@@ -1763,7 +1763,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
 };
 
 export const sameRateConfiguration = `
-    SELECT rc.id 
+    SELECT rc.id
     FROM rate_configurations rc
     JOIN rate_configuration_hierarchies rh ON rc.id = rh.rate_configuration_id
     JOIN rate_configuration_job_templates rjt ON rc.id = rjt.rate_configuration_id
@@ -1877,7 +1877,7 @@ export const rateTypeShiftAndRate = `
   `;
 
 export const getExpenseTypeAndRateType = `
-SELECT 
+SELECT
   timesheet_expense_rules.id,
   JSON_ARRAYAGG(
     JSON_OBJECT(
@@ -1891,31 +1891,31 @@ SELECT
       'name', rate_type.name
     )
   ) AS expense_rate_type
-FROM 
+FROM
   timesheet_expense_rules
-LEFT JOIN 
-  expense_item_type_config 
+LEFT JOIN
+  expense_item_type_config
   ON JSON_CONTAINS(
-    timesheet_expense_rules.expense_line_item, 
-    JSON_QUOTE(expense_item_type_config.id), 
+    timesheet_expense_rules.expense_line_item,
+    JSON_QUOTE(expense_item_type_config.id),
     '$'
   )
-LEFT JOIN 
-  rate_type 
+LEFT JOIN
+  rate_type
   ON JSON_CONTAINS(
-    timesheet_expense_rules.apply_rate_type, 
-    JSON_QUOTE(rate_type.id), 
+    timesheet_expense_rules.apply_rate_type,
+    JSON_QUOTE(rate_type.id),
     '$'
   )
-WHERE 
+WHERE
   timesheet_expense_rules.program_id =:program_id
   AND timesheet_expense_rules.is_deleted=false
-GROUP BY 
+GROUP BY
   timesheet_expense_rules.id;
 `
 
 export const getQuery = () => `
-    SELECT 
+    SELECT
         (SELECT id FROM currencies WHERE name = :currencyName LIMIT 1) AS currency,
         (SELECT id FROM language WHERE name = :languageName LIMIT 1) AS language,
         (SELECT id FROM time_zones WHERE name = :timeZoneName LIMIT 1) AS timeZone,
@@ -1925,12 +1925,11 @@ export const getQuery = () => `
 
 
 export const hierarchie = `
-    SELECT 
+    SELECT
         h.id,
         h.parent_hierarchy_id,
         h.name,
         h.is_enabled,
-        h.is_rate_card_enforced,
         h.rate_model,
         h.created_on,
         h.modified_on,
@@ -1949,16 +1948,17 @@ export const hierarchie = `
         h.default_currency,
         h.unit_of_measure,
         h.support_email,
+        h.is_not_editable,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure
-    FROM 
+    FROM
         hierarchies h
-    LEFT JOIN 
-        picklistitems uom 
+    LEFT JOIN
+        picklistitems uom
         ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
-    WHERE 
+    WHERE
         h.id = :hierarchy_id
     LIMIT 0, 1000;
 `;
@@ -1985,7 +1985,7 @@ export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
 };
 
 export const getWorklocation = `
-SELECT 
+SELECT
     wl.program_id,
     JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -1994,11 +1994,86 @@ SELECT
         )
     ) AS countries
 FROM (
-    SELECT DISTINCT 
-        work_locations.program_id, 
-        work_locations.country_id 
+    SELECT DISTINCT
+        work_locations.program_id,
+        work_locations.country_id
     FROM work_locations
     WHERE work_locations.program_id = :program_id
 ) AS wl
 LEFT JOIN countries c ON wl.country_id = c.id
 GROUP BY wl.program_id;`
+
+
+export const userQuery = (
+  first_name?:string,
+  email?:string,
+  tenant_id?:string,
+  role_id?:string,
+  is_activated?:string,
+  user_type?:string,
+  user_id?:string
+) =>`
+WITH user_data AS (
+  SELECT u.id,
+         u.username,
+         u.last_name,
+         u.middle_name,
+         u.first_name,
+         u.name_suffix,
+         u.program_id,
+         u.email,
+         u.created_on,
+         u.modified_on, 
+         u.avatar,
+         u.language_id,
+         u.is_enabled,
+         u.is_deleted,
+         u.is_activated,
+         u.user_type,
+         u.is_associated,
+         u.name_prefix,
+         u.role_id,
+         u.title,
+         u.contacts,
+         u.addresses,
+
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', h.id, 'name', h.name)
+             ) 
+             FROM hierarchies h 
+             WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+         ) AS associate_hierarchy_ids,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', wl.id, 'name', wl.name)
+             ) 
+             FROM work_locations wl 
+             WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+         ) AS work_location_ids,
+         JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
+         JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
+         JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
+         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
+         JSON_OBJECT('id', tz.id, 'name', tz.name) AS time_zone_id
+  FROM user u
+  LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
+  LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
+  LEFT JOIN countries c ON u.country_id = c.id
+  LEFT JOIN tenant t ON u.tenant_id = t.id
+  LEFT JOIN time_zones tz ON u.time_zone_id = tz.id
+  WHERE u.is_deleted = false AND u.program_id = :program_id
+    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${role_id ? 'AND u.role_id = :role_id' : ''}
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
+    ${email ? 'AND u.email = :email' : ''}
+    ${first_name ? 'AND u.first_name = :first_name' : ''}
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, tz.id
+)
+SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
+FROM user_data
+ORDER BY created_on DESC
+LIMIT :limit OFFSET :offset;
+`;

@@ -20,29 +20,29 @@ RateConfigurationRateDifferentials.init(
             type: DataTypes.UUID,
             allowNull: false,
         },
-        differential_on : {
+        differential_on: {
             type: DataTypes.STRING,
             allowNull: true
         },
-        differential_type : {
+        differential_type: {
             type: DataTypes.STRING,
             allowNull: true
         },
-        differential_value : {
+        differential_value: {
             type: DataTypes.FLOAT,
             allowNull: true
         },
-        type : {
+        type: {
             type: DataTypes.STRING,
             allowNull: true
         },
-        unit_of_measure:{
-            type:DataTypes.STRING,
-            allowNull:true
+        unit_of_measure: {
+            type: DataTypes.STRING,
+            allowNull: true
         },
-        currency:{
-            type:DataTypes.STRING,
-            allowNull:true
+        currency: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     },
     {

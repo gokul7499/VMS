@@ -36,9 +36,9 @@ export const getHierarchiesByProgram = async (
     });
 
     if (hierarchiesWithChildren.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'No hierarchy found for the given program',
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'No hierarchies found for the given program',
         trace_id: traceId,
         hierarchies: [],
       });
@@ -78,7 +78,7 @@ export const getHierarchiesByProgram = async (
   } catch (error) {
     return reply.status(500).send({
       status_code: 500,
-      message: 'An error occurred while fetching hierarchy by program',
+      message: 'An error occurred while fetching hierarchies by program',
       trace_id: traceId,
     });
   }
@@ -99,7 +99,7 @@ export const getHierarchies = async (
     const hasName = !!name;
 
     const isEnabledValue =
-   is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+      is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
     let startDate;
     let endDate;
@@ -115,7 +115,7 @@ export const getHierarchies = async (
       replacements: {
         program_id,
         ...(hasName && { name: `%${name}%` }),
-       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
         ...(startDate !== undefined && { startDate }),
         ...(endDate !== undefined && { endDate }),
       },
@@ -123,10 +123,10 @@ export const getHierarchies = async (
     });
 
     if (hierarchies.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
+      return reply.status(404).send({
+        status_code: 404,
         trace_id: traceId,
-        message: "No hierarchy found for the given program",
+        message: "No hierarchies found for the given program",
         total_records: 0,
         hierarchies: [],
       });
@@ -135,7 +135,7 @@ export const getHierarchies = async (
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "Hierarchy fetched successfully.",
+      message: "hierarchies fetched successfully.",
       total_records: hierarchies.length,
       hierarchies,
     });
@@ -189,20 +189,20 @@ export async function getHierarchiesById(
 
       return reply.status(200).send({
         status_code: 200,
-        message:"Hierarchies data get successfully",
-        trace_id: traceId,      
+        message: "Hierarchies data get successfully",
+        trace_id: traceId,
         hierarchies: hierarchy,
       });
     } else {
-      return reply.status(200).send({
-        message: 'Hierarchy not found',
+      return reply.status(404).send({
+        message: 'hierarchies not found',
         hierarchies: [],
       });
     }
   } catch (error) {
     console.error(error);
     return reply.status(500).send({
-      message: 'An error occurred while fetching Hierarchy by ID',
+      message: 'An error occurred while fetching hierarchies by ID',
       error: (error as Error).message,
     });
   }
@@ -210,7 +210,7 @@ export async function getHierarchiesById(
 
 
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
-  const { program_id } = request.params as { program_id: string }; 
+  const { program_id } = request.params as { program_id: string };
   const hierarchie = request.body as hierarchiesData;
   const hierarchyName = hierarchie.name;
   const hierarchyCode = hierarchie.code;
@@ -225,20 +225,20 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   if (!user) {
     return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
-
+  const userId = user?.sub
   logger({
-      trace_id:traceId,
-      actor: { user_name: user?.preferred_username, user_id: user?.sub },
-      data: request.body,
-      eventname: "creating hierarchies",
-      status: "in_progress",
-      description: `Creating hierarchies for ${program_id}`,
-      level: 'info',
-      action: request.method,
-      url: request.url,
-      entity_id: program_id,
-      is_deleted: false
-    }, HierarchiesModel);
+    trace_id: traceId,
+    actor: { user_name: user?.preferred_username, user_id: userId },
+    data: request.body,
+    eventname: "creating hierarchies",
+    status: "in_progress",
+    description: `Creating hierarchies for ${program_id}`,
+    level: 'info',
+    action: request.method,
+    url: request.url,
+    entity_id: program_id,
+    is_deleted: false
+  }, HierarchiesModel);
 
   const transaction = await sequelize.transaction();
   try {
@@ -251,59 +251,64 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       await transaction.rollback();
       return reply.status(409).send({
         status_code: 409,
-        message: "Hierarchy code is already in use",
+        message: "hierarchies code is already in use",
       });
     }
 
     const newItem = await HierarchiesModel.create(
-      { ...hierarchie, program_id }, 
+      {
+        ...hierarchie,
+        program_id,
+        created_by: userId,
+        modified_by: userId,
+      },
       { transaction }
     );
 
     await transaction.commit();
 
     logger({
-        trace_id:traceId,
-        actor: { user_name: user?.preferred_username, user_id: user?.sub },
-        data: request.body,
-        eventname: "created hierarchies",
-        status: "success",
-        description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
-        level: "success",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },HierarchiesModel);
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "created hierarchies",
+      status: "success",
+      description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
+      level: "success",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    }, HierarchiesModel);
 
     return reply.status(201).send({
       status_code: 201,
-      message: 'Hierarchy Created Successfully',
+      message: 'hierarchies Created Successfully',
       data: newItem,
-      trace_id:traceId,
+      trace_id: traceId,
     });
   } catch (error) {
     await transaction.rollback();
 
     logger({
-        trace_id:traceId,
-        actor: { user_name: user?.preferred_username, user_id: user?.sub },
-        data: request.body,
-        eventname: "creating hierarchies",
-        status: "error",
-        description: `Error creating hierarchies for ${program_id}`,
-        level: "error",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "creating hierarchies",
+      status: "error",
+      description: `Error creating hierarchies for ${program_id}`,
+      level: "error",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    },
       HierarchiesModel
     );
 
     console.error(error);
     return reply.status(500).send({
-      message: "Failed To Create Hierarchy",
+      message: "Failed To Create hierarchies",
       error: (error as any).message,
     });
   }
@@ -319,15 +324,28 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
 
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+
+  const userId = user?.sub;
   try {
     const hierarchy = await HierarchiesModel.findOne({
       where: { id, program_id, is_deleted: false },
     });
 
     if (!hierarchy) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: "Hierarchy not found",
         trace_id: traceId,
       });
@@ -337,22 +355,23 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update(updatableData, { transaction });
+        await hierarchy.update({ ...updatableData, modified_by: userId }, { transaction });
       } else {
-        await hierarchy.update(hierarchiesData, { transaction });
+        await hierarchy.update({ ...hierarchiesData, modified_by: userId }, { transaction });
       }
 
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,
-        message: "Hierarchy updated successfully",
+        message: "hierarchies updated successfully",
         trace_id: traceId,
       });
     } catch (error) {
       await transaction.rollback();
+      console.error('Error updating hierarchy:', error); // Add error logging
       return reply.status(500).send({
         status_code: 500,
-        message: "Failed to update hierarchy",
+        message: "Failed to update hierarchies",
         trace_id: traceId,
       });
     }
@@ -365,15 +384,26 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
+
 export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findOne({ where: { id } });
 
     if (!hierarchy) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: 'Hierarchy not found',
         trace_id: traceId
       });
@@ -382,7 +412,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     if (hierarchy.parent_hierarchy_id === null) {
       return reply.status(400).send({
         status_code: 400,
-        message: "This hierarchy cannot be deleted because it has no parent.",
+        message: "This hierarchies cannot be deleted because it has no parent.",
         trace_id: traceId
       });
     }
@@ -392,6 +422,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         is_deleted: true,
         is_enabled: false,
         modified_on: Date.now(),
+        modified_by:userId
       },
       { where: { id } }
     );
@@ -399,13 +430,13 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     if (updatedRows > 0) {
       reply.status(200).send({
         status_code: 200,
-        message: "Hierarchy deleted successfully",
+        message: "hierarchies deleted successfully",
         trace_id: traceId
       });
     } else {
       reply.status(404).send({
         status_code: 404,
-        message: "Hierarchy not found",
+        message: "hierarchies not found",
         trace_id: traceId
       });
     }
@@ -413,7 +444,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     console.error('Error deleting hierarchy:', error);
     reply.status(500).send({
       status_code: 500,
-      message: 'An error occurred while deleting the hierarchy.',
+      message: 'An error occurred while deleting the hierarchies.',
       error,
       trace_id: traceId
     });
@@ -579,10 +610,10 @@ export const getMasterDataForHeirarchies = async (
     });
 
     if (!results || results.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
+      return reply.status(404).send({
+        status_code: 404,
         trace_id: traceId,
-        message: 'No master data found for the provided hierarchy IDs.',
+        message: 'No master data found for the provided hierarchies IDs.',
         master_data: []
       });
     }
@@ -604,7 +635,8 @@ export const getMasterDataForHeirarchies = async (
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
-      message: error.message
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 };

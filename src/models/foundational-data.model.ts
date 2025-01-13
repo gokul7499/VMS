@@ -86,6 +86,10 @@ FoundationalData.init({
     depended_fields: {
         type: DataTypes.JSON,
         allowNull: true,
+    },
+    is_billable:{
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
     }
 }, {
     sequelize,

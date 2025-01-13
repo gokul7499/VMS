@@ -9,7 +9,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 
 export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { program_id: string, page?: number, limit?: number }; Querystring: { performed_by?: string, event_slug: string, date_range?: string, module_name?: string, event_name?: string, page?: number, limit?: number } }>, reply: FastifyReply) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id, page = 1, limit = 10 } = request.params;
         const { performed_by, event_slug, date_range, event_name, module_name } = request.query;
@@ -45,7 +45,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
                     ...(event_name ? { name: event_name } : {}),
                     ...(event_slug ? { slug: event_slug } : {})
                 }
-            },            
+            },
             {
                 model: Module,
                 as: 'module',
@@ -68,7 +68,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
                 status_code: 200,
                 message: 'Supporting Text not found.',
                 supportingText: [],
-                trace_id:traceId
+                trace_id: traceId
             });
         }
 
@@ -103,14 +103,14 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-            trace_id:traceId
+            trace_id: traceId
         });
     }
 };
 
 
 export const getSupportingText = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params;
         const supportingText = await supportingTextModel.findOne({
@@ -134,7 +134,7 @@ export const getSupportingText = async (request: FastifyRequest<{ Params: { id: 
                 status_code: 200,
                 message: 'Supporting Text not found.',
                 supportingText: [],
-                trace_id:traceId
+                trace_id: traceId
             });
         }
 
@@ -166,7 +166,7 @@ export const getSupportingText = async (request: FastifyRequest<{ Params: { id: 
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-            trace_id:traceId
+            trace_id: traceId
         });
     }
 };
@@ -177,20 +177,21 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found',trace_id:traceId });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
+    const userId = user?.sub
     logger(
         {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
                 user_name: user?.preferred_username,
-                user_id: user?.sub,
+                user_id: userId,
             },
             data: request.body,
             eventname: "creating supportingText",
@@ -216,17 +217,19 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
 
         const newSupportingText = await supportingTextModel.create({
             ...data,
+            created_by: userId,
+            modified_by: userId
         });
 
         reply.status(201).send({
             status_code: 201,
             message: `Supporting text created successfully.`,
             support_text_data: newSupportingText.id,
-            trace_id:traceId,
+            trace_id: traceId,
         });
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -246,7 +249,7 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     } catch (error: any) {
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
@@ -267,7 +270,7 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
             status_code: 500,
             message: 'Internal Server Error',
             error: error.message || 'Unknown error',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 };
@@ -276,7 +279,7 @@ export const updateSupportingText = async (
     request: FastifyRequest<{ Params: { id: string }; Body: Partial<supportingTextModel> }>,
     reply: FastifyReply
 ) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { id } = request.params;
     const {
         performed_by,
@@ -291,27 +294,97 @@ export const updateSupportingText = async (
         module_id,
         support_text_action,
     } = request.body;
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
+    }
+    const userId = user?.sub;
+
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "updating supportingText",
+            status: "info",
+            description: `Updating supportingText for ID: ${id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: id,
+            is_deleted: false,
+        },
+        supportingTextModel
+    );
 
     try {
         const supportingText = await supportingTextModel.findByPk(id);
 
         if (!supportingText) {
-            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found.' ,trace_id:traceId});
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: userId,
+                    },
+                    data: request.body,
+                    eventname: "update supportingText",
+                    status: "failed",
+                    description: `SupportingText with ID: ${id} not found.`,
+                    level: 'warning',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: id,
+                    is_deleted: false,
+                },
+                supportingTextModel
+            );
+            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found.', trace_id: traceId });
         }
 
         await supportingText.update({
+            modified_by: userId,
             performed_by: performed_by ?? supportingText.performed_by,
             is_enabled: typeof is_enabled === 'boolean' ? is_enabled : supportingText.is_enabled,
             is_deleted: typeof is_deleted === 'boolean' ? is_deleted : supportingText.is_deleted,
             created_on: created_on ?? supportingText.created_on,
             modified_on: modified_on ?? supportingText.modified_on,
-            created_by: created_by ?? supportingText.created_by,
-            modified_by: modified_by ?? supportingText.modified_by,
             program_id: program_id ?? supportingText.program_id,
             event_id: event_id ?? supportingText.event_id,
             module_id: module_id ?? supportingText.module_id,
             support_text_action: support_text_action ?? supportingText.support_text_action,
         });
+
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                data: request.body,
+                eventname: "update supportingText",
+                status: "success",
+                description: `Updated supportingText with ID: ${id} successfully.`,
+                level: 'success',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false,
+            },
+            supportingTextModel
+        );
 
         reply.send({
             status_code: 200,
@@ -319,18 +392,44 @@ export const updateSupportingText = async (
             support_text_data: supportingText,
             trace_id: traceId,
         });
-    } catch (error) {
-        reply.status(500).send({ status_code: 500, message: 'Internal Server Error' ,trace_id:traceId});
+    } catch (error: any) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                data: request.body,
+                eventname: "update supportingText",
+                status: "failed",
+                description: `Failed to update supportingText with ID: ${id}. Error: ${error.message}`,
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false,
+            },
+            supportingTextModel
+        );
+
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            error: error.message || 'Unknown error',
+            trace_id: traceId,
+        });
     }
 };
 
+
 export const deleteSupportingText = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const supportingText = await supportingTextModel.findByPk(request.params.id);
 
         if (!supportingText) {
-            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found' ,trace_id:traceId});
+            return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found', trace_id: traceId });
         }
 
         const [updated] = await supportingTextModel.update(
@@ -346,10 +445,9 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ status_code: 200, message: 'Supporting Text not Updated.' ,trace_id:traceId});
+            reply.status(200).send({ status_code: 200, message: 'Supporting Text not Updated.', trace_id: traceId });
         }
     } catch (error) {
-        reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id:traceId });
+        reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id: traceId });
     }
 };
-

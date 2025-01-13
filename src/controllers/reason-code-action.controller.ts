@@ -6,6 +6,8 @@ import { Module } from '../models/module.model';
 import { Op, where } from 'sequelize';
 import Event from '../models/event.model';
 import ReasonCodeModel from '../models/reason-code.model';
+import { sequelize } from '../config/instance';
+import { decodeToken } from '../middlewares/verifyToken';
 
 
 export async function createReasoncode(
@@ -13,6 +15,16 @@ export async function createReasoncode(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const reasoncode = request.body as {
             id: any;
@@ -48,7 +60,10 @@ export async function createReasoncode(
                 name: reason.name,
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
-                is_enabled: reason.is_enabled
+                is_enabled: reason.is_enabled,
+                program_id:reasoncode.program_id,
+                created_by: userId,
+                modified_by: userId,
             }))
         );
 
@@ -70,27 +85,35 @@ export async function createReasoncode(
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+
     try {
         const { page = 1, limit = 10, module_name, reasons_count, event_name } = request.query as {
-            page?: number,
-            limit?: number,
-            module_name?: string,
-            reasons_count?: number,
-            event_name?: string
+            page?: string | number;
+            limit?: string | number;
+            module_name?: string;
+            reasons_count?: number;
+            event_name?: string;
         };
 
-        const offset = (page - 1) * limit;
+        const pageNumber = parseInt(page as unknown as string, 10);
+        const limitNumber = parseInt(limit as unknown as string, 10);
+        const offset = (pageNumber - 1) * limitNumber;
 
-        const reasoncodes = await ReasonCodeActionModel.findAll({
-            where: {
-                is_deleted: false,
-                ...(module_name && {
-                    '$module.name$': { [Op.like]: `%${module_name}%` }
-                }),
-                ...(event_name && {
-                    '$supporting_text_event.name$': { [Op.like]: `%${event_name}%` }
-                })
-            },
+        const whereClause: any = {
+            is_deleted: false,
+            ...(module_name && {
+                '$module.name$': { [Op.like]: `%${module_name}%` }
+            }),
+            ...(event_name && {
+                '$supporting_text_event.name$': { [Op.like]: `%${event_name}%` }
+            }),
+            ...(reasons_count !== undefined && {
+                reasons_count: reasons_count
+            })
+        };
+
+        const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
+            where: whereClause,
             attributes: {
                 exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
             },
@@ -109,8 +132,8 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
                 },
             ],
             order: [['created_on', 'DESC']],
-            limit: Number(limit),
-            offset: Number(offset),
+            limit: limitNumber,
+            offset,
         });
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
@@ -127,47 +150,33 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
             };
         });
 
-        const filteredReasoncodes = reasons_count !== undefined
-            ? reasoncodesWithDetails.filter((rc) => rc.reasons_count === reasons_count)
-            : reasoncodesWithDetails;
-
-        const totalRecords = await ReasonCodeActionModel.count({
-            where: {
-                is_deleted: false,
-            }
-        });
-
-        if (!filteredReasoncodes || filteredReasoncodes.length === 0) {
-            return reply.status(200).send({
-                message: "Reasoncode not found",
-                reason_code_action: [],
-                totalRecords
-            });
-        }
-
         reply.status(200).send({
             status_code: 200,
-            message: 'Reasoncode retrive successfully ',
-            trace_id: traceId,
-            reason_code_action: filteredReasoncodes,
+            message: reasoncodesWithDetails.length
+                ? 'Reasoncode retrieved successfully'
+                : 'Reasoncode not found',
+            items_per_page: limitNumber,
             total_records: totalRecords,
+            reason_code_action: reasoncodesWithDetails,
+            trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
             trace_id: traceId,
-            error: error,
+            error: error.message,
         });
     }
 }
-
 
 export async function getReasoncodeById(
     request: FastifyRequest<{ Params: { program_id?: string; id: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    let transaction = await sequelize.transaction();
+
     try {
         const { program_id, id } = request.params;
 
@@ -177,8 +186,8 @@ export async function getReasoncodeById(
             const reasonCodes = await ReasonCodeModel.findAll({
                 where: { reason_code_id: id, program_id },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                transaction,
             });
-
             if (reasonCodes.length > 0) {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
                     where: { id },
@@ -188,16 +197,17 @@ export async function getReasoncodeById(
                             as: 'supporting_text_event',
                             attributes: ['id', 'name'],
                             where: { is_enabled: true },
-                            required: false,
+                            required: false
                         },
                         {
                             model: Module,
                             as: 'module',
                             attributes: ['id', 'name'],
                             where: { is_enabled: true },
-                            required: false,
+                            required: false
                         },
                     ],
+                    transaction
                 });
 
                 reasonCodeResponse = {
@@ -216,6 +226,8 @@ export async function getReasoncodeById(
                     })),
                 };
 
+                await transaction.commit();
+
                 return reply.status(200).send({
                     status_code: 200,
                     message: 'Reason code retrieved successfully',
@@ -233,16 +245,17 @@ export async function getReasoncodeById(
                     as: 'supporting_text_event',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false,
+                    required: false
                 },
                 {
                     model: Module,
                     as: 'module',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false,
+                    required: false
                 },
             ],
+            transaction
         });
 
         if (reasonCodeAction) {
@@ -257,6 +270,8 @@ export async function getReasoncodeById(
                 reason_codes: reason_codes || [],
             };
 
+            await transaction.commit();
+
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Reason code retrieved successfully',
@@ -265,12 +280,17 @@ export async function getReasoncodeById(
             });
         }
 
+        await transaction.rollback();
+
         return reply.status(404).send({
             status_code: 404,
             message: 'Reason code not found',
             trace_id: traceId,
         });
     } catch (error: any) {
+        if (transaction) {
+            await transaction.rollback();
+        }
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching reason code',
@@ -340,6 +360,16 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     const traceId = generateCustomUUID();
 
     const transaction = await ReasonCodeModel.sequelize?.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
 
     try {
         await ReasonCodeModel.destroy({
@@ -362,6 +392,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
                     ...reasonCodeData,
                     reason_code_id: id,
                     program_id,
+                    modified_by: userId,
                 },
                 { transaction }
             );
