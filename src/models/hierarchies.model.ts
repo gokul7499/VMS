@@ -113,6 +113,11 @@ hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    is_not_editable:{
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue:false
+    },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
