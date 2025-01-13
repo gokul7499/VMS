@@ -342,8 +342,8 @@ const userId=user?.sub
     });
 
     if (!hierarchy) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: "Hierarchy not found",
         trace_id: traceId,
       });
@@ -388,8 +388,8 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
     const hierarchy = await HierarchiesModel.findOne({ where: { id } });
 
     if (!hierarchy) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: 'Hierarchy not found',
         trace_id: traceId
       });
