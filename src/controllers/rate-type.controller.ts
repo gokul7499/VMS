@@ -269,7 +269,7 @@ function getQueryParams(query: any) {
 
 function parseBoolean(value: any): number | undefined {
   if (typeof value === "string") {
-    return value === "true" ? 1 : 0;
+    return value.toLowerCase() === "true" ? 1 : value.toLowerCase() === "false" ? 0 : undefined;
   }
   if (typeof value === "boolean") {
     return value ? 1 : 0;
@@ -291,7 +291,21 @@ function parseDateRange(dateRange: string): { startDate?: number, endDate?: numb
 
 async function fetchRateTypes(queryParams: any, program_id: string) {
   return await sequelize.query<{ total_records: any }>(
-    getAllRateTypes(queryParams.hasName, queryParams.hasId, !!queryParams.isEnabledValue, !!queryParams.isShiftRateValue, !!queryParams.isBaseRate, queryParams.hasDifferentialOn, queryParams.hasRateTypeCategory, queryParams.hasShiftType, queryParams.rateTypeCategoryLabels.length > 0, queryParams.startDate, queryParams.endDate, queryParams.pageSize, queryParams.offset),
+    getAllRateTypes(
+      queryParams.hasName, 
+      queryParams.hasId,
+      queryParams.isEnabledValue !== undefined,
+      queryParams.isShiftRateValue !== undefined,
+      queryParams.isBaseRate !== undefined,
+      queryParams.hasDifferentialOn,
+      queryParams.hasRateTypeCategory,
+      queryParams.hasShiftType,
+      queryParams.rateTypeCategoryLabels.length > 0,
+      queryParams.startDate,
+      queryParams.endDate,
+      queryParams.pageSize,
+      queryParams.offset
+    ),
     {
       replacements: {
         program_id,
