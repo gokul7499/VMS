@@ -63,7 +63,7 @@ export async function getHolidayCalendar(
     });
   } catch (error) {
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: 'An error occurred while fetching holidayCalendars.',
       trace_id: traceId,
       error,
@@ -142,16 +142,16 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-
+  const userId = user?.sub
   const traceId = generateCustomUUID();
 
   if (!holiday_calendar.is_all_hierarchies && (!holiday_calendar.hierarchy_units_ids || holiday_calendar.hierarchy_units_ids.length === 0)) {
@@ -160,7 +160,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId,
         },
         data: request.body,
         eventname: "create holiday calendar",
@@ -188,7 +188,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId,
         },
         data: request.body,
         eventname: "create holiday calendar",
@@ -211,14 +211,17 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
   }
 
   try {
-    await holidayCalendar.create({ ...holiday_calendar });
+    await holidayCalendar.create({
+      ...holiday_calendar, created_by: userId,
+      modified_by: userId,
+    });
 
     logger(
       {
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId,
         },
         data: request.body,
         eventname: "create holiday calendar",
@@ -244,7 +247,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
         trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
-          user_id: user?.sub,
+          user_id: userId,
         },
         data: request.body,
         eventname: "create holiday calendar",
@@ -274,8 +277,20 @@ export const updateHolidayCalendar = async (
 ) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
+
   try {
-    const [updatedCount] = await holidayCalendar.update(request.body as holidayCalendarData, { where: { program_id, id } });
+    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, modified_by: userId }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,
@@ -291,7 +306,7 @@ export const updateHolidayCalendar = async (
     }
   } catch (error) {
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: 'Internal Server error',
       trace_id: traceId,
       error
@@ -304,11 +319,21 @@ export async function deleteHolidayCalendar(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID()
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
   try {
     const { program_id, id } = request.params;
     const holidayCalendarData = await holidayCalendar.findOne({ where: { program_id, id } });
     if (holidayCalendarData) {
-      await holidayCalendar.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
+      await holidayCalendar.update({ is_deleted: true, is_enabled: false ,modified_by:userId}, { where: { program_id, id } });
       reply.status(204).send({
         status_code: 204,
         message: 'HolidayCalendar deleted successfully.',

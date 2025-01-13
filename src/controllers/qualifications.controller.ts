@@ -1,13 +1,28 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import Qualifications from '../models/qualificationsModel';
+import Qualifications from '../models/qualifications.model';
 import { QualificationData } from '../interfaces/qualifications.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import qualificationTypeModel from '../models/qualification-type-model';
 import { generateQualificationCode } from '../plugins/qualificationCodeGenerate';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createQualification = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const { program_id } = request.params as { program_id: string };
         const { name } = request.body as QualificationData;
@@ -24,7 +39,12 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
         }
 
         const QualificationsDataPayload = request.body as Omit<QualificationData, '_id'>;
-        const QualificationsData: any = await Qualifications.create({ ...QualificationsDataPayload, program_id });
+        const QualificationsData: any = await Qualifications.create({
+            ...QualificationsDataPayload,
+            program_id,
+            created_by: userId,
+            modified_by: userId
+        });
         reply.status(201).send({
             status_code: 201,
             message: 'Qualification Created Successfully.',
@@ -35,12 +55,12 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
             trace_id: traceId,
         });
     } catch (error) {
-        reply.status(500).send({ status_code:200,message: 'Error While Creating Qualification', error, trace_id: traceId });
+        reply.status(500).send({ status_code: 200, message: 'Error While Creating Qualification', error, trace_id: traceId });
     }
 };
 
 export async function bulkCreateQualifications(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const qualificationsDataPayload: QualificationData[] = request.body as QualificationData[];
         const { program_id } = request.params as { program_id: string };
@@ -82,7 +102,7 @@ export async function bulkCreateQualifications(request: FastifyRequest, reply: F
 }
 
 export async function getQualificationCode(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { qualification_type_id, title } = request.query as { qualification_type_id: string, title: string };
         const code = await generateQualificationCode(qualification_type_id, title);
@@ -94,17 +114,30 @@ export async function getQualificationCode(request: FastifyRequest, reply: Fasti
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({status_code:200, message: 'Qualification Type Not Found', Qualification: [] ,trace_id:traceId});
+            reply.status(200).send({ status_code: 200, message: 'Qualification Type Not Found', Qualification: [], trace_id: traceId });
         }
     } catch (error) {
-        reply.status(500).send({status_code:500, message: 'An Error Occurred While Generating Code', error ,trace_id:traceId});
+        reply.status(500).send({ status_code: 500, message: 'An Error Occurred While Generating Code', error, trace_id: traceId });
     }
 }
 
 export const updateQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const QualificationsData = request.body as QualificationData;
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const data = await Qualifications.findOne({
             where: {
@@ -112,7 +145,10 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
             }
         });
         if (data) {
-            await data.update(QualificationsData);
+            await data.update({
+                QualificationsData,
+                modified_by: userId,
+            });
             reply.status(201).send({
                 status_code: 201,
                 Qualification_id: id,
@@ -120,15 +156,28 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
                 message: 'Qualification Data Updated Successfully.',
             });
         } else {
-            reply.status(200).send({status_code:200, message: 'Qualification Not Found.',trace_id:traceId });
+            reply.status(200).send({ status_code: 200, message: 'Qualification Not Found.', trace_id: traceId });
         }
     } catch (error) {
-        reply.status(500).send({ status_code:500,message: ' An Error Occurred While Updating The Qualification', error, trace_id: traceId });
+        reply.status(500).send({ status_code: 500, message: ' An Error Occurred While Updating The Qualification', error, trace_id: traceId });
     }
 }
 
 export const deleteQualification = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = await Qualifications.findOne({
@@ -136,10 +185,10 @@ export const deleteQualification = async (request: FastifyRequest, reply: Fastif
         });
 
         if (!data) {
-            return reply.status(200).send({status_code:200, message: 'Qualification Not Found',trace_id:traceId });
+            return reply.status(200).send({ status_code: 200, message: 'Qualification Not Found', trace_id: traceId });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true });
+        await data.update({ is_enabled: false, is_deleted: true,modified_by: userId, });
         reply.status(200).send({
             status_code: 200,
             Qualifications_id: id,
@@ -147,7 +196,7 @@ export const deleteQualification = async (request: FastifyRequest, reply: Fastif
             message: 'Qualification Data Deleted Successfully'
         });
     } catch (error) {
-        reply.status(500).send({status_code:500, message: 'Error Deleting Qualification', error, trace_id: traceId});
+        reply.status(500).send({ status_code: 500, message: 'Error Deleting Qualification', error, trace_id: traceId });
     }
 }
 
@@ -155,7 +204,7 @@ export async function getAllQualifications(
     request: FastifyRequest<{ Params: QualificationData, Querystring: QualificationData }>,
     reply: FastifyReply
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const params = request.params as Partial<QualificationData>;
         const query = request.query as any;
@@ -199,7 +248,7 @@ export async function getAllQualifications(
                 status_code: 200,
                 message: "Qualification Not Found",
                 qualification: [],
-                trace_id:traceId
+                trace_id: traceId
             });
         }
 
@@ -235,7 +284,7 @@ export async function getAllQualifications(
 }
 
 export async function getQualificationById(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await Qualifications.findOne({
@@ -249,9 +298,9 @@ export async function getQualificationById(request: FastifyRequest, reply: Fasti
                 trace_id: traceId
             });
         } else {
-            reply.status(200).send({status_code:200, message: 'Qualification Not Found', Qualifications: [],trace_id:traceId });
+            reply.status(200).send({ status_code: 200, message: 'Qualification Not Found', Qualifications: [], trace_id: traceId });
         }
     } catch (error) {
-        reply.status(500).send({status_code:500, message: 'An Error Occurred While Fetching Qualification', error ,trace_id:traceId});
+        reply.status(500).send({ status_code: 500, message: 'An Error Occurred While Fetching Qualification', error, trace_id: traceId });
     }
 }

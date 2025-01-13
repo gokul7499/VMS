@@ -5,6 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import RateCardMapping from '../models/rate-card-mapping.model';
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
+import { decodeToken } from '../middlewares/verifyToken';
 import {
     rateCardQuery,
     getCountQuery,
@@ -14,6 +15,7 @@ import {
     existingPairQuery
 } from '../utility/queries';
 import hierarchies from '../models/hierarchies.model';
+import { isPlainObject } from 'lodash';
 
 export async function getAllRateCard(
     request: FastifyRequest<{
@@ -304,6 +306,16 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
     const { id, program_id } = request.params as { id: string, program_id: string };
     const RateCardConfigurationData = request.body as RateCardInterface;
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const data = await RateCardModel.findOne({
             where: { id, program_id, is_deleted: false },
@@ -318,7 +330,7 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
                 }
             );
         }
-        const UpdatedRateCardConfiguration = await data.update({RateCardConfigurationData,modified_on:Date.now()});
+        const UpdatedRateCardConfiguration = await data.update({RateCardConfigurationData,modified_on:Date.now(),modified_by:userId,});
         const { hierarchies } = UpdatedRateCardConfiguration as any;
         if (hierarchies) {
             const existingMappings = await RateCardMapping.findAll({
@@ -436,13 +448,24 @@ export async function deleteRateCardById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id } = request.params;
         const rateCard = await RateCardModel.findByPk(id);
         if (rateCard) {
-            await rateCard.update({
+            await  rateCard.update({
                 is_enabled: false,
                 is_deleted: true,
+                modified_by:userId,
             })
             reply.status(200).send({
                 status_code: 200,

@@ -79,13 +79,17 @@ FoundationalData.init({
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-            model: 'tenant',
+            model: 'user',
             key: 'id',
         },
     },
     depended_fields: {
         type: DataTypes.JSON,
         allowNull: true,
+    },
+    is_billable:{
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
     }
 }, {
     sequelize,

@@ -2,7 +2,10 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
 import { TimesheetExpenseRule } from '../interfaces/timesheet-expense-rule.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { getExpenseTypeAndRateType } from '../utility/queries';
+import { sequelize } from '../config/instance';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function createTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -11,9 +14,21 @@ export async function createTimesheetExpenseRule(
     const program_id = request.params.program_id;
     const timesheetRule = request.body as TimesheetExpenseRule;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    console.log("uuu",userId)
 
     try {
-        const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule,program_id });
+        const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule, program_id,  created_by: userId,
+            modified_by: userId, });
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -30,15 +45,29 @@ export async function createTimesheetExpenseRule(
     }
 }
 
+interface TimesheetExpenseRuleData {
+    id: string;
+    expense_line_item: any[];
+    expense_rate_type: any[];
+}
+
 export const getTimesheetExpenseRule = async (
     request: FastifyRequest<{
         Params: { program_id: string };
-        Querystring: { rule_name?: string; is_enabled?: boolean | string; modified_on?: string; page?: string; limit?: string };
+        Querystring: {
+            rule_name?: string;
+            rule_type: string;
+            rule_category: string;
+            is_enabled?: boolean | string;
+            modified_on?: string;
+            page?: string;
+            limit?: string;
+        };
     }>,
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
-    const { rule_name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+    const { rule_name, rule_type, rule_category, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
     const traceId = generateCustomUUID();
 
     try {
@@ -51,6 +80,13 @@ export const getTimesheetExpenseRule = async (
         if (rule_name) {
             whereCondition.rule_name = { [Op.like]: `%${rule_name}%` };
         }
+        if (rule_category) {
+            whereCondition.rule_category = { [Op.like]: `%${rule_category}%` };
+        }
+        if (rule_type) {
+            const ruleTypes = rule_type.split(',').map((type) => type.trim());
+            whereCondition.rule_type = { [Op.in]: ruleTypes };
+        }
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
@@ -62,15 +98,33 @@ export const getTimesheetExpenseRule = async (
                 whereCondition.modified_on = { [Op.between]: [startDate, endDate] };
             }
         }
-
-        const { rows: timesheetRule, count } = await TimesheetExpenseRuleModel.findAndCountAll({
+        const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
             where: whereCondition,
+            attributes: [
+                'id',
+                'rule_name',
+                'is_enabled',
+                'rule_type',
+                'rule_duration',
+                'is_penalty_rule_enabled',
+                'conditions',
+                'rule_category',
+                'modified_on',
+                'program_id',
+                'apply_rate_type',
+                'penalty_rules',
+                'expense_line_item',
+            ],
             limit: pageSize,
             offset,
-            order: [['modified_on', 'DESC']]
+            order: [['modified_on', 'DESC']],
+        });
+        const timesheetExpenseRules: TimesheetExpenseRuleData[] = await sequelize.query(getExpenseTypeAndRateType, {
+            replacements: { program_id },
+            type: QueryTypes.SELECT,
         });
 
-        if (timesheetRule.length === 0) {
+        if (timesheetRuleData.length === 0) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -78,22 +132,33 @@ export const getTimesheetExpenseRule = async (
                 timesheet_expense_rule: [],
             });
         }
+        const mergedRules = timesheetRuleData.map((rule) => {
+            const matchingExpenseData = timesheetExpenseRules.find(
+                (expenseRule) => expenseRule.id === rule.id
+            );
+            return {
+                ...rule.toJSON(),
+                expense_line_item: matchingExpenseData?.expense_line_item || [],
+                apply_rate_type: matchingExpenseData?.expense_rate_type || [],
+            };
+        });
 
+        // Response
         reply.status(200).send({
-            status_ode: 200,
+            status_code: 200,
             trace_id: traceId,
             message: 'Timesheet expense rule retrieved successfully.',
             items_per_page: pageSize,
             current_page: pageNumber,
-            total_records: count,
-            timesheet_expense_rule: timesheetRule
+            total_records: timesheetRuleData.length,
+            timesheet_expense_rule: mergedRules,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 };
@@ -123,18 +188,30 @@ export async function getTimesheetExpenseRuleById(
                 timesheet_expense_rule: [],
             });
         }
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 }
 
 export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = request.body as TimesheetExpenseRule;
@@ -151,18 +228,19 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
                 timesheet_expense_rule: []
             });
         }
-        await timesheetRule.update(data);
+        await timesheetRule.update({  data, modified_on: Date.now(),
+            modified_by:userId,});
         reply.status(201).send({
             status_code: 201,
             message: 'Timesheet expense rule updated successfully.',
             trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 }
@@ -172,12 +250,25 @@ export async function deleteTimesheetExpenseRule(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await TimesheetExpenseRuleModel.update({
             is_deleted: true,
             is_enabled: false,
             modified_on: Date.now(),
+            modified_by:userId,
         },
             { where: { id, program_id } }
         );
@@ -196,12 +287,12 @@ export async function deleteTimesheetExpenseRule(
                 message: 'No timesheet expense rule found.'
             });
         }
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while deleting.',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 }

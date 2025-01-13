@@ -33,6 +33,8 @@ class CustomField extends Model {
   modified_on: any;
   created_on: any;
   program_id: any;
+  modified_by:any;
+
 }
 
 CustomField.init(
@@ -150,6 +152,11 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
+    modified_by: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: true,
+  },
   },
   {
     sequelize,

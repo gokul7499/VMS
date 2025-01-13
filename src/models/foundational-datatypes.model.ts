@@ -60,6 +60,10 @@ FoundationalDataTypes.init(
     associations: {
       type: DataTypes.JSON,
       allowNull: true,
+    },
+    timesheet_master_data:{
+      type: DataTypes.BOOLEAN,
+        defaultValue: true,
     }
   },
   {

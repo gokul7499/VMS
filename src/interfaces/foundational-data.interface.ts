@@ -13,5 +13,6 @@ export interface FoundationalDataInterface {
     modified_on: number;
     created_by: string;
     modified_by: string;
-    depended_fields: any
+    depended_fields: any,
+    is_billable: boolean
 }
