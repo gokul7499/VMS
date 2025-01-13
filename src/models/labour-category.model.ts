@@ -35,6 +35,14 @@ IndustriesModel.init(
     created_on: {
       type: DataTypes.DOUBLE,
     },
+    created_by:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    modified_by:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     modified_on: {
       type: DataTypes.DOUBLE,
     },

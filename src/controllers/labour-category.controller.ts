@@ -21,6 +21,7 @@ export async function createIndustries(
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
+  const userId = user?.sub;
 
   if (!user) {
     return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
@@ -62,7 +63,7 @@ export async function createIndustries(
       });
     }
 
-    const item = await IndustriesModel.create({ ...labour_categories });
+    const item = await IndustriesModel.create({ ...labour_categories,created_by:userId,modified_by:userId });
     reply.status(201).send({
       status_code: 201,
       message:"Industries create successfully",
@@ -232,6 +233,17 @@ export async function updateIndustries(
     const labour_categories = request.body as IndustriesInterface;
     const { name, program_id } = request.body as { name: string, program_id: string };
 
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    
     const existingIndustryWithSameName = await IndustriesModel.findOne({
       where: {
         name,
@@ -249,7 +261,7 @@ export async function updateIndustries(
     }
 
     const [numRowsUpdated] = await IndustriesModel.update(
-      { ...labour_categories, modified_on: Date.now() },
+      { ...labour_categories, modified_on: Date.now(),modified_by:userId },
       { where: { id, program_id } }
     );
 
@@ -279,10 +291,21 @@ export async function deleteIndustries(
   const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     const [numRowsDeleted] = await IndustriesModel.update({
       is_deleted: true,
       is_enabled: false,
       modified_on: Date.now(),
+      modified_by:userId
     },
       { where: { id, program_id } }
     );
