@@ -51,6 +51,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
+    const userId = user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
             where: { name: name, program_id: program_id }
@@ -99,6 +100,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (grouped) {
             createdWorkflow = await WorkFlow.create({
                 ...workflowDataPayload,
+                created_by: userId,
+                modified_by: userId,
                 program_id,
                 workflow_id: grouped.id,
                 type: "child"
@@ -112,6 +115,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 ...workflowDataPayload,
                 program_id,
                 placement_order: 0,
+                created_by: userId,
+                modified_by: userId,
                 flow_count: 1,
                 type: "parent",
                 workflow_id: null
