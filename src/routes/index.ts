@@ -74,6 +74,7 @@ import jobTemplate from "./job-template.routes";
 import JobCategoryRoutes from "./job-category.routes";
 import invoiceConfigRoute from "./invoice-config.routes";
 import checklistRoutes from "./checklist.routes";
+import contactUsRoutes from './contactUs.route';
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -151,4 +152,5 @@ export default async function (app: FastifyInstance) {
   app.register(jobTemplate, { prefix: `${basePrefix}` });
   app.register(JobCategoryRoutes, { prefix: `${basePrefix}` });
   app.register(invoiceConfigRoute, { prefix: `${basePrefix}` })
+  app.register(contactUsRoutes, { prefix: `${basePrefix}` });
 }
