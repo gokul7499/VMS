@@ -23,12 +23,54 @@ export const createJobWorkFlow = async (
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
 
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
+
     const workflowData = {
         ...workflow,
         program_id,
+        created_by: userId,
+        modified_by: userId,
     };
+
+    logger({
+        trace_id: traceId,
+        actor: { user_name: user?.preferred_username, user_id: userId },
+        data: request.body,
+        eventname: "creating job workflow",
+        status: "in_progress",
+        description: `Creating job workflow for program ID: ${program_id}`,
+        level: "info",
+        action: request.method,
+        url: request.url,
+        entity_id: program_id,
+        is_deleted: false,
+    }, JobWorkFlowModel);
+
     try {
         const createdWorkflow = await JobWorkFlowModel.create(workflowData);
+
+        logger({
+            trace_id: traceId,
+            actor: { user_name: user?.preferred_username, user_id: userId },
+            data: request.body,
+            eventname: "created job workflow",
+            status: "success",
+            description: `Created job workflow for program ID: ${program_id} successfully: ${createdWorkflow.id}`,
+            level: "success",
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false,
+        }, JobWorkFlowModel);
 
         reply.status(201).send({
             status_code: 201,
@@ -37,13 +79,30 @@ export const createJobWorkFlow = async (
             message: 'Workflow created successfully.',
         });
     } catch (error) {
+        logger({
+            trace_id: traceId,
+            actor: { user_name: user?.preferred_username, user_id: userId },
+            data: request.body,
+            eventname: "creating job workflow",
+            status: "error",
+            description: `Error creating job workflow for program ID: ${program_id}`,
+            level: "error",
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false,
+        }, JobWorkFlowModel);
+
+        console.error(error);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating job workflow.',
             trace_id: traceId,
+            error: (error as any).message,
         });
     }
 };
+
 
 export const getAllJobWorkFlow = async (
     request: FastifyRequest<{
@@ -156,6 +215,7 @@ export const updateWorkflowStatus = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    const userId=user?.sub
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -271,7 +331,7 @@ export const updateWorkflowStatus = async (
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
 
-            await workflow.update({ levels, modified_on: new Date() });
+            await workflow.update({ levels, modified_on: new Date(),modified_by:userId });
             const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
             const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
 
