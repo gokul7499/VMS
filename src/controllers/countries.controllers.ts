@@ -1,9 +1,25 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import CountryModel from '../models/countries.model';
 import generateCustomUUID from '../utility/genrateTraceId';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+   
     try {
         const payload = request.body as {
             name: string,
@@ -11,7 +27,7 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
             iso_code_3: string,
             isd_code: string,
             min_phone_length: number,
-            max_phone_length: number,
+            max_phone_length: number, 
         };
 
         const newCountry: any = await CountryModel.create(payload);
@@ -19,13 +35,15 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
             status_code: 201,
             data: newCountry?.id,
             message: 'Country Created successfully',
-            trace_id:traceId,
+            trace_id: traceId,
+            created_by: userId,
+            modified_by:userId 
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to create Country',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error,
         });
     }
@@ -40,13 +58,13 @@ export const bulkUploadCountry = async (request: FastifyRequest, reply: FastifyR
             status_code: 201,
             data: createdCountries,
             message: 'Countries Created successfully',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to create Countries',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error,
         });
     }
@@ -83,13 +101,13 @@ export const getCountries = async (request: FastifyRequest, reply: FastifyReply)
                     ? "No Countries found"
                     : "Countries retrieved successfully",
             countries: countries,
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error) {
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to fetch Countries",
-            trace_id:traceId,
+            trace_id: traceId,
             error,
         });
     }
@@ -108,23 +126,23 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
         if (countries) {
             reply.status(200).send({
                 status_code: 200,
-                message:"Countries get successfully",
+                message: "Countries get successfully",
                 country: countries,
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
         else {
             reply.status(200).send({
                 status_code: 200,
                 message: "Countries not found",
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to fetch Countries',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error,
         });
     }
@@ -132,6 +150,17 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
 
 export const updateCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+
     try {
         const { id } = request.params as { id: string };
         const {
@@ -158,6 +187,8 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
                 isd_code,
                 min_phone_length,
                 max_phone_length,
+                created_by: userId,
+                modified_by:userId
             },
             {
                 where: { id },
@@ -167,20 +198,20 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country updated successfully',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country not found',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to update Country',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error,
         });
     }
@@ -188,12 +219,24 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
 
 export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params as { id: string };
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+
         const [updatedRows] = await CountryModel.update(
             {
                 is_enabled: false,
                 is_deleted: true,
+                modified_by:userId,
             },
             {
                 where: { id },
@@ -203,20 +246,20 @@ export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country Deleted successfully',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country not found',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to delete Country',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error,
         });
     }
