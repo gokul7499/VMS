@@ -20,7 +20,9 @@ import { Op, Transaction } from "sequelize";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
-const jobTempletRepositories = new JobTempletRepository()
+import { decodeToken } from "../middlewares/verifyToken";
+const jobTempletRepositories = new JobTempletRepository();
+
 export const getAllJobTemplates = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -195,6 +197,16 @@ export async function createJobTemplate(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   let transaction: Transaction | null = null;
 
   try {
@@ -237,6 +249,8 @@ export async function createJobTemplate(
         ...jobTemplateData,
         program_id,
         job_id,
+        created_by: userId,
+        modified_by: userId,
       },
       { transaction }
     );
@@ -392,6 +406,16 @@ export async function updateJobTemplate(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const { program_id, id } = request.params as {
       program_id: string;
@@ -419,8 +443,9 @@ export async function updateJobTemplate(
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
     updateData.modified_on = Date.now();
+    updateData.modified_by = userId;
     await jobTemplate.update(updateData);
-    
+
     await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
@@ -799,7 +824,7 @@ export async function getAllJobTempletsByHierarchies(
 
     reply.status(200).send({
       status_code: 200,
-      message:"Job template fetched successfully",
+      message: "Job template fetched successfully",
       job_templates: data,
       trace_id: traceId,
     });
