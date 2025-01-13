@@ -188,6 +188,60 @@ export async function getReasoncodeById(
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });
+            if(reasonCodes.length === 0) {
+                const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
+                    where: { reason_code_id: id },
+                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                    transaction,
+                });
+                if (reasonCodesWithoutProgram.length > 0) {
+                    const reasonCodeAction = await ReasonCodeActionModel.findOne({
+                        where: { id },
+                        include: [
+                            {
+                                model: Event,
+                                as: 'supporting_text_event',
+                                attributes: ['id', 'name'],
+                                where: { is_enabled: true },
+                                required: false
+                            },
+                            {
+                                model: Module,
+                                as: 'module',
+                                attributes: ['id', 'name'],
+                                where: { is_enabled: true },
+                                required: false
+                            },
+                        ],
+                        transaction
+                    });
+    
+                    reasonCodeResponse = {
+                        id: reasonCodes[0]?.id,
+                        module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+                        module_id: reasonCodeAction?.module?.id,
+                        event_name: reasonCodeAction?.supporting_text_event?.name,
+                        event_id: reasonCodeAction?.supporting_text_event?.id,
+                        program_id,
+                        reason_codes: reasonCodesWithoutProgram.map((reasonCode) => ({
+                            id: reasonCode.id,
+                            name: reasonCode.name,
+                            created_on: reasonCode.created_on,
+                            category: reasonCode.category,
+                            is_enabled: reasonCode.is_enabled,
+                        })),
+                    };
+    
+                    await transaction.commit();
+    
+                    return reply.status(200).send({
+                        status_code: 200,
+                        message: 'Reason code retrieved successfully',
+                        reason_code_action: reasonCodeResponse,
+                        trace_id: traceId,
+                    });
+                }
+            }
             if (reasonCodes.length > 0) {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
                     where: { id },
