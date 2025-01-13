@@ -5,6 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
 import { getExpenseTypeAndRateType } from '../utility/queries';
 import { sequelize } from '../config/instance';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function createTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -13,9 +14,21 @@ export async function createTimesheetExpenseRule(
     const program_id = request.params.program_id;
     const timesheetRule = request.body as TimesheetExpenseRule;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    console.log("uuu",userId)
 
     try {
-        const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule, program_id });
+        const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule, program_id,  created_by: userId,
+            modified_by: userId, });
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -187,6 +200,18 @@ export async function getTimesheetExpenseRuleById(
 
 export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = request.body as TimesheetExpenseRule;
@@ -203,7 +228,8 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
                 timesheet_expense_rule: []
             });
         }
-        await timesheetRule.update(data);
+        await timesheetRule.update({  data, modified_on: Date.now(),
+            modified_by:userId,});
         reply.status(201).send({
             status_code: 201,
             message: 'Timesheet expense rule updated successfully.',
@@ -224,12 +250,25 @@ export async function deleteTimesheetExpenseRule(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    let { name } = request.body as { name: string };
+    name = name.trim();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await TimesheetExpenseRuleModel.update({
             is_deleted: true,
             is_enabled: false,
             modified_on: Date.now(),
+            modified_by:userId,
         },
             { where: { id, program_id } }
         );
