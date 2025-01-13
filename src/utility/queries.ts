@@ -1298,6 +1298,7 @@ export const masterDataQuery = `
         h.default_currency,
         h.unit_of_measure,
         h.support_email,
+        h.is_not_editable,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
@@ -1947,6 +1948,7 @@ export const hierarchie = `
         h.default_currency,
         h.unit_of_measure,
         h.support_email,
+        h.is_not_editable,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
@@ -2030,6 +2032,8 @@ WITH user_data AS (
          u.user_type,
          u.is_associated,
          u.name_prefix,
+         u.role_id,
+
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
