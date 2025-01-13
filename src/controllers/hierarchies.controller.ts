@@ -99,7 +99,7 @@ export const getHierarchies = async (
     const hasName = !!name;
 
     const isEnabledValue =
-   is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+      is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
     let startDate;
     let endDate;
@@ -115,7 +115,7 @@ export const getHierarchies = async (
       replacements: {
         program_id,
         ...(hasName && { name: `%${name}%` }),
-       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
         ...(startDate !== undefined && { startDate }),
         ...(endDate !== undefined && { endDate }),
       },
@@ -189,8 +189,8 @@ export async function getHierarchiesById(
 
       return reply.status(200).send({
         status_code: 200,
-        message:"Hierarchies data get successfully",
-        trace_id: traceId,      
+        message: "Hierarchies data get successfully",
+        trace_id: traceId,
         hierarchies: hierarchy,
       });
     } else {
@@ -210,7 +210,7 @@ export async function getHierarchiesById(
 
 
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
-  const { program_id } = request.params as { program_id: string }; 
+  const { program_id } = request.params as { program_id: string };
   const hierarchie = request.body as hierarchiesData;
   const hierarchyName = hierarchie.name;
   const hierarchyCode = hierarchie.code;
@@ -225,20 +225,20 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   if (!user) {
     return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
-
+  const userId = user?.sub
   logger({
-      trace_id:traceId,
-      actor: { user_name: user?.preferred_username, user_id: user?.sub },
-      data: request.body,
-      eventname: "creating hierarchies",
-      status: "in_progress",
-      description: `Creating hierarchies for ${program_id}`,
-      level: 'info',
-      action: request.method,
-      url: request.url,
-      entity_id: program_id,
-      is_deleted: false
-    }, HierarchiesModel);
+    trace_id: traceId,
+    actor: { user_name: user?.preferred_username, user_id: userId },
+    data: request.body,
+    eventname: "creating hierarchies",
+    status: "in_progress",
+    description: `Creating hierarchies for ${program_id}`,
+    level: 'info',
+    action: request.method,
+    url: request.url,
+    entity_id: program_id,
+    is_deleted: false
+  }, HierarchiesModel);
 
   const transaction = await sequelize.transaction();
   try {
@@ -256,48 +256,53 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     }
 
     const newItem = await HierarchiesModel.create(
-      { ...hierarchie, program_id }, 
+      {
+        ...hierarchie,
+        program_id,
+        created_by: userId,
+        modified_by: userId,
+      },
       { transaction }
     );
 
     await transaction.commit();
 
     logger({
-        trace_id:traceId,
-        actor: { user_name: user?.preferred_username, user_id: user?.sub },
-        data: request.body,
-        eventname: "created hierarchies",
-        status: "success",
-        description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
-        level: "success",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },HierarchiesModel);
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "created hierarchies",
+      status: "success",
+      description: `Created hierarchies for ${program_id} successfully: ${newItem.id}`,
+      level: "success",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    }, HierarchiesModel);
 
     return reply.status(201).send({
       status_code: 201,
       message: 'Hierarchy Created Successfully',
       data: newItem,
-      trace_id:traceId,
+      trace_id: traceId,
     });
   } catch (error) {
     await transaction.rollback();
 
     logger({
-        trace_id:traceId,
-        actor: { user_name: user?.preferred_username, user_id: user?.sub },
-        data: request.body,
-        eventname: "creating hierarchies",
-        status: "error",
-        description: `Error creating hierarchies for ${program_id}`,
-        level: "error",
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false,
-      },
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "creating hierarchies",
+      status: "error",
+      description: `Error creating hierarchies for ${program_id}`,
+      level: "error",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    },
       HierarchiesModel
     );
 
@@ -319,7 +324,18 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+}
 
+const token = authHeader.split(' ')[1];
+let user: any = await decodeToken(token);
+
+if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+}
+const userId=user?.sub
   try {
     const hierarchy = await HierarchiesModel.findOne({
       where: { id, program_id, is_deleted: false },
@@ -337,9 +353,9 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update(updatableData, { transaction });
+        await hierarchy.update({updatableData,modified_by:userId}, { transaction });
       } else {
-        await hierarchy.update(hierarchiesData, { transaction });
+        await hierarchy.update({hierarchiesData,modified_by:userId}, { transaction });
       }
 
       await transaction.commit();
