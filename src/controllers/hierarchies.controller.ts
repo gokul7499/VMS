@@ -383,6 +383,16 @@ const userId=user?.sub
 
 export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findOne({ where: { id } });
@@ -408,6 +418,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         is_deleted: true,
         is_enabled: false,
         modified_on: Date.now(),
+        modified_by:userId
       },
       { where: { id } }
     );
