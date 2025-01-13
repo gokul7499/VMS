@@ -3,14 +3,25 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
 import { TimesheetExpenseRuleGroupData } from '../interfaces/timesheet-expense-rule-group.interface';
 import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
         const { timesheet_expense_rules_group_mapping, ...data } = request.body as any;
 
-        const newConfig = await TimesheetExpenseRuleGroup.create({ program_id, ...data });
+        const newConfig = await TimesheetExpenseRuleGroup.create({ program_id, ...data, modified_by:userId, created_by : userId});
 
         reply.status(201).send({
             status_code: 201,
@@ -149,10 +160,20 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
 export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
-    const updates = request.body as Partial<TimesheetExpenseRuleGroupData>; // Updated to simplify the input
+    const updates = request.body as Partial<TimesheetExpenseRuleGroupData>;
+    const authHeader = request.headers.authorization;
 
     try {
-        const [updatedCount] = await TimesheetExpenseRuleGroup.update(updates, {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+        const [updatedCount] = await TimesheetExpenseRuleGroup.update({...updates, modified_by:userId}, {
             where: { id, program_id },
         });
         if (updatedCount === 0) {
@@ -178,8 +199,18 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
 
 export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params as { id: string };
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({ where: { id, is_deleted: false } });
         if (!ruleGroup) {
             return reply.status(200).send({
@@ -188,7 +219,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
                 trace_id: traceId,
             });
         }
-        await ruleGroup.update({ is_deleted: true, is_enabled: false });
+        await ruleGroup.update({ is_deleted: true, is_enabled: false, modified_by:userId });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group deleted successfully.',
