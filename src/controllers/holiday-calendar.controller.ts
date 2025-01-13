@@ -319,11 +319,21 @@ export async function deleteHolidayCalendar(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID()
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
   try {
     const { program_id, id } = request.params;
     const holidayCalendarData = await holidayCalendar.findOne({ where: { program_id, id } });
     if (holidayCalendarData) {
-      await holidayCalendar.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
+      await holidayCalendar.update({ is_deleted: true, is_enabled: false ,modified_by:userId}, { where: { program_id, id } });
       reply.status(204).send({
         status_code: 204,
         message: 'HolidayCalendar deleted successfully.',

@@ -325,17 +325,19 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
+  
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-}
+  }
 
-const token = authHeader.split(' ')[1];
-let user: any = await decodeToken(token);
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
 
-if (!user) {
+  if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-}
-const userId=user?.sub
+  }
+
+  const userId = user?.sub;
   try {
     const hierarchy = await HierarchiesModel.findOne({
       where: { id, program_id, is_deleted: false },
@@ -353,9 +355,9 @@ const userId=user?.sub
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update({updatableData,modified_by:userId}, { transaction });
+        await hierarchy.update({ ...updatableData, modified_by: userId }, { transaction });
       } else {
-        await hierarchy.update({hierarchiesData,modified_by:userId}, { transaction });
+        await hierarchy.update({ ...hierarchiesData, modified_by: userId }, { transaction });
       }
 
       await transaction.commit();
@@ -366,6 +368,7 @@ const userId=user?.sub
       });
     } catch (error) {
       await transaction.rollback();
+      console.error('Error updating hierarchy:', error); // Add error logging
       return reply.status(500).send({
         status_code: 500,
         message: "Failed to update hierarchy",
@@ -381,8 +384,19 @@ const userId=user?.sub
   }
 }
 
+
 export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findOne({ where: { id } });
@@ -408,6 +422,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         is_deleted: true,
         is_enabled: false,
         modified_on: Date.now(),
+        modified_by:userId
       },
       { where: { id } }
     );
