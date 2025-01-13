@@ -6,6 +6,7 @@ import { Module } from '../models/module.model';
 import { Op, where } from 'sequelize';
 import Event from '../models/event.model';
 import ReasonCodeModel from '../models/reason-code.model';
+import { sequelize } from '../config/instance';
 
 
 export async function createReasoncode(
@@ -48,7 +49,8 @@ export async function createReasoncode(
                 name: reason.name,
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
-                is_enabled: reason.is_enabled
+                is_enabled: reason.is_enabled,
+                program_id:reasoncode.program_id
             }))
         );
 
@@ -160,6 +162,8 @@ export async function getReasoncodeById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    let transaction = await sequelize.transaction();
+    
     try {
         const { program_id, id } = request.params;
 
@@ -169,8 +173,8 @@ export async function getReasoncodeById(
             const reasonCodes = await ReasonCodeModel.findAll({
                 where: { reason_code_id: id, program_id },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                transaction,
             });
-
             if (reasonCodes.length > 0) {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
                     where: { id },
@@ -180,16 +184,17 @@ export async function getReasoncodeById(
                             as: 'supporting_text_event',
                             attributes: ['id', 'name'],
                             where: { is_enabled: true },
-                            required: false,
+                            required: false
                         },
                         {
                             model: Module,
                             as: 'module',
                             attributes: ['id', 'name'],
                             where: { is_enabled: true },
-                            required: false,
+                            required: false
                         },
                     ],
+                    transaction
                 });
 
                 reasonCodeResponse = {
@@ -208,6 +213,8 @@ export async function getReasoncodeById(
                     })),
                 };
 
+                await transaction.commit();
+
                 return reply.status(200).send({
                     status_code: 200,
                     message: 'Reason code retrieved successfully',
@@ -225,16 +232,17 @@ export async function getReasoncodeById(
                     as: 'supporting_text_event',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false,
+                    required: false 
                 },
                 {
                     model: Module,
                     as: 'module',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false,
+                    required: false 
                 },
             ],
+            transaction
         });
 
         if (reasonCodeAction) {
@@ -249,6 +257,8 @@ export async function getReasoncodeById(
                 reason_codes: reason_codes || [],
             };
 
+            await transaction.commit();
+
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Reason code retrieved successfully',
@@ -257,12 +267,17 @@ export async function getReasoncodeById(
             });
         }
 
+        await transaction.rollback();
+
         return reply.status(404).send({
             status_code: 404,
             message: 'Reason code not found',
             trace_id: traceId,
         });
     } catch (error: any) {
+        if (transaction) {
+            await transaction.rollback();
+        }
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching reason code',
