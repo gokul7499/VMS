@@ -62,10 +62,16 @@ Event.init(
       },
       beforeSave: (instance) => {
         beforeSave(instance);
-      },
+        if (instance.name) {
+          instance.slug = generateSlug(instance.name, {
+            lowercase: true,
+            removedspecial: true,
+            replacewithhyphens: true
+          });
+      }
     },
-  }
-);
+  },}
+); 
 
 Event.belongsTo(Module, { foreignKey: "module_id", as: "module" });
 
