@@ -7,6 +7,7 @@ import { Op, where } from 'sequelize';
 import Event from '../models/event.model';
 import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
+import { decodeToken } from '../middlewares/verifyToken';
 
 
 export async function createReasoncode(
@@ -14,6 +15,16 @@ export async function createReasoncode(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const reasoncode = request.body as {
             id: any;
@@ -50,7 +61,9 @@ export async function createReasoncode(
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
                 is_enabled: reason.is_enabled,
-                program_id:reasoncode.program_id
+                program_id:reasoncode.program_id,
+                created_by: userId,
+                modified_by: userId,
             }))
         );
 
@@ -147,7 +160,7 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
             reason_code_action: reasoncodesWithDetails,
             trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
@@ -163,7 +176,7 @@ export async function getReasoncodeById(
 ) {
     const traceId = generateCustomUUID();
     let transaction = await sequelize.transaction();
-    
+
     try {
         const { program_id, id } = request.params;
 
@@ -232,14 +245,14 @@ export async function getReasoncodeById(
                     as: 'supporting_text_event',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false 
+                    required: false
                 },
                 {
                     model: Module,
                     as: 'module',
                     attributes: ['id', 'name'],
                     where: { is_enabled: true },
-                    required: false 
+                    required: false
                 },
             ],
             transaction
@@ -347,6 +360,16 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     const traceId = generateCustomUUID();
 
     const transaction = await ReasonCodeModel.sequelize?.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
 
     try {
         await ReasonCodeModel.destroy({
@@ -369,6 +392,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
                     ...reasonCodeData,
                     reason_code_id: id,
                     program_id,
+                    modified_by: userId,
                 },
                 { transaction }
             );

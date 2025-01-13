@@ -3,6 +3,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { passwordPolicyData } from "../interfaces/password-policy.interface";
 import { baseSearch } from "../utility/baseService";
 import generateCustomUUID from "../utility/genrateTraceId";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function getPasswordPolicy(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id'];
@@ -22,7 +23,7 @@ export async function getPasswordPolicyById(
             reply.status(200).send({
                 status_code: 200,
                 message: 'PasswordPolicy fetch Successfully.',
-                trace_id:traceId,
+                trace_id: traceId,
                 password_policy: password_policy
             });
         } else {
@@ -34,7 +35,7 @@ export async function getPasswordPolicyById(
         }
     } catch (error) {
         reply.status(500).send({
-            status_code:500,
+            status_code: 500,
             message: 'An error occurred while fetching PasswordPolicy.',
             trace_id: traceId,
             error: error,
@@ -45,8 +46,24 @@ export async function getPasswordPolicyById(
 export const createPasswordPolicy = async (request: FastifyRequest, reply: FastifyReply) => {
     const password_policy = request.body as passwordPolicyData;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
+  
+    
     try {
-        await passwordPolicyModel.create({ ...password_policy });
+        await passwordPolicyModel.create({
+            ...password_policy,
+            created_by: userId,
+            modified_by: userId,
+        });
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -57,7 +74,7 @@ export const createPasswordPolicy = async (request: FastifyRequest, reply: Fasti
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating PasswordPolicy.',
-            trace_id:traceId,
+            trace_id: traceId,
             error: (error as Error).message,
         });
     }
@@ -69,8 +86,19 @@ export async function updatePasswordPolicy(
 ) {
     const traceId = generateCustomUUID();
     const { id } = request.params;
+    const data = request.body as passwordPolicyData
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
-        const [updatedCount] = await passwordPolicyModel.update(request.body as passwordPolicyData, { where: { id } });
+        const [updatedCount] = await passwordPolicyModel.update({ ...data, modified_by: userId, }, { where: { id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -85,9 +113,9 @@ export async function updatePasswordPolicy(
         }
     } catch (error) {
         reply.status(500).send({
-            status_code:500,
+            status_code: 500,
             message: 'Internal Server error',
-            trace_id:traceId,
+            trace_id: traceId,
             error
         });
     }
@@ -98,11 +126,21 @@ export async function deletePasswordPolicy(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub
     try {
         const { program_id, id } = request.params;
         const passwordPolicyData = await passwordPolicyModel.findOne({ where: { program_id, id } });
         if (passwordPolicyData) {
-            await passwordPolicyModel.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
+            await passwordPolicyModel.update({ is_deleted: true, is_enabled: false, modified_by: userId, }, { where: { program_id, id } });
             reply.status(204).send({
                 status_code: 204,
                 message: 'PasswordPolicy deleted successfully.',
@@ -116,7 +154,7 @@ export async function deletePasswordPolicy(
         }
     } catch (error) {
         reply.status(500).send({
-            status_code:500,
+            status_code: 500,
             message: 'Internal Server error',
             trace_id: traceId,
             error
