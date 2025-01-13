@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { Module } from "./module.model";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import generateSlug from '../plugins/slugGenerate';
 
 class Event extends Model {
   id: any;
@@ -61,10 +62,16 @@ Event.init(
       },
       beforeSave: (instance) => {
         beforeSave(instance);
-      },
+        if (instance.name) {
+          instance.slug = generateSlug(instance.name, {
+            lowercase: true,
+            removedspecial: true,
+            replacewithhyphens: true
+          });
+      }
     },
-  }
-);
+  },}
+); 
 
 Event.belongsTo(Module, { foreignKey: "module_id", as: "module" });
 
