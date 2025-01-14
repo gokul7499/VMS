@@ -33,7 +33,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
     if (!groupPolicies || groupPolicies.length === 0) {
       try {
         const apiResponse = await axios.get(
-          `https://v4-dev.simplifysandbox.net/auth/v1/api/policy/user/tenant/${programId}`,
+          `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
