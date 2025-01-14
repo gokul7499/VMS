@@ -29,7 +29,7 @@ export async function getTenants(
 
         const tenants = await Tenant.findAll({
             where: whereClause,
-            attributes: ["id", "name", "contacts", "created_on", "is_enabled", "vendor_industry"],
+            attributes: ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "vendor_industry"],
             order: [["created_on", "DESC"]],
         });
 
