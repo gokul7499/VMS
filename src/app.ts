@@ -17,38 +17,11 @@ app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
-app.get("/", async (request, reply) => {
-  reply.send({ message: "Welcome to Fastify API with Redis!" });
-});
-
 app.register(formBodyPlugin);
-
-app.get("/config/health-check", async (request, reply) => {
-  const startTime = Date.now();
-  try {
-    app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
-    const connectionStatus = await checkDatabaseConnection();
-    app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
-    const latency = Date.now() - startTime;
-    return reply.status(connectionStatus.connected ? 200 : 503).send({
-      status: connectionStatus.connected ? "connected" : "disconnected",
-      message: connectionStatus.message,
-      database: connectionStatus.database,
-      service: "config",
-      timestamp: new Date().toISOString(),
-      latency: latency,
-    });
-  } catch (error) {
-    return reply.status(500).send({
-      status: "error",
-      message: "Failed to check database connection",
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
 
 const start = async () => {
   try {
+    // Initialize Sequelize and check DB connection
     await initializeSequelize();
     const dbStatus = await checkDatabaseConnection();
 
@@ -56,8 +29,35 @@ const start = async () => {
       throw new Error(dbStatus.message);
     }
 
+    // Register health-check route after DB connection is confirmed
+    app.get("/config/health-check", async (request, reply) => {
+      const startTime = Date.now();
+      try {
+        app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
+        const connectionStatus = await checkDatabaseConnection();
+        app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
+        const latency = Date.now() - startTime;
+        return reply.status(connectionStatus.connected ? 200 : 503).send({
+          status: connectionStatus.connected ? "connected" : "disconnected",
+          message: connectionStatus.message,
+          database: connectionStatus.database,
+          service: "config",
+          timestamp: new Date().toISOString(),
+          latency: latency,
+        });
+      } catch (error) {
+        return reply.status(500).send({
+          status: "error",
+          message: "Failed to check database connection",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    // Register other routes here
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
+
     const port = 8000;
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
