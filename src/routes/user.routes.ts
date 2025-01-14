@@ -6,13 +6,7 @@ import { Permissions, Actions } from "../constants/permissions";
 async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/user/', getUser);
     fastify.get('/user/:id', getUserById);
-    fastify.post('/user/', {
-        preHandler: validatePermissions,
-        config: {
-            permissions: [Permissions.USER],
-            action: Actions.CREATE,
-        },
-    }, createUser);
+    fastify.post('/user/',createUser);
     fastify.put('/user/:id/program/:program_id', {
         preHandler: validatePermissions,
         config: {
