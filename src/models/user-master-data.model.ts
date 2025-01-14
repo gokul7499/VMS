@@ -28,7 +28,7 @@ UserMasterDataModel.init({
         type: DataTypes.UUID,
         allowNull: true
     },
-    foundation_data_type_id: {
+    master_data: {
         type: DataTypes.UUID,
         allowNull: true,
         references: {
@@ -36,7 +36,7 @@ UserMasterDataModel.init({
             key: 'id'
         }
     },
-    foundation_data_ids: {
+    associated_master_data: {
         type: DataTypes.JSON,
         allowNull: true
     },
@@ -48,18 +48,10 @@ UserMasterDataModel.init({
             key: 'id'
         }
     },
-    is_associated: {
+    is_all_associated: {
         type: DataTypes.BOOLEAN,
         allowNull: true
-    },
-    hierarchy_id: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'hierarchies',
-            key: 'id'
-        }
-    },
+    }
 }, {
     sequelize,
     tableName: 'user_master_data',
@@ -75,7 +67,5 @@ UserMasterDataModel.init({
 
 sequelize.sync();
 UserMasterDataModel.belongsTo(FoundationalData, { foreignKey: 'default_master_data', as: 'default_master_datas' });
-UserMasterDataModel.belongsTo(FoundationalDataTypes, { foreignKey: 'foundation_data_type_id', as: 'foundation_data_type' });
-UserMasterDataModel.belongsTo(hierarchies, { foreignKey: 'hierarchy_id', as: 'hierarchies' });
-
+UserMasterDataModel.belongsTo(FoundationalDataTypes, { foreignKey: 'master_data', as: 'foundation_data_type' });
 export default UserMasterDataModel;

@@ -10,6 +10,12 @@ import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
 
 interface HierarchyItem {
+  support_email: any;
+  default_date_format: any;
+  default_currency: any;
+  default_language: any;
+  is_hide_candidate_img: any;
+  default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
   name: string;
@@ -63,6 +69,12 @@ export const getHierarchiesByProgram = async (
             modified_on: item.modified_on,
             code: item.code,
             program_id: item.program_id,
+            default_timezone:item.default_timezone,
+            is_hide_candidate_img:item.is_hide_candidate_img,
+            default_language:item.default_language,
+            default_currency:item.default_currency,
+            default_date_format:item.default_date_format,
+            support_email:item.support_email,
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -75,11 +87,12 @@ export const getHierarchiesByProgram = async (
       trace_id: traceId,
       hierarchies: nestedHierarchy,
     });
-  } catch (error) {
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching hierarchies by program',
       trace_id: traceId,
+      error:error.message
     });
   }
 };
