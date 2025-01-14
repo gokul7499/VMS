@@ -14,6 +14,7 @@ import { generateCandidateCode } from "../utility/code-genrate-service";
 import { getMasterData, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -146,6 +147,19 @@ export async function getUserHierarchiesByProgram(
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
 
   try {
     const { user, user_group_mapping } = request.body as {
@@ -185,24 +199,24 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type : user_group_mapping.user_type;
 
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...user, user_type: userType }, { transaction });
+      newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
       const candidateId = await generateCandidateCode(program_id);
-      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId }, { transaction });
+      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId,created_by: userId,modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_type: userType }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
         const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName }, { transaction });
+        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName,created_by: userId,modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...user, user_type: userType }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...user, user_type: userType }, { transaction });
+      newUser = await User.create({ ...user, user_type: userType ,created_by: userId,modified_by: userId,}, { transaction });
     }
 
     const foundationalData = user.foundational_data;
@@ -218,6 +232,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
                 foundation_data_ids: masterData.foundation_data_ids,
                 default_master_data: masterData.default_master_data,
                 is_associated: masterData.is_associated || false,
+                created_by: userId,
+                modified_by: userId,
               },
               { transaction }
             );
@@ -229,10 +245,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping }, { transaction });
+        await UserMapping.create({ ...mapping,created_by: userId,modified_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping }, { transaction });
+      await UserMapping.create({ ...user_group_mapping,created_by: userId,modified_by: userId, }, { transaction });
     }
 
     await transaction.commit();
@@ -267,6 +283,19 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const user = await User.findOne({
       where: { id, program_id }
@@ -280,7 +309,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user: []
       });
     }
-    await user.update(updates);
+    await user.update({updates,modified_by: userId,});
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
 
@@ -324,6 +353,19 @@ export async function deleteUser(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+  
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+  
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
   try {
     const { id } = request.params;
     const numRowsDeleted = await User.destroy({ where: { id } });

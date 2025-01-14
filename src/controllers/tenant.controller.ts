@@ -18,6 +18,7 @@ export async function getTenants(
 ) {
     const { is_enabled } = request.query;
     const traceId = generateCustomUUID();
+    
     try {
         const whereClause: any = { is_deleted: false };
 
@@ -270,10 +271,21 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
     const { id } = request.params as { id: string };
     const TenantData = request.body as TenantData;
     const traceId = generateCustomUUID();
+    
     try {
         const tenant: Tenant | null = await Tenant.findByPk(id);
+        const authHeader = request.headers.authorization; 
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         if (tenant) {
-            await tenant.update(TenantData);
+            await tenant.update({...TenantData, modified_by:userId});
             reply.status(200).send({
                 status_code: 200,
                 message: 'Tenant updated successfully.',
@@ -292,9 +304,21 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
 export async function deleteTenant(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
     try {
+
         const tenant = await Tenant.findByPk(id);
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         if (tenant) {
+           
             await tenant.destroy();
             reply.status(200).send({
                 status_code: 200,

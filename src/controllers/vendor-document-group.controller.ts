@@ -27,7 +27,7 @@ export async function createVendordocumentsgroup(
     if (!user) {
         return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
-
+    const userId = user?.sub;
     try {
         const existingDocument = await vendordocumentgroupModel.findOne({
             where: {
@@ -45,14 +45,15 @@ export async function createVendordocumentsgroup(
         }
         const total_documents = Array.isArray(required_documents) ? required_documents.length : 0;
 
-        const item = await vendordocumentgroupModel.create({ ...vendorDocumentsGroup ,total_documents});
+        const item = await vendordocumentgroupModel.create({ ...vendorDocumentsGroup ,total_documents,created_by: userId,
+            modified_by: userId,});
 
         logger(
             {
                 trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId,
                 },
                 data: request.body,
                 eventname: "creating vendor documents group",
@@ -79,7 +80,7 @@ export async function createVendordocumentsgroup(
                 trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId,
                 },
                 data: request.body,
                 eventname: "created vendor documents group",
@@ -99,7 +100,7 @@ export async function createVendordocumentsgroup(
                 trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId,
                 },
                 data: request.body,
                 eventname: "creating vendor documents group",
@@ -300,7 +301,16 @@ export async function updateVendordocumentsgroup(
     const documentGroupData = request.body as Partial<VendorDocumentGroup>;
     const { required_documents, name } = documentGroupData;
     const traceId = generateCustomUUID();
-  
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
       const documentGroup = await vendordocumentgroupModel.findOne({
         where: {
@@ -345,6 +355,7 @@ export async function updateVendordocumentsgroup(
       await documentGroup.update({
         ...documentGroupData,
         total_documents,
+        modified_by: userId
       });
   
       return reply.status(200).send({
@@ -365,6 +376,16 @@ export async function deleteVendordocumentsgroup(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     const traceId=generateCustomUUID();
     try {
         const { id, program_id } = request.params;
@@ -373,7 +394,7 @@ export async function deleteVendordocumentsgroup(
             modified_on: Date.now(),
             is_deleted: true
         },
-            { where: { id, program_id } }
+            { where: { id, program_id,modified_by: userId } }
         );
 
         if (numRowsDeleted > 0) {

@@ -7,6 +7,8 @@ import { QueryTypes, Op } from 'sequelize';
 import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import expenseTypeHierarchie from "../models/expense-type-hierarchie.model";
+import { decodeToken } from "../middlewares/verifyToken";
+import { logger } from "../utility/loggerService";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{ Params: { program_id: string }, Querystring: { page?: string, limit?: string } }>,
@@ -144,16 +146,78 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
         });
     }
 }
-
-export async function createExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
-    const { program_id } = request.params as { program_id: string };
+export async function createExpenseConfiguration(
+    request: FastifyRequest<{ Params: { program_id: string } }>,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+
+    logger(
+        {
+            traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating expense configuration",
+            status: "info",
+            description: `Creating expense configuration for program_id ${request.params.program_id}`,
+            level: "info",
+            action: request.method,
+            url: request.url,
+            entity_id: request.params.program_id,
+            is_deleted: false,
+            created_by: user.sub,
+            updated_by: user.sub,
+        },
+        ExpenseConfigurationModel
+    );
 
     try {
-
+        const { program_id } = request.params as { program_id: string };
         const expenseConfig: ExpenseConfigurationAttributes = request.body as ExpenseConfigurationAttributes;
 
-        const expenseConfigData = await ExpenseConfigurationModel.create({ ...expenseConfig, program_id });
+        const expenseConfigData = await ExpenseConfigurationModel.create({
+            ...expenseConfig,
+            program_id,
+            created_by: user.sub,
+            updated_by: user.sub,
+        });
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: expenseConfig,
+                eventname: "expense configuration created",
+                status: "success",
+                description: `Expense configuration created successfully for program_id ${program_id}`,
+                level: "success",
+                action: request.method,
+                url: request.url,
+                entity_id: expenseConfigData.id,
+                is_deleted: false,
+                created_by: user.sub,
+                updated_by: user.sub,
+            },
+            ExpenseConfigurationModel
+        );
+
         if (Array.isArray(expenseConfig.expense_item_type_config) && expenseConfig.expense_item_type_config.length > 0) {
             for (const expenseTypeId of expenseConfig.expense_item_type_config) {
                 await ExpenseTypeMapping.create({
@@ -163,9 +227,29 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                     created_on: new Date(),
                     modified_on: new Date(),
                 });
+                logger(
+                    {
+                        traceId,
+                        actor: {
+                            user_name: user?.preferred_username,
+                            user_id: user?.sub,
+                        },
+                        data: { expense_type_id: expenseTypeId },
+                        eventname: "expense type mapping created",
+                        status: "success",
+                        description: `Expense type mapping created for expense_config_id ${expenseConfigData.id}`,
+                        level: "success",
+                        action: request.method,
+                        url: request.url,
+                        entity_id: expenseConfigData.id,
+                        is_deleted: false,
+                        created_by: user.sub,
+                        updated_by: user.sub,
+                    },
+                    ExpenseTypeMapping
+                );
             }
         }
-
 
         if (Array.isArray(expenseConfig.hierarchy) && expenseConfig.hierarchy.length > 0) {
             const hierarchyMappings = expenseConfig.hierarchy.map((hierarchyId) => ({
@@ -173,19 +257,62 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 hierarchy: hierarchyId,
             }));
             await expenseTypeHierarchie.bulkCreate(hierarchyMappings);
+            logger(
+                {
+                    traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: { hierarchy: expenseConfig.hierarchy },
+                    eventname: "hierarchy mappings created",
+                    status: "success",
+                    description: `Hierarchy mappings created for expense_config_id ${expenseConfigData.id}`,
+                    level: "success",
+                    action: request.method,
+                    url: request.url,
+                    entity_id: expenseConfigData.id,
+                    is_deleted: false,
+                    created_by: user.sub,
+                    updated_by: user.sub,
+                },
+                expenseTypeHierarchie
+            );
         }
+
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
             id: expenseConfigData.id,
-            message: 'Expense configuration created successfully.'
+            message: "Expense configuration created successfully.",
         });
     } catch (error: any) {
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "expense configuration creation failed",
+                status: "failed",
+                description: `Expense configuration creation failed for program_id ${request.params.program_id}`,
+                level: "error",
+                action: request.method,
+                url: request.url,
+                entity_id: request.params.program_id,
+                is_deleted: false,
+                created_by: user.sub,
+                updated_by: user.sub,
+            },
+            ExpenseConfigurationModel
+        );
         reply.status(500).send({
             status_code: 500,
-            message: 'An error occurred while creating expense configuration.',
+            message: "An error occurred while creating expense configuration.",
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
@@ -195,11 +322,21 @@ export async function updateExpenseConfiguration(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-
     const { id, program_id } = request.params;
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
-
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
 
     try {
         const existingExpenseConfig = await ExpenseConfigurationModel.findOne({ where: { program_id, id }, transaction });
@@ -211,8 +348,14 @@ export async function updateExpenseConfiguration(
                 trace_id: traceId,
             });
         }
+        await ExpenseConfigurationModel.update(expenseConfigData, {
+            where: { id, program_id }
+        });
 
-        if (Array.isArray(expenseConfigData.expense_item_type_config) && expenseConfigData.expense_item_type_config.length > 0) {
+        if (
+            Array.isArray(expenseConfigData.expense_item_type_config) &&
+            expenseConfigData.expense_item_type_config.length > 0
+        ) {
             const updatedExpenseTypeIds = expenseConfigData.expense_item_type_config;
 
             await ExpenseTypeMapping.destroy({
@@ -231,12 +374,34 @@ export async function updateExpenseConfiguration(
                     program_id,
                     modified_on: modifiedOn,
                     created_on: modifiedOn,
-                }, { transaction })
+                }, { transaction }
+                )
             );
 
             await Promise.all(createPromises);
         }
+
         await transaction.commit();
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                eventname: "expense configuration updated",
+                status: "success",
+                description: `Expense configuration with ID ${id} for program_id ${program_id} updated successfully`,
+                level: "success",
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false,
+                updated_by: user.sub,
+            },
+            ExpenseConfigurationModel
+        );
+
         return reply.status(200).send({
             status_code: 200,
             message: 'Expense configuration updated successfully.',
@@ -244,6 +409,18 @@ export async function updateExpenseConfiguration(
         });
     } catch (error: any) {
         await transaction.rollback();
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                updated_by: user.sub,
+            },
+            ExpenseConfigurationModel
+        );
+
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -253,13 +430,34 @@ export async function updateExpenseConfiguration(
     }
 }
 
-export async function deleteExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
+export async function deleteExpenseConfiguration(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string, id: string };
+    const { program_id, id } = request.params as { program_id: string; id: string };
+
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
 
     try {
         const [updatedCount] = await ExpenseConfigurationModel.update(
-            { is_deleted: true, is_enabled: false },
+            {
+                is_deleted: true,
+                is_enabled: false,
+                updated_by: user.sub,
+
+            },
             { where: { program_id, id } }
         );
 
@@ -277,7 +475,7 @@ export async function deleteExpenseConfiguration(request: FastifyRequest, reply:
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while deleting expense configuration.',
@@ -365,7 +563,17 @@ export const getAllExpenseConfigurationHierarchies = async (
             replacements: { program_id },
             type: QueryTypes.SELECT,
         });
-        const hierarchies = results[0].hierarchies_d || [];
+
+        if (results.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'No hierarchies found for the specified program.',
+                hierarchies:[],
+                trace_id: traceId,
+            });
+        }
+        const hierarchies = Array.from(new Map(results[0].hierarchy.map((item: any) => [item.id, item])).values());
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -373,6 +581,7 @@ export const getAllExpenseConfigurationHierarchies = async (
             hierarchies,
         });
     } catch (error: any) {
+        console.error("Error retrieving hierarchies:", error);
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
@@ -433,11 +642,12 @@ export async function expenseConfigurationAdvancedFilter(
             offset,
         };
 
-        // Add placeholders for each date in modified_on array
         modifiedOnArray.forEach((_, index) => {
             replacements[`modified_on${index}`] = modifiedOnArray[index];
         });
-
+        hierarchyIdsArray.forEach((_, index) => {
+            replacements[`hierarchy${index}`] = hierarchyIdsArray[index];
+        });
         const data = await sequelize.query(query, {
             replacements,
             type: QueryTypes.SELECT,
