@@ -11,6 +11,5 @@ async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/user/program/:program_id', getAllUserIDAndUserId);
     fastify.get('/user/:id/program/:program_id', getUserHierarchiesByProgram);
     fastify.get('/user/program/:program_id/user-worklocation', getUserWorkLocationAndTimeZone);
-
 }
 export default userRoutes;
