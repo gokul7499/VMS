@@ -187,7 +187,7 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
           attributes: ["name", "id", "logo"],
         },
       ],
-      attributes: ["id", "name", "is_enabled", "unique_id"],
+      attributes: ["id", "name", "display_name", "is_enabled", "unique_id"],
       order: [['created_on', 'DESC']],
       limit: limit,
       offset: offset,
