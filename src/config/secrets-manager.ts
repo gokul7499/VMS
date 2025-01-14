@@ -27,6 +27,7 @@ export const getSecretsManager = async () => {
 
         if (data.SecretString) {
             const secret = JSON.parse(data.SecretString);
+            console.log('secret:', secret);
             return {
                 host: secret.DATABASE_HOST,
                 port: secret.DATABASE_PORT,

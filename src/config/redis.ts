@@ -5,7 +5,7 @@ import { databaseConfig } from './db';
 dotenv.config();
 
 const { redis_host, redis_port } = databaseConfig.config;
-
+console.log('Radis details are:', redis_host ,redis_port )
 const redis = new Redis({
   host: redis_host,
   port: redis_port
