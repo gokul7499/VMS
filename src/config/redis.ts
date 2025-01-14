@@ -6,6 +6,9 @@ dotenv.config();
 
 const { redis_host, redis_port } = databaseConfig.config;
 
+console.info(`Redis Host: ${redis_host}`);
+console.info(`Redis Port: ${redis_port}`);
+
 const redis = new Redis({
   host: redis_host,
   port: redis_port

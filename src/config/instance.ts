@@ -25,7 +25,6 @@ const initializeSequelize = async () => {
         backoffBase: databaseConfig.config.reconnect.delay || 1000,
       }
     },
-
   );
 };
 
