@@ -218,30 +218,20 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else {
       newUser = await User.create({ ...user, user_type: userType ,created_by: userId,modified_by: userId,}, { transaction });
     }
-
-    const foundationalData = user.foundational_data;
-    if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-      for (const hierarchy of foundationalData) {
-        if (hierarchy?.master_data?.length > 0) {
-          for (const masterData of hierarchy.master_data) {
-            await UserMasterDataModel.create(
+    if (user.foundational_data && Array.isArray(user.foundational_data)) {
+      for (const foundationalEntry of user.foundational_data) {
+          await UserMasterDataModel.create(
               {
-                user_id: user.id,
-                hierarchy_id: hierarchy.hierarchy_id,
-                foundation_data_type_id: masterData.foundation_data_type_id,
-                foundation_data_ids: masterData.foundation_data_ids,
-                default_master_data: masterData.default_master_data,
-                is_associated: masterData.is_associated || false,
-                created_by: userId,
-                modified_by: userId,
+                  user_id: user.id,
+                  master_data: foundationalEntry.master_data,
+                  associated_master_data: foundationalEntry.associated_master_data,
+                  default_master_data: foundationalEntry.default_master_data,
+                  is_all_associated: foundationalEntry.is_all_associated,
               },
               { transaction }
-            );
-          }
-        }
+          );
       }
-    }
-
+  }
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {

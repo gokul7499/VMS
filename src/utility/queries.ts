@@ -1503,10 +1503,6 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
- JSON_OBJECT(
-     'id',hierarchies.id,
-     'name',hierarchies.name
-     )AS hierarchy,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'master_data_type', JSON_OBJECT(
@@ -1521,27 +1517,25 @@ SELECT
                     )
                 )
                 FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.foundation_data_ids, JSON_QUOTE(md1.id), '$')
+                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
             ),
             'default_master_data', JSON_OBJECT(
                 'id', md2.id,
                 'name', md2.name
             ),
-            'is_associated', TRUE
+            'is_all_associated', TRUE
         )
     ) AS master_data
 FROM
     user_master_data
 LEFT JOIN
-    master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
-LEFT JOIN
-    hierarchies ON user_master_data.hierarchy_id = hierarchies.id
+    master_data_type ON user_master_data.master_data = master_data_type.id
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
     user_master_data.user_id = :id
 GROUP BY
-    hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
+     master_data_type.id, master_data_type.name, md2.id, md2.name
 `;
 
 export const getAllRateTypes = (
