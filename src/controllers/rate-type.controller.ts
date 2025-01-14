@@ -44,7 +44,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
         if (existingRate) {
           return reply.status(400).send({
             status_code: 400,
-            message: ` rate_type_category  and differential_on  already exists for program .`,
+            message:"Rate type with same rate_type_category and differential_on already exists.",
             trace_id: traceId,
           });
         }
@@ -52,7 +52,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
     } else {
       return reply.status(400).send({
         status_code: 400,
-        message: '`rate` must be a non-empty array.',
+        message: 'rate must be a non-empty array.',
         trace_id: traceId,
       });
     }
