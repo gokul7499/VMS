@@ -28,6 +28,7 @@ export const createVendorDistributionSchedule = async (
         return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
+    const userId = user?.sub;
     const traceId = generateCustomUUID();
     try {
         logger(
@@ -69,6 +70,8 @@ export const createVendorDistributionSchedule = async (
         const newVendorSchedule = await vendorDistributionScheduleModel.create({
             ...scheduleData,
             program_id,
+            created_by: userId,
+            modified_by: userId,
         });
 
         if (Array.isArray(schedules)) {
@@ -89,7 +92,7 @@ export const createVendorDistributionSchedule = async (
                 trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId
                 },
                 data: request.body,
                 eventname: "create vendor distribution schedule",
@@ -116,7 +119,7 @@ export const createVendorDistributionSchedule = async (
                 trace_id:traceId,
                 actor: {
                     user_name: user?.preferred_username,
-                    user_id: user?.sub,
+                    user_id: userId
                 },
                 data: request.body,
                 eventname: "create vendor distribution schedule",
@@ -221,6 +224,16 @@ export const getVendorDistributionScheduleById = async (
 export const deleteVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
         const traceId=generateCustomUUID();
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+          return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+          return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
     try {
         const { id, program_id } = request.params;
         const [vendorSchedule] = await vendorDistributionScheduleModel.update(
@@ -229,13 +242,14 @@ export const deleteVendorDistributionSchedule = async (
                 is_enabled: false,
                 modified_on: Date.now(),
             },
-            { where: { id, program_id, is_deleted: false } }
+            { where: { id, program_id, is_deleted: false ,modified_by: userId} }
         );
         const [distSchedule] = await DistScheduleDetail.update(
             {
                 is_deleted: true,
                 is_enabled: false,
                 modified_on: Date.now(),
+                modified_by: userId
             },
             { where: { vendor_distrubution_id: id, is_deleted: false } }
         );
@@ -270,6 +284,16 @@ export const updateVendorDistributionSchedule = async (
     reply: FastifyReply
 ) => {
     const traceId=generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const { program_id, id } = request.params;
         const updateData = request.body as updateVendorDistributionScheduleDetail;
@@ -309,6 +333,7 @@ export const updateVendorDistributionSchedule = async (
             ...(updateData.name && { name: updateData.name }),
             ...(updateData.description && { description: updateData.description }),
             ...(updateData.is_enabled !== undefined && { is_enabled: updateData.is_enabled }),
+                modified_by: userId
         });
 
         if (updateData.schedules && Array.isArray(updateData.schedules)) {
@@ -339,7 +364,7 @@ export const updateVendorDistributionSchedule = async (
                             ...(schedule.vendors !== undefined && { vendors: schedule.vendors }),
                         },
                         {
-                            where: { id: schedule.id, vendor_distrubution_id: id },
+                            where: { id: schedule.id, vendor_distrubution_id: id ,modified_by: userId},
                         }
                     );
                 } else {

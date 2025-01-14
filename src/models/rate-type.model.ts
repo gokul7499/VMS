@@ -23,7 +23,6 @@ RateType.init(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
@@ -73,7 +72,7 @@ RateType.init(
     },
     is_base_rate: {
       type: DataTypes.BOOLEAN,
-      defaultValue:false,
+      defaultValue: false,
       allowNull: true,
     },
     program_id: {
