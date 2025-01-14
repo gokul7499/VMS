@@ -13,8 +13,18 @@ const initializeSequelize = async () => {
       host: databaseConfig.config.host,
       port: databaseConfig.config.port,
       dialect: 'mysql',
-      logging: false
-    }
+      logging: false,
+      pool: {
+        max: 100,
+        min: 0,
+        acquire: 80000,
+        idle: 40000,
+      },
+      retry: {
+        max: databaseConfig.config.reconnect.max || 3,
+        backoffBase: databaseConfig.config.reconnect.delay || 1000,
+      }
+    },
   );
 };
 
