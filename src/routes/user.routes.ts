@@ -30,11 +30,11 @@ async function userRoutes(fastify: FastifyInstance) {
         },
     }, getAllUserIDAndUserId);
     fastify.get('/user/:id/program/:program_id', {
-        preHandler: validatePermissions,
-        config: {
-            permissions: [Permissions.USER],
-            action: Actions.READ,
-        },
+        // preHandler: validatePermissions,
+        // config: {
+        //     permissions: [Permissions.USER],
+        //     action: Actions.READ,
+        // },
     }, getUserHierarchiesByProgram);
     fastify.get('/user/program/:program_id/user-worklocation', {
         preHandler: validatePermissions,
