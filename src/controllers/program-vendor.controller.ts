@@ -16,6 +16,7 @@ import VendorComplianceDocumentModel from "../models/vendor-compliance-document.
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
+import { log } from "console";
 interface VendorDetails {
     document_number: any;
     regain_compliance_days: null;
@@ -385,6 +386,16 @@ export const updateProgramVendor = async (
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
     const programVendorData = request.body as Partial<programVendorInterface>;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
 
     try {
         const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id } });
@@ -427,7 +438,8 @@ export const updateProgramVendor = async (
                             is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
                         },
                         {
-                            where: { id: markup.id, program_vendor_id: existingProgramVendor.id },
+                            where: { id: markup.id, program_vendor_id: existingProgramVendor.id,created_by: userId,
+                                modified_by: userId, },
                         }
                     );
                 } else if (markup.id === null || markup.id === "null") {
@@ -465,11 +477,22 @@ export async function deleteProgramVendor(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     try {
         const { program_id, id } = request.params;
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
-            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
+            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id ,created_by: userId,
+                modified_by: userId,} });
             reply.status(204).send({
                 status_code: 204,
                 message: 'ProgramVendor deleted successfully.',
@@ -629,6 +652,17 @@ export async function updateProgramVendorByUserId(
     const traceId = generateCustomUUID();
     const { program_id, user_id } = request.params;
     const programVendorData = request.body as Partial<programVendorInterface>;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+    
     try {
         const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, user_id } });
 
@@ -640,7 +674,8 @@ export async function updateProgramVendorByUserId(
                 program_vendor: []
             });
         }
-        await existingProgramVendor.update(programVendorData);
+        await existingProgramVendor.update(programVendorData,{where:{created_by: userId,
+            modified_by: userId,}});
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             for (const markup of programVendorData.markup_config) {
@@ -845,12 +880,12 @@ export async function updateComplianceDocument(
 
 
     const token = authHeader.split(' ')[1];
-    let users: any = await decodeToken(token);
+    let user: any = await decodeToken(token);
 
-    if (!users) {
+    if (!user) {
         return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
     }
-
+    const userId = user?.sub;
     try {
         const query = user_id && document_id
             ? complianceGroupQueryWithUserId
@@ -913,10 +948,10 @@ export async function updateComplianceDocument(
         }
 
         const userData = await UserModel.findAll({
-            where: { program_id, id: users.sub }
+            where: { program_id, id: user.sub }
         });
 
-        let audited_by = users.preferred_username;
+        let audited_by = user.preferred_username;
 
         if (userData.length > 0 && userData[0].user_type === 'vendor' || 'Vendor') {
             audited_by = "--";
@@ -928,7 +963,8 @@ export async function updateComplianceDocument(
         }
 
         await VendorComplianceDocumentModel.update(complianceDocumentUpdate, {
-            where: { id: document_id }
+            where: { id: document_id ,created_by: userId,
+                modified_by: userId,}
         });
 
         if (uploadedDocument) {

@@ -71,6 +71,14 @@ OnboardingConfigurationModel.init(
         type: DataTypes.UUID,
         allowNull: true,  
     },
+    modified_by:{
+      type: DataTypes.UUID,
+      allowNull: true,  
+    },
+    created_by:{
+    type: DataTypes.UUID,
+    allowNull: true,  
+    },
     program_id: {
       type: DataTypes.UUID,
       allowNull: false

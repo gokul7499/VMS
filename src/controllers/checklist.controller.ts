@@ -8,6 +8,8 @@ import Checklist from "../models/checklist.model";
 import ChecklistMapping from "../models/checklist-mapping.model";
 import ChecklistTaskMapping from "../models/checklist-mapping.model";
 import { includes } from "lodash";
+import { decodeToken } from "../middlewares/verifyToken";
+
 
 export async function createCheckList(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -16,6 +18,16 @@ export async function createCheckList(
     console.log("inside function")
     const traceId = generateCustomUUID();
     const program_id = request.params.program_id;
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { task_category_configs, ...checkListData } = request.body as ChecklistInterface;
         const transaction = await sequelize.transaction();
@@ -23,7 +35,10 @@ export async function createCheckList(
         try {
 
             const createdCheckList = await Checklist.create(
-                { ...checkListData, program_id },
+                { ...checkListData, program_id,
+                    created_by: userId,
+                    modified_by: userId,
+                 },
                 { transaction }
             );
 
@@ -154,6 +169,16 @@ export async function updateCheckList(
         });
     }
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const existingChecklist = await Checklist.findOne({
             where: { entity_id, is_deleted: false, latest: true },
@@ -183,8 +208,8 @@ export async function updateCheckList(
                 associations: JSON.stringify(associations),
                 previous_version_id: existingChecklist ? existingChecklist.version_id : null,
                 latest: true,
-                created_by,
-                updated_by,
+                created_by: userId,
+                modified_by: userId,
                 created_on: new Date(),
                 updated_on: new Date(),
             },
@@ -199,6 +224,7 @@ export async function updateCheckList(
                     is_deleted: true,
                     updated_on: new Date(),
                     updated_by,
+                    modified_by:userId,
                 },
                 {
                     where: {
@@ -233,8 +259,8 @@ export async function updateCheckList(
             has_dependency: config.has_dependency ?? false,
             dependency_task_entity_id: config.dependency_task_entity_id,
             dependency_category_id: config.dependency_category_id,
-            created_by,
-            updated_by,
+            created_by:userId,
+            updated_by:userId,
             is_enabled: true,
             is_deleted: false,
             created_on: new Date(),
@@ -262,6 +288,16 @@ export async function deleteCheckList(
 ) {
     const { entity_id } = request.params;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
 
     try {
         const checklist = await Checklist.findOne({
@@ -277,7 +313,7 @@ export async function deleteCheckList(
         }
 
         await Checklist.update(
-            { is_deleted: true, updated_on: new Date() },
+            { is_deleted: true,modified_by:userId, updated_on: new Date() },
             { where: { entity_id } }
         );
 

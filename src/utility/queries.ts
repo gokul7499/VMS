@@ -426,7 +426,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -444,7 +450,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
@@ -1331,42 +1343,22 @@ export const masterDataQuery = `
     LIMIT 0, 1000;
 `;
 
-
-
-
 export const getAllExpenseConfigHierarchies = `
-  WITH DistinctHierarchies AS (
-    SELECT
-      ec.id AS expense_config_id,
-      h.id AS hierarchy_id,
-      h.name AS hierarchy_name
-    FROM
-      expense_configuration ec
-    LEFT JOIN
-      expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-    LEFT JOIN
-      hierarchies h ON eth.hierarchy = h.id
-    WHERE
-      ec.program_id = :program_id
-      AND ec.is_deleted = false
-    GROUP BY
-      ec.id, h.id, h.name
-  )
-  SELECT
-    expense_config_id,
-    JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'id', hierarchy_id,
-        'name', hierarchy_name
-      )
-    ) AS hierarchies_d
-  FROM
-    DistinctHierarchies
-  GROUP BY
-    expense_config_id;
+ SELECT 
+  ec.program_id,
+  JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'id', h.id,
+      'name', h.name
+    )
+  ) AS hierarchy
+FROM expense_configuration ec
+LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
+LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+WHERE ec.program_id = :program_id
+GROUP BY ec.program_id
+LIMIT 0, 1000;
 `;
-
-
 
 export const configAdvancedFilter = (
   hasConfigName: boolean,
@@ -1523,10 +1515,6 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
- JSON_OBJECT(
-     'id',hierarchies.id,
-     'name',hierarchies.name
-     )AS hierarchy,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'master_data_type', JSON_OBJECT(
@@ -1541,27 +1529,25 @@ SELECT
                     )
                 )
                 FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.foundation_data_ids, JSON_QUOTE(md1.id), '$')
+                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
             ),
             'default_master_data', JSON_OBJECT(
                 'id', md2.id,
                 'name', md2.name
             ),
-            'is_associated', TRUE
+            'is_all_associated', TRUE
         )
     ) AS master_data
 FROM
     user_master_data
 LEFT JOIN
-    master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
-LEFT JOIN
-    hierarchies ON user_master_data.hierarchy_id = hierarchies.id
+    master_data_type ON user_master_data.master_data = master_data_type.id
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
     user_master_data.user_id = :id
 GROUP BY
-    hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
+     master_data_type.id, master_data_type.name, md2.id, md2.name
 `;
 
 export const getAllRateTypes = (
@@ -1913,7 +1899,6 @@ WHERE
 GROUP BY
   timesheet_expense_rules.id;
 `
-
 export const getQuery = () => `
     SELECT
         (SELECT id FROM currencies WHERE name = :currencyName LIMIT 1) AS currency,
@@ -1922,7 +1907,6 @@ export const getQuery = () => `
         (SELECT id FROM picklistitems WHERE label = :rateModelLabel LIMIT 1) AS rateModel,
         (SELECT id FROM picklistitems WHERE label = :unitOfMeasureLabel LIMIT 1) AS unitOfMeasure
 `;
-
 
 export const hierarchie = `
     SELECT
@@ -2033,6 +2017,9 @@ WITH user_data AS (
          u.is_associated,
          u.name_prefix,
          u.role_id,
+         u.title,
+         u.contacts,
+         u.addresses,
 
          (
              SELECT JSON_ARRAYAGG(

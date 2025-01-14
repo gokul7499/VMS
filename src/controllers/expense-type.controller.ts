@@ -4,31 +4,120 @@ import { ExpenseTypeInterface } from "../interfaces/expense-type.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
+import { decodeToken } from "../middlewares/verifyToken";
+import { logger } from "../utility/loggerService";
 
 export async function createExpenseType(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+
+    logger(
+        {
+            traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating expense type",
+            status: "info",
+            description: `Creating expense type for program_id ${request.params.program_id}`,
+            level: "info",
+            action: request.method,
+            url: request.url,
+            entity_id: request.params.program_id,
+            is_deleted: false,
+            created_by: user.sub,
+            modified_by: user.sub,
+        },
+        ExpenseTypeModel
+    );
+
     try {
-        const { program_id } = request.params as { program_id?: string }
+        const { program_id } = request.params as { program_id?: string };
         const expenseType = request.body as ExpenseTypeInterface;
-        const expenseTypeData: any = await ExpenseTypeModel.create({ ...expenseType, program_id });
+
+        const expenseTypeData: any = await ExpenseTypeModel.create({
+            ...expenseType,
+            program_id,
+            created_by: user.sub,
+            modified_by: user.sub,
+        });
+
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: expenseType,
+                eventname: "expense type created",
+                status: "success",
+                description: `Expense type created successfully for program_id ${program_id}`,
+                level: "success",
+                action: request.method,
+                url: request.url,
+                entity_id: expenseTypeData?.id,
+                is_deleted: false,
+                created_by: user.sub,
+                modified_by: user.sub,
+            },
+            ExpenseTypeModel
+        );
+
         reply.status(201).send({
             status_code: 201,
-            message: "expense type created succesfully",
+            message: "Expense type created successfully",
             expense_type_data: expenseTypeData?.id,
             trace_id: traceId,
         });
     } catch (error: any) {
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "expense type creation failed",
+                status: "failed",
+                description: `Expense type creation failed for program_id ${request.params.program_id}`,
+                level: "error",
+                action: request.method,
+                url: request.url,
+                entity_id: request.params.program_id,
+                is_deleted: false,
+                created_by: user.sub,
+                modified_by: user.sub,
+            },
+            ExpenseTypeModel
+        );
+
         reply.status(500).send({
             status_code: 500,
-            message: 'Internal Server Error',
+            message: "Internal Server Error",
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
+
 export async function getExpenseTypeById(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
@@ -68,77 +157,151 @@ export async function getExpenseTypeById(
     }
 }
 
-export async function updateExpenseTypeById(request: FastifyRequest, reply: FastifyReply) {
-    const { id, program_id } = request.params as { id: string; program_id: string };
-    const updates = request.body as Partial<ExpenseTypeInterface>;
+export async function updateExpenseTypeById(
+    request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: Partial<ExpenseTypeInterface> }>,
+    reply: FastifyReply
+) {
+    const { id, program_id } = request.params;
+    const updates = request.body;
     const traceId = generateCustomUUID();
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+
     try {
-        const [updatedCount] = await ExpenseTypeModel.update(updates, {
-            where: { id, program_id }
-        });
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user.preferred_username,
+                    user_id: user.sub,
+                },
+                modified_by: user.sub,
+            },
+            ExpenseTypeModel
+        );
+
+        const [updatedCount] = await ExpenseTypeModel.update(
+            { ...updates, modified_by: user.sub },
+            {
+                where: { id, program_id },
+            }
+        );
 
         if (updatedCount === 0) {
             return reply.status(200).send({
                 message: "Expense type data not found",
                 trace_id: traceId,
-                expense_item_type_config: []
+                expense_item_type_config: [],
             });
         }
+
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user.preferred_username,
+                    user_id: user.sub,
+                },
+                modified_by: user.sub,
+            },
+            ExpenseTypeModel
+        );
 
         return reply.status(201).send({
             status_code: 201,
             message: "Expense type updated successfully",
             expense_type_id: id,
-            trace_id: traceId
+            trace_id: traceId,
         });
     } catch (error: any) {
+        logger(
+            {
+                traceId,
+                actor: {
+                    user_name: user.preferred_username,
+                    user_id: user.sub,
+                },
+                modified_by: user.sub,
+            },
+            ExpenseTypeModel
+        );
+
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
+
+
 
 export async function deleteExpenseTypeById(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({ message: "Unauthorized - Token not found" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+
     try {
         const { id, program_id } = request.params;
+
+        // Add `modified_by` to the update
         const [expenseType] = await ExpenseTypeModel.update(
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: Date.now(),
+                modified_on: new Date(),
+                modified_by: user.sub, // Add the user ID as the modifier
             },
             { where: { id, program_id } }
         );
+
         if (expenseType > 0) {
-            reply.status(200).send({
+            return reply.status(200).send({
                 status_code: 200,
-                message: "expense type deleted successfully",
+                message: "Expense type deleted successfully",
                 expense_item_type_config: id,
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({
+            return reply.status(200).send({
                 status_code: 200,
-                message: "expense type not found",
+                message: "Expense type not found",
                 trace_id: traceId,
-                expense_Type: []
+                expense_Type: [],
             });
         }
-    } catch (error) {
-        reply.status(500).send({
+    } catch (error: any) {
+        return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: traceId
+            trace_id: traceId,
+            error: error.message,
         });
     }
 }
+
 
 export async function getAllExpenseType(
     request: FastifyRequest<{

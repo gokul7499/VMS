@@ -157,7 +157,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   }
 };
 
-export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>,reply: FastifyReply) => {
+export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>, reply: FastifyReply) => {
   const { name, is_activated, start_date } = request.query as Partial<ProgramQuery>;
   const traceId = generateCustomUUID();
   try {
@@ -291,11 +291,24 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
   const { id } = request.params;
   const updates = request.body as CreateProgramData;
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+
   try {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+
     const program = await Programs.findOne({
       where: {
         id: id,
         is_deleted: false,
+
       },
     });
     if (!program) {
@@ -314,7 +327,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       });
     }
 
-    const updatedCount: any = await Programs.update(updates, {
+    const updatedCount: any = await Programs.update({...updates, modified_by:userId}, {
       where: { id: id },
     });
     reply.status(200).send({
@@ -336,12 +349,23 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
 export async function deleteProgramById(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
   try {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
     const program = await Programs.findByPk(id);
     if (program) {
       await program.update({
         is_enabled: false,
         is_deleted: true,
+        modified_by: userId,
       });
       reply.status(204).send({
         status_code: 204,
@@ -365,7 +389,7 @@ export async function deleteProgramById(request: FastifyRequest, reply: FastifyR
   }
 };
 
-export async function advancedFilter(request: FastifyRequest,reply: FastifyReply) {
+export async function advancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);

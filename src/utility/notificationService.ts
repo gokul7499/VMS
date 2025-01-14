@@ -35,7 +35,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     }
 
     const result = await sequelize.query(
-        `SELECT logo FROM tenant WHERE id = :tenent_id`,
+        `SELECT logo,name FROM tenant WHERE id = :tenent_id`,
         {
             replacements: { tenent_id },
             type: QueryTypes.SELECT

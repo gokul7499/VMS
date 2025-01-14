@@ -51,6 +51,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
+    const userId = user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
             where: { name: name, program_id: program_id }
@@ -99,6 +100,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (grouped) {
             createdWorkflow = await WorkFlow.create({
                 ...workflowDataPayload,
+                created_by: userId,
+                modified_by: userId,
                 program_id,
                 workflow_id: grouped.id,
                 type: "child"
@@ -112,6 +115,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 ...workflowDataPayload,
                 program_id,
                 placement_order: 0,
+                created_by: userId,
+                modified_by: userId,
                 flow_count: 1,
                 type: "parent",
                 workflow_id: null
@@ -214,6 +219,18 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const workflowData = request.body as WorkflowData;
     const { name } = request.body as WorkflowData;
     const traceId = generateCustomUUID();
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId = user?.sub;
+
     try {
         const existingWorkFlowWithSameName = await WorkFlow.findOne({
             where: {
@@ -238,6 +255,7 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             await data.update(workflowData);
             reply.status(201).send({
                 status_code: 201,
+                modified_by: userId,
                 workflow_id: id,
                 message: 'Workflow updated successfully.',
                 trace_id: traceId,

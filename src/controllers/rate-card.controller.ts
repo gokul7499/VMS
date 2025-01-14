@@ -8,10 +8,21 @@ import jobTemplateModel from "../models/job-template.model";
 import rateType from "../models/rate-type.model";
 import Currencies from "../models/currencies.model";
 import IndustriesModel from "../models/labour-category.model";
+import { decodeToken } from "../middlewares/verifyToken";
 
 export const createRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { program_id } = request.params as { program_id: string };
         const { decision_table, ...rateCardData } = request.body as any;
@@ -19,6 +30,8 @@ export const createRateCard = async (request: FastifyRequest, reply: FastifyRepl
             {
                 ...rateCardData,
                 program_id,
+                created_by:userId,
+                modified_by:userId,
             },
             { transaction }
         );
@@ -299,11 +312,21 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
 export const updateRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const { decision_table, ...rateCardUpdates } = request.body as any;
         const rateCard = await RateCard.findOne({
-            where: { id, program_id, is_deleted: false },
+            where: { id, program_id, is_deleted: false},
         });
         if (!rateCard) {
             await transaction.rollback();
@@ -314,7 +337,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await RateCard.update(rateCardUpdates, {
+        await RateCard.update({...rateCardUpdates,modified_by:userId}, {
             where: { id, program_id, is_deleted: false },
             transaction,
         });
@@ -352,10 +375,20 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
 export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const userId=user?.sub
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const rateCard = await RateCard.findOne({
-            where: { id, program_id, is_deleted: false },
+            where: { id, program_id, is_deleted: false},
             transaction,
         });
         if (!rateCard) {
@@ -367,7 +400,7 @@ export const deleteRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await rateCard.update({ is_deleted: true }, { transaction });
+        await rateCard.update({ is_deleted: true,modified_by:userId }, { transaction });
         await DecisionTable.update(
             { is_deleted: true },
             { where: { rate_card_id: id }, transaction }
