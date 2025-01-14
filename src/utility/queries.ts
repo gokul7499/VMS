@@ -426,7 +426,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -444,7 +450,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
