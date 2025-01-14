@@ -39,7 +39,7 @@ app.get("/config/health-check", async (request, reply) => {
       database:connectionStatus.database,
       service:"config",
       timestamp: new Date().toISOString(),
-      latency: latency, 
+      latency: latency,
     });
   } catch (error) {
     return reply.status(500).send({
