@@ -7,6 +7,7 @@ let config: any;
 
 export const initializeDatabase = async () => {
   config = await getSecretsManager();
+  console.info(`Database Host: ${config}`);
 };
 
 export const databaseConfig = {
