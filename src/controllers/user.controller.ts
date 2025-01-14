@@ -148,18 +148,18 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-  
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-  
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-  
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
 
   try {
     const { user, user_group_mapping } = request.body as {
@@ -196,49 +196,49 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     let newUser;
 
-    const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type : user_group_mapping.user_type;
+    const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
 
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
       const candidateId = await generateCandidateCode(program_id);
-      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId,created_by: userId,modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName,created_by: userId,modified_by: userId, }, { transaction });
+        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...user, user_type: userType,created_by: userId,modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...user, user_type: userType ,created_by: userId,modified_by: userId,}, { transaction });
+      newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
-          await UserMasterDataModel.create(
-              {
-                  user_id: user.id,
-                  master_data: foundationalEntry.master_data,
-                  associated_master_data: foundationalEntry.associated_master_data,
-                  default_master_data: foundationalEntry.default_master_data,
-                  is_all_associated: foundationalEntry.is_all_associated,
-              },
-              { transaction }
-          );
+        await UserMasterDataModel.create(
+          {
+            user_id: user.id,
+            master_data: foundationalEntry.master_data,
+            associated_master_data: foundationalEntry.associated_master_data,
+            default_master_data: foundationalEntry.default_master_data,
+            is_all_associated: foundationalEntry.is_all_associated,
+          },
+          { transaction }
+        );
       }
-  }
+    }
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping,created_by: userId,modified_by: userId, }, { transaction });
+        await UserMapping.create({ ...mapping, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping,created_by: userId,modified_by: userId, }, { transaction });
+      await UserMapping.create({ ...user_group_mapping, created_by: userId, modified_by: userId, }, { transaction });
     }
 
     await transaction.commit();
@@ -268,24 +268,24 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-  
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-  
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-  
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+
+  const userId = user?.sub;
   try {
     const user = await User.findOne({
       where: { id, program_id }
@@ -299,7 +299,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user: []
       });
     }
-    await user.update({updates,modified_by: userId,});
+    await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
 
@@ -318,7 +318,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         }))
       );
 
-      const createResults = await UserMasterDataModel.bulkCreate(createPromises);
+      await UserMasterDataModel.bulkCreate(createPromises);
 
     }
     return reply.status(200).send({
@@ -344,18 +344,18 @@ export async function deleteUser(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-  
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-  
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-  
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub;
   try {
     const { id } = request.params;
     const numRowsDeleted = await User.destroy({ where: { id } });
@@ -383,7 +383,7 @@ export async function deleteUser(
 }
 
 export async function getAllUserIDAndUserId(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string,page?:string,limit?:string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string, page?: string, limit?: string } }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
@@ -394,7 +394,7 @@ export async function getAllUserIDAndUserId(
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
-    
+
     // Fetch Users Data
     const users = await sequelize.query(userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id), {
       replacements: { program_id, user_id, user_type, is_activated: isActivatedStr === 'true', role_id, tenant_id, email, first_name, limit: parseInt(limit), offset },
@@ -432,7 +432,7 @@ export async function getAllUserIDAndUserId(
     });
   }
 }
- 
+
 export async function searchUser(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'program_id', 'first_name'];
   const responseFields = ['id', 'program_id', 'country_id', 'title', 'name_prefix', 'middle_name', 'is_enabled', 'addresses', 'contacts', 'name_suffix', 'email', 'created_on', 'modified_on', 'created_by', 'modified_by', 'is_deleted', 'ref_id'];
