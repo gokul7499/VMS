@@ -35,6 +35,7 @@ const start = async () => {
       const startTime = Date.now();
       try {
         app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
+        await initializeSequelize();
         const connectionStatus = await checkDatabaseConnection();
         console.log('connectionStatus', connectionStatus)
         app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
