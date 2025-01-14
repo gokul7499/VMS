@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import RateConfigurationsModel from '../models/rate-configurations.model';
-import { RateConfigurationsBudget, RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
+import { RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import RateConfigurationHierarchies from '../models/rate_configuration_hierarchies.model';
 import RateConfigurationJobTemplates from '../models/rate-configuration-job-templates.model';
@@ -16,6 +16,7 @@ import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sa
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -25,8 +26,17 @@ export const createRateConfigurations = async (
     const { program_id } = request.params as { program_id: string };
     const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const transaction = await sequelize.transaction();
-
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
             const existingConfigurations = await sequelize.query(sameRateConfiguration, {
                 replacements: {
@@ -51,6 +61,8 @@ export const createRateConfigurations = async (
             program_id,
             name: rateConfigurationsPayload.name,
             is_shift_rate: rateConfigurationsPayload.is_shift_rate,
+            created_by: userId,
+            modified_by: userId
         }, { transaction });
 
         if (rateConfigurationsPayload.hierarchies) {
@@ -150,8 +162,18 @@ export const updateRateConfigurations = async (
     const rateConfigurationsPayload = request.body;
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        }
+
+        const userId = user?.sub;
         const existingRateConfig = await RateConfigurationsModel.findOne({
             where: { program_id, id, is_deleted: false },
         });
@@ -168,7 +190,8 @@ export const updateRateConfigurations = async (
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
                 modified_on: Date.now(),
-                is_enabled: rateConfigurationsPayload.is_enabled
+                is_enabled: rateConfigurationsPayload.is_enabled,
+                modified_by: userId
             },
             { transaction }
         );
@@ -627,7 +650,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 hierarchy_id: { [Op.in]: hierarchyIds },
                 job_template_id: { [Op.in]: jobTemplateIds },
                 unit_of_measure,
-                currency:currency_id,
+                currency: currency_id,
             },
             attributes: ['id', 'rate_card_id', 'rate_type_id', 'min_rate', 'max_rate'],
         });
