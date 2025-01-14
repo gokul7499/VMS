@@ -2,16 +2,13 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { decodeToken } from "../middlewares/verifyToken";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { sequelize } from "../config/instance";
-import { QueryTypes } from 'sequelize';
+import { QueryTypes } from "sequelize";
 import { sendNotification } from "../utility/notificationService";
-
-export async function createContactUs(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
+import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
+import { EmailRecipient } from "../interfaces/email-recipients.interface";
+export async function createContactUs(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
     try {
-        const traceId = generateCustomUUID();
-
         const { your_detail, support_email, subject, URL, message, program_id, program_name } = request.body as {
             your_detail: string;
             support_email: string;
@@ -20,106 +17,131 @@ export async function createContactUs(
             URL?: string;
             program_id?: string;
             program_name?: string;
-        }
+        };
 
-        const authHeader = request.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', traceId });
-        }
-        const token = authHeader.split(' ')[1];
-        let user;
-        try {
-            user = await decodeToken(token);
-        } catch (error) {
-            return reply.status(401).send({
-                status_code: 401,
-                message: 'Unauthorized - Invalid token',
+        validateRequestBody(request.body, traceId);
+
+        const { user, token } = await validateAuthorizationHeader(request.headers.authorization, traceId);
+
+        if (!user.sub) {
+            throw {
+                status: 400,
+                message: "User ID is missing",
                 traceId,
-                error: (error as any).message,
-            });
+            };
         }
 
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', traceId });
+        const { from_name, from_email } = await getUserDetails(user.sub, traceId);
+
+        const emailArray = Array.isArray(from_email) ? from_email : [from_email];
+        const recipeintEmail: EmailRecipient = {
+            email: from_email
         }
-
-        if (!your_detail || !support_email || !subject || !message) {
-            return reply.status(400).send({
-                status: 'error',
-                message: 'Missing required fields: your_details, email, subject or message.',
-            });
-        }
-
-        const user_id = user.sub;
-
-        const [userDetails]: any = await sequelize.query(
-            `
-            SELECT 
-                u.first_name AS from_name, 
-                u.email AS from_email
-            FROM 
-                user u
-            WHERE 
-                u.id = :userId
-            `,
-            {
-                replacements: { userId: user_id },
-                type: QueryTypes.SELECT,
-            }
-        );
-
-        if (!userDetails || userDetails.length === 0) {
-            return reply.status(404).send({
-                status_code: 404,
-                message: 'User not found',
-                traceId,
-            });
-        }
-
-        const { from_name, from_email } = userDetails;
+        const recipientEmailArray: EmailRecipient[] = [];
+        recipientEmailArray.push(recipeintEmail);
 
         (async () => {
+            if (emailArray.length > 0) {
+                const payload = {
+                    program_id: program_id ?? "",
+                    program_name,
+                    from_name,
+                    from_email: from_email,
+                    url: URL,
+                    message,
+                };
 
-            const payload = {
-                program_id: program_id ?? '',
-                program_name,
-                from_name,
-                from_email,
-                // from_role: userDetails[0].role,
-                url: URL,
-                template_body: message,
-            };
+                const notificationPayload : NotificationDataPayload = {
+                    program_id: program_id ?? "",
+                    token,
+                    traceId,
+                    eventCode: "CUSTOMER_SUPPORT",
+                    recipientEmail: recipientEmailArray,
+                    payload,
+                    userId: user.sub ?? "",
+                };
 
-            const eventCode = "CUSTOMER_SUPPORT";
-            const notificationPayload = {
-                program_id: program_id ?? '',
-                token,
-                traceId,
-                eventCode,
-                recipientEmail: from_email,
-                payload,
-                userId: user?.sub || '',
-            };
-            sendNotification(notificationPayload);
+                sendNotification(notificationPayload);
+            }
         })();
 
-
         return reply.status(200).send({
-            status: 'success',
-            message: 'created successfully.',
-            data: {
-                your_detail,
-                support_email,
-                subject,
-                URL,
-                message
-            },
+            status: "success",
+            message: "created successfully.",
+            data: { your_detail, support_email, subject, URL, message },
         });
     } catch (error) {
-        console.error('Error in createContactUs:', error);
+        console.error("Error in createContactUs:", error);
         return reply.status(500).send({
-            status: 'error',
-            message: 'An error occurred while processing your request. Please try again later.',
+            status: "error",
+            message: (error as any).message,
+            traceId,
         });
     }
+}
+
+
+function validateRequestBody(body: any, traceId: string) {
+    const { your_detail, support_email, subject, message } = body;
+    if (!your_detail || !support_email || !subject || !message) {
+        throw {
+            status: 400,
+            message: "Missing required fields: your_details, email, subject, or message.",
+            traceId,
+        };
+    }
+}
+
+async function validateAuthorizationHeader(authHeader: string | undefined, traceId: string) {
+    if (!authHeader?.startsWith("Bearer ")) {
+        throw {
+            status: 401,
+            message: "Unauthorized - Token not found",
+            traceId,
+        };
+    }
+
+    const token = authHeader.split(" ")[1];
+    try {
+        const user = await decodeToken(token);
+        if (!user) {
+            throw new Error("Invalid token");
+        }
+        return { user, token };
+    } catch (error) {
+        throw {
+            status: 401,
+            message: "Unauthorized - Invalid token",
+            traceId,
+            error: (error as Error).message,
+        };
+    }
+}
+
+async function getUserDetails(userId: string, traceId: string) {
+    const [userDetails]: any = await sequelize.query(
+        `
+        SELECT 
+            u.first_name AS from_name, 
+            u.email AS from_email
+        FROM 
+            user u
+        WHERE 
+            u.id = :userId
+        `,
+        {
+            replacements: { userId },
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    if (!userDetails) {
+        throw {
+            status: 404,
+            message: "User not found",
+            traceId,
+        };
+    }
+
+    return userDetails;
 }
