@@ -26,6 +26,7 @@ const initializeSequelize = async () => {
       }
     },
   );
+    await sequelize.sync({ alter: true });
 };
 
 interface DatabaseConnectionStatus {
@@ -38,7 +39,6 @@ interface DatabaseConnectionStatus {
 const checkDatabaseConnection = async (): Promise<DatabaseConnectionStatus> => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: true });
     console.log('Database connected successfully');
     return {
       connected: true,
