@@ -24,20 +24,17 @@ app.get("/", async (request, reply) => {
 app.register(formBodyPlugin);
 
 app.get("/config/health-check", async (request, reply) => {
-  const startTime = Date.now(); // Start time for latency measurement
-
+  const startTime = Date.now();
   try {
     app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
-
-    const connectionStatus = await checkDatabaseConnection(); // Check database connection
-
-    const latency = Date.now() - startTime; // Calculate latency
-
+    const connectionStatus = await checkDatabaseConnection();
+    app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
+    const latency = Date.now() - startTime;
     return reply.status(connectionStatus.connected ? 200 : 503).send({
       status: connectionStatus.connected ? "connected" : "disconnected",
       message: connectionStatus.message,
-      database:connectionStatus.database,
-      service:"config",
+      database: connectionStatus.database,
+      service: "config",
       timestamp: new Date().toISOString(),
       latency: latency,
     });
