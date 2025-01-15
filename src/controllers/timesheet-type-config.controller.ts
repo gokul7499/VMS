@@ -16,22 +16,22 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     try {
         const { program_id } = request.params as { program_id: string };
         const data = request.body as TimesheetTypeConfigInterface;
-        
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
-    console.log("uuu",userId)
+
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
+        console.log("uuu", userId)
         const existingConfig = await TimesheetTypeConfig.findOne({
             where: {
                 program_id,
-                title: data.title, 
+                title: data.title,
             },
         });
 
@@ -43,8 +43,10 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             });
         }
         const newConfig = await TimesheetTypeConfig.create(
-            { program_id, ...data ,  created_by: userId,
-                modified_by: userId,},
+            {
+                program_id, ...data, created_by: userId,
+                modified_by: userId,
+            },
         );
         reply.status(201).send({
             status_code: 201,
@@ -62,7 +64,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     }
 };
 
-export const getAllTimesheetTypeConfigs = async (   
+export const getAllTimesheetTypeConfigs = async (
     request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: number; limit?: number } }>,
     reply: FastifyReply
 ) => {
@@ -150,7 +152,7 @@ export const getTimesheetTypeConfigById = async (
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
-                trace_id:traceId,
+                trace_id: traceId,
                 config: []
             });
         }
@@ -193,14 +195,14 @@ export const getTimesheetTypeConfigById = async (
             status_code: 200,
             message: 'Timesheet Type Config found successfully.',
             config: data,
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Error fetching Timesheet Type Config.',
             error: error.message,
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 };
@@ -217,7 +219,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const configData = request.body as TimesheetTypeConfigInterface;
@@ -226,19 +228,19 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
-                trace_id:traceId,
+                trace_id: traceId,
                 config: []
             });
         }
         await config.update({
             program_id,
             ...configData,
-            modified_by:userId,
+            modified_by: userId,
         });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet Type Config updated successfully.',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     } catch (error) {
         await transaction.rollback();
@@ -246,7 +248,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             status_code: 500,
             message: 'Error updating Timesheet Type Config.',
             error: error || 'Unknown error',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 };
@@ -264,37 +266,37 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
-     try {
-         const { id } = request.params as { id: string };
-         const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
- 
-         if (!config) {
-             return reply.status(200).send({
-                 status_code: 200,
-                 message: 'Timesheet Type Config not found.',
-                 trace_id: traceId,
-             });
-         }
- 
-         await config.update({ is_enabled: false, is_deleted: true ,   modified_by:userId,});
- 
-         reply.status(200).send({
-             status_code: 200,
-             message: 'Timesheet Type Config deleted successfully.',
-             trace_id: traceId,
-         });
-     } catch (error) {
-         reply.status(500).send({
-             status_code: 500,
-             message: 'Error deleting Timesheet Type Config.',
-             error: error,
-             trace_id: traceId,
-         });
-     }
- };
+    const userId = user?.sub
+    try {
+        const { id } = request.params as { id: string };
+        const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
 
- export async function timesheetTypeConfigFilter(
+        if (!config) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Timesheet Type Config not found.',
+                trace_id: traceId,
+            });
+        }
+
+        await config.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
+
+        reply.status(200).send({
+            status_code: 200,
+            message: 'Timesheet Type Config deleted successfully.',
+            trace_id: traceId,
+        });
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Error deleting Timesheet Type Config.',
+            error: error,
+            trace_id: traceId,
+        });
+    }
+};
+
+export async function timesheetTypeConfigFilter(
     request: FastifyRequest<{
         Params: { program_id: string };
         Body: {
@@ -388,7 +390,7 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 
         return reply.status(200).send({
             status_code: 200,
-            trace_id:traceId,
+            trace_id: traceId,
             message: data.length > 0 ? "Timesheet Type Config fetched successfully." : "No records found.",
             total_records: totalRecords,
             page: pageNumber,
@@ -400,8 +402,63 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id:traceId,
+            trace_id: traceId,
             error: error.message,
         });
     }
 }
+
+export const getAllRelatedDataByProgram = async (
+    request: FastifyRequest<{ Params: { program_id: string } }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id } = request.params;
+        const configs = await TimesheetTypeConfig.findAll({
+            where: { program_id, is_deleted: false },
+            attributes: ['hierarchies', 'labor_category', 'allocations'],
+        });
+        const hierarchyIds = [...new Set(configs.flatMap(config => config.hierarchies || []))];
+        const laborIds = [...new Set(configs.flatMap(config => config.labor_category || []))];
+        const ruleGroupIds = [
+            ...new Set(
+                configs
+                    .flatMap(config => config.allocations?.timesheet_rule_group || [])
+                    .filter(Boolean)
+            ),
+        ];
+        const [hierarchiesData, laborsData, ruleGroupsData] = await Promise.all([
+            hierarchyIds.length ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
+            laborIds.length ? IndustriesModel.findAll({ where: { id: laborIds }, attributes: ['id', 'name'] }) : [],
+            ruleGroupIds.length
+                ? TimesheetExpenseRuleGroup.findAll({
+                    where: { id: ruleGroupIds },
+                    attributes: ['id', 'rule_group_name'],
+                })
+                : [],
+        ]);
+        const data = {
+            hierarchies: hierarchiesData.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
+            labor_categories: laborsData.map(labor => ({ id: labor.id, name: labor.name })),
+            timesheet_rule_groups: ruleGroupsData.map(ruleGroup => ({
+                id: ruleGroup.id,
+                name: ruleGroup.rule_group_name,
+            })),
+        };
+        reply.status(200).send({
+            status_code: 200,
+            message: "Dropdown data fetched successfully",
+            trace_id: traceId,
+            data,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: 'Error while fetching related data.',
+            error: error.message,
+        });
+    }
+};
