@@ -547,8 +547,9 @@ export async function getPendingUser(
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
-      message: "Failed to fetch data from the database.",
-      trace_id: traceId
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error:error.message
     });
   }
 }
