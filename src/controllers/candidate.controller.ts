@@ -164,6 +164,8 @@ export async function getAllCandidate(
             updatedAt,
             available_candidate,
             job_id,
+          
+
             ...filters
         } = request.query as any;
 
@@ -225,7 +227,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on'
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', 'state_national_id'
             ],
             limit: limitNum,
             offset,
@@ -251,7 +253,8 @@ export async function getAllCandidate(
                     id: cand.vendor.id,
                     vendor_name: cand.vendor.vendor_name
                 } : null,
-                modified_on: cand.modified_on
+                modified_on: cand.modified_on,
+                state_national_id:cand.state_national_id,
             };
         });
 
@@ -269,13 +272,13 @@ export async function getAllCandidate(
             trace_id: traceId,
         });
 
-    } catch (error) {
+    } catch (error:any) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error
+            error:error.message
         });
     }
 }
@@ -313,12 +316,12 @@ export async function getCandidateByIdAndProgramId(
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: "Candidate not found",
+                message: "Candidate feteched succssfully!",
             });
         }
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate not found",
+            message: "Candidate get successfully",
             candidate,
             trace_id: traceId,
         });

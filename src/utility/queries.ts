@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
+const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -426,7 +427,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -444,7 +451,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
@@ -1984,14 +1997,14 @@ GROUP BY wl.program_id;`
 
 
 export const userQuery = (
-  first_name?:string,
-  email?:string,
-  tenant_id?:string,
-  role_id?:string,
-  is_activated?:string,
-  user_type?:string,
-  user_id?:string
-) =>`
+  first_name?: string,
+  email?: string,
+  tenant_id?: string,
+  role_id?: string,
+  is_activated?: string,
+  user_type?: string,
+  user_id?: string
+) => `
 WITH user_data AS (
   SELECT u.id,
          u.username,
@@ -2055,4 +2068,34 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY created_on DESC
 LIMIT :limit OFFSET :offset;
+`;
+
+export const getPendingUserQuery = `
+  SELECT 
+    invitation.*, 
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', hierarchies.id,
+            'name', hierarchies.name
+        )
+    ) AS associate_hierarchy_ids,
+     JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', work_locations.id,
+            'name', work_locations.name
+        )
+    ) AS work_location_ids
+FROM ${auth_db}.invitation
+LEFT JOIN 
+    hierarchies
+ON 
+    JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+LEFT JOIN 
+    work_locations
+ON 
+    JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+  WHERE invitation.program_id = :program_id
+  AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
+  GROUP BY invitation.id
+LIMIT 0, 1000;
 `;
