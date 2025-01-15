@@ -15,12 +15,13 @@ import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
 import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
 import jobMasterDataModel from "../models/job-master-data.model";
 import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
-import { Op, Transaction } from "sequelize";
+import { Op, QueryTypes, Transaction } from "sequelize";
 // import { extractFileContent } from "../utility/fileUpload";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
+import { getHierarchieWithChildren } from "../utility/queries";
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
@@ -991,6 +992,7 @@ export async function getCommonHierarchies(
   const traceId = generateCustomUUID();
   try {
     const { job_manager_id, job_template_id } = request.query;
+    const {program_id}=request.params as {program_id:string};
 
     if (!job_manager_id || !job_template_id) {
       return reply.status(400).send({
@@ -1013,21 +1015,50 @@ export async function getCommonHierarchies(
     const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
       templateHierarchyIds.includes(id)
     );
-
+    
     if (commonHierarchyIds.length === 0) {
-      return reply.status(400).send({
-        status_code: 400,
+      return reply.status(200).send({
+        status_code: 200,
         common_hierarchies: [],
         trace_id: traceId,
       });
     }
+    
+    const hierarchiesWithChildren = await sequelize.query(getHierarchieWithChildren, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT
+    });
 
-    // Query hierarchy details for common hierarchy IDs
-    const hierarchyDetails = await jobTempletRepositories.hierarchyDetailsQuery(commonHierarchyIds)
+    const buildHierarchy = (data: any, parentId = null) => {
+      return data
+          .filter((item: any) => item.parent_hierarchy_id === parentId)
+          .map((item: any) => {
+              const isAssociated = commonHierarchyIds.includes(item.id);
+              const children = buildHierarchy(data, item.id);
+  
+              // Ensure node is included if it's associated OR if any child is associated
+              if (isAssociated || children.length > 0) {
+                  return {
+                      id: item.id,
+                      parent_hierarchy_id: item.parent_hierarchy_id,
+                      name: item.name,
+                      is_enabled: item.is_enabled,
+                      is_associated: isAssociated,
+                      hierarchies: children
+                  };
+              }
+  
+              // Exclude node if not associated and has no associated children
+              return null;
+          })
+          .filter(Boolean);
+  };
 
+  const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+  
     reply.status(200).send({
       status_code: 200,
-      common_hierarchies: hierarchyDetails,
+      common_hierarchies: nestedHierarchy,
       trace_id: traceId,
     });
   } catch (error: any) {
