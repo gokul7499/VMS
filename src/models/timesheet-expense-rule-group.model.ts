@@ -6,6 +6,7 @@ class TimesheetExpenseRuleGroup extends Model {
     id: any;
     expenseRules: any;
     timesheet_expense_rules: never[] | undefined;
+    rule_group_name: any;
 
 }
 
