@@ -6,23 +6,35 @@ import { Permissions, Actions } from "../constants/permissions";
 async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/user/', getUser);
     fastify.get('/user/:id', getUserById);
-    fastify.post('/user/',createUser);
-    fastify.put('/user/:id/program/:program_id', {
-        preHandler: validatePermissions,
-        config: {
-            permissions: [Permissions.USER],
-            action: Actions.UPDATE,
-        },
-    }, updateUser);
+    fastify.post('/user/',
+        // {
+        //     preHandler: validatePermissions,
+        //     config: {
+        //         permissions: [Permissions.USER],
+        //         action: Actions.CREATE,
+        //     },
+        // },
+        createUser);
+    fastify.put('/user/:id/program/:program_id',
+        // {
+        //     preHandler: validatePermissions,
+        //     config: {
+        //         permissions: [Permissions.USER],
+        //         action: Actions.UPDATE,
+        //     },
+        // },
+        updateUser);
     fastify.delete('/user/:id', deleteUser);
     fastify.get('/user/search-user', searchUser);
-    fastify.get('/user/program/:program_id', {
-        preHandler: validatePermissions,
-        config: {
-            permissions: [Permissions.USER],
-            action: Actions.READ,
-        },
-    }, getAllUserIDAndUserId);
+    fastify.get('/user/program/:program_id',
+        // {
+        //     preHandler: validatePermissions,
+        //     config: {
+        //         permissions: [Permissions.USER],
+        //         action: Actions.READ,
+        //     },
+        // },
+        getAllUserIDAndUserId);
     fastify.get('/user/:id/program/:program_id', {
         // preHandler: validatePermissions,
         // config: {

@@ -24,6 +24,10 @@ Programs.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    display_name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     unique_id: {
       type: DataTypes.STRING,
       allowNull: false,
