@@ -318,7 +318,7 @@ export async function getCandidateByIdAndProgramId(
         }
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate not found",
+            message: "Candidate get successfully",
             candidate,
             trace_id: traceId,
         });

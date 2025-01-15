@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
+const auth_db = process.env.CONFIG_DB ?? "`dev_vms_auth`";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -1989,14 +1990,14 @@ GROUP BY wl.program_id;`
 
 
 export const userQuery = (
-  first_name?:string,
-  email?:string,
-  tenant_id?:string,
-  role_id?:string,
-  is_activated?:string,
-  user_type?:string,
-  user_id?:string
-) =>`
+  first_name?: string,
+  email?: string,
+  tenant_id?: string,
+  role_id?: string,
+  is_activated?: string,
+  user_type?: string,
+  user_id?: string
+) => `
 WITH user_data AS (
   SELECT u.id,
          u.username,
@@ -2060,4 +2061,11 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY created_on DESC
 LIMIT :limit OFFSET :offset;
+`;
+
+export const getPendingUserQuery = `
+  SELECT * 
+  FROM ${auth_db}.invitation
+  WHERE program_id = :program_id
+  AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 `;
