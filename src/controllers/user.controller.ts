@@ -11,10 +11,12 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getMasterData, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery,getPendingUserQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import { request } from "http";
+import axios from "axios";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -68,62 +70,108 @@ export async function getUserHierarchiesByProgram(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
 
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply
+      .status(401)
+      .send({ message: "Unauthorized - Token not found" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+
+  const userId = user?.sub;
+ 
   try {
     const { id: user_id, program_id } = request.params;
     const user = await User.findOne({
       where: { id: user_id, program_id },
       attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id'],
     });
-
+ 
     if (!user) {
       return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: 'User not found or no associated hierarchies/work locations for the given program',
-        hierarchies: [],
-        work_locations: [],
-        default_work_location: null,
+          status_code: 200,
+          trace_id: traceId,
+          message: "User not found or no associated hierarchies/work locations for the given program",
+          hierarchies: [],
+          work_locations: [],
+          default_work_location: null,
       });
     }
 
-    const associateHierarchyIds = user.associate_hierarchy_ids ?? [];
-    const workLocationIds = user.work_location_ids ?? [];
+    const associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
+ 
+    const hierarchiesWithChildren = await sequelize.query(getHierarchieWithChildren, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT
+    });
+ 
+    if (hierarchiesWithChildren.length === 0) {
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'No hierarchies found for the given program',
+        trace_id: traceId,
+        hierarchies: [],
+      });
+    }
+ 
+    // Build hierarchy and add is_associated flag
+    const buildHierarchy = (data: any, parentId = null) => {
+      return data
+          .filter((item: any) => item.parent_hierarchy_id === parentId)
+          .map((item: any) => {
+              const isAssociated = associateHierarchyIds.includes(item.id);
+              const children = buildHierarchy(data, item.id);
+  
+              // Ensure node is included if it's associated OR if any child is associated
+              if (isAssociated || children.length > 0) {
+                  return {
+                      id: item.id,
+                      parent_hierarchy_id: item.parent_hierarchy_id,
+                      name: item.name,
+                      is_enabled: item.is_enabled,
+                      is_associated: isAssociated,
+                      hierarchies: children
+                  };
+              }
+  
+              // Exclude node if not associated and has no associated children
+              return null;
+          })
+          .filter(Boolean);
+  };
 
-    const hierarchiesData = associateHierarchyIds.length
-      ? await hierarchies.findAll({
-        where: { id: associateHierarchyIds },
-        attributes: ['id', 'name'],
-      })
-      : [];
-
+    const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+ 
+    const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds },
-        attributes: ['id', 'name'],
-      })
+          where: { id: workLocationIds },
+          attributes: ['id', 'name'],
+        })
       : [];
-
-    const defaultWorkLocation = user.default_work_location_id
+ 
+    const defaultWorkLocation = user?.default_work_location_id
       ? await WorkLocationModel.findByPk(user.default_work_location_id, {
-        attributes: ['id', 'name'],
-      })
+          attributes: ['id', 'name'],
+        })
       : null;
-
-    const is_all_hierarchy_associate = hierarchiesData.length > 0 ? false : true;
-    const is_all_work_location_associate = workLocationsData.length > 0 ? false : true;
-
+ 
+    const is_all_work_location_associate = workLocationsData.length === 0;
+ 
     return reply.status(200).send({
       status_code: 200,
       message: 'Hierarchies and work locations fetched successfully',
       job_manager_hierarchies: {
         user_id,
         program_id,
-        is_all_hierarchy_associate,
-        hierarchies: hierarchiesData.map((hierarchy) => ({
-          id: hierarchy.id,
-          name: hierarchy.name,
-        })),
+        hierarchies: nestedHierarchy,
         is_all_work_location_associate,
         work_locations: workLocationsData.map((location) => ({
           id: location.id,
@@ -135,15 +183,15 @@ export async function getUserHierarchiesByProgram(
         : null,
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
-      message: (error as any).message,
+      message: error.message,
       trace_id: traceId,
     });
   }
 }
-
+ 
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
@@ -284,7 +332,6 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-
   const userId = user?.sub;
   try {
     const user = await User.findOne({
@@ -302,24 +349,17 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
-
-      const createPromises = foundationalData.flatMap((item) =>
-        item.master_data.map((data: { foundation_data_type_id: any; foundation_data_ids: any; default_master_data: any; is_associated: any; }) => ({
-          user_id: id,
-          foundation_data_type_id: data.foundation_data_type_id,
-          foundation_data_ids: data.foundation_data_ids,
-          default_master_data: data.default_master_data || null,
-          is_associated: data.is_associated || false,
-          hierarchy_id: item.hierarchy_id
-        }))
-      );
-
-      await UserMasterDataModel.bulkCreate(createPromises);
-
+      const createData = foundationalData.map((item) => ({
+        user_id: id,
+        master_data: item.master_data,
+        associated_master_data: item.associated_master_data,
+        default_master_data: item.default_master_data || null,
+        is_all_associated: item.is_all_associated || false,
+      }));
+      await UserMasterDataModel.bulkCreate(createData);
     }
     return reply.status(200).send({
       status_code: 200,
@@ -523,3 +563,42 @@ function removeDuplicates<T>(array: T[], key: keyof T): T[] {
     return true;
   });
 }
+
+
+export async function getPendingUser(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: { user_mapping_id: string };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params;
+  const { user_mapping_id } = request.query;
+  const traceId = generateCustomUUID()
+
+  try {
+    const replacements = { program_id, user_mapping_id };
+    const data = await sequelize.query(getPendingUserQuery, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    if (data && data.length > 0) {
+      return reply.code(200).send({ status_code: 200, message: "get pending user data", data, trace_id: traceId });
+    } else {
+      return reply
+        .code(200)
+        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+    }
+  } catch (error: any) {
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error:error.message
+    });
+  }
+}
+
+
+
