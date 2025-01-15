@@ -452,7 +452,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled','created_on','modified_on'],
         });
 
         if (!rateConfiguration) {
@@ -571,6 +571,8 @@ export async function getRateConfigurationById(
             name: rateConfiguration.name,
             is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
+            created_on:rateConfiguration.created_on,
+            modified_on:rateConfiguration.modified_on,
             hierarchie,
             job_templates: jobTemplates,
             rate_configuration: rateConfigurationDetails,

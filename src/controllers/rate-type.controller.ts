@@ -1,6 +1,6 @@
 import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateRateTypeData} from "../interfaces/rate-type-interface";
+import { CreateRateTypeData } from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
@@ -212,8 +212,17 @@ export async function getAllRateType(request: FastifyRequest<{
   const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
+
+
   try {
-    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
+    const parsedIsEnabled =
+      is_enabled === "true" || is_enabled === true
+        ? true
+        : is_enabled === "false" || is_enabled === false
+          ? false
+          : undefined;
+
+    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
 
     if (rateType.length === 0) {

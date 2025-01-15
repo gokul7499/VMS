@@ -40,54 +40,58 @@ export async function checkPermission(
 function matchesResource(resource: string, permissionResource: string): boolean {
   if (!resource || !permissionResource) return false;
 
+  // Full wildcard match
+  if (permissionResource === "*" || permissionResource === "srn:*") {
+      return true;
+  }
+
+  // Split for segment comparison
   const resourceParts = resource.split(':');
   const permissionParts = permissionResource.split(':');
 
-  if (permissionParts.length <= resourceParts.length) {
-    for (let i = 0; i < permissionParts.length; i++) {
-      if (permissionParts[i] === '*') return true;
+  // Check each segment for a match or wildcard
+  for (let i = 0; i < permissionParts.length; i++) {
+      if (permissionParts[i] === '*') return true; // Wildcard match
       if (permissionParts[i] !== resourceParts[i]) return false;
-    }
-    return true;
   }
 
-  return permissionResource.replace(':*', '') === resource;
+  // Ensure no extra segments in resource
+  return permissionParts.length <= resourceParts.length;
 }
 
 function validatePermissions(policies: any[], requiredPermissions: string[], action?: string): void {
   let hasValidPermission = false;
 
   for (const requiredPermission of requiredPermissions) {
-    const resourcePolicies = policies.filter(policy =>
-      matchesResource(policy.permissions.srn, requiredPermission)
-    );
+      const matchingPolicies = policies.filter(policy =>
+          matchesResource(requiredPermission, policy.permissions.srn)
+      );
 
-    if (resourcePolicies.length === 0) {
-      console.log(`No matching policies for permission: ${requiredPermission}`);
-      continue;
-    }
+      if (matchingPolicies.length === 0) {
+          console.log(`No matching policies for permission: ${requiredPermission}`);
+          continue;
+      }
 
-    const allowedActions = resourcePolicies.some(policy =>
-      policy.permissions.policy === "ALLOW" &&
-      (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
-    );
+      const allowed = matchingPolicies.some(policy =>
+          policy.permissions.policy === "ALLOW" &&
+          (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
+      );
 
-    if (allowedActions) {
-      hasValidPermission = true;
-    }
+      const denied = matchingPolicies.some(policy =>
+          policy.permissions.policy === "DENY" &&
+          (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
+      );
 
-    const deniedActions = resourcePolicies.some(policy =>
-      policy.permissions.policy === "DENY" && policy.permissions.actions.includes(action)
-    );
+      if (denied) {
+          throw new Error(`Unauthorized: Action explicitly denied for ${requiredPermission}`);
+      }
 
-    if (deniedActions) {
-      console.log(`Action "${action}" explicitly denied for permission: ${requiredPermission}`);
-      throw new Error('Unauthorized: Action explicitly denied for the resource.');
-    }
+      if (allowed) {
+          hasValidPermission = true;
+      }
   }
 
   if (!hasValidPermission) {
-    console.log('No valid permissions found for the action.');
-    throw new Error('Unauthorized: User does not have permission for any provided resources.');
+      throw new Error('Unauthorized: No valid permissions found.');
   }
 }
