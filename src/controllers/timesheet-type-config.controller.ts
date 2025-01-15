@@ -208,8 +208,6 @@ export const getTimesheetTypeConfigById = async (
 export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    let { name } = request.body as { name: string };
-    name = name.trim();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
