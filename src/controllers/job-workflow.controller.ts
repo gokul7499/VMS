@@ -1133,7 +1133,8 @@ export const updateJobWorkFlow = async (
 ) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
-    const { updateData } = request.body as any;
+    const  updateData  = request.body as JobWorkFlow;
+
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
@@ -1147,6 +1148,7 @@ export const updateJobWorkFlow = async (
         }
 
         await workflow.update({ ...updateData, modified_on: new Date() });
+
 
         reply.status(200).send({
             status_code: 200,
