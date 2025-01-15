@@ -284,7 +284,6 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-
   const userId = user?.sub;
   try {
     const user = await User.findOne({
@@ -302,25 +301,19 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
-
-      const createPromises = foundationalData.flatMap((item) =>
-        item.master_data.map((data: { foundation_data_type_id: any; foundation_data_ids: any; default_master_data: any; is_associated: any; }) => ({
-          user_id: id,
-          foundation_data_type_id: data.foundation_data_type_id,
-          foundation_data_ids: data.foundation_data_ids,
-          default_master_data: data.default_master_data || null,
-          is_associated: data.is_associated || false,
-          hierarchy_id: item.hierarchy_id
-        }))
-      );
-
-      await UserMasterDataModel.bulkCreate(createPromises);
-
+      const createData = foundationalData.map((item) => ({
+        user_id: id,
+        master_data: item.master_data,
+        associated_master_data: item.associated_master_data,
+        default_master_data: item.default_master_data || null,
+        is_all_associated: item.is_all_associated || false,
+      }));
+      await UserMasterDataModel.bulkCreate(createData);
     }
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
