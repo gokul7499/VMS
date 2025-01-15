@@ -389,9 +389,7 @@ export const updateCustomFieldById = async (
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
-  let { name } = request.body as { name: string };
-  name = name.trim();
-
+  
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
