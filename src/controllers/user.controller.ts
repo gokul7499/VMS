@@ -11,10 +11,12 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getMasterData, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
+import { getMasterData, getPendingUserQuery, getWorkLocationTimeZoneByUserId, userQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import { request } from "http";
+import axios from "axios";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -301,9 +303,11 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
+      console.log("fff", foundationalData)
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
+      console.log("uuu", id)
       const createData = foundationalData.map((item) => ({
         user_id: id,
         master_data: item.master_data,
@@ -311,9 +315,10 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         default_master_data: item.default_master_data || null,
         is_all_associated: item.is_all_associated || false,
       }));
+      console.log("createData", createData)
       await UserMasterDataModel.bulkCreate(createData);
     }
-
+    console.log("cre", createUser)
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -516,3 +521,41 @@ function removeDuplicates<T>(array: T[], key: keyof T): T[] {
     return true;
   });
 }
+
+
+export async function getPendingUser(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: { user_mapping_id: string };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params;
+  const { user_mapping_id } = request.query;
+  const traceId = generateCustomUUID()
+
+  try {
+    const replacements = { program_id, user_mapping_id };
+    const data = await sequelize.query(getPendingUserQuery, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    if (data && data.length > 0) {
+      return reply.code(200).send({ status_code: 200, message: "get pending user data", data, trace_id: traceId });
+    } else {
+      return reply
+        .code(200)
+        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+    }
+  } catch (error: any) {
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Failed to fetch data from the database.",
+      trace_id: traceId
+    });
+  }
+}
+
+
+
