@@ -215,7 +215,7 @@ export const updateWorkflowStatus = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -330,14 +330,15 @@ export const updateWorkflowStatus = async (
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
-
-            await workflow.update({ levels, modified_on: new Date(),modified_by:userId });
             const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
             const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-
+            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
 
             workflow.status = workflowStatus;
+            workflow.is_updated = is_updatedFlag;
             console.log("Workflow Status:", workflowStatus);
+            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
+
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id
@@ -1133,7 +1134,7 @@ export const updateJobWorkFlow = async (
 ) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
-    const  updateData  = request.body as JobWorkFlow;
+    const updateData = request.body as JobWorkFlow;
 
 
     try {
