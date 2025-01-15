@@ -164,6 +164,8 @@ export async function getAllCandidate(
             updatedAt,
             available_candidate,
             job_id,
+            state_national_id,
+
             ...filters
         } = request.query as any;
 
