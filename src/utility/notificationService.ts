@@ -3,7 +3,7 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
 import { EmailRecipient } from '../interfaces/email-recipients.interface';
-import { object } from 'zod';
+// import { object } from 'zod';
 const config_db = process.env.CONFIG_DB || "dev_vms_configurator"
 const auth_db = process.env.AUTH_DB || "dev_vms_auth"
 
