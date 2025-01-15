@@ -30,6 +30,7 @@ export const getAllJobTemplates = async (
 ) => {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
+
   try {
     const {
       id,
@@ -39,16 +40,17 @@ export const getAllJobTemplates = async (
       labour_category,
       is_shift_rate,
       category,
-      page = 1,
-      limit = 10,
+      page = 1, // Default value for page
+      limit = 10, // Default value for limit
     } = request.query as GetJobTemplatesQuery;
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
+    // Parse page and limit as numbers, ensuring valid values
+    const pageNumber = Number(page) > 0 ? Number(page) : 1;
+    const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
 
     const dynamicConditions: string[] = [];
-    const replacements: any = { program_id };
+    const replacements: any = { program_id, limit: limitNumber, offset };
 
     if (id) {
       dynamicConditions.push(`job_templates.id = :id`);
@@ -78,6 +80,7 @@ export const getAllJobTemplates = async (
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
+
     const dynamicConditionsString =
       dynamicConditions.length > 0
         ? `AND ${dynamicConditions.join(" AND ")}`
@@ -87,14 +90,13 @@ export const getAllJobTemplates = async (
       program_id,
       dynamicConditionsString,
       replacements,
-      limitNumber + 1,
+      limitNumber,
       offset
-    );
-    const hasMorePages = jobTemplates.length > limitNumber;
-    if (hasMorePages) {
-      jobTemplates.pop();
-    }
-    const totalPages = hasMorePages ? pageNumber + 1 : pageNumber;
+    ) as any[];
+
+    const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
+    const totalPages = Math.ceil(totalCount / limitNumber);
+
     reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
@@ -103,7 +105,7 @@ export const getAllJobTemplates = async (
         page: pageNumber,
         limit: limitNumber,
         total_pages: totalPages,
-        total_count: jobTemplates.length
+        total_count: totalCount,
       },
     });
   } catch (error: any) {
@@ -114,6 +116,8 @@ export const getAllJobTemplates = async (
     });
   }
 };
+
+
 
 export async function getJobTemplateById(
   request: FastifyRequest<{ Params: { program_id: string; id: string } }>,

@@ -284,7 +284,8 @@ class JobTempletRepository {
         JSON_OBJECT(
           'id', primary_hierarchy.id,
           'name', primary_hierarchy.name
-        ) AS primary_hierarchy -- Added for primary hierarchy
+        ) AS primary_hierarchy, -- Added for primary hierarchy
+        COUNT(*) OVER() AS total_count -- Add total_count using window function
       FROM 
         job_templates
       LEFT JOIN 
@@ -301,12 +302,13 @@ class JobTempletRepository {
         job_templates.created_on DESC
       LIMIT :limit OFFSET :offset;
     `;
-
+  
     return sequelize.query(query, {
       replacements: { ...replacements, limit, offset },
       type: QueryTypes.SELECT,
     });
   }
+  
 
 
   async getJobTempletById(program_id: string, id: string) {
