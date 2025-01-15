@@ -38,7 +38,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
 
     const hierarchy = await hierarchies.create({
         program_id: programId,
-        display_name,
+        name : display_name,
         code: unique_id,
         hierarchy_level: 1,
         hierarchy_order: 1,
