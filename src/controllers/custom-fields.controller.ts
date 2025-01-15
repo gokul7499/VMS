@@ -558,8 +558,6 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
 
     if (customFieldItem) {
-      let { name } = request.body as { name: string };
-      name = name.trim();
       const authHeader = request.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
