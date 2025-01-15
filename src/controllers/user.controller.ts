@@ -303,11 +303,9 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-      console.log("fff", foundationalData)
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
-      console.log("uuu", id)
       const createData = foundationalData.map((item) => ({
         user_id: id,
         master_data: item.master_data,
@@ -315,10 +313,8 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         default_master_data: item.default_master_data || null,
         is_all_associated: item.is_all_associated || false,
       }));
-      console.log("createData", createData)
       await UserMasterDataModel.bulkCreate(createData);
     }
-    console.log("cre", createUser)
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
