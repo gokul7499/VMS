@@ -1,7 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const config_db = process.env.CONFIG_DB ?? "`dev_vms_auth`";
+const auth_db = process.env.CONFIG_DB ?? "`dev_vms_auth`";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2065,7 +2065,7 @@ LIMIT :limit OFFSET :offset;
 
 export const getPendingUserQuery = `
   SELECT * 
-  FROM ${config_db}.invitation
+  FROM ${auth_db}.invitation
   WHERE program_id = :program_id
   AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 `;
