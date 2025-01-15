@@ -124,17 +124,29 @@ export async function getUserHierarchiesByProgram(
     // Build hierarchy and add is_associated flag
     const buildHierarchy = (data: any, parentId = null) => {
       return data
-        .filter((item: any) => item.parent_hierarchy_id === parentId)
-        .map((item: any) => ({
-          id: item.id,
-          parent_hierarchy_id: item.parent_hierarchy_id,
-          name: item.name,
-          is_enabled: item.is_enabled,
-          is_associated: associateHierarchyIds.includes(item.id),
-          hierarchies: buildHierarchy(data, item.id)
-        }));
-    };
- 
+          .filter((item: any) => item.parent_hierarchy_id === parentId)
+          .map((item: any) => {
+              const isAssociated = associateHierarchyIds.includes(item.id);
+              const children = buildHierarchy(data, item.id);
+  
+              // Ensure node is included if it's associated OR if any child is associated
+              if (isAssociated || children.length > 0) {
+                  return {
+                      id: item.id,
+                      parent_hierarchy_id: item.parent_hierarchy_id,
+                      name: item.name,
+                      is_enabled: item.is_enabled,
+                      is_associated: isAssociated,
+                      hierarchies: children
+                  };
+              }
+  
+              // Exclude node if not associated and has no associated children
+              return null;
+          })
+          .filter(Boolean);
+  };
+
     const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
  
     const workLocationIds = user?.work_location_ids ?? [];
