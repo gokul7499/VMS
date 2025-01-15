@@ -29,7 +29,7 @@ export async function getTenants(
 
         const tenants = await Tenant.findAll({
             where: whereClause,
-            attributes: ["id", "name", "contacts", "created_on", "is_enabled", "vendor_industry"],
+            attributes: ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "vendor_industry"],
             order: [["created_on", "DESC"]],
         });
 
@@ -336,8 +336,8 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
 }
 
 export async function searchTenantsWithProgramCount(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ["id", "name", "contacts", "created_on", "is_enabled", "type"];
-    const responseFields = ["id", "name", "contacts", "created_on", "is_enabled", "type", "logo"];
+    const searchFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type"];
+    const responseFields = ["id", "name", "display_name", "contacts", "created_on", "is_enabled", "type", "logo"];
     const traceId = generateCustomUUID();
     try {
         const query = request.query as Record<string, string>;
@@ -403,8 +403,8 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
 }
 
 export async function advancedSearchTenants(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ["name", "is_enabled", "modified_on", "display_name"];
-    const responseFields = ["id", "name", "type", "is_enabled"];
+    const searchFields = ["name", "display_name", "is_enabled", "modified_on", "display_name"];
+    const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
     return advanceSearch(request, reply, Tenant, searchFields, responseFields);
 }
 

@@ -1,9 +1,18 @@
 import axios from "axios";
 import Redis from "ioredis";
 import { getRedisKeyForAuth } from "./get-redis-key";
+import { databaseConfig } from '../config/db';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
-  const redis = new Redis();
+  const { redis_host, redis_port , redis_auth } = databaseConfig.config;
+  const redis = new Redis({
+    host: redis_host,
+    port: redis_port,
+    password: redis_auth
+  });
 
   async function getPolicies(programId: string, token: string) {
     if (!programId || !token) {
@@ -53,6 +62,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             `Fetched policies from API for ${token}-${programId}`
           );
         }
+        
       } catch (err: any) {
         if (fastify.log) {
           fastify.log.error(`Error fetching policies from API: ${err}`);

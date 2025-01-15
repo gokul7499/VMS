@@ -196,7 +196,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     let newUser;
 
-    const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type : user_group_mapping.user_type;
+    const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
 
     if (userType === "client" || userType === "msp") {
       newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
@@ -267,7 +267,6 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     });
   }
 }
-
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };

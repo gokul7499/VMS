@@ -1,6 +1,7 @@
 export interface CreateProgramData {
   id: string;
   name: string;
+  display_name: string;
   unique_id: string;
   description?: string;
   type: string;

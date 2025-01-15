@@ -194,6 +194,7 @@ export async function deleteInvoiceConfigById(
 
 export async function getAllInvoiceConfig(
     request: FastifyRequest<{
+        Params: { program_id: string },
         Querystring: { name?: string; page?: number; limit?: number; };
     }>,
     reply: FastifyReply
