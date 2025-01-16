@@ -12,7 +12,7 @@ import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
-import { EmailRecipient } from "../interfaces/email-recipients.interface";
+import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
@@ -485,32 +485,11 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
 
 
-<<<<<<< HEAD
-            for (const user of mspUserData) {
-                const payload = {
-                    fullName: user.first_name,
-                    job_id: updates[0].job_id,
-                };
-                if (user.email) {
-                    const notificationPayload = {
-                        program_id,
-                        token,
-                        traceId,
-                        eventCode,
-                        recipientEmail: user.email || "",
-                        payload,
-                        userId: user?.sub ?? "", // Assuming `id` is the user ID field in your response
-                    };
-                    sendNotification(notificationPayload);
-                    console.log("notificationPayload", notificationPayload);
-
-=======
                 for (const user of mspUserData) {
                     const recipeintEmail: EmailRecipient = {
                         email: user.email
                     }
                     recipientEmailArray.push(recipeintEmail);
->>>>>>> 54ffc22e7abbef5c13103acffdf9cb0b3ffe3e77
                 }
                 const notificationPayload : NotificationDataPayload = {
                     program_id: program_id ?? "",
@@ -2910,3 +2889,8 @@ export const getModuleEvent = async (
         });
     }
 };
+
+// function getManagerDetails(program_id: string, id: string): any {
+//         throw new Error('Function not implemented.');
+// }
+
