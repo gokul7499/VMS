@@ -109,12 +109,12 @@ ProgramVendor.init(
             defaultValue: false
         },
         is_labour_category: {
-            type: DataTypes.STRING,
+            type: DataTypes.BOOLEAN,
             allowNull: true,
             defaultValue: false
         },
          display_program_vender: {
-                type: DataTypes.BOOLEAN,
+                type: DataTypes.STRING,
                 allowNull: true,
                 defaultValue: false
         },
