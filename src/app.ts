@@ -41,12 +41,19 @@ const start = async () => {
         app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
         const latency = Date.now() - startTime;
         return reply.status(connectionStatus.connected ? 200 : 503).send({
-          status: connectionStatus.connected ? "connected" : "disconnected",
-          message: connectionStatus.message,
-          database: connectionStatus.database,
-          service: "config",
-          timestamp: new Date().toISOString(),
-          latency: latency,
+          "message": "Health Check Page",
+          "name": "Config API",
+          "version": '1.0.0',
+          "status": 200,
+          "dependencies": [
+              {
+                  "type": "database-mysql",
+                  "status": connectionStatus.connected,
+                  "required": true
+              },
+    
+          ],
+      timestamp:new Date().toUTCString()
         });
       } catch (error) {
         return reply.status(500).send({
