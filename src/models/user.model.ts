@@ -128,12 +128,8 @@ User.init(
       allowNull: true
     },
     time_zone_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: 'time_zones',
-        key: 'id',
-      },
     },
     language_id: {
       type: DataTypes.STRING,
@@ -249,7 +245,6 @@ User.init(
 
 User.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
 User.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries" });
-User.belongsTo(TimeZone, { foreignKey: "time_zone_id", as: "time_zone" });
 User.belongsToMany(hierarchies, { through: 'user_hierarchies', foreignKey: 'user_Id' });
 User.belongsToMany(WorkLocationModel, { through: 'user_work_locations', foreignKey: 'user_Id' });
 User.belongsTo(User, { foreignKey: "supervisor", as: "supervisor_id" });

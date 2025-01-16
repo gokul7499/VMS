@@ -198,6 +198,10 @@ JobTemplateModel.init(
             type: DataTypes.BOOLEAN,
             allowNull: true
         },
+        is_checklist_enable: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        },
         is_description_upload_required: {
             type: DataTypes.BOOLEAN,
             allowNull: true

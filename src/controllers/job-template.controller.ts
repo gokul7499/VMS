@@ -154,6 +154,7 @@ export async function getJobTemplateById(
         "is_expense_allowed",
         "is_resume_mandatory",
         "allow_user_description",
+        "is_checklist_enable",
         "is_deleted",
         "is_enabled",
         "is_background_check",
@@ -1043,12 +1044,9 @@ export async function getCommonHierarchies(
               // Ensure node is included if it's associated OR if any child is associated
               if (isAssociated || children.length > 0) {
                   return {
-                      id: item.id,
-                      parent_hierarchy_id: item.parent_hierarchy_id,
-                      name: item.name,
-                      is_enabled: item.is_enabled,
-                      is_associated: isAssociated,
-                      hierarchies: children
+                    ...item,
+                    is_associated: isAssociated,
+                    hierarchies: children
                   };
               }
   
