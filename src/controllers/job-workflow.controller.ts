@@ -351,18 +351,18 @@ export const updateWorkflowStatus = async (
         // }
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
             let levelFound = false;
-        
+
             levels = await Promise.all(
                 levels.map(async (level: any) => {
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
-        
+
                         const updatedRecipientTypes = await Promise.all(
                             level.recipient_types.map(async (recipient: any) => {
                                 // Check user type
-                                const isSuperUser = user.userType="super_user" 
-        
+                                const isSuperUser = user.userType = "super_user"
+
                                 // If the behavior is "any", update all recipients with "approved"
                                 if (behavior === "any") {
                                     const history = await WorkflowStatusHistory.create({
@@ -376,7 +376,7 @@ export const updateWorkflowStatus = async (
                                     });
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
                                 }
-        
+
                                 // Check if user is not a "super_user" and proceed with matching
                                 if (!isSuperUser) {
                                     if (user_id) {
@@ -393,7 +393,7 @@ export const updateWorkflowStatus = async (
                                             });
                                             return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                         }
-        
+
                                         // If the recipient does not have `replaced_by`, check `meta_data`
                                         if (!recipient.replaced_by && recipient.meta_data) {
                                             const matchesUser = Object.values(recipient.meta_data).includes(user_id);
@@ -424,12 +424,12 @@ export const updateWorkflowStatus = async (
                                     });
                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                 }
-        
+
                                 // If no match, return original recipient
                                 return recipient;
                             })
                         );
-        
+
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
                             (recipient: any) => recipient.status === "approved"
@@ -443,32 +443,32 @@ export const updateWorkflowStatus = async (
                     return level;
                 })
             );
-        
+
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
-        
+
             const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
             const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
-        
+
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
             console.log("Workflow Status:", workflowStatus);
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
-        
+
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id
             };
-        
+
             if (workflowStatus === "completed") {
                 let eventCode = await getEventsCode(workflow);
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
             }
         }
-        
-        
+
+
 
         if (!updatedLevels) {
             return reply.status(400).send({
@@ -981,7 +981,7 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-       
+
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1006,7 +1006,7 @@ export const updateReplaceLevel = async (
                             status: status,
                             existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
                             replaced_by, // Update replaced_by with the new value from the payload
-                            notes: notes,
+                            replaced_notes: notes,
                             replaced_modified_on: new Date(),
                         };
                     }
@@ -1549,6 +1549,43 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
             LIMIT 1
         ) AS replaced_by,
+
+               JSON_UNQUOTE(
+                    JSON_EXTRACT(
+                        w.levels,
+                        CONCAT(
+                            '$[',
+                            l.placement_order,
+                            '].recipient_types'
+                        )
+                    )
+                ) AS recipient_types,
+                (
+            SELECT JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    recipient.value, '$.existing_replaced_user'
+                )
+            )
+            FROM JSON_TABLE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].recipient_types'
+                    )
+                ),
+                '$[*]' COLUMNS (
+                    value JSON PATH '$'
+                )
+            ) AS recipient
+            WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
+            LIMIT 1
+        ) AS existing_replaced_user,
+
+
+
+
  JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -1690,7 +1727,7 @@ ORDER BY
         let levelStatusMap: { [key: number]: string } = {};
 
         for (const row of rows) {
-            const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, imporsonate_by, event_slug } = row;
+            const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                     SELECT id ,name
@@ -1721,6 +1758,7 @@ ORDER BY
                 function getExistingLevel(workflow: Workflow, level_id: string) {
                     return workflow.levels.find(level => level.level_id === level_id);
                 }
+
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users') {
@@ -1732,10 +1770,19 @@ ORDER BY
                             AND is_enabled = true
                             LIMIT 1
                         `;
-                        let userResult = await sequelize.query<Users>(userQuery, {
-                            type: QueryTypes.SELECT,
-                            replacements: { user_id: input_values[0] },
-                        });
+                        let userResult = null;
+                        if (existing_replaced_user) {
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: existing_replaced_user },
+                            });
+                        } else {
+                            // If no `existing_replaced_user`, use the first `input_value`
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: input_values[0] },
+                            });
+                        }
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
                         if (userResult.length && replaced_by) {
@@ -1810,11 +1857,23 @@ ORDER BY
                                 AND is_enabled = true
                                 LIMIT 1
                             `;
-                            const supervisorResult = await sequelize.query(supervisorQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { supervisor: manager.supervisor },
-                            });
-
+                            let supervisorResult = null
+                            // const supervisorResult = await sequelize.query(supervisorQuery, {
+                            //     type: QueryTypes.SELECT,
+                            //     replacements: { supervisor: manager.supervisor },
+                            // });
+                            if (existing_replaced_user) {
+                                supervisorResult = await sequelize.query(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: existing_replaced_user },
+                                });
+                            } else {
+                                // If no `existing_replaced_user`, use the first `input_value`
+                                supervisorResult = await sequelize.query(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: manager.supervisor },
+                                });
+                            }
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -1880,10 +1939,24 @@ ORDER BY
                     AND is_enabled = true
                     LIMIT 1
                 `;
-                                    const userData: any = await sequelize.query<Users>(userQuery, {
-                                        type: QueryTypes.SELECT,
-                                        replacements: { user_id: metaValue },
-                                    });
+                                    // const userData: any = await sequelize.query<Users>(userQuery, {
+                                    //     type: QueryTypes.SELECT,
+                                    //     replacements: { user_id: metaValue },
+                                    // });
+                                    let userData: any = null
+                                    if (recipients.existing_replaced_user) {
+                                        userData = await sequelize.query(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: recipients.existing_replaced_user },
+                                        });
+                                    } else {
+                                        // If no `existing_replaced_user`, use the first `input_value`
+                                        userData = await sequelize.query(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: metaValue },
+                                        });
+                                    }
+
                                     if (userData.length && replaced_by) {
                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
@@ -1929,87 +2002,218 @@ ORDER BY
                     }
 
                 }
+                // let users: any[] = [];
+                // let level_behaviour: any
+                // if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                //     let replacedUserResult: Users[] | null = null;
+                //     let imporsonateUserResult: Users[] | null = null;
+                //     const recipientTypes = JSON.parse(row.recipient_types);
+                //     for (const recipient of recipientTypes) {
+                //         if (recipient?.meta_data) {
+                //             const metaData = recipient.meta_data;
+                //             const userId = Object.values(metaData)[0];
+                //             level_behaviour = Object.values(metaData)[1];
+                //             const userQuery = `
+                //                 SELECT id, first_name, last_name, avatar, role_id, email
+                //                 FROM user
+                //                 WHERE id = :user_id
+                //                 AND is_enabled = true
+                //                 LIMIT 1
+                //             `;
+                //             const userResult = await sequelize.query<Users>(userQuery, {
+                //                 type: QueryTypes.SELECT,
+                //                 replacements: { user_id: userId },
+                //             });
+                //             // Fetch replacement user data if applicable
+
+
+                //             if (userResult.length > 0) {
+                //                 userResult.forEach(user => {
+                //                     users.push({
+                //                         id: user.id,
+                //                         first_name: user.first_name,
+                //                         last_name: user.last_name,
+                //                         avatar: user.avatar,
+                //                         role_id: user.role_id
+
+
+                //                     });
+                //                 });
+                //             }
+                //             if(recipient.replaced_by){
+                //             const replaceUserQuery = `
+                //             SELECT id, first_name, last_name, avatar, role_id, email
+                //             FROM user
+                //             WHERE id = :user_id
+                //             AND is_enabled = true
+                //             LIMIT 1
+                //         `;
+                //         const replaceuserResult = await sequelize.query<Users>(replaceUserQuery, {
+                //             type: QueryTypes.SELECT,
+                //             replacements: { user_id: recipient.replaced_by },
+                //         });
+                //         // Fetch replacement user data if applicable
+
+
+                //         if (replaceuserResult.length > 0) {
+                //             replaceuserResult.forEach(user => {
+                //                 users.push({
+                //                   replaced_by:{  id: user.id,
+                //                     first_name: user.first_name,
+                //                     last_name: user.last_name,
+                //                     avatar: user.avatar,
+                //                     role_id: user.role_id}
+
+                //                 });
+                //             });
+                //         }
+                //     }
+
+                //                 // // Map users to input_value including replaced_user_data when applicable
+                //                 input_value = users.map(user => {
+
+                //                     return {
+                //                         id: user.id,
+                //                         name: `${user.first_name} ${user.last_name}`.trim(),
+                //                         email: user.email,
+                //                         avatar: user.avatar || null,                                     
+                //                         level_behaviour: level_behaviour,
+                //                         replaced_by:user.replaced_by
+
+                //                     };
+                //                 });
+
+
+
+
+
+
+                //         }
+                //     }
+                // }
+
                 let users: any[] = [];
-                let level_behaviour: any
+                let level_behaviour: any;
+                let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;
-                    let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
+
                     for (const recipient of recipientTypes) {
+                        let receipentstatus = recipient.status;
+
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
-                            const userId = Object.values(metaData)[0];
-                            level_behaviour = Object.values(metaData)[1];
-                            const userQuery = `
-                                SELECT id, first_name, last_name, avatar, role_id, email
-                                FROM user
-                                WHERE id = :user_id
-                                AND is_enabled = true
-                                LIMIT 1
-                            `;
-                            const userResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: userId },
-                            });
-                            // Fetch replacement user data if applicable
-                            if (userResult.length && replaced_by) {
-                                replacedUserResult = await sequelize.query<Users>(userQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { user_id: replaced_by },
-                                });
-                            }
-                            if (userResult.length && imporsonate_by) {
-                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { user_id: imporsonate_by },
-                                });
+                            let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
+                            const level_behaviour = Object.values(metaData)[1];
+
+                            // If existing_replaced_user is present, use that as the userId for fetching the data
+                            if (recipient.existing_replaced_user) {
+                                userId = recipient.existing_replaced_user; // If existing_replaced_user exists, use that ID
                             }
 
-                            if (userResult.length > 0) {
-                                userResult.forEach(user => {
-                                    users.push({
-                                        id: user.id,
-                                        first_name: user.first_name,
-                                        last_name: user.last_name,
-                                        avatar: user.avatar,
-                                        role_id: user.role_id,
-                                    });
-                                });
-                            }
+                            // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
+                            const fetchUserData = async (userId: any) => {
+                                const user = await fetchLevelUserData(userId);
+                                return user;
+                            };
 
-                            // Map users to input_value including replaced_user_data when applicable
-                            input_value = users.map(user => {
-                                replaced_user_data = replacedUserResult && replacedUserResult[0]
-                                    ? {
-                                        id: replacedUserResult[0].id,
-                                        first_name: replacedUserResult[0].first_name,
-                                        last_name: replacedUserResult[0].last_name,
-                                        avatar: replacedUserResult[0].avatar || null,
-                                        recipient_type: recipientType?.name || "",
-                                        behaviour: level_behaviour,
-                                    }
-                                    : undefined;
-                                imposonate_user_data = imporsonateUserResult && imporsonateUserResult[0] ? {
-                                    id: imporsonateUserResult[0].id,
-                                    first_name: imporsonateUserResult[0].first_name,
-                                    last_name: imporsonateUserResult[0].last_name,
-                                    avatar: imporsonateUserResult[0].avatar,
-                                    role_id: imporsonateUserResult[0].role_id,
-                                    recipient_type: recipientType?.name || '',
-                                    behaviour,
-                                } : undefined;
-                                return {
+                            const user = await fetchUserData(userId);
+
+                            if (user) {
+                                const userData: any = {
                                     id: user.id,
-                                    name: `${user.first_name} ${user.last_name}`.trim(),
-                                    email: user.email,
-                                    avatar: user.avatar || null,
-                                    replaced_by: replaced_user_data,
-                                    level_behaviour: level_behaviour
+                                    first_name: user.first_name,
+                                    last_name: user.last_name,
+                                    avatar: user.avatar,
+                                    role_id: user.role_id,
+                                    receipentstatus: receipentstatus,
+                                    modifiedOn: recipient.modified_on,
+                                    reason: recipient.reason,
+                                    notes: recipient.notes,
+                                    level_behaviour: level_behaviour,
+                                    replaced_by: null, // Default value
+                                    impersonate_by: null, // Default value
+                                    // existing_replaced_user: null, // Default value
                                 };
-                            });
+
+                                // Fetch "replaced_by" user data if applicable
+                                let replacedByUser = null;
+                                if (recipient.replaced_by) {
+                                    replacedByUser = await fetchUserData(recipient.replaced_by);
+                                    if (replacedByUser) {
+                                        userData.replaced_by = {
+                                            id: replacedByUser.id,
+                                            first_name: replacedByUser.first_name,
+                                            last_name: replacedByUser.last_name,
+                                            avatar: replacedByUser.avatar,
+                                            role_id: replacedByUser.role_id,
+                                            replaced_notes: recipient.replaced_notes,
+                                            replaced_date_time: recipient.replaced_modified_on,
+                                        };
+                                    }
+                                }
+
+                                // Fetch "impersonate_by" user data if applicable
+                                if (recipient.impersonate_by) {
+                                    const impersonatedUser = await fetchUserData(recipient.impersonate_by);
+
+                                    if (impersonatedUser) {
+                                        userData.impersonate_by = {
+                                            id: impersonatedUser.id,
+                                            first_name: impersonatedUser.first_name,
+                                            last_name: impersonatedUser.last_name,
+                                            avatar: impersonatedUser.avatar,
+                                            role_id: impersonatedUser.role_id,
+                                            impersonate_notes: recipient.impersonate_notes,
+                                            impersonate_date_time: recipient.impersonate_modified_on,
+                                        };
+                                    }
+                                }
+
+                                // Fetch "existing_replaced_user" data if applicable
+                                // if (recipient.existing_replaced_user) {
+                                //     const existingReplacedUser = await fetchUserData(recipient.existing_replaced_user);
+
+                                //     if (existingReplacedUser) {
+                                //         userData.existing_replaced_user = {
+                                //             id: existingReplacedUser.id,
+                                //             first_name: existingReplacedUser.first_name,
+                                //             last_name: existingReplacedUser.last_name,
+                                //             avatar: existingReplacedUser.avatar,
+                                //             role_id: existingReplacedUser.role_id,
+                                //             existing_replaced_notes: recipient.existing_replaced_notes,
+                                //             existing_replaced_date_time: recipient.existing_replaced_modified_on,
+                                //         };
+                                //     }
+                                // }
+
+                                // Push the final user data to the users array
+                                users.push(userData);
+                            }
                         }
+
                     }
+
+                    // After processing all users, map them to the final input_value format
+                    input_value = users.map(user => {
+                        return {
+                            id: user.id,
+                            name: `${user.first_name} ${user.last_name}`.trim(),
+                            email: user.email,
+                            avatar: user.avatar || null,
+                            level_behaviour: user.level_behaviour,
+                            replaced_by: user.replaced_by,  // Attach replaced_by data
+                            impersonate_by: user.impersonate_by,  // Attach impersonate_by data
+                            // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
+                            receipentStatus: user.receipentstatus,
+                            reason: user.reason,
+                            modifiedOn: user.modifiedOn,
+                            notes: user.notes
+                        };
+                    });
                 }
+
+
 
                 if (input_value) {
 
@@ -2020,20 +2224,21 @@ ORDER BY
                             return {
                                 name: getName(user),
                                 level_id,
-                                status: recipient_status,
-                                modified_on: recipient_details.modified_on,
-                                notes: recipient_details.notes,
-                                reason: recipient_details.reason,
-                                replaced_date_time: recipient_details.replaced_modified_on,
-                                replaced_notes: recipient_details.replaced_notes,
+                                status: user.receipentStatus,
+                                modified_on: user.modified_on,
+                                notes: user.notes,
+                                reason: user.reason,
+                                // replaced_date_times: recipient_details.replaced_modified_on,
+                                // replaced_notess: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
+                                replaced_by: user.replaced_by,
+                                // existing_replaced_user:user.existing_replaced_user,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
-                                replaced_by: replaced_user_data,
-                                imporsonate_by: imposonate_user_data
+
                             };
                         });
                     } else {
@@ -2186,6 +2391,29 @@ ORDER BY
         });
     }
 }
+
+// Function to fetch user data from the database
+const fetchLevelUserData = async (userId: any) => {
+    const userQuery = `
+        SELECT id, first_name, last_name, avatar, role_id, email
+        FROM user
+        WHERE id = :user_id
+        AND is_enabled = true
+        LIMIT 1
+    `;
+
+    const userResult = await sequelize.query<Users>(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { user_id: userId },
+    });
+
+    if (userResult.length > 0) {
+        return userResult[0];  // Return user data
+    }
+
+    return null;
+};
+
 export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
@@ -2296,6 +2524,39 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
             LIMIT 1
         ) AS replaced_by,
+         
+               JSON_UNQUOTE(
+                    JSON_EXTRACT(
+                        w.levels,
+                        CONCAT(
+                            '$[',
+                            l.placement_order,
+                            '].recipient_types'
+                        )
+                    )
+                ) AS recipient_types,
+                (
+            SELECT JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    recipient.value, '$.existing_replaced_user'
+                )
+            )
+            FROM JSON_TABLE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].recipient_types'
+                    )
+                ),
+                '$[*]' COLUMNS (
+                    value JSON PATH '$'
+                )
+            ) AS recipient
+            WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
+            LIMIT 1
+        ) AS existing_replaced_user,
  JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -2416,6 +2677,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 meta_data,
                 behaviour,
                 replaced_by,
+                existing_replaced_user,
                 imporsonate_by,
                 job_workflow_id,
             } = row;
@@ -2486,11 +2748,19 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                              AND is_enabled = true
                             LIMIT 1
                         `;
-                        let userResult = await sequelize.query<Users>(userQuery, {
-                            type: QueryTypes.SELECT,
-                            replacements: { user_id: input_values[0] },
-                        });
-
+                        let userResult = null;
+                        if (existing_replaced_user) {
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: existing_replaced_user },
+                            });
+                        } else {
+                            // If no `existing_replaced_user`, use the first `input_value`
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: input_values[0] },
+                            });
+                        }
 
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
@@ -2566,10 +2836,23 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                  AND is_enabled = true
                                 LIMIT 1
                             `;
-                            const supervisorResult = await sequelize.query(supervisorQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { supervisor: manager.supervisor },
-                            });
+                            let supervisorResult = null
+                            // const supervisorResult = await sequelize.query(supervisorQuery, {
+                            //     type: QueryTypes.SELECT,
+                            //     replacements: { supervisor: manager.supervisor },
+                            // });
+                            if (existing_replaced_user) {
+                                supervisorResult = await sequelize.query(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: existing_replaced_user },
+                                });
+                            } else {
+                                // If no `existing_replaced_user`, use the first `input_value`
+                                supervisorResult = await sequelize.query(supervisorQuery, {
+                                    type: QueryTypes.SELECT,
+                                    replacements: { supervisor: manager.supervisor },
+                                });
+                            }
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
@@ -2636,10 +2919,19 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     AND is_enabled = true
                     LIMIT 1
                 `;
-                                    const userData: any = await sequelize.query<Users>(userQuery, {
-                                        type: QueryTypes.SELECT,
-                                        replacements: { user_id: metaValue },
-                                    });
+                                    let userData: any = null
+                                    if (recipients.existing_replaced_user) {
+                                        userData = await sequelize.query(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: recipients.existing_replaced_user },
+                                        });
+                                    } else {
+                                        // If no `existing_replaced_user`, use the first `input_value`
+                                        userData = await sequelize.query(userQuery, {
+                                            type: QueryTypes.SELECT,
+                                            replacements: { user_id: metaValue },
+                                        });
+                                    };
                                     if (userData.length && replaced_by) {
                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
@@ -2688,83 +2980,121 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let users: any[] = [];
                 let level_behaviour: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    let replacedUserResult: Users[] | null = null;
-                    let imporsonateUserResult: Users[] | null = null;
                     const recipientTypes = JSON.parse(row.recipient_types);
+
                     for (const recipient of recipientTypes) {
+                        let receipentstatus = recipient.status;
+
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
-                            const userId = Object.values(metaData)[0];
-                            level_behaviour = Object.values(metaData)[1];
-                            const userQuery = `
-                                SELECT id, first_name, last_name, avatar, role_id, email
-                                FROM user
-                                WHERE id = :user_id
-                                AND is_enabled = true
-                                LIMIT 1
-                            `;
-                            const userResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: userId },
-                            });
-                            // Fetch replacement user data if applicable
-                            if (userResult.length && replaced_by) {
-                                replacedUserResult = await sequelize.query<Users>(userQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { user_id: replaced_by },
-                                });
-                            }
-                            if (userResult.length && imporsonate_by) {
-                                imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { user_id: imporsonate_by },
-                                });
+                            let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
+                            const level_behaviour = Object.values(metaData)[1];
+
+                            // If existing_replaced_user is present, use that as the userId for fetching the data
+                            if (recipient.existing_replaced_user) {
+                                userId = recipient.existing_replaced_user; // If existing_replaced_user exists, use that ID
                             }
 
-                            if (userResult.length > 0) {
-                                userResult.forEach(user => {
-                                    users.push({
-                                        id: user.id,
-                                        first_name: user.first_name,
-                                        last_name: user.last_name,
-                                        avatar: user.avatar,
-                                        role_id: user.role_id,
-                                    });
-                                });
-                            }
+                            // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
+                            const fetchUserData = async (userId: any) => {
+                                const user = await fetchLevelUserData(userId);
+                                return user;
+                            };
 
-                            // Map users to input_value including replaced_user_data when applicable
-                            input_value = users.map(user => {
-                                replaced_user_data = replacedUserResult && replacedUserResult[0]
-                                    ? {
-                                        id: replacedUserResult[0].id,
-                                        first_name: replacedUserResult[0].first_name,
-                                        last_name: replacedUserResult[0].last_name,
-                                        avatar: replacedUserResult[0].avatar || null,
-                                        recipient_type: recipientType?.name || "",
-                                        behaviour: level_behaviour,
-                                    }
-                                    : undefined;
-                                imposonate_user_data = imporsonateUserResult && imporsonateUserResult[0] ? {
-                                    id: imporsonateUserResult[0].id,
-                                    first_name: imporsonateUserResult[0].first_name,
-                                    last_name: imporsonateUserResult[0].last_name,
-                                    avatar: imporsonateUserResult[0].avatar,
-                                    role_id: imporsonateUserResult[0].role_id,
-                                    recipient_type: recipientType?.name || '',
-                                    behaviour,
-                                } : undefined;
-                                return {
+                            const user = await fetchUserData(userId);
+
+                            if (user) {
+                                const userData: any = {
                                     id: user.id,
-                                    name: `${user.first_name} ${user.last_name}`.trim(),
-                                    email: user.email,
-                                    avatar: user.avatar || null,
-                                    replaced_by: replaced_user_data,
-                                    level_behaviour: level_behaviour
+                                    first_name: user.first_name,
+                                    last_name: user.last_name,
+                                    avatar: user.avatar,
+                                    role_id: user.role_id,
+                                    receipentstatus: receipentstatus,
+                                    modifiedOn: recipient.modified_on,
+                                    reason: recipient.reason,
+                                    notes: recipient.notes,
+                                    level_behaviour: level_behaviour,
+                                    replaced_by: null, // Default value
+                                    impersonate_by: null, // Default value
+                                    // existing_replaced_user: null, // Default value
                                 };
-                            });
+
+                                // Fetch "replaced_by" user data if applicable
+                                let replacedByUser = null;
+                                if (recipient.replaced_by) {
+                                    replacedByUser = await fetchUserData(recipient.replaced_by);
+                                    if (replacedByUser) {
+                                        userData.replaced_by = {
+                                            id: replacedByUser.id,
+                                            first_name: replacedByUser.first_name,
+                                            last_name: replacedByUser.last_name,
+                                            avatar: replacedByUser.avatar,
+                                            role_id: replacedByUser.role_id,
+                                            replaced_notes: recipient.replaced_notes,
+                                            replaced_date_time: recipient.replaced_modified_on,
+                                        };
+                                    }
+                                }
+
+                                // Fetch "impersonate_by" user data if applicable
+                                if (recipient.impersonate_by) {
+                                    const impersonatedUser = await fetchUserData(recipient.impersonate_by);
+
+                                    if (impersonatedUser) {
+                                        userData.impersonate_by = {
+                                            id: impersonatedUser.id,
+                                            first_name: impersonatedUser.first_name,
+                                            last_name: impersonatedUser.last_name,
+                                            avatar: impersonatedUser.avatar,
+                                            role_id: impersonatedUser.role_id,
+                                            impersonate_notes: recipient.impersonate_notes,
+                                            impersonate_date_time: recipient.impersonate_modified_on,
+                                        };
+                                    }
+                                }
+
+                                // Fetch "existing_replaced_user" data if applicable
+                                // if (recipient.existing_replaced_user) {
+                                //     const existingReplacedUser = await fetchUserData(recipient.existing_replaced_user);
+
+                                //     if (existingReplacedUser) {
+                                //         userData.existing_replaced_user = {
+                                //             id: existingReplacedUser.id,
+                                //             first_name: existingReplacedUser.first_name,
+                                //             last_name: existingReplacedUser.last_name,
+                                //             avatar: existingReplacedUser.avatar,
+                                //             role_id: existingReplacedUser.role_id,
+                                //             existing_replaced_notes: recipient.existing_replaced_notes,
+                                //             existing_replaced_date_time: recipient.existing_replaced_modified_on,
+                                //         };
+                                //     }
+                                // }
+
+                                // Push the final user data to the users array
+                                users.push(userData);
+                            }
                         }
+
                     }
+
+                    // After processing all users, map them to the final input_value format
+                    input_value = users.map(user => {
+                        return {
+                            id: user.id,
+                            name: `${user.first_name} ${user.last_name}`.trim(),
+                            email: user.email,
+                            avatar: user.avatar || null,
+                            level_behaviour: user.level_behaviour,
+                            replaced_by: user.replaced_by,  // Attach replaced_by data
+                            impersonate_by: user.impersonate_by,  // Attach impersonate_by data
+                            // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
+                            receipentStatus: user.receipentstatus,
+                            reason: user.reason,
+                            modifiedOn: user.modifiedOn,
+                            notes: user.notes
+                        };
+                    });
                 }
 
                 if (input_value) {
@@ -2777,20 +3107,21 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             return {
                                 name: getName(user),
                                 level_id,
-                                status: recipient_status,
-                                modified_on: recipient_details.modified_on,
-                                notes: recipient_details.notes,
-                                reason: recipient_details.reason,
-                                replaced_date_time: recipient_details.replaced_modified_on,
-                                replaced_notes: recipient_details.replaced_notes,
+                                status: user.receipentStatus,
+                                modified_on: user.modified_on,
+                                notes: user.notes,
+                                reason: user.reason,
+                                // replaced_date_times: recipient_details.replaced_modified_on,
+                                // replaced_notess: recipient_details.replaced_notes,
                                 level_behaviour: level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
+                                replaced_by: user.replaced_by,
+                                // existing_replaced_user:user.existing_replaced_user,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
-                                replaced_by: replaced_user_data,
-                                imporsonate_by: imposonate_user_data
+
                             };
                         });
                     } else {

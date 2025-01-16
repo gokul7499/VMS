@@ -43,13 +43,14 @@ async function userRoutes(fastify: FastifyInstance) {
         // },
     }, getUserHierarchiesByProgram);
     fastify.get('/user/program/:program_id/user-worklocation',
-         {
-        preHandler: validatePermissions,
-        config: {
-            permissions: [Permissions.USER],
-            action: Actions.READ,
-        },
-    }, getUserWorkLocationAndTimeZone);
+        //  {
+        // preHandler: validatePermissions,
+        // config: {
+        //     permissions: [Permissions.USER],
+        //     action: Actions.READ,
+        // },
+    // }, 
+    getUserWorkLocationAndTimeZone);
 
     fastify.get('/program/:program_id/pending-user', getPendingUser);
 }
