@@ -8,11 +8,13 @@ dotenv.config();
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
   const { redis_host, redis_port , redis_auth } = databaseConfig.config;
+  console.log(`Connecting to Redis at ${redis_host}:${redis_port}`);
   const redis = new Redis({
     host: redis_host,
     port: redis_port,
     password: redis_auth
   });
+  console.log('Connected to Redis');
 
   async function getPolicies(programId: string, token: string) {
     if (!programId || !token) {
