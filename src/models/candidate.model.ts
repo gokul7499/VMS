@@ -171,7 +171,7 @@ Candidate.init(
             allowNull: true,
         },
         state_national_id: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.INTEGER,
             allowNull: true,
         },
         created_on: {

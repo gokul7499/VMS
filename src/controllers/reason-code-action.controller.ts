@@ -580,7 +580,7 @@ export const getReasonCodeBySlug = async (
                 trace_id: traceId,
             });
         }
-
+   
         const reason_codes = await ReasonCodeModel.findAll({
             where: {
                 reason_code_id: data.map((d) => d.id),
@@ -590,9 +590,16 @@ export const getReasonCodeBySlug = async (
         });
 
         if (!reason_codes.length) {
-            return reply.status(404).send({
-                status_code: 404,
-                message: "No reason codes found for the given event and module",
+            const reason_codes = await ReasonCodeModel.findAll({
+                where: {
+                    reason_code_id: data.map((d) => d.id),                   
+                },
+                attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
+            });
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Reason codes retrieved successfully",
+                reason_code_action: reason_codes,
                 trace_id: traceId,
             });
         }
@@ -603,6 +610,7 @@ export const getReasonCodeBySlug = async (
             trace_id: traceId,
             reason_code_action: reason_codes,
         });
+   
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,

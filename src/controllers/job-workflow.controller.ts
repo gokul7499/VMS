@@ -11,7 +11,8 @@ import { Module } from '../models/module.model';
 import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
-import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
+import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
+import { EmailRecipient } from "../interfaces/email-recipients.interface";
 import { sendNotification } from '../utility/notificationService';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
@@ -457,35 +458,34 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     // } else {
     //     console.log("User type is not CLIENT, skipping create_job logic");
     // }
-    if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
-        // Fetch manager details
-        let managerData: any = await getManagerDetails(program_id, id);
-        const payload = {
-            fullName: managerData.data.first_name,
-            job_id: updates[0].job_id,
-        };
-        // Prepare and send notification for manager data
-        if (managerData && managerData.data && managerData.data.email) {
-            // const eventCode = "JOB_APPROVAL_COMPLETE";
-            const notificationPayload = {
-                program_id,
-                token,
-                traceId,
-                eventCode,
-                recipientEmail: managerData.data.email || "",
-                payload,
-                userId: user?.sub ?? "",
+    (async () => {
+        if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
+            // Fetch manager details
+            let managerData: any = await getManagerDetails(program_id, id);
+            const payload = {
+                fullName: managerData.data.first_name,
+                job_id: updates[0].job_id,
             };
-            sendNotification(notificationPayload);
-        } else {
-            console.log("Manager data is missing or email not found.");
-        }
-        let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+            const recipientEmailArray: EmailRecipient[] = [];
+            
+            // Prepare and send notification for manager data
+            if (managerData && managerData.data && managerData.data.email) {
 
-        // Check if mspUserData is an array and send emails to each user
-        if (Array.isArray(mspUserData) && mspUserData.length > 0) {
+                const recipeintEmail: EmailRecipient = {
+                            email: managerData.data.email
+                        }
+                recipientEmailArray.push(recipeintEmail);
+            
+            } else {
+                console.log("Manager data is missing or email not found.");
+            }
+            let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+
+            // Check if mspUserData is an array and send emails to each user
+            if (Array.isArray(mspUserData) && mspUserData.length > 0) {
 
 
+<<<<<<< HEAD
             for (const user of mspUserData) {
                 const payload = {
                     fullName: user.first_name,
@@ -504,18 +504,35 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     sendNotification(notificationPayload);
                     console.log("notificationPayload", notificationPayload);
 
+=======
+                for (const user of mspUserData) {
+                    const recipeintEmail: EmailRecipient = {
+                        email: user.email
+                    }
+                    recipientEmailArray.push(recipeintEmail);
+>>>>>>> 54ffc22e7abbef5c13103acffdf9cb0b3ffe3e77
                 }
+                const notificationPayload : NotificationDataPayload = {
+                    program_id: program_id ?? "",
+                    token,
+                    traceId,
+                    eventCode: eventCode,
+                    recipientEmail: recipientEmailArray,
+                    payload,
+                    userId: user.sub ?? "",
+                };
+
+                sendNotification(notificationPayload);
+
+
+            } else {
+                console.log("No MSP users found or no email available for notification.");
             }
 
-
         } else {
-            console.log("No MSP users found or no email available for notification.");
+            console.log("User type is not CLIENT/MSP/SUPER_USER, skipping logic.");
         }
-
-    } else {
-        console.log("User type is not CLIENT/MSP/SUPER_USER, skipping logic.");
-    }
-
+    })();
 }
 
 async function getEventsCode(workflow: { flow_type: any, events: any }) {
@@ -1137,7 +1154,8 @@ export const updateJobWorkFlow = async (
 ) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
-    const { updateData } = request.body as any;
+    const  updateData  = request.body as JobWorkFlow;
+
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
@@ -1151,6 +1169,7 @@ export const updateJobWorkFlow = async (
         }
 
         await workflow.update({ ...updateData, modified_on: new Date() });
+
 
         reply.status(200).send({
             status_code: 200,
