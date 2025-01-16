@@ -1242,8 +1242,7 @@ export const getWorkLocationTimeZoneByUserId = `
           ) AS work_location,
           JSON_ARRAYAGG(
                JSON_OBJECT(
-                  'time_zone_id', time_zones.id,
-                  'time_zone_name', time_zones.name
+                  'time_zone_name', user.time_zone_id
               )
           ) AS time_zone
         FROM
@@ -1252,8 +1251,6 @@ export const getWorkLocationTimeZoneByUserId = `
           work_locations ON (
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
-        LEFT JOIN
-          time_zones ON user.time_zone_id = time_zones.id
         WHERE
           user.id IN (:user_ids) AND user.program_id = :program_id
       `;
@@ -1516,29 +1513,27 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'master_data_type', JSON_OBJECT(
-                'id', master_data_type.id,
-                'name', master_data_type.name
-            ),
-            'foundational_data_ids', (
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', md1.id,
-                        'name', md1.name
-                    )
+    JSON_OBJECT(
+        'master_data', JSON_OBJECT(
+            'id', master_data_type.id,
+            'name', master_data_type.name
+        ),
+        'associated_master_data', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', md1.id,
+                    'name', md1.name
                 )
-                FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
-            ),
-            'default_master_data', JSON_OBJECT(
-                'id', md2.id,
-                'name', md2.name
-            ),
-            'is_all_associated', TRUE
-        )
-    ) AS master_data
+            )
+            FROM master_data AS md1
+            WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
+        ),
+        'default_master_data', JSON_OBJECT(
+            'id', md2.id,
+            'name', md2.name
+        ),
+        'is_all_associated', user_master_data.is_all_associated
+    ) AS foundational_data
 FROM
     user_master_data
 LEFT JOIN
@@ -1546,10 +1541,10 @@ LEFT JOIN
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id
-GROUP BY
-     master_data_type.id, master_data_type.name, md2.id, md2.name
+    user_master_data.user_id = :id;
 `;
+
+
 
 export const getAllRateTypes = (
   hasName: boolean,
@@ -1706,6 +1701,13 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
           SELECT DISTINCT rch.rate_configuration_id
           FROM rate_configuration_hierarchies AS rch
           WHERE rch.hierarchy_id = :hierarchy_id
+      )`;
+  }
+  if (replacements.rate_type) {
+    whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rcbr.rate_configuration_id
+          FROM rate_configuration_base_rate_types AS rcbr
+          WHERE rcbr.rate_type_id = :rate_type
       )`;
   }
   const sqlQuery = `

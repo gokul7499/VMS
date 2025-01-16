@@ -5,7 +5,7 @@ import { sequelize } from "../config/instance";
 import { QueryTypes } from "sequelize";
 import { sendNotification } from "../utility/notificationService";
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
-import { EmailRecipient } from "../interfaces/email-recipients.interface";
+import { EmailRecipient } from "../interfaces/email-recipient";
 export async function createContactUs(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {

@@ -48,7 +48,12 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         default_timezone : "(UTC-05:00) Eastern Standard Time (North America)",
         default_currency: "USD",
         default_language : "English",
-        unit_of_measure: ["daily"],
+        unit_of_measure: [
+            {
+                label: "hourly",
+                is_default: true
+            }
+        ],
         rate_model: "bill_rate",
         is_vendor_neutral_program: false,
         is_hide_candidate_img: true,

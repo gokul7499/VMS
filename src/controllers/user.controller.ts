@@ -11,7 +11,7 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery,getPendingUserQuery } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -86,32 +86,32 @@ export async function getUserHierarchiesByProgram(
   }
 
   const userId = user?.sub;
- 
+
   try {
     const { id: user_id, program_id } = request.params;
     const user = await User.findOne({
       where: { id: user_id, program_id },
       attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id'],
     });
- 
+
     if (!user) {
       return reply.status(200).send({
-          status_code: 200,
-          trace_id: traceId,
-          message: "User not found or no associated hierarchies/work locations for the given program",
-          hierarchies: [],
-          work_locations: [],
-          default_work_location: null,
+        status_code: 200,
+        trace_id: traceId,
+        message: "User not found or no associated hierarchies/work locations for the given program",
+        hierarchies: [],
+        work_locations: [],
+        default_work_location: null,
       });
     }
 
     const associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
- 
+
     const hierarchiesWithChildren = await sequelize.query(getHierarchieWithChildren, {
       replacements: { program_id },
       type: QueryTypes.SELECT
     });
- 
+
     if (hierarchiesWithChildren.length === 0) {
       return reply.status(404).send({
         status_code: 404,
@@ -120,51 +120,51 @@ export async function getUserHierarchiesByProgram(
         hierarchies: [],
       });
     }
- 
+
     // Build hierarchy and add is_associated flag
     const buildHierarchy = (data: any, parentId = null) => {
       return data
-          .filter((item: any) => item.parent_hierarchy_id === parentId)
-          .map((item: any) => {
-              const isAssociated = associateHierarchyIds.includes(item.id);
-              const children = buildHierarchy(data, item.id);
-  
-              // Ensure node is included if it's associated OR if any child is associated
-              if (isAssociated || children.length > 0) {
-                  return {
-                      id: item.id,
-                      parent_hierarchy_id: item.parent_hierarchy_id,
-                      name: item.name,
-                      is_enabled: item.is_enabled,
-                      is_associated: isAssociated,
-                      hierarchies: children
-                  };
-              }
-  
-              // Exclude node if not associated and has no associated children
-              return null;
-          })
-          .filter(Boolean);
-  };
+        .filter((item: any) => item.parent_hierarchy_id === parentId)
+        .map((item: any) => {
+          const isAssociated = associateHierarchyIds.includes(item.id);
+          const children = buildHierarchy(data, item.id);
+
+          // Ensure node is included if it's associated OR if any child is associated
+          if (isAssociated || children.length > 0) {
+            return {
+              id: item.id,
+              parent_hierarchy_id: item.parent_hierarchy_id,
+              name: item.name,
+              is_enabled: item.is_enabled,
+              is_associated: isAssociated,
+              hierarchies: children
+            };
+          }
+
+          // Exclude node if not associated and has no associated children
+          return null;
+        })
+        .filter(Boolean);
+    };
 
     const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
- 
+
     const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-          where: { id: workLocationIds },
-          attributes: ['id', 'name'],
-        })
+        where: { id: workLocationIds },
+        attributes: ['id', 'name'],
+      })
       : [];
- 
+
     const defaultWorkLocation = user?.default_work_location_id
       ? await WorkLocationModel.findByPk(user.default_work_location_id, {
-          attributes: ['id', 'name'],
-        })
+        attributes: ['id', 'name'],
+      })
       : null;
- 
+
     const is_all_work_location_associate = workLocationsData.length === 0;
- 
+
     return reply.status(200).send({
       status_code: 200,
       message: 'Hierarchies and work locations fetched successfully',
@@ -191,7 +191,7 @@ export async function getUserHierarchiesByProgram(
     });
   }
 }
- 
+
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
@@ -319,6 +319,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
+  console.log("updates", updates)
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -348,10 +349,12 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     }
     await user.update({ updates, modified_by: userId, });
     const foundationalData = updates.foundational_data;
+    console.log("foundationalData", foundationalData)
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
+      console.log("userMaserDataDes", foundationalData)
       const createData = foundationalData.map((item) => ({
         user_id: id,
         master_data: item.master_data,
@@ -361,6 +364,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
       }));
       await UserMasterDataModel.bulkCreate(createData);
     }
+    console.log("createData")
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -441,14 +445,14 @@ export async function getAllUserIDAndUserId(
       type: QueryTypes.SELECT
     }) as any[];
 
-    // Fetch Master Data for Each User
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
         replacements: { id: user.id },
-        type: QueryTypes.SELECT
-      });
-      user.foundational_data = masterData;
+        type: QueryTypes.SELECT,
+      }) as any[];
+      user.foundational_data = masterData.map(item => item.foundational_data);
     }
+
 
     const total_count = users.length > 0 ? users[0].total_count : 0;
 
@@ -595,7 +599,7 @@ export async function getPendingUser(
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error:error.message
+      error: error.message
     });
   }
 }
