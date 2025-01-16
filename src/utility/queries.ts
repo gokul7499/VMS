@@ -1513,29 +1513,27 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'master_data_type', JSON_OBJECT(
-                'id', master_data_type.id,
-                'name', master_data_type.name
-            ),
-            'foundational_data_ids', (
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', md1.id,
-                        'name', md1.name
-                    )
+    JSON_OBJECT(
+        'master_data', JSON_OBJECT(
+            'id', master_data_type.id,
+            'name', master_data_type.name
+        ),
+        'associated_master_data', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', md1.id,
+                    'name', md1.name
                 )
-                FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
-            ),
-            'default_master_data', JSON_OBJECT(
-                'id', md2.id,
-                'name', md2.name
-            ),
-            'is_all_associated', TRUE
-        )
-    ) AS master_data
+            )
+            FROM master_data AS md1
+            WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
+        ),
+        'default_master_data', JSON_OBJECT(
+            'id', md2.id,
+            'name', md2.name
+        ),
+        'is_all_associated', user_master_data.is_all_associated
+    ) AS foundational_data
 FROM
     user_master_data
 LEFT JOIN
@@ -1543,10 +1541,10 @@ LEFT JOIN
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id
-GROUP BY
-     master_data_type.id, master_data_type.name, md2.id, md2.name
+    user_master_data.user_id = :id;
 `;
+
+
 
 export const getAllRateTypes = (
   hasName: boolean,
