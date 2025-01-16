@@ -1004,9 +1004,10 @@ export const updateReplaceLevel = async (
                         return {
                             ...recipient,
                             status: status,
-                            replaced_by,
-                            replaced_notes: notes,
-                            replaced_modified_on: new Date()
+                            existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
+                            replaced_by, // Update replaced_by with the new value from the payload
+                            notes: notes,
+                            replaced_modified_on: new Date(),
                         };
                     }
 
