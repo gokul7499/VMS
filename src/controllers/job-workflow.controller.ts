@@ -481,15 +481,15 @@ export const updateWorkflowStatus = async (
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Job workflow updated successfully.",
+            message: "Approved done successfully.",
             trace_id: traceId,
         });
     } catch (error) {
-        console.error("Error updating job workflow:", error);
+        console.error("Error updating  workflow:", error);
 
         return reply.status(500).send({
             status_code: 500,
-            message: "Failed to update job workflow.",
+            message: "Failed to update  workflow.",
             trace_id: traceId,
         });
     }
@@ -1053,7 +1053,7 @@ export const updateReplaceLevel = async (
                 program_id,
                 notes: notes ?? "",
                 created_on: new Date(),
-                user_id: user_id,
+                user_id: user.sub,
             });
         }
 
@@ -2372,6 +2372,21 @@ ORDER BY
 
                         // Update the status map for reference
                         levelStatusMap[placementOrder] = currentLevel.level_status;
+                        // Update the status map for reference
+                        if (currentLevel.recipients && currentLevel.recipients.length > 0) {
+                            currentLevel.recipients.forEach((recipient: any) => {
+                                if (currentLevel.level_status === "completed") {
+                                    // If the level is completed, preserve the recipient's existing status
+                                    recipient.status = recipient.status;
+                                } else if (currentLevel.level_status === "pending") {
+                                    // If the level is pending, keep the recipient's status as is
+                                    recipient.status = recipient.status;
+                                } else {
+                                    // If the level is not started, set recipient status to "not started"
+                                    recipient.status = "not started";
+                                }
+                            });
+                        }
                     }
                 }
             }
@@ -3255,6 +3270,20 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
                         // Update the status map for reference
                         levelStatusMap[placementOrder] = currentLevel.level_status;
+                        if (currentLevel.recipients && currentLevel.recipients.length > 0) {
+                            currentLevel.recipients.forEach((recipient: any) => {
+                                if (currentLevel.level_status === "completed") {
+                                    // If the level is completed, preserve the recipient's existing status
+                                    recipient.status = recipient.status;
+                                } else if (currentLevel.level_status === "pending") {
+                                    // If the level is pending, keep the recipient's status as is
+                                    recipient.status = recipient.status;
+                                } else {
+                                    // If the level is not started, set recipient status to "not started"
+                                    recipient.status = "not started";
+                                }
+                            });
+                        }
                     }
                 }
             }

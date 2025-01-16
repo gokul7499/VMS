@@ -17,6 +17,7 @@ export interface JobWorkFlow {
   modified_on: Date,
   created_by: string,
   modified_by: string,
+  is_updated?:boolean;
   program_id: string,
   is_deleted: boolean,
   workflow_id: string,
