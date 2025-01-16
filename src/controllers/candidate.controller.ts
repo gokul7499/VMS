@@ -225,7 +225,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on'
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on',"state_national_id","do_not_rehire_notes","do_not_rehire_reason","do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -251,7 +251,11 @@ export async function getAllCandidate(
                     id: cand.vendor.id,
                     vendor_name: cand.vendor.vendor_name
                 } : null,
-                modified_on: cand.modified_on
+                modified_on: cand.modified_on,
+                state_national_id:cand.state_national_id,
+                do_not_rehire_notes:cand.do_not_rehire_notes,
+                do_not_rehire_reason:cand.do_not_rehire,
+                do_not_rehire:cand.do_not_rehire
             };
         });
 
