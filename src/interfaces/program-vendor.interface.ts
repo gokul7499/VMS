@@ -73,6 +73,7 @@ export interface programVendorInterface {
     job: string;
     candidate: string;
     is_job_auto_opt_in: boolean;
+    display_program_vender:boolean;
     
 }
 
