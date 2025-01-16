@@ -1242,8 +1242,7 @@ export const getWorkLocationTimeZoneByUserId = `
           ) AS work_location,
           JSON_ARRAYAGG(
                JSON_OBJECT(
-                  'time_zone_id', time_zones.id,
-                  'time_zone_name', time_zones.name
+                  'time_zone_name', user.time_zone_id
               )
           ) AS time_zone
         FROM
@@ -1252,8 +1251,6 @@ export const getWorkLocationTimeZoneByUserId = `
           work_locations ON (
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
-        LEFT JOIN
-          time_zones ON user.time_zone_id = time_zones.id
         WHERE
           user.id IN (:user_ids) AND user.program_id = :program_id
       `;
