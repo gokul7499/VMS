@@ -273,6 +273,7 @@ class JobTempletRepository {
         job_templates.template_name,
         job_templates.job_submitted_count,
         job_templates.is_shift_rate,
+        job_templates.is_checklist_enable,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title

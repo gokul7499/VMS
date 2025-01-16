@@ -40,6 +40,7 @@ export interface JobTemplateInterface {
   hierarchy:string[];
   custom_fields:string[];
   job_id:string;
+  is_checklist_enable:boolean;
 }
 
 export interface JobMasterDataInterface {
