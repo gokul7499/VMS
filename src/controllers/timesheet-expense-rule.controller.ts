@@ -6,6 +6,7 @@ import { Op, QueryTypes } from 'sequelize';
 import { getExpenseTypeAndRateType } from '../utility/queries';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
+import RateType from '../models/rate-type.model';
 
 export async function createTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -171,33 +172,44 @@ export async function getTimesheetExpenseRuleById(
     try {
         const { id, program_id } = request.params;
         const timesheetRule = await TimesheetExpenseRuleModel.findOne({
-            where: { id, program_id, is_deleted: false }
+            where: { id, program_id, is_deleted: false },
         });
-        if (timesheetRule) {
-            reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "Timesheet expense rule retrieved successfully.",
-                timesheet_expense_rule: timesheetRule,
-            });
-        } else {
+
+        if (!timesheetRule) {
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
                 message: 'No timesheet expense rule found.',
                 timesheet_expense_rule: [],
             });
+            return;
         }
+
+        const applyRateTypeIds = timesheetRule.apply_rate_type;
+        if (Array.isArray(applyRateTypeIds) && applyRateTypeIds.length > 0) {
+            const rateTypes = await RateType.findAll({
+                where: {
+                    id: { [Op.in]: applyRateTypeIds },
+                },
+                attributes: ['id', 'name'],
+            });
+            timesheetRule.setDataValue('apply_rate_type', rateTypes);
+        }
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Timesheet expense rule retrieved successfully.',
+            timesheet_expense_rule: timesheetRule,
+        });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
-            message: 'An error occurred while fetching',
+            message: 'An error occurred while fetching the timesheet expense rule.',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
-
 export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
