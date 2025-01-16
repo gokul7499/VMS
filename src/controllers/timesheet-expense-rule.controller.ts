@@ -210,47 +210,62 @@ export async function getTimesheetExpenseRuleById(
         });
     }
 }
-export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
+export async function updateTimesheetExpenseRule(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
-    try {
-        const { id, program_id } = request.params as { id: string, program_id: string };
-        const data = request.body as TimesheetExpenseRule;
-
-        const timesheetRule = await TimesheetExpenseRuleModel.findOne({
-            where: { id, program_id, is_deleted: false },
+        return reply.status(401).send({
+            status_code: 401,
+            message: 'Unauthorized - Token not found',
         });
+    }
 
-        if (!timesheetRule) {
+    try {
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+        if (!user) {
+           return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId=user?.sub
+        const { id, program_id } = request.params as {
+            id: string;
+            program_id: string;
+        };
+        const updateData = request.body as Partial<TimesheetExpenseRule>;
+        const [affectedRows] = await TimesheetExpenseRuleModel.update(
+            {
+                ...updateData,
+                modified_on: new Date(),
+                modified_by: userId,
+            },
+            {
+                where: { id, program_id, is_deleted: false },
+            }
+        );
+
+        if (!affectedRows) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: 'No timesheet expense rule found.',
-                timesheet_expense_rule: []
+                message: 'Timesheet expense rule not found.',
             });
         }
-        await timesheetRule.update({  data, modified_on: Date.now(),
-            modified_by:userId,});
-        reply.status(201).send({
-            status_code: 201,
+
+        return reply.status(200).send({
+            status_code: 200,
             message: 'Timesheet expense rule updated successfully.',
             trace_id: traceId,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
