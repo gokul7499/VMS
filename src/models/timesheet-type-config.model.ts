@@ -183,8 +183,7 @@ TimesheetTypeConfig.init(
         if (instance.title) {
           instance.slug = generateSlug(instance.title, {
             lowercase: true,
-            removedspecial: true,
-            replacewithhyphens: true
+            removedspecial: true
           });
         }
       },

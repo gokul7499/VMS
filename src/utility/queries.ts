@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
+const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -1241,8 +1242,7 @@ export const getWorkLocationTimeZoneByUserId = `
           ) AS work_location,
           JSON_ARRAYAGG(
                JSON_OBJECT(
-                  'time_zone_id', time_zones.id,
-                  'time_zone_name', time_zones.name
+                  'time_zone_name', user.time_zone_id
               )
           ) AS time_zone
         FROM
@@ -1251,8 +1251,6 @@ export const getWorkLocationTimeZoneByUserId = `
           work_locations ON (
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
-        LEFT JOIN
-          time_zones ON user.time_zone_id = time_zones.id
         WHERE
           user.id IN (:user_ids) AND user.program_id = :program_id
       `;
@@ -1515,29 +1513,27 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'master_data_type', JSON_OBJECT(
-                'id', master_data_type.id,
-                'name', master_data_type.name
-            ),
-            'foundational_data_ids', (
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', md1.id,
-                        'name', md1.name
-                    )
+    JSON_OBJECT(
+        'master_data', JSON_OBJECT(
+            'id', master_data_type.id,
+            'name', master_data_type.name
+        ),
+        'associated_master_data', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', md1.id,
+                    'name', md1.name
                 )
-                FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
-            ),
-            'default_master_data', JSON_OBJECT(
-                'id', md2.id,
-                'name', md2.name
-            ),
-            'is_all_associated', TRUE
-        )
-    ) AS master_data
+            )
+            FROM master_data AS md1
+            WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
+        ),
+        'default_master_data', JSON_OBJECT(
+            'id', md2.id,
+            'name', md2.name
+        ),
+        'is_all_associated', user_master_data.is_all_associated
+    ) AS foundational_data
 FROM
     user_master_data
 LEFT JOIN
@@ -1545,10 +1541,10 @@ LEFT JOIN
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id
-GROUP BY
-     master_data_type.id, master_data_type.name, md2.id, md2.name
+    user_master_data.user_id = :id;
 `;
+
+
 
 export const getAllRateTypes = (
   hasName: boolean,
@@ -1989,14 +1985,14 @@ GROUP BY wl.program_id;`
 
 
 export const userQuery = (
-  first_name?:string,
-  email?:string,
-  tenant_id?:string,
-  role_id?:string,
-  is_activated?:string,
-  user_type?:string,
-  user_id?:string
-) =>`
+  first_name?: string,
+  email?: string,
+  tenant_id?: string,
+  role_id?: string,
+  is_activated?: string,
+  user_type?: string,
+  user_id?: string
+) => `
 WITH user_data AS (
   SELECT u.id,
          u.username,
@@ -2060,4 +2056,34 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY created_on DESC
 LIMIT :limit OFFSET :offset;
+`;
+
+export const getPendingUserQuery = `
+  SELECT 
+    invitation.*, 
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', hierarchies.id,
+            'name', hierarchies.name
+        )
+    ) AS associate_hierarchy_ids,
+     JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', work_locations.id,
+            'name', work_locations.name
+        )
+    ) AS work_location_ids
+FROM ${auth_db}.invitation
+LEFT JOIN 
+    hierarchies
+ON 
+    JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+LEFT JOIN 
+    work_locations
+ON 
+    JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+  WHERE invitation.program_id = :program_id
+  AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
+  GROUP BY invitation.id
+LIMIT 0, 1000;
 `;

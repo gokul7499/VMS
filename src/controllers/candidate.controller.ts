@@ -164,6 +164,8 @@ export async function getAllCandidate(
             updatedAt,
             available_candidate,
             job_id,
+          
+
             ...filters
         } = request.query as any;
 
@@ -273,13 +275,13 @@ export async function getAllCandidate(
             trace_id: traceId,
         });
 
-    } catch (error) {
+    } catch (error:any) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error
+            error:error.message
         });
     }
 }
@@ -322,7 +324,7 @@ export async function getCandidateByIdAndProgramId(
         }
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate not found",
+            message: "Candidate get successfully",
             candidate,
             trace_id: traceId,
         });

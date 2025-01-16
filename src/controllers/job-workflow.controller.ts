@@ -11,7 +11,8 @@ import { Module } from '../models/module.model';
 import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
-import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
+import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
+import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
@@ -215,7 +216,7 @@ export const updateWorkflowStatus = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body;
 
@@ -249,17 +250,120 @@ export const updateWorkflowStatus = async (
         let updatedLevels = false;
 
         // Iterate over each update
+        // for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
+        //     let levelFound = false;
+
+        //     levels = await Promise.all(
+        //         levels.map(async (level: any) => {
+        //             if (level.placement_order === placement_order) {
+        //                 levelFound = true;
+        //                 updatedLevels = true;
+
+        //                 const updatedRecipientTypes = await Promise.all(
+        //                     level.recipient_types.map(async (recipient: any) => {
+        //                         if (behavior === "any") {
+        //                             const history = await WorkflowStatusHistory.create({
+        //                                 job_workflow_id: id,
+        //                                 placement_order,
+        //                                 new_status,
+        //                                 program_id,
+        //                                 notes: notes || "",
+        //                                 created_on: new Date(),
+        //                                 user_id: user_id,
+        //                             });
+        //                             // If `behavior: any` is present, mark all recipients as "approved"
+        //                             return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
+        //                         }
+
+        //                         if (user_id) {
+
+        //                             // If the recipient has a `replaced_by` field, match `user_id` directly
+        //                             if (recipient.replaced_by && recipient.replaced_by === user_id) {
+        //                                 const history = await WorkflowStatusHistory.create({
+        //                                     job_workflow_id: id,
+        //                                     placement_order,
+        //                                     new_status,
+        //                                     program_id,
+        //                                     notes: notes || "",
+        //                                     created_on: new Date(),
+        //                                     user_id: user_id,
+        //                                 });
+        //                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+        //                             }
+
+        //                             // If the recipient does not have `replaced_by`, check `meta_data`
+        //                             if (!recipient.replaced_by && recipient.meta_data) {
+        //                                 const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+        //                                 if (matchesUser) {
+        //                                     const history = await WorkflowStatusHistory.create({
+        //                                         job_workflow_id: id,
+        //                                         placement_order,
+        //                                         new_status,
+        //                                         program_id,
+        //                                         notes: notes || "",
+        //                                         created_on: new Date(),
+        //                                         user_id: user_id,
+        //                                     });
+        //                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+        //                                 }
+        //                             }
+        //                         } else {
+        //                             // For bulk updates, update all recipients with new status
+        //                             return { ...recipient, status: new_status, modified_on: new Date(), };
+        //                         }
+        //                         return recipient;
+        //                     })
+        //                 );
+
+        //                 // Determine the level status
+        //                 const allApproved = updatedRecipientTypes.every(
+        //                     (recipient: any) => recipient.status === "approved"
+        //                 );
+        //                 return {
+        //                     ...level,
+        //                     status: allApproved ? "completed" : "pending",
+        //                     recipient_types: updatedRecipientTypes,
+        //                 };
+        //             }
+        //             return level;
+        //         })
+        //     );
+        //     if (!levelFound) {
+        //         throw new Error(`Placement order ${placement_order} not found in levels.`);
+        //     }
+        //     const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+        //     const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+        //     const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+
+        //     workflow.status = workflowStatus;
+        //     workflow.is_updated = is_updatedFlag;
+        //     console.log("Workflow Status:", workflowStatus);
+        //     await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
+
+        //     let allPayload = {
+        //         hierarchy_ids: hierarchy_ids,
+        //         program_id: program_id
+        //     }
+        //     if (workflowStatus === "completed") {
+        //         let eventCode = await getEventsCode(workflow)
+        //         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+        //     }
+        // }
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
             let levelFound = false;
-
+        
             levels = await Promise.all(
                 levels.map(async (level: any) => {
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
-
+        
                         const updatedRecipientTypes = await Promise.all(
                             level.recipient_types.map(async (recipient: any) => {
+                                // Check user type
+                                const isSuperUser = user.userType="super_user" 
+        
+                                // If the behavior is "any", update all recipients with "approved"
                                 if (behavior === "any") {
                                     const history = await WorkflowStatusHistory.create({
                                         job_workflow_id: id,
@@ -270,30 +374,14 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    // If `behavior: any` is present, mark all recipients as "approved"
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
                                 }
-
-                                if (user_id) {
-
-                                    // If the recipient has a `replaced_by` field, match `user_id` directly
-                                    if (recipient.replaced_by && recipient.replaced_by === user_id) {
-                                        const history = await WorkflowStatusHistory.create({
-                                            job_workflow_id: id,
-                                            placement_order,
-                                            new_status,
-                                            program_id,
-                                            notes: notes || "",
-                                            created_on: new Date(),
-                                            user_id: user_id,
-                                        });
-                                        return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
-                                    }
-
-                                    // If the recipient does not have `replaced_by`, check `meta_data`
-                                    if (!recipient.replaced_by && recipient.meta_data) {
-                                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);
-                                        if (matchesUser) {
+        
+                                // Check if user is not a "super_user" and proceed with matching
+                                if (!isSuperUser) {
+                                    if (user_id) {
+                                        // If the recipient has a `replaced_by` field, match `user_id` directly
+                                        if (recipient.replaced_by && recipient.replaced_by === user_id) {
                                             const history = await WorkflowStatusHistory.create({
                                                 job_workflow_id: id,
                                                 placement_order,
@@ -305,15 +393,43 @@ export const updateWorkflowStatus = async (
                                             });
                                             return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                         }
+        
+                                        // If the recipient does not have `replaced_by`, check `meta_data`
+                                        if (!recipient.replaced_by && recipient.meta_data) {
+                                            const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                            if (matchesUser) {
+                                                const history = await WorkflowStatusHistory.create({
+                                                    job_workflow_id: id,
+                                                    placement_order,
+                                                    new_status,
+                                                    program_id,
+                                                    notes: notes || "",
+                                                    created_on: new Date(),
+                                                    user_id: user_id,
+                                                });
+                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+                                            }
+                                        }
                                     }
                                 } else {
-                                    // For bulk updates, update all recipients with new status
-                                    return { ...recipient, status: new_status, modified_on: new Date(), };
+                                    // If user is a super_user, update status regardless
+                                    const history = await WorkflowStatusHistory.create({
+                                        job_workflow_id: id,
+                                        placement_order,
+                                        new_status,
+                                        program_id,
+                                        notes: notes || "",
+                                        created_on: new Date(),
+                                        user_id: user_id,
+                                    });
+                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
                                 }
+        
+                                // If no match, return original recipient
                                 return recipient;
                             })
                         );
-
+        
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
                             (recipient: any) => recipient.status === "approved"
@@ -327,26 +443,32 @@ export const updateWorkflowStatus = async (
                     return level;
                 })
             );
+        
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
-
-            await workflow.update({ levels, modified_on: new Date(),modified_by:userId });
+        
             const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
             const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-
-
+            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+        
             workflow.status = workflowStatus;
+            workflow.is_updated = is_updatedFlag;
             console.log("Workflow Status:", workflowStatus);
+            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
+        
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id
-            }
+            };
+        
             if (workflowStatus === "completed") {
-                let eventCode = await getEventsCode(workflow)
-                let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+                let eventCode = await getEventsCode(workflow);
+                let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
             }
         }
+        
+        
 
         if (!updatedLevels) {
             return reply.status(400).send({
@@ -457,61 +579,60 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     // } else {
     //     console.log("User type is not CLIENT, skipping create_job logic");
     // }
-    if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
-        // Fetch manager details
-        let managerData: any = await getManagerDetails(program_id, id);
-        const payload = {
-            fullName: managerData.data.first_name,
-            job_id: updates[0].job_id,
-        };
-        // Prepare and send notification for manager data
-        if (managerData && managerData.data && managerData.data.email) {
-            // const eventCode = "JOB_APPROVAL_COMPLETE";
-            const notificationPayload = {
-                program_id,
-                token,
-                traceId,
-                eventCode,
-                recipientEmail: managerData.data.email || "",
-                payload,
-                userId: user?.sub ?? "",
+    (async () => {
+        if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
+            // Fetch manager details
+            let managerData: any = await getManagerDetails(program_id, id);
+            const payload = {
+                fullName: managerData.data.first_name,
+                job_id: updates[0].job_id,
             };
-            sendNotification(notificationPayload);
-        } else {
-            console.log("Manager data is missing or email not found.");
-        }
-        let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+            const recipientEmailArray: EmailRecipient[] = [];
+            
+            // Prepare and send notification for manager data
+            if (managerData && managerData.data && managerData.data.email) {
 
-        // Check if mspUserData is an array and send emails to each user
-        if (Array.isArray(mspUserData) && mspUserData.length > 0) {
+                const recipeintEmail: EmailRecipient = {
+                            email: managerData.data.email
+                        }
+                recipientEmailArray.push(recipeintEmail);
+            
+            } else {
+                console.log("Manager data is missing or email not found.");
+            }
+            let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+
+            // Check if mspUserData is an array and send emails to each user
+            if (Array.isArray(mspUserData) && mspUserData.length > 0) {
 
 
-            for (const user of mspUserData) {
-                if (user.email) {
-                    const notificationPayload = {
-                        program_id,
-                        token,
-                        traceId,
-                        eventCode,
-                        recipientEmail: user.email || "",
-                        payload,
-                        userId: user?.id ?? "", // Assuming `id` is the user ID field in your response
-                    };
-                    sendNotification(notificationPayload);
-                    console.log("notificationPayload", notificationPayload);
-
+                for (const user of mspUserData) {
+                    const recipeintEmail: EmailRecipient = {
+                        email: user.email
+                    }
+                    recipientEmailArray.push(recipeintEmail);
                 }
+                const notificationPayload : NotificationDataPayload = {
+                    program_id: program_id ?? "",
+                    token,
+                    traceId,
+                    eventCode: eventCode,
+                    recipientEmail: recipientEmailArray,
+                    payload,
+                    userId: user.sub ?? "",
+                };
+
+                sendNotification(notificationPayload);
+
+
+            } else {
+                console.log("No MSP users found or no email available for notification.");
             }
 
-
         } else {
-            console.log("No MSP users found or no email available for notification.");
+            console.log("User type is not CLIENT/MSP/SUPER_USER, skipping logic.");
         }
-
-    } else {
-        console.log("User type is not CLIENT/MSP/SUPER_USER, skipping logic.");
-    }
-
+    })();
 }
 
 async function getEventsCode(workflow: { flow_type: any, events: any }) {
@@ -673,7 +794,7 @@ export const rejectLevel = async (
     }
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
+    const isSuperUser = user?.userType === "super_user";
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
@@ -702,7 +823,6 @@ export const rejectLevel = async (
         // Parse levels array
         let levels = workflow.levels || [];
         let updatedLevels = false;
-        let managerData = await getManagerDetails(program_id, id)
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
 
 
@@ -720,19 +840,22 @@ export const rejectLevel = async (
                         levelFound = true;
 
                         const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
+                            if (isSuperUser) {
+                                // Superuser logic: Skip user_id matching
+                                return {
+                                    ...recipient,
+                                    status: "rejected",
+                                    modified_on: new Date(),
+                                    notes: notes,
+                                    reason: reason,
+                                };
+                            }
                             if (
                                 (recipient.replaced_by && recipient.replaced_by === user_id) ||
                                 (!recipient.replaced_by &&
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-
-                                fetchUserById(user_id).then(user => {
-                                    console.log("user", user);
-                                    // Here, you can do any other operations that depend on the fetched user add here notification code
-                                }).catch(error => {
-                                    console.error("Error fetching user", error);
-                                });
 
                                 return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
                             }
@@ -858,9 +981,7 @@ export const updateReplaceLevel = async (
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-        let managerData = await getManagerDetails(program_id, id)
-        const user = await fetchUserById(user_id);
-        console.log("user", user);
+       
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -883,9 +1004,10 @@ export const updateReplaceLevel = async (
                         return {
                             ...recipient,
                             status: status,
-                            replaced_by,
-                            replaced_notes: notes,
-                            replaced_modified_on: new Date()
+                            existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
+                            replaced_by, // Update replaced_by with the new value from the payload
+                            notes: notes,
+                            replaced_modified_on: new Date(),
                         };
                     }
 
@@ -1133,7 +1255,8 @@ export const updateJobWorkFlow = async (
 ) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params;
-    const { updateData } = request.body as any;
+    const updateData = request.body as JobWorkFlow;
+
 
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
@@ -1147,6 +1270,7 @@ export const updateJobWorkFlow = async (
         }
 
         await workflow.update({ ...updateData, modified_on: new Date() });
+
 
         reply.status(200).send({
             status_code: 200,
@@ -2887,3 +3011,8 @@ export const getModuleEvent = async (
         });
     }
 };
+
+// function getManagerDetails(program_id: string, id: string): any {
+//         throw new Error('Function not implemented.');
+// }
+

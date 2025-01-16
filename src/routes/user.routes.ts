@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getUser, getUserById, getAllUserIDAndUserId, createUser, updateUser, deleteUser, searchUser, getUserHierarchiesByProgram, getUserWorkLocationAndTimeZone } from '../controllers/user.controller';
+import { getUser, getUserById, getAllUserIDAndUserId, createUser, updateUser, deleteUser, searchUser, getUserHierarchiesByProgram, getUserWorkLocationAndTimeZone ,getPendingUser} from '../controllers/user.controller';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
 
@@ -42,12 +42,15 @@ async function userRoutes(fastify: FastifyInstance) {
         //     action: Actions.READ,
         // },
     }, getUserHierarchiesByProgram);
-    fastify.get('/user/program/:program_id/user-worklocation', {
+    fastify.get('/user/program/:program_id/user-worklocation',
+         {
         preHandler: validatePermissions,
         config: {
             permissions: [Permissions.USER],
             action: Actions.READ,
         },
     }, getUserWorkLocationAndTimeZone);
+
+    fastify.get('/program/:program_id/pending-user', getPendingUser);
 }
 export default userRoutes;
