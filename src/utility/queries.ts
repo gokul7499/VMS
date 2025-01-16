@@ -1703,6 +1703,13 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
           WHERE rch.hierarchy_id = :hierarchy_id
       )`;
   }
+  if (replacements.rate_type) {
+    whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rcbr.rate_configuration_id
+          FROM rate_configuration_base_rate_types AS rcbr
+          WHERE rcbr.rate_type_id = :rate_type
+      )`;
+  }
   const sqlQuery = `
     SELECT
       rc.id AS rate_configuration_id,
