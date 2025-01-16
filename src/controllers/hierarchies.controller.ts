@@ -42,8 +42,8 @@ export const getHierarchiesByProgram = async (
     });
 
     if (hierarchiesWithChildren.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: 'No hierarchies found for the given program',
         trace_id: traceId,
         hierarchies: [],
@@ -136,8 +136,8 @@ export const getHierarchies = async (
     });
 
     if (hierarchies.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         trace_id: traceId,
         message: "No hierarchies found for the given program",
         total_records: 0,
@@ -447,8 +447,8 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         trace_id: traceId
       });
     } else {
-      reply.status(404).send({
-        status_code: 404,
+      reply.status(200).send({
+        status_code: 200,
         message: "hierarchies not found",
         trace_id: traceId
       });
@@ -623,8 +623,8 @@ export const getMasterDataForHeirarchies = async (
     });
 
     if (!results || results.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         trace_id: traceId,
         message: 'No master data found for the provided hierarchies IDs.',
         master_data: []
