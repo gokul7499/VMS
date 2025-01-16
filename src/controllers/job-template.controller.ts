@@ -154,6 +154,7 @@ export async function getJobTemplateById(
         "is_expense_allowed",
         "is_resume_mandatory",
         "allow_user_description",
+        "is_checklist_enable",
         "is_deleted",
         "is_enabled",
         "is_background_check",
