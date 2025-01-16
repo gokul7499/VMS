@@ -1,9 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import User from "../models/user.model";
-import { UserFoundationalData, UserInterface } from "../interfaces/user.interface";
+import { UserInterface } from "../interfaces/user.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
@@ -15,8 +14,6 @@ import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUser
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
-import { request } from "http";
-import axios from "axios";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -599,6 +596,3 @@ export async function getPendingUser(
     });
   }
 }
-
-
-
