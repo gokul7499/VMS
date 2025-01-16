@@ -1,7 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "`dev_vms_auth`";
+const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2064,8 +2064,31 @@ LIMIT :limit OFFSET :offset;
 `;
 
 export const getPendingUserQuery = `
-  SELECT * 
-  FROM ${auth_db}.invitation
-  WHERE program_id = :program_id
+  SELECT 
+    invitation.*, 
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', hierarchies.id,
+            'name', hierarchies.name
+        )
+    ) AS associate_hierarchy_ids,
+     JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', work_locations.id,
+            'name', work_locations.name
+        )
+    ) AS work_location_ids
+FROM ${auth_db}.invitation
+LEFT JOIN 
+    hierarchies
+ON 
+    JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+LEFT JOIN 
+    work_locations
+ON 
+    JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+  WHERE invitation.program_id = :program_id
   AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
+  GROUP BY invitation.id
+LIMIT 0, 1000;
 `;

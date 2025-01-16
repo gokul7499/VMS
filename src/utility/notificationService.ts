@@ -1,10 +1,14 @@
 import axios from 'axios';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
+import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
+import { EmailRecipient } from '../interfaces/email-recipients.interface';
+// import { object } from 'zod';
+const config_db = process.env.CONFIG_DB || "dev_vms_configurator"
+const auth_db = process.env.AUTH_DB || "dev_vms_auth"
 
 function getNotificationUrl(): string | undefined {
-  return process.env.NOTIFICATION_URL;
+  return process.env.NOTIFICATION_URL || 'https://v4-dev.simplifysandbox.net/notification';
 }
 
 function validateToken(token: string | undefined): boolean {
@@ -17,7 +21,7 @@ function validateToken(token: string | undefined): boolean {
 
 export async function sendNotification(payload: NotificationDataPayload): Promise<void> {
   const programData = await sequelize.query(
-    `SELECT * FROM programs WHERE id =:program_id`,
+    `SELECT * FROM ${config_db}.programs WHERE id =:program_id`,
     {
       replacements: { program_id: payload.program_id },
       type: QueryTypes.SELECT
@@ -33,9 +37,10 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     console.error("Tenant ID is missing in the payload.");
     return;
   }
+  console.log("tenent_id", tenent_id);
 
   const result = await sequelize.query(
-    `SELECT logo FROM Tenant WHERE id = :tenent_id`,
+    `SELECT logo,name FROM ${config_db}.tenant WHERE id = :tenent_id`,
     {
       replacements: { tenent_id },
       type: QueryTypes.SELECT
@@ -48,28 +53,30 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
   }
 
   let tenantLogo = result[0].logo;
-  let name;
-  if (!result[0].logo) {
-    const result = await sequelize.query(
-      `SELECT name FROM tenant WHERE id = :tenent_id`,
-      {
-        replacements: { tenent_id },
-        type: QueryTypes.SELECT
-      }) as any;
-    if (!result || result.length === 0) {
-      console.error("Tenant name not found for tenant ID:", tenent_id);
-      return;
-    }
-    name = result[0].name;
-  }
+  let name = result[0].name;
+  let user: any;
+  const type = payload.payload.user_type;
+  console.log('Payload data : ', payload.payload);
 
-  const user = await sequelize.query(
-    `SELECT * FROM user WHERE program_id =:program_id AND id =:user_id`,
-    {
-      replacements: { program_id: payload.program_id, user_id: payload.userId },
-      type: QueryTypes.SELECT
-    }
-  )
+  //TODO : remove the auth db call, this is temporay solution, the super user should exist in config db too
+  if (type === 'super_user') {
+    console.log('Inside the super user query')
+    user = await sequelize.query(
+      `SELECT * FROM ${auth_db}.user WHERE user_id = :user_id`,
+      {
+        replacements: { user_id: payload.userId },
+        type: QueryTypes.SELECT
+      }
+    )
+  } else {
+    user = await sequelize.query(
+      `SELECT * FROM ${config_db}.user WHERE id = :user_id  AND program_id = :program_id`,
+      {
+        replacements: { program_id: payload.program_id, user_id: payload.userId },
+        type: QueryTypes.SELECT
+      }
+    )
+  }
   const userData = user[0] as any
   if (!userData) {
     console.error("User not found for program ID:", payload.program_id, "and user ID:", payload.userId);
@@ -87,70 +94,61 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     return;
   }
 
-  const fullName = `${userData.first_name} ${userData.middle_name} ${userData.last_name}`;
-  const created_by_first_name = userData.first_name;
-  const created_by_last_name = userData.last_name;
-
   const data = payload.payload;
-  Object.assign(data, {
-    fullName,
-    created_by_first_name,
-    created_by_last_name,
-    tenantLogo,
-    name,
-  });
 
-  const notificationData = {
-    entityRefId: "simplifyvms",
-    program_id: payload.program_id,
-    traceId: payload.traceId,
-    eventCode: payload.eventCode,
-    channels: [
-      "EMAIL"
-    ],
-    recipient: {
-      email: {
-        to: [
-          {
-            email: payload.recipientEmail
-          }
+
+  if (payload.recipientEmail.length > 0) {
+    payload.recipientEmail.forEach((element: EmailRecipient) => {
+      Object.assign(element, {
+        fullName: `${element.firstName} ${element.middleName || ""} ${element.lastName}`,
+        created_by_first_name: element.firstName,
+        created_by_last_name: element.lastName,
+        logo_url: tenantLogo,
+        name: name
+      });
+      const emailData = element.email;
+      const notificationData = {
+        entityRefId: "simplifyvms",
+        program_id: payload.program_id,
+        traceId: payload.traceId,
+        eventCode: payload.eventCode,
+        channels: [
+          "EMAIL"
         ],
-        sender: {
-          email: "noreply@simplifyvms.com"
-        }
-      }
-    },
-    payload: data,
-    userId: payload.userId ?? "",
-    language: "en"
-  };
-
-  const updatedData = {
-    ...data,
-    fullName,
-    created_by_first_name,
-    created_by_last_name
-  };
-
-console.log(notificationData.recipient.email);
-
-  try {
-    const response = await axios.post(
-      `${notificationUrl}/notification-message/`,
-      
-        notificationData,
-      
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${payload.token}`,
+        recipient: {
+          email: {
+            to: [
+              {
+                email: element.email
+              }
+            ],
+            sender: {
+              email: "noreply@simplifyvms.com"
+            }
+          }
         },
+        payload: data,
+        userId: payload.userId ?? "",
+        language: "en"
+      };
+      console.log("notificationData", notificationData);
+
+      try {
+        const response = axios.post(
+          `${notificationUrl}/notification-message/`, notificationData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${payload.token}`,
+            },
+          }
+        );
+
+
+      } catch (error: any) {
+        console.error('Failed to send notification:', error.message, error.response?.data);
       }
-    );
-
-console.log(response);
-
-  } catch (error: any) {
-    console.error('Failed to send notification:', error);
+    });
   }
+
 }
