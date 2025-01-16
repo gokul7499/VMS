@@ -23,6 +23,8 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
     const redisKey = getRedisKeyForAuth(token, programId, null);
 
+    console.log("Fetching redis key for auth", redisKey);
+
     try {
       const cachedPolicies = await redis.get(redisKey);
       if (cachedPolicies) {
@@ -42,6 +44,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
     if (!groupPolicies || groupPolicies.length === 0) {
       try {
+        console.log(`Log of fetch policies befour API`);
         const apiResponse = await axios.get(
           `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
           {
@@ -54,7 +57,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             timeout: 90000,
           }
         );
-
+        console.log(`Log of fetch policies after API`, apiResponse);
         groupPolicies = apiResponse.data.response;
         console.log(`Fetched policies from API`, groupPolicies);
         await redis.set(redisKey, JSON.stringify(groupPolicies));
