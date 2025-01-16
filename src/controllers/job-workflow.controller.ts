@@ -12,7 +12,7 @@ import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
-import { EmailRecipient } from "../interfaces/email-recipients.interface";
+import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
@@ -3011,3 +3011,8 @@ export const getModuleEvent = async (
         });
     }
 };
+
+// function getManagerDetails(program_id: string, id: string): any {
+//         throw new Error('Function not implemented.');
+// }
+
