@@ -399,45 +399,32 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
   }
 }
 
-export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
-  const { id, program_id } = request.params as { id: string, program_id: string };
+export const updateRateTypeById = async (request: FastifyRequest<{ Params: { program_id: string, id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
+  const { program_id, id } = request.params as { program_id: string; id: string };
   const updates = request.body as CreateRateTypeData;
   const traceId = generateCustomUUID();
-  let { name } = request.body as { name: string }
-  name = name.trim();
+  const { name } = request.body as { name: string };
+
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+  const userId = user?.sub;
+
   try {
-    const existingRateTypeWithSameName = await rateType.findOne({
-      where: {
-        name,
-        program_id,
-        id: { [Op.ne]: id },
-      },
-    });
-
-    if (existingRateTypeWithSameName) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Invalid name field, name must be unique.",
-        trace_id: traceId,
-      });
-    }
-
     const rateTypes = await rateType.findOne({
       where: {
         id: id,
-        is_deleted: false
-      }
+        program_id,
+        is_deleted: false,
+      },
     });
+
     if (!rateTypes) {
       return reply.status(200).send({
         status_code: 200,
@@ -445,25 +432,44 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
         trace_id: traceId,
       });
     }
-    const updatedCount: any = await rateType.update({
-      updates,
-      modified_on: Date.now(),
-      modified_by: userId,
-    },
-      { where: { id: id } }
+
+    if (updates.name) {
+      const existingRateTypeWithSameName = await rateType.findOne({
+        where: {
+          name,
+          program_id: program_id,
+          id: { [Op.ne]: id },
+        },
+      });
+
+      if (existingRateTypeWithSameName) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "A rate type with this name already exists.",
+          trace_id: traceId,
+        });
+      }
+    }
+    await rateType.update(
+      {
+        ...updates,
+        modified_on: Date.now(),
+        modified_by: userId,
+      },
+      { where: { id, program_id } }
     );
-    reply.status(200).send({
+
+    return reply.status(200).send({
       status_code: 200,
-      id: updatedCount.id,
       message: "Rate type updated successfully",
       trace_id: traceId,
     });
-  } catch (error) {
-    reply.status(500).send({
+  } catch (error: any) {
+    return reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
       trace_id: traceId,
-      error: error
+      error: error.message,
     });
   }
 };
