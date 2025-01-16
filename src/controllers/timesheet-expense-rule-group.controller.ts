@@ -47,10 +47,11 @@ export const getAllTimesheetExpenseRuleGroups = async (
 
     try {
         const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, rule_category } = request.query as {
+        const { page = 1, limit = 10, rule_category, is_enabled } = request.query as {
             page?: string | number;
             limit?: string | number;
             rule_category?: string;
+            is_enabled?: string; 
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -65,6 +66,11 @@ export const getAllTimesheetExpenseRuleGroups = async (
         if (rule_category) {
             searchConditions.rule_category = rule_category;
         }
+
+        if (is_enabled !== undefined) {
+            searchConditions.is_enabled = is_enabled === "true";
+        }
+
         const { rows: ruleGroups, count } = await TimesheetExpenseRuleGroup.findAndCountAll({
             where: searchConditions,
             limit: limitNumber,
