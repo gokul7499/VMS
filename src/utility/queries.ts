@@ -1516,7 +1516,8 @@ SELECT
     JSON_OBJECT(
         'master_data', JSON_OBJECT(
             'id', master_data_type.id,
-            'name', master_data_type.name
+            'name', master_data_type.name,
+            'configuration', master_data_type.configuration
         ),
         'associated_master_data', (
             SELECT JSON_ARRAYAGG(
