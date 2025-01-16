@@ -27,6 +27,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
       const cachedPolicies = await redis.get(redisKey);
       if (cachedPolicies) {
         groupPolicies = JSON.parse(cachedPolicies);
+        console.log(`Fetched the policies from cache for ${token}/${programId}`, groupPolicies);
         if (fastify.log) {
           fastify.log.info(
             `Fetched the policies from cache for ${token}/${programId}`
@@ -55,6 +56,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
         );
 
         groupPolicies = apiResponse.data.response;
+        console.log(`Fetched policies from API for ${token}-${programId}`, groupPolicies);
         await redis.set(redisKey, JSON.stringify(groupPolicies));
 
         if (fastify.log) {
@@ -62,7 +64,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             `Fetched policies from API for ${token}-${programId}`
           );
         }
-        
+
       } catch (err: any) {
         if (fastify.log) {
           fastify.log.error(`Error fetching policies from API: ${err}`);

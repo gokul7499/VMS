@@ -36,7 +36,7 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
     .catch((error) => {
       reply.status(401).send({
         status_code: 401,
-        message: "Unauthorized: Access denied",
+        message: error.message,
         trace_id: generateCustomUUID(),
       });
       done(error);
