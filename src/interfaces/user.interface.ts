@@ -48,6 +48,7 @@ export interface UserInterface {
   modified_on?: number;
   created_by?: any;
   modified_by?: any;
-  foundational_data?:any;
+  foundational_data?:any[];
+  user:any,
   background_logo_color?:string
 }
