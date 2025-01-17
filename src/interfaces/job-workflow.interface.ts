@@ -67,3 +67,9 @@ export interface Users {
   avatar: string;
   role_id: string;
 }
+export interface NotificationPayload {
+  placement_order?: number;
+  userIds?: any[];
+  job_id:string;
+ 
+}
