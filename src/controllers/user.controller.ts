@@ -423,23 +423,69 @@ export async function deleteUser(
 }
 
 export async function getAllUserIDAndUserId(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; info_level?: string; user_type?: string; first_name?: string; is_activated?: boolean; role_id?: string; tenant_id?: string; email?: string, page?: string, limit?: string } }>,
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: {
+      user_id?: string;
+      info_level?: string;
+      user_type?: string;
+      first_name?: string;
+      is_activated?: boolean;
+      role_id?: string;
+      tenant_id?: string;
+      email?: string;
+      hierarchy_id?: string; 
+      page?: string;
+      limit?: string;
+    };
+  }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { user_id, info_level, user_type, first_name, is_activated, role_id, tenant_id, email, page = '1', limit = '10' } = request.query;
+  const {
+    user_id,
+    info_level,
+    user_type,
+    first_name,
+    is_activated,
+    role_id,
+    tenant_id,
+    email,
+    hierarchy_id,
+    page = '1',
+    limit = '10',
+  } = request.query;
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
+  const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
+    const hierarchyReplacements = Object.fromEntries(
+      hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
+    );
 
     // Fetch Users Data
-    const users = await sequelize.query(userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id), {
-      replacements: { program_id, user_id, user_type, is_activated: isActivatedStr === 'true', role_id, tenant_id, email, first_name, limit: parseInt(limit), offset },
-      type: QueryTypes.SELECT
-    }) as any[];
+    const users = await sequelize.query(
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
+      {
+        replacements: {
+          program_id,
+          user_id,
+          user_type,
+          is_activated: isActivatedStr === 'true',
+          role_id,
+          tenant_id,
+          email,
+          first_name,
+          limit: parseInt(limit),
+          offset,
+          ...hierarchyReplacements,
+        },
+        type: QueryTypes.SELECT,
+      }
+    ) as any[];
 
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
@@ -454,20 +500,20 @@ export async function getAllUserIDAndUserId(
 
     reply.status(200).send({
       status_code: 200,
-      message: "Users fetched successfully!",
+      message: 'Users fetched successfully!',
       trace_id: traceId,
       users,
       total_count,
       page: parseInt(page),
-      limit: parseInt(limit)
+      limit: parseInt(limit),
     });
   } catch (error: any) {
-    console.log("Error:", error.stack);
+    console.log('Error:', error.stack);
 
     reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
-      message: "Internal Server Error",
+      message: 'Internal Server Error',
       error: error.message,
     });
   }
