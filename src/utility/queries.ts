@@ -466,7 +466,12 @@ SELECT *
 FROM hierarchy_cte;
 `;
 
-export const getAllHierarchies = (hasName: boolean, hasIsEnabled: boolean, startDate?: number, endDate?: number) => `
+export const getAllHierarchies = (
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  startDate?: number,
+  endDate?: number
+) => `
 WITH hierarchy_cte AS (
   SELECT
     h.id,
@@ -486,19 +491,31 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined ? 'AND h.modified_on BETWEEN :startDate AND :endDate' : ''}
+    ${
+      startDate !== undefined && endDate !== undefined
+        ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+        : ''
+    }
+),
+total_count_cte AS (
+  SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
 
-SELECT *
-FROM hierarchy_cte
+SELECT
+  h.*,
+  (SELECT total_count FROM total_count_cte) AS total_count
+FROM hierarchy_cte h
 ORDER BY
   CASE
-    WHEN parent_hierarchy_id IS NULL THEN 0
+    WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Sort parent hierarchies first
-  created_on ASC, -- Sort by created_on in ascending order
-  id;
+  h.created_on ASC, -- Sort by created_on in ascending order
+  h.id
+LIMIT :limit OFFSET :offset;
 `;
+
+
 
 
 // export const vendorDataQuery = `
