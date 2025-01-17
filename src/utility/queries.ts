@@ -2016,7 +2016,8 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
-  user_id?: string
+  user_id?: string,
+  hierarchy_ids?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2041,7 +2042,6 @@ WITH user_data AS (
          u.title,
          u.contacts,
          u.addresses,
-
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2074,6 +2074,13 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
+    ${
+      hierarchy_ids && hierarchy_ids.length > 0
+        ? `AND (${hierarchy_ids
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2081,6 +2088,7 @@ FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
+
 
 export const getPendingUserQuery = `
   SELECT 
