@@ -199,21 +199,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
     try {
         const whereClause: any = {};
-        if (program_id) {
-            whereClause.program_id = program_id;
-        }
-        if (id) {
-            whereClause.id = id;
-        }
-        if (queryParams.tenant_id) {
-            whereClause.tenant_id = queryParams.tenant_id;
-        }
-        if (queryParams.user_id) {
-            whereClause.user_id = queryParams.user_id;
-        }
+        if (program_id) whereClause.program_id = program_id;
+        if (id) whereClause.id = id;
+        if (queryParams.tenant_id) whereClause.tenant_id = queryParams.tenant_id;
+        if (queryParams.user_id) whereClause.user_id = queryParams.user_id;
 
         Object.entries(queryParams).forEach(([key, value]) => {
-            if (key !== "tenant_id" && key !== "user_id" && key !== "id" && key !== "program_id") {
+            if (!["tenant_id", "user_id", "id", "program_id"].includes(key)) {
                 if (value === "true") {
                     whereClause[key] = true;
                 } else if (value === "false") {
@@ -236,26 +228,25 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 {
                     model: User,
                     as: "user",
-                    include: [                      
-                       
+                    include: [
                         {
                             model: CountryModel,
-                            as: 'countries',
+                            as: "countries",
                             attributes: ["id", "name"]
                         },
                         {
                             model: User,
-                            as: 'supervisor_id',
+                            as: "supervisor_id",
                             attributes: ["id", "first_name", "last_name"]
-                        },
-                    ],
+                        }
+                    ]
                 },
                 {
                     model: Tenant,
                     as: "tenant",
                     attributes: ["id", "name", "type"]
                 }
-            ],
+            ]
         });
 
         if (userMappings.length === 0) {
@@ -263,12 +254,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 status_code: 200,
                 trace_id: traceId,
                 message: "No User Mappings found for the given criteria",
-                user_mappings: [],
+                user_mappings: []
             });
         }
 
-        const hierarchyIds = [userMappings.flatMap(mapping => mapping.user?.associate_hierarchy_ids || [])];
-        const workLocationIds = [userMappings.flatMap(mapping => mapping.user?.work_location_ids || [])];
+        const hierarchyIds = userMappings.flatMap(mapping => mapping.user?.associate_hierarchy_ids || []);
+        const workLocationIds = userMappings.flatMap(mapping => mapping.user?.work_location_ids || []);
+        
         const hierarchie = hierarchyIds.length > 0
             ? await hierarchies.findAll({
                 where: { id: hierarchyIds },
@@ -320,4 +312,3 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         });
     }
 };
-
