@@ -920,8 +920,8 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
-                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate);
-                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate);
+                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate.amount);
+                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate.amount);
 
                 const base_rate = {
                     ...rateConfig.base_rate,
