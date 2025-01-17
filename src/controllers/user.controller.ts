@@ -163,7 +163,10 @@ export async function getUserHierarchiesByProgram(
       job_manager_hierarchies: {
         user_id,
         program_id,
-        default_hierarchy_name: defaultHierarchyName,
+        default_hierarchy_name: {
+          id: user.default_hierarchy_id,
+          name: defaultHierarchyName
+        },
         hierarchies: nestedHierarchy,
         is_all_work_location_associate,
         work_locations: workLocationsData.map((location) => ({
