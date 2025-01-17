@@ -155,7 +155,7 @@ export async function notifyJobManager(
     }
 }
 
-export async function fetchUsersBasedOnHierarchy(
+export async function FetchUsersBasedOnHierarchy(
     sequelize: any,
     allPayload: { hierarchy_ids: any[], program_id: any, user_type: string[] }
 ): Promise<EmailRecipient[]> {

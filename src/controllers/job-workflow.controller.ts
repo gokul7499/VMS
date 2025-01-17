@@ -14,6 +14,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
+import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 import User from "../models/user.model";
@@ -461,11 +462,18 @@ export const updateWorkflowStatus = async (
 
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
-                program_id: program_id
+                program_id: program_id,
+
             };
 
             if (workflowStatus === "completed") {
                 let eventCode = await getEventsCode(workflow);
+                let allPayload = {
+                    hierarchy_ids: hierarchy_ids,
+                    program_id: program_id,
+                    user_type:eventCode.user_type
+    
+                };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
             }
         }
@@ -508,79 +516,6 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-
-
-
-    // if (workflowStatus === "completed" && workflow.event === "update_job") {
-    //     const users = await fetchUserById(updates.user_id);
-    //     if (user.user_type === "client") {
-    //         let managerData:any = await getManagerDetails(program_id, id);
-    //         const eventCode = "JOB_APPROVAL_COMPLETE";
-
-    //         const notificationPayload = {
-    //             program_id,
-    //             token,
-    //             traceId,
-    //             eventCode,
-    //             recipientEmail: managerData.email || "",
-    //             payload,
-    //             userId: user?.sub ?? "",
-    //         };
-    //         sendNotification(notificationPayload);
-    //     } else if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
-    //         let mspUserData:any = await fetchUsersBasedOnHierarchy(allPayload);
-    //         const eventCode = "JOB_REVIEW_COMPLETE";
-
-    //         const notificationPayload = {
-    //             program_id,
-    //             token,
-    //             traceId,
-    //             eventCode,
-    //             recipientEmail: mspUserData.email || "",
-    //             payload,
-    //             userId: user?.sub ?? "",
-    //         };
-    //         sendNotification(notificationPayload);
-
-    //     } else {
-    //         console.log("User type is not CLIENT, skipping update_job logic");
-    //     }
-    // } else
-
-    // const users = await fetchUserById(updates.user_id);
-    // if (user.userType == "client" || user.userType == "msp" || user.userType == "super_user") {
-    //     let managerData: any = await getManagerDetails(program_id, id);
-    //     const eventCode = "JOB_APPROVAL_COMPLETE";
-    //     const notificationPayload = {
-    //         program_id,
-    //         token,
-    //         traceId,
-    //         eventCode,
-    //         recipientEmail: managerData.data.email || "",
-    //         payload,
-    //         userId: user?.sub ?? "",
-    //     };
-    //     sendNotification(notificationPayload);
-
-    // } else
-    //  if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
-    //     let managerData = await getManagerDetails(program_id, id);
-    //     let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
-    //     const eventCode = "JOB_APPROVAL_COMPLETE";
-    //     const notificationPayload = {
-    //         program_id,
-    //         token,
-    //         traceId,
-    //         eventCode,
-    //         recipientEmail: mspUserData.email || "",
-    //         payload,
-    //         userId: user?.sub ?? "",
-    //     };
-    //     sendNotification(notificationPayload);
-    //     console.log("Executing logic for CLIENT user in create_job event");
-    // } else {
-    //     console.log("User type is not CLIENT, skipping create_job logic");
-    // }
     (async () => {
         if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
             // Fetch manager details
@@ -603,12 +538,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             } else {
                 console.log("Manager data is missing or email not found.");
             }
-            let mspUserData: any = await fetchUsersBasedOnHierarchy(allPayload);
+            let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize,allPayload);
 
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
-
-
                 for (const user of mspUserData) {
                     const recipeintEmail: EmailRecipient = {
                         email: user.email
@@ -619,7 +552,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     program_id: program_id ?? "",
                     token,
                     traceId,
-                    eventCode: eventCode,
+                    eventCode: eventCode.eventCode,
                     recipientEmail: recipientEmailArray,
                     payload,
                     userId: user.sub ?? "",
@@ -643,15 +576,37 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
     console.log(flow_type, events);
 
     if (flow_type == "Approval" && events === "create_job") {
-        return "JOB_APPROVAL_COMPLETE";
+        let response={
+            eventCode:"JOB_APPROVAL_COMPLETE",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Approval" && events === "update_job") {
-        return "JOB_UPDATE_APPROVAL";
+        let response={
+            eventCode:"JOB_UPDATE_APPROVAL",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
-        return "OFFER_APPROVAL_COMPLETE";
+        let response={
+            eventCode:"OFFER_APPROVAL_COMPLETE",
+            user_type:['msp']
+        }
+        return response;
+     
     } else if (flow_type == "Approval" && events === "counter_offer") {
-        return "COUNTER_OFFER_APPROVAL_COMPLETE";
+        let response={
+            eventCode:"COUNTER_OFFER_APPROVAL_COMPLETE",
+            user_type:['msp','vendor']
+        }
+        return response;
+      
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
-        return "REHIRE_APPROVED";
+        let response={
+            eventCode:"REHIRE_APPROVED",
+            user_type:['msp','vendor']
+        }
+        return response;
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -660,30 +615,78 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     let { flow_type, events } = workflow
     if (flow_type == "Approval" && events === "create_job") {
-        return "JOB_APPROVAL_REJECT";
+        let response={
+            eventCode:"JOB_APPROVAL_REJECT",
+            user_type:['msp']
+        }
+        return response;
+      
     } if (flow_type == "Review" && events === "create_job") {
-        return "JOB_REVIEW_REJECT";
+        let response={
+            eventCode: "JOB_REVIEW_REJECT",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Approval" && events === "update_job") {
-        return "JOB_UPDATE_APPROVAL_REJECTED";
+        let response={
+            eventCode: "JOB_UPDATE_APPROVAL_REJECTED",
+            user_type:['msp']
+        }
+        return response;
+      
     } else if (flow_type == "Review" && events === "update_job") {
-        return "JOB_UPDATE_REVIEW_REJECT";
+        let response={
+            eventCode:"JOB_UPDATE_REVIEW_REJECT",
+            user_type:['msp']
+        }
+        return response;
+
 
     } else if (flow_type == "Review" && events === "create_offer") {
-        return "OFFER_REVIEW_REJECT";
+        let response={
+            eventCode:"OFFER_REVIEW_REJECT",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
-        return "OFFER_APPROVAL_REJECT";
-
+        let response={
+            eventCode:"OFFER_APPROVAL_REJECT",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Review" && events === "counter_offer") {
-        return "COUNTER_OFFER_REVIEW_REJECT";
+        let response={
+            eventCode:"COUNTER_OFFER_REVIEW_REJECT",
+            user_type:['msp']
+        }
+        return response;
+    
     } else if (flow_type == "Approval" && events === "counter_offer") {
-        return "COUNTER_OFFER_APPROVAL_REJECT";
-
+        let response={
+            eventCode:"COUNTER_OFFER_APPROVAL_REJECT",
+            user_type:['msp']
+        }
+        return response;
     } else if (flow_type == "Review" && events === "submit_candidate_shortlist") {
-        return "CANDIDATE_SHORTLIST_REJECTED";
+        let response={
+            eventCode:"CANDIDATE_SHORTLIST_REJECTED",
+            user_type:['msp']
+        }
+        return response;
+      
     } else if (flow_type == "Review" && events === "submit_candidate_rehire_check") {
-        return "REHIRE_REVIEW_REJECT";
+        let response={
+            eventCode:"REHIRE_REVIEW_REJECT",
+            user_type:['msp','vendor']
+        }
+        return response;
+    
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
-        return "REHIRE_REJECT";
+        let response={
+            eventCode: "REHIRE_REJECT",
+            user_type:['msp','vendor']
+        }
+        return response;
     } else {
         throw new Error(`events code not found for event: ${events}`);
     }
@@ -909,10 +912,7 @@ export const rejectLevel = async (
                 user_id: user_id,
             });
         });
-        let allPayload = {
-            hierarchy_ids: updates[0].hierarchy_ids,
-            program_id: program_id
-        }
+      
 
         if (!updatedLevels) {
             return reply.status(400).send({
@@ -927,6 +927,11 @@ export const rejectLevel = async (
 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
+        let allPayload = {
+            hierarchy_ids: updates[0].hierarchy_ids,
+            program_id: program_id,
+            user_type:eventCode.user_type
+        }
         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
 
         return reply.status(200).send({
