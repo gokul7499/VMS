@@ -1,4 +1,3 @@
-
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
@@ -13,7 +12,7 @@ class WorkLocationModel extends Model {
   countries: any;
   states: any;
   state_name: any;
-   currency_id: any;
+  currency_id: any;
 }
 
 WorkLocationModel.init(
