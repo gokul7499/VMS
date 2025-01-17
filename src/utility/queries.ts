@@ -2016,7 +2016,7 @@ export const userQuery = (
   is_activated?: string,
   user_type?: string,
   user_id?: string,
-  hierarchy_ids?: string[]
+  hierarchy_id?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2077,8 +2077,8 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${
-      hierarchy_ids && hierarchy_ids.length > 0
-        ? `AND (${hierarchy_ids
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
             .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
             .join(' OR ')})`
         : ''

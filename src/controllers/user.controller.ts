@@ -434,7 +434,7 @@ export async function getAllUserIDAndUserId(
       role_id?: string;
       tenant_id?: string;
       email?: string;
-      hierarchy_ids?: string; 
+      hierarchy_id?: string; 
       page?: string;
       limit?: string;
     };
@@ -451,14 +451,14 @@ export async function getAllUserIDAndUserId(
     role_id,
     tenant_id,
     email,
-    hierarchy_ids,
+    hierarchy_id,
     page = '1',
     limit = '10',
   } = request.query;
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
-  const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(',') : [];
+  const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
