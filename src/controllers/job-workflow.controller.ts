@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import JobWorkFlowModel from '../models/job-workflow.model';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
+import { JobWorkFlow, NotificationPayload, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
 import CustomField from '../models/custom-fields.model';
@@ -14,7 +14,9 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
+import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
+import User from "../models/user.model";
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -584,19 +586,20 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
+                user_type: user.userType,
                 fullName: managerData.data.first_name,
                 job_id: updates[0].job_id,
             };
             const recipientEmailArray: EmailRecipient[] = [];
-            
+
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
 
                 const recipeintEmail: EmailRecipient = {
-                            email: managerData.data.email
-                        }
+                    email: managerData.data.email
+                }
                 recipientEmailArray.push(recipeintEmail);
-            
+
             } else {
                 console.log("Manager data is missing or email not found.");
             }
@@ -612,7 +615,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     }
                     recipientEmailArray.push(recipeintEmail);
                 }
-                const notificationPayload : NotificationDataPayload = {
+                const notificationPayload: NotificationDataPayload = {
                     program_id: program_id ?? "",
                     token,
                     traceId,
@@ -3371,8 +3374,177 @@ export const getModuleEvent = async (
         });
     }
 };
+export const sendSequencialNotification = async (
+    request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
+    reply: FastifyReply
+) => {
+    const workflow = request.body as NotificationPayload;
+    console.log(workflow);
 
-// function getManagerDetails(program_id: string, id: string): any {
-//         throw new Error('Function not implemented.');
-// }
+    const traceId = generateCustomUUID();
+    const { program_id, job_workflow_id } = request.params;
 
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+    }
+
+    const userId = user?.sub;
+
+    try {
+        let query: any[] = await sequelize.query(`select * from workflow where id=:job_workflow_id;`, {
+            replacements: { job_workflow_id: job_workflow_id },
+            type: QueryTypes.SELECT
+        });
+        let workflowData = query[0]
+        const placementOrder = workflow.placement_order;
+
+        // 1. Check if the log already exists in send-notification-logs
+        const existingLog = await sendNotificationModel.findOne({
+            where: {
+                program_id,
+                workflow_id: job_workflow_id,
+                placement_order: placementOrder,
+                created_by:user.sub,
+            },
+        });
+
+        if (existingLog) {
+            return reply.status(200).send({ message: "Notification already sent for this placement order." });
+        }
+
+        // 2. Fetch users data based on userIds in the payload
+        const userIds = workflow.userIds; // User IDs from the payload
+        if (!userIds || userIds.length === 0) {
+            return reply.status(400).send({ message: "No user IDs provided in the payload." });
+        }
+
+        const users = await getUserData(userIds, sequelize);
+        console.log(users);
+
+
+        if (!users || users.length === 0) {
+            return reply.status(404).send({ message: "No valid users found for the provided IDs." });
+        }
+
+        // 3. Prepare recipient email list for notifications
+        const recipientEmailList: EmailRecipient[] = users.map((user: any) => ({
+            id: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+        }));
+
+        let eventCode = await getTriggeredEventsCode(workflowData.flow_type, workflowData.events)
+        // 4. Create the notification payload
+        const notificationPayloads: NotificationDataPayload = {
+            program_id,
+            traceId,
+            eventCode: eventCode,
+            recipientEmail: recipientEmailList,
+            payload: {
+                job_id: workflow.job_id,
+                user_type: user?.userType,
+            },
+            token,
+            userId: user?.sub ?? "",
+        };
+
+        // 5. Send notifications
+        await sendNotification(notificationPayloads);
+        console.log("notificationPayloads", notificationPayloads);
+
+        // 6. Log the notification status
+        await sendNotificationModel.create({
+            program_id,
+            workflow_id: job_workflow_id,
+            placement_order: placementOrder
+
+
+        });
+
+        reply.status(200).send({ message: "Notification sent successfully and logged." });
+    } catch (error) {
+
+        console.error(error);
+        reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while creating job workflow.',
+            trace_id: traceId,
+            error: (error as any).message,
+        });
+    }
+};
+
+async function getTriggeredEventsCode(flow_type: any, event: any) {
+    if (flow_type == "Approval" && event === "create_job") {
+        return "JOB_APPROVAL_FIRST";
+    } else if (flow_type == "Review" && event === "create_job") {
+        return "JOB_REVIEW_FIRST";
+    } else if (flow_type == "Review" && event === "update_job") {
+        return "JOB_UPDATE_REVIEW";
+    } else if (flow_type == "Approval" && event === "update_job") {
+        return "JOB_UPDATE_APPROVAL";
+    } else if (flow_type == "Review" && event === "create_offer") {
+        return "OFFER_REVIEW_FIRST";
+    } else if (flow_type == "Approval" && event === "create_offer") {
+        return "OFFER_APPROVAL_FIRST";
+    } else if (flow_type == "Review" && event === "counter_offer") {
+        return "COUNTER_OFFER_REVIEW_FIRST";
+    } else if (flow_type == "Approval" && event === "counter_offer") {
+        return "COOUTER_OFFER_APPROVAL_FIRST";
+    } else {
+        throw new Error(`Event code not found for event: ${event}`);
+    }
+
+}
+async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
+    if (!userIds || userIds.length === 0) {
+        return []; // Return empty array if no user IDs are provided
+    }
+
+    const userQuery = `
+        SELECT 
+            id,
+            first_name,
+            last_name,
+            email,
+            avatar,
+            role_id,
+            is_enabled
+        FROM 
+            user
+        WHERE 
+            id IN (:userIds)
+            AND is_enabled = true
+    `;
+
+    try {
+        // Fetch all user data matching the provided user IDs
+        const users = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { userIds },
+        });
+
+        // Map the results into an array of objects
+        const userData = users.map((user: any) => ({
+            id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            avatar: user.avatar || null,
+            role_id: user.role_id,
+        }));
+
+        return userData;
+    } catch (error) {
+        console.error("Error fetching user data:", error);
+        throw new Error("Unable to fetch user data.");
+    }
+}
