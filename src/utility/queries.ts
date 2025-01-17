@@ -1516,8 +1516,7 @@ SELECT
     JSON_OBJECT(
         'master_data', JSON_OBJECT(
             'id', master_data_type.id,
-            'name', master_data_type.name,
-            'configuration', master_data_type.configuration
+            'name', master_data_type.name
         ),
         'associated_master_data', (
             SELECT JSON_ARRAYAGG(
@@ -1533,7 +1532,7 @@ SELECT
             'id', md2.id,
             'name', md2.name
         ),
-        'is_all_associated', user_master_data.is_all_associated
+        'is_all_associated', user_master_data.is_all_associated=1
     ) AS foundational_data
 FROM
     user_master_data
@@ -2043,13 +2042,12 @@ WITH user_data AS (
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
-         JSON_OBJECT('id', tz.id, 'name', tz.name) AS time_zone_id
+         JSON_OBJECT('name', u.time_zone_id) AS time_zone_id
   FROM user u
   LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
   LEFT JOIN countries c ON u.country_id = c.id
   LEFT JOIN tenant t ON u.tenant_id = t.id
-  LEFT JOIN time_zones tz ON u.time_zone_id = tz.id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
@@ -2058,40 +2056,81 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, tz.id
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY created_on DESC
+ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
 
 export const getPendingUserQuery = `
   SELECT 
     invitation.*, 
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', hierarchies.id,
-            'name', hierarchies.name
+    COALESCE(( 
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', hierarchies.id,
+                'name', hierarchies.name
+            )
         )
-    ) AS associate_hierarchy_ids,
-     JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', work_locations.id,
-            'name', work_locations.name
+        FROM hierarchies
+        WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+    ), JSON_ARRAY()) AS associate_hierarchy_ids,
+    COALESCE(( 
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', work_locations.id,
+                'name', work_locations.name
+            )
         )
-    ) AS work_location_ids
+        FROM work_locations
+        WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+    ), JSON_ARRAY()) AS work_location_ids
 FROM ${auth_db}.invitation
-LEFT JOIN 
-    hierarchies
-ON 
-    JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
-LEFT JOIN 
-    work_locations
-ON 
-    JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
-  WHERE invitation.program_id = :program_id
-  AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
-  GROUP BY invitation.id
+WHERE invitation.program_id = :program_id
+AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
+GROUP BY invitation.id
 LIMIT 0, 1000;
+`;
+
+export const vendorMarkup = `
+  SELECT
+        vmc.markups,
+        vmc.rate_model
+    FROM
+        vendor_markup_config vmc
+    WHERE
+        vmc.program_id = :program_id
+        AND vmc.program_vendor_id = :vendor_id
+        AND (
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
+            OR
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
+        )
+    ORDER BY
+        -- Prioritize by exact industry and location matches
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END,
+        -- Fallback: Prioritize rows where all categories, locations, and hierarchy are set to 1
+        CASE 
+          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3 
+          ELSE 1 
+        END,
+        -- Additional sorting logic if needed
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id THEN 1 
+          ELSE 2 
+        END,
+        CASE 
+          WHEN vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END
+    LIMIT 1;
 `;
