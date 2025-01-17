@@ -472,8 +472,8 @@ export const updateWorkflowStatus = async (
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids,
                     program_id: program_id,
-                    user_type:eventCode.user_type
-    
+                    user_type: eventCode.user_type
+
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
             }
@@ -539,7 +539,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             } else {
                 console.log("Manager data is missing or email not found.");
             }
-            let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize,allPayload);
+            let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
 
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
@@ -577,35 +577,35 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
     console.log(flow_type, events);
 
     if (flow_type == "Approval" && events === "create_job") {
-        let response={
-            eventCode:"JOB_APPROVAL_COMPLETE",
-            user_type:['msp']
+        let response = {
+            eventCode: "JOB_APPROVAL_COMPLETE",
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_job") {
-        let response={
-            eventCode:"JOB_UPDATE_APPROVAL",
-            user_type:['msp']
+        let response = {
+            eventCode: "JOB_UPDATE_APPROVAL",
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
-        let response={
-            eventCode:"OFFER_APPROVAL_COMPLETE",
-            user_type:['msp']
+        let response = {
+            eventCode: "OFFER_APPROVAL_COMPLETE",
+            user_type: ['msp']
         }
         return response;
-     
+
     } else if (flow_type == "Approval" && events === "counter_offer") {
-        let response={
-            eventCode:"COUNTER_OFFER_APPROVAL_COMPLETE",
-            user_type:['msp','vendor']
+        let response = {
+            eventCode: "COUNTER_OFFER_APPROVAL_COMPLETE",
+            user_type: ['msp', 'vendor']
         }
         return response;
-      
+
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
-        let response={
-            eventCode:"REHIRE_APPROVED",
-            user_type:['msp','vendor']
+        let response = {
+            eventCode: "REHIRE_APPROVED",
+            user_type: ['msp', 'vendor']
         }
         return response;
     } else {
@@ -616,76 +616,76 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     let { flow_type, events } = workflow
     if (flow_type == "Approval" && events === "create_job") {
-        let response={
-            eventCode:"JOB_APPROVAL_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "JOB_APPROVAL_REJECT",
+            user_type: ['msp']
         }
         return response;
-      
+
     } if (flow_type == "Review" && events === "create_job") {
-        let response={
+        let response = {
             eventCode: "JOB_REVIEW_REJECT",
-            user_type:['msp']
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_job") {
-        let response={
+        let response = {
             eventCode: "JOB_UPDATE_APPROVAL_REJECTED",
-            user_type:['msp']
+            user_type: ['msp']
         }
         return response;
-      
+
     } else if (flow_type == "Review" && events === "update_job") {
-        let response={
-            eventCode:"JOB_UPDATE_REVIEW_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "JOB_UPDATE_REVIEW_REJECT",
+            user_type: ['msp']
         }
         return response;
 
 
     } else if (flow_type == "Review" && events === "create_offer") {
-        let response={
-            eventCode:"OFFER_REVIEW_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "OFFER_REVIEW_REJECT",
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
-        let response={
-            eventCode:"OFFER_APPROVAL_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "OFFER_APPROVAL_REJECT",
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "counter_offer") {
-        let response={
-            eventCode:"COUNTER_OFFER_REVIEW_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "COUNTER_OFFER_REVIEW_REJECT",
+            user_type: ['msp']
         }
         return response;
-    
+
     } else if (flow_type == "Approval" && events === "counter_offer") {
-        let response={
-            eventCode:"COUNTER_OFFER_APPROVAL_REJECT",
-            user_type:['msp']
+        let response = {
+            eventCode: "COUNTER_OFFER_APPROVAL_REJECT",
+            user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "submit_candidate_shortlist") {
-        let response={
-            eventCode:"CANDIDATE_SHORTLIST_REJECTED",
-            user_type:['msp']
+        let response = {
+            eventCode: "CANDIDATE_SHORTLIST_REJECTED",
+            user_type: ['msp']
         }
         return response;
-      
+
     } else if (flow_type == "Review" && events === "submit_candidate_rehire_check") {
-        let response={
-            eventCode:"REHIRE_REVIEW_REJECT",
-            user_type:['msp','vendor']
+        let response = {
+            eventCode: "REHIRE_REVIEW_REJECT",
+            user_type: ['msp', 'vendor']
         }
         return response;
-    
+
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
-        let response={
+        let response = {
             eventCode: "REHIRE_REJECT",
-            user_type:['msp','vendor']
+            user_type: ['msp', 'vendor']
         }
         return response;
     } else {
@@ -913,7 +913,7 @@ export const rejectLevel = async (
                 user_id: user_id,
             });
         });
-      
+
 
         if (!updatedLevels) {
             return reply.status(400).send({
@@ -931,7 +931,7 @@ export const rejectLevel = async (
         let allPayload = {
             hierarchy_ids: updates[0].hierarchy_ids,
             program_id: program_id,
-            user_type:eventCode.user_type
+            user_type: eventCode.user_type
         }
         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
 
@@ -3400,16 +3400,23 @@ export const sendSequencialNotification = async (
     if (!user) {
         return reply.status(401).send({ message: "Unauthorized - Invalid token" });
     }
-
-    const userId = user?.sub;
-
     try {
         let query: any[] = await sequelize.query(`select * from workflow where id=:job_workflow_id;`, {
             replacements: { job_workflow_id: job_workflow_id },
             type: QueryTypes.SELECT
         });
         let workflowData = query[0]
-        const placementOrder = workflow.placement_order;
+        const matchedLevel = workflowData.levels.slice(1).find((level: any) => level.placement_order == workflow.placement_order);
+        console.log(matchedLevel);
+
+        let userIds: any = []
+        if (matchedLevel?.recipient_types) {
+            userIds = matchedLevel.recipient_types
+                .flatMap((recipient: any) => Object.values(recipient.meta_data || {}));
+
+            console.log("Extracted User IDs:", userIds);
+        }
+        const placementOrder = workflowData.placement_order;
 
         // 1. Check if the log already exists in send-notification-logs
         const existingLog = await sendNotificationModel.findOne({
@@ -3417,20 +3424,13 @@ export const sendSequencialNotification = async (
                 program_id,
                 workflow_id: job_workflow_id,
                 placement_order: placementOrder,
-                created_by:user.sub,
+
             },
         });
 
         if (existingLog) {
             return reply.status(200).send({ message: "Notification already sent for this placement order." });
         }
-
-        // 2. Fetch users data based on userIds in the payload
-        const userIds = workflow.userIds; // User IDs from the payload
-        if (!userIds || userIds.length === 0) {
-            return reply.status(400).send({ message: "No user IDs provided in the payload." });
-        }
-
         const users = await getUserData(userIds, sequelize);
         console.log(users);
 
@@ -3438,8 +3438,6 @@ export const sendSequencialNotification = async (
         if (!users || users.length === 0) {
             return reply.status(404).send({ message: "No valid users found for the provided IDs." });
         }
-
-        // 3. Prepare recipient email list for notifications
         const recipientEmailList: EmailRecipient[] = users.map((user: any) => ({
             id: user.id,
             email: user.email,
@@ -3470,15 +3468,14 @@ export const sendSequencialNotification = async (
         await sendNotificationModel.create({
             program_id,
             workflow_id: job_workflow_id,
-            placement_order: placementOrder
-
+            placement_order: placementOrder,
+            created_by: user.sub,
 
         });
-
         reply.status(200).send({ message: "Notification sent successfully and logged." });
     } catch (error) {
 
-        console.error(error);
+     console.error(error);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating job workflow.',

@@ -69,7 +69,7 @@ export interface Users {
 }
 export interface NotificationPayload {
   placement_order?: number;
-  userIds?: any[];
+  // userIds?: any[];
   job_id:string;
  
 }
