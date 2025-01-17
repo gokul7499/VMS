@@ -466,7 +466,12 @@ SELECT *
 FROM hierarchy_cte;
 `;
 
-export const getAllHierarchies = (hasName: boolean, hasIsEnabled: boolean, startDate?: number, endDate?: number) => `
+export const getAllHierarchies = (
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  startDate?: number,
+  endDate?: number
+) => `
 WITH hierarchy_cte AS (
   SELECT
     h.id,
@@ -486,19 +491,31 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined ? 'AND h.modified_on BETWEEN :startDate AND :endDate' : ''}
+    ${
+      startDate !== undefined && endDate !== undefined
+        ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+        : ''
+    }
+),
+total_count_cte AS (
+  SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
 
-SELECT *
-FROM hierarchy_cte
+SELECT
+  h.*,
+  (SELECT total_count FROM total_count_cte) AS total_count
+FROM hierarchy_cte h
 ORDER BY
   CASE
-    WHEN parent_hierarchy_id IS NULL THEN 0
+    WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Sort parent hierarchies first
-  created_on ASC, -- Sort by created_on in ascending order
-  id;
+  h.created_on ASC, -- Sort by created_on in ascending order
+  h.id
+LIMIT :limit OFFSET :offset;
 `;
+
+
 
 
 // export const vendorDataQuery = `
@@ -1516,7 +1533,8 @@ SELECT
     JSON_OBJECT(
         'master_data', JSON_OBJECT(
             'id', master_data_type.id,
-            'name', master_data_type.name
+            'name', master_data_type.name,
+            'configuration',master_data_type.configuration
         ),
         'associated_master_data', (
             SELECT JSON_ARRAYAGG(
@@ -2067,6 +2085,11 @@ LIMIT :limit OFFSET :offset;
 export const getPendingUserQuery = `
   SELECT 
     invitation.*, 
+    invitation.user_email AS email,
+    user_group_mapping.user_type AS user_type,
+    user_group_mapping.last_name,
+    user_group_mapping.first_name,
+    user_group_mapping.middle_name,
     COALESCE(( 
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -2088,6 +2111,7 @@ export const getPendingUserQuery = `
         WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids
 FROM ${auth_db}.invitation
+JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id

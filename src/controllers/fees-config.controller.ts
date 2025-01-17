@@ -211,39 +211,49 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
+
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
+
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+
+  const userId = user?.sub;
   try {
     const feesConfigData = await feesConfiguration.findByPk(id);
+
     if (!feesConfigData) {
-      return reply.status(200).send({ message: 'fees configuration data not found' });
+      return reply.status(200).send({ message: 'Fees configuration data not found' });
     }
-    const [feesConfig] = await feesConfiguration.update(updates, {
+
+    const [feesConfig] = await feesConfiguration.update({
+      ...updates,
+      modified_on: Date.now(),
+      modified_by: userId,
+    }, {
       where: {
-        id, program_id, modified_on: Date.now(),
-        modified_by: userId,
-      }
+        id, program_id
+      },
     });
+
     return reply.status(201).send({
       status_code: 201,
-      message: 'fees configuration updated successfully',
+      message: 'Fees configuration updated successfully',
       id: feesConfigData.id,
       fees_config: feesConfig,
       trace_id: traceId,
     });
   } catch (error) {
-    console.error('error updating fees configuration fees configuration', error);
+    console.error('Error updating fees configuration', error);
     return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', error });
   }
 }
+
 
 export async function deleteFeesConfigurationById(
   request: FastifyRequest<{ Params: { id: string } }>,
