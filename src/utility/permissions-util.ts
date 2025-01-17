@@ -29,6 +29,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
     try {
       const cachedPolicies = await redis.get(redisKey);
+      console.log(`Log of fetch policies from cache`, cachedPolicies);
       if (cachedPolicies) {
         groupPolicies = JSON.parse(cachedPolicies);
         console.log(`Fetched the policies from cache`, groupPolicies);
