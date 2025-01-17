@@ -270,6 +270,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
             trace_id: traceId,
         });
     }
+    
 };
 
 
