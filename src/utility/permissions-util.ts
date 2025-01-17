@@ -8,11 +8,13 @@ dotenv.config();
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
   const { redis_host, redis_port , redis_auth } = databaseConfig.config;
+  console.log(`Connecting to Redis at ${redis_host}:${redis_port}`);
   const redis = new Redis({
     host: redis_host,
     port: redis_port,
     password: redis_auth
   });
+  console.log('Connected to Redis');
 
   async function getPolicies(programId: string, token: string) {
     if (!programId || !token) {
@@ -23,14 +25,17 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
     const redisKey = getRedisKeyForAuth(token, programId, null);
 
+    console.log("Fetching redis key for auth", redisKey);
+
     try {
       const cachedPolicies = await redis.get(redisKey);
+      console.log(`Log of fetch policies from cache`, cachedPolicies);
       if (cachedPolicies) {
         groupPolicies = JSON.parse(cachedPolicies);
-        console.log(`Fetched the policies from cache for ${token}/${programId}`, groupPolicies);
+        console.log(`Fetched the policies from cache`, groupPolicies);
         if (fastify.log) {
           fastify.log.info(
-            `Fetched the policies from cache for ${token}/${programId}`
+            `Fetched the policies from cache`
           );
         }
       }
@@ -42,6 +47,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
 
     if (!groupPolicies || groupPolicies.length === 0) {
       try {
+        console.log(`Log of fetch policies befour API`);
         const apiResponse = await axios.get(
           `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
           {
@@ -54,14 +60,14 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
             timeout: 90000,
           }
         );
-
+        console.log(`Log of fetch policies after API`, apiResponse);
         groupPolicies = apiResponse.data.response;
-        console.log(`Fetched policies from API for ${token}-${programId}`, groupPolicies);
+        console.log(`Fetched policies from API`, groupPolicies);
         await redis.set(redisKey, JSON.stringify(groupPolicies));
 
         if (fastify.log) {
           fastify.log.info(
-            `Fetched policies from API for ${token}-${programId}`
+            `Fetched policies from API`
           );
         }
 

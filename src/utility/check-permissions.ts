@@ -19,7 +19,9 @@ export async function checkPermission(
   try {
     validateInputs(token, programId);
     const tokenValue = token.split(' ')[1];
+    console.log('Token value:', tokenValue);
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
+    console.log('Getting policies', getPolicies);
     const policies = await getPolicies(programId, tokenValue);
 
     if (!Array.isArray(policies)) {
