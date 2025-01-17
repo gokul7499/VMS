@@ -43,7 +43,7 @@ sendNotificationModel.init({
 },
     {
         sequelize,
-        modelName: 'send-notification-logs',
+        modelName: 'send_notification_logs',
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
