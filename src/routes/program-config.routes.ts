@@ -22,13 +22,13 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
     // },
     getConfigurationById);
   fastify.get("/program/:program_id/configurations",
-    {
-      preHandler: validatePermissions,
-      config: {
-        permissions: [Permissions.PROGRAM_CONFIGURATION],
-        action: Actions.READ,
-      },
-    },
+    // {
+    //   preHandler: validatePermissions,
+    //   config: {
+    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
+    //     action: Actions.READ,
+    //   },
+    // },
     getConfigByProgramIdAndTitles);
   fastify.post("/program-config", createConfiguration);
   fastify.put("/program/:program_id/program-config",

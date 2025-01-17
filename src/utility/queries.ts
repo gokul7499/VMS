@@ -2093,3 +2093,44 @@ AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
+
+export const vendorMarkup = `
+  SELECT
+        vmc.markups,
+        vmc.rate_model
+    FROM
+        vendor_markup_config vmc
+    WHERE
+        vmc.program_id = :program_id
+        AND vmc.program_vendor_id = :vendor_id
+        AND (
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
+            OR
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
+        )
+    ORDER BY
+        -- Prioritize by exact industry and location matches
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END,
+        -- Fallback: Prioritize rows where all categories, locations, and hierarchy are set to 1
+        CASE 
+          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3 
+          ELSE 1 
+        END,
+        -- Additional sorting logic if needed
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id THEN 1 
+          ELSE 2 
+        END,
+        CASE 
+          WHEN vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END
+    LIMIT 1;
+`;

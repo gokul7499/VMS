@@ -5,26 +5,26 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 
 async function holidayCalendarRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/holiday-calendar',{
-        preHandler: validatePermissions,
-        config: {
-          permissions: [Permissions.HOLIDAY_CALANDER],
-          action: Actions.READ,
-        },
+        // preHandler: validatePermissions,
+        // config: {
+        //   permissions: [Permissions.HOLIDAY_CALANDER],
+        //   action: Actions.READ,
+        // },
       }, getHolidayCalendar);
     fastify.get('/program/:program_id/holiday-calendar/:id',{
-        preHandler: validatePermissions,
-        config: {
-          permissions: [Permissions.HOLIDAY_CALANDER],
-          action: Actions.READ,
-        },
+        // preHandler: validatePermissions,
+        // config: {
+        //   permissions: [Permissions.HOLIDAY_CALANDER],
+        //   action: Actions.READ,
+        // },
       }, getHolidayCalendarById);
     fastify.post('/holiday-calendar', createHolidayCalendar);
     fastify.put('/program/:program_id/holiday-calendar/:id',{
-        preHandler: validatePermissions,
-        config: {
-          permissions: [Permissions.HOLIDAY_CALANDER],
-          action: Actions.UPDATE,
-        },
+        // preHandler: validatePermissions,
+        // config: {
+        //   permissions: [Permissions.HOLIDAY_CALANDER],
+        //   action: Actions.UPDATE,
+        // },
       }, updateHolidayCalendar);
     fastify.delete('/program/:program_id/holiday-calendar/:id',{
         preHandler: validatePermissions,
