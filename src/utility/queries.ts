@@ -1516,8 +1516,7 @@ SELECT
     JSON_OBJECT(
         'master_data', JSON_OBJECT(
             'id', master_data_type.id,
-            'name', master_data_type.name,
-            'configuration', master_data_type.configuration
+            'name', master_data_type.name
         ),
         'associated_master_data', (
             SELECT JSON_ARRAYAGG(
@@ -1533,7 +1532,7 @@ SELECT
             'id', md2.id,
             'name', md2.name
         ),
-        'is_all_associated', user_master_data.is_all_associated
+        'is_all_associated', user_master_data.is_all_associated=1
     ) AS foundational_data
 FROM
     user_master_data
