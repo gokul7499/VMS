@@ -470,7 +470,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_methods: sortedResponse,
+                    workflow_method: sortedResponse,
                 });
             } else {
                 return reply.status(400).send({
@@ -559,7 +559,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_methods: sortedResponse,
+                    workflow_method: sortedResponse,
                 });
             } else {
                 return reply.status(400).send({
@@ -636,7 +636,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_methods: updatedItems,
+                    workflow_method: updatedItems,
                     trace_id: traceId,
                 });
             } else {
