@@ -165,12 +165,12 @@ export const updateRateConfigurations = async (
     const authHeader = request.headers.authorization;
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
 
         const userId = user?.sub;
@@ -362,7 +362,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string;rate_type?:string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -393,6 +393,13 @@ export async function getAllRateConfigurations(
         };
 
         const rateConfigurationsWithDetails = await getAllRateConfigurationsQuery(replacements);
+        const result = await sequelize.query<{ total_count: any }>(`SELECT COUNT(*) AS total_count FROM rate_configurations AS rc WHERE rc.is_deleted = 0 AND rc.program_id = :program_id`,
+            {
+                replacements: { program_id: replacements.program_id },
+                type: QueryTypes.SELECT,
+            }
+        );
+        const totalCount = result[0]?.total_count ?? 0;
 
         if (!rateConfigurationsWithDetails.length) {
             return reply.status(200).send({
@@ -408,7 +415,7 @@ export async function getAllRateConfigurations(
             message: "Rate configurations fetched successfully.",
             trace_id: traceId,
             items_per_page: limit,
-            total_records: rateConfigurationsWithDetails.length,
+            total_records: totalCount,
             rate_configurations: rateConfigurationsWithDetails,
         });
     } catch (error: any) {
@@ -453,7 +460,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled','created_on','modified_on'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'modified_on'],
         });
 
         if (!rateConfiguration) {
@@ -572,8 +579,8 @@ export async function getRateConfigurationById(
             name: rateConfiguration.name,
             is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
-            created_on:rateConfiguration.created_on,
-            modified_on:rateConfiguration.modified_on,
+            created_on: rateConfiguration.created_on,
+            modified_on: rateConfiguration.modified_on,
             hierarchie,
             job_templates: jobTemplates,
             rate_configuration: rateConfigurationDetails,
@@ -735,28 +742,34 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = billRate.differential_type === "Factor Differential"
+                                ? minRate * (billRate.differential_value || 0)
+                                : minRate + (billRate.differential_value || 0);
+
+                            const calculatedMaxRate = billRate.differential_type === "Factor Differential"
+                                ? maxRate * (billRate.differential_value || 0)
+                                : maxRate + (billRate.differential_value || 0);
                             return {
                                 ...billRate.get(),
-                                min_rate: billRate.differential_value === "Factor Differential"
-                                    ? minRate * (billRate.differential_value || 0)
-                                    : minRate + (billRate.differential_value || 0),
-                                max_rate: billRate.differential_value === "Factor Differential"
-                                    ? maxRate * (billRate.differential_value || 0)
-                                    : maxRate + (billRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         const pay_rate = payRates.map((payRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = payRate.differential_type === "Factor Differential"
+                                ? minRate * (payRate.differential_value || 0)
+                                : minRate + (payRate.differential_value || 0);
+
+                            const calculatedMaxRate = payRate.differential_type === "Factor Differential"
+                                ? maxRate * (payRate.differential_value || 0)
+                                : maxRate + (payRate.differential_value || 0);
                             return {
                                 ...payRate.get(),
-                                min_rate: payRate.differential_value === "Factor Differential"
-                                    ? minRate * (payRate.differential_value || 0)
-                                    : minRate + (payRate.differential_value || 0),
-                                max_rate: payRate.differential_value === "Factor Differential"
-                                    ? maxRate * (payRate.differential_value || 0)
-                                    : maxRate + (payRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         return {
