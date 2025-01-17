@@ -4,6 +4,8 @@ import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.mo
 import { TimesheetExpenseRuleGroupData } from '../interfaces/timesheet-expense-rule-group.interface';
 import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
 import { decodeToken } from '../middlewares/verifyToken';
+import RateType from '../models/rate-type.model';
+import { Op } from 'sequelize';
 
 export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -95,17 +97,20 @@ export const getAllTimesheetExpenseRuleGroups = async (
 };
 
 
-export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, reply: FastifyReply) => {
+export const getTimesheetExpenseRuleGroupById = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+) => {
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params as { id: string, program_id: string };
+        const { id, program_id } = request.params as { id: string; program_id: string };
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({
             where: { id, is_deleted: false, program_id },
         });
         if (!ruleGroup) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'Timesheet expense rule group not found.',
+                message: "Timesheet expense rule group not found.",
                 trace_id: traceId,
             });
         }
@@ -120,38 +125,64 @@ export const getTimesheetExpenseRuleGroupById = async (request: FastifyRequest, 
         }
         const populatedRules = await TimesheetExpenseRuleModel.findAll({
             where: {
-                id: timesheetExpenseRules,
+                id: { [Op.in]: timesheetExpenseRules },
                 is_enabled: true,
             },
             attributes: [
-                'id', 'rule_name', 'is_enabled', 'program_id',
-                'rule_type', 'is_paid_break', 'break_type', 'rule_duration',
-                'expense_line_item', 'apply_rate_type', 'is_penalty_rule_enabled',
-                'penalty_rules', 'conditions', 'weekend_days', 'rule_category'
+                "id",
+                "rule_name",
+                "is_enabled",
+                "program_id",
+                "rule_type",
+                "is_paid_break",
+                "break_type",
+                "rule_duration",
+                "expense_line_item",
+                "apply_rate_type",
+                "is_penalty_rule_enabled",
+                "penalty_rules",
+                "conditions",
+                "weekend_days",
+                "rule_category",
             ],
         });
-        if (populatedRules.length === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                timesheet_expense_rule_group: ruleGroup,
-                message: "No related timesheet expense rules found.",
-                trace_id: traceId,
+        const applyRateTypeIds = Array.from(
+            new Set(populatedRules.map((rule) => rule.apply_rate_type).flat())
+        );
+
+        let rateTypes: any[] = [];
+        if (applyRateTypeIds.length > 0) {
+            rateTypes = await RateType.findAll({
+                where: {
+                    id: { [Op.in]: applyRateTypeIds },
+                },
+                attributes: ["id", "name"],
             });
         }
+        const rulesWithRateTypes = populatedRules.map((rule) => {
+            const rateTypeDetails = rateTypes.filter((rateType) =>
+                rule.apply_rate_type.includes(rateType.id)
+            );
+            return {
+                ...rule.toJSON(),
+                apply_rate_type: rateTypeDetails,
+            };
+        });
+
         const data = {
             ...ruleGroup.toJSON(),
-            timesheet_expense_rules: populatedRules.map(rule => rule.toJSON()),  // Convert populated rules to JSON
+            timesheet_expense_rules: rulesWithRateTypes,
         };
-        reply.status(200).send({
+        return reply.status(200).send({
             status_code: 200,
             timesheet_expense_rule_group: data,
             message: "Timesheet expense rule group retrieved successfully.",
             trace_id: traceId,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            message: 'Error fetching rule group.',
+            message: "Error fetching rule group.",
             error: error.message,
             trace_id: traceId,
         });

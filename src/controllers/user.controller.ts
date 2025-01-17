@@ -3,7 +3,6 @@ import User from "../models/user.model";
 import { UserInterface } from "../interfaces/user.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
-import hierarchies from "../models/hierarchies.model";
 import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
@@ -15,8 +14,6 @@ import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUser
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
-import { request } from "http";
-import axios from "axios";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   const result = await User.findAndCountAll({
@@ -319,7 +316,6 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<UserInterface>;
-  console.log("updates", updates)
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -348,13 +344,11 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
     await user.update({ updates, modified_by: userId, });
-    const foundationalData = updates.foundational_data;
-    console.log("foundationalData", foundationalData)
+    const foundationalData =updates.user.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
       await UserMasterDataModel.destroy({
         where: { user_id: id }
       });
-      console.log("userMaserDataDes", foundationalData)
       const createData = foundationalData.map((item) => ({
         user_id: id,
         master_data: item.master_data,
@@ -364,7 +358,6 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
       }));
       await UserMasterDataModel.bulkCreate(createData);
     }
-    console.log("createData")
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -603,6 +596,3 @@ export async function getPendingUser(
     });
   }
 }
-
-
-
