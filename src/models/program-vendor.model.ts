@@ -39,6 +39,7 @@ class ProgramVendor extends Model {
     establish_year: any;
     social_media: any;
     status: any;
+    display_name:any;
     compliance_status!: { status: string; is_audited: any; is_compliant: any; };
     diversity_details: any;
     vendor_id: any;
@@ -111,6 +112,11 @@ ProgramVendor.init(
             type: DataTypes.BOOLEAN,
             allowNull: true,
             defaultValue: false
+        },
+         display_name: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                defaultValue: false
         },
         program_id: {
             type: DataTypes.UUID,
