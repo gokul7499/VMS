@@ -1,0 +1,215 @@
+import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
+import { EmailRecipient } from '../interfaces/email-recipient';
+import { QueryTypes } from "sequelize";
+import { sendNotification } from './notificationService';
+
+const config_db = process.env.CONFIG_DB ?? "dev_vms_configurator";
+const config_base_url = process.env.CONFIG_URL ?? "http://v4-devnlb.simplifysandbox.net:8000"
+
+// get all user associted to the hierarchy for the same program
+export async function getUsersWithHierarchy(
+    sequelize: any,
+    programId: string | null,
+    userType: string | null,
+    hierarchies: string[] | null
+): Promise<EmailRecipient[]> {
+    // Prepare hierarchy array as a JSON string
+    const hierarchyJson = JSON.stringify(hierarchies);
+
+    // Query to fetch user data
+    const result: any[] = await sequelize.query(
+        `
+        SELECT user.email,
+               user.first_name,
+               user.middle_name,
+               user.last_name,
+               user.user_type
+        FROM ${config_db}user
+        JOIN ${config_db}.user_mappings ON user.id = user_mappings.user_id
+        WHERE user.program_id = :program_id
+          AND user.user_type = :userType
+        AND (
+            user.is_all_hierarchy_associate = true
+            OR (
+                user.is_all_hierarchy_associate = false
+                AND EXISTS (
+                    SELECT 1
+                    FROM JSON_TABLE(
+                        user.associate_hierarchy_ids,
+                        '$[*]' COLUMNS (hierarchy_id INT PATH '$')
+                    ) AS jt
+                    WHERE jt.hierarchy_id IN (:hierarchy_ids)
+                )
+            )
+        );
+        `,
+        {
+            replacements: {
+                program_id: programId,
+                userType: userType,
+                hierarchy_ids: hierarchyJson,
+            },
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    // If the query returns results, map and return them as EmailRecipient objects
+    if (result.length > 0) {
+        const emailRecipientList: EmailRecipient[] = result.map((user: any) => ({
+            email: user.email || null,
+            firstName: user.first_name || null,
+            middleName: user.middle_name || null,
+            lastName: user.last_name || null,
+            userType: user.user_type || null
+        }));
+
+        return emailRecipientList;
+    }
+
+    // Default return when no result is found
+    return [];
+}
+
+
+export async function getProgramType(sequelize: any, programId: string): Promise<string | null> {
+    const result: any[] = await sequelize.query(
+        `SELECT type
+         FROM ${config_db}.programs AS program
+         WHERE program.id = :program_id;`,
+        {
+            replacements: { program_id: programId },
+            type: QueryTypes.SELECT
+        }
+    );
+
+    if (result.length > 0) {
+        return result[0].type;
+    }
+
+    return null;
+}
+
+
+
+export async function getJobManagerEmail(sequelize: any, jobManagerId: string): Promise<EmailRecipient | null> {
+    const result: any[] = await sequelize.query(
+        `SELECT user.email,
+                    user.first_name,
+                    user.middle_name,
+                    user.last_name,
+                    user.user_type
+            FROM ${config_db}.user AS user
+            WHERE user.id = :job_manager_id;`,
+        {
+            replacements: { job_manager_id: jobManagerId },
+            type: QueryTypes.SELECT
+        }
+    );
+
+    if (result.length > 0) {
+        const user = result[0]; // Assuming only one job manager is returned
+        const emailRecipient: EmailRecipient = {
+            email: user.email || null,
+            first_name: user.first_name || null,
+            middle_name: user.middle_name || null,
+            last_name: user.last_name || null,
+            userType: user.user_type || null
+        };
+
+        return emailRecipient;
+    }
+
+    return null; // Return null if no job manager is found
+}
+
+export async function getUsersByMetaValues(sequelize: any, metaValues: string[]): Promise<EmailRecipient[]> {
+    const userQuery = `
+            SELECT id, first_name, last_name, email, user_type
+            FROM ${config_db}.user
+            WHERE id IN (:meta_values)
+              AND is_enabled = true;`;
+
+    const userResults = await sequelize.query(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { meta_values: metaValues },
+    });
+
+    return userResults.map((user: any) => ({
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        userType: user.user_type,
+    }));
+}
+export async function notifyJobManager(
+    sendNotification: Function,
+    notificationPayload: NotificationDataPayload,
+    recipientEmail: object[] | null
+): Promise<void> {
+    if (recipientEmail) {
+        console.log('User information:', notificationPayload.userId);
+        await sendNotification(notificationPayload);
+        console.info("Notification sent to:", recipientEmail);
+    } else {
+        console.info("No recipient email found, notification skipped.");
+    }
+}
+
+export async function FetchUsersBasedOnHierarchy(
+    sequelize: any,
+    allPayload: { hierarchy_ids: any[], program_id: any, user_type: string[] }
+): Promise<EmailRecipient[]> {
+    try {
+        const { hierarchy_ids, program_id, user_type } = allPayload;
+
+        // Query to fetch users based on hierarchy_ids and program_id
+        const query = `
+        SELECT u.email,
+               u.first_name,
+               u.middle_name,
+               u.last_name,
+               u.user_type
+        FROM user u
+        WHERE u.program_id = :program_id
+          AND u.user_type IN (:user_type)
+        AND (
+            u.is_all_hierarchy_associate = true
+            OR (
+                u.is_all_hierarchy_associate = false
+                AND EXISTS (
+                    SELECT 1
+                    FROM JSON_TABLE(
+                        u.associate_hierarchy_ids,
+                        '$[*]' COLUMNS (hierarchy_id INT PATH '$')
+                    ) AS jt
+                    WHERE jt.hierarchy_id IN (:hierarchy_ids)
+                )
+            )
+        );
+        `;
+
+        // Execute the query
+        const users = await sequelize.query(query, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                program_id: program_id,
+                user_type: user_type,
+                hierarchy_ids: hierarchy_ids,
+            },
+        });
+
+        // Map the results to EmailRecipient format
+        const emailRecipientList: EmailRecipient[] = users.map((user: any) => ({
+            email: user.email || null,
+            first_name: user.first_name || null,
+            middle_name: user.middle_name || null,
+            last_name: user.last_name || null,
+            userType: user.user_type || null,
+        }));
+
+        return emailRecipientList; // Return the list of email recipients
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new Error("Error fetching users based on hierarchy and program_id.");
+    }
+}

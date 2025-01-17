@@ -632,11 +632,15 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                         return null;
                     })
                     .filter((i) => i !== null);
-
+                    const sortedResponse = updatedItems.sort((a, b) => {
+                        if (a.name?.trim().toLowerCase() === 'review') return -1;
+                        if (b.name?.trim().toLowerCase() === 'review') return 1;
+                        return 0; // No change for other cases
+                    });
                 return reply.status(200).send({
                     status_code: 200,
                     message: "Workflow methods fetched successfully",
-                    workflow_method: updatedItems,
+                    workflow_method: sortedResponse,
                     trace_id: traceId,
                 });
             } else {
