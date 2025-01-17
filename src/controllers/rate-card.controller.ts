@@ -337,7 +337,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await RateCard.update({...rateCardUpdates,modified_by:userId}, {
+        await RateCard.update({...rateCardUpdates,modified_by:userId,modified_on:Date.now()}, {
             where: { id, program_id, is_deleted: false },
             transaction,
         });

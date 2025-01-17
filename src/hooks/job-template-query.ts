@@ -77,6 +77,7 @@ class JobTempletRepository {
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
       ${jobTypeCondition}
+      AND job_templates.job_submitted_count > 1
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
@@ -191,13 +192,13 @@ class JobTempletRepository {
           ON job_templates.id = job_template_hierarchies.job_temp_id
         INNER JOIN hierarchies
           ON job_template_hierarchies.hierarchy = hierarchies.id
-        LEFT JOIN job_category 
+        LEFT JOIN job_category
           ON job_templates.category = job_category.id
-        LEFT JOIN labour_category 
+        LEFT JOIN labour_category
           ON job_templates.labour_category = labour_category.id
-        LEFT JOIN job_template_qualification 
+        LEFT JOIN job_template_qualification
           ON job_templates.id = job_template_qualification.job_temp_id
-        LEFT JOIN qualifications 
+        LEFT JOIN qualifications
           ON JSON_CONTAINS(
               JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
               JSON_QUOTE(qualifications.id)
@@ -243,7 +244,7 @@ class JobTempletRepository {
 
   async programQuery(program_id: string): Promise<{ name: string }[]> {
     const query = `
-            SELECT 
+            SELECT
                 programs.name
             FROM programs
             WHERE programs.id = :program_id;
@@ -265,7 +266,7 @@ class JobTempletRepository {
     offset: number
   ) {
     const query = `
-      SELECT 
+      SELECT
         job_templates.program_id,
         job_templates.id,
         job_templates.job_id,
@@ -287,34 +288,34 @@ class JobTempletRepository {
           'name', primary_hierarchy.name
         ) AS primary_hierarchy, -- Added for primary hierarchy
         COUNT(*) OVER() AS total_count -- Add total_count using window function
-      FROM 
+      FROM
         job_templates
-      LEFT JOIN 
+      LEFT JOIN
         job_category ON job_templates.category = job_category.id
-      LEFT JOIN 
+      LEFT JOIN
         labour_category ON job_templates.labour_category = labour_category.id
-      LEFT JOIN 
+      LEFT JOIN
         hierarchies AS primary_hierarchy ON job_templates.primary_hierarchy = primary_hierarchy.id
-      WHERE 
+      WHERE
         job_templates.program_id = :program_id
         AND job_templates.is_deleted = false
         ${dynamicConditions}
-      ORDER BY 
+      ORDER BY
         job_templates.created_on DESC
       LIMIT :limit OFFSET :offset;
     `;
-  
+
     return sequelize.query(query, {
       replacements: { ...replacements, limit, offset },
       type: QueryTypes.SELECT,
     });
   }
-  
+
 
 
   async getJobTempletById(program_id: string, id: string) {
     const query = `
-        SELECT 
+        SELECT
             job_templates.*,
             JSON_OBJECT(
                 'id', job_category.id,
@@ -328,7 +329,7 @@ class JobTempletRepository {
                 'id', labour_category.id,
                 'name', labour_category.name
             ) AS industries,
-            COALESCE(( 
+            COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
                         'id', hierarchies.id,
@@ -343,7 +344,7 @@ class JobTempletRepository {
                 'id', primary_hierarchy.id,
                 'name', primary_hierarchy.name
             ) AS primary_hierarchy,
-            COALESCE(( 
+            COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
                         'custom_field_id', job_template_custom_field.custom_field_id,
@@ -353,7 +354,7 @@ class JobTempletRepository {
                 FROM job_template_custom_field
                 WHERE job_template_custom_field.job_temp_id = job_templates.id
             ), JSON_ARRAY()) AS job_template_custom_fields,
-            COALESCE(( 
+            COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
                         'qualification_type_id', qualification_types.id,
@@ -433,16 +434,16 @@ class JobTempletRepository {
                 LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
                 WHERE job_template_master_data.job_temp_id = job_templates.id
             ), JSON_ARRAY()) AS job_master_data
-        FROM 
+        FROM
             job_templates
-        LEFT JOIN 
+        LEFT JOIN
             job_category ON job_templates.category = job_category.id
-        LEFT JOIN 
+        LEFT JOIN
             labour_category ON job_templates.labour_category = labour_category.id
-        LEFT JOIN 
+        LEFT JOIN
             hierarchies AS primary_hierarchy ON job_templates.primary_hierarchy = primary_hierarchy.id
         LEFT join checklist on job_templates.checklist_entity_id =checklist.entity_id
-        WHERE 
+        WHERE
             job_templates.program_id = :program_id
             AND job_templates.id = :id
         GROUP BY
