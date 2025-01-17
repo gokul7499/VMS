@@ -491,11 +491,10 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${
-      startDate !== undefined && endDate !== undefined
-        ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
-        : ''
-    }
+    ${startDate !== undefined && endDate !== undefined
+    ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+    : ''
+  }
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -2041,6 +2040,7 @@ WITH user_data AS (
          u.title,
          u.contacts,
          u.addresses,
+         um.id as user_mapping_id,
 
          (
              SELECT JSON_ARRAYAGG(
@@ -2066,6 +2066,7 @@ WITH user_data AS (
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
   LEFT JOIN countries c ON u.country_id = c.id
   LEFT JOIN tenant t ON u.tenant_id = t.id
+  LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
@@ -2074,7 +2075,7 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-  GROUP BY u.id, dh.id, dwl.id, c.id, t.id
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id,um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
@@ -2090,6 +2091,14 @@ export const getPendingUserQuery = `
     user_group_mapping.last_name,
     user_group_mapping.first_name,
     user_group_mapping.middle_name,
+    JSON_OBJECT(
+    'id',tenant.id,
+    'name',tenant.name
+    ) AS tenant_id,
+     JSON_OBJECT(
+    'id',countries.id,
+    'name',countries.name
+    ) AS country_id,
     COALESCE(( 
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -2112,6 +2121,8 @@ export const getPendingUserQuery = `
     ), JSON_ARRAY()) AS work_location_ids
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
+LEFT JOIN tenant ON invitation.tenant_id = tenant.id
+LEFT JOIN countries ON invitation.country_id = countries.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -2158,3 +2169,52 @@ export const vendorMarkup = `
         END
     LIMIT 1;
 `;
+
+export const fetchTimesheetExpenseRuleGroups = async (
+  programId: string,
+  ruleCategory?: string,
+  isEnabled?: string,
+  limit: number = 10,
+  offset: number = 0
+) => {
+  const searchConditions: string[] = ['is_deleted = FALSE'];
+
+  if (programId) {
+    searchConditions.push(`program_id = "${programId}"`);
+  }
+
+  if (ruleCategory) {
+    searchConditions.push(`rule_category = "${ruleCategory}"`);
+  }
+
+  if (isEnabled !== undefined) {
+    searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
+  }
+
+  const whereClause = searchConditions.length ? `WHERE ${searchConditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT
+        timesheet_expense_rule_groups.*,  
+        COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', timesheet_expense_rules.id,
+                    'rule_name', timesheet_expense_rules.rule_name
+                )
+            )
+            FROM timesheet_expense_rules
+            WHERE JSON_CONTAINS(timesheet_expense_rule_groups.timesheet_expense_rules, JSON_QUOTE(timesheet_expense_rules.id))
+        ), JSON_ARRAY()) AS timesheet_expense_rules,
+        COUNT(*) OVER() AS total_count
+    FROM timesheet_expense_rule_groups
+    ${whereClause}
+    LIMIT ${limit}
+    OFFSET ${offset};
+  `;
+
+  const [ruleGroups] = await sequelize.query(query) as any[];
+  const totalRecords = ruleGroups.length > 0 ? ruleGroups[0].total_count : 0;
+
+  return { ruleGroups, totalRecords };
+};
