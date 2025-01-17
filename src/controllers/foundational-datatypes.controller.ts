@@ -98,7 +98,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             },
             foundationalDataTypes
         );
-    } catch (error:any) {
+    } catch (error: any) {
         logger(
             {
                 trace_id: traceId,
@@ -123,7 +123,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             status_code: 500,
             message: 'Error while creating foundation datatype',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 };
@@ -212,7 +212,7 @@ export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply
             });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true,modified_by:userId, });
+        await data.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
         reply.status(204).send({
             status_code: 204,
             foundational_datatype_id: id,
@@ -288,91 +288,115 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
     }
 }
 
-export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Querystring: { name?: string, is_enabled?: string, modified_on?: string, timesheet_master_data?: string, page?: string, limit?: string } }>, reply: FastifyReply) {
+
+export async function getAllFoundationalDataTypes(
+    request: FastifyRequest<{
+        Querystring: {
+            name?: string;
+            is_enabled?: string;
+            modified_on?: string;
+            timesheet_master_data?: string;
+            user_association_exclude?: string;
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
-    const responseFields = ['id', 'program_id', 'name', 'is_enabled', 'modified_on', 'description', 'configuration'];
+    const responseFields = [
+        'id',
+        'program_id',
+        'name',
+        'is_enabled',
+        'modified_on',
+        'description',
+        'configuration',
+    ];
     const { program_id } = request.params as { program_id: string };
-    const { name, is_enabled, modified_on, timesheet_master_data, page = '1', limit = '10' } = request.query;
+    const {
+        name,
+        is_enabled,
+        modified_on,
+        timesheet_master_data,
+        user_association_exclude,
+        page = '1',
+        limit = '10',
+    } = request.query;
+
     try {
         const filters: any = { program_id, is_deleted: false };
-        if (name) {
-            filters.name = { [Op.like]: `%${name}%` };
-        }
 
-        if (is_enabled !== undefined) {
-            filters.is_enabled = is_enabled === 'true';
-        }
-
+        if (name) filters.name = { [Op.like]: `%${name}%` };
+        if (is_enabled !== undefined) filters.is_enabled = is_enabled === 'true';
         if (modified_on) {
             const modifiedOnRange = modified_on.split(',').map(Number);
             if (modifiedOnRange.length === 2) {
                 filters.modified_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
             }
         }
-
         if (timesheet_master_data !== undefined) {
-            if (timesheet_master_data === 'true') {
-                filters['configuration.timesheet_master_data'] = true;
-            } else {
-                filters['configuration.timesheet_master_data'] = false;
-            }
+            filters['configuration.timesheet_master_data'] = timesheet_master_data === 'true';
+        } else {
+            filters['configuration.timesheet_master_data'] = false;
+        }
+        if (user_association_exclude !== undefined) {
+            filters['configuration.user_association_exclude'] = user_association_exclude === 'true';
         }
 
-        const pageNum = Number(page);
-        const limitNum = Number(limit);
-        const offset = (pageNum - 1) * limitNum;
+        const offset = (Number(page) - 1) * Number(limit);
 
-        const { rows: foundationalDataItems, count: totalRecords } = await foundationalDataTypes.findAndCountAll({
-            where: filters,
-            attributes: responseFields,
-            offset,
-            limit: limitNum,
-            order: [['modified_on', 'DESC']],
-        });
-
+        const { rows: foundationalDataItems, count: totalRecords } =
+            await foundationalDataTypes.findAndCountAll({
+                where: filters,
+                attributes: responseFields,
+                offset,
+                limit: Number(limit),
+                order: [['modified_on', 'DESC']],
+            });
 
         if (!foundationalDataItems.length) {
-            reply.status(200).send({
+            return reply.status(200).send({
                 status_code: 200,
                 message: 'Foundational data not found',
                 trace_id: traceId,
             });
-            return;
         }
 
-        const foundationalDataTypeIds = foundationalDataItems.map((item: { dataValues: { id: any; } }) => item.dataValues.id);
+        const foundationalDataTypeIds = foundationalDataItems.map((item) => item.dataValues.id);
 
         const foundationalDataCounts = await foundationalDataModel.findAll({
             where: {
-                foundational_data_type_id: {
-                    [Op.in]: foundationalDataTypeIds
-                },
+                foundational_data_type_id: { [Op.in]: foundationalDataTypeIds },
                 is_deleted: false,
             },
-            attributes: ['foundational_data_type_id', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-            group: ['foundational_data_type_id']
+            attributes: [
+                'foundational_data_type_id',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+            ],
+            group: ['foundational_data_type_id'],
         });
 
-        const foundationalDataCountMap = new Map<string, number>();
-        foundationalDataCounts.forEach((item: any) => {
-            foundationalDataCountMap.set(item.foundational_data_type_id, item.dataValues.count);
-        });
-
-        const populatedFoundationalData = foundationalDataItems.map(
-            (item: { dataValues: { id: any; modified_on: any } }) => ({
-                ...item.dataValues,
-                modified_on: item.dataValues.modified_on
-                    ? Number(item.dataValues.modified_on)
-                    : null,
-                foundational_data_count:
-                    foundationalDataCountMap.get(item.dataValues.id) ?? 0,
-            })
+        const foundationalDataCountMap = foundationalDataCounts.reduce(
+            (map: Map<string, number>, item: any) => {
+                map.set(item.dataValues.foundational_data_type_id, item.dataValues.count);
+                return map;
+            },
+            new Map<string, number>()
         );
+
+        const populatedFoundationalData = foundationalDataItems.map((item) => ({
+            ...item.dataValues,
+            modified_on: item.dataValues.modified_on
+                ? Number(item.dataValues.modified_on)
+                : null,
+            foundational_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
+        }));
 
         reply.send({
             status_code: 200,
-            message: "Foundational get successfully",
-            total_records: totalRecords,
+            message: 'Foundational get successfully',
+            total_records: populatedFoundationalData.length,
             foundationalData: populatedFoundationalData,
             trace_id: traceId,
         });
@@ -384,3 +408,4 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest<{ Quer
         });
     }
 }
+
