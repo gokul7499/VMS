@@ -2090,6 +2090,41 @@ ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
 
+export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
+WITH user_data AS (
+  SELECT u.id,
+         u.username,
+         u.first_name,
+         u.last_name,
+         u.email,
+         u.program_id,
+         u.is_activated,
+         u.created_on,
+         u.modified_on,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', h.id, 'name', h.name)
+             ) 
+             FROM hierarchies h 
+             WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+         ) AS associate_hierarchy_ids
+  FROM user u
+  WHERE u.is_deleted = false AND u.program_id = :program_id
+    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
+  GROUP BY u.id
+)
+SELECT *
+FROM user_data
+ORDER BY modified_on DESC;
+`;
+
 
 export const getPendingUserQuery = `
   SELECT 
