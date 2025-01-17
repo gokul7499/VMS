@@ -343,8 +343,9 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user: []
       });
     }
-    await user.update({ updates, modified_by: userId, });
-    const foundationalData =updates.user.foundational_data;
+    updates.modified_on= Date.now() 
+    await user.update({updates, modified_by: userId});
+    const foundationalData = updates.user.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
       await UserMasterDataModel.destroy({
         where: { user_id: id }

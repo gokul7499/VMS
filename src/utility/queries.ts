@@ -2067,6 +2067,11 @@ LIMIT :limit OFFSET :offset;
 export const getPendingUserQuery = `
   SELECT 
     invitation.*, 
+    invitation.user_email AS email,
+    user_group_mapping.user_type AS user_type,
+    user_group_mapping.last_name,
+    user_group_mapping.first_name,
+    user_group_mapping.middle_name,
     COALESCE(( 
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -2088,6 +2093,7 @@ export const getPendingUserQuery = `
         WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids
 FROM ${auth_db}.invitation
+JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
