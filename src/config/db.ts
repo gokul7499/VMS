@@ -25,6 +25,7 @@ export const databaseConfig = {
       redis_port: config.redis_port,
       redis_auth: config.redis_auth,
       redis_replica_host: config.redis_replica_host,
+      notification_url: config.notification_url,
       reconnect: {
         max: 10,
         delay: 1000,
