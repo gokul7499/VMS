@@ -451,7 +451,8 @@ export const updateWorkflowStatus = async (
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
 
-            const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+            // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+            const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
             const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
 

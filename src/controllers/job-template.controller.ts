@@ -16,7 +16,6 @@ import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.m
 import jobMasterDataModel from "../models/job-master-data.model";
 import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
 import { Op, QueryTypes, Transaction } from "sequelize";
-// import { extractFileContent } from "../utility/fileUpload";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
@@ -40,11 +39,10 @@ export const getAllJobTemplates = async (
       labour_category,
       is_shift_rate,
       category,
-      page = 1, // Default value for page
-      limit = 10, // Default value for limit
+      page = 1, 
+      limit = 10, 
     } = request.query as GetJobTemplatesQuery;
 
-    // Parse page and limit as numbers, ensuring valid values
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
@@ -679,38 +677,6 @@ export async function getJobTemplatesByHierarchies(
     });
   }
 }
-
-// export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
-//   const traceId = generateCustomUUID();
-//   try {
-//     const data = await request.file();
-
-//     if (!data) {
-//       return reply.status(200).send({
-//         status_code: 200,
-//         message: "No file uploaded.",
-//         trace_id: traceId,
-//       });
-//     }
-
-//     const htmlContent = await extractFileContent(data);
-
-//     const htmlResponse = `<html><body>${htmlContent}</body></html>`;
-
-//     return reply.status(200).send({
-//       status_code: 200,
-//       message: "File uploaded successfully",
-//       trace_id: traceId,
-//       data: htmlResponse,
-//     });
-//   } catch (error) {
-//     reply.status(500).send({
-//       status_code: 500,
-//       message: "File upload failed",
-//       trace_id: traceId,
-//     });
-//   }
-// }
 
 export async function getAllJobTemplateHierarchyById(
   request: FastifyRequest<{

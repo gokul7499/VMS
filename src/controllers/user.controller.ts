@@ -344,8 +344,10 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
     updates.modified_on= Date.now() 
-    await user.update({updates, modified_by: userId});
-    const foundationalData = updates.user.foundational_data;
+    updates.modified_by=userId
+    await user.update(updates);
+    console.log("uuuuu",updates)
+    const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
       await UserMasterDataModel.destroy({
         where: { user_id: id }
@@ -622,17 +624,17 @@ export async function getPendingUser(
 
   try {
     const replacements = { program_id, user_mapping_id };
-    const data = await sequelize.query(getPendingUserQuery, {
+    const users = await sequelize.query(getPendingUserQuery, {
       replacements,
       type: QueryTypes.SELECT,
     });
 
-    if (data && data.length > 0) {
-      return reply.code(200).send({ status_code: 200, message: "get pending user data", data, trace_id: traceId });
+    if (users && users.length > 0) {
+      return reply.code(200).send({ status_code: 200, message: "get pending user data", users, trace_id: traceId });
     } else {
       return reply
         .code(200)
-        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+        .send({ status_code: 200, message: "No matching records found.", users: [], trace_id: traceId });
     }
   } catch (error: any) {
     return reply.code(500).send({

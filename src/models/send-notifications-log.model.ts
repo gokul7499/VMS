@@ -19,7 +19,7 @@ sendNotificationModel.init({
        
     },
     placement_order: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: false,
 
     },
