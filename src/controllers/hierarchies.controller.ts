@@ -100,12 +100,18 @@ export const getHierarchiesByProgram = async (
 export const getHierarchies = async (
   request: FastifyRequest<{
     Params: { program_id: string },
-    Querystring: { name?: string; is_enabled?: boolean | string; modified_on?: string }
+    Querystring: {
+      name?: string;
+      is_enabled?: boolean | string;
+      modified_on?: string;
+      page?: number;
+      limit?: number;
+    };
   }>,
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on } = request.query;
+  const { name, is_enabled, modified_on, page = 1, limit = 10 } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -118,22 +124,30 @@ export const getHierarchies = async (
     let endDate;
 
     if (modified_on) {
-      const dateRange = modified_on.split(',');
+      const dateRange = modified_on.split(",");
       if (dateRange.length === 2) {
         startDate = parseInt(dateRange[0], 10);
         endDate = parseInt(dateRange[1], 10);
       }
     }
-    const hierarchies = await sequelize.query(getAllHierarchies(hasName, !!is_enabled, startDate, endDate), {
-      replacements: {
-        program_id,
-        ...(hasName && { name: `%${name}%` }),
-        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-        ...(startDate !== undefined && { startDate }),
-        ...(endDate !== undefined && { endDate }),
-      },
-      type: QueryTypes.SELECT,
-    });
+
+    const offset = (page - 1) * limit;
+
+    const hierarchies: any[] = await sequelize.query(
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
+      {
+        replacements: {
+          program_id,
+          ...(hasName && { name: `%${name}%` }),
+          ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+          ...(startDate !== undefined && { startDate }),
+          ...(endDate !== undefined && { endDate }),
+          limit: Number(limit),
+          offset: Number(offset),
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     if (hierarchies.length === 0) {
       return reply.status(200).send({
@@ -141,26 +155,35 @@ export const getHierarchies = async (
         trace_id: traceId,
         message: "No hierarchies found for the given program",
         total_records: 0,
+        page,
+        limit,
         hierarchies: [],
       });
     }
 
+    const total_count = hierarchies[0]?.total_count || 0;
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "hierarchies fetched successfully.",
-      total_records: hierarchies.length,
+      message: "Hierarchies fetched successfully.",
+      total_records: total_count,
+      page,
+      limit,
       hierarchies,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "An error occurred while fetching hierarchies",
+      error: error.message,
     });
   }
 };
+
+
 
 interface MasterDataResult {
   foundational_data: string | null;
