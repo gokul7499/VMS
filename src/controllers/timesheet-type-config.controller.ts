@@ -65,25 +65,25 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 };
 
 export const getAllTimesheetTypeConfigs = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: number; limit?: number } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: string; limit?: string } }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
 
     try {
         const { program_id } = request.params;
-        const { page = 1, limit = 10 } = request.query;
+        const { page = '1', limit = '10' } = request.query;
 
-        const sanitizedPage = Math.max(Number(page), 1);
-        const sanitizedLimit = Math.max(Number(limit), 1);
-        const offset = (sanitizedPage - 1) * sanitizedLimit;
+        const pageNumber = parseInt(page, 10);
+        const pageSize = parseInt(limit, 10);
+        const offset = (pageNumber - 1) * pageSize;
 
         const searchConditions: Record<string, any> = { is_deleted: false };
         if (program_id) searchConditions.program_id = program_id;
 
         const { rows: configs, count } = await TimesheetTypeConfig.findAndCountAll({
             where: searchConditions,
-            limit: sanitizedLimit,
+            limit: pageSize,
             offset,
             attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category'],
         });
@@ -119,9 +119,10 @@ export const getAllTimesheetTypeConfigs = async (
 
         reply.status(200).send({
             status_code: 200,
-            message: "Timesheet type config fetched succesfully",
+            message: "Timesheet type config fetched successfully",
             trace_id: traceId,
-            items_per_page: sanitizedLimit,
+            items_per_page: pageSize,
+            current_page: pageNumber,
             total_records: count,
             data,
         });
