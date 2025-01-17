@@ -16,7 +16,7 @@ import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.m
 import jobMasterDataModel from "../models/job-master-data.model";
 import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
 import { Op, QueryTypes, Transaction } from "sequelize";
-// import { extractFileContent } from "../utility/fileUpload";
+import { extractFileContent } from "../utility/fileUpload";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
@@ -680,37 +680,37 @@ export async function getJobTemplatesByHierarchies(
   }
 }
 
-// export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
-//   const traceId = generateCustomUUID();
-//   try {
-//     const data = await request.file();
+export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const data = await request.file();
 
-//     if (!data) {
-//       return reply.status(200).send({
-//         status_code: 200,
-//         message: "No file uploaded.",
-//         trace_id: traceId,
-//       });
-//     }
+    if (!data) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No file uploaded.",
+        trace_id: traceId,
+      });
+    }
 
-//     const htmlContent = await extractFileContent(data);
+    const htmlContent = await extractFileContent(data);
 
-//     const htmlResponse = `<html><body>${htmlContent}</body></html>`;
+    const htmlResponse = `<html><body>${htmlContent}</body></html>`;
 
-//     return reply.status(200).send({
-//       status_code: 200,
-//       message: "File uploaded successfully",
-//       trace_id: traceId,
-//       data: htmlResponse,
-//     });
-//   } catch (error) {
-//     reply.status(500).send({
-//       status_code: 500,
-//       message: "File upload failed",
-//       trace_id: traceId,
-//     });
-//   }
-// }
+    return reply.status(200).send({
+      status_code: 200,
+      message: "File uploaded successfully",
+      trace_id: traceId,
+      data: htmlResponse,
+    });
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "File upload failed",
+      trace_id: traceId,
+    });
+  }
+}
 
 export async function getAllJobTemplateHierarchyById(
   request: FastifyRequest<{
