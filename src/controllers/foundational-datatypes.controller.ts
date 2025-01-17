@@ -359,6 +359,7 @@ export async function getAllFoundationalDataTypes(
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Foundational data not found',
+                data:[],
                 trace_id: traceId,
             });
         }
@@ -397,7 +398,7 @@ export async function getAllFoundationalDataTypes(
             status_code: 200,
             message: 'Foundational get successfully',
             total_records: populatedFoundationalData.length,
-            foundationalData: populatedFoundationalData,
+            data: populatedFoundationalData,
             trace_id: traceId,
         });
     } catch (error) {
