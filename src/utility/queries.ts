@@ -2218,3 +2218,10 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   return { ruleGroups, totalRecords };
 };
+
+export const getInvoiceConfigByHierarchyId = `
+    SELECT * 
+    FROM ${auth_db}.invoice_config 
+    WHERE program_id = :program_id 
+      AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
+`;
