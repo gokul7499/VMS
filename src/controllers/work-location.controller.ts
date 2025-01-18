@@ -532,7 +532,7 @@ export async function getAllWorkLocationsCountry(
     }
 
     return reply.status(200).send(response);
-  } catch (error:) {
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
