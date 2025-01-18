@@ -1457,44 +1457,6 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             workflow_trigger_id: string;
             hierarchy_id: any
         };
-        // let findJobData: any = await jobModel.findOne({
-        //     where: { id: job_id || workflow_trigger_id },
-        // });
-
-        // if (!findJobData) {
-        //     findJobData = await Assignment.findOne({
-        //         where: { uuid: workflow_trigger_id },
-        //     });
-        // }
-        // //     const workflowquery = `
-        // //     (
-        // //         SELECT *
-        // //         FROM ${source_db}.jobs
-        // //         WHERE id = :job_id OR id = :workflow_trigger_id
-        // //     )
-        // //     UNION
-        // //     (
-        // //         SELECT *
-        // //         FROM ${teai_db}.assignments
-        // //         WHERE uuid = :workflow_trigger_id
-        // //     )
-        // //     LIMIT 1;
-        // // `;
-        // //     const findJobDataDetails: any = await sequelize.query(workflowquery, {
-        // //         replacements: {
-        // //             job_id: job_id,
-        // //             workflow_trigger_id: workflow_trigger_id,
-
-        // //         },
-        // //         type: QueryTypes.SELECT,
-        // //     });
-        // //     let findJobData = findJobDataDetails[0]
-        //     console.log(findJobData);
-
-        //     let hierarchy_ids
-        //     if (findJobData && findJobData.hierarchy_ids) {
-        //         hierarchy_ids = findJobData.hierarchy_ids;
-        //     }
         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
@@ -1502,6 +1464,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             w.id As job_workflow_id,
                 w.workflow_id AS workflow_id,
                  w.event_id AS event_id,
+                   w.event_title AS event_title,
                 w.name AS workflow_name,
                 w.flow_type AS workflow_type,
                 w.levels,
@@ -1727,6 +1690,7 @@ ORDER BY
             workflow_id: rows[0].workflow_id,
             workflow_name: rows[0].workflow_name,
             workflow_type: rows[0].workflow_type,
+            event_title:rows[0].event_title,
             event_slug: rows[0].event_slug,
             status: rows[0].status,
             config: rows[0].config,
@@ -1773,7 +1737,7 @@ ORDER BY
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users') {
                     if (input_values.length > 0) {
                         const userQuery = `
-                            SELECT id, first_name, last_name, avatar, role_id
+                            SELECT id, first_name, last_name, avatar, role_id,email
                             FROM user
                             WHERE id = :user_id
                             AND is_enabled = true
@@ -1814,6 +1778,7 @@ ORDER BY
                             last_name: userResult[0].last_name,
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
+                            email: userResult[0].email,
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -1822,6 +1787,7 @@ ORDER BY
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar,
                             role_id: replacedUserResult[0].role_id,
+                            email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -1831,6 +1797,7 @@ ORDER BY
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -1915,6 +1882,7 @@ ORDER BY
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar || null,
+                            email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
@@ -1924,6 +1892,7 @@ ORDER BY
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -1992,6 +1961,7 @@ ORDER BY
                                         last_name: replacedUserResult[0].last_name,
                                         avatar: replacedUserResult[0].avatar,
                                         role_id: replacedUserResult[0].role_id,
+                                        email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2001,6 +1971,7 @@ ORDER BY
                                         last_name: imporsonateUserResult[0].last_name,
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
+                                        email: imporsonateUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2135,6 +2106,7 @@ ORDER BY
                                     last_name: user.last_name,
                                     avatar: user.avatar,
                                     role_id: user.role_id,
+                                    email: user.email,
                                     receipentstatus: receipentstatus,
                                     modifiedOn: recipient.modified_on,
                                     reason: recipient.reason,
@@ -2154,6 +2126,7 @@ ORDER BY
                                             id: replacedByUser.id,
                                             first_name: replacedByUser.first_name,
                                             last_name: replacedByUser.last_name,
+                                            email: replacedByUser.email,
                                             avatar: replacedByUser.avatar,
                                             role_id: replacedByUser.role_id,
                                             replaced_notes: recipient.replaced_notes,
@@ -2171,6 +2144,7 @@ ORDER BY
                                             id: impersonatedUser.id,
                                             first_name: impersonatedUser.first_name,
                                             last_name: impersonatedUser.last_name,
+                                            email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
                                             impersonate_notes: recipient.impersonate_notes,
@@ -2232,6 +2206,8 @@ ORDER BY
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
+                                first_name:user.first_name,
+                                last_name:user.last_name,
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
@@ -2243,6 +2219,7 @@ ORDER BY
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
+                                email: user.email,
                                 replaced_by: user.replaced_by,
                                 // existing_replaced_user:user.existing_replaced_user,
                                 recipient_type: recipientType?.name || '',
@@ -2254,6 +2231,8 @@ ORDER BY
                         // If input_value is a single object, create a single recipient
                         recipients = [{
                             name: getName(input_value),
+                            first_name:input_value.first_name,
+                            last_name:input_value.last_name,
                             level_id,
                             status: recipient_status,
                             modified_on: recipient_details.modified_on,
@@ -2264,6 +2243,7 @@ ORDER BY
                             user_id: input_value.id,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
+                            email: input_value.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                             replaced_by: replaced_user_data,
@@ -2400,6 +2380,9 @@ ORDER BY
                 }
             }
         }
+        (async () => {
+        let notifyUser = await sendNotificationSequencially(request,reply,workflow)
+    })();
         return reply.status(200).send({
             statusCode: 200,
             workflow,
@@ -2415,6 +2398,83 @@ ORDER BY
         });
     }
 }
+const sendNotificationSequencially = async (request:FastifyRequest, reply:FastifyReply,workflow: any) => {
+    const { program_id, job_workflow_id, levels } = workflow;
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+
+    // 1. Filter levels with status "pending"
+    const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
+
+    for (const level of pendingLevels) {
+        const placementOrder = level.placement_order;
+
+        // 2. Check if a notification for this placement order already exists
+        const existingLog = await sendNotificationModel.findOne({
+            where: {
+                program_id,
+                workflow_id: job_workflow_id,
+                placement_order: placementOrder,
+            },
+        });
+
+        if (existingLog) {
+            console.log(`Notification already sent for placement order: ${placementOrder}`);
+            continue;
+        }
+
+        // 3. Extract recipient emails
+        const recipientEmails = level.recipients.map((recipient: any) => ({
+            id: recipient.user_id,
+            email: recipient.email,
+            first_name: recipient.name.split(" ")[0],
+            last_name:  recipient.name.split(" ").slice(1).join(" "),
+           
+        }));
+
+        // 4. Create event code
+        const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
+
+        // 5. Create the notification payload
+        const notificationPayloads: NotificationDataPayload = {
+            program_id,
+            traceId,
+            eventCode,
+            recipientEmail: recipientEmails,
+            payload: {
+                job_id: workflow.event_title,
+                user_type: user?.userType,
+            },
+            token,
+            userId: user?.sub ?? "",
+        };
+
+        // 6. Send notifications
+        await sendNotification(notificationPayloads);
+        console.log("notificationPayloads", notificationPayloads);
+
+        // 7. Log the notification
+        await sendNotificationModel.create({
+            program_id,
+            workflow_id: job_workflow_id,
+            placement_order: placementOrder,
+            created_by: user.sub,
+        });
+
+        console.log(`Notification sent and logged for placement order: ${placementOrder}`);
+    }
+};
 
 // Function to fetch user data from the database
 const fetchLevelUserData = async (userId: any) => {
@@ -2712,6 +2772,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     program_id: program_id,
                     job_workflow_id: job_workflow_id,
                     workflow_id: row.workflow_id,
+                    event_title:row.event_title,
                     workflow_name: row.workflow_name,
                     workflow_type: row.workflow_type,
                     event_slug: row.event_slug,
@@ -3475,7 +3536,7 @@ export const sendSequencialNotification = async (
         reply.status(200).send({ message: "Notification sent successfully and logged." });
     } catch (error) {
 
-     console.error(error);
+        console.error(error);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating job workflow.',

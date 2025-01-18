@@ -9,7 +9,7 @@ export interface JobWorkFlow {
   placement_order: number,
   module: string,
   config: any,
-  status:string,
+  status: string,
   is_enabled: boolean,
   levels: any[],
   initialTrigger: any[],
@@ -17,7 +17,7 @@ export interface JobWorkFlow {
   modified_on: Date,
   created_by: string,
   modified_by: string,
-  is_updated?:boolean;
+  is_updated?: boolean;
   program_id: string,
   is_deleted: boolean,
   workflow_id: string,
@@ -28,9 +28,9 @@ export interface JobWorkFlow {
 
 export interface Recipient {
   name: string;
-  id?:string;
+  id?: string;
   level_id: string;
-  user_id:string;
+  user_id: string;
   avatar: string;
   role_id: string;
   // user: Users
@@ -42,22 +42,23 @@ export interface Level {
   level_id: string;
   level_status: string;
   placement_order: number;
-  level_order:number;
+  level_order: number;
   // is_bypassed:string;
- 
+
   recipients: Recipient[];
 }
 
 export interface Workflow {
-  status:string;
-  program_id:string;
-  job_workflow_id:string;
+  status: string;
+  program_id: string;
+  job_workflow_id: string;
   workflow_id: string;
   workflow_name: string;
   workflow_type: string;
-  event_slug:string;
-     levels: Level[];
-  config:any
+  event_slug: string;
+  event_title: string;
+  levels: Level[];
+  config: any
 }
 
 export interface Users {
@@ -66,10 +67,11 @@ export interface Users {
   last_name: string;
   avatar: string;
   role_id: string;
+  email: string;
 }
 export interface NotificationPayload {
   placement_order?: number;
   // userIds?: any[];
-  job_id:string;
- 
+  job_id: string;
+
 }

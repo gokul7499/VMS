@@ -98,8 +98,8 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
         payload.recipientEmail.forEach((element: EmailRecipient) => {
             Object.assign(data, {
                 fullName: `${element.first_name} ${element.middle_name || ""} ${element.last_name}`,
-                created_by_first_name: element.first_name,
-                created_by_last_name: element.last_name,
+                created_by_first_name: userData.first_name,
+                created_by_last_name: userData.last_name,
                 logo_url: tenantLogo,
                 name: name
             });
