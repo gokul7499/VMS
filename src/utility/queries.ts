@@ -2137,6 +2137,7 @@ export const getPendingUserQuery = `
     user_group_mapping.last_name,
     user_group_mapping.first_name,
     user_group_mapping.middle_name,
+    'pending' AS status,
     JSON_OBJECT(
     'id',tenant.id,
     'name',tenant.name
