@@ -25,6 +25,7 @@ export default interface CandidateInterface {
     custom_fields?: JSON;
     preferences: JSON;
     is_active: boolean;
+    is_all_required_qulification?:boolean;
     is_deleted: boolean;
     birth_date?: number;
     candidate_source?: string;

@@ -141,6 +141,9 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        is_all_required_qulification:{
+            type:DataTypes.JSON,
+        },
         addresses: {
             type: DataTypes.JSON,
             allowNull: true,
