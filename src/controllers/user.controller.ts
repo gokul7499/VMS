@@ -629,7 +629,12 @@ export async function getPendingUser(
     });
 
     if (users && users.length > 0) {
-      return reply.code(200).send({ status_code: 200, message: "get pending user data", users, trace_id: traceId });
+      return reply.code(200).send({ 
+        status_code: 200,
+         message: "get pending user data", 
+         users,
+         status:'pending',
+        trace_id: traceId });
     } else {
       return reply
         .code(200)
