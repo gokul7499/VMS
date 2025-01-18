@@ -7,32 +7,41 @@ export async function getModule(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { is_enabled } = request.query as { is_enabled?: boolean };
+  const { is_enabled } = request.query as { is_enabled?: boolean | string };
 
   try {
-    const whereClause: any = { is_deleted: false };
+    const searchFilters: any = { is_deleted: false };
+
     if (is_enabled !== undefined) {
-      whereClause.is_enabled = is_enabled;
+      searchFilters.is_enabled =
+        is_enabled === "true" || is_enabled === true ? 1 : 0;
     }
 
     const result = await Module.findAndCountAll({
-      where: whereClause,
+      where: searchFilters,
       attributes: ["id", "name", "is_enabled", "module_linking"],
       order: [["name", "ASC"]],
     });
 
     if (result.rows.length === 0) {
-      reply.status(200).send({ status_code:200,message: "Modules not found", modules: [] });
-      return;
+      return reply
+        .status(200)
+        .send({ status_code: 200, message: "Modules not found", modules: [] });
     }
+    const formattedModules = result.rows.map((module: any) => ({
+      id: module.id,
+      name: module.name,
+      is_enabled: module.is_enabled ? 1 : 0,
+      module_linking: module.module_linking,
+    }));
 
     reply.status(200).send({
       status_code: 200,
-      mesage:"Module get successfully",
-      modules: result.rows,
+      mesage: "Module get successfully",
+      modules: formattedModules,
     });
   } catch (error) {
-    reply.status(500).send({ status_code:500,error: "Internal Server Error" });
+    reply.status(500).send({ status_code: 500, error: "Internal Server Error" });
   }
 }
 
@@ -70,7 +79,7 @@ export async function updateModule(
       }
     });
     if (!program) {
-      return reply.status(200).send({ status_code:200,message: 'Program not found' });
+      return reply.status(200).send({ status_code: 200, message: 'Program not found' });
     }
     const updatedCount: any = await Module.update(updates, {
       where: { id: id }
@@ -82,7 +91,7 @@ export async function updateModule(
     });
   } catch (error) {
     console.error(error);
-    reply.status(500).send({ status_code:500,message: 'Internal Server Error', error: error });
+    reply.status(500).send({ status_code: 500, message: 'Internal Server Error', error: error });
   }
 }
 
@@ -126,11 +135,11 @@ export async function deleteModule(
         is_enabled: false,
         is_deleted: true,
       })
-      reply.status(204).send({status_code:204, message: 'Module Deleted Successfully' });
+      reply.status(204).send({ status_code: 204, message: 'Module Deleted Successfully' });
     } else {
-      reply.status(200).send({ status_code:200,message: 'Module Not Found' });
+      reply.status(200).send({ status_code: 200, message: 'Module Not Found' });
     }
   } catch (error) {
-    reply.status(500).send({status_code:500, message: 'An error occurred while deleting Module', error: error });
+    reply.status(500).send({ status_code: 500, message: 'An error occurred while deleting Module', error: error });
   }
 }

@@ -434,7 +434,7 @@ export const updateCustomFieldById = async (
       await CustomField.update(
         {
           ...updates,
-          modified_on: new Date(),
+          modified_on: Date.now(),
           modified_by: userId,
         },
         {
@@ -443,7 +443,7 @@ export const updateCustomFieldById = async (
       );
     }
 
-    await processHierarchyIds(hierarchy_ids, id);
+    await processHierarchyIds(hierarchy_ids, id,program_id);
     await processWorkLocationIds(work_location_ids, id);
     await processMasterDataIds(master_data_ids, id);
     await processLinkedModules(linked_modules, id, program_id);
@@ -453,8 +453,8 @@ export const updateCustomFieldById = async (
       message: 'Custom field updated successfully.',
       trace_id: traceId,
     });
-  } catch (error) {
-    console.error('Error updating custom field:', error);
+  } catch (error:any) {
+    console.error('Error updating custom field:', error.stack);
     return sendError(reply, 500, 'Internal Server Error: Failed to update Custom Fields');
   }
 };
@@ -486,7 +486,7 @@ const detectChanges = async (updates: any, customFieldRecord: any) => {
   });
 };
 
-const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFieldId: string) => {
+const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFieldId: string,program_id:string) => {
   if (!hierarchy_ids || hierarchy_ids.length === 0) return;
 
   const existingHierarchyRecords = await customFieldsHierarchie.findAll({ where: { custom_field_id: customFieldId } });
@@ -495,7 +495,7 @@ const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFi
   await Promise.all(hierarchy_ids.map(async (hierarchy_id) => {
     const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy_id === hierarchy_id);
     if (!existingRecord) {
-      await customFieldsHierarchie.create({ custom_field_id: customFieldId, hierarchy_id });
+      await customFieldsHierarchie.create({ custom_field_id: customFieldId, hierarchy_id ,program_id:program_id});
     }
   }));
 

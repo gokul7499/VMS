@@ -6,24 +6,26 @@ import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import RateType from '../models/rate-type.model';
 import { Op } from 'sequelize';
+import { sequelize } from '../config/instance';
+import { fetchTimesheetExpenseRuleGroups } from '../utility/queries';
 
 export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
         const { timesheet_expense_rules_group_mapping, ...data } = request.body as any;
 
-        const newConfig = await TimesheetExpenseRuleGroup.create({ program_id, ...data, modified_by:userId, created_by : userId});
+        const newConfig = await TimesheetExpenseRuleGroup.create({ program_id, ...data, modified_by: userId, created_by: userId });
 
         reply.status(201).send({
             status_code: 201,
@@ -42,59 +44,51 @@ export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
 };
 
 export const getAllTimesheetExpenseRuleGroups = async (
-    request: FastifyRequest,
-    reply: FastifyReply
+  request: FastifyRequest,
+  reply: FastifyReply
 ) => {
-    const traceId = generateCustomUUID();
+  const traceId = generateCustomUUID();
 
-    try {
-        const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, rule_category, is_enabled } = request.query as {
-            page?: string | number;
-            limit?: string | number;
-            rule_category?: string;
-            is_enabled?: string; 
-        };
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { page = 1, limit = 10, rule_category, is_enabled } = request.query as {
+      page?: string | number;
+      limit?: string | number;
+      rule_category?: string;
+      is_enabled?: string;
+    };
 
-        const pageNumber = parseInt(page as unknown as string, 10);
-        const limitNumber = parseInt(limit as unknown as string, 10);
-        const offset = (pageNumber - 1) * limitNumber;
-        const searchConditions: Record<string, any> = { is_deleted: false };
+    const pageNumber = parseInt(page as unknown as string, 10);
+    const limitNumber = parseInt(limit as unknown as string, 10);
+    const offset = (pageNumber - 1) * limitNumber;
 
-        if (program_id) {
-            searchConditions.program_id = program_id;
-        }
+    const { ruleGroups, totalRecords } = await fetchTimesheetExpenseRuleGroups(
+      program_id,
+      rule_category,
+      is_enabled,
+      limitNumber,
+      offset
+    );
 
-        if (rule_category) {
-            searchConditions.rule_category = rule_category;
-        }
-
-        if (is_enabled !== undefined) {
-            searchConditions.is_enabled = is_enabled === "true";
-        }
-
-        const { rows: ruleGroups, count } = await TimesheetExpenseRuleGroup.findAndCountAll({
-            where: searchConditions,
-            limit: limitNumber,
-            offset,
-        });
-
-        reply.status(200).send({
-            status_code: 200,
-            message: "Rule groups retrieved successfully.",
-            items_per_page: limitNumber,
-            total_records: count,
-            timesheet_expense_rule_group: ruleGroups,
-            trace_id: traceId,
-        });
-    } catch (error: any) {
-        reply.status(500).send({
-            message: "Error fetching timesheet expense rule groups.",
-            error: error.message,
-            trace_id: traceId,
-        });
-    }
+    reply.status(200).send({
+      status_code: 200,
+      message: "Rule groups retrieved successfully.",
+      items_per_page: limitNumber,
+      total_records: totalRecords,
+      page,
+      limit,
+      timesheet_expense_rule_group: ruleGroups,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      message: "Error fetching timesheet expense rule groups.",
+      error: error.message,
+      trace_id: traceId,
+    });
+  }
 };
+
 
 
 export const getTimesheetExpenseRuleGroupById = async (
@@ -202,15 +196,15 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
 
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-        const [updatedCount] = await TimesheetExpenseRuleGroup.update({...updates, modified_by:userId}, {
+        const [updatedCount] = await TimesheetExpenseRuleGroup.update({ ...updates, modified_by: userId }, {
             where: { id, program_id },
         });
         if (updatedCount === 0) {
@@ -240,12 +234,12 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
     try {
         const { id } = request.params as { id: string };
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({ where: { id, is_deleted: false } });
@@ -256,7 +250,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
                 trace_id: traceId,
             });
         }
-        await ruleGroup.update({ is_deleted: true, is_enabled: false, modified_by:userId });
+        await ruleGroup.update({ is_deleted: true, is_enabled: false, modified_by: userId });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group deleted successfully.',
@@ -270,7 +264,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
             trace_id: traceId,
         });
     }
-    
+
 };
 
 

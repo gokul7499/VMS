@@ -233,7 +233,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
     });
 
     if (vendorGroup) {
-      await vendorGroup.update({ data, modified_by: userId },);
+      await vendorGroup.update({ ...data, modified_by: userId },);
       return reply.status(200).send({
         status_code: 200,
         message: 'Vendor group updated successfully.',
