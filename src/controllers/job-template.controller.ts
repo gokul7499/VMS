@@ -931,10 +931,12 @@ export async function findJobTemplatesByLabourCategories(
     });
 
     if (jobTemplates.length === 0) {
-      return reply.status(400).send({
-        status_code: 400,
+      return reply.status(200).send({
+        status_code: 200,
         trace_id: traceId,
         message: "No matching data found for the provided labour category.",
+        job_templates:[]
+        
       });
     }
     return reply.status(200).send({
