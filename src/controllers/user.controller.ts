@@ -10,7 +10,7 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -641,6 +641,71 @@ export async function getPendingUser(
       message: "Internal Server Error",
       trace_id: traceId,
       error: error.message
+    });
+  }
+}
+
+
+export async function getUserAndHierarchieId(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: {
+      user_id?: string;
+      hierarchy_id?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params;
+  const { user_id, hierarchy_id } = request.query;
+  const traceId = generateCustomUUID();
+
+  if (!user_id || !hierarchy_id) {
+    return reply.status(400).send({
+      status_code: 400,
+      trace_id: traceId,
+      message: 'Missing required query parameters: user_id and hierarchy_id are mandatory.',
+    });
+  }
+
+  const hierarchyIdsArray = hierarchy_id.split(',');
+
+  try {
+    const hierarchyReplacements = Object.fromEntries(
+      hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
+    );
+    const user = await sequelize.query(
+      userHierarchiesQuery(user_id, hierarchyIdsArray),
+      {
+        replacements: {
+          program_id,
+          user_id,
+          ...hierarchyReplacements,
+        },
+        type: QueryTypes.SELECT,
+      }
+    ) as any[];
+
+    if (user.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'User not found',
+        trace_id: traceId,
+      });
+    }
+
+    reply.status(200).send({
+      status_code: 200,
+      message: 'User fetched successfully!',
+      trace_id: traceId,
+      user: user[0],
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Internal Server Error',
+      error: error.message,
     });
   }
 }
