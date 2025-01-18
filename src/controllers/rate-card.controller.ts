@@ -83,8 +83,13 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             is_deleted: false,
         };
         if (modified_on) {
-            whereConditions.modified_on = modified_on;
-        }
+            const dateRange = modified_on.split(',');
+            if (dateRange.length === 2) {
+              const startDate = parseFloat(dateRange[0].trim());
+              const endDate = parseFloat(dateRange[1].trim());
+              whereConditions.modified_on = { [Op.between]: [startDate, endDate] };
+            }
+          }
         if (is_enabled !== undefined) {
             whereConditions.is_enabled = is_enabled === 'true'; 
 
