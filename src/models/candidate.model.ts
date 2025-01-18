@@ -141,6 +141,12 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        is_all_required_qulification:{
+            type:DataTypes.JSON,
+        },
+        state_national_id   :{
+            type:DataTypes.STRING,
+        },
         addresses: {
             type: DataTypes.JSON,
             allowNull: true,
