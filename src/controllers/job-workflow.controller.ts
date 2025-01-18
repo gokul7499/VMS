@@ -1690,7 +1690,7 @@ ORDER BY
             workflow_id: rows[0].workflow_id,
             workflow_name: rows[0].workflow_name,
             workflow_type: rows[0].workflow_type,
-            event_title:rows[0].event_title,
+            event_title: rows[0].event_title,
             event_slug: rows[0].event_slug,
             status: rows[0].status,
             config: rows[0].config,
@@ -2206,8 +2206,8 @@ ORDER BY
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
-                                first_name:user.first_name,
-                                last_name:user.last_name,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
@@ -2231,8 +2231,8 @@ ORDER BY
                         // If input_value is a single object, create a single recipient
                         recipients = [{
                             name: getName(input_value),
-                            first_name:input_value.first_name,
-                            last_name:input_value.last_name,
+                            first_name: input_value.first_name,
+                            last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
                             modified_on: recipient_details.modified_on,
@@ -2381,8 +2381,8 @@ ORDER BY
             }
         }
         (async () => {
-        let notifyUser = await sendNotificationSequencially(request,reply,workflow)
-    })();
+            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        })();
         return reply.status(200).send({
             statusCode: 200,
             workflow,
@@ -2398,7 +2398,7 @@ ORDER BY
         });
     }
 }
-const sendNotificationSequencially = async (request:FastifyRequest, reply:FastifyReply,workflow: any) => {
+const sendNotificationSequencially = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
     const { program_id, job_workflow_id, levels } = workflow;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -2439,8 +2439,8 @@ const sendNotificationSequencially = async (request:FastifyRequest, reply:Fastif
             id: recipient.user_id,
             email: recipient.email,
             first_name: recipient.name.split(" ")[0],
-            last_name:  recipient.name.split(" ").slice(1).join(" "),
-           
+            last_name: recipient.name.split(" ").slice(1).join(" "),
+
         }));
 
         // 4. Create event code
@@ -2485,7 +2485,6 @@ const fetchLevelUserData = async (userId: any) => {
         AND is_enabled = true
         LIMIT 1
     `;
-
     const userResult = await sequelize.query<Users>(userQuery, {
         type: QueryTypes.SELECT,
         replacements: { user_id: userId },
@@ -2772,7 +2771,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     program_id: program_id,
                     job_workflow_id: job_workflow_id,
                     workflow_id: row.workflow_id,
-                    event_title:row.event_title,
+                    event_title: row.event_title,
                     workflow_name: row.workflow_name,
                     workflow_type: row.workflow_type,
                     event_slug: row.event_slug,
