@@ -434,7 +434,7 @@ export const updateCustomFieldById = async (
       await CustomField.update(
         {
           ...updates,
-          modified_on: new Date(),
+          modified_on: Date.now(),
           modified_by: userId,
         },
         {
@@ -444,7 +444,7 @@ export const updateCustomFieldById = async (
     }
 
     await processHierarchyIds(hierarchy_ids, id,program_id);
-    await processWorkLocationIds(work_location_ids, id);
+    await processWorkLocationIds(work_location_ids, id,program_id);
     await processMasterDataIds(master_data_ids, id);
     await processLinkedModules(linked_modules, id, program_id);
 
@@ -454,7 +454,7 @@ export const updateCustomFieldById = async (
       trace_id: traceId,
     });
   } catch (error:any) {
-    console.error('Error updating custom field:', error.stack);
+    console.error('Error updating custom field:', error.message);
     return sendError(reply, 500, 'Internal Server Error: Failed to update Custom Fields');
   }
 };
@@ -505,7 +505,7 @@ const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFi
   }
 };
 
-const processWorkLocationIds = async (work_location_ids: string[] | undefined, customFieldId: string) => {
+const processWorkLocationIds = async (work_location_ids: string[] | undefined, customFieldId: string,program_id:string) => {
   if (!work_location_ids || work_location_ids.length === 0) return;
 
   const existingWorkLocationRecords = await customFieldLocations.findAll({ where: { custom_field_id: customFieldId } });
@@ -514,7 +514,7 @@ const processWorkLocationIds = async (work_location_ids: string[] | undefined, c
   await Promise.all(work_location_ids.map(async (work_location_id) => {
     const existingRecord = existingWorkLocationRecords.find((record: { work_location_id: string; }) => record.work_location_id === work_location_id);
     if (!existingRecord) {
-      await customFieldLocations.create({ custom_field_id: customFieldId, work_location_id });
+      await customFieldLocations.create({ custom_field_id: customFieldId, work_location_id,program_id });
     }
   }));
 

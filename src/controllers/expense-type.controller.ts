@@ -318,10 +318,13 @@ export async function getAllExpenseType(
             limit?: number;
             modified_on?: string;
         };
+        Params:{
+            program_id:string
+        }
     }>,
     reply: FastifyReply
 ) {
-    const { program_id } = request.params as { program_id: string };
+    const { program_id } = request.params;
     const {
         name,
         code,

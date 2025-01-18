@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import WorkFlow from '../models/workflow.model';
-import { WorkflowData, WorkflowLevelData, WorkflowRecepientTypeData } from '../interfaces/workflow.interface';
+import { WorkflowData, WorkflowLevelData } from '../interfaces/workflow.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
 import { Module } from '../models/module.model';
@@ -34,6 +34,8 @@ import jobTemplateModel from '../models/job-template.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
+import axios from 'axios';
+const AUTH_BASE_URL = process.env.AUTH_BASE_URL || 'https://v4-dev.simplifysandbox.net/auth/v1/api'
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
@@ -480,8 +482,14 @@ export async function getAllWorkflows(
         });
     }
 }
+
 export async function getWorkflowById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
+    }
+    const token = authHeader.split(' ')[1];
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const item = await WorkFlow.findOne({
@@ -686,7 +694,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
                         const input_values = Object.values(meta_data)[0];
                         const input_val = Object.values(meta_data)[1];
-                        let input_value: CustomField | User | FoundationalDataTypes | null = null;
+                        let input_value: CustomField | User | FoundationalDataTypes | null | any = null;
 
                         let behaviour = rt.behaviour;
                         if (behaviour == undefined || behaviour == null) {
@@ -708,7 +716,6 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 fieldConfigs.forEach((config: any) => {
                                     const children = config.children || [];
                                     const matchingChild = children.find((child: { id: any }) => child.id === input_values);
-                                    console.log(children, input_values);
 
                                     if (matchingChild) {
                                         input_value = {
@@ -718,7 +725,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     } else {
                                         if (!matchingChild) {
                                             input_value = {
-
+                                                id: input_values,
                                                 name: "Owner"
                                             } as any;
                                         }
@@ -740,8 +747,25 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 where: { id: input_values },
                                 attributes: ["id", "name"]
                             });
+                        } else if (recipientType?.name === "Users in Program Role") {
+                            const apiUrl = `${AUTH_BASE_URL}/roles/${input_values}?tenant-id=${program_id}`;
+                            const data = {
+                                role_id: `${input_values}`
+                            };
+                            const response = await axios.post(apiUrl, data, {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`,
+                                },
+                            });
+                            if (response.data && response.data.response && response.data.response.roles) {
+                                const role = response.data.response.roles;
+                                input_value = {
+                                    id: role.id,
+                                    name: role.role_name,
+                                };
+                            }
                         }
-
                         function getName(input_value: any): string {
                             if ('first_name' in input_value && 'last_name' in input_value) {
                                 const firstName = (input_value as { first_name: string; last_name?: string }).first_name;
