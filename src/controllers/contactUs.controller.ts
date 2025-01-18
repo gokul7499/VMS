@@ -57,7 +57,6 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                     payload: {
                         program_id,
                         program_name,
-                        Reporter_details: your_detail,
                         from_email,
                         from_name: `${first_name} ${last_name}`,
                         url: URL,
