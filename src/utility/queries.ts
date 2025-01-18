@@ -483,13 +483,16 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
-    ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
+    dh.name AS default_hierarchy_name,
+    ph.name AS parent_hierarchy_name 
   FROM hierarchies h
   LEFT JOIN hierarchies ph
-    ON h.parent_hierarchy_id = ph.id -- Self-join to get parent name
+    ON h.parent_hierarchy_id = ph.id 
+  LEFT JOIN hierarchies dh
+    ON h.default_hierarchy_id = dh.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
-    ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
+    ${hasName ? 'AND h.name LIKE :name' : ''} 
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
     ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
@@ -499,7 +502,6 @@ WITH hierarchy_cte AS (
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
-
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
@@ -513,9 +515,6 @@ ORDER BY
   h.id
 LIMIT :limit OFFSET :offset;
 `;
-
-
-
 
 // export const vendorDataQuery = `
 // SELECT
@@ -2015,7 +2014,8 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
-  user_id?: string
+  user_id?: string,
+  hierarchy_id?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2075,6 +2075,13 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
+    ${
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id,um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2082,6 +2089,42 @@ FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
+
+export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
+WITH user_data AS (
+  SELECT u.id,
+         u.username,
+         u.first_name,
+         u.last_name,
+         u.email,
+         u.program_id,
+         u.is_activated,
+         u.created_on,
+         u.modified_on,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', h.id, 'name', h.name)
+             ) 
+             FROM hierarchies h 
+             WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+         ) AS associate_hierarchy_ids
+  FROM user u
+  WHERE u.is_deleted = false AND u.program_id = :program_id
+    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
+  GROUP BY u.id
+)
+SELECT *
+FROM user_data
+ORDER BY modified_on DESC;
+`;
+
 
 export const getPendingUserQuery = `
   SELECT 

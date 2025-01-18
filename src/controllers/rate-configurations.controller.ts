@@ -742,28 +742,34 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = billRate.differential_type === "Factor Differential"
+                                ? minRate * (billRate.differential_value || 0)
+                                : minRate + (billRate.differential_value || 0);
+
+                            const calculatedMaxRate = billRate.differential_type === "Factor Differential"
+                                ? maxRate * (billRate.differential_value || 0)
+                                : maxRate + (billRate.differential_value || 0);
                             return {
                                 ...billRate.get(),
-                                min_rate: billRate.differential_value === "Factor Differential"
-                                    ? minRate * (billRate.differential_value || 0)
-                                    : minRate + (billRate.differential_value || 0),
-                                max_rate: billRate.differential_value === "Factor Differential"
-                                    ? maxRate * (billRate.differential_value || 0)
-                                    : maxRate + (billRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         const pay_rate = payRates.map((payRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = payRate.differential_type === "Factor Differential"
+                                ? minRate * (payRate.differential_value || 0)
+                                : minRate + (payRate.differential_value || 0);
+
+                            const calculatedMaxRate = payRate.differential_type === "Factor Differential"
+                                ? maxRate * (payRate.differential_value || 0)
+                                : maxRate + (payRate.differential_value || 0);
                             return {
                                 ...payRate.get(),
-                                min_rate: payRate.differential_value === "Factor Differential"
-                                    ? minRate * (payRate.differential_value || 0)
-                                    : minRate + (payRate.differential_value || 0),
-                                max_rate: payRate.differential_value === "Factor Differential"
-                                    ? maxRate * (payRate.differential_value || 0)
-                                    : maxRate + (payRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         return {
@@ -914,8 +920,8 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
-                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate);
-                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate);
+                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate.amount);
+                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate.amount);
 
                 const base_rate = {
                     ...rateConfig.base_rate,
