@@ -434,7 +434,7 @@ export const updateCustomFieldById = async (
       await CustomField.update(
         {
           ...updates,
-          modified_on: new Date(),
+          modified_on: Date.now(),
           modified_by: userId,
         },
         {

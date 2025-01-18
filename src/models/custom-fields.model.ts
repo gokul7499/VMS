@@ -1,6 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from './programs.model';
 import { Module } from './module.model';
@@ -115,9 +114,11 @@ CustomField.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      defaultValue:Date.now()
     },
     modified_on: {
       type: DataTypes.DOUBLE,
+      defaultValue:Date.now()
     },
     module_id: {
       type: DataTypes.UUID,
@@ -163,8 +164,7 @@ CustomField.init(
     tableName: 'custom_fields',
     timestamps: false,
     hooks: {
-      beforeValidate: convertEmptyStringsToNull,
-      beforeSave: beforeSave,
+      beforeValidate: convertEmptyStringsToNull
     },
   }
 );
