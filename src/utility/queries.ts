@@ -483,16 +483,13 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
-    dh.name AS default_hierarchy_name,
-    ph.name AS parent_hierarchy_name 
+    ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
   LEFT JOIN hierarchies ph
-    ON h.parent_hierarchy_id = ph.id 
-  LEFT JOIN hierarchies dh
-    ON h.default_hierarchy_id = dh.id
+    ON h.parent_hierarchy_id = ph.id -- Self-join to get parent name
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
-    ${hasName ? 'AND h.name LIKE :name' : ''} 
+    ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
     ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
@@ -502,6 +499,7 @@ WITH hierarchy_cte AS (
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
+
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
