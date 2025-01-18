@@ -6,6 +6,7 @@ import { Op, QueryTypes } from 'sequelize';
 import { getExpenseTypeAndRateType } from '../utility/queries';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
+import RateType from '../models/rate-type.model';
 
 export async function createTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -171,76 +172,100 @@ export async function getTimesheetExpenseRuleById(
     try {
         const { id, program_id } = request.params;
         const timesheetRule = await TimesheetExpenseRuleModel.findOne({
-            where: { id, program_id, is_deleted: false }
+            where: { id, program_id, is_deleted: false },
         });
-        if (timesheetRule) {
-            reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "Timesheet expense rule retrieved successfully.",
-                timesheet_expense_rule: timesheetRule,
-            });
-        } else {
+
+        if (!timesheetRule) {
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
                 message: 'No timesheet expense rule found.',
                 timesheet_expense_rule: [],
             });
+            return;
         }
+
+        const applyRateTypeIds = timesheetRule.apply_rate_type;
+        if (Array.isArray(applyRateTypeIds) && applyRateTypeIds.length > 0) {
+            const rateTypes = await RateType.findAll({
+                where: {
+                    id: { [Op.in]: applyRateTypeIds },
+                },
+                attributes: ['id', 'name'],
+            });
+            timesheetRule.setDataValue('apply_rate_type', rateTypes);
+        }
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Timesheet expense rule retrieved successfully.',
+            timesheet_expense_rule: timesheetRule,
+        });
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
-            message: 'An error occurred while fetching',
+            message: 'An error occurred while fetching the timesheet expense rule.',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
-
-export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
+export async function updateTimesheetExpenseRule(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
-    let { name } = request.body as { name: string };
-    name = name.trim();
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
-    try {
-        const { id, program_id } = request.params as { id: string, program_id: string };
-        const data = request.body as TimesheetExpenseRule;
-
-        const timesheetRule = await TimesheetExpenseRuleModel.findOne({
-            where: { id, program_id, is_deleted: false },
+        return reply.status(401).send({
+            status_code: 401,
+            message: 'Unauthorized - Token not found',
         });
+    }
 
-        if (!timesheetRule) {
+    try {
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+        if (!user) {
+           return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId=user?.sub
+        const { id, program_id } = request.params as {
+            id: string;
+            program_id: string;
+        };
+        const updateData = request.body as Partial<TimesheetExpenseRule>;
+        const [affectedRows] = await TimesheetExpenseRuleModel.update(
+            {
+                ...updateData,
+                modified_on: new Date(),
+                modified_by: userId,
+            },
+            {
+                where: { id, program_id, is_deleted: false },
+            }
+        );
+
+        if (!affectedRows) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: 'No timesheet expense rule found.',
-                timesheet_expense_rule: []
+                message: 'Timesheet expense rule not found.',
             });
         }
-        await timesheetRule.update({  data, modified_on: Date.now(),
-            modified_by:userId,});
-        reply.status(201).send({
-            status_code: 201,
+
+        return reply.status(200).send({
+            status_code: 200,
             message: 'Timesheet expense rule updated successfully.',
             trace_id: traceId,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
@@ -250,8 +275,6 @@ export async function deleteTimesheetExpenseRule(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    let { name } = request.body as { name: string };
-    name = name.trim();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });

@@ -1,8 +1,8 @@
 import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateRateTypeData} from "../interfaces/rate-type-interface";
+import { CreateRateTypeData } from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { Op, QueryTypes } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
@@ -12,59 +12,50 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   const data = request.body as CreateRateTypeData;
   const { program_id } = request.params as { program_id: string };
   const { name, rate, rate_type_category } = data;
-  const traceId = generateCustomUUID();
+  const trace_id = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ satus_code: 401, message: 'Unauthorized - Token not found' });
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.status(401).send({ message: "Unauthorized - Token not found" });
   }
 
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
+  const token = authHeader.split(" ")[1];
+  const user = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ satus_code: 401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
 
+  logger(
+    {
+      trace_id,
+      actor: {
+        user_name: user?.preferred_username,
+        user_id: user?.sub,
+      },
+      data: request.body,
+      eventname: "Creating rate type config",
+      status: "success",
+      description: `Creating rate type for ${program_id}`,
+      level: "info",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    },
+    rateType
+  );
+
   try {
-    if (Array.isArray(rate) && rate.length > 0) {
-      for (const rateItem of rate) {
-        const { differential_on } = rateItem;
-
-        const existingRate = await rateType.findOne({
-          where: {
-            rate_type_category,
-            program_id,
-            is_deleted: false,
-            [Op.and]: sequelize.literal(`JSON_CONTAINS(rate, '{"differential_on": "${differential_on}"}')`)
-          },
-        });
-
-        if (existingRate) {
-          return reply.status(400).send({
-            status_code: 400,
-            message: ` rate_type_category  and differential_on  already exists for program .`,
-            trace_id: traceId,
-          });
-        }
-      }
-    } else {
-      return reply.status(400).send({
-        status_code: 400,
-        message: '`rate` must be a non-empty array.',
-        trace_id: traceId,
-      });
-    }
-
     const existingRateTypeWithSameName = await rateType.findOne({
-      where: { name, program_id, is_deleted: false },
+      where: { name, program_id },
     });
 
     if (existingRateTypeWithSameName) {
       logger(
         {
-          trace_id: traceId,
+          trace_id,
           actor: {
             user_name: user?.preferred_username,
             user_id: user?.sub,
@@ -73,11 +64,11 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
           eventname: "creating rate type",
           status: "error",
           description: `Rate type with name ${name} already exists for program ${program_id}`,
-          level: 'error',
+          level: "error",
           action: request.method,
           url: request.url,
           entity_id: program_id,
-          is_deleted: false
+          is_deleted: false,
         },
         rateType
       );
@@ -85,23 +76,26 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       return reply.status(400).send({
         status_code: 400,
         message: "A rate type with this name already exists.",
-        trace_id: traceId,
+        trace_id,
       });
     }
 
     if (rate?.base_differential_on) {
       const existingRateTypeWithSameBaseDifferential = await rateType.findOne({
         where: {
-          rate_type_category: data.rate_type_category,
-          'rate.base_differential_on': rate.base_differential_on,
+          rate_type_category,
           program_id,
+          is_deleted: false,
+          [Op.and]: Sequelize.literal(
+            `JSON_EXTRACT(rate, '$.base_differential_on') = '${rate.base_differential_on}'`
+          ),
         },
       });
 
       if (existingRateTypeWithSameBaseDifferential) {
         logger(
           {
-            trace_id: traceId,
+            trace_id,
             actor: {
               user_name: user?.preferred_username,
               user_id: user?.sub,
@@ -109,20 +103,20 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
             data: request.body,
             eventname: "creating rate type",
             status: "error",
-            description: `Rate type with the same base_differential_on already exists for program ${program_id}`,
-            level: 'error',
+            description: `Rate type with the same rate_type_category and base_differential_on already exists for program ${program_id}`,
+            level: "error",
             action: request.method,
             url: request.url,
             entity_id: program_id,
-            is_deleted: false
+            is_deleted: false,
           },
           rateType
         );
 
         return reply.status(400).send({
           status_code: 400,
-          message: "A rate type with the same base differential already exists.",
-          trace_id: traceId,
+          message: "A rate type with the same category and base differential already exists.",
+          trace_id,
         });
       }
     }
@@ -136,62 +130,66 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 
     logger(
       {
-        trace_id: traceId,
+        trace_id,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
         },
         data: request.body,
-        eventname: "Creating rate type",
+        eventname: "creating rate type",
         status: "success",
-        description: `Rate type created successfully for program '${program_id}'.`,
+        description: `Rate type created successfully for program ${program_id}`,
         level: "success",
         action: request.method,
         url: request.url,
         entity_id: program_id,
+        is_deleted: false,
       },
       rateType
     );
 
-    return reply.status(201).send({
+    reply.status(201).send({
       status_code: 201,
       id: item.id,
       message: "Rate Type created successfully.",
-      trace_id: traceId,
+      trace_id,
     });
   } catch (error: any) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
-      return reply.status(400).send({ satus_code: 400, trace_id: traceId, message: `${field} already in use!` });
+      return reply.status(400).send({
+        trace_id,
+        message: `${field} already in use!`,
+      });
     }
-
     logger(
       {
-        trace_id: traceId,
+        trace_id,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
         },
         data: request.body,
-        eventname: "Creating rate type",
+        eventname: "creating rate type",
         status: "error",
-        description: `Error occurred while creating rate type for program '${program_id}': ${error.message}`,
+        description: `Error creating rate type for program ${program_id}`,
         level: "error",
         action: request.method,
         url: request.url,
         entity_id: program_id,
+        is_deleted: false,
       },
       rateType
     );
-
-    return reply.status(500).send({
+    reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
-      trace_id: traceId,
-      error: error
+      trace_id,
+      error,
     });
   }
 };
+
 export async function getAllRateType(request: FastifyRequest<{
   Querystring: {
     id?: string;
@@ -214,8 +212,17 @@ export async function getAllRateType(request: FastifyRequest<{
   const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
+
+
   try {
-    const queryParams = getQueryParams({ id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
+    const parsedIsEnabled =
+      is_enabled === "true" || is_enabled === true
+        ? true
+        : is_enabled === "false" || is_enabled === false
+          ? false
+          : undefined;
+
+    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
 
     if (rateType.length === 0) {
@@ -392,45 +399,32 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
   }
 }
 
-export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
-  const { id, program_id } = request.params as { id: string, program_id: string };
+export const updateRateTypeById = async (request: FastifyRequest<{ Params: { program_id: string, id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
+  const { program_id, id } = request.params as { program_id: string; id: string };
   const updates = request.body as CreateRateTypeData;
   const traceId = generateCustomUUID();
-  let { name } = request.body as { name: string }
-  name = name.trim();
+  const { name } = request.body as { name: string };
+
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+  const userId = user?.sub;
+
   try {
-    const existingRateTypeWithSameName = await rateType.findOne({
-      where: {
-        name,
-        program_id,
-        id: { [Op.ne]: id },
-      },
-    });
-
-    if (existingRateTypeWithSameName) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Invalid name field, name must be unique.",
-        trace_id: traceId,
-      });
-    }
-
     const rateTypes = await rateType.findOne({
       where: {
         id: id,
-        is_deleted: false
-      }
+        program_id,
+        is_deleted: false,
+      },
     });
+
     if (!rateTypes) {
       return reply.status(200).send({
         status_code: 200,
@@ -438,25 +432,44 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { id:
         trace_id: traceId,
       });
     }
-    const updatedCount: any = await rateType.update({
-      updates,
-      modified_on: Date.now(),
-      modified_by: userId,
-    },
-      { where: { id: id } }
+
+    if (updates.name) {
+      const existingRateTypeWithSameName = await rateType.findOne({
+        where: {
+          name,
+          program_id: program_id,
+          id: { [Op.ne]: id },
+        },
+      });
+
+      if (existingRateTypeWithSameName) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "A rate type with this name already exists.",
+          trace_id: traceId,
+        });
+      }
+    }
+    await rateType.update(
+      {
+        ...updates,
+        modified_on: Date.now(),
+        modified_by: userId,
+      },
+      { where: { id, program_id } }
     );
-    reply.status(200).send({
+
+    return reply.status(200).send({
       status_code: 200,
-      id: updatedCount.id,
       message: "Rate type updated successfully",
       trace_id: traceId,
     });
-  } catch (error) {
-    reply.status(500).send({
+  } catch (error: any) {
+    return reply.status(500).send({
       status_code: 500,
       message: "Internal server error",
       trace_id: traceId,
-      error: error
+      error: error.message,
     });
   }
 };

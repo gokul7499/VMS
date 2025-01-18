@@ -184,10 +184,10 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
           where: {
             is_deleted: false,
           },
-          attributes: ["name", "id", "logo"],
+          attributes: ["name", "display_name", "id", "logo"],
         },
       ],
-      attributes: ["id", "name", "is_enabled", "unique_id"],
+      attributes: ["id", "name", "display_name", "is_enabled", "unique_id"],
       order: [['created_on', 'DESC']],
       limit: limit,
       offset: offset,
@@ -240,7 +240,7 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
           where: {
             is_deleted: false,
           },
-          attributes: ["name", "id", "logo"],
+          attributes: ["name", "display_name", "id", "logo"],
         },
         {
           model: Tenant,
@@ -249,12 +249,13 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
           where: {
             is_deleted: false,
           },
-          attributes: ["name", "id", "logo"],
+          attributes: ["name", "display_name", "id", "logo"],
         },
       ],
       attributes: [
         "id",
         "name",
+        "display_name",
         "description",
         "type",
         "start_date",
@@ -391,6 +392,6 @@ export async function deleteProgramById(request: FastifyRequest, reply: FastifyR
 
 export async function advancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ["is_enabled", "name"];
-  const responseFields = ["id", "name", "type", "is_enabled"];
+  const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);
 }

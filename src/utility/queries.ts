@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
+const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -426,7 +427,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -444,7 +451,13 @@ WITH RECURSIVE hierarchy_cte AS (
     h.created_on,
     h.modified_on,
     h.code,
-    h.program_id
+    h.program_id,
+    h.support_email,
+    h.default_timezone,
+    h.is_hide_candidate_img,
+    h.default_language,
+    h.default_currency,
+    h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
@@ -453,7 +466,12 @@ SELECT *
 FROM hierarchy_cte;
 `;
 
-export const getAllHierarchies = (hasName: boolean, hasIsEnabled: boolean, startDate?: number, endDate?: number) => `
+export const getAllHierarchies = (
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  startDate?: number,
+  endDate?: number
+) => `
 WITH hierarchy_cte AS (
   SELECT
     h.id,
@@ -473,20 +491,28 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined ? 'AND h.modified_on BETWEEN :startDate AND :endDate' : ''}
+    ${startDate !== undefined && endDate !== undefined
+    ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+    : ''
+  }
+),
+total_count_cte AS (
+  SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
 
-SELECT *
-FROM hierarchy_cte
+SELECT
+  h.*,
+  (SELECT total_count FROM total_count_cte) AS total_count
+FROM hierarchy_cte h
 ORDER BY
   CASE
-    WHEN parent_hierarchy_id IS NULL THEN 0
+    WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Sort parent hierarchies first
-  created_on ASC, -- Sort by created_on in ascending order
-  id;
+  h.created_on ASC, -- Sort by created_on in ascending order
+  h.id
+LIMIT :limit OFFSET :offset;
 `;
-
 
 // export const vendorDataQuery = `
 // SELECT
@@ -1229,8 +1255,7 @@ export const getWorkLocationTimeZoneByUserId = `
           ) AS work_location,
           JSON_ARRAYAGG(
                JSON_OBJECT(
-                  'time_zone_id', time_zones.id,
-                  'time_zone_name', time_zones.name
+                  'time_zone_name', user.time_zone_id
               )
           ) AS time_zone
         FROM
@@ -1239,8 +1264,6 @@ export const getWorkLocationTimeZoneByUserId = `
           work_locations ON (
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
-        LEFT JOIN
-          time_zones ON user.time_zone_id = time_zones.id
         WHERE
           user.id IN (:user_ids) AND user.program_id = :program_id
       `;
@@ -1503,46 +1526,39 @@ export const timesheetConfigAdvancedFilter = (
 
 export const getMasterData = `
 SELECT
- JSON_OBJECT(
-     'id',hierarchies.id,
-     'name',hierarchies.name
-     )AS hierarchy,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'master_data_type', JSON_OBJECT(
-                'id', master_data_type.id,
-                'name', master_data_type.name
-            ),
-            'foundational_data_ids', (
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', md1.id,
-                        'name', md1.name
-                    )
+    JSON_OBJECT(
+        'master_data', JSON_OBJECT(
+            'id', master_data_type.id,
+            'name', master_data_type.name,
+            'configuration',master_data_type.configuration
+        ),
+        'associated_master_data', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', md1.id,
+                    'name', md1.name
                 )
-                FROM master_data AS md1
-                WHERE JSON_CONTAINS(user_master_data.foundation_data_ids, JSON_QUOTE(md1.id), '$')
-            ),
-            'default_master_data', JSON_OBJECT(
-                'id', md2.id,
-                'name', md2.name
-            ),
-            'is_associated', TRUE
-        )
-    ) AS master_data
+            )
+            FROM master_data AS md1
+            WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
+        ),
+        'default_master_data', JSON_OBJECT(
+            'id', md2.id,
+            'name', md2.name
+        ),
+        'is_all_associated', user_master_data.is_all_associated=1
+    ) AS foundational_data
 FROM
     user_master_data
 LEFT JOIN
-    master_data_type ON user_master_data.foundation_data_type_id = master_data_type.id
-LEFT JOIN
-    hierarchies ON user_master_data.hierarchy_id = hierarchies.id
+    master_data_type ON user_master_data.master_data = master_data_type.id
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id
-GROUP BY
-    hierarchies.id, hierarchies.name, master_data_type.id, master_data_type.name, md2.id, md2.name
+    user_master_data.user_id = :id;
 `;
+
+
 
 export const getAllRateTypes = (
   hasName: boolean,
@@ -1699,6 +1715,13 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
           SELECT DISTINCT rch.rate_configuration_id
           FROM rate_configuration_hierarchies AS rch
           WHERE rch.hierarchy_id = :hierarchy_id
+      )`;
+  }
+  if (replacements.rate_type) {
+    whereConditions += ` AND rc.id IN (
+          SELECT DISTINCT rcbr.rate_configuration_id
+          FROM rate_configuration_base_rate_types AS rcbr
+          WHERE rcbr.rate_type_id = :rate_type
       )`;
   }
   const sqlQuery = `
@@ -1983,14 +2006,15 @@ GROUP BY wl.program_id;`
 
 
 export const userQuery = (
-  first_name?:string,
-  email?:string,
-  tenant_id?:string,
-  role_id?:string,
-  is_activated?:string,
-  user_type?:string,
-  user_id?:string
-) =>`
+  first_name?: string,
+  email?: string,
+  tenant_id?: string,
+  role_id?: string,
+  is_activated?: string,
+  user_type?: string,
+  user_id?: string,
+  hierarchy_id?: string[]
+) => `
 WITH user_data AS (
   SELECT u.id,
          u.username,
@@ -2014,6 +2038,10 @@ WITH user_data AS (
          u.title,
          u.contacts,
          u.addresses,
+         CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
+         CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
+         CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
+         um.id as user_mapping_id,
 
          (
              SELECT JSON_ARRAYAGG(
@@ -2033,13 +2061,13 @@ WITH user_data AS (
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
-         JSON_OBJECT('id', tz.id, 'name', tz.name) AS time_zone_id
+         JSON_OBJECT('name', u.time_zone_id) AS time_zone_id
   FROM user u
   LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
   LEFT JOIN countries c ON u.country_id = c.id
   LEFT JOIN tenant t ON u.tenant_id = t.id
-  LEFT JOIN time_zones tz ON u.time_zone_id = tz.id
+  LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
@@ -2048,10 +2076,201 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, tz.id
+    ${
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY created_on DESC
+ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
+
+
+
+export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
+WITH user_data AS (
+  SELECT u.id,
+         u.username,
+         u.first_name,
+         u.last_name,
+         u.email,
+         u.program_id,
+         u.is_activated,
+         u.created_on,
+         u.modified_on,
+         (
+             SELECT JSON_ARRAYAGG(
+                JSON_OBJECT('id', h.id, 'name', h.name)
+             ) 
+             FROM hierarchies h 
+             WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+         ) AS associate_hierarchy_ids
+  FROM user u
+  WHERE u.is_deleted = false AND u.program_id = :program_id
+    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${
+      hierarchy_id && hierarchy_id.length > 0
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''
+    }
+  GROUP BY u.id
+)
+SELECT *
+FROM user_data
+ORDER BY modified_on DESC;
+`;
+
+
+export const getPendingUserQuery = `
+  SELECT 
+    invitation.*, 
+    invitation.user_email AS email,
+    user_group_mapping.user_type AS user_type,
+    user_group_mapping.last_name,
+    user_group_mapping.first_name,
+    user_group_mapping.middle_name,
+    JSON_OBJECT(
+    'id',tenant.id,
+    'name',tenant.name
+    ) AS tenant_id,
+     JSON_OBJECT(
+    'id',countries.id,
+    'name',countries.name
+    ) AS country_id,
+      JSON_OBJECT(
+    'id',hierarchies.id,
+    'name',hierarchies.name
+    ) AS default_hierarchy_id,
+     JSON_OBJECT(
+    'id',work_locations.id,
+    'name',work_locations.name
+    ) AS default_work_location_id,
+    COALESCE(( 
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', hierarchies.id,
+                'name', hierarchies.name
+            )
+        )
+        FROM hierarchies
+        WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+    ), JSON_ARRAY()) AS associate_hierarchy_ids,
+    COALESCE(( 
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', work_locations.id,
+                'name', work_locations.name
+            )
+        )
+        FROM work_locations
+        WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+    ), JSON_ARRAY()) AS work_location_ids
+FROM ${auth_db}.invitation
+JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
+LEFT JOIN tenant ON invitation.tenant_id = tenant.id
+LEFT JOIN countries ON invitation.country_id = countries.id
+LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
+LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
+WHERE invitation.program_id = :program_id
+AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
+GROUP BY invitation.id
+LIMIT 0, 1000;
+`;
+
+export const vendorMarkup = `
+  SELECT
+        vmc.markups,
+        vmc.rate_model
+    FROM
+        vendor_markup_config vmc
+    WHERE
+        vmc.program_id = :program_id
+        AND vmc.program_vendor_id = :vendor_id
+        AND (
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
+            OR 
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
+            OR
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
+        )
+    ORDER BY
+        -- Prioritize by exact industry and location matches
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END,
+        -- Fallback: Prioritize rows where all categories, locations, and hierarchy are set to 1
+        CASE 
+          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3 
+          ELSE 1 
+        END,
+        -- Additional sorting logic if needed
+        CASE 
+          WHEN vmc.program_industry = :labour_category_id THEN 1 
+          ELSE 2 
+        END,
+        CASE 
+          WHEN vmc.hierarchy = :hierarchy_id THEN 1 
+          ELSE 2 
+        END
+    LIMIT 1;
+`;
+
+export const fetchTimesheetExpenseRuleGroups = async (
+  programId: string,
+  ruleCategory?: string,
+  isEnabled?: string,
+  limit: number = 10,
+  offset: number = 0
+) => {
+  const searchConditions: string[] = ['is_deleted = FALSE'];
+
+  if (programId) {
+    searchConditions.push(`program_id = "${programId}"`);
+  }
+
+  if (ruleCategory) {
+    searchConditions.push(`rule_category = "${ruleCategory}"`);
+  }
+
+  if (isEnabled !== undefined) {
+    searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
+  }
+
+  const whereClause = searchConditions.length ? `WHERE ${searchConditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT
+        timesheet_expense_rule_groups.*,  
+        COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', timesheet_expense_rules.id,
+                    'rule_name', timesheet_expense_rules.rule_name
+                )
+            )
+            FROM timesheet_expense_rules
+            WHERE JSON_CONTAINS(timesheet_expense_rule_groups.timesheet_expense_rules, JSON_QUOTE(timesheet_expense_rules.id))
+        ), JSON_ARRAY()) AS timesheet_expense_rules,
+        COUNT(*) OVER() AS total_count
+    FROM timesheet_expense_rule_groups
+    ${whereClause}
+    LIMIT ${limit}
+    OFFSET ${offset};
+  `;
+
+  const [ruleGroups] = await sequelize.query(query) as any[];
+  const totalRecords = ruleGroups.length > 0 ? ruleGroups[0].total_count : 0;
+
+  return { ruleGroups, totalRecords };
+};

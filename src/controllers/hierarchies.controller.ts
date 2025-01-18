@@ -7,9 +7,15 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery, vendorMarkup } from '../utility/queries';
 
 interface HierarchyItem {
+  support_email: any;
+  default_date_format: any;
+  default_currency: any;
+  default_language: any;
+  is_hide_candidate_img: any;
+  default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
   name: string;
@@ -36,8 +42,8 @@ export const getHierarchiesByProgram = async (
     });
 
     if (hierarchiesWithChildren.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: 'No hierarchies found for the given program',
         trace_id: traceId,
         hierarchies: [],
@@ -63,6 +69,12 @@ export const getHierarchiesByProgram = async (
             modified_on: item.modified_on,
             code: item.code,
             program_id: item.program_id,
+            default_timezone: item.default_timezone,
+            is_hide_candidate_img: item.is_hide_candidate_img,
+            default_language: item.default_language,
+            default_currency: item.default_currency,
+            default_date_format: item.default_date_format,
+            support_email: item.support_email,
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -75,11 +87,12 @@ export const getHierarchiesByProgram = async (
       trace_id: traceId,
       hierarchies: nestedHierarchy,
     });
-  } catch (error) {
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching hierarchies by program',
       trace_id: traceId,
+      error: error.message
     });
   }
 };
@@ -87,12 +100,18 @@ export const getHierarchiesByProgram = async (
 export const getHierarchies = async (
   request: FastifyRequest<{
     Params: { program_id: string },
-    Querystring: { name?: string; is_enabled?: boolean | string; modified_on?: string }
+    Querystring: {
+      name?: string;
+      is_enabled?: boolean | string;
+      modified_on?: string;
+      page?: number;
+      limit?: number;
+    };
   }>,
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on } = request.query;
+  const { name, is_enabled, modified_on, page = 1, limit = 10 } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -105,49 +124,66 @@ export const getHierarchies = async (
     let endDate;
 
     if (modified_on) {
-      const dateRange = modified_on.split(',');
+      const dateRange = modified_on.split(",");
       if (dateRange.length === 2) {
         startDate = parseInt(dateRange[0], 10);
         endDate = parseInt(dateRange[1], 10);
       }
     }
-    const hierarchies = await sequelize.query(getAllHierarchies(hasName, !!is_enabled, startDate, endDate), {
-      replacements: {
-        program_id,
-        ...(hasName && { name: `%${name}%` }),
-        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-        ...(startDate !== undefined && { startDate }),
-        ...(endDate !== undefined && { endDate }),
-      },
-      type: QueryTypes.SELECT,
-    });
+
+    const offset = (page - 1) * limit;
+
+    const hierarchies: any[] = await sequelize.query(
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
+      {
+        replacements: {
+          program_id,
+          ...(hasName && { name: `%${name}%` }),
+          ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+          ...(startDate !== undefined && { startDate }),
+          ...(endDate !== undefined && { endDate }),
+          limit: Number(limit),
+          offset: Number(offset),
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     if (hierarchies.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         trace_id: traceId,
         message: "No hierarchies found for the given program",
         total_records: 0,
+        page,
+        limit,
         hierarchies: [],
       });
     }
 
+    const total_count = hierarchies[0]?.total_count || 0;
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "hierarchies fetched successfully.",
-      total_records: hierarchies.length,
+      message: "Hierarchies fetched successfully.",
+      total_records: total_count,
+      page,
+      limit,
       hierarchies,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "An error occurred while fetching hierarchies",
+      error: error.message,
     });
   }
 };
+
+
 
 interface MasterDataResult {
   foundational_data: string | null;
@@ -388,15 +424,15 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
 export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
-    const userId = user?.sub;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
   try {
     const { id } = request.params;
     const hierarchy = await HierarchiesModel.findOne({ where: { id } });
@@ -422,7 +458,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         is_deleted: true,
         is_enabled: false,
         modified_on: Date.now(),
-        modified_by:userId
+        modified_by: userId
       },
       { where: { id } }
     );
@@ -434,8 +470,8 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
         trace_id: traceId
       });
     } else {
-      reply.status(404).send({
-        status_code: 404,
+      reply.status(200).send({
+        status_code: 200,
         message: "hierarchies not found",
         trace_id: traceId
       });
@@ -610,8 +646,8 @@ export const getMasterDataForHeirarchies = async (
     });
 
     if (!results || results.length === 0) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         trace_id: traceId,
         message: 'No master data found for the provided hierarchies IDs.',
         master_data: []
@@ -640,3 +676,81 @@ export const getMasterDataForHeirarchies = async (
     });
   }
 };
+
+export async function getVendorMarkup(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const {
+      candidate_source,
+      hierarchy_id,
+      vendor_id,
+      labour_category_id,
+    } = request.query as {
+      candidate_source: string;
+      hierarchy_id: string;
+      vendor_id: string;
+      labour_category_id: string;
+    };
+
+    const rateModelResult = await sequelize.query<{ rate_model: any }>(
+      `SELECT rate_model FROM hierarchies WHERE id = :hierarchy_id`,
+      {
+        replacements: { hierarchy_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const rateModel = rateModelResult.length > 0 ? rateModelResult[0].rate_model : null;
+
+    const [markupsData] = await sequelize.query<{ markups: any }>(vendorMarkup, {
+      replacements: {
+        program_id,
+        vendor_id,
+        rateModel,
+        labour_category_id,
+        hierarchy_id
+      },
+      type: QueryTypes.SELECT,
+    });
+
+    let selectedMarkup: any = null;
+
+    if (markupsData) {
+      const { markups } = markupsData;
+      selectedMarkup =
+        candidate_source === "sourced"
+          ? markups?.sourced_markup
+          : candidate_source === "payrolled"
+            ? markups?.payrolled_markup
+            : null;
+    }
+
+    if (!selectedMarkup) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: `No ${candidate_source}_markup found for the provided criteria`,
+        rate_model: rateModel,
+        markups: null,
+      });
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "Vendor bill rate and markup retrieved successfully",
+      trace_id: traceId,
+      rate_model: rateModel,
+      markup: selectedMarkup,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Failed to retrieve vendor markup",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+

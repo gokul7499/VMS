@@ -15,12 +15,12 @@ import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
 import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
 import jobMasterDataModel from "../models/job-master-data.model";
 import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
-import { Op, Transaction } from "sequelize";
-// import { extractFileContent } from "../utility/fileUpload";
+import { Op, QueryTypes, Transaction } from "sequelize";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
+import { getHierarchieWithChildren } from "../utility/queries";
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
@@ -29,6 +29,7 @@ export const getAllJobTemplates = async (
 ) => {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
+
   try {
     const {
       id,
@@ -38,16 +39,16 @@ export const getAllJobTemplates = async (
       labour_category,
       is_shift_rate,
       category,
-      page = 1,
-      limit = 10,
+      page = 1, 
+      limit = 10, 
     } = request.query as GetJobTemplatesQuery;
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
+    const pageNumber = Number(page) > 0 ? Number(page) : 1;
+    const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
 
     const dynamicConditions: string[] = [];
-    const replacements: any = { program_id };
+    const replacements: any = { program_id, limit: limitNumber, offset };
 
     if (id) {
       dynamicConditions.push(`job_templates.id = :id`);
@@ -77,6 +78,7 @@ export const getAllJobTemplates = async (
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
+
     const dynamicConditionsString =
       dynamicConditions.length > 0
         ? `AND ${dynamicConditions.join(" AND ")}`
@@ -86,14 +88,13 @@ export const getAllJobTemplates = async (
       program_id,
       dynamicConditionsString,
       replacements,
-      limitNumber + 1,
+      limitNumber,
       offset
-    );
-    const hasMorePages = jobTemplates.length > limitNumber;
-    if (hasMorePages) {
-      jobTemplates.pop();
-    }
-    const totalPages = hasMorePages ? pageNumber + 1 : pageNumber;
+    ) as any[];
+
+    const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
+    const totalPages = Math.ceil(totalCount / limitNumber);
+
     reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
@@ -102,7 +103,7 @@ export const getAllJobTemplates = async (
         page: pageNumber,
         limit: limitNumber,
         total_pages: totalPages,
-        total_count: jobTemplates.length
+        total_count: totalCount,
       },
     });
   } catch (error: any) {
@@ -113,6 +114,8 @@ export const getAllJobTemplates = async (
     });
   }
 };
+
+
 
 export async function getJobTemplateById(
   request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
@@ -149,6 +152,7 @@ export async function getJobTemplateById(
         "is_expense_allowed",
         "is_resume_mandatory",
         "allow_user_description",
+        "is_checklist_enable",
         "is_deleted",
         "is_enabled",
         "is_background_check",
@@ -674,38 +678,6 @@ export async function getJobTemplatesByHierarchies(
   }
 }
 
-// export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
-//   const traceId = generateCustomUUID();
-//   try {
-//     const data = await request.file();
-
-//     if (!data) {
-//       return reply.status(200).send({
-//         status_code: 200,
-//         message: "No file uploaded.",
-//         trace_id: traceId,
-//       });
-//     }
-
-//     const htmlContent = await extractFileContent(data);
-
-//     const htmlResponse = `<html><body>${htmlContent}</body></html>`;
-
-//     return reply.status(200).send({
-//       status_code: 200,
-//       message: "File uploaded successfully",
-//       trace_id: traceId,
-//       data: htmlResponse,
-//     });
-//   } catch (error) {
-//     reply.status(500).send({
-//       status_code: 500,
-//       message: "File upload failed",
-//       trace_id: traceId,
-//     });
-//   }
-// }
-
 export async function getAllJobTemplateHierarchyById(
   request: FastifyRequest<{
     Params: { program_id: string };
@@ -991,6 +963,7 @@ export async function getCommonHierarchies(
   const traceId = generateCustomUUID();
   try {
     const { job_manager_id, job_template_id } = request.query;
+    const {program_id}=request.params as {program_id:string};
 
     if (!job_manager_id || !job_template_id) {
       return reply.status(400).send({
@@ -1013,21 +986,47 @@ export async function getCommonHierarchies(
     const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
       templateHierarchyIds.includes(id)
     );
-
+    
     if (commonHierarchyIds.length === 0) {
-      return reply.status(400).send({
-        status_code: 400,
+      return reply.status(200).send({
+        status_code: 200,
         common_hierarchies: [],
         trace_id: traceId,
       });
     }
+    
+    const hierarchiesWithChildren = await sequelize.query(getHierarchieWithChildren, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT
+    });
 
-    // Query hierarchy details for common hierarchy IDs
-    const hierarchyDetails = await jobTempletRepositories.hierarchyDetailsQuery(commonHierarchyIds)
+    const buildHierarchy = (data: any, parentId = null) => {
+      return data
+          .filter((item: any) => item.parent_hierarchy_id === parentId)
+          .map((item: any) => {
+              const isAssociated = commonHierarchyIds.includes(item.id);
+              const children = buildHierarchy(data, item.id);
+  
+              // Ensure node is included if it's associated OR if any child is associated
+              if (isAssociated || children.length > 0) {
+                  return {
+                    ...item,
+                    is_associated: isAssociated,
+                    hierarchies: children
+                  };
+              }
+  
+              // Exclude node if not associated and has no associated children
+              return null;
+          })
+          .filter(Boolean);
+  };
 
+  const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+  
     reply.status(200).send({
       status_code: 200,
-      common_hierarchies: hierarchyDetails,
+      common_hierarchies: nestedHierarchy,
       trace_id: traceId,
     });
   } catch (error: any) {

@@ -31,12 +31,15 @@ export function validatePermissions(request: FastifyRequest<{ Params: { program_
     return done();
   }
 
+  console.log('Validating permissions', permissions, action);
+
   checkPermission(token, program_id, { permissions }, action)
     .then(() => done())
     .catch((error) => {
+      console.error(error);
       reply.status(401).send({
         status_code: 401,
-        message: "Unauthorized: Access denied",
+        message: error.message,
         trace_id: generateCustomUUID(),
       });
       done(error);

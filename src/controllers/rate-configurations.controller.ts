@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import RateConfigurationsModel from '../models/rate-configurations.model';
-import { RateConfigurationsBudget, RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
+import { RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import RateConfigurationHierarchies from '../models/rate_configuration_hierarchies.model';
 import RateConfigurationJobTemplates from '../models/rate-configuration-job-templates.model';
@@ -16,6 +16,7 @@ import { getAllRateConfigurationsQuery, rateConfigHierarchiesAndJobTemplates, sa
 import DecisionTable from '../models/rate-card-decision.model';
 import { Op, QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -25,8 +26,17 @@ export const createRateConfigurations = async (
     const { program_id } = request.params as { program_id: string };
     const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const transaction = await sequelize.transaction();
-
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+        const userId = user?.sub;
         if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
             const existingConfigurations = await sequelize.query(sameRateConfiguration, {
                 replacements: {
@@ -51,6 +61,8 @@ export const createRateConfigurations = async (
             program_id,
             name: rateConfigurationsPayload.name,
             is_shift_rate: rateConfigurationsPayload.is_shift_rate,
+            created_by: userId,
+            modified_by: userId
         }, { transaction });
 
         if (rateConfigurationsPayload.hierarchies) {
@@ -150,8 +162,18 @@ export const updateRateConfigurations = async (
     const rateConfigurationsPayload = request.body;
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-
+    const authHeader = request.headers.authorization;
     try {
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+
+        const userId = user?.sub;
         const existingRateConfig = await RateConfigurationsModel.findOne({
             where: { program_id, id, is_deleted: false },
         });
@@ -168,7 +190,8 @@ export const updateRateConfigurations = async (
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
                 modified_on: Date.now(),
-                is_enabled: rateConfigurationsPayload.is_enabled
+                is_enabled: rateConfigurationsPayload.is_enabled,
+                modified_by: userId
             },
             { transaction }
         );
@@ -339,7 +362,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; modified_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -360,6 +383,7 @@ export async function getAllRateConfigurations(
             name: query.name ?? null,
             job_template_id: query.job_template_id ?? null,
             hierarchy_id: query.hierarchy_id ?? null,
+            rate_type: query.rate_type ?? null,
             is_enabled: isEnabled,
             is_shift_rate: isShiftRate,
             startDate,
@@ -369,6 +393,13 @@ export async function getAllRateConfigurations(
         };
 
         const rateConfigurationsWithDetails = await getAllRateConfigurationsQuery(replacements);
+        const result = await sequelize.query<{ total_count: any }>(`SELECT COUNT(*) AS total_count FROM rate_configurations AS rc WHERE rc.is_deleted = 0 AND rc.program_id = :program_id`,
+            {
+                replacements: { program_id: replacements.program_id },
+                type: QueryTypes.SELECT,
+            }
+        );
+        const totalCount = result[0]?.total_count ?? 0;
 
         if (!rateConfigurationsWithDetails.length) {
             return reply.status(200).send({
@@ -384,7 +415,7 @@ export async function getAllRateConfigurations(
             message: "Rate configurations fetched successfully.",
             trace_id: traceId,
             items_per_page: limit,
-            total_records: rateConfigurationsWithDetails.length,
+            total_records: totalCount,
             rate_configurations: rateConfigurationsWithDetails,
         });
     } catch (error: any) {
@@ -429,7 +460,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'modified_on'],
         });
 
         if (!rateConfiguration) {
@@ -548,6 +579,8 @@ export async function getRateConfigurationById(
             name: rateConfiguration.name,
             is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
+            created_on: rateConfiguration.created_on,
+            modified_on: rateConfiguration.modified_on,
             hierarchie,
             job_templates: jobTemplates,
             rate_configuration: rateConfigurationDetails,
@@ -627,7 +660,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 hierarchy_id: { [Op.in]: hierarchyIds },
                 job_template_id: { [Op.in]: jobTemplateIds },
                 unit_of_measure,
-                currency:currency_id,
+                currency: currency_id,
             },
             attributes: ['id', 'rate_card_id', 'rate_type_id', 'min_rate', 'max_rate'],
         });
@@ -709,28 +742,34 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = billRate.differential_type === "Factor Differential"
+                                ? minRate * (billRate.differential_value || 0)
+                                : minRate + (billRate.differential_value || 0);
+
+                            const calculatedMaxRate = billRate.differential_type === "Factor Differential"
+                                ? maxRate * (billRate.differential_value || 0)
+                                : maxRate + (billRate.differential_value || 0);
                             return {
                                 ...billRate.get(),
-                                min_rate: billRate.differential_value === "Factor Differential"
-                                    ? minRate * (billRate.differential_value || 0)
-                                    : minRate + (billRate.differential_value || 0),
-                                max_rate: billRate.differential_value === "Factor Differential"
-                                    ? maxRate * (billRate.differential_value || 0)
-                                    : maxRate + (billRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         const pay_rate = payRates.map((payRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const calculatedMinRate = payRate.differential_type === "Factor Differential"
+                                ? minRate * (payRate.differential_value || 0)
+                                : minRate + (payRate.differential_value || 0);
+
+                            const calculatedMaxRate = payRate.differential_type === "Factor Differential"
+                                ? maxRate * (payRate.differential_value || 0)
+                                : maxRate + (payRate.differential_value || 0);
                             return {
                                 ...payRate.get(),
-                                min_rate: payRate.differential_value === "Factor Differential"
-                                    ? minRate * (payRate.differential_value || 0)
-                                    : minRate + (payRate.differential_value || 0),
-                                max_rate: payRate.differential_value === "Factor Differential"
-                                    ? maxRate * (payRate.differential_value || 0)
-                                    : maxRate + (payRate.differential_value || 0),
+                                min_rate: calculatedMinRate.toString(),
+                                max_rate: calculatedMaxRate.toString(),
                             };
                         });
                         return {
@@ -881,8 +920,8 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
-                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate);
-                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate);
+                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate.amount);
+                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate.amount);
 
                 const base_rate = {
                     ...rateConfig.base_rate,

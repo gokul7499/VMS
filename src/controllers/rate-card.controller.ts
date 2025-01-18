@@ -70,7 +70,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             page?: number;
             limit?: number;
             modified_on?: string;
-            is_enabled?: boolean;
+            is_enabled?: string;  
             labor_category_name?: string;
         };
 
@@ -85,12 +85,12 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             whereConditions.modified_on = modified_on;
         }
         if (is_enabled !== undefined) {
-            whereConditions.is_enabled = is_enabled ? 1 : 0;
+            whereConditions.is_enabled = is_enabled === 'true'; 
         }
         let laborCategoryIds: string[] = [];
         if (labor_category_name) {
             const laborCategories = await IndustriesModel.findAll({
-                where: { name: labor_category_name },
+                where: { name: labor_category_name, is_enabled: true }, // Assuming is_enabled is true here
                 attributes: ['id'],
             });
             laborCategoryIds = laborCategories.map((category) => category.id);
@@ -135,8 +135,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             .filter((id) => id !== null);
 
         const laborCategories = await IndustriesModel.findAll({
-            where: { id: laborCategoryIdsFromRateCards },
-            attributes: ['id', 'name','is_enabled'],
+            where: { id: laborCategoryIdsFromRateCards, is_enabled: true }, 
         });
 
         const laborCategoryMap = laborCategories.reduce((map, category) => {
@@ -166,17 +165,17 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             ],
         });
 
-const currencyNames = [...new Set(decisionTables.map((dt) => dt.currency).filter(Boolean))];
-const currencies = await Currencies.findAll({
-    where: { name: currencyNames },
-    attributes: ['id', 'name', 'label', 'symbol'],
-});
-const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
+        const currencyNames = [...new Set(decisionTables.map((dt) => dt.currency).filter(Boolean))];
+        const currencies = await Currencies.findAll({
+            where: { name: currencyNames },
+            attributes: ['id', 'name', 'label', 'symbol'],
+        });
+        const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
 
-const decisionTableDetails = decisionTables.map((dt) => ({
-    ...dt.toJSON(),
-    currency: currencyMap[dt.currency] || null,
-}));
+        const decisionTableDetails = decisionTables.map((dt) => ({
+            ...dt.toJSON(),
+            currency: currencyMap[dt.currency] || null,
+        }));
 
         const rateCardsWithDetails = rateCards.map((rateCard) => {
             const laborCategory = laborCategoryMap[rateCard.labor_category_id] || null;
@@ -219,6 +218,7 @@ const decisionTableDetails = decisionTables.map((dt) => ({
         });
     }
 };
+
 
 
 export const getRateCardById = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -337,7 +337,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await RateCard.update({...rateCardUpdates,modified_by:userId}, {
+        await RateCard.update({...rateCardUpdates,modified_by:userId,modified_on:Date.now()}, {
             where: { id, program_id, is_deleted: false },
             transaction,
         });

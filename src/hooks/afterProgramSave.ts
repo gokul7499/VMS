@@ -29,16 +29,16 @@ export const createProgramModule = async (record: Model,transaction: any) => {
 };
 
 export const createHierarchy = async (record: Model, transaction: any) => {
-    const { id: programId, name ,unique_id} = record as any;
+    const { id: programId, display_name ,unique_id} = record as any;
   
-    const code = generateSlug(name, {
+    const code = generateSlug(display_name, {
         trim: true,
         removedspecial: true,
     });
 
     const hierarchy = await hierarchies.create({
         program_id: programId,
-        name,
+        name : display_name,
         code: unique_id,
         hierarchy_level: 1,
         hierarchy_order: 1,
@@ -48,7 +48,12 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         default_timezone : "(UTC-05:00) Eastern Standard Time (North America)",
         default_currency: "USD",
         default_language : "English",
-        unit_of_measure: ["daily"],
+        unit_of_measure: [
+            {
+                label: "hourly",
+                is_default: true
+            }
+        ],
         rate_model: "bill_rate",
         is_vendor_neutral_program: false,
         is_hide_candidate_img: true,
