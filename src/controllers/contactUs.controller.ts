@@ -30,38 +30,44 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                 traceId,
             };
         }
-
-        const { from_name, from_email } = await getUserDetails(user.sub, traceId);
-
-        const emailArray = Array.isArray(from_email) ? from_email : [from_email];
-        const recipeintEmail: EmailRecipient = {
-            email: from_email
-        }
-        const recipientEmailArray: EmailRecipient[] = [];
-        recipientEmailArray.push(recipeintEmail);
-
         (async () => {
-            if (emailArray.length > 0) {
-                const payload = {
-                    program_id: program_id ?? "",
-                    program_name,
-                    from_name,
-                    from_email: from_email,
-                    url: URL,
-                    message,
-                };
+            const { from_name, from_last_name, from_email } = await getUserDetails(user.sub as string, traceId);
 
-                const notificationPayload : NotificationDataPayload = {
+            const emailArray = Array.isArray(from_email) ? from_email : [from_email];
+
+            const first_name = from_name;
+            const last_name = from_last_name;
+
+            const recipientEmail: EmailRecipient = {
+                email: from_email,
+                first_name,
+                last_name,
+            };
+
+            const recipientEmailArray: EmailRecipient[] = [];
+            recipientEmailArray.push(recipientEmail);
+
+            if (emailArray.length > 0) {
+                const notificationPayload: NotificationDataPayload = {
                     program_id: program_id ?? "",
                     token,
                     traceId,
-                    eventCode: "CUSTOMER_SUPPORT",
+                    eventCode: "CUSTOMER_SUPPORT1",
                     recipientEmail: recipientEmailArray,
-                    payload,
+                    payload: {
+                        program_id,
+                        program_name,
+                        Reporter_details: your_detail,
+                        from_email,
+                        from_name: `${first_name} ${last_name}`,
+                        url: URL,
+                        message,
+                    },
                     userId: user.sub ?? "",
                 };
 
                 sendNotification(notificationPayload);
+
             }
         })();
 
@@ -86,7 +92,7 @@ function validateRequestBody(body: any, traceId: string) {
     if (!your_detail || !support_email || !subject || !message) {
         throw {
             status: 400,
-            message: "Missing required fields: your_details, email, subject, or message.",
+            message: "Missing required fields: your_detail, support_email, subject, or message.",
             traceId,
         };
     }
@@ -123,6 +129,7 @@ async function getUserDetails(userId: string, traceId: string) {
         `
         SELECT 
             u.first_name AS from_name, 
+            u.last_name AS from_last_name, 
             u.email AS from_email
         FROM 
             user u
