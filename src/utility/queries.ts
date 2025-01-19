@@ -2036,6 +2036,8 @@ WITH user_data AS (
          u.name_prefix,
          u.role_id,
          u.title,
+         u.sso_id,
+         u.status,
          u.contacts,
          u.addresses,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
@@ -2137,6 +2139,7 @@ export const getPendingUserQuery = `
     user_group_mapping.last_name,
     user_group_mapping.first_name,
     user_group_mapping.middle_name,
+    'pending' AS status,
     JSON_OBJECT(
     'id',tenant.id,
     'name',tenant.name
