@@ -2078,13 +2078,12 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2116,20 +2115,18 @@ WITH user_data AS (
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id
 )
 SELECT *
 FROM user_data
 ORDER BY modified_on DESC;
 `;
-
 
 export const getPendingUserQuery = `
   SELECT 
@@ -2277,3 +2274,53 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   return { ruleGroups, totalRecords };
 };
+
+export const rateCardMinRateMaxRate = `
+    WITH rate_card_matches AS (
+        SELECT 
+            rc.id AS rate_card_id
+        FROM 
+            rate_card rc
+        WHERE 
+            rc.labor_category_id = :labor_category_id
+            AND rc.program_id = :program_id
+    ),
+    primary_matches AS (
+        SELECT 
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
+        FROM 
+            rate_card_decision_table d
+        JOIN 
+            rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
+        WHERE 
+            d.hierarchy_id IN (:hierarchyIds)
+            AND d.job_template_id IN (:jobTemplateIds)
+            AND d.unit_of_measure = :unit_of_measure
+            AND d.currency = :currency_id
+    ),
+    fallback_matches AS (
+        SELECT 
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
+        FROM 
+            rate_card_decision_table d
+        WHERE 
+            d.hierarchy_id IS NULL
+            AND d.job_template_id IS NULL
+            AND d.unit_of_measure IS NULL
+            AND d.currency IS NULL
+    )
+    SELECT *
+    FROM primary_matches
+    UNION ALL
+    SELECT *
+    FROM fallback_matches
+    WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
+`;
