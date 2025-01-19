@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentRateModelQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, vendorMarkup } from '../utility/queries';
 
 interface HierarchyItem {
   support_email: any;
@@ -217,7 +217,7 @@ export async function getHierarchiesById(
           ? parsedData.filter(item => item.id !== null && item.name !== null)
           : [];
 
-        hierarchy.parent_hierarchy_name = masterDataResult.parent_hierarchy_name || null;
+        hierarchy.parent_hierarchy_name = masterDataResult.parent_hierarchy_name ?? null;
       } else {
         hierarchy.foundational_data = [];
         hierarchy.parent_hierarchy_name = null;
@@ -248,7 +248,6 @@ export async function getHierarchiesById(
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const hierarchie = request.body as hierarchiesData;
-  const hierarchyName = hierarchie.name;
   const hierarchyCode = hierarchie.code;
   const traceId = generateCustomUUID();
 
@@ -560,7 +559,7 @@ export const getRateModel = async (
 
     const finalRateModel = uniqueRateModels.length === 1
       ? uniqueRateModels[0]
-      : findParentRateModel(hierarchyTree) || "No Rate Model Available";
+      : findParentRateModel(hierarchyTree) ?? "No Rate Model Available";
 
     return reply.status(200).send({
       status_code: 200,
@@ -702,12 +701,20 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     );
 
     const rateModel = rateModelResult.length > 0 ? rateModelResult[0].rate_model : null;
+    let transformedRateModel;
+    if (rateModel === 'bill_rate' || rateModel === 'markup') {
+      transformedRateModel = 'BILL_RATE';
+    } else if (rateModel === 'pay_rate') {
+      transformedRateModel = 'PAY_RATE';
+    } else {
+      transformedRateModel = rateModel;
+    }
 
     const [markupsData] = await sequelize.query<{ markups: any }>(vendorMarkup, {
       replacements: {
         program_id,
         vendor_id,
-        rateModel,
+        rateModel: transformedRateModel,
         labour_category_id,
         hierarchy_id
       },
@@ -753,4 +760,3 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     });
   }
 }
-

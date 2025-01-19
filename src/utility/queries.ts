@@ -2076,13 +2076,12 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2114,20 +2113,18 @@ WITH user_data AS (
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id
 )
 SELECT *
 FROM user_data
 ORDER BY modified_on DESC;
 `;
-
 
 export const getPendingUserQuery = `
   SELECT 
@@ -2196,13 +2193,13 @@ export const vendorMarkup = `
         vmc.program_id = :program_id
         AND vmc.program_vendor_id = :vendor_id
         AND (
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
+            (vmc.rate_model = :rateModel AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
             OR 
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
+            (vmc.rate_model = :rateModel AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
             OR 
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
+            (vmc.rate_model = :rateModel AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
             OR
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
+            (vmc.rate_model = :rateModel AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
         )
     ORDER BY
         -- Prioritize by exact industry and location matches
@@ -2275,3 +2272,42 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   return { ruleGroups, totalRecords };
 };
+
+export const rateCardMinRateMaxRate = ` 
+    WITH primary_matches AS (
+        SELECT 
+            id,
+            rate_card_id,
+            rate_type_id,
+            min_rate,
+            max_rate
+        FROM 
+            rate_card_decision_table
+        WHERE 
+            hierarchy_id IN (:hierarchyIds)
+            AND job_template_id IN (:jobTemplateIds)
+            AND unit_of_measure = :unit_of_measure
+            AND currency = :currency_id
+    ),
+    fallback_matches AS (
+        SELECT 
+            id,
+            rate_card_id,
+            rate_type_id,
+            min_rate,
+            max_rate
+        FROM 
+            rate_card_decision_table
+        WHERE 
+            hierarchy_id IS NULL
+            AND job_template_id IS NULL
+            AND unit_of_measure IS NULL
+            AND currency IS NULL
+    )
+    SELECT *
+    FROM primary_matches
+    UNION ALL
+    SELECT *
+    FROM fallback_matches
+    WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
+`;
