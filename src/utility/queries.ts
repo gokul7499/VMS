@@ -2195,13 +2195,13 @@ export const vendorMarkup = `
         vmc.program_id = :program_id
         AND vmc.program_vendor_id = :vendor_id
         AND (
-            (vmc.rate_model = :rateModel AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
             OR 
-            (vmc.rate_model = :rateModel AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
             OR 
-            (vmc.rate_model = :rateModel AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
             OR
-            (vmc.rate_model = :rateModel AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
+            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
         )
     ORDER BY
         -- Prioritize by exact industry and location matches

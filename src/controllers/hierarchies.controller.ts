@@ -703,10 +703,8 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     const rateModel = rateModelResult.length > 0 ? rateModelResult[0].rate_model : null;
     let transformedRateModel;
     if (rateModel === 'bill_rate' || rateModel === 'markup') {
-      transformedRateModel = 'BILL_RATE';
-    } else if (rateModel === 'pay_rate') {
-      transformedRateModel = 'PAY_RATE';
-    } else {
+      transformedRateModel = 'bill_rate';
+    }else {
       transformedRateModel = rateModel;
     }
 
