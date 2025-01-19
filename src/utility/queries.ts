@@ -2033,6 +2033,7 @@ WITH user_data AS (
          u.is_activated,
          u.user_type,
          u.is_associated,
+         u.applications,
          u.name_prefix,
          u.role_id,
          u.title,
@@ -2044,6 +2045,10 @@ WITH user_data AS (
          CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
          CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
+         JSON_OBJECT(
+         'id',u.id,
+         'name',u.first_name
+         ) AS supervisor_id,
 
          (
              SELECT JSON_ARRAYAGG(
@@ -2135,6 +2140,8 @@ export const getPendingUserQuery = `
   SELECT 
     invitation.*, 
     invitation.user_email AS email,
+    invitation.updated_at AS created_on,
+    invitation.created_at AS created_at,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
     user_group_mapping.first_name,
@@ -2147,15 +2154,19 @@ export const getPendingUserQuery = `
      JSON_OBJECT(
     'id',countries.id,
     'name',countries.name
-    ) AS country_id,
+    ) AS countries,
       JSON_OBJECT(
     'id',hierarchies.id,
     'name',hierarchies.name
     ) AS default_hierarchy_id,
-     JSON_OBJECT(
+    JSON_OBJECT(
     'id',work_locations.id,
     'name',work_locations.name
     ) AS default_work_location_id,
+    JSON_OBJECT(
+    'id',user.id,
+    'name',user.first_name
+    ) AS supervisor_id,
     COALESCE(( 
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -2182,6 +2193,7 @@ LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
+LEFT JOIN user ON invitation.supervisor = user.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
