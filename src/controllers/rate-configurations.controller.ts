@@ -609,6 +609,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         is_shift_rate?: boolean;
         currency_id?: string;
         unit_of_measure?: string;
+        labor_category_id?:string;
     };
 }>,
     reply: FastifyReply
@@ -616,7 +617,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure } = request.query;
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure,labor_category_id } = request.query;
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -665,6 +666,8 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 jobTemplateIds,
                 unit_of_measure,
                 currency_id,
+                labor_category_id,
+                program_id
             },
             type: QueryTypes.SELECT,
         });

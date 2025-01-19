@@ -2275,36 +2275,47 @@ export const fetchTimesheetExpenseRuleGroups = async (
   return { ruleGroups, totalRecords };
 };
 
-export const rateCardMinRateMaxRate = ` 
-    WITH primary_matches AS (
+export const rateCardMinRateMaxRate = `
+    WITH rate_card_matches AS (
         SELECT 
-            id,
-            rate_card_id,
-            rate_type_id,
-            min_rate,
-            max_rate
+            rc.id AS rate_card_id
         FROM 
-            rate_card_decision_table
+            rate_card rc
         WHERE 
-            hierarchy_id IN (:hierarchyIds)
-            AND job_template_id IN (:jobTemplateIds)
-            AND unit_of_measure = :unit_of_measure
-            AND currency = :currency_id
+            rc.labor_category_id = :labor_category_id
+            AND rc.program_id = :program_id
+    ),
+    primary_matches AS (
+        SELECT 
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
+        FROM 
+            rate_card_decision_table d
+        JOIN 
+            rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
+        WHERE 
+            d.hierarchy_id IN (:hierarchyIds)
+            AND d.job_template_id IN (:jobTemplateIds)
+            AND d.unit_of_measure = :unit_of_measure
+            AND d.currency = :currency_id
     ),
     fallback_matches AS (
         SELECT 
-            id,
-            rate_card_id,
-            rate_type_id,
-            min_rate,
-            max_rate
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
         FROM 
-            rate_card_decision_table
+            rate_card_decision_table d
         WHERE 
-            hierarchy_id IS NULL
-            AND job_template_id IS NULL
-            AND unit_of_measure IS NULL
-            AND currency IS NULL
+            d.hierarchy_id IS NULL
+            AND d.job_template_id IS NULL
+            AND d.unit_of_measure IS NULL
+            AND d.currency IS NULL
     )
     SELECT *
     FROM primary_matches
