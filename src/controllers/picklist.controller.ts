@@ -675,6 +675,7 @@ export async function getAllPickListByProgramId(
           },
         },
       ],
+      order: [['name', 'ASC']], 
     });
 
     if (picklistData.length === 0) {

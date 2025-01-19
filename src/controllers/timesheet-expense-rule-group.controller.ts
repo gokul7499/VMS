@@ -140,8 +140,13 @@ export const getTimesheetExpenseRuleGroupById = async (
                 "rule_category",
             ],
         });
+
         const applyRateTypeIds = Array.from(
-            new Set(populatedRules.map((rule) => rule.apply_rate_type).flat())
+            new Set(
+                populatedRules
+                    .map((rule) => rule.apply_rate_type || []) 
+                    .flat()
+            )
         );
 
         let rateTypes: any[] = [];
@@ -154,9 +159,9 @@ export const getTimesheetExpenseRuleGroupById = async (
             });
         }
         const rulesWithRateTypes = populatedRules.map((rule) => {
-            const rateTypeDetails = rateTypes.filter((rateType) =>
-                rule.apply_rate_type.includes(rateType.id)
-            );
+            const rateTypeDetails = Array.isArray(rule.apply_rate_type)
+                ? rateTypes.filter((rateType) => rule.apply_rate_type.includes(rateType.id))
+                : [];
             return {
                 ...rule.toJSON(),
                 apply_rate_type: rateTypeDetails,

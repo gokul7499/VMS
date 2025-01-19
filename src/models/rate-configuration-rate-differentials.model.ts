@@ -6,6 +6,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 class RateConfigurationRateDifferentials extends Model {
     differential_on: any;
     differential_value: any;
+    differential_type: any;
 }
 
 RateConfigurationRateDifferentials.init(

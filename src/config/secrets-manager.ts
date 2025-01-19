@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const secretName = process.env.SECRET_NAME ?? "v4/qa/configurator";
+const secretName = process.env.SECRET_NAME ?? "v4/dev/configurator";
 const region = "us-east-1";
 
 const secretsManager = new SecretsManagerClient({ region });
@@ -17,7 +17,8 @@ export const getSecretsManager = async () => {
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME,
             redis_port: process.env.REDIS_PORT,
-            redis_host: process.env.REDIS_HOST
+            redis_host: process.env.REDIS_HOST,
+            notification_url: process.env.NOTIFICATION_URL,
         };
     }
 
@@ -37,7 +38,8 @@ export const getSecretsManager = async () => {
                 redis_host: secret.REDIS_HOST,
                 redis_port: secret.REDIS_PORT,
                 redis_auth: secret.REDIS_AUTH,
-                redis_replica_host: secret.REDIS_REPLICA_HOST
+                redis_replica_host: secret.REDIS_REPLICA_HOST,
+                notification_url: secret.NOTIFICATION_URL,
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");

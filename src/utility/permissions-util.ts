@@ -1,6 +1,6 @@
 import axios from "axios";
 import Redis from "ioredis";
-import { getRedisKeyForAuth } from "./get-redis-key";
+// import { getRedisKeyForAuth } from "./get-redis-key";
 import { databaseConfig } from '../config/db';
 import dotenv from "dotenv";
 
@@ -25,10 +25,12 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
 
   let groupPolicies = null;
 
-  const redisKey = getRedisKeyForAuth(token, programId, null);
+  // const redisKey = getRedisKeyForAuth(token, programId, null);
 
-  console.log("Fetching redis key for auth", redisKey);
+  // console.log("Fetching redis key for auth", redisKey);
 
+  // Commenting out Redis-related code
+  /*
   try {
     const cachedPolicies = await redis.get(redisKey);
     console.log(`Log of fetch policies from cache`, cachedPolicies);
@@ -44,10 +46,10 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
       fastify.log.error(`Error fetching from Redis: ${err}`);
     }
   }
+  */
 
-  if (!groupPolicies || groupPolicies.length === 0) {
+  if (!groupPolicies) {
     try {
-      console.log(`Log of fetch policies before API`);
       const apiResponse = await axios.get(
         `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
         {
@@ -60,13 +62,15 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
           timeout: 90000,
         }
       );
-      console.log(`Log of fetch policies after API`, apiResponse);
       groupPolicies = apiResponse.data.response;
       console.log(`Fetched policies from API`, groupPolicies);
 
+      // Commenting out Redis-related code
+      /*
       console.log(`Attempting to cache policies in Redis`);
       await redis.set(redisKey, JSON.stringify(groupPolicies));
       console.log(`Successfully cached policies in Redis`);
+      */
 
       if (fastify.log) {
         fastify.log.info(`Fetched policies from API`);

@@ -9,6 +9,7 @@ import rateType from "../models/rate-type.model";
 import Currencies from "../models/currencies.model";
 import IndustriesModel from "../models/labour-category.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import { Op } from "sequelize";
 
 export const createRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -66,12 +67,12 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, modified_on, is_enabled, labor_category_name } = request.query as {
+        const { page = 1, limit = 10, modified_on, is_enabled, name } = request.query as {
             page?: number;
             limit?: number;
             modified_on?: string;
             is_enabled?: boolean;
-            labor_category_name?: string;
+            name?: string;
         };
 
         const parsedLimit = parseInt(limit as any, 10) || 10;
@@ -88,11 +89,16 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             whereConditions.is_enabled = is_enabled ? 1 : 0;
         }
         let laborCategoryIds: string[] = [];
-        if (labor_category_name) {
+        if (name) {
             const laborCategories = await IndustriesModel.findAll({
-                where: { name: labor_category_name },
+                where: {
+                    name: {
+                        [Op.like]: `%${name}%`,
+                    },
+                },
                 attributes: ['id'],
             });
+
             laborCategoryIds = laborCategories.map((category) => category.id);
             if (laborCategoryIds.length === 0) {
                 return reply.status(200).send({
@@ -110,6 +116,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         const totalRecords = await RateCard.count({
             where: whereConditions,
         });
+
         const totalPages = Math.ceil(totalRecords / parsedLimit);
         const rateCards = await RateCard.findAll({
             where: whereConditions,
@@ -136,7 +143,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
 
         const laborCategories = await IndustriesModel.findAll({
             where: { id: laborCategoryIdsFromRateCards },
-            attributes: ['id', 'name','is_enabled'],
+            attributes: ['id', 'name', 'is_enabled'],
         });
 
         const laborCategoryMap = laborCategories.reduce((map, category) => {
@@ -166,17 +173,17 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             ],
         });
 
-const currencyNames = [...new Set(decisionTables.map((dt) => dt.currency).filter(Boolean))];
-const currencies = await Currencies.findAll({
-    where: { name: currencyNames },
-    attributes: ['id', 'name', 'label', 'symbol'],
-});
-const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
+        const currencyNames = [...new Set(decisionTables.map((dt) => dt.currency).filter(Boolean))];
+        const currencies = await Currencies.findAll({
+            where: { name: currencyNames },
+            attributes: ['id', 'name', 'label', 'symbol'],
+        });
+        const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
 
-const decisionTableDetails = decisionTables.map((dt) => ({
-    ...dt.toJSON(),
-    currency: currencyMap[dt.currency] || null,
-}));
+        const decisionTableDetails = decisionTables.map((dt) => ({
+            ...dt.toJSON(),
+            currency: currencyMap[dt.currency] || null,
+        }));
 
         const rateCardsWithDetails = rateCards.map((rateCard) => {
             const laborCategory = laborCategoryMap[rateCard.labor_category_id] || null;
@@ -219,6 +226,7 @@ const decisionTableDetails = decisionTables.map((dt) => ({
         });
     }
 };
+
 
 
 export const getRateCardById = async (request: FastifyRequest, reply: FastifyReply) => {

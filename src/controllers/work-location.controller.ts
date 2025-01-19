@@ -452,7 +452,6 @@ export async function getAllWorkLocationsCountry(
   request: FastifyRequest<{ Params: { program_id: string }; Querystring: { isCountry?: string; isStates?: string } }>,
   reply: FastifyReply
 ) {
-
   const traceId = generateCustomUUID();
   const { program_id } = request.params;
   const { isCountry, isStates } = request.query;
@@ -494,36 +493,56 @@ export async function getAllWorkLocationsCountry(
     }
 
     if (isCountry === "true") {
+      const uniqueCountries = new Set();
       const workLocationCountry = workLocations
-        .map(location => location.countries).filter(Boolean).flat()
+        .map(location => location.countries)
+        .filter(Boolean)
+        .flat()
         .map((country: any) => ({
           id: country.id,
-          name: country.name,
-        }));
+          name: country.name || "", 
+        }))
+        .filter(country => {
+          if (country.name && !uniqueCountries.has(country.name)) {
+            uniqueCountries.add(country.name);
+            return true;
+          }
+          return false;
+        });
 
       response.work_location_country = workLocationCountry;
-
     }
 
     if (isStates === "true") {
-      const workLocationStates = workLocations.map(location => ({
-        id: location.id,
-        name: location.state_name,
-      }));
+      const uniqueStates = new Set();
+      const workLocationStates = workLocations
+        .map(location => ({
+          id: location.id,
+          name: location.state_name || "",
+        }))
+        .filter(location => {
+          if (location.name && !uniqueStates.has(location.name)) {
+            uniqueStates.add(location.name);
+            return true;
+          }
+          return false;
+        });
 
       response.work_location_states = workLocationStates;
     }
 
     return reply.status(200).send(response);
-  } catch (error) {
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve work locations",
-      error
+      error:error.message,
     });
   }
 }
+
+
 
 type QueryResult = {
   program_id: string;
