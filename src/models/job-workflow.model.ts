@@ -47,6 +47,10 @@ JobWorkFlowModel.init(
         type: DataTypes.STRING,
         allowNull: true,
       },
+      event_title: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       type: {
         type: DataTypes.STRING,
         allowNull: true,
