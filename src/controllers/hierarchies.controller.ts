@@ -701,18 +701,12 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     );
 
     const rateModel = rateModelResult.length > 0 ? rateModelResult[0].rate_model : null;
-    let transformedRateModel;
-    if (rateModel === 'bill_rate' || rateModel === 'markup') {
-      transformedRateModel = 'bill_rate';
-    }else {
-      transformedRateModel = rateModel;
-    }
 
     const [markupsData] = await sequelize.query<{ markups: any }>(vendorMarkup, {
       replacements: {
         program_id,
         vendor_id,
-        rateModel: transformedRateModel,
+        rateModel,
         labour_category_id,
         hierarchy_id
       },
