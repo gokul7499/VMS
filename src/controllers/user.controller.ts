@@ -312,45 +312,51 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
-  const { id, program_id } = request.params as { id: string, program_id: string };
-  const updates = request.body as Partial<UserInterface>;
+export async function updateUser(
+  request: FastifyRequest<{ Body: { user: UserInterface; user_group_mapping: UserMappingAttributes }; Params: { id: string; program_id: string } }>,
+  reply: FastifyReply
+) {
+  const { id, program_id } = request.params;
+  const updates = request.body.user;
+  const userGroupMappings = request.body.user_group_mapping;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Token not found',
+    });
   }
 
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-  const userId = user?.sub;
-  try {
-    const user = await User.findOne({
-      where: { id, program_id }
+  const decodedUser = await decodeToken(token);
+  if (!decodedUser) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: 'Unauthorized - Invalid token',
     });
+  }
+  const userId = decodedUser.sub;
 
+  try {
+    const user = await User.findOne({ where: { id, program_id } });
     if (!user) {
       return reply.status(404).send({
         status_code: 404,
-        message: "User not found",
+        message: 'User not found',
         trace_id: traceId,
-        user: []
+        user: [],
       });
     }
-    updates.modified_on = Date.now()
-    updates.modified_by = userId
+
+    updates.modified_on = Date.now();
+    updates.modified_by = userId;
     await user.update(updates);
-    console.log("uuuuu", updates)
     const foundationalData = updates.foundational_data;
     if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-      await UserMasterDataModel.destroy({
-        where: { user_id: id }
-      });
+      await UserMasterDataModel.destroy({ where: { user_id: id } });
+
       const createData = foundationalData.map((item) => ({
         user_id: id,
         master_data: item.master_data,
@@ -358,23 +364,41 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         default_master_data: item.default_master_data || null,
         is_all_associated: item.is_all_associated || false,
       }));
+
       await UserMasterDataModel.bulkCreate(createData);
+    }
+    if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
+      await UserMapping.destroy({ where: { user_id: id } });
+
+      const groupMappingData = userGroupMappings.map((mapping) => ({
+        id: mapping.id || generateCustomUUID(),
+        tenant_id: mapping.tenant_id,
+        user_id: id,
+        user_type: mapping.user_type,
+        role_id: mapping.role_id,
+        program_id: mapping.program_id,
+        is_active: mapping.is_active,
+      }));
+
+      await UserMapping.bulkCreate(groupMappingData);
     }
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "User updated successfully",
+      message: 'User updated successfully',
       id,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('Error updating user:', error instanceof Error ? error.message : error);
     return reply.status(500).send({
       status_code: 500,
-      message: "Internal Server Error",
+      message: 'Internal Server Error',
       trace_id: traceId,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     });
   }
 }
+
 
 
 export async function deleteUser(
@@ -433,7 +457,7 @@ export async function getAllUserIDAndUserId(
       role_id?: string;
       tenant_id?: string;
       email?: string;
-      hierarchy_id?: string; 
+      hierarchy_id?: string;
       page?: string;
       limit?: string;
     };
@@ -629,7 +653,13 @@ export async function getPendingUser(
     });
 
     if (users && users.length > 0) {
-      return reply.code(200).send({ status_code: 200, message: "get pending user data", users, trace_id: traceId });
+      return reply.code(200).send({
+        status_code: 200,
+        message: "get pending user data",
+        users,
+        status: 'pending',
+        trace_id: traceId
+      });
     } else {
       return reply
         .code(200)
