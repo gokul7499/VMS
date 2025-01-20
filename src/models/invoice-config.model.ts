@@ -10,6 +10,7 @@ class InvoiceConfigModel extends Model {
     name: any;
     slug: any;
     parent_id: any;
+    hierarchy_ids: any;
 
 }
 
@@ -202,6 +203,10 @@ InvoiceConfigModel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        is_enabled:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+        }
     },
     {
         sequelize,

@@ -39,7 +39,7 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
             const last_name = from_last_name;
 
             const recipientEmail: EmailRecipient = {
-                email: from_email,
+                email: support_email,
                 first_name,
                 last_name,
             };
@@ -57,6 +57,7 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                     payload: {
                         program_id,
                         program_name,
+                        Reporter_details: your_detail,
                         from_email,
                         from_name: `${first_name} ${last_name}`,
                         url: URL,
@@ -91,7 +92,7 @@ function validateRequestBody(body: any, traceId: string) {
     if (!your_detail || !support_email || !subject || !message) {
         throw {
             status: 400,
-            message: "Missing required fields: your_detail, support_email, subject, or message.",
+            message: "Missing required fields: your_details, email, subject, or message.",
             traceId,
         };
     }

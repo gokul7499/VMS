@@ -94,7 +94,6 @@ export const getAllTimesheetExpenseRuleGroups = async (
 };
 
 
-
 export const getTimesheetExpenseRuleGroupById = async (
     request: FastifyRequest,
     reply: FastifyReply
@@ -105,6 +104,7 @@ export const getTimesheetExpenseRuleGroupById = async (
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({
             where: { id, is_deleted: false, program_id },
         });
+
         if (!ruleGroup) {
             return reply.status(200).send({
                 status_code: 200,
@@ -112,6 +112,7 @@ export const getTimesheetExpenseRuleGroupById = async (
                 trace_id: traceId,
             });
         }
+
         const timesheetExpenseRules = ruleGroup.timesheet_expense_rules || [];
         if (timesheetExpenseRules.length === 0) {
             return reply.status(200).send({
@@ -121,6 +122,7 @@ export const getTimesheetExpenseRuleGroupById = async (
                 trace_id: traceId,
             });
         }
+
         const populatedRules = await TimesheetExpenseRuleModel.findAll({
             where: {
                 id: { [Op.in]: timesheetExpenseRules },
@@ -145,12 +147,18 @@ export const getTimesheetExpenseRuleGroupById = async (
             ],
         });
 
+        // Collect all `apply_rate_type` IDs from rules and penalty rules
         const applyRateTypeIds = Array.from(
-            new Set(
-                populatedRules
-                    .map((rule) => rule.apply_rate_type || []) 
-                    .flat()
-            )
+            new Set([
+                ...populatedRules
+                    .flatMap((rule) => rule.apply_rate_type || []),
+                ...populatedRules
+                    .flatMap((rule) =>
+                        rule.penalty_rules?.apply_rate_type
+                            ? [rule.penalty_rules.apply_rate_type]
+                            : []
+                    ),
+            ])
         );
 
         let rateTypes: any[] = [];
@@ -162,13 +170,23 @@ export const getTimesheetExpenseRuleGroupById = async (
                 attributes: ["id", "name"],
             });
         }
+
         const rulesWithRateTypes = populatedRules.map((rule) => {
-            const rateTypeDetails = Array.isArray(rule.apply_rate_type)
+            const ruleApplyRateTypes = Array.isArray(rule.apply_rate_type)
                 ? rateTypes.filter((rateType) => rule.apply_rate_type.includes(rateType.id))
                 : [];
+
+            const penaltyRateTypeDetails = rule.penalty_rules?.apply_rate_type
+                ? rateTypes.find((rateType) => rateType.id === rule.penalty_rules.apply_rate_type) || null
+                : null;
+
             return {
                 ...rule.toJSON(),
-                apply_rate_type: rateTypeDetails,
+                apply_rate_type: ruleApplyRateTypes,
+                penalty_rules: {
+                    ...rule.penalty_rules,
+                    apply_rate_type: penaltyRateTypeDetails,
+                },
             };
         });
 
@@ -176,6 +194,7 @@ export const getTimesheetExpenseRuleGroupById = async (
             ...ruleGroup.toJSON(),
             timesheet_expense_rules: rulesWithRateTypes,
         };
+
         return reply.status(200).send({
             status_code: 200,
             timesheet_expense_rule_group: data,

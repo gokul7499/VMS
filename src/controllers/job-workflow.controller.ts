@@ -426,7 +426,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 user_type: user.userType,
                 fullName: managerData.data.first_name,
                 job_id: updates[0].job_id,
-                job_name:workflow.event_title
+                job_name: workflow.event_title
             };
             const recipientEmailArray: EmailRecipient[] = [];
 
@@ -522,6 +522,18 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
+    } else if (flow_type == "Approval" && events=="BUDGET_INCREASED"||events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_INCREASE_APPROVED",
+            user_type: ['msp']
+        }
+        return response;
+    } else if (flow_type == "Approval" && events=="BUDGET_REDUCED"||events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_REDUCED_APPROVAL",
+            user_type: ['msp']
+        }
+        return response;
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -598,16 +610,28 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else  if (flow_type == "Approval" && events === "create_assignment") {
+    } else if (flow_type == "Approval" && events === "create_assignment") {
         let response = {
             eventCode: "ASSIGNMENT_APPROVAL_REJECTED",
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else  if (flow_type == "Approval" && events === "update_assignment") {
+    } else if (flow_type == "Approval" && events === "update_assignment") {
         let response = {
             eventCode: "ASSIGNMENT_MODIFIED_REJECTED",
             user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else if (flow_type == "Approval" &&events === "BUDGET_INCREASED" ||events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_INCREASE_REJECTED",
+            user_type: ['msp']
+        }
+        return response;
+    } else if (flow_type == "Approval" &&events === "BUDGET_REDUCED" ||events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_REDUCED_REJECTED",
+            user_type: ['msp']
         }
         return response;
     } else {
@@ -3487,8 +3511,12 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return "COOUTER_OFFER_APPROVAL_FIRST";
     } else if (flow_type == "Approval" && event === "create_assignment") {
         return "ASSIGNMENT_APPROVAL_REQUEST";
-    } else  if (flow_type == "Approval" && event === "update_assignment") {
+    } else if (flow_type == "Approval" && event === "update_assignment") {
         return "ASSIGNMENT_MODIFIED_APPROVAL";
+    } else if (flow_type == "Approval" &&event === "BUDGET_INCREASED"|| event === "assignment_budget_adjustment") {
+        return "BUDGET_INCREASED_APPROVAL";
+    } else if (flow_type == "Approval" &&event === "BUDGET_REDUCED"|| event === "assignment_budget_adjustment") {
+        return "BUDGET_REDUCED_APPROVAL";
     } else {
         throw new Error(`Event code not found for event: ${event}`);
     }

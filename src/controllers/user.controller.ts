@@ -16,26 +16,55 @@ import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
-  const result = await User.findAndCountAll({
-    where: {
-      is_deleted: false,
-    },
-    attributes: ["id", "name_prefix", "first_name", "middle_name", "last_name", "username", "name_suffix", "program_id", "status", "email",
-      "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
-    ]
-  });
-  if (result.rows.length === 0) {
+  try {
+
+    const { is_enabled } = request.query as { is_enabled?: string };
+
+
+    const whereConditions: any = { is_deleted: false };
+
+    if (is_enabled !== undefined) {
+      whereConditions.is_enabled = is_enabled === 'true' ? 1 : 0;
+    }
+
+
+    const result = await User.findAndCountAll({
+      where: whereConditions,
+      attributes: [
+        "id", "name_prefix", "first_name", "middle_name", "last_name",
+        "username", "name_suffix", "program_id", "status", "email",
+        "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
+      ],
+    });
+
+
+    const { rows = [], count } = result;
+
+
+    if (rows.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "Users not found",
+        users: [],
+      });
+    }
+
+
     return reply.status(200).send({
       status_code: 200,
-      message: "Users not found",
-      users: []
+      message: "Users found",
+      users: rows,
+      total: count,
+    });
+  } catch (error: any) {
+
+
+    return reply.status(500).send({
+      status_code: 500,
+      message: "An error occurred while fetching users",
+      error: error.message,
     });
   }
-  reply.status(200).send({
-    status_code: 200,
-    message: "Users found",
-    users: result.rows,
-  });
 }
 
 export async function getUserById(
