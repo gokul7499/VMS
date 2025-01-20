@@ -63,6 +63,7 @@ export const createRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
+
 export const getAllRateCards = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
@@ -196,11 +197,11 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                 decision_table: relatedDecisionTables.map((dt) => ({
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy,
-                    job_template: dt.job_template,
-                    rate_type: dt.rate_type,
-                    currency: dt.currency,
-                    unit_of_measure: dt.unit_of_measure,
+                    hierarchy: dt.hierarchy || { id: "ALL", name: "ALL" },
+                    job_template: dt.job_template || { id: "ALL", template_name: "ALL" },
+                    rate_type: dt.rate_type || { id: "ALL", name: "ALL" },
+                    currency: dt.currency || { id: "ALL", name: "ALL", label: "ALL", symbol: "ALL" },
+                    unit_of_measure: dt.unit_of_measure || "ALL",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
@@ -227,8 +228,6 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
     }
 };
 
-
-
 export const getRateCardById = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
@@ -248,7 +247,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
         if (rateCard.labor_category_id) {
             laborCategory = await IndustriesModel.findOne({
                 where: { id: rateCard.labor_category_id },
-                attributes: ["id", "name","is_enabled"],
+                attributes: ["id", "name", "is_enabled"],
             });
         }
 
@@ -277,24 +276,25 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
             decisionTables.map(async (dt) => {
                 const currencyDetails = dt.currency
                     ? await Currencies.findOne({
-                          where: { name: dt.currency},
-                          attributes: ["id", "name", "label","symbol"],
-                      })
+                        where: { name: dt.currency },
+                        attributes: ["id", "name", "label", "symbol"],
+                    })
                     : null;
 
                 return {
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy,
-                    job_template: dt.job_template,
-                    rate_type: dt.rate_type,
-                    currency: currencyDetails, 
-                    unit_of_measure: dt.unit_of_measure,
+                    hierarchy: dt.hierarchy || { id: "ALL", name: "ALL" },
+                    job_template: dt.job_template || { id: "ALL", template_name: "ALL" },
+                    rate_type: dt.rate_type || { id: "ALL", name: "ALL" },
+                    currency: currencyDetails || { id: "ALL", name: "ALL", label: "ALL", symbol: "ALL" },
+                    unit_of_measure: dt.unit_of_measure || "ALL",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
                     modified_on: dt.modified_on,
-                }}),
+                }
+            }),
         );
         const rateCardWithDetails = {
             ...rateCard.toJSON(),
@@ -314,8 +314,6 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
         });
     }
 };
-
-
 
 export const updateRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
