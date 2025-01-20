@@ -18,6 +18,7 @@ import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from
 import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 import User from "../models/user.model";
+import { updateJob } from '../utility/job-status-service';
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
