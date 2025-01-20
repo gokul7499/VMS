@@ -37,7 +37,7 @@ export async function createInvoiceConfig(
             },
             type: QueryTypes.SELECT,
         });
-
+        
         if (existingConfig.length > 0) {
             return reply.status(400).send({
                 status_code: 400,
@@ -150,12 +150,13 @@ export async function updateInvoiceConfigById(
 
         const newPayload = {
             ...request.body,
+            program_id,
             parent_id: invoiceConfig.id,
             grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
         };
 
         const newInvoiceConfig = await InvoiceConfigModel.create({
-            newPayload,
+            ...newPayload,
             created_by: userId,
             modified_by: userId,
         });
@@ -167,7 +168,6 @@ export async function updateInvoiceConfigById(
             trace_id: traceId,
         });
     } catch (error: any) {
-        console.error("Error updating invoice config:", error);
 
         return reply.status(500).send({
             status_code: 500,
