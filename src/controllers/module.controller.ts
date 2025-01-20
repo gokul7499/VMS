@@ -10,12 +10,14 @@ export async function getModule(
   const { is_enabled } = request.query as { is_enabled?: boolean | string };
 
   try {
+
     const searchFilters: any = { is_deleted: false };
 
+
     if (is_enabled !== undefined) {
-      searchFilters.is_enabled =
-        is_enabled === "true" || is_enabled === true ? 1 : 0;
+      searchFilters.is_enabled = is_enabled === "true" || is_enabled === true ? 1 : 0;
     }
+
 
     const result = await Module.findAndCountAll({
       where: searchFilters,
@@ -23,27 +25,32 @@ export async function getModule(
       order: [["name", "ASC"]],
     });
 
-    if (result.rows.length === 0) {
-      return reply
-        .status(200)
-        .send({ status_code: 200, message: "Modules not found", modules: [] });
-    }
-    const formattedModules = result.rows.map((module: any) => ({
-      id: module.id,
-      name: module.name,
-      is_enabled: module.is_enabled ? 1 : 0,
-      module_linking: module.module_linking,
-    }));
 
-    reply.status(200).send({
+    if (result.rows.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "Modules not found",
+        modules: [],
+      });
+    }
+
+
+    return reply.status(200).send({
       status_code: 200,
-      mesage: "Module get successfully",
-      modules: formattedModules,
+      message: "Modules fetched successfully",
+      modules: result.rows,
     });
-  } catch (error) {
-    reply.status(500).send({ status_code: 500, error: "Internal Server Error" });
+  } catch (error: any) {
+
+    console.error("Error fetching modules:", error);
+    return reply.status(500).send({
+      status_code: 500,
+      error: "Internal Server Error",
+      message: error.message,
+    });
   }
 }
+
 
 export async function createModule(request: FastifyRequest, reply: FastifyReply) {
   const { ...moduleData } = request.body as ModuleData;
