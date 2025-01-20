@@ -647,6 +647,7 @@ export const vendorDataQuery = `
 SELECT
     pv.id,
     pv.vendor_name,
+    pv.display_name,
     pv.vendor_type,
     pv.status,
     pv.supl_ref_id,
