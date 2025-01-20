@@ -1,7 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
+const auth_db = process.env.CONFIG_DB ?? "qa_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
