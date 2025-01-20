@@ -71,6 +71,10 @@ Module.init(
             allowNull: true,
             defaultValue: []
         },
+        is_custom_field:{
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        }
     },
     {
         sequelize,
