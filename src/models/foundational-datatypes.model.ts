@@ -61,9 +61,9 @@ FoundationalDataTypes.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    timesheet_master_data:{
+    timesheet_master_data: {
       type: DataTypes.BOOLEAN,
-        defaultValue: true,
+      defaultValue: true,
     }
   },
   {

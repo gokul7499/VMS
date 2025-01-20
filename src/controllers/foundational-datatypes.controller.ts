@@ -288,7 +288,6 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
     }
 }
 
-
 export async function getAllFoundationalDataTypes(
     request: FastifyRequest<{
         Querystring: {
@@ -337,8 +336,6 @@ export async function getAllFoundationalDataTypes(
         }
         if (timesheet_master_data !== undefined) {
             filters['configuration.timesheet_master_data'] = timesheet_master_data === 'true';
-        } else {
-            filters['configuration.timesheet_master_data'] = false;
         }
         if (user_association_exclude !== undefined) {
             filters['configuration.user_association_exclude'] = user_association_exclude === 'true';
@@ -359,7 +356,7 @@ export async function getAllFoundationalDataTypes(
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Foundational data not found',
-                foundationalData:[],
+                foundationalData: [],
                 trace_id: traceId,
             });
         }
@@ -409,4 +406,3 @@ export async function getAllFoundationalDataTypes(
         });
     }
 }
-
