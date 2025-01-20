@@ -145,6 +145,13 @@ export async function getAllCandidate(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -167,8 +174,6 @@ export async function getAllCandidate(
             updatedAt,
             available_candidate,
             job_id,
-          
-
             ...filters
         } = request.query as any;
 
@@ -205,6 +210,7 @@ export async function getAllCandidate(
                 const unavailableCandidateIds = await fetchUnavailableCandidates(
                     program_id,
                     job_id,
+                    token,
                     traceId
                 );
                 whereClause.id = { [Op.notIn]: unavailableCandidateIds };
@@ -230,7 +236,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on',"state_national_id","do_not_rehire_notes","do_not_rehire_reason","do_not_rehire"
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -257,10 +263,10 @@ export async function getAllCandidate(
                     vendor_name: cand.vendor.vendor_name
                 } : null,
                 modified_on: cand.modified_on,
-                state_national_id:cand.state_national_id,
-                do_not_rehire_notes:cand.do_not_rehire_notes,
-                do_not_rehire_reason:cand.do_not_rehire,
-                do_not_rehire:cand.do_not_rehire
+                state_national_id: cand.state_national_id,
+                do_not_rehire_notes: cand.do_not_rehire_notes,
+                do_not_rehire_reason: cand.do_not_rehire,
+                do_not_rehire: cand.do_not_rehire
             };
         });
 
@@ -278,13 +284,13 @@ export async function getAllCandidate(
             trace_id: traceId,
         });
 
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error:error.message
+            error: error.message
         });
     }
 }
@@ -303,7 +309,7 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'vendor_id','job_category_id','title']
+                exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
             },
             include: [
                 {
@@ -361,16 +367,16 @@ export async function updateCandidateByIdAndProgramId(
         const updates = request.body as candidateInterface;
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({...updates,modified_by:userId}, {
+        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId }, {
             where: {
                 program_id,
                 id,
@@ -417,18 +423,20 @@ export async function deleteCandidateByIdAndProgramId(
         const { id, program_id } = request.params as { id: string; program_id: string };
 
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-       
+
         const [updatedRows] = await candidateModel.update(
-            { is_deleted: true,
-              modified_by: userId,},
+            {
+                is_deleted: true,
+                modified_by: userId,
+            },
             {
                 where: {
                     id,
@@ -474,11 +482,11 @@ export async function getCandidates(
         if (!authHeader?.startsWith('Bearer ')) {
             return reply.status(401).send({ message: 'Unauthorized - Token not found' });
         }
-          const program_id=request.params as string;
-          const token = authHeader.split(' ')[1];
-          const user = await decodeToken(token);
-          const vendorId = user?.sub;
-          const {
+        const program_id = request.params as string;
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+        const vendorId = user?.sub;
+        const {
             page = "1",
             limit = "10",
             sort = "desc",
@@ -498,7 +506,7 @@ export async function getCandidates(
             updatedAt,
             available_candidate,
             job_id,
-          
+
 
             ...filters
         } = request.query as any;
@@ -515,7 +523,7 @@ export async function getCandidates(
         }
 
         const whereClause: any = {
-            vendor_id:vendorId,
+            vendor_id: vendorId,
             is_deleted: false,
             ...filters
         };
@@ -536,6 +544,7 @@ export async function getCandidates(
                 const unavailableCandidateIds = await fetchUnavailableCandidates(
                     program_id,
                     job_id,
+                    token,
                     traceId
                 );
                 whereClause.id = { [Op.notIn]: unavailableCandidateIds };
@@ -561,7 +570,7 @@ export async function getCandidates(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on',"state_national_id","do_not_rehire_notes","do_not_rehire_reason","do_not_rehire"
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -588,10 +597,10 @@ export async function getCandidates(
                     vendor_name: cand.vendor.vendor_name
                 } : null,
                 modified_on: cand.modified_on,
-                state_national_id:cand.state_national_id,
-                do_not_rehire_notes:cand.do_not_rehire_notes,
-                do_not_rehire_reason:cand.do_not_rehire,
-                do_not_rehire:cand.do_not_rehire
+                state_national_id: cand.state_national_id,
+                do_not_rehire_notes: cand.do_not_rehire_notes,
+                do_not_rehire_reason: cand.do_not_rehire,
+                do_not_rehire: cand.do_not_rehire
             };
         });
 
@@ -609,13 +618,13 @@ export async function getCandidates(
             trace_id: traceId,
         });
 
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error:error.message
+            error: error.message
         });
     }
 }
