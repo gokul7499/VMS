@@ -39,8 +39,8 @@ export const getAllJobTemplates = async (
       labour_category,
       is_shift_rate,
       category,
-      page = 1, 
-      limit = 10, 
+      page = 1,
+      limit = 10,
     } = request.query as GetJobTemplatesQuery;
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
@@ -777,9 +777,9 @@ export async function getAllJobTempletsByHierarchies(
       offset,
     } = request.query;
 
-    const hierarchyIdsArray = hierarchy ? hierarchy.split(",") : [];
-    const laborCategoryIdsArray = labour_category ? labour_category.split(",") : [];
-    const qualificationIdsArray = qualification ? qualification.split(",") : [];
+    const hierarchyIdsArray = hierarchy?.split(",") || [];
+    const laborCategoryIdsArray = labour_category?.split(",") || [];
+    const qualificationIdsArray = qualification?.split(",") || [];
 
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
       program_id,
@@ -792,18 +792,29 @@ export async function getAllJobTempletsByHierarchies(
       name
     );
 
+    const uniqueJobTemplates = data.map((jobTemplate: any) => {
+      const uniqueHierarchies = Array.from(
+        new Set(jobTemplate.hierarchy.map((h: any) => JSON.stringify(h)))
+      ).map((h: any) => JSON.parse(h));
+
+      return {
+        ...jobTemplate,
+        hierarchy: uniqueHierarchies,
+      };
+    });
+
     reply.status(200).send({
       status_code: 200,
       message: "Job template fetched successfully",
-      job_templates: data,
+      job_templates: uniqueJobTemplates,
       trace_id: traceId,
     });
-  } catch (error) {
-    console.error("Error fetching job templates:", error);
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
-      message: "An error occurred while fetching job templates.",
+      message: "An error occurred while fetching job templates hierarchies.",
       trace_id: traceId,
+      error: error.message,
     });
   }
 }
@@ -933,8 +944,8 @@ export async function findJobTemplatesByLabourCategories(
         status_code: 200,
         trace_id: traceId,
         message: "No matching data found for the provided labour category.",
-        job_templates:[]
-        
+        job_templates: []
+
       });
     }
     return reply.status(200).send({
@@ -963,7 +974,7 @@ export async function getCommonHierarchies(
   const traceId = generateCustomUUID();
   try {
     const { job_manager_id, job_template_id } = request.query;
-    const {program_id}=request.params as {program_id:string};
+    const { program_id } = request.params as { program_id: string };
 
     if (!job_manager_id || !job_template_id) {
       return reply.status(400).send({
@@ -986,7 +997,7 @@ export async function getCommonHierarchies(
     const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
       templateHierarchyIds.includes(id)
     );
-    
+
     if (commonHierarchyIds.length === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -994,7 +1005,7 @@ export async function getCommonHierarchies(
         trace_id: traceId,
       });
     }
-    
+
     const hierarchiesWithChildren = await sequelize.query(getHierarchieWithChildren, {
       replacements: { program_id },
       type: QueryTypes.SELECT
@@ -1002,28 +1013,28 @@ export async function getCommonHierarchies(
 
     const buildHierarchy = (data: any, parentId = null) => {
       return data
-          .filter((item: any) => item.parent_hierarchy_id === parentId)
-          .map((item: any) => {
-              const isAssociated = commonHierarchyIds.includes(item.id);
-              const children = buildHierarchy(data, item.id);
-  
-              // Ensure node is included if it's associated OR if any child is associated
-              if (isAssociated || children.length > 0) {
-                  return {
-                    ...item,
-                    is_associated: isAssociated,
-                    hierarchies: children
-                  };
-              }
-  
-              // Exclude node if not associated and has no associated children
-              return null;
-          })
-          .filter(Boolean);
-  };
+        .filter((item: any) => item.parent_hierarchy_id === parentId)
+        .map((item: any) => {
+          const isAssociated = commonHierarchyIds.includes(item.id);
+          const children = buildHierarchy(data, item.id);
 
-  const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
-  
+          // Ensure node is included if it's associated OR if any child is associated
+          if (isAssociated || children.length > 0) {
+            return {
+              ...item,
+              is_associated: isAssociated,
+              hierarchies: children
+            };
+          }
+
+          // Exclude node if not associated and has no associated children
+          return null;
+        })
+        .filter(Boolean);
+    };
+
+    const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+
     reply.status(200).send({
       status_code: 200,
       common_hierarchies: nestedHierarchy,
