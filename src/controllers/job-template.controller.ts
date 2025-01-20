@@ -115,8 +115,6 @@ export const getAllJobTemplates = async (
   }
 };
 
-
-
 export async function getJobTemplateById(
   request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
   reply: FastifyReply
@@ -169,6 +167,7 @@ export async function getJobTemplateById(
         "allow_pre_identified_candidate",
         "resume_mandatory",
         "job_submitted_count",
+        "ot_exempt"
       ];
       booleanFields.forEach((field) => {
         if (field in obj) {
@@ -194,7 +193,6 @@ export async function getJobTemplateById(
     });
   }
 }
-
 
 export async function createJobTemplate(
   request: FastifyRequest,

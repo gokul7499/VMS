@@ -8,6 +8,7 @@ class TimesheetExpenseRuleModel extends Model {
     id: any;
     apply_rate_type: any;
     rate_type: any;
+    penalty_rules: any;
 }
 
 TimesheetExpenseRuleModel.init({

@@ -3,8 +3,11 @@ import InvoiceConfigModel from "../models/invoice-config.model";
 import { InvoiceConfigInterface } from "../interfaces/invoice-config.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { decodeToken } from "../middlewares/verifyToken";
+import { getInvoiceConfigByHierarchyId } from "../utility/queries";
+import { sequelize } from "../config/instance";
+import HierarchyModel from "../models/hierarchies.model";
 
 export async function createInvoiceConfig(
     request: FastifyRequest,
@@ -14,22 +17,42 @@ export async function createInvoiceConfig(
     const authHeader = request.headers.authorization;
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
+
         const userId = user?.sub;
 
-        const { program_id } = request.params as any
-        const invoiceConfig = request.body as InvoiceConfigInterface;
-        const invoiceConfigData: any = await InvoiceConfigModel.create({ ...invoiceConfig, program_id,created_by: userId,
-        modified_by: userId, });
+        const { program_id } = request.params as any;
+        const invoiceConfig = request.body as InvoiceConfigInterface & { hierarchy_ids: string[] };
+
+        const existingConfig = await sequelize.query(getInvoiceConfigByHierarchyId, {
+            replacements: {
+                program_id,
+                hierarchy_ids: JSON.stringify(invoiceConfig.hierarchy_ids),
+            },
+            type: QueryTypes.SELECT,
+        });
+        
+        if (existingConfig.length > 0) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: `Invoice Configuration already exists with hierarchy ID(s): ${invoiceConfig.hierarchy_ids}`,
+                trace_id: traceId,
+            });
+        }
+
+        const invoiceConfigData: any = await InvoiceConfigModel.create({
+            ...invoiceConfig, program_id, created_by: userId, modified_by: userId,
+        });
+
         reply.status(201).send({
             status_code: 201,
-            message: "Invoice config created succesfully",
+            message: "Invoice config created successfully",
             invoice_config_data: invoiceConfigData?.uuid,
             trace_id: traceId,
         });
@@ -42,13 +65,15 @@ export async function createInvoiceConfig(
         });
     }
 }
+
 export async function getInvoiceConfigById(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId = generateCustomUUID()
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params;
+
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: {
                 uuid: id,
@@ -57,26 +82,36 @@ export async function getInvoiceConfigById(
             },
         });
 
-        if (invoiceConfig) {
-            reply.status(201).send({
-                status_code: 201,
-                message: "Invoice config get succesfully",
-                invoice_config: invoiceConfig,
+        if (!invoiceConfig) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "Invoice config not found",
                 trace_id: traceId,
             });
-        } else {
-            reply.status(200).send({
-                status_code: 200,
-                message: "Invoice config data not found",
-                invoice_config: [],
-                trace_id: traceId
-            });
         }
+
+        const hierarchyIds = invoiceConfig.hierarchy_ids || [];
+        const hierarchies = await HierarchyModel.findAll({
+            where: { id: hierarchyIds },
+            attributes: ["id", "name"],
+        });
+
+        const enhancedInvoiceConfig = {
+            ...invoiceConfig.toJSON(),
+            hierarchy_details: hierarchies.map((hierarchy) => hierarchy.toJSON()),
+        };
+
+        reply.status(201).send({
+            status_code: 201,
+            message: "Invoice config retrieved successfully",
+            invoice_config: enhancedInvoiceConfig,
+            trace_id: traceId,
+        });
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: traceId
+            trace_id: traceId,
         });
     }
 }
@@ -90,12 +125,12 @@ export async function updateInvoiceConfigById(
     const authHeader = request.headers.authorization;
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
 
         const userId = user?.sub;
@@ -115,12 +150,16 @@ export async function updateInvoiceConfigById(
 
         const newPayload = {
             ...request.body,
+            program_id,
             parent_id: invoiceConfig.id,
             grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
         };
 
-        const newInvoiceConfig = await InvoiceConfigModel.create({newPayload,created_by: userId,
-        modified_by: userId,});
+        const newInvoiceConfig = await InvoiceConfigModel.create({
+            ...newPayload,
+            created_by: userId,
+            modified_by: userId,
+        });
 
         return reply.status(201).send({
             status_code: 201,
@@ -129,7 +168,6 @@ export async function updateInvoiceConfigById(
             trace_id: traceId,
         });
     } catch (error: any) {
-        console.error("Error updating invoice config:", error);
 
         return reply.status(500).send({
             status_code: 500,
@@ -150,12 +188,12 @@ export async function deleteInvoiceConfigById(
         const { id, program_id } = request.params;
 
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
@@ -164,7 +202,7 @@ export async function deleteInvoiceConfigById(
                 is_deleted: true,
                 is_enabled: false,
                 modified_on: Date.now(),
-                modified_by:userId
+                modified_by: userId
             },
             { where: { uuid: id, program_id } }
         );
@@ -199,11 +237,11 @@ export async function getAllInvoiceConfig(
     }>,
     reply: FastifyReply
 ) {
-    const { program_id } = request.params as { program_id: string };
+    const { program_id } = request.params;
     const { name, page = 1, limit = 10 } = request.query;
     const traceId = generateCustomUUID();
-    let whereClause: any = { program_id };
     const offset = (page - 1) * limit;
+    let whereClause: any = { program_id };
 
     if (name) {
         whereClause.name = { [Op.like]: `%${name}%` };
@@ -212,10 +250,11 @@ export async function getAllInvoiceConfig(
     try {
         const { rows: invoiceConfig, count: total_records } = await InvoiceConfigModel.findAndCountAll({
             where: whereClause,
+            attributes: ['uuid', 'name', 'slug', 'hierarchy_ids', 'is_active', 'is_enabled', 'modified_on'],
             order: [["created_on", "DESC"]],
             limit: Number(limit),
             offset: Number(offset),
-        })
+        });
 
         if (invoiceConfig.length === 0) {
             return reply.status(200).send({
@@ -226,21 +265,33 @@ export async function getAllInvoiceConfig(
                 trace_id: traceId,
             });
         }
-        reply.status(200).send({
+
+        const hierarchyIds = invoiceConfig.flatMap(config => config.hierarchy_ids || []);
+
+        const hierarchies = await HierarchyModel.findAll({
+            where: { id: hierarchyIds },
+            attributes: ["id", "name"],
+        });
+
+        const transformedInvoiceConfig = invoiceConfig.map(config => ({
+            ...config.toJSON(),
+            hierarchy_details: hierarchies.map(hierarchy => hierarchy.toJSON()),
+        }));
+
+        return reply.status(200).send({
             status_code: 200,
             message: "Invoice config retrieved successfully",
-            total_records: total_records,
-            curent_page: Number(page),
+            total_records,
+            current_page: Number(page),
             page_size: Number(limit),
-            invoice_config: invoiceConfig,
+            invoice_configs: transformedInvoiceConfig,
             trace_id: traceId,
         });
     } catch (error) {
-        console.error(error);
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: traceId
+            trace_id: traceId,
         });
     }
 }

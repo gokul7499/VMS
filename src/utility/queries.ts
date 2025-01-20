@@ -647,6 +647,7 @@ export const vendorDataQuery = `
 SELECT
     pv.id,
     pv.vendor_name,
+    pv.display_name,
     pv.vendor_type,
     pv.status,
     pv.supl_ref_id,
@@ -2336,4 +2337,11 @@ export const rateCardMinRateMaxRate = `
     SELECT *
     FROM fallback_matches
     WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
+`;
+
+export const getInvoiceConfigByHierarchyId = `
+    SELECT * 
+    FROM invoice_config 
+    WHERE program_id = :program_id 
+      AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
 `;

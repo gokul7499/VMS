@@ -1,7 +1,5 @@
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-const config_db = process.env.CONFIG_DB || "dev_vms_configurator";
-
 class JobTempletRepository {
   async getJobTemplateByHierarchies(program_id: string, hierarchy_ids: string[]) {
     const query = `
@@ -275,6 +273,7 @@ class JobTempletRepository {
         job_templates.job_submitted_count,
         job_templates.is_shift_rate,
         job_templates.is_checklist_enable,
+        job_templates.ot_exempt,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -310,8 +309,6 @@ class JobTempletRepository {
       type: QueryTypes.SELECT,
     });
   }
-
-
 
   async getJobTempletById(program_id: string, id: string) {
     const query = `
@@ -464,8 +461,6 @@ class JobTempletRepository {
     });
     return jobTemplate;
   }
-
-
 
   async managerQuery(job_manager_id: string) {
     const managerData = await sequelize.query<{

@@ -5,7 +5,7 @@ export interface InvoiceConfigInterface {
     slug: string;
     is_active: boolean;
     is_all_hierarchy_associate: boolean;
-    hierarchy_ids: object;
+    hierarchy_ids: any;
     consolidation_type: 'manual' | 'automatic';
     consolidation_day: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
     consolidation_cycle: 'daily' | 'weekly' | 'monthly';
