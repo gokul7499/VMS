@@ -8,6 +8,7 @@ interface ModuleData {
     modified_on: number,
     created_by: string,
     modified_by: string,
+    is_custom_field: boolean
   }
   export default ModuleData;
   

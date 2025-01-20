@@ -288,36 +288,44 @@ export const getProgramModuleByIdAndQueryForWorkFlow = async (
     // Fetch modules data with required filters
     const modulesData = await Module.findAll({
       where: {
-        // program_id: id,
-        is_workflow: true,
-        is_enabled: true,
+        is_workflow: true, // Only fetch workflow-related modules
       },
-      attributes: ['id', 'name', 'description'], // Only fetch required fields
-      order: [['name', 'ASC']], // Sort directly in the database query
+      attributes: ['id', 'name', 'description', 'is_enabled'], // Include is_enabled field
+      order: [['name', 'ASC']], // Sort by name in ascending order
     });
 
     // Prepare the response object
     const programResponse = {
+      id: generateCustomUUID(), // Generate unique ID for this response
       program_id: id,
-      modules: modulesData,
+      modules: modulesData.map((module: any) => ({
+        module_id: {
+          id: module.id,
+          name: module.name,
+          description: module.description,
+        },
+        is_enabled: module.is_enabled,
+      })),
     };
 
     // Send success response
     reply.send({
       status_code: 200,
-      message: 'Program data retrieved successfully',
+      message: "Program data retrieved successfully",
       data: programResponse,
       trace_id: traceId,
     });
   } catch (error) {
-    console.error('Error retrieving program modules:', error);
+    console.error("Error retrieving program modules:", error);
 
     // Send error response
     return reply.status(500).send({
       status_code: 500,
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
       trace_id: traceId,
-      error: error || 'Unexpected error occurred',
+      error: error || "Unexpected error occurred",
     });
   }
 };
+
+
