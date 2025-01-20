@@ -7,7 +7,7 @@ export async function getModule(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { is_enabled } = request.query as { is_enabled?: boolean | string };
+  const { is_enabled , is_custom_field} = request.query as { is_enabled?: boolean | string, is_custom_field?:boolean | string };
 
   try {
 
@@ -18,10 +18,13 @@ export async function getModule(
       searchFilters.is_enabled = is_enabled === "true" || is_enabled === true ? 1 : 0;
     }
 
+    if (is_custom_field !== undefined) {
+      searchFilters.is_custom_field = is_custom_field === "true" || is_custom_field === true ? 1 : 0;
+    }
 
     const result = await Module.findAndCountAll({
       where: searchFilters,
-      attributes: ["id", "name", "is_enabled", "module_linking"],
+      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field"],
       order: [["name", "ASC"]],
     });
 
