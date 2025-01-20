@@ -1,7 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
+const auth_db = process.env.CONFIG_DB ?? "qa_vms_auth";
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -650,6 +650,7 @@ SELECT
     pv.vendor_type,
     pv.status,
     pv.supl_ref_id,
+    pv.is_job_auto_opt_in,
     pv.vendor_logo, -- Added vendor_logo here
     (
         SELECT JSON_ARRAYAGG(
@@ -2033,15 +2034,22 @@ WITH user_data AS (
          u.is_activated,
          u.user_type,
          u.is_associated,
+         u.applications,
          u.name_prefix,
          u.role_id,
          u.title,
+         u.sso_id,
+         u.status,
          u.contacts,
          u.addresses,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
          CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
          CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
+         JSON_OBJECT(
+         'id',u.id,
+         'name',u.first_name
+         ) AS supervisor_id,
 
          (
              SELECT JSON_ARRAYAGG(
@@ -2076,13 +2084,12 @@ WITH user_data AS (
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2114,13 +2121,12 @@ WITH user_data AS (
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.id = :user_id' : ''}
-    ${
-      hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''
-    }
+    ${hierarchy_id && hierarchy_id.length > 0
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''
+  }
   GROUP BY u.id
 )
 SELECT *
@@ -2128,11 +2134,12 @@ FROM user_data
 ORDER BY modified_on DESC;
 `;
 
-
 export const getPendingUserQuery = `
   SELECT 
     invitation.*, 
     invitation.user_email AS email,
+    invitation.updated_at AS created_on,
+    invitation.created_at AS created_at,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
     user_group_mapping.first_name,
@@ -2145,15 +2152,19 @@ export const getPendingUserQuery = `
      JSON_OBJECT(
     'id',countries.id,
     'name',countries.name
-    ) AS country_id,
+    ) AS countries,
       JSON_OBJECT(
     'id',hierarchies.id,
     'name',hierarchies.name
     ) AS default_hierarchy_id,
-     JSON_OBJECT(
+    JSON_OBJECT(
     'id',work_locations.id,
     'name',work_locations.name
     ) AS default_work_location_id,
+    JSON_OBJECT(
+    'id',user.id,
+    'name',user.first_name
+    ) AS supervisor_id,
     COALESCE(( 
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -2180,6 +2191,7 @@ LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
+LEFT JOIN user ON invitation.supervisor = user.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -2275,3 +2287,53 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   return { ruleGroups, totalRecords };
 };
+
+export const rateCardMinRateMaxRate = `
+    WITH rate_card_matches AS (
+        SELECT 
+            rc.id AS rate_card_id
+        FROM 
+            rate_card rc
+        WHERE 
+            rc.labor_category_id = :labor_category_id
+            AND rc.program_id = :program_id
+    ),
+    primary_matches AS (
+        SELECT 
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
+        FROM 
+            rate_card_decision_table d
+        JOIN 
+            rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
+        WHERE 
+            d.hierarchy_id IN (:hierarchyIds)
+            AND d.job_template_id IN (:jobTemplateIds)
+            AND d.unit_of_measure = :unit_of_measure
+            AND d.currency = :currency_id
+    ),
+    fallback_matches AS (
+        SELECT 
+            d.id,
+            d.rate_card_id,
+            d.rate_type_id,
+            d.min_rate,
+            d.max_rate
+        FROM 
+            rate_card_decision_table d
+        WHERE 
+            d.hierarchy_id IS NULL
+            AND d.job_template_id IS NULL
+            AND d.unit_of_measure IS NULL
+            AND d.currency IS NULL
+    )
+    SELECT *
+    FROM primary_matches
+    UNION ALL
+    SELECT *
+    FROM fallback_matches
+    WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
+`;
