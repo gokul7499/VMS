@@ -333,12 +333,12 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const { decision_table, ...rateCardUpdates } = request.body as any;
         const rateCard = await RateCard.findOne({
-            where: { id, program_id, is_deleted: false},
+            where: { id, program_id, is_deleted: false },
         });
         if (!rateCard) {
             await transaction.rollback();
@@ -349,20 +349,30 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await RateCard.update({...rateCardUpdates,modified_by:userId,modified_on:Date.now()}, {
-            where: { id, program_id, is_deleted: false },
-            transaction,
-        });
+        await RateCard.update({ ...rateCardUpdates, modified_by: userId, modified_on: Date.now() },
+            {
+                where: { id, program_id, is_deleted: false },
+                transaction,
+            });
         if (decision_table && Array.isArray(decision_table)) {
             await DecisionTable.destroy({
                 where: { rate_card_id: id },
                 transaction,
             });
-            for (const entry of decision_table) {
+            for (const dt of decision_table) {
                 await DecisionTable.create(
                     {
-                        ...entry,
+                        id: dt.id,
                         rate_card_id: id,
+                        hierarchy_id: dt.hierarchy_id === "ALL" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "ALL" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "ALL" ? null : dt.rate_type_id,
+                        currency: dt.currency=== "ALL" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "ALL" ? null : dt.unit_of_measure,
+                        min_rate: dt.min_rate?.amount,
+                        max_rate: dt.max_rate?.amount,
+                        created_on: dt.created_on,
+                        modified_on: dt.modified_on,
                     },
                     { transaction }
                 );
