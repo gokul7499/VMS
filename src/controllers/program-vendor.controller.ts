@@ -100,7 +100,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'display_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -296,7 +296,7 @@ export async function saveProgramVendor(
 
         const vendor = {
             vendor_name: tenant.name,
-            display_name: tenant.display_name,
+            display_name : tenant.display_name,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             addresses: user.addresses,
