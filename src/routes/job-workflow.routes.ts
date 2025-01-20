@@ -12,7 +12,7 @@ import {
     getUpdateWorkflowApprovals,
     imporsonateLevel,
     getModuleEvent,
-    sendSequencialNotification
+    // sendSequencialNotification
 } from '../controllers/job-workflow.controller';
 
 async function JobWorkFlowRoutes(fastify: FastifyInstance) {
@@ -28,7 +28,7 @@ async function JobWorkFlowRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/workflow-approval', getWorkflowForJob);
     fastify.get('/program/:program_id/update-workflow-approval', getUpdateWorkflowApprovals);
     fastify.get('/program/:program_id/get-module-event', getModuleEvent)
-    fastify.post("/program/:program_id/workflow-id/:job_workflow_id", sendSequencialNotification);
+    // fastify.post("/program/:program_id/workflow-id/:job_workflow_id", sendSequencialNotification);
 }
 
 export default JobWorkFlowRoutes;
