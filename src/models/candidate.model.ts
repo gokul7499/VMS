@@ -20,10 +20,7 @@ Candidate.init(
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: {
-                model: "programs",
-                key: "id",
-            },
+          
         },
         tenant_id: {
             type: DataTypes.UUID,

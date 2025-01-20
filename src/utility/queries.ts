@@ -2242,9 +2242,11 @@ export const vendorMarkup = `
 export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
+  ruleGroupName?: string,
   isEnabled?: string,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
+  order: string = 'created_on DESC' 
 ) => {
   const searchConditions: string[] = ['is_deleted = FALSE'];
 
@@ -2254,6 +2256,10 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   if (ruleCategory) {
     searchConditions.push(`rule_category = "${ruleCategory}"`);
+  }
+
+  if (ruleGroupName) {
+    searchConditions.push(`rule_group_name LIKE "%${ruleGroupName}%"`);
   }
 
   if (isEnabled !== undefined) {
@@ -2278,6 +2284,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
         COUNT(*) OVER() AS total_count
     FROM timesheet_expense_rule_groups
     ${whereClause}
+    ORDER BY ${order}  -- Use the passed 'order' parameter for sorting
     LIMIT ${limit}
     OFFSET ${offset};
   `;
