@@ -34,6 +34,7 @@ export async function getModule(
         status_code: 200,
         message: "Modules not found",
         modules: [],
+       total_count: 0
       });
     }
 
@@ -42,6 +43,7 @@ export async function getModule(
       status_code: 200,
       message: "Modules fetched successfully",
       modules: result.rows,
+      total_count: result.count, 
     });
   } catch (error: any) {
 
