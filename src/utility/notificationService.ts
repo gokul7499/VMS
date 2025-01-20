@@ -4,8 +4,8 @@ import { sequelize } from '../config/instance';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
 import { EmailRecipient } from '../interfaces/email-recipient';
 // import { object } from 'zod';
-const config_db = process.env.CONFIG_DB || "qa_vms_configurator"
-const auth_db = process.env.AUTH_DB || "qa_vms_auth"
+const config_db = process.env.CONFIG_DB || "dev_vms_configurator"
+const auth_db = process.env.AUTH_DB || "dev_vms_auth"
 
 function getNotificationUrl(): string | undefined {
     return process.env.NOTIFICATION_URL || 'https://v4-dev.simplifysandbox.net/notification';
@@ -96,6 +96,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     const data = payload.payload;
     if (payload.recipientEmail.length > 0) {
         payload.recipientEmail.forEach((element: EmailRecipient) => {
+            const senderEmail = payload.payload?.from_email || "noreply@simplifyvms.com";
             Object.assign(data, {
                 fullName: `${element.first_name} ${element.middle_name || ""} ${element.last_name}`,
                 created_by_first_name: userData.first_name,
@@ -122,7 +123,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
                             }
                         ],
                         sender: {
-                            email: "noreply@simplifyvms.com"
+                            email: senderEmail
                         }
                     }
                 },

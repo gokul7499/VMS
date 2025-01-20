@@ -210,6 +210,7 @@ export async function updateCheckList(
                 latest: true,
                 created_by: userId,
                 modified_by: userId,
+                updated_by: userId,
                 created_on: new Date(),
                 updated_on: new Date(),
             },
@@ -238,7 +239,7 @@ export async function updateCheckList(
         const taskCategoryMappings = task_category_configs.map((config) => ({
             checklist_version_id: newChecklist.version_id,
             checklist_entity_id: entity_id,
-            sequence_number: config.seq_no,
+            seq_no: config.seq_no,
             is_mandatory: config.is_mandatory ?? true,
             configuration: JSON.stringify(config.configuration),
             dependency: config.dependency ? JSON.stringify(config.dependency) : null,
