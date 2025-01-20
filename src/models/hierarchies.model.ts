@@ -6,7 +6,7 @@ import { hierarchiesData } from "../interfaces/hierarchies.interface";
 interface TimeSheetConfigModel extends Model<hierarchiesData> {
   setTime_zones(time_zonesIds: string[]): Promise<void>;
 }
-class hierarchies extends Model {
+class Hierarchies extends Model {
   parent_hierarchy_id: any;
   name: any;
   id: any;
@@ -14,7 +14,7 @@ class hierarchies extends Model {
   rate_model!: any;
   program_id!: string;
 }
-hierarchies.init(
+Hierarchies.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -141,4 +141,4 @@ hierarchies.init(
 
 sequelize.sync();
 
-export default hierarchies;
+export default Hierarchies;

@@ -252,106 +252,6 @@ export const updateWorkflowStatus = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
-        // Iterate over each update
-        // for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
-        //     let levelFound = false;
-
-        //     levels = await Promise.all(
-        //         levels.map(async (level: any) => {
-        //             if (level.placement_order === placement_order) {
-        //                 levelFound = true;
-        //                 updatedLevels = true;
-
-        //                 const updatedRecipientTypes = await Promise.all(
-        //                     level.recipient_types.map(async (recipient: any) => {
-        //                         if (behavior === "any") {
-        //                             const history = await WorkflowStatusHistory.create({
-        //                                 job_workflow_id: id,
-        //                                 placement_order,
-        //                                 new_status,
-        //                                 program_id,
-        //                                 notes: notes || "",
-        //                                 created_on: new Date(),
-        //                                 user_id: user_id,
-        //                             });
-        //                             // If `behavior: any` is present, mark all recipients as "approved"
-        //                             return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
-        //                         }
-
-        //                         if (user_id) {
-
-        //                             // If the recipient has a `replaced_by` field, match `user_id` directly
-        //                             if (recipient.replaced_by && recipient.replaced_by === user_id) {
-        //                                 const history = await WorkflowStatusHistory.create({
-        //                                     job_workflow_id: id,
-        //                                     placement_order,
-        //                                     new_status,
-        //                                     program_id,
-        //                                     notes: notes || "",
-        //                                     created_on: new Date(),
-        //                                     user_id: user_id,
-        //                                 });
-        //                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
-        //                             }
-
-        //                             // If the recipient does not have `replaced_by`, check `meta_data`
-        //                             if (!recipient.replaced_by && recipient.meta_data) {
-        //                                 const matchesUser = Object.values(recipient.meta_data).includes(user_id);
-        //                                 if (matchesUser) {
-        //                                     const history = await WorkflowStatusHistory.create({
-        //                                         job_workflow_id: id,
-        //                                         placement_order,
-        //                                         new_status,
-        //                                         program_id,
-        //                                         notes: notes || "",
-        //                                         created_on: new Date(),
-        //                                         user_id: user_id,
-        //                                     });
-        //                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
-        //                                 }
-        //                             }
-        //                         } else {
-        //                             // For bulk updates, update all recipients with new status
-        //                             return { ...recipient, status: new_status, modified_on: new Date(), };
-        //                         }
-        //                         return recipient;
-        //                     })
-        //                 );
-
-        //                 // Determine the level status
-        //                 const allApproved = updatedRecipientTypes.every(
-        //                     (recipient: any) => recipient.status === "approved"
-        //                 );
-        //                 return {
-        //                     ...level,
-        //                     status: allApproved ? "completed" : "pending",
-        //                     recipient_types: updatedRecipientTypes,
-        //                 };
-        //             }
-        //             return level;
-        //         })
-        //     );
-        //     if (!levelFound) {
-        //         throw new Error(`Placement order ${placement_order} not found in levels.`);
-        //     }
-        //     const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
-        //     const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-        //     const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
-
-        //     workflow.status = workflowStatus;
-        //     workflow.is_updated = is_updatedFlag;
-        //     console.log("Workflow Status:", workflowStatus);
-        //     await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
-
-        //     let allPayload = {
-        //         hierarchy_ids: hierarchy_ids,
-        //         program_id: program_id
-        //     }
-        //     if (workflowStatus === "completed") {
-        //         let eventCode = await getEventsCode(workflow)
-        //         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-        //     }
-        // }
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
             let levelFound = false;
 
@@ -520,11 +420,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     (async () => {
         if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
             // Fetch manager details
+
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
                 user_type: user.userType,
                 fullName: managerData.data.first_name,
                 job_id: updates[0].job_id,
+                job_name:workflow.event_title
             };
             const recipientEmailArray: EmailRecipient[] = [];
 
@@ -608,6 +510,18 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
+    } else if (flow_type == "Approval" && events === "create_assignment") {
+        let response = {
+            eventCode: "ASSIGNMENT_APPROVAL_COMPLETE",
+            user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else if (flow_type == "Approval" && events === "update_assignment") {
+        let response = {
+            eventCode: "ASSIGNMENT_MODIFIED_APPROVAL_COMPLETE",
+            user_type: ['msp', 'vendor']
+        }
+        return response;
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -621,7 +535,6 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
-
     } if (flow_type == "Review" && events === "create_job") {
         let response = {
             eventCode: "JOB_REVIEW_REJECT",
@@ -634,15 +547,12 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
-
     } else if (flow_type == "Review" && events === "update_job") {
         let response = {
             eventCode: "JOB_UPDATE_REVIEW_REJECT",
             user_type: ['msp']
         }
         return response;
-
-
     } else if (flow_type == "Review" && events === "create_offer") {
         let response = {
             eventCode: "OFFER_REVIEW_REJECT",
@@ -685,6 +595,18 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
         let response = {
             eventCode: "REHIRE_REJECT",
+            user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else  if (flow_type == "Approval" && events === "create_assignment") {
+        let response = {
+            eventCode: "ASSIGNMENT_APPROVAL_REJECTED",
+            user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else  if (flow_type == "Approval" && events === "update_assignment") {
+        let response = {
+            eventCode: "ASSIGNMENT_MODIFIED_REJECTED",
             user_type: ['msp', 'vendor']
         }
         return response;
@@ -2381,6 +2303,7 @@ ORDER BY
             }
         }
         (async () => {
+
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
         })();
         return reply.status(200).send({
@@ -3440,110 +3363,110 @@ export const getModuleEvent = async (
         });
     }
 };
-export const sendSequencialNotification = async (
-    request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
-    reply: FastifyReply
-) => {
-    const workflow = request.body as NotificationPayload;
-    console.log(workflow);
+// export const sendSequencialNotification = async (
+//     request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
+//     reply: FastifyReply
+// ) => {
+//     const workflow = request.body as NotificationPayload;
+//     console.log(workflow);
 
-    const traceId = generateCustomUUID();
-    const { program_id, job_workflow_id } = request.params;
+//     const traceId = generateCustomUUID();
+//     const { program_id, job_workflow_id } = request.params;
 
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
+//     const authHeader = request.headers.authorization;
+//     if (!authHeader?.startsWith('Bearer ')) {
+//         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+//     }
 
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
-    try {
-        let query: any[] = await sequelize.query(`select * from workflow where id=:job_workflow_id;`, {
-            replacements: { job_workflow_id: job_workflow_id },
-            type: QueryTypes.SELECT
-        });
-        let workflowData = query[0]
-        const matchedLevel = workflowData.levels.slice(1).find((level: any) => level.placement_order == workflow.placement_order);
-        console.log(matchedLevel);
+//     const token = authHeader.split(' ')[1];
+//     const user: any = await decodeToken(token);
+//     if (!user) {
+//         return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+//     }
+//     try {
+//         let query: any[] = await sequelize.query(`select * from workflow where id=:job_workflow_id;`, {
+//             replacements: { job_workflow_id: job_workflow_id },
+//             type: QueryTypes.SELECT
+//         });
+//         let workflowData = query[0]
+//         const matchedLevel = workflowData.levels.slice(1).find((level: any) => level.placement_order == workflow.placement_order);
+//         console.log(matchedLevel);
 
-        let userIds: any = []
-        if (matchedLevel?.recipient_types) {
-            userIds = matchedLevel.recipient_types
-                .flatMap((recipient: any) => Object.values(recipient.meta_data || {}));
+//         let userIds: any = []
+//         if (matchedLevel?.recipient_types) {
+//             userIds = matchedLevel.recipient_types
+//                 .flatMap((recipient: any) => Object.values(recipient.meta_data || {}));
 
-            console.log("Extracted User IDs:", userIds);
-        }
-        const placementOrder = workflowData.placement_order;
+//             console.log("Extracted User IDs:", userIds);
+//         }
+//         const placementOrder = workflowData.placement_order;
 
-        // 1. Check if the log already exists in send-notification-logs
-        const existingLog = await sendNotificationModel.findOne({
-            where: {
-                program_id,
-                workflow_id: job_workflow_id,
-                placement_order: placementOrder,
+//         // 1. Check if the log already exists in send-notification-logs
+//         const existingLog = await sendNotificationModel.findOne({
+//             where: {
+//                 program_id,
+//                 workflow_id: job_workflow_id,
+//                 placement_order: placementOrder,
 
-            },
-        });
+//             },
+//         });
 
-        if (existingLog) {
-            return reply.status(200).send({ message: "Notification already sent for this placement order." });
-        }
-        const users = await getUserData(userIds, sequelize);
-        console.log(users);
+//         if (existingLog) {
+//             return reply.status(200).send({ message: "Notification already sent for this placement order." });
+//         }
+//         const users = await getUserData(userIds, sequelize);
+//         console.log(users);
 
 
-        if (!users || users.length === 0) {
-            return reply.status(404).send({ message: "No valid users found for the provided IDs." });
-        }
-        const recipientEmailList: EmailRecipient[] = users.map((user: any) => ({
-            id: user.id,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-        }));
+//         if (!users || users.length === 0) {
+//             return reply.status(404).send({ message: "No valid users found for the provided IDs." });
+//         }
+//         const recipientEmailList: EmailRecipient[] = users.map((user: any) => ({
+//             id: user.id,
+//             email: user.email,
+//             first_name: user.first_name,
+//             last_name: user.last_name,
+//         }));
 
-        let eventCode = await getTriggeredEventsCode(workflowData.flow_type, workflowData.events)
-        // 4. Create the notification payload
-        const notificationPayloads: NotificationDataPayload = {
-            program_id,
-            traceId,
-            eventCode: eventCode,
-            recipientEmail: recipientEmailList,
-            payload: {
-                job_id: workflow.job_id,
-                user_type: user?.userType,
-            },
-            token,
-            userId: user?.sub ?? "",
-        };
+//         let eventCode = await getTriggeredEventsCode(workflowData.flow_type, workflowData.events)
+//         // 4. Create the notification payload
+//         const notificationPayloads: NotificationDataPayload = {
+//             program_id,
+//             traceId,
+//             eventCode: eventCode,
+//             recipientEmail: recipientEmailList,
+//             payload: {
+//                 job_id: workflow.job_id,
+//                 user_type: user?.userType,
+//             },
+//             token,
+//             userId: user?.sub ?? "",
+//         };
 
-        // 5. Send notifications
-        await sendNotification(notificationPayloads);
-        console.log("notificationPayloads", notificationPayloads);
+//         // 5. Send notifications
+//         await sendNotification(notificationPayloads);
+//         console.log("notificationPayloads", notificationPayloads);
 
-        // 6. Log the notification status
-        await sendNotificationModel.create({
-            program_id,
-            workflow_id: job_workflow_id,
-            placement_order: placementOrder,
-            created_by: user.sub,
+//         // 6. Log the notification status
+//         await sendNotificationModel.create({
+//             program_id,
+//             workflow_id: job_workflow_id,
+//             placement_order: placementOrder,
+//             created_by: user.sub,
 
-        });
-        reply.status(200).send({ message: "Notification sent successfully and logged." });
-    } catch (error) {
+//         });
+//         reply.status(200).send({ message: "Notification sent successfully and logged." });
+//     } catch (error) {
 
-        console.error(error);
-        reply.status(500).send({
-            status_code: 500,
-            message: 'An error occurred while creating job workflow.',
-            trace_id: traceId,
-            error: (error as any).message,
-        });
-    }
-};
+//         console.error(error);
+//         reply.status(500).send({
+//             status_code: 500,
+//             message: 'An error occurred while creating job workflow.',
+//             trace_id: traceId,
+//             error: (error as any).message,
+//         });
+//     }
+// };
 
 async function getTriggeredEventsCode(flow_type: any, event: any) {
     if (flow_type == "Approval" && event === "create_job") {
@@ -3562,6 +3485,10 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return "COUNTER_OFFER_REVIEW_FIRST";
     } else if (flow_type == "Approval" && event === "counter_offer") {
         return "COOUTER_OFFER_APPROVAL_FIRST";
+    } else if (flow_type == "Approval" && event === "create_assignment") {
+        return "ASSIGNMENT_APPROVAL_REQUEST";
+    } else  if (flow_type == "Approval" && event === "update_assignment") {
+        return "ASSIGNMENT_MODIFIED_APPROVAL";
     } else {
         throw new Error(`Event code not found for event: ${event}`);
     }
