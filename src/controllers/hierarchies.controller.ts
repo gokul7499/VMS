@@ -304,7 +304,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     );
 
     if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
-      console.log("ghhhh", hierarchie);
       const customFields = hierarchie.custom_fields.map((field: { id: any; value: any; }) => ({
         program_id,
         customfield_id: field.id,
