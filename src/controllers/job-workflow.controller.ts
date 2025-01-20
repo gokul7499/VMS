@@ -522,6 +522,12 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
+    } else  if (flow_type == "Approval" && events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_INCREASE_APPROVED",
+            user_type: ['msp']
+        }
+        return response;
     } else {
         throw new Error(`Event code not found for event: ${events}`);
     }
@@ -608,6 +614,12 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
         let response = {
             eventCode: "ASSIGNMENT_MODIFIED_REJECTED",
             user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else  if (flow_type == "Approval" && events === "assignment_budget_adjustment") {
+        let response = {
+            eventCode: "BUDGET_INCREASE_REJECTED",
+            user_type: ['msp']
         }
         return response;
     } else {
@@ -3489,6 +3501,8 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return "ASSIGNMENT_APPROVAL_REQUEST";
     } else  if (flow_type == "Approval" && event === "update_assignment") {
         return "ASSIGNMENT_MODIFIED_APPROVAL";
+    } else if (flow_type == "Approval" && event === "assignment_budget_adjustment") {
+        return "BUDGET_INCREASED_APPROVAL";
     } else {
         throw new Error(`Event code not found for event: ${event}`);
     }
