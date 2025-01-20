@@ -647,6 +647,7 @@ export const vendorDataQuery = `
 SELECT
     pv.id,
     pv.vendor_name,
+    pv.display_name,
     pv.vendor_type,
     pv.status,
     pv.supl_ref_id,
@@ -2242,9 +2243,11 @@ export const vendorMarkup = `
 export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
+  ruleGroupName?: string,
   isEnabled?: string,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
+  order: string = 'created_on DESC' 
 ) => {
   const searchConditions: string[] = ['is_deleted = FALSE'];
 
@@ -2254,6 +2257,10 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
   if (ruleCategory) {
     searchConditions.push(`rule_category = "${ruleCategory}"`);
+  }
+
+  if (ruleGroupName) {
+    searchConditions.push(`rule_group_name LIKE "%${ruleGroupName}%"`);
   }
 
   if (isEnabled !== undefined) {
@@ -2278,6 +2285,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
         COUNT(*) OVER() AS total_count
     FROM timesheet_expense_rule_groups
     ${whereClause}
+    ORDER BY ${order}  -- Use the passed 'order' parameter for sorting
     LIMIT ${limit}
     OFFSET ${offset};
   `;
@@ -2336,4 +2344,11 @@ export const rateCardMinRateMaxRate = `
     SELECT *
     FROM fallback_matches
     WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
+`;
+
+export const getInvoiceConfigByHierarchyId = `
+    SELECT * 
+    FROM invoice_config 
+    WHERE program_id = :program_id 
+      AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
 `;

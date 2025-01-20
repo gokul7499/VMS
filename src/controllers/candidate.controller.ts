@@ -10,6 +10,9 @@ import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { fetchUnavailableCandidates } from "../utility/submission-candidate";
+import JobCategoryModel from "../models/job-category.model";
+import IndustriesModel from "../models/labour-category.model";
+import JobTemplateModel from "../models/job-template.model";
 
 export async function createCandidate(
     request: FastifyRequest,
@@ -300,13 +303,23 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'vendor_id']
+                exclude: ['country_id', 'vendor_id','job_category_id','title']
             },
             include: [
                 {
                     model: ProgramVendor,
                     as: 'vendor',
                     attributes: ['id', 'vendor_name'],
+                },
+                {
+                    model: IndustriesModel,
+                    as: 'labour_category',
+                    attributes: ['id', 'name'],
+                },
+                {
+                    model: JobTemplateModel,
+                    as: 'job_templates',
+                    attributes: ['id', 'template_name'],
                 },
                 {
                     model: countriesModel,

@@ -1,7 +1,5 @@
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-const config_db = process.env.CONFIG_DB || "dev_vms_configurator";
-
 class JobTempletRepository {
   async getJobTemplateByHierarchies(program_id: string, hierarchy_ids: string[]) {
     const query = `
@@ -153,29 +151,21 @@ class JobTempletRepository {
     job_type?: string,
     name?: string
   ) {
-    const hierarchyCondition = hierarchyIdsArray.length > 0
-      ? `AND job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`
-      : '';
+    const conditions = [
+      hierarchyIdsArray.length > 0 && `job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`,
+      laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
+      qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
+      job_type && `job_templates.job_type = ?`,
+      name && `job_templates.template_name LIKE ?`,
+    ].filter(Boolean).join(' AND ');
 
-    const laborCategoryCondition = laborCategoryIdsArray.length > 0
-      ? `AND job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`
-      : '';
-
-    const qualificationCondition = qualificationIdsArray.length > 0
-      ? `AND qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`
-      : '';
-
-    const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
-    const jobTemplateCondition = name ? `AND job_templates.template_name LIKE ?` : '';
-
-    const paginationCondition = limit && offset
-      ? `LIMIT ? OFFSET ?`
-      : '';
+    const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
 
     const query = `
         SELECT
           job_templates.template_name,
           MIN(job_templates.id) AS id,
+          MIN(job_templates.job_id) AS job_id,
           MIN(job_templates.is_shift_rate) AS is_shift_rate,
           MIN(job_templates.program_id) AS program_id,
           MIN(job_templates.job_type) AS job_type,
@@ -184,14 +174,22 @@ class JobTempletRepository {
           MIN(job_category.title) AS job_category,
           MIN(labour_category.name) AS labour_category_name,
           MIN(labour_category.id) AS labour_category_id,
-          MIN(hierarchies.name) AS hierarchy,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', unique_hierarchies.id,
+              'name', unique_hierarchies.name
+            )
+          ) AS hierarchy,
           MIN(qualifications.name) AS qualification_name,
           MIN(qualifications.id) AS qualification_id
         FROM job_templates
         INNER JOIN job_template_hierarchies
           ON job_templates.id = job_template_hierarchies.job_temp_id
-        INNER JOIN hierarchies
-          ON job_template_hierarchies.hierarchy = hierarchies.id
+        INNER JOIN (
+          SELECT DISTINCT id, name
+          FROM hierarchies
+        ) unique_hierarchies
+          ON job_template_hierarchies.hierarchy = unique_hierarchies.id
         LEFT JOIN job_category
           ON job_templates.category = job_category.id
         LEFT JOIN labour_category
@@ -204,41 +202,24 @@ class JobTempletRepository {
               JSON_QUOTE(qualifications.id)
           )
         WHERE job_templates.program_id = ?
-        ${hierarchyCondition}
-        ${laborCategoryCondition}
-        ${qualificationCondition}
-        ${jobTypeCondition}
-        ${jobTemplateCondition}
+        ${conditions ? `AND ${conditions}` : ''}
         GROUP BY job_templates.template_name
         ORDER BY job_templates.template_name
-        ${paginationCondition};
-      `;
+        ${pagination};
+    `;
 
     const replacements: (string | number)[] = [program_id];
-    if (hierarchyIdsArray.length > 0) {
-      replacements.push(...hierarchyIdsArray);
-    }
-    if (laborCategoryIdsArray.length > 0) {
-      replacements.push(...laborCategoryIdsArray);
-    }
-    if (qualificationIdsArray.length > 0) {
-      replacements.push(...qualificationIdsArray);
-    }
-    if (job_type) {
-      replacements.push(job_type);
-    }
-    if (name) {
-      replacements.push(`%${name}%`);
-    }
-    if (limit && offset) {
-      replacements.push(limit, offset);
-    }
+    if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray);
+    if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
+    if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
+    if (job_type) replacements.push(job_type);
+    if (name) replacements.push(`%${name}%`);
+    if (limit && offset) replacements.push(limit, offset);
 
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
     return data;
   }
 
@@ -275,6 +256,7 @@ class JobTempletRepository {
         job_templates.job_submitted_count,
         job_templates.is_shift_rate,
         job_templates.is_checklist_enable,
+        job_templates.ot_exempt,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -310,8 +292,6 @@ class JobTempletRepository {
       type: QueryTypes.SELECT,
     });
   }
-
-
 
   async getJobTempletById(program_id: string, id: string) {
     const query = `
@@ -464,8 +444,6 @@ class JobTempletRepository {
     });
     return jobTemplate;
   }
-
-
 
   async managerQuery(job_manager_id: string) {
     const managerData = await sequelize.query<{

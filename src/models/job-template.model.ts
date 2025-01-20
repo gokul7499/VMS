@@ -265,7 +265,11 @@ JobTemplateModel.init(
         job_id:{
             type:DataTypes.STRING,
             allowNull:true
-        }
+        },
+        ot_exempt: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
     },
     {
         sequelize,
