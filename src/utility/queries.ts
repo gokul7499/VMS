@@ -650,6 +650,7 @@ SELECT
     pv.vendor_type,
     pv.status,
     pv.supl_ref_id,
+    pv.is_job_auto_opt_in,
     pv.vendor_logo, -- Added vendor_logo here
     (
         SELECT JSON_ARRAYAGG(
