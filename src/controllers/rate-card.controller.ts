@@ -72,7 +72,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             page?: number;
             limit?: number;
             modified_on?: string;
-            is_enabled?: boolean;
+            is_enabled?: String;
             name?: string;
         };
 
@@ -84,10 +84,16 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             is_deleted: false,
         };
         if (modified_on) {
-            whereConditions.modified_on = modified_on;
-        }
+            const dateRange = modified_on.split(',');
+            if (dateRange.length === 2) {
+              const startDate = parseFloat(dateRange[0].trim());
+              const endDate = parseFloat(dateRange[1].trim());
+              whereConditions.modified_on = { [Op.between]: [startDate, endDate] };
+            }
+          }
         if (is_enabled !== undefined) {
-            whereConditions.is_enabled = is_enabled ? 1 : 0;
+            whereConditions.is_enabled = is_enabled === 'true'; 
+
         }
         let laborCategoryIds: string[] = [];
         if (name) {
@@ -143,7 +149,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             .filter((id) => id !== null);
 
         const laborCategories = await IndustriesModel.findAll({
-            where: { id: laborCategoryIdsFromRateCards },
+            where: { id: laborCategoryIdsFromRateCards,is_enabled: true },
             attributes: ['id', 'name', 'is_enabled'],
         });
 
