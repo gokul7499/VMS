@@ -100,7 +100,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'display_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -240,37 +240,69 @@ export async function getProgramVendors(
 export async function saveProgramVendor(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
-) {console.log("$$$$$$$$$$$4")
+) {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+    }
+
+
+    const token = authHeader.split(' ')[1];
+    let users: any = await decodeToken(token);
+
+    if (!users) {
+        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
+    }
+
+    console.log("$$$$$$$$$$$4")
     const { tenant, user,'user-group-mapping':userGroupMapping } = request.body as any;
     console.log("%%%%%%%%%%%%%%%%%%",request.body)
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
-
     if (!program_id) {
         return reply.status(400).send({
             status_code: 400,
             message: 'Program ID is required.',
-            trace_id: traceId,
+            trace_id:traceId,
         });
     }
 
+    logger(
+        {
+            trace_id:traceId,
+            actor: {
+                user_name: users?.preferred_username,
+                user_id: users?.sub,
+            },
+            data: request.body,
+            eventname: "creating programVendor",
+            status: "success",
+            description: `Creating programVendor for ${program_id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false
+        },
+        ProgramVendor
+    );
     try {
         if (!tenant || !user) {
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Tenant or User information is missing.',
-                trace_id: traceId,
+                trace_id:traceId,
             });
         }
 
         const vendor = {
             vendor_name: tenant.name,
-            display_name: tenant.display_name,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             addresses: user.addresses,
             background_logo_color: tenant.background_logo_color,
-        };
+        }
 
         const contact = [
             {
@@ -278,34 +310,74 @@ export async function saveProgramVendor(
                 middle_name: user.middle_name,
                 last_name: user.last_name,
                 email: user.email,
-                addresses: user.addresses,
-            },
-        ];
+                addresses: user.addresses
+            }
+        ]
 
         const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
-        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: 'pending', program_id, vendor_id: programVendors.id });
+        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: "pending", program_id, vendor_id: programVendors.id });
         await UserMapping.create({id:userGroupMapping.id, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         console.log("########3",userGroupMapping)
         await ProgramVendor.update(
             { user_id: userData.id, contact },
             { where: { id: programVendors.id, program_id } }
+
         );
 
-        return reply.status(201).send({
+        reply.status(201).send({
             status_code: 201,
             message: 'ProgramVendor created successfully.',
-            trace_id: traceId,
+            trace_id:traceId,
             id: programVendors.id,
         });
 
-    } catch (error: any) {
+        logger(
+            {
+                trace_id:traceId,
+                actor: {
+                    user_name: users?.preferred_username,
+                    user_id: users?.sub,
+                },
+                data: request.body,
+                eventname: "create programVendor",
+                status: "success",
+                description: `create programVendor for ${program_id} successfully: ${programVendors.id}`,
+                level: 'success',
+                action: request.method,
+                url: request.url,
+                entity_id: program_id,
+                is_deleted: false
+            },
+            ProgramVendor
+        );
+
+    } catch (error:any) {
+        logger(
+            {
+                trace_id:traceId,
+                actor: {
+                    user_name: users?.preferred_username,
+                    user_id: users?.sub,
+                },
+                data: request.body,
+                eventname: "create programVendor",
+                status: "failed",
+                description: `create programVendor for ${program_id} failed`,
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                entity_id: program_id,
+                is_deleted: false
+            },
+            ProgramVendor
+        );
         console.log("Validation errors:", error.errors || error.message);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while saving ProgramVendor.',
-            trace_id: traceId,
-            error: error.message,
+            trace_id:traceId,
+            error: (error as any).message,
         });
     }
 };
