@@ -3,7 +3,7 @@ import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes } from "sequelize";
 import { sendNotification } from './notificationService';
 
-const config_db = process.env.CONFIG_DB ?? "qa_vms_configurator";
+const config_db = process.env.CONFIG_DB ?? "dev_vms_configurator";
 const config_base_url = process.env.CONFIG_URL ?? "http://v4-qanlb.simplifysandbox.net:8000"
 
 // get all user associted to the hierarchy for the same program

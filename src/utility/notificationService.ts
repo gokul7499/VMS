@@ -4,7 +4,7 @@ import { sequelize } from '../config/instance';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
 import { EmailRecipient } from '../interfaces/email-recipient';
 // import { object } from 'zod';
-const config_db = process.env.CONFIG_DB || "qa_vms_configurator"
+const config_db = process.env.CONFIG_DB || "dev_vms_configurator"
 const auth_db = process.env.AUTH_DB || "dev_vms_auth"
 
 function getNotificationUrl(): string | undefined {
