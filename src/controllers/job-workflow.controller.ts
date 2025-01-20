@@ -18,6 +18,7 @@ import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from
 import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 import User from "../models/user.model";
+import { updateJob } from '../utility/job-status-service';
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -871,6 +872,11 @@ export const rejectLevel = async (
 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
+        for (const update of updates) {
+            if (update.job_id) {
+              await updateJob(update.job_id, program_id, "REJECTED", token);
+            }
+        }
 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)

@@ -176,6 +176,10 @@ class JobTempletRepository {
           MIN(job_category.title) AS job_category,
           MIN(labour_category.name) AS labour_category_name,
           MIN(labour_category.id) AS labour_category_id,
+          JSON_OBJECT(
+            'id', ph.id,
+            'name', ph.name
+          ) AS primary_hierarchy,
           JSON_ARRAYAGG(
             JSON_OBJECT(
               'id', unique_hierarchies.id,
@@ -198,6 +202,8 @@ class JobTempletRepository {
           ON job_templates.labour_category = labour_category.id
         LEFT JOIN job_template_qualification
           ON job_templates.id = job_template_qualification.job_temp_id
+        LEFT JOIN hierarchies AS ph
+          ON job_templates.primary_hierarchy = ph.id  
         LEFT JOIN qualifications
           ON JSON_CONTAINS(
               JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
@@ -205,7 +211,7 @@ class JobTempletRepository {
           )
         WHERE job_templates.program_id = ?
         ${conditions ? `AND ${conditions}` : ''}
-        GROUP BY job_templates.template_name
+        GROUP BY job_templates.template_name, ph.id, ph.name
         ORDER BY job_templates.template_name
         ${pagination};
     `;
@@ -222,6 +228,7 @@ class JobTempletRepository {
       replacements,
       type: QueryTypes.SELECT,
     });
+
     return data;
   }
 
