@@ -18,7 +18,7 @@ HierarchyCustomFieldModel.init(
     },
     program_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: Programs,
         key: 'id',

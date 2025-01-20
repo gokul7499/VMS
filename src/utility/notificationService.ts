@@ -96,6 +96,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
     const data = payload.payload;
     if (payload.recipientEmail.length > 0) {
         payload.recipientEmail.forEach((element: EmailRecipient) => {
+            const senderEmail = payload.payload?.from_email || "noreply@simplifyvms.com";
             Object.assign(data, {
                 fullName: `${element.first_name} ${element.middle_name || ""} ${element.last_name}`,
                 created_by_first_name: userData.first_name,
@@ -122,7 +123,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
                             }
                         ],
                         sender: {
-                            email: "noreply@simplifyvms.com"
+                            email: senderEmail
                         }
                     }
                 },

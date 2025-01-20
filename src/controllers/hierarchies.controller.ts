@@ -8,6 +8,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, vendorMarkup } from '../utility/queries';
+import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 
 interface HierarchyItem {
   support_email: any;
@@ -260,7 +261,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   if (!user) {
     return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
-  const userId = user?.sub
+  const userId = user?.sub;
   logger({
     trace_id: traceId,
     actor: { user_name: user?.preferred_username, user_id: userId },
@@ -277,6 +278,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
   const transaction = await sequelize.transaction();
   try {
+    // Check if hierarchy code already exists
     const codeExists = await HierarchiesModel.findOne({
       where: { code: hierarchyCode, program_id, is_deleted: false },
       transaction,
@@ -290,6 +292,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       });
     }
 
+    // Create the hierarchy record
     const newItem = await HierarchiesModel.create(
       {
         ...hierarchie,
@@ -299,6 +302,19 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       },
       { transaction }
     );
+
+    if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
+      const customFields = hierarchie.custom_fields.map((field: {
+        id: any; value: any; 
+}) => ({
+        program_id,
+        customfield_id: field.id,
+        value: field.value,
+        hierarchy_id: newItem.id,
+      }));
+      await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
+    }
+  
 
     await transaction.commit();
 
@@ -337,9 +353,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       url: request.url,
       entity_id: program_id,
       is_deleted: false,
-    },
-      HierarchiesModel
-    );
+    }, HierarchiesModel);
 
     console.error(error);
     return reply.status(500).send({
@@ -348,6 +362,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     });
   }
 }
+
 
 // const setAssociations = async (newItem: any, hierarchies: hierarchiesData, transaction: any) => {
 //   if (hierarchies.timezone_id && Array.isArray(hierarchies.timezone_id)) {
@@ -395,15 +410,32 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update({ ...hierarchiesData, modified_by: userId }, { transaction });
       }
 
+      if (hierarchiesData.custom_fields && hierarchiesData.custom_fields.length > 0) {
+        await HierarchyCustomFieldModel.destroy({
+          where: { hierarchy_id: hierarchy.id },
+          transaction
+        });
+      }
+
+      if (Array.isArray(hierarchiesData.custom_fields) && hierarchiesData.custom_fields.length > 0) {
+        const customFields = hierarchiesData.custom_fields.map((field: { id: any; value: any; }) => ({
+          program_id,
+          customfield_id: field.id,
+          value: field.value,
+          hierarchy_id: hierarchy.id,
+        }));
+        await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
+      }
+
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,
-        message: "hierarchies updated successfully",
+        message: "Hierarchy updated successfully",
         trace_id: traceId,
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('Error updating hierarchy:', error); // Add error logging
+      console.error('Error updating hierarchy:', error); 
       return reply.status(500).send({
         status_code: 500,
         message: "Failed to update hierarchies",
@@ -411,6 +443,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       });
     }
   } catch (error) {
+    console.error('Internal error:', error); 
     return reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",

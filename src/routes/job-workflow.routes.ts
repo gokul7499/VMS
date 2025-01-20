@@ -25,7 +25,7 @@ async function JobWorkFlowRoutes(fastify: FastifyInstance) {
     fastify.put('/replace-user/program/:program_id/job-workflow/:id', updateReplaceLevel);
     fastify.put('/imporsonate-user/program/:program_id/job-workflow/:id', imporsonateLevel);
     fastify.delete('/program/:program_id/job-workflow/:id', deleteJobWorkFlow);
-    fastify.get('/program/:program_id/workflow-approval', getWorkflowForJob);
+    // fastify.get('/program/:program_id/workflow-approval', getWorkflowForJob);
     fastify.get('/program/:program_id/update-workflow-approval', getUpdateWorkflowApprovals);
     fastify.get('/program/:program_id/get-module-event', getModuleEvent)
     // fastify.post("/program/:program_id/workflow-id/:job_workflow_id", sendSequencialNotification);
