@@ -2341,7 +2341,7 @@ export const rateCardMinRateMaxRate = `
 
 export const getInvoiceConfigByHierarchyId = `
     SELECT * 
-    FROM ${auth_db}.invoice_config 
+    FROM invoice_config 
     WHERE program_id = :program_id 
       AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
 `;
