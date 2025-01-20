@@ -41,6 +41,7 @@ export interface JobTemplateInterface {
   custom_fields:string[];
   job_id:string;
   is_checklist_enable:boolean;
+  ot_exempt:boolean
 }
 
 export interface JobMasterDataInterface {
