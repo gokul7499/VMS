@@ -118,7 +118,7 @@ export const getTimesheetExpenseRule = async (
             ],
             limit: pageSize,
             offset,
-            order: [['modified_on', 'DESC']],
+            order: [['created_on', 'DESC']],
         });
         const timesheetExpenseRules: TimesheetExpenseRuleData[] = await sequelize.query(getExpenseTypeAndRateType, {
             replacements: { program_id },
