@@ -1955,7 +1955,19 @@ export const hierarchie = `
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
-        ) AS default_unit_of_measure
+        ) AS default_unit_of_measure,
+        COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', custom_fields.id,
+                    'name', custom_fields.name
+                )
+            )
+            FROM hierarchies_custom_field
+            LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
+            WHERE hierarchies_custom_field.hierarchy_id = h.id
+            GROUP BY hierarchies_custom_field.id
+        ), JSON_ARRAY()) AS associate_hierarchy_ids
     FROM
         hierarchies h
     LEFT JOIN
@@ -2068,7 +2080,7 @@ WITH user_data AS (
          ) AS work_location_ids,
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
-         JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
+         JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
          JSON_OBJECT('name', u.time_zone_id) AS time_zone_id
   FROM user u
