@@ -100,7 +100,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group','display_name ', 'vendor_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -255,9 +255,7 @@ export async function saveProgramVendor(
         return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
-    console.log("$$$$$$$$$$$4")
     const { tenant, user,'user-group-mapping':userGroupMapping } = request.body as any;
-    console.log("%%%%%%%%%%%%%%%%%%",request.body)
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -318,7 +316,6 @@ export async function saveProgramVendor(
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
         const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: "pending", program_id, vendor_id: programVendors.id });
         await UserMapping.create({id:userGroupMapping.id, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
-        console.log("########3",userGroupMapping)
         await ProgramVendor.update(
             { user_id: userData.id, contact },
             { where: { id: programVendors.id, program_id } }
