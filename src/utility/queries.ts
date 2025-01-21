@@ -2060,6 +2060,7 @@ WITH user_data AS (
          CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
          CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
+         um.status,
          JSON_OBJECT(
          'id',u.id,
          'name',u.first_name
