@@ -484,15 +484,28 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
     const userId = user?.sub;
-
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-
+    if(user?.userType==='super_user'){
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Only vendor have permission to see candidates!",
+            candidates:[],
+            trace_id: traceId,
+        });
+    }
     const { program_id } = request.params as { program_id: string };
     const userData = await User.findOne({ where: { program_id, id: userId } });
-    const vendorId = userData?.tenant_id;
-
+    const vendorId = userData?.tenant_id || undefined;
+    if(vendorId===undefined){
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Only vendor have permission to see candidates!",
+            candidates:[],
+            trace_id: traceId,
+        }); 
+    }
     const {
         page = "1",
         limit = "10",
