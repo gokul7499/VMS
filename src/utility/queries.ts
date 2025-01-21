@@ -2248,6 +2248,7 @@ AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
+
 export const vendorMarkup = `
   SELECT
         vmc.markups,
