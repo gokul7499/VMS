@@ -26,7 +26,7 @@ JobTemplateCustomField.init(
             },
         },
         value:{
-            type:DataTypes.STRING
+            type:DataTypes.JSON
         },
         program_id: {
             type: DataTypes.UUID,

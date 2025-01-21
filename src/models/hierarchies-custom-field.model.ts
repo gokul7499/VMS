@@ -33,7 +33,7 @@ HierarchyCustomFieldModel.init(
       },
     },
     value: {
-      type: DataTypes.STRING,
+      type: DataTypes.JSON,
       allowNull: true,
     },
     created_on: {
