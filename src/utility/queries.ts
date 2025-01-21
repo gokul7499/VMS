@@ -2293,10 +2293,11 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
+  ruleTypeName?:string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
-  order: string = 'created_on DESC' 
+  order: string = 'created_on DESC'
 ) => {
   const searchConditions: string[] = ['is_deleted = FALSE'];
 
@@ -2315,29 +2316,53 @@ export const fetchTimesheetExpenseRuleGroups = async (
   if (isEnabled !== undefined) {
     searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
   }
+  if (ruleTypeName) {
+    const ruleTypeNames = ruleTypeName.split(',').map((type) => type.trim());
+    const ruleTypeCondition = ruleTypeNames
+      .map((type) => `FIND_IN_SET("${type}", (
+          SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
+          FROM timesheet_expense_rules ter
+          WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+      ))`)
+      .join(' OR ');
+    searchConditions.push(`(${ruleTypeCondition})`);
+  }
+
 
   const whereClause = searchConditions.length ? `WHERE ${searchConditions.join(' AND ')}` : '';
 
   const query = `
-    SELECT
-        timesheet_expense_rule_groups.*,  
-        COALESCE((
-            SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', timesheet_expense_rules.id,
-                    'rule_name', timesheet_expense_rules.rule_name
-                )
-            )
-            FROM timesheet_expense_rules
-            WHERE JSON_CONTAINS(timesheet_expense_rule_groups.timesheet_expense_rules, JSON_QUOTE(timesheet_expense_rules.id))
-        ), JSON_ARRAY()) AS timesheet_expense_rules,
-        COUNT(*) OVER() AS total_count
-    FROM timesheet_expense_rule_groups
-    ${whereClause}
-    ORDER BY ${order}  -- Use the passed 'order' parameter for sorting
-    LIMIT ${limit}
-    OFFSET ${offset};
-  `;
+  SELECT
+      tsg.*,
+      COALESCE(
+          ( 
+              SELECT JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                      'id', ter.id,
+                      'rule_name', ter.rule_name
+                    
+                  )
+              )
+              FROM timesheet_expense_rules ter
+              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+          ),
+          JSON_ARRAY()
+      ) AS timesheet_expense_rules,
+      COALESCE(
+          (
+              SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
+              FROM timesheet_expense_rules ter
+              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+          ),
+          ''
+      ) AS rule_type_name,
+      COUNT(*) OVER() AS total_count
+  FROM timesheet_expense_rule_groups tsg
+  ${whereClause}
+  ORDER BY ${order}
+  LIMIT ${limit}
+  OFFSET ${offset};
+`;
 
   const [ruleGroups] = await sequelize.query(query) as any[];
   const totalRecords = ruleGroups.length > 0 ? ruleGroups[0].total_count : 0;
