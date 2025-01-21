@@ -2053,7 +2053,6 @@ WITH user_data AS (
          u.role_id,
          u.title,
          u.sso_id,
-         u.status,
          u.contacts,
          u.addresses,
          u.time_zone_id,
