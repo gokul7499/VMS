@@ -304,7 +304,9 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     );
 
     if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
-      const customFields = hierarchie.custom_fields.map((field: { id: any; value: any; }) => ({
+      const customFields = hierarchie.custom_fields.map((field: {
+        id: any; value: any; 
+}) => ({
         program_id,
         customfield_id: field.id,
         value: field.value,
@@ -408,15 +410,32 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
         await hierarchy.update({ ...hierarchiesData, modified_by: userId }, { transaction });
       }
 
+      if (hierarchiesData.custom_fields && hierarchiesData.custom_fields.length > 0) {
+        await HierarchyCustomFieldModel.destroy({
+          where: { hierarchy_id: hierarchy.id },
+          transaction
+        });
+      }
+
+      if (Array.isArray(hierarchiesData.custom_fields) && hierarchiesData.custom_fields.length > 0) {
+        const customFields = hierarchiesData.custom_fields.map((field: { id: any; value: any; }) => ({
+          program_id,
+          customfield_id: field.id,
+          value: field.value,
+          hierarchy_id: hierarchy.id,
+        }));
+        await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
+      }
+
       await transaction.commit();
       return reply.status(200).send({
         status_code: 200,
-        message: "hierarchies updated successfully",
+        message: "Hierarchy updated successfully",
         trace_id: traceId,
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('Error updating hierarchy:', error); // Add error logging
+      console.error('Error updating hierarchy:', error); 
       return reply.status(500).send({
         status_code: 500,
         message: "Failed to update hierarchies",
@@ -424,6 +443,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       });
     }
   } catch (error) {
+    console.error('Internal error:', error); 
     return reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",

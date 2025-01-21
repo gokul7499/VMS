@@ -13,6 +13,7 @@ import { fetchUnavailableCandidates } from "../utility/submission-candidate";
 import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
+import User from "../models/user.model";
 
 export async function createCandidate(
     request: FastifyRequest,
@@ -145,6 +146,13 @@ export async function getAllCandidate(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -167,8 +175,6 @@ export async function getAllCandidate(
             updatedAt,
             available_candidate,
             job_id,
-          
-
             ...filters
         } = request.query as any;
 
@@ -205,6 +211,7 @@ export async function getAllCandidate(
                 const unavailableCandidateIds = await fetchUnavailableCandidates(
                     program_id,
                     job_id,
+                    token,
                     traceId
                 );
                 whereClause.id = { [Op.notIn]: unavailableCandidateIds };
@@ -230,7 +237,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on',"state_national_id","do_not_rehire_notes","do_not_rehire_reason","do_not_rehire"
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -257,10 +264,10 @@ export async function getAllCandidate(
                     vendor_name: cand.vendor.vendor_name
                 } : null,
                 modified_on: cand.modified_on,
-                state_national_id:cand.state_national_id,
-                do_not_rehire_notes:cand.do_not_rehire_notes,
-                do_not_rehire_reason:cand.do_not_rehire,
-                do_not_rehire:cand.do_not_rehire
+                state_national_id: cand.state_national_id,
+                do_not_rehire_notes: cand.do_not_rehire_notes,
+                do_not_rehire_reason: cand.do_not_rehire,
+                do_not_rehire: cand.do_not_rehire
             };
         });
 
@@ -278,13 +285,13 @@ export async function getAllCandidate(
             trace_id: traceId,
         });
 
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error fetching candidates:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error:error.message
+            error: error.message
         });
     }
 }
@@ -303,7 +310,7 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'vendor_id','job_category_id','title']
+                exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
             },
             include: [
                 {
@@ -361,16 +368,16 @@ export async function updateCandidateByIdAndProgramId(
         const updates = request.body as candidateInterface;
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({...updates,modified_by:userId}, {
+        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId }, {
             where: {
                 program_id,
                 id,
@@ -417,18 +424,20 @@ export async function deleteCandidateByIdAndProgramId(
         const { id, program_id } = request.params as { id: string; program_id: string };
 
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-       
+
         const [updatedRows] = await candidateModel.update(
-            { is_deleted: true,
-              modified_by: userId,},
+            {
+                is_deleted: true,
+                modified_by: userId,
+            },
             {
                 where: {
                     id,
@@ -462,4 +471,151 @@ export async function candidateSearch(request: FastifyRequest, reply: FastifyRep
     const searchFields = ['first_name', 'primary_email'];
     const responseFields = ['first_name', 'primary_email'];
     return baseSearch(request, reply, candidateModel, searchFields, responseFields);
+}
+
+export async function getCandidates(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+    const userId = user?.sub;
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+
+    const { program_id } = request.params as { program_id: string };
+    const userData = await User.findOne({ where: { program_id, id: userId } });
+    const vendorId = userData?.tenant_id;
+
+    const {
+        page = "1",
+        limit = "10",
+        sort = "desc",
+        candidate_id,
+        first_name,
+        middle_name,
+        last_name,
+        name,
+        title,
+        is_active,
+        worker_type_id,
+        availability_date,
+        updatedAt,
+        available_candidate,
+        job_id,
+        vendor_name,
+        ...filters
+    } = request.query as any;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
+
+    const whereClause: any = {
+        vendor_id: vendorId,
+        is_deleted: false,
+        ...filters
+    };
+
+    if (candidate_id) whereClause.candidate_id = candidate_id;
+    if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
+    if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
+    if (title) whereClause.title = { [Op.like]: `%${title}%` };
+    if (is_active !== undefined) whereClause.is_active = is_active === 'true';
+    if (worker_type_id) whereClause.worker_type_id = worker_type_id;
+    if (availability_date) whereClause["preferences.availability_date"] = availability_date;
+    if (updatedAt) whereClause.updatedAt = updatedAt;
+
+    if (available_candidate === "true" && job_id) {
+        try {
+            const unavailableCandidateIds = await fetchUnavailableCandidates(program_id, job_id, token, traceId);
+            whereClause.id = { [Op.notIn]: unavailableCandidateIds };
+        } catch (error: any) {
+            return reply.status(500).send({
+                status_code: 500,
+                trace_id: traceId,
+                message: "Error fetching unavailable candidates from sourcing service",
+                error: error.message,
+            });
+        }
+    }
+
+    const includeClause = [
+        {
+            model: ProgramVendor,
+            as: 'vendor',
+            attributes: ['id', 'vendor_name'],
+            where: vendor_name ? { vendor_name: { [Op.like]: `%${vendor_name}%` } } : undefined
+        }
+    ];
+
+    try {
+        const candidates = await candidateModel.findAll({
+            where: whereClause,
+            attributes: [
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+            ],
+            limit: limitNum,
+            offset,
+            order,
+            include: includeClause
+        });
+
+        const formattedCandidates = candidates.map((cand: any) => ({
+            id: cand.id,
+            first_name: cand.first_name,
+            middle_name: cand.middle_name,
+            last_name: cand.last_name,
+            name: cand.name,
+            birth_date: cand.birth_date,
+            is_active: cand.is_active,
+            candidate_id: cand.candidate_id,
+            preferences: cand.preferences,
+            worker_type_id: cand.worker_type_id,
+            title: cand.title,
+            email: cand.email,
+            vendor: cand.vendor ? {
+                id: cand.vendor.id,
+                vendor_name: cand.vendor.vendor_name
+            } : null,
+            modified_on: cand.modified_on,
+            state_national_id: cand.state_national_id,
+            do_not_rehire_notes: cand.do_not_rehire_notes,
+            do_not_rehire_reason: cand.do_not_rehire,
+            do_not_rehire: cand.do_not_rehire
+        }));
+
+        const count = await candidateModel.count({
+            where: whereClause,
+            include: includeClause
+        });
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Candidate get successfully",
+            items_per_page: limitNum,
+            total_candidates: count,
+            candidates: formattedCandidates,
+            trace_id: traceId,
+        });
+
+    } catch (error: any) {
+        console.error("Error fetching candidates:", error);
+        return reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
 }

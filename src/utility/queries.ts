@@ -1955,7 +1955,19 @@ export const hierarchie = `
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
-        ) AS default_unit_of_measure
+        ) AS default_unit_of_measure,
+        COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', custom_fields.id,
+                    'name', custom_fields.name
+                )
+            )
+            FROM hierarchies_custom_field
+            LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
+            WHERE hierarchies_custom_field.hierarchy_id = h.id
+            GROUP BY hierarchies_custom_field.id
+        ), JSON_ARRAY()) AS associate_hierarchy_ids
     FROM
         hierarchies h
     LEFT JOIN
@@ -2068,7 +2080,7 @@ WITH user_data AS (
          ) AS work_location_ids,
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
-         JSON_OBJECT('id', c.id, 'name', c.name) AS country_id,
+         JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
          JSON_OBJECT('name', u.time_zone_id) AS time_zone_id
   FROM user u
@@ -2147,45 +2159,81 @@ export const getPendingUserQuery = `
     user_group_mapping.middle_name,
     'pending' AS status,
     JSON_OBJECT(
-    'id',tenant.id,
-    'name',tenant.name
+      'id', tenant.id,
+      'name', tenant.name
     ) AS tenant_id,
-     JSON_OBJECT(
-    'id',countries.id,
-    'name',countries.name
+    JSON_OBJECT(
+      'id', countries.id,
+      'name', countries.name
     ) AS countries,
-      JSON_OBJECT(
-    'id',hierarchies.id,
-    'name',hierarchies.name
+    JSON_OBJECT(
+      'id', hierarchies.id,
+      'name', hierarchies.name
     ) AS default_hierarchy_id,
     JSON_OBJECT(
-    'id',work_locations.id,
-    'name',work_locations.name
+      'id', work_locations.id,
+      'name', work_locations.name
     ) AS default_work_location_id,
     JSON_OBJECT(
-    'id',user.id,
-    'name',user.first_name
+      'id', user.id,
+      'name', user.first_name
     ) AS supervisor_id,
     COALESCE(( 
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', hierarchies.id,
-                'name', hierarchies.name
-            )
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', hierarchies.id,
+          'name', hierarchies.name
         )
-        FROM hierarchies
-        WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
+      )
+      FROM hierarchies
+      WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
     ), JSON_ARRAY()) AS associate_hierarchy_ids,
     COALESCE(( 
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', work_locations.id,
-                'name', work_locations.name
-            )
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', work_locations.id,
+          'name', work_locations.name
         )
-        FROM work_locations
-        WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
-    ), JSON_ARRAY()) AS work_location_ids
+      )
+      FROM work_locations
+      WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
+    ), JSON_ARRAY()) AS work_location_ids,
+    COALESCE((
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'master_data', JSON_OBJECT(
+            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
+            'name', mdt.name,
+            'configuration', mdt.configuration
+          ),
+          'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')),
+          'default_master_data', JSON_OBJECT(
+            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')),
+            'name', default_mdt.name
+          ),
+          'associated_master_data', (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+                'id', associated_mdt.id,
+                'name', associated_mdt.name
+              )
+            )
+            FROM master_data AS associated_mdt
+            WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.associated_master_data')), JSON_QUOTE(associated_mdt.id))
+          )
+        )
+      )
+      FROM (
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
+        UNION ALL
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
+        UNION ALL
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
+        -- Add more UNION ALL statements if you expect more entries
+      ) AS fd
+      JOIN master_data_type AS mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
+      JOIN master_data AS default_mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')) = default_mdt.id
+    ), JSON_ARRAY()) AS foundational_data
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
@@ -2198,7 +2246,6 @@ AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
-
 export const vendorMarkup = `
   SELECT
         vmc.markups,
