@@ -872,7 +872,12 @@ export const rejectLevel = async (
 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
-        
+        for (const update of updates) {
+            if (update.job_id) {
+              await updateJob(update.job_id, program_id, "REJECTED", token);
+            }
+        }
+
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
         let allPayload = {
