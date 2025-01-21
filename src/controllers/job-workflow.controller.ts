@@ -17,8 +17,9 @@ import { sendNotification } from '../utility/notificationService';
 import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
+const source_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 import User from "../models/user.model";
-import { updateJob } from '../utility/job-status-service';
+import updateJob from '../utility/job-status-service';
 const teai_db = process.env.CONFIG_DB || "`qa_vms_configurators`";
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -507,7 +508,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
         let response = {
-            eventCode: "REHIRE_APPROVED",
+            eventCode: "REHIRE_APPROVAL_COMPLETE",
             user_type: ['msp', 'vendor']
         }
         return response;
@@ -607,7 +608,7 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
 
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
         let response = {
-            eventCode: "REHIRE_REJECT",
+            eventCode: "REHIRE_APPROVAL_REJECT",
             user_type: ['msp', 'vendor']
         }
         return response;
@@ -1686,7 +1687,7 @@ ORDER BY
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users') {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
                             SELECT id, first_name, last_name, avatar, role_id,email
@@ -1934,96 +1935,6 @@ ORDER BY
                     }
 
                 }
-                // let users: any[] = [];
-                // let level_behaviour: any
-                // if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                //     let replacedUserResult: Users[] | null = null;
-                //     let imporsonateUserResult: Users[] | null = null;
-                //     const recipientTypes = JSON.parse(row.recipient_types);
-                //     for (const recipient of recipientTypes) {
-                //         if (recipient?.meta_data) {
-                //             const metaData = recipient.meta_data;
-                //             const userId = Object.values(metaData)[0];
-                //             level_behaviour = Object.values(metaData)[1];
-                //             const userQuery = `
-                //                 SELECT id, first_name, last_name, avatar, role_id, email
-                //                 FROM user
-                //                 WHERE id = :user_id
-                //                 AND is_enabled = true
-                //                 LIMIT 1
-                //             `;
-                //             const userResult = await sequelize.query<Users>(userQuery, {
-                //                 type: QueryTypes.SELECT,
-                //                 replacements: { user_id: userId },
-                //             });
-                //             // Fetch replacement user data if applicable
-
-
-                //             if (userResult.length > 0) {
-                //                 userResult.forEach(user => {
-                //                     users.push({
-                //                         id: user.id,
-                //                         first_name: user.first_name,
-                //                         last_name: user.last_name,
-                //                         avatar: user.avatar,
-                //                         role_id: user.role_id
-
-
-                //                     });
-                //                 });
-                //             }
-                //             if(recipient.replaced_by){
-                //             const replaceUserQuery = `
-                //             SELECT id, first_name, last_name, avatar, role_id, email
-                //             FROM user
-                //             WHERE id = :user_id
-                //             AND is_enabled = true
-                //             LIMIT 1
-                //         `;
-                //         const replaceuserResult = await sequelize.query<Users>(replaceUserQuery, {
-                //             type: QueryTypes.SELECT,
-                //             replacements: { user_id: recipient.replaced_by },
-                //         });
-                //         // Fetch replacement user data if applicable
-
-
-                //         if (replaceuserResult.length > 0) {
-                //             replaceuserResult.forEach(user => {
-                //                 users.push({
-                //                   replaced_by:{  id: user.id,
-                //                     first_name: user.first_name,
-                //                     last_name: user.last_name,
-                //                     avatar: user.avatar,
-                //                     role_id: user.role_id}
-
-                //                 });
-                //             });
-                //         }
-                //     }
-
-                //                 // // Map users to input_value including replaced_user_data when applicable
-                //                 input_value = users.map(user => {
-
-                //                     return {
-                //                         id: user.id,
-                //                         name: `${user.first_name} ${user.last_name}`.trim(),
-                //                         email: user.email,
-                //                         avatar: user.avatar || null,                                     
-                //                         level_behaviour: level_behaviour,
-                //                         replaced_by:user.replaced_by
-
-                //                     };
-                //                 });
-
-
-
-
-
-
-                //         }
-                //     }
-                // }
-
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
@@ -2147,9 +2058,6 @@ ORDER BY
                         };
                     });
                 }
-
-
-
                 if (input_value) {
 
                     let recipients = [];
@@ -3519,6 +3427,14 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return "ASSIGNMENT_APPROVAL_REQUEST";
     } else if (flow_type == "Approval" && event === "update_assignment") {
         return "ASSIGNMENT_MODIFIED_APPROVAL";
+    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
+        return "REHIRE_REVIEW";
+    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
+        return "DO_NOT_REHIRE_REVIEW";
+    } else if (flow_type == "Review" && event === "submit_candidate_shortlist") {
+        return "CANDIDATE_SHORTLIST_REQUEST_FIRST";
+    } else if (flow_type == "Approval" && event === "submit_candidate_rehire_check") {
+        return "RE_HIRE_APPROVAL";
     } else if (flow_type == "Approval" &&event === "BUDGET_INCREASED"|| event === "assignment_budget_adjustment") {
         return "BUDGET_INCREASED_APPROVAL";
     } else if (flow_type == "Approval" &&event === "BUDGET_REDUCED"|| event === "assignment_budget_adjustment") {

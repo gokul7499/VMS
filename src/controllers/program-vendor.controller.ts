@@ -100,7 +100,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group', 'vendor_name', 'display_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group','display_name', 'vendor_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -255,7 +255,7 @@ export async function saveProgramVendor(
         return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
     }
 
-    const { tenant, user } = request.body as any;
+    const { tenant, user,'user-group-mapping':userGroupMapping } = request.body as any;
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -296,7 +296,6 @@ export async function saveProgramVendor(
 
         const vendor = {
             vendor_name: tenant.name,
-            display_name : tenant.display_name,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             addresses: user.addresses,
@@ -316,13 +315,12 @@ export async function saveProgramVendor(
         const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
         const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: "pending", program_id, vendor_id: programVendors.id });
-        await UserMapping.create({ tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
+        await UserMapping.create({id:userGroupMapping.id, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         await ProgramVendor.update(
             { user_id: userData.id, contact },
             { where: { id: programVendors.id, program_id } }
 
         );
-
 
         reply.status(201).send({
             status_code: 201,
@@ -351,7 +349,7 @@ export async function saveProgramVendor(
             ProgramVendor
         );
 
-    } catch (error) {
+    } catch (error:any) {
         logger(
             {
                 trace_id:traceId,
@@ -371,6 +369,7 @@ export async function saveProgramVendor(
             },
             ProgramVendor
         );
+        console.log("Validation errors:", error.errors || error.message);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while saving ProgramVendor.',
