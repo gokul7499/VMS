@@ -172,7 +172,7 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
     // Apply filters
     const filters: any = {
       is_deleted: false,
-      ...(name && { name: { [Op.like]: `%${name.trim()}%` } }),
+      ...(name && { display_name: { [Op.like]: `%${name.trim()}%` } }),
       ...(is_activated !== undefined && {
         is_activated: is_activated === "true" ? 1 : 0,
       }),
