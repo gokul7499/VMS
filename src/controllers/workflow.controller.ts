@@ -732,7 +732,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }
                                 });
                             }
-                        } else if (recipientType?.name === "Specific User" || recipientType?.name === "Multiple users") {
+                        } else if (recipientType?.name === "Specific User" || recipientType?.name === "Multiple users" || recipientType?.name === "Job Manager") {
                             input_value = await User.findOne({
                                 where: { id: input_values },
                                 attributes: ["id", "first_name", "last_name"]
