@@ -100,7 +100,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group','display_name ', 'vendor_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group','display_name', 'vendor_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
