@@ -262,14 +262,14 @@ export const createPicklist = async (
       const picklist = await picklist_model.create({ ...typed_picklist_data, modified_by: userId, created_by: userId }, {
         transaction,
       });
-
       if (picklist_items && picklist_items.length > 0) {
         const items = picklist_items.map((item: PicklistItem) => ({
           ...item,
           picklist_id: picklist.id,
         }));
-
-        await picklist_item_model.bulkCreate({ ...items, modified_by: userId, created_by: userId }, { transaction });
+        items.created_by=userId
+        items.modified_by=userId
+        await picklist_item_model.bulkCreate(items, { transaction });
       }
 
       await transaction.commit();
@@ -348,6 +348,95 @@ export const createPicklist = async (
     });
   }
 };
+
+
+// export const createPicklist = async (request: FastifyRequest<{ Body: any, Params: { program_id: string } }>, reply: FastifyReply) => {
+//   const { picklist_items, ...picklist_data } = request.body as { picklistItems?: PicklistItem[];[key: string]: any };
+//   console.log("##################33",request.body)
+//   const { program_id } = request.params;
+//   console.log("****************",request.params)
+//   const traceId = generateCustomUUID();
+//   try {
+//     const programData = await Programs.findOne({ where: { id: program_id } });
+//     if (!programData) {
+//       return reply.status(404).send({
+//         message: "Program not found",
+//         status_code: 404,
+//         trace_id: traceId,
+//       });
+//     }
+
+//     if (picklist_data.name) {
+//       const existingPicklist = await picklist_model.findOne({
+//         where: {
+//           name: picklist_data.name,
+//           program_id,
+//           is_deleted: false,
+//         },
+//       });
+//       if (existingPicklist) {
+//         return reply.status(400).send({
+//           message: "Picklist with this name already exists",
+//           status_code: 400,
+//           trace_id: traceId,
+//         });
+//       }
+//     }
+//     if (picklist_data.slug === undefined) {
+//       picklist_data.slug = picklist_data.name.toLowerCase();
+//     }
+
+//     const typed_picklist_data: Omit<picklist, "picklist_items"> =
+//       picklist_data as Omit<picklist, "picklist_items">;
+//     const transaction = await sequelize.transaction();
+
+//     const idPrefix = generateRandomPrefix();
+//     const uniqId = programData.unique_id;
+//     const generatedPicklistId = `${uniqId}-PL-${idPrefix}`;
+//     console.log(generatedPicklistId);
+//     typed_picklist_data.picklist_id = generatedPicklistId;
+
+//     try {
+//       const picklist = await picklist_model.create(typed_picklist_data, {
+//         transaction,
+//       });
+//       console.log("ppppppppppppppppppppppp",picklist)
+
+//       if (picklist_items && picklist_items.length > 0) {
+//         const items = picklist_items.map((item: PicklistItem) => ({
+//           ...item,
+//           picklist_id: picklist.id,
+//         }));
+
+//         await picklist_item_model.bulkCreate(items, { transaction });
+//         console.log("iiiiiiiiiiiiiiii",items)
+//       }
+      
+//       await transaction.commit();
+
+//       reply.status(201).send({
+//         message: "Picklist saved successfully.",
+//         status_code: 201,
+//         trace_id: traceId,
+//         id: picklist.id,
+//       });
+//     } catch (error) {
+//       await transaction.rollback();
+
+//       reply.status(500).send({
+//         status_code: 500,
+//         message: `Error creating picklist: ${error}.`,
+//         trace_id: traceId,
+//       });
+//     }
+//   } catch (error) {
+//     reply.status(500).send({
+//       status_code: 500,
+//       message: `Error fetching picklist data: ${error}`,
+//       trace_id: traceId,
+//     });
+//   }
+// };
 
 export async function deletePicklist(
   request: FastifyRequest,
@@ -629,14 +718,17 @@ export async function getAllPickListByProgramId(
   }>,
   reply: FastifyReply
 ) {
+  console.log("PPPPPPPPPPPPPPPPPPPP")
   const { name, picklist_id, program_id, label, slug, defined_by } =
     request.query;
+    console.log("##################",request.query)
   let picklistData;
   try {
     const whereCondition: any = {};
     if (slug) {
       whereCondition.slug = slug;
     }
+    console.log("$$$$$$$$$$$$$$$",slug)
     if (defined_by) {
       whereCondition.defined_by = defined_by;
     }

@@ -2056,6 +2056,7 @@ WITH user_data AS (
          u.status,
          u.contacts,
          u.addresses,
+         u.time_zone_id,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
          CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
          CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
@@ -2084,7 +2085,6 @@ WITH user_data AS (
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
-         JSON_OBJECT('name', u.time_zone_id) AS time_zone_id
   FROM user u
   LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
