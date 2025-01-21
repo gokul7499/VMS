@@ -21,11 +21,11 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
 
     
     fastify.post("/program/:program_id/expense-type",{
-        preHandler:validatePermissions,
-        config:{
-            Permissions:[Permissions.EXPENSE_TYPE],
-            action:Actions.CREATE
-        }
+        // preHandler:validatePermissions,
+        // config:{
+        //     Permissions:[Permissions.EXPENSE_TYPE],
+        //     action:Actions.CREATE
+        // }
     }, createExpenseType);
 
     fastify.delete("/program/:program_id/expense-type/:id",{
