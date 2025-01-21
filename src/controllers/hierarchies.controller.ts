@@ -305,8 +305,8 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
 
     if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
       const customFields = hierarchie.custom_fields.map((field: {
-        id: any; value: any; 
-}) => ({
+        id: any; value: any;
+      }) => ({
         program_id,
         customfield_id: field.id,
         value: field.value,
@@ -314,7 +314,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
       }));
       await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
     }
-  
+
 
     await transaction.commit();
 
@@ -405,9 +405,9 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update({ ...updatableData, modified_by: userId }, { transaction });
+        await hierarchy.update({ ...updatableData, modified_by: userId, modified_on: Date.now() }, { transaction });
       } else {
-        await hierarchy.update({ ...hierarchiesData, modified_by: userId }, { transaction });
+        await hierarchy.update({ ...hierarchiesData, modified_by: userId, modified_on: Date.now() }, { transaction });
       }
 
       if (hierarchiesData.custom_fields && hierarchiesData.custom_fields.length > 0) {
@@ -435,7 +435,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('Error updating hierarchy:', error); 
+      console.error('Error updating hierarchy:', error);
       return reply.status(500).send({
         status_code: 500,
         message: "Failed to update hierarchies",
@@ -443,7 +443,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
       });
     }
   } catch (error) {
-    console.error('Internal error:', error); 
+    console.error('Internal error:', error);
     return reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
@@ -734,12 +734,17 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     );
 
     const rateModel = rateModelResult.length > 0 ? rateModelResult[0].rate_model : null;
-
+    let rate_model;
+    if (rateModel === "bill_rate" || rateModel === "markup") {
+      rate_model = "bill_rate";
+    } else {
+      rate_model = rateModel;
+    }
     const [markupsData] = await sequelize.query<{ markups: any }>(vendorMarkup, {
       replacements: {
         program_id,
         vendor_id,
-        rateModel,
+        rateModel: rate_model,
         labour_category_id,
         hierarchy_id
       },
