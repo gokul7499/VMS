@@ -483,6 +483,7 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.is_not_editable,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
   LEFT JOIN hierarchies ph
