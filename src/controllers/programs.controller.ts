@@ -160,6 +160,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>, reply: FastifyReply) => {
   const { name, is_activated, start_date } = request.query as Partial<ProgramQuery>;
   const traceId = generateCustomUUID();
+
   try {
     const query = request.query as any;
     const page = parseInt(query.page ?? "1");
@@ -168,15 +169,18 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
     query.page && delete query.page;
     query.limit && delete query.limit;
 
+    // Apply filters
+    const filters: any = {
+      is_deleted: false,
+      ...(name && { name: { [Op.like]: `%${name.trim()}%` } }),
+      ...(is_activated !== undefined && {
+        is_activated: is_activated === "true" ? 1 : 0,
+      }),
+      ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
+    };
+
     const programs = await Programs.findAll({
-      where: {
-        is_deleted: false,
-        ...(name && { name: { [Op.like]: `%${name}%` } }),
-        ...(is_activated !== undefined && {
-          is_activated: is_activated === "true" ? 1 : 0,
-        }),
-        ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
-      },
+      where: filters,
       include: [
         {
           model: Tenant,
@@ -194,18 +198,18 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
     });
 
     const count = await Programs.count({
-      where: {
-        is_deleted: false,
-        ...(name && { name: { [Op.like]: `%${name}%` } }),
-        ...(is_activated !== undefined && {
-          is_activated: is_activated === "true" ? 1 : 0,
-        }),
-        ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
-      },
+      where: filters,
     });
+
     if (programs.length === 0) {
-      return reply.status(200).send({ status_code: 200, message: "Programs not found", programs: [], trace_id: traceId });
+      return reply.status(200).send({
+        status_code: 200,
+        message: "Programs not found",
+        programs: [],
+        trace_id: traceId,
+      });
     }
+
     reply.status(200).send({
       status_code: 200,
       message: "Programs found",
