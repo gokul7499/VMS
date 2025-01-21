@@ -435,10 +435,8 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             replacements: { user_id: user.sub },
         });
         let userType = userData[0]
-        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType.user_type.toLowerCase() == "super_user".toLowerCase()) {
-
+        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType.user_type.toLowerCase() == "super_user".toLowerCase()|| user.userType.toLowerCase() == "super_user".toLowerCase()) {
             // Fetch manager details
-
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
                 user_type: user.userType,
