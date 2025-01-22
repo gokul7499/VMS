@@ -3,12 +3,11 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
 import { EmailRecipient } from '../interfaces/email-recipient';
-// import { object } from 'zod';
-const config_db = process.env.CONFIG_DB || "qa_vms_configurator"
-const auth_db = process.env.AUTH_DB || "qa_vms_auth"
+import { databaseConfig } from '../config/db';
+const auth_db = databaseConfig.config.database_auth;
 
 function getNotificationUrl(): string | undefined {
-    return process.env.NOTIFICATION_URL || 'https://v4-dev.simplifysandbox.net/notification';
+    return databaseConfig.config.notification_url;
 }
 
 function validateToken(token: string | undefined): boolean {
