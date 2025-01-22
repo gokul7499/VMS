@@ -7,13 +7,14 @@ import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
+import { sequelize } from "../config/instance";
 
 export async function createCandidate(
     request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
@@ -334,17 +335,47 @@ export async function getCandidateByIdAndProgramId(
                 }
             ]
         });
+
         if (!candidate) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: "Candidate feteched succssfully!",
+                message: "Candidate fetched successfully!",
             });
         }
+
+        const qualificationsQuery = `
+            SELECT 
+                q.qulification_type_id,
+                qt.name AS qualification_type_name,
+                q.qulifications
+            FROM 
+                candidates c
+            LEFT JOIN 
+                JSON_TABLE(c.qualifications, '$[*]' COLUMNS (
+                    qulification_type_id VARCHAR(255) PATH '$.qulification_type_id',
+                    qulifications JSON PATH '$.qulifications'
+                )) q ON TRUE
+            LEFT JOIN 
+                qualification_types qt ON q.qulification_type_id = qt.id
+            WHERE 
+                c.id = :id
+                AND c.program_id = :program_id
+                AND c.is_deleted = FALSE;
+        `;
+
+        const [qualifications] = await sequelize.query(qualificationsQuery, {
+            replacements: { id, program_id },
+            type: QueryTypes.SELECT
+        });
+
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate get successfully",
-            candidate,
+            message: "Candidate fetched successfully",
+            candidate: {
+                ...candidate.toJSON(),
+                qualifications
+            },
             trace_id: traceId,
         });
     } catch (error) {
