@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { fetchUnavailableCandidates } from "../utility/submission-candidate";
+import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
@@ -76,7 +76,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = await generateCandidateCode(program_id);
+        const candidateId = await generateCandidateCode();
 
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
@@ -520,7 +520,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         worker_type_id,
         availability_date,
         updatedAt,
-        available_candidate,
+        is_talent_pool,
         job_id,
         vendor_name,
         ...filters
@@ -548,15 +548,15 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (availability_date) whereClause["preferences.availability_date"] = availability_date;
     if (updatedAt) whereClause.updatedAt = updatedAt;
 
-    if (available_candidate === "true" && job_id) {
+    if (is_talent_pool === "true" && job_id) {
         try {
-            const unavailableCandidateIds = await fetchUnavailableCandidates(program_id, job_id, token, traceId);
-            whereClause.id = { [Op.notIn]: unavailableCandidateIds };
+            const submitCandidateIds = await fetchSubmittedCandidate( job_id, token, vendorId);
+            whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({
                 status_code: 500,
                 trace_id: traceId,
-                message: "Error fetching unavailable candidates from sourcing service",
+                message: "Error fetching submitted candidates from sourcing service",
                 error: error.message,
             });
         }
