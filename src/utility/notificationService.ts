@@ -4,10 +4,10 @@ import { sequelize } from '../config/instance';
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface'
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth || process.env.DATABASE_AUTH;
+const auth_db = databaseConfig.config.database_auth;
 
 function getNotificationUrl(): string | undefined {
-    return databaseConfig.config.notification_url || process.env.NOTIFICATION_URL;
+    return databaseConfig.config.notification_url;
 }
 
 function validateToken(token: string | undefined): boolean {

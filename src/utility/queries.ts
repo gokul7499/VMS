@@ -2,7 +2,7 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth || process.env.DATABASE_AUTH;
+const auth_db = databaseConfig.config.database_auth;
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2102,10 +2102,10 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''}
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
@@ -2293,7 +2293,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleTypeName?:string,
+  ruleTypeName?: string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,

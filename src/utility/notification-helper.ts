@@ -2,7 +2,7 @@ import { NotificationDataPayload } from '../interfaces/noifications-data-payload
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes } from "sequelize";
 import { databaseConfig } from '../config/db';
-const config_db = databaseConfig.config.database || process.env.DATABASE_NAME;
+const config_db = databaseConfig.config.database;
 
 export async function getUsersWithHierarchy(
     sequelize: any,

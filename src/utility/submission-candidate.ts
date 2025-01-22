@@ -1,6 +1,6 @@
 import axios from "axios";
 import { databaseConfig } from '../config/db';
-const sourcing_url = databaseConfig.config.sourcing_url || process.env.SOURCING_URL;
+const sourcing_url = databaseConfig.config.sourcing_url;
 
 export async function fetchUnavailableCandidates(
     program_id: string,
