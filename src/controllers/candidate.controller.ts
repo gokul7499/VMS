@@ -487,18 +487,17 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    // if(user?.userType==='super_user'){
-    //     return reply.status(200).send({
-    //         status_code: 200,
-    //         message: "Only vendor have permission to see candidates!",
-    //         candidates:[],
-    //         trace_id: traceId,
-    //     });
-    // }
+    if(user?.userType==='super_user'){
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Only vendor have permission to see candidates!",
+            candidates:[],
+            trace_id: traceId,
+        });
+    }
     const { program_id } = request.params as { program_id: string };
     const userData = await User.findOne({ where: { program_id, id: userId } });
-    //const vendorId = userData?.tenant_id || undefined;
-    const vendorId="976ae87e-3870-4c3f-abd8-0bd3243675a7"
+    const vendorId = userData?.tenant_id || undefined;
     if(vendorId===undefined){
         return reply.status(200).send({
             status_code: 200,
