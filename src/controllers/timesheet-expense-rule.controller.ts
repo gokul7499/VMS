@@ -195,6 +195,19 @@ export async function getTimesheetExpenseRuleById(
             });
             timesheetRule.setDataValue('apply_rate_type', rateTypes);
         }
+
+        const penaltyRules = timesheetRule.penalty_rules;
+        if (penaltyRules && penaltyRules.apply_rate_type) {
+            const penaltyRateType = await RateType.findOne({
+                where: { id: penaltyRules.apply_rate_type },
+                attributes: ['id', 'name'],
+            });
+            if (penaltyRateType) {
+                penaltyRules.apply_rate_type = penaltyRateType;
+            }
+            timesheetRule.setDataValue('penalty_rules', penaltyRules);
+        }
+
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
