@@ -1,12 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import JobWorkFlowModel from '../models/job-workflow.model';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { JobWorkFlow, NotificationPayload, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
+import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
 import { QueryTypes } from 'sequelize';
-import CustomField from '../models/custom-fields.model';
 import WorkflowStatusHistory from '../models/workflow-status-history.model';
-import jobModel from '../models/job.model';
 import { Module } from '../models/module.model';
 import Event from '../models/event.model';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -14,11 +12,9 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
-const source_db = process.env.CONFIG_DB || "`dev_vms_configurators`";
-import User from "../models/user.model";
-const teai_db = process.env.CONFIG_DB || "`dev_vms_configurators`";
+
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -280,10 +276,10 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
-                                // Check if user is not a "super_user" and proceed with matching
+                                // Check if user is not a "super_user" and proceed with matchinj
                                 if (!isSuperUser) {
                                     if (user_id) {
                                         // If the recipient has a `replaced_by` field, match `user_id` directly
@@ -297,7 +293,7 @@ export const updateWorkflowStatus = async (
                                                 created_on: new Date(),
                                                 user_id: user_id,
                                             });
-                                            return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                            return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                         }
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
@@ -313,7 +309,7 @@ export const updateWorkflowStatus = async (
                                                     created_on: new Date(),
                                                     user_id: user_id,
                                                 });
-                                                return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                             }
                                         }
                                     }
@@ -328,7 +324,7 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
                                 // If no match, return original recipient
@@ -435,7 +431,8 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             replacements: { user_id: user.sub },
         });
         let userType = userData[0]
-        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType.user_type.toLowerCase() == "super_user".toLowerCase()|| user.userType.toLowerCase() == "super_user".toLowerCase()) {
+        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType?.user_type.toLowerCase() == "super_user".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
+      
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
@@ -538,13 +535,13 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else if (flow_type == "Approval" && events=="BUDGET_INCREASED"||events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
         let response = {
             eventCode: "BUDGET_INCREASE_APPROVED",
             user_type: ['msp']
         }
         return response;
-    } else if (flow_type == "Approval" && events=="BUDGET_REDUCED"||events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events == "BUDGET_REDUCED" || events === "assignment_budget_adjustment") {
         let response = {
             eventCode: "BUDGET_REDUCED_APPROVAL",
             user_type: ['msp']
@@ -638,13 +635,13 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else if (flow_type == "Approval" &&events === "BUDGET_INCREASED" ||events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events === "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
         let response = {
             eventCode: "BUDGET_INCREASE_REJECTED",
             user_type: ['msp']
         }
         return response;
-    } else if (flow_type == "Approval" &&events === "BUDGET_REDUCED" ||events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events === "BUDGET_REDUCED" || events === "assignment_budget_adjustment") {
         let response = {
             eventCode: "BUDGET_REDUCED_REJECTED",
             user_type: ['msp']
@@ -829,11 +826,11 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected",imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
-                            return { ...recipient, status: "canceled",imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                         });
 
                         return {
@@ -890,7 +887,7 @@ export const rejectLevel = async (
 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
-        
+
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
         let allPayload = {
@@ -1721,7 +1718,7 @@ ORDER BY
                                 replacements: { user_id: input_values[0] },
                             });
                         }
-                        
+
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
                         if (userResult.length && replaced_by) {
@@ -2089,7 +2086,7 @@ ORDER BY
                                 reason: user.reason,
                                 // replaced_date_times: recipient_details.replaced_modified_on,
                                 // replaced_notess: recipient_details.replaced_notes,
-                                level_behaviour: level_behaviour,
+                                level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
@@ -3449,9 +3446,9 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return "CANDIDATE_SHORTLIST_REQUEST_FIRST";
     } else if (flow_type == "Approval" && event === "submit_candidate_rehire_check") {
         return "RE_HIRE_APPROVAL";
-    } else if (flow_type == "Approval" &&event === "BUDGET_INCREASED"|| event === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment") {
         return "BUDGET_INCREASED_APPROVAL";
-    } else if (flow_type == "Approval" &&event === "BUDGET_REDUCED"|| event === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment") {
         return "BUDGET_REDUCED_APPROVAL";
     } else {
         throw new Error(`Event code not found for event: ${event}`);
