@@ -1,5 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
+const config_db = process.env.CONFIG_DB || "qa_vms_configurator";
+
 class JobTempletRepository {
   async getJobTemplateByHierarchies(program_id: string, hierarchy_ids: string[]) {
     const query = `
