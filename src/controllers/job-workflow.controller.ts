@@ -279,7 +279,7 @@ export const updateWorkflowStatus = async (
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
-                                // Check if user is not a "super_user" and proceed with matching
+                                // Check if user is not a "super_user" and proceed with matchinj
                                 if (!isSuperUser) {
                                     if (user_id) {
                                         // If the recipient has a `replaced_by` field, match `user_id` directly
@@ -431,7 +431,8 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             replacements: { user_id: user.sub },
         });
         let userType = userData[0]
-        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType.user_type.toLowerCase() == "super_user".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
+        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType?.user_type.toLowerCase() == "super_user".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
+      
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
@@ -2085,7 +2086,7 @@ ORDER BY
                                 reason: user.reason,
                                 // replaced_date_times: recipient_details.replaced_modified_on,
                                 // replaced_notess: recipient_details.replaced_notes,
-                                level_behaviour: level_behaviour,
+                                level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
