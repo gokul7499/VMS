@@ -609,7 +609,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         is_shift_rate?: boolean;
         currency_id?: string;
         unit_of_measure?: string;
-        labor_category_id?:string;
+        labor_category_id?: string;
     };
 }>,
     reply: FastifyReply
@@ -617,7 +617,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure,labor_category_id } = request.query;
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id } = request.query;
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -697,13 +697,37 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 ]
             }],
         });
-        const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number }; }> = await sequelize.query(
-            ` SELECT min_rate,max_rate FROM rate_card_decision_table WHERE 
-                hierarchy_id IS NULL
-                AND job_template_id IS NULL
-                AND unit_of_measure IS NULL
-                AND currency IS NULL;`,
-            { type: QueryTypes.SELECT, }
+        const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number } }> = await sequelize.query(
+            `
+            WITH rate_card_matches AS (
+                SELECT 
+                    rc.id AS rate_card_id
+                FROM 
+                    rate_card rc
+                WHERE 
+                    rc.labor_category_id = :labor_category_id
+                    AND rc.program_id = :program_id
+            )
+            SELECT 
+                rcdt.min_rate, 
+                rcdt.max_rate
+            FROM 
+                rate_card_decision_table rcdt
+            INNER JOIN 
+                rate_card_matches rcm 
+            ON 
+                rcdt.rate_card_id = rcm.rate_card_id
+            WHERE 
+                rcdt.hierarchy_id IS NULL
+                AND rcdt.job_template_id IS NULL
+                AND rcdt.unit_of_measure IS NULL
+                AND rcdt.rate_type_id IS NULL
+                AND rcdt.currency IS NULL;
+            `,
+            {
+                type: QueryTypes.SELECT,
+                replacements: { labor_category_id, program_id },
+            }
         );
         const fallbackRate = allNullRates[0];
         const rateConfigurationDetails = await Promise.all(

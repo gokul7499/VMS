@@ -74,6 +74,10 @@ export const getAllJobTemplates = async (
       dynamicConditions.push(`labour_category.name LIKE :labour_category`);
       replacements.labour_category = `%${labour_category}%`;
     }
+    if (labour_category) {
+      dynamicConditions.push(`labour_category.name LIKE :labour_category`);
+      replacements.labour_category = `%${labour_category}%`;
+    }
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
@@ -760,6 +764,7 @@ export async function getAllJobTempletsByHierarchies(
       qualification?: string;
       limit?: number;
       offset?: number;
+      labour_category_id?: string;
     };
   }>,
   reply: FastifyReply
@@ -775,6 +780,7 @@ export async function getAllJobTempletsByHierarchies(
       qualification,
       limit,
       offset,
+      labour_category_id,
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
@@ -789,7 +795,8 @@ export async function getAllJobTempletsByHierarchies(
       limit,
       offset,
       job_type,
-      name
+      name,
+      labour_category_id
     );
 
     const uniqueJobTemplates = data.map((jobTemplate: any) => {

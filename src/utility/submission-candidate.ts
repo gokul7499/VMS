@@ -8,7 +8,7 @@ export async function fetchUnavailableCandidates(
 ): Promise<number[]> {
     try {
         const response = await axios.get(
-            `https://v4-devnlb.simplifysandbox.net:8002/sourcing/v1/api/program/${program_id}/submission-candidate`,
+            `http://v4-qanlb.simplifysandbox.net:8002/sourcing/v1/api/program/${program_id}/submission-candidate`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
@@ -30,13 +30,12 @@ export async function fetchSubmittedCandidate(
 ): Promise<any[]> {
     try {
         const response = await axios.get(
-            `http://v4-qanlb.simplifysandbox.net:8002/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
+            `https://v4-dev.simplifysandbox.net/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
             }
         );
-
         // Extract submission_candidate_ids from response.data
         const submissionCandidateIds = response.data?.submission_candidate_ids;
         if (!submissionCandidateIds) {

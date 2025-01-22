@@ -143,94 +143,98 @@ class JobTempletRepository {
     return data;
   }
 
-  async getAllJobTemplateByHierarchy(
-    program_id: string,
-    hierarchyIdsArray: string[],
-    laborCategoryIdsArray: string[],
-    qualificationIdsArray: string[],
-    limit?: number,
-    offset?: number,
-    job_type?: string,
-    name?: string
-  ) {
-    const conditions = [
-      hierarchyIdsArray.length > 0 && `job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`,
-      laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
-      qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
-      job_type && `job_templates.job_type = ?`,
-      name && `job_templates.template_name LIKE ?`,
-    ].filter(Boolean).join(' AND ');
+async getAllJobTemplateByHierarchy(
+  program_id: string,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  qualificationIdsArray: string[],
+  limit?: number,
+  offset?: number,
+  job_type?: string,
+  name?: string,
+  labour_category_id?: string
+) {
+  const conditions = [
+    hierarchyIdsArray.length > 0 && `job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`,
+    laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
+    qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
+    job_type && `job_templates.job_type = ?`,
+    name && `job_templates.template_name LIKE ?`,
+    labour_category_id && `labour_category.id = ?`, 
+  ].filter(Boolean).join(' AND ');
 
-    const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
+  const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
 
-    const query = `
-        SELECT
-          job_templates.template_name,
-          MIN(job_templates.id) AS id,
-          MIN(job_templates.job_id) AS job_id,
-          MIN(job_templates.is_shift_rate) AS is_shift_rate,
-          MIN(job_templates.program_id) AS program_id,
-          MIN(job_templates.job_type) AS job_type,
-          MIN(job_templates.description) AS description,
-          MIN(job_templates.template_code) AS template_code,
-          MIN(job_category.title) AS job_category,
-          MIN(labour_category.name) AS labour_category_name,
-          MIN(labour_category.id) AS labour_category_id,
-          JSON_OBJECT(
-            'id', ph.id,
-            'name', ph.name
-          ) AS primary_hierarchy,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', unique_hierarchies.id,
-              'name', unique_hierarchies.name
-            )
-          ) AS hierarchy,
-          MIN(qualifications.name) AS qualification_name,
-          MIN(qualifications.id) AS qualification_id
-        FROM job_templates
-        INNER JOIN job_template_hierarchies
-          ON job_templates.id = job_template_hierarchies.job_temp_id
-        INNER JOIN (
-          SELECT DISTINCT id, name
-          FROM hierarchies
-        ) unique_hierarchies
-          ON job_template_hierarchies.hierarchy = unique_hierarchies.id
-        LEFT JOIN job_category
-          ON job_templates.category = job_category.id
-        LEFT JOIN labour_category
-          ON job_templates.labour_category = labour_category.id
-        LEFT JOIN job_template_qualification
-          ON job_templates.id = job_template_qualification.job_temp_id
-        LEFT JOIN hierarchies AS ph
-          ON job_templates.primary_hierarchy = ph.id  
-        LEFT JOIN qualifications
-          ON JSON_CONTAINS(
-              JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
-              JSON_QUOTE(qualifications.id)
-          )
-        WHERE job_templates.program_id = ?
-        ${conditions ? `AND ${conditions}` : ''}
-        GROUP BY job_templates.template_name, ph.id, ph.name
-        ORDER BY job_templates.template_name
-        ${pagination};
-    `;
+  const query = `
+    SELECT
+      job_templates.template_name,
+      MIN(job_templates.id) AS id,
+      MIN(job_templates.job_id) AS job_id,
+      MIN(job_templates.is_shift_rate) AS is_shift_rate,
+      MIN(job_templates.program_id) AS program_id,
+      MIN(job_templates.job_type) AS job_type,
+      MIN(job_templates.description) AS description,
+      MIN(job_templates.template_code) AS template_code,
+      MIN(job_category.title) AS job_category,
+      MIN(labour_category.name) AS labour_category_name,
+      MIN(labour_category.id) AS labour_category_id,
+      JSON_OBJECT(
+        'id', ph.id,
+        'name', ph.name
+      ) AS primary_hierarchy,
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', unique_hierarchies.id,
+          'name', unique_hierarchies.name
+        )
+      ) AS hierarchy,
+      MIN(qualifications.name) AS qualification_name,
+      MIN(qualifications.id) AS qualification_id
+    FROM job_templates
+    INNER JOIN job_template_hierarchies
+      ON job_templates.id = job_template_hierarchies.job_temp_id
+    INNER JOIN (
+      SELECT DISTINCT id, name
+      FROM hierarchies
+    ) unique_hierarchies
+      ON job_template_hierarchies.hierarchy = unique_hierarchies.id
+    LEFT JOIN job_category
+      ON job_templates.category = job_category.id
+    LEFT JOIN labour_category
+      ON job_templates.labour_category = labour_category.id
+    LEFT JOIN job_template_qualification
+      ON job_templates.id = job_template_qualification.job_temp_id
+    LEFT JOIN hierarchies AS ph
+      ON job_templates.primary_hierarchy = ph.id  
+    LEFT JOIN qualifications
+      ON JSON_CONTAINS(
+          JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
+          JSON_QUOTE(qualifications.id)
+      )
+    WHERE job_templates.program_id = ?
+    ${conditions ? `AND ${conditions}` : ''}
+    GROUP BY job_templates.template_name, ph.id, ph.name
+    ORDER BY job_templates.template_name
+    ${pagination};
+  `;
 
-    const replacements: (string | number)[] = [program_id];
-    if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray);
-    if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
-    if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
-    if (job_type) replacements.push(job_type);
-    if (name) replacements.push(`%${name}%`);
-    if (limit && offset) replacements.push(limit, offset);
+  const replacements: (string | number)[] = [program_id];
+  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray);
+  if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
+  if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
+  if (job_type) replacements.push(job_type);
+  if (name) replacements.push(`%${name}%`);
+  if (labour_category_id) replacements.push(labour_category_id);
+  if (limit && offset) replacements.push(limit, offset);
 
-    const data = await sequelize.query(query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
+  const data = await sequelize.query(query, {
+    replacements,
+    type: QueryTypes.SELECT,
+  });
 
-    return data;
-  }
+  return data;
+}
+
 
   async programQuery(program_id: string): Promise<{ name: string }[]> {
     const query = `
