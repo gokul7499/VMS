@@ -686,7 +686,6 @@ export async function getPendingUser(
         status_code: 200,
         message: "get pending user data",
         users,
-        status: 'pending',
         trace_id: traceId
       });
     } else {
