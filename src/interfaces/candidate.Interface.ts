@@ -26,7 +26,7 @@ export default interface CandidateInterface {
     preferences: JSON;
     is_active: boolean;
     is_all_required_qulification?:boolean;
-    state_national_id?:string;
+    state_national_id?:number;
     is_deleted: boolean;
     birth_date?: number;
     candidate_source?: string;
