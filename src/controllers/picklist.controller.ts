@@ -262,14 +262,14 @@ export const createPicklist = async (
       const picklist = await picklist_model.create({ ...typed_picklist_data, modified_by: userId, created_by: userId }, {
         transaction,
       });
-
       if (picklist_items && picklist_items.length > 0) {
         const items = picklist_items.map((item: PicklistItem) => ({
           ...item,
           picklist_id: picklist.id,
         }));
-
-        await picklist_item_model.bulkCreate({ ...items, modified_by: userId, created_by: userId }, { transaction });
+        items.created_by=userId
+        items.modified_by=userId
+        await picklist_item_model.bulkCreate(items, { transaction });
       }
 
       await transaction.commit();
