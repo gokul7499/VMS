@@ -1,7 +1,8 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
+import { databaseConfig } from '../config/db';
+const auth_db = databaseConfig.config.database_auth || process.env.DATABASE_AUTH;
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2112,8 +2113,6 @@ ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
 
-
-
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2296,7 +2295,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
-  order: string = 'created_on DESC' 
+  order: string = 'created_on DESC'
 ) => {
   const searchConditions: string[] = ['is_deleted = FALSE'];
 
