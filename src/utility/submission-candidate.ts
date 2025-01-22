@@ -8,7 +8,7 @@ export async function fetchUnavailableCandidates(
 ): Promise<number[]> {
     try {
         const response = await axios.get(
-            `https://v4-devnlb.simplifysandbox.net:8002/sourcing/v1/api/program/${program_id}/submission-candidate`,
+            `https://v4-qa.simplifysandbox.net/sourcing/v1/api/program/${program_id}/submission-candidate`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
