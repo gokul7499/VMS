@@ -115,7 +115,7 @@ export const getTimesheetExpenseRule = async (
                 'modified_on',
                 'program_id',
                 'apply_rate_type',
-                'penalty_rules',
+                'penalty_rules', 
                 'expense_line_item',
             ],
             limit: pageSize,
@@ -135,18 +135,28 @@ export const getTimesheetExpenseRule = async (
                 timesheet_expense_rule: [],
             });
         }
-        const mergedRules = timesheetRuleData.map((rule) => {
-            const matchingExpenseData = timesheetExpenseRules.find(
-                (expenseRule) => expenseRule.id === rule.id
-            );
-            return {
-                ...rule.toJSON(),
-                expense_line_item: matchingExpenseData?.expense_line_item || [],
-                apply_rate_type: matchingExpenseData?.expense_rate_type || [],
-            };
-        });
+        const mergedRules = await Promise.all(
+            timesheetRuleData.map(async (rule) => {
+                const matchingExpenseData = timesheetExpenseRules.find(
+                    (expenseRule) => expenseRule.id === rule.id
+                );
+                const updatedRule = rule.toJSON();
+                if (updatedRule.penalty_rules && updatedRule.penalty_rules.apply_rate_type) {
+                    const penaltyRateType = await RateType.findOne({
+                        where: { id: updatedRule.penalty_rules.apply_rate_type },
+                        attributes: ['id', 'name'],
+                    });
+                    if (penaltyRateType) {
+                        updatedRule.penalty_rules.apply_rate_type = penaltyRateType;
+                    }
+                }
+                return {
+                    ...updatedRule,
+                    expense_line_item: matchingExpenseData?.expense_line_item || [],
+                    apply_rate_type: matchingExpenseData?.expense_rate_type || [],
+                };
+            }));
 
-        // Response
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
