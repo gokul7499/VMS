@@ -366,7 +366,7 @@ export async function updateExpenseConfiguration(
                 transaction,
             });
 
-            const modifiedOn = new Date();
+            const modifiedOn = Date.now();
             const createPromises = updatedExpenseTypeIds.map(expenseTypeId =>
                 ExpenseTypeMapping.create({
                     expense_type_id: expenseTypeId,
@@ -568,7 +568,7 @@ export const getAllExpenseConfigurationHierarchies = async (
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No hierarchies found for the specified program.',
-                hierarchies:[],
+                hierarchies: [],
                 trace_id: traceId,
             });
         }
