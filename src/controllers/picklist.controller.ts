@@ -629,17 +629,14 @@ export async function getAllPickListByProgramId(
   }>,
   reply: FastifyReply
 ) {
-  console.log("PPPPPPPPPPPPPPPPPPPP")
   const { name, picklist_id, program_id, label, slug, defined_by } =
     request.query;
-    console.log("##################",request.query)
   let picklistData;
   try {
     const whereCondition: any = {};
     if (slug) {
       whereCondition.slug = slug;
     }
-    console.log("$$$$$$$$$$$$$$$",slug)
     if (defined_by) {
       whereCondition.defined_by = defined_by;
     }
