@@ -278,7 +278,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const candidateId = await generateCandidateCode(program_id);
+      const candidateId = await generateCandidateCode();
       await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
