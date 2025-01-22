@@ -306,7 +306,7 @@ export async function timesheetTypeConfigFilter(
             id?: string;
             title?: string;
             hierarchy_ids?: string[];
-            labor_category?: string[];
+            labor_category?: string | string[]; 
             is_enabled?: boolean | string;
             allocation_method?: string;
             timesheet_rule_group?: string;
@@ -333,7 +333,6 @@ export async function timesheetTypeConfigFilter(
             limit,
         } = request.body;
 
-
         const isEnabledFilter =
             typeof is_enabled === 'string'
                 ? is_enabled === 'true' ? 1 : 0
@@ -347,7 +346,7 @@ export async function timesheetTypeConfigFilter(
             Boolean(id),
             Boolean(title),
             hierarchy_ids || [],
-            labor_category || [],
+            Array.isArray(labor_category) ? labor_category : labor_category ? [labor_category] : [], // Ensure labor_category is always an array
             Boolean(allocation_method),
             Boolean(timesheet_rule_group),
             Boolean(timesheet_format),
@@ -366,11 +365,16 @@ export async function timesheetTypeConfigFilter(
             is_enabled: isEnabledFilter,
         };
 
+        if (Array.isArray(labor_category)) {
+            labor_category.forEach((laborCategoryId, index) => {
+                replacements[`labor_category_id${index}`] = laborCategoryId;
+            });
+        } else if (labor_category) {
+            replacements[`labor_category_id0`] = labor_category;
+        }
+
         hierarchy_ids?.forEach((hierarchyId, index) => {
             replacements[`hierarchy_id${index}`] = hierarchyId;
-        });
-        labor_category?.forEach((laborCategoryId, index) => {
-            replacements[`labor_category_id${index}`] = laborCategoryId;
         });
 
         const data = await sequelize.query<{ total_count: any }>(query, {
