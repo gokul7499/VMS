@@ -1507,7 +1507,28 @@ export const timesheetConfigAdvancedFilter = (
   return `
       SELECT
         timesheet_type_config.*,
-        COUNT(timesheet_type_config.id) OVER () AS total_count
+        COUNT(timesheet_type_config.id) OVER () AS total_count,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', h.id, 'name', h.name)
+          )
+          FROM hierarchies h
+          WHERE JSON_CONTAINS(timesheet_type_config.hierarchies, JSON_QUOTE(h.id))
+        ) AS hierarchies,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', lc.id, 'name', lc.name)
+          )
+          FROM labour_category lc
+          WHERE JSON_CONTAINS(timesheet_type_config.labor_category, JSON_QUOTE(lc.id))
+        ) AS labor_category,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name)
+          )
+          FROM timesheet_expense_rule_groups trg
+          WHERE trg.id = JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, '$.timesheet_rule_group.id'))
+        ) AS timesheet_rule_group
       FROM
         timesheet_type_config
       ${hierarchyIdsClause}
@@ -1519,7 +1540,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasTitle ? 'AND timesheet_type_config.title LIKE :title' : ''}
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
         ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
-        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group")) = :timesheet_rule_group' : ''}
+        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group.id")) = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
       GROUP BY
         timesheet_type_config.id
