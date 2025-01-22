@@ -271,18 +271,15 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
         const enrichedMappings = userMappings.map(mapping => {
             const user = mapping.user?.toJSON();
-            let associate_hierarchy_ids: { id: any; name: any; }[] = [];
-            let work_location_ids: { id: any; name: any; }[] = [];
-
             if (user) {
-                associate_hierarchy_ids = hierarchies.filter(hierarchy =>
+                user.associate_hierarchy_ids = hierarchies.filter(hierarchy =>
                     user.associate_hierarchy_ids.includes(hierarchy.id)
                 ).map(hierarchy => ({
                     id: hierarchy.id,
                     name: hierarchy.name
                 }));
 
-                work_location_ids = workLocations.filter(location =>
+                user.work_location_ids = workLocations.filter(location =>
                     user.work_location_ids.includes(location.id)
                 ).map(location => ({
                     id: location.id,
@@ -294,11 +291,9 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 ...mapping.toJSON(),
                 user: {
                     ...user,
-                    associate_hierarchy_ids: undefined, 
-                    work_location_ids: undefined 
+                    associate_hierarchy_ids: user?.associate_hierarchy_ids,
+                    work_location_ids: user?.work_location_ids
                 },
-                associate_hierarchy_ids,
-                work_location_ids,
                 countries: user?.countries
             };
         });
