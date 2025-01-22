@@ -2056,7 +2056,19 @@ WITH user_data AS (
          u.role_id,
          u.title,
          u.sso_id,
-         u.contacts,
+         CASE 
+           WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts 
+           ELSE JSON_ARRAY(
+             JSON_OBJECT(
+               'label', 'null',
+               'number', 'null',
+               'isd_code', '',
+               'max_phone_length', 0,
+               'min_phone_length', 0,
+               'phoneFormatCountry', ''
+             )
+           ) 
+         END AS contacts,
          u.addresses,
          u.time_zone_id,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
@@ -2068,7 +2080,6 @@ WITH user_data AS (
              'id',u.id,
              'name',u.first_name
          ) AS supervisor_id,
-
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2112,7 +2123,8 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`
+`;
+
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
 WITH user_data AS (
@@ -2293,7 +2305,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleTypeName?: string,
+  ruleType?:string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
@@ -2316,8 +2328,8 @@ export const fetchTimesheetExpenseRuleGroups = async (
   if (isEnabled !== undefined) {
     searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
   }
-  if (ruleTypeName) {
-    const ruleTypeNames = ruleTypeName.split(',').map((type) => type.trim());
+  if (ruleType) {
+    const ruleTypeNames = ruleType.split(',').map((type) => type.trim());
     const ruleTypeCondition = ruleTypeNames
       .map((type) => `FIND_IN_SET("${type}", (
           SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
@@ -2355,7 +2367,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
               WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
           ),
           ''
-      ) AS rule_type_name,
+      ) AS rule_type,
       COUNT(*) OVER() AS total_count
   FROM timesheet_expense_rule_groups tsg
   ${whereClause}
