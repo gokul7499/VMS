@@ -10,6 +10,7 @@ import IndustriesModel from "./labour-category.model";
 import JobTemplateModel from "./job-template.model";
 class Candidate extends Model {
     id: any;
+    qualifications: any;
 }
 
 Candidate.init(

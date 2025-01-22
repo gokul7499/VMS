@@ -1,7 +1,8 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
+import { databaseConfig } from '../config/db';
+const auth_db = databaseConfig.config.database_auth;
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -1506,7 +1507,28 @@ export const timesheetConfigAdvancedFilter = (
   return `
       SELECT
         timesheet_type_config.*,
-        COUNT(timesheet_type_config.id) OVER () AS total_count
+        COUNT(timesheet_type_config.id) OVER () AS total_count,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', h.id, 'name', h.name)
+          )
+          FROM hierarchies h
+          WHERE JSON_CONTAINS(timesheet_type_config.hierarchies, JSON_QUOTE(h.id))
+        ) AS hierarchies,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', lc.id, 'name', lc.name)
+          )
+          FROM labour_category lc
+          WHERE JSON_CONTAINS(timesheet_type_config.labor_category, JSON_QUOTE(lc.id))
+        ) AS labor_category,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name)
+          )
+          FROM timesheet_expense_rule_groups trg
+          WHERE trg.id = JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, '$.timesheet_rule_group.id'))
+        ) AS timesheet_rule_group
       FROM
         timesheet_type_config
       ${hierarchyIdsClause}
@@ -1518,7 +1540,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasTitle ? 'AND timesheet_type_config.title LIKE :title' : ''}
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
         ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
-        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group")) = :timesheet_rule_group' : ''}
+        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group.id")) = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
       GROUP BY
         timesheet_type_config.id
@@ -2055,7 +2077,19 @@ WITH user_data AS (
          u.role_id,
          u.title,
          u.sso_id,
-         u.contacts,
+         CASE 
+           WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts 
+           ELSE JSON_ARRAY(
+             JSON_OBJECT(
+               'label', 'null',
+               'number', 'null',
+               'isd_code', '',
+               'max_phone_length', 0,
+               'min_phone_length', 0,
+               'phoneFormatCountry', ''
+             )
+           ) 
+         END AS contacts,
          u.addresses,
          u.time_zone_id,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
@@ -2067,7 +2101,6 @@ WITH user_data AS (
              'id',u.id,
              'name',u.first_name
          ) AS supervisor_id,
-
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2101,18 +2134,17 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''}
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`
-
+`;
 
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
@@ -2294,7 +2326,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleTypeName?:string,
+  ruleType?:string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
@@ -2317,8 +2349,8 @@ export const fetchTimesheetExpenseRuleGroups = async (
   if (isEnabled !== undefined) {
     searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
   }
-  if (ruleTypeName) {
-    const ruleTypeNames = ruleTypeName.split(',').map((type) => type.trim());
+  if (ruleType) {
+    const ruleTypeNames = ruleType.split(',').map((type) => type.trim());
     const ruleTypeCondition = ruleTypeNames
       .map((type) => `FIND_IN_SET("${type}", (
           SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
@@ -2356,7 +2388,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
               WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
           ),
           ''
-      ) AS rule_type_name,
+      ) AS rule_type,
       COUNT(*) OVER() AS total_count
   FROM timesheet_expense_rule_groups tsg
   ${whereClause}

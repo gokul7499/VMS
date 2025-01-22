@@ -1,4 +1,6 @@
 import axios from "axios";
+import { databaseConfig } from '../config/db';
+const sourcing_url = databaseConfig.config.sourcing_url;
 
 export async function fetchUnavailableCandidates(
     program_id: string,
@@ -8,7 +10,7 @@ export async function fetchUnavailableCandidates(
 ): Promise<number[]> {
     try {
         const response = await axios.get(
-            `https://v4-devnlb.simplifysandbox.net:8002/sourcing/v1/api/program/${program_id}/submission-candidate`,
+            `${sourcing_url}/v1/api/program/${program_id}/submission-candidate`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
@@ -30,7 +32,7 @@ export async function fetchSubmittedCandidate(
 ): Promise<any[]> {
     try {
         const response = await axios.get(
-            `https://v4-dev.simplifysandbox.net/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
+            `${sourcing_url}/v1/api/vendor/${vendor_id}/submission-candidates`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
@@ -41,7 +43,6 @@ export async function fetchSubmittedCandidate(
         if (!submissionCandidateIds) {
             throw new Error("submission_candidate_ids not found in the response");
         }
-
         return submissionCandidateIds;
     } catch (error: any) {
         throw new Error(

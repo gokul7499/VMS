@@ -1,22 +1,17 @@
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes } from "sequelize";
-import { sendNotification } from './notificationService';
+import { databaseConfig } from '../config/db';
+const config_db = databaseConfig.config.database;
 
-const config_db = process.env.CONFIG_DB ?? "dev_vms_configurator";
-const config_base_url = process.env.CONFIG_URL ?? "http://v4-qanlb.simplifysandbox.net:8000"
-
-// get all user associted to the hierarchy for the same program
 export async function getUsersWithHierarchy(
     sequelize: any,
     programId: string | null,
     userType: string | null,
     hierarchies: string[] | null
 ): Promise<EmailRecipient[]> {
-    // Prepare hierarchy array as a JSON string
     const hierarchyJson = JSON.stringify(hierarchies);
 
-    // Query to fetch user data
     const result: any[] = await sequelize.query(
         `
         SELECT user.email,
@@ -53,7 +48,6 @@ export async function getUsersWithHierarchy(
         }
     );
 
-    // If the query returns results, map and return them as EmailRecipient objects
     if (result.length > 0) {
         const emailRecipientList: EmailRecipient[] = result.map((user: any) => ({
             email: user.email || null,
@@ -66,7 +60,6 @@ export async function getUsersWithHierarchy(
         return emailRecipientList;
     }
 
-    // Default return when no result is found
     return [];
 }
 

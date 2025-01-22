@@ -2,7 +2,7 @@ export interface TimesheetExpenseRuleGroupData {
     id: string;
     program_id: string;
     rule_group_name: string;
-    rule_type_name: string;
+    rule_type: string;
     rule_category:string;
     timesheet_expense_rules:any;
     is_enabled: boolean;

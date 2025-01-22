@@ -10,6 +10,7 @@ import Language from "../models/language.model";
 import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import Hierarchies from "../models/hierarchies.model";
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId=generateCustomUUID();
     try {
@@ -206,13 +207,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
         Object.entries(queryParams).forEach(([key, value]) => {
             if (!["tenant_id", "user_id", "id", "program_id"].includes(key)) {
-                if (value === "true") {
-                    whereClause[key] = true;
-                } else if (value === "false") {
-                    whereClause[key] = false;
-                } else if (value) {
-                    whereClause[key] = value;
-                }
+                whereClause[key] = value === "true" ? true : value === "false" ? false : value;
             }
         });
 
@@ -221,13 +216,14 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 "id", "tenant_id", "role_id", "user_id",
                 "program_id", "is_activated", "is_deleted",
                 "created_on", "modified_on", "created_by",
-                "modified_by", "ref_id"
+                "modified_by", "ref_id", "status" 
             ],
             where: whereClause,
             include: [
                 {
                     model: User,
                     as: "user",
+                    attributes: { exclude: ["status"] }, 
                     include: [
                         {
                             model: CountryModel,
@@ -260,14 +256,14 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
         const hierarchyIds = userMappings.flatMap(mapping => mapping.user?.associate_hierarchy_ids || []);
         const workLocationIds = userMappings.flatMap(mapping => mapping.user?.work_location_ids || []);
-        
-        const hierarchie = hierarchyIds.length > 0
-            ? await hierarchies.findAll({
+
+        const hierarchies = hierarchyIds.length > 0
+            ? await Hierarchies.findAll({
                 where: { id: hierarchyIds },
                 attributes: ["id", "name"]
             }) : [];
 
-        const workLocation = workLocationIds.length > 0
+        const workLocations = workLocationIds.length > 0
             ? await WorkLocationModel.findAll({
                 where: { id: workLocationIds },
                 attributes: ["id", "name"]
@@ -275,26 +271,30 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
         const enrichedMappings = userMappings.map(mapping => {
             const user = mapping.user?.toJSON();
-            if (user && user.associate_hierarchy_ids) {
-                const userHierarchies = hierarchie.filter(hierarchy =>
+            if (user) {
+                user.associate_hierarchy_ids = hierarchies.filter(hierarchy =>
                     user.associate_hierarchy_ids.includes(hierarchy.id)
-                );
-                const userWorkLocation = workLocation.filter(wl =>
-                    user.work_location_ids.includes(wl.id)
-                );
-                user.associate_hierarchy_ids = userHierarchies.map(hierarchy => ({
+                ).map(hierarchy => ({
                     id: hierarchy.id,
                     name: hierarchy.name
                 }));
-                user.work_location_ids = userWorkLocation.map(wl => ({
-                    id: wl.id,
-                    name: wl.name
+
+                user.work_location_ids = workLocations.filter(location =>
+                    user.work_location_ids.includes(location.id)
+                ).map(location => ({
+                    id: location.id,
+                    name: location.name
                 }));
             }
+
             return {
                 ...mapping.toJSON(),
-                ...user,
-                countries:user.countries
+                user: {
+                    ...user,
+                    associate_hierarchy_ids: user?.associate_hierarchy_ids,
+                    work_location_ids: user?.work_location_ids
+                },
+                countries: user?.countries
             };
         });
 
