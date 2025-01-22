@@ -85,7 +85,8 @@ export const getAllTimesheetTypeConfigs = async (
             where: searchConditions,
             limit: pageSize,
             offset,
-            attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category'],
+            order: [['created_on','DESC']],
+            attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category','slug'],
         });
 
         const hierarchyIds = [...new Set(configs.flatMap(config => config.hierarchies || []))];
@@ -237,6 +238,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             program_id,
             ...configData,
             modified_by: userId,
+            modified_on: Date.now()
         });
         reply.status(200).send({
             status_code: 200,
@@ -299,103 +301,103 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 
 export async function timesheetTypeConfigFilter(
     request: FastifyRequest<{
-      Params: { program_id: string };
-      Body: {
-        id?: string;
-        title?: string;
-        hierarchy_ids?: string[];
-        labor_category?: string[];
-        is_enabled?: boolean | string;
-        allocation_method?: string;
-        timesheet_rule_group?: string;
-        timesheet_format?: string;
-        page?: string;
-        limit?: string;
-      };
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            title?: string;
+            hierarchy_ids?: string[];
+            labor_category?: string[];
+            is_enabled?: boolean | string;
+            allocation_method?: string;
+            timesheet_rule_group?: string;
+            timesheet_format?: string;
+            page?: string;
+            limit?: string;
+        };
     }>,
     reply: FastifyReply
-  ) {
+) {
     const traceId = generateCustomUUID();
     try {
-      const { program_id } = request.params;
-      const {
-        id,
-        title,
-        hierarchy_ids,
-        labor_category,
-        is_enabled,
-        allocation_method,
-        timesheet_rule_group,
-        timesheet_format,
-        page,
-        limit,
-      } = request.body;
-  
-  
-      const isEnabledFilter =
-        typeof is_enabled === 'string'
-          ? is_enabled === 'true' ? 1 : 0
-          : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
-  
-      const pageNumber = parseInt(page ?? '1', 10);
-      const limitNumber = parseInt(limit ?? '10', 10);
-      const offset = (pageNumber - 1) * limitNumber;
-  
-      const query = timesheetConfigAdvancedFilter(
-        Boolean(id),
-        Boolean(title),
-        hierarchy_ids || [],
-        labor_category || [],
-        Boolean(allocation_method),
-        Boolean(timesheet_rule_group),
-        Boolean(timesheet_format),
-        isEnabledFilter !== undefined
-      );
-  
-      const replacements: Record<string, any> = {
-        program_id,
-        id,
-        title: title ? `%${title}%` : undefined,
-        allocation_method,
-        timesheet_rule_group,
-        timesheet_format,
-        limit: limitNumber,
-        offset,
-        is_enabled: isEnabledFilter,
-      };
-  
-      hierarchy_ids?.forEach((hierarchyId, index) => {
-        replacements[`hierarchy_id${index}`] = hierarchyId;
-      });
-      labor_category?.forEach((laborCategoryId, index) => {
-        replacements[`labor_category_id${index}`] = laborCategoryId;
-      });
-  
-      const data = await sequelize.query<{ total_count: any }>(query, {
-        replacements,
-        type: QueryTypes.SELECT,
-      });
-  
-      const totalRecords = data.length > 0 ? data[0].total_count : 0;
-  
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: data.length > 0 ? 'Timesheet Type Config fetched successfully.' : 'No records found.',
-        total_records: totalRecords,
-        page: pageNumber,
-        limit: limitNumber,
-        items: data,
-      });
+        const { program_id } = request.params;
+        const {
+            id,
+            title,
+            hierarchy_ids,
+            labor_category,
+            is_enabled,
+            allocation_method,
+            timesheet_rule_group,
+            timesheet_format,
+            page,
+            limit,
+        } = request.body;
+
+
+        const isEnabledFilter =
+            typeof is_enabled === 'string'
+                ? is_enabled === 'true' ? 1 : 0
+                : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
+
+        const pageNumber = parseInt(page ?? '1', 10);
+        const limitNumber = parseInt(limit ?? '10', 10);
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const query = timesheetConfigAdvancedFilter(
+            Boolean(id),
+            Boolean(title),
+            hierarchy_ids || [],
+            labor_category || [],
+            Boolean(allocation_method),
+            Boolean(timesheet_rule_group),
+            Boolean(timesheet_format),
+            isEnabledFilter !== undefined
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            title: title ? `%${title}%` : undefined,
+            allocation_method,
+            timesheet_rule_group,
+            timesheet_format,
+            limit: limitNumber,
+            offset,
+            is_enabled: isEnabledFilter,
+        };
+
+        hierarchy_ids?.forEach((hierarchyId, index) => {
+            replacements[`hierarchy_id${index}`] = hierarchyId;
+        });
+        labor_category?.forEach((laborCategoryId, index) => {
+            replacements[`labor_category_id${index}`] = laborCategoryId;
+        });
+
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Timesheet Type Config fetched successfully.' : 'No records found.',
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            items: data,
+        });
     } catch (error: any) {
-      return reply.status(500).send({
-        status_code: 500,
-        message: 'Internal Server Error',
-        trace_id: traceId,
-        error: error.message,
-      });
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
     }
-  }
+}
 
 export const getAllRelatedDataByProgram = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,

@@ -2065,8 +2065,8 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-         'id',u.id,
-         'name',u.first_name
+             'id',u.id,
+             'name',u.first_name
          ) AS supervisor_id,
 
          (
@@ -2086,7 +2086,7 @@ WITH user_data AS (
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
-         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
+         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id
   FROM user u
   LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
@@ -2094,7 +2094,7 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.id = :user_id' : ''} 
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
@@ -2102,18 +2102,17 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-    ? `AND (${hierarchy_id
-      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-      .join(' OR ')})`
-    : ''
-  }
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`;
+`
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
 WITH user_data AS (

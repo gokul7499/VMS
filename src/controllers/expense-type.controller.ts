@@ -190,7 +190,7 @@ export async function updateExpenseTypeById(
         );
 
         const [updatedCount] = await ExpenseTypeModel.update(
-            { ...updates, modified_by: user.sub },
+            { ...updates, modified_by: user.sub, modified_on: Date.now() },
             {
                 where: { id, program_id },
             }
@@ -318,8 +318,8 @@ export async function getAllExpenseType(
             limit?: number;
             modified_on?: string;
         };
-        Params:{
-            program_id:string
+        Params: {
+            program_id: string
         }
     }>,
     reply: FastifyReply
