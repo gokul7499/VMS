@@ -610,7 +610,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         currency_id?: string;
         unit_of_measure?: string;
         labor_category_id?: string;
-        ot_exempt?:boolean;
+        ot_exempt?: boolean;
     };
 }>,
     reply: FastifyReply
@@ -618,7 +618,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id,ot_exempt } = request.query;
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt } = request.query;
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -766,14 +766,17 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         const bill_rate = billRates.map((billRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
-            
+
+                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                ? 1 : billRate.differential_value || 0;
+
                             const calculatedMinRate = billRate.differential_type === "Factor Differential"
-                                ? minRate * (billRate.differential_value || 0)
-                                : minRate + (billRate.differential_value || 0);
+                                ? minRate * differentialValue
+                                : minRate + differentialValue;
 
                             const calculatedMaxRate = billRate.differential_type === "Factor Differential"
-                                ? maxRate * (billRate.differential_value || 0)
-                                : maxRate + (billRate.differential_value || 0);
+                                ? maxRate * differentialValue
+                                : maxRate + differentialValue;
 
                             return {
                                 ...billRate.get(),
@@ -785,14 +788,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         const pay_rate = payRates.map((payRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
-
+                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                ? 1 : payRate.differential_value || 0;
                             const calculatedMinRate = payRate.differential_type === "Factor Differential"
-                                ? minRate * (payRate.differential_value || 0)
-                                : minRate + (payRate.differential_value || 0);
+                                ? minRate * differentialValue
+                                : minRate + differentialValue;
 
                             const calculatedMaxRate = payRate.differential_type === "Factor Differential"
-                                ? maxRate * (payRate.differential_value || 0)
-                                : maxRate + (payRate.differential_value || 0);
+                                ? maxRate * differentialValue
+                                : maxRate + differentialValue;
 
                             return {
                                 ...payRate.get(),
