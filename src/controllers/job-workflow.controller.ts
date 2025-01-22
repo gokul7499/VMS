@@ -3439,14 +3439,24 @@ export const getModuleEvent = async (
 
         workflows.forEach((workflow) => {
             const moduleName = workflow.moduleDetail?.name || 'Unknown';
+            const eventName = workflow.event?.name || null;
+            const eventSlug = workflow.event?.slug || null;
+
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
 
-            groupedData[moduleName].push({
-                event: workflow.event?.name || null,
-                event_slug: workflow.event?.slug || null,
-            });
+            // Check if the event is already added to avoid duplicates
+            const isDuplicate = groupedData[moduleName].some(
+                (event) => event.event === eventName && event.event_slug === eventSlug
+            );
+
+            if (!isDuplicate) {
+                groupedData[moduleName].push({
+                    event: eventName,
+                    event_slug: eventSlug,
+                });
+            }
         });
 
         // Transforming grouped data into the required format
@@ -3468,6 +3478,7 @@ export const getModuleEvent = async (
         });
     }
 };
+
 // export const sendSequencialNotification = async (
 //     request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
 //     reply: FastifyReply
