@@ -30,7 +30,7 @@ export async function fetchSubmittedCandidate(
 ): Promise<any[]> {
     try {
         const response = await axios.get(
-            `https://v4-qa.simplifysandbox.net/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
+            `http://v4-qanlb.simplifysandbox.net:8002/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
             {
                 params: { job_id },
                 headers: { Authorization: `Bearer ${token}` }
