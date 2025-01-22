@@ -16,14 +16,13 @@ import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
 
 export async function createCandidate(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
     reply: FastifyReply
 ) {
-    const candidate = request.body as candidateInterface;
-    const { program_id, email } = candidate;
+    const { candidate } = request.body; 
+    const { program_id, email } = candidate;  
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
@@ -55,7 +54,6 @@ export async function createCandidate(
                 });
             }
         }
-
         logger(
             {
                 trace_id: traceId,
@@ -140,6 +138,7 @@ export async function createCandidate(
         });
     }
 }
+
 
 export async function getAllCandidate(
     request: FastifyRequest,

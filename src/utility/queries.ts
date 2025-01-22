@@ -1485,22 +1485,23 @@ AND (:event_name IS NULL OR event.name LIKE :event_name);
 
 export const timesheetConfigAdvancedFilter = (
   hasId: boolean,
-  hasQueryName: boolean,
+  hasTitle: boolean,
   hierarchyIdsArray: string[],
   laborCategoryIdsArray: string[],
-  startDate: number | undefined,
-  endDate: number | undefined,
-  newStartDate: number | undefined,
-  newEndDate: number | undefined,
+  hasAllocationMethod: boolean,
+  hasTimesheetRuleGroup: boolean,
+  hasTimesheetFormat: boolean,
   hasIsEnabled: boolean
 ) => {
-  const hierarchyIdsClause = hierarchyIdsArray.length ?
-    `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
-    ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})` : ''
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
 
-  const laborCategoryClause = laborCategoryIdsArray.length ?
-    `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS labourTable
-    ON labourTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})` : ''
+  const laborCategoryClause = laborCategoryIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`)})`
+    : '';
 
   return `
       SELECT
@@ -1514,17 +1515,18 @@ export const timesheetConfigAdvancedFilter = (
         timesheet_type_config.is_deleted = false
         AND timesheet_type_config.program_id = :program_id
         ${hasId ? 'AND timesheet_type_config.id = :id' : ''}
-        ${hasQueryName ? 'AND timesheet_type_config.title LIKE :title' : ''}
-        ${startDate !== undefined && endDate !== undefined ? 'AND timesheet_type_config.created_on BETWEEN :startDate AND :endDate' : ''}
-        ${newStartDate !== undefined && newEndDate !== undefined ? 'AND timesheet_type_config.modified_on BETWEEN :newStartDate AND :newEndDate' : ''}
+        ${hasTitle ? 'AND timesheet_type_config.title LIKE :title' : ''}
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
+        ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
+        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group")) = :timesheet_rule_group' : ''}
+        ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
       GROUP BY
         timesheet_type_config.id
       ORDER BY
         timesheet_type_config.id ASC
       LIMIT :limit
       OFFSET :offset;
-    `;
+  `;
 };
 
 export const getMasterData = `
@@ -2062,8 +2064,8 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-         'id',u.id,
-         'name',u.first_name
+             'id',u.id,
+             'name',u.first_name
          ) AS supervisor_id,
 
          (
@@ -2083,7 +2085,7 @@ WITH user_data AS (
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
-         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id,
+         JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id
   FROM user u
   LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
@@ -2091,7 +2093,7 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.id = :user_id' : ''} 
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
@@ -2099,18 +2101,17 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-    ? `AND (${hierarchy_id
-      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-      .join(' OR ')})`
-    : ''
-  }
+        ? `AND (${hierarchy_id
+            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+            .join(' OR ')})`
+        : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`;
+`
 
 
 
