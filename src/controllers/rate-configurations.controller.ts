@@ -610,6 +610,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         currency_id?: string;
         unit_of_measure?: string;
         labor_category_id?: string;
+        ot_exempt?: boolean;
     };
 }>,
     reply: FastifyReply
@@ -617,7 +618,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id } = request.query;
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt } = request.query;
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -698,36 +699,19 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             }],
         });
         const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number } }> = await sequelize.query(
-            `
-            WITH rate_card_matches AS (
-                SELECT 
-                    rc.id AS rate_card_id
-                FROM 
-                    rate_card rc
-                WHERE 
-                    rc.labor_category_id = :labor_category_id
-                    AND rc.program_id = :program_id
-            )
-            SELECT 
-                rcdt.min_rate, 
-                rcdt.max_rate
-            FROM 
-                rate_card_decision_table rcdt
-            INNER JOIN 
-                rate_card_matches rcm 
-            ON 
-                rcdt.rate_card_id = rcm.rate_card_id
-            WHERE 
-                rcdt.hierarchy_id IS NULL
+            ` WITH rate_card_matches AS (
+                SELECT rc.id AS rate_card_id FROM rate_card rc
+                WHERE  rc.labor_category_id = :labor_category_id AND rc.program_id = :program_id)
+            SELECT rcdt.min_rate, rcdt.max_rate
+            FROM rate_card_decision_table rcdt
+            INNER JOIN rate_card_matches rcm 
+            ON rcdt.rate_card_id = rcm.rate_card_id
+            WHERE rcdt.hierarchy_id IS NULL
                 AND rcdt.job_template_id IS NULL
                 AND rcdt.unit_of_measure IS NULL
                 AND rcdt.rate_type_id IS NULL
-                AND rcdt.currency IS NULL;
-            `,
-            {
-                type: QueryTypes.SELECT,
-                replacements: { labor_category_id, program_id },
-            }
+                AND rcdt.currency IS NULL;`,
+            { type: QueryTypes.SELECT, replacements: { labor_category_id, program_id } }
         );
         const fallbackRate = allNullRates[0];
         const rateConfigurationDetails = await Promise.all(
@@ -783,13 +767,16 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
 
+                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                ? 1 : billRate.differential_value || 0;
+
                             const calculatedMinRate = billRate.differential_type === "Factor Differential"
-                                ? minRate * (billRate.differential_value || 0)
-                                : minRate + (billRate.differential_value || 0);
+                                ? minRate * differentialValue
+                                : minRate + differentialValue;
 
                             const calculatedMaxRate = billRate.differential_type === "Factor Differential"
-                                ? maxRate * (billRate.differential_value || 0)
-                                : maxRate + (billRate.differential_value || 0);
+                                ? maxRate * differentialValue
+                                : maxRate + differentialValue;
 
                             return {
                                 ...billRate.get(),
@@ -801,14 +788,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         const pay_rate = payRates.map((payRate) => {
                             const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
                             const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
-
+                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                ? 1 : payRate.differential_value || 0;
                             const calculatedMinRate = payRate.differential_type === "Factor Differential"
-                                ? minRate * (payRate.differential_value || 0)
-                                : minRate + (payRate.differential_value || 0);
+                                ? minRate * differentialValue
+                                : minRate + differentialValue;
 
                             const calculatedMaxRate = payRate.differential_type === "Factor Differential"
-                                ? maxRate * (payRate.differential_value || 0)
-                                : maxRate + (payRate.differential_value || 0);
+                                ? maxRate * differentialValue
+                                : maxRate + differentialValue;
 
                             return {
                                 ...payRate.get(),
@@ -944,62 +932,67 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number) {
-    return rates.map(rate => ({
-        ...rate,
-        min_rate:
-            rate.differential_type === "Factor Differential"
-                ? baseRateMin * rate.differential_value
-                : baseRateMin + rate.differential_value,
-        max_rate:
-            rate.differential_type === "Factor Differential"
-                ? baseRateMax * rate.differential_value
-                : baseRateMax + rate.differential_value,
-    }));
+function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, ot_exempt: boolean, rateTypeCategory: string) {
+    return rates.map((rate) => {
+        const differential_value = ot_exempt && rateTypeCategory === "overtime" ? 1 : rate.differential_value;
+
+        return {
+            ...rate,
+            differential_value,
+            min_rate: rate.differential_type === "Factor Differential"
+                ? baseRateMin * differential_value
+                : baseRateMin + differential_value,
+            max_rate: rate.differential_type === "Factor Differential"
+                ? baseRateMax * differential_value
+                : baseRateMax + differential_value,
+        };
+    });
 }
 
 export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-
     try {
-        const response = request.body.map(config => {
-            const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration } = config;
+        const response = request.body.map((config) => {
+            const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
-            const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any; }; rates: any[]; }; rate: any[]; }) => {
+            const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {
                 const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate.amount);
                 const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate.amount);
 
                 const base_rate = {
                     ...rateConfig.base_rate,
-                    rates: rateConfig.base_rate.rates.map(rate => ({
-                        ...rate,
-                        bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax),
-                        pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax),
-                    })),
+                    rates: rateConfig.base_rate.rates.map((rate) => {
+                        const rateTypeCategory = rate.rate_type.rate_type_category.value;
+                        return {
+                            ...rate,
+                            rateTypeCategory,
+                            bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                            pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                        };
+                    }),
                 };
 
-                const rates = rateConfig.rate?.map(rateConfigNested => ({
-                    ...rateConfigNested,
-                    bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax),
-                    pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax),
-                    rates: rateConfigNested.rates.map((nestedRate: { bill_rate: any[]; pay_rate: any[]; }) => ({
-                        ...nestedRate,
-                        bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax),
-                        pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax),
-                    })),
-                }));
-
+                const rates = rateConfig.rate?.map((rateConfigNested) => {
+                    const rateTypeCategory = rateConfigNested.rate_type.rate_type_category.value;
+                    return {
+                        ...rateConfigNested,
+                        rateTypeCategory,
+                        bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                        pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                        rates: rateConfigNested.rates.map((nestedRate: { rate_type: any; bill_rate: any[]; pay_rate: any[] }) => {
+                            const nestedRateTypeCategory = nestedRate.rate_type.rate_type_category.value;
+                            return {
+                                ...nestedRate,
+                                rateTypeCategory: nestedRateTypeCategory,
+                                bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
+                                pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
+                            };
+                        }),
+                    };
+                });
                 return { base_rate, rate: rates };
             });
-
-            return {
-                program_id,
-                name,
-                is_shift_rate,
-                hierarchies,
-                job_templates,
-                rate_configuration: rateConfigurationDetails,
-            };
+            return { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration: rateConfigurationDetails };
         });
 
         reply.status(200).send({
@@ -1017,3 +1010,4 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
         });
     }
 }
+

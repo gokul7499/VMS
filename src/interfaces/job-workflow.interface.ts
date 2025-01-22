@@ -44,7 +44,7 @@ export interface Level {
   placement_order: number;
   level_order: number;
   // is_bypassed:string;
-
+  is_show_buttons?:any;
   recipients: Recipient[];
 }
 
@@ -57,6 +57,7 @@ export interface Workflow {
   workflow_type: string;
   event_slug: string;
   event_title: string;
+ 
   levels: Level[];
   config: any
 }

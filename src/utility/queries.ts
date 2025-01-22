@@ -2070,7 +2070,19 @@ WITH user_data AS (
          u.role_id,
          u.title,
          u.sso_id,
-         u.contacts,
+         CASE 
+           WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts 
+           ELSE JSON_ARRAY(
+             JSON_OBJECT(
+               'label', 'null',
+               'number', 'null',
+               'isd_code', '',
+               'max_phone_length', 0,
+               'min_phone_length', 0,
+               'phoneFormatCountry', ''
+             )
+           ) 
+         END AS contacts,
          u.addresses,
          u.time_zone_id,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
@@ -2082,7 +2094,6 @@ WITH user_data AS (
              'id',u.id,
              'name',u.first_name
          ) AS supervisor_id,
-
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2126,7 +2137,8 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`
+`;
+
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
 WITH user_data AS (
