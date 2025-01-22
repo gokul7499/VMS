@@ -35,7 +35,7 @@ import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import axios from 'axios';
-const AUTH_BASE_URL = process.env.AUTH_BASE_URL || 'https://v4-dev.simplifysandbox.net/auth/v1/api'
+const AUTH_BASE_URL = process.env.AUTH_BASE_URL || 'http://v4-qanlb.simplifysandbox.net:8006/auth/v1/api'
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
