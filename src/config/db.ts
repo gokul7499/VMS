@@ -26,6 +26,9 @@ export const databaseConfig = {
       redis_auth: config.redis_auth,
       redis_replica_host: config.redis_replica_host,
       notification_url: config.notification_url,
+      database_auth: config.database_auth,
+      sourcing_url:config.sourcing_url,
+      auth_url:config.auth_url,
       reconnect: {
         max: 10,
         delay: 1000,
@@ -33,3 +36,4 @@ export const databaseConfig = {
     };
   }
 };
+

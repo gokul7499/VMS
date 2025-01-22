@@ -19,6 +19,9 @@ export const getSecretsManager = async () => {
             redis_port: process.env.REDIS_PORT,
             redis_host: process.env.REDIS_HOST,
             notification_url: process.env.NOTIFICATION_URL,
+            database_auth: process.env.DATABASE_AUTH,
+            sourcing_url: process.env.SOURCING_URL,
+            auth_url:process.env.AUTH_URL
         };
     }
 
@@ -40,6 +43,9 @@ export const getSecretsManager = async () => {
                 redis_auth: secret.REDIS_AUTH,
                 redis_replica_host: secret.REDIS_REPLICA_HOST,
                 notification_url: secret.NOTIFICATION_URL,
+                database_auth: secret.DATABASE_AUTH,
+                sourcing_url: secret.SOURCING_URL,
+                auth_url: secret.AUTH_URL,
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");
