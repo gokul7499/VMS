@@ -2294,7 +2294,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleTypeName?:string,
+  ruleType?:string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
@@ -2317,8 +2317,8 @@ export const fetchTimesheetExpenseRuleGroups = async (
   if (isEnabled !== undefined) {
     searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
   }
-  if (ruleTypeName) {
-    const ruleTypeNames = ruleTypeName.split(',').map((type) => type.trim());
+  if (ruleType) {
+    const ruleTypeNames = ruleType.split(',').map((type) => type.trim());
     const ruleTypeCondition = ruleTypeNames
       .map((type) => `FIND_IN_SET("${type}", (
           SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
@@ -2356,7 +2356,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
               WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
           ),
           ''
-      ) AS rule_type_name,
+      ) AS rule_type,
       COUNT(*) OVER() AS total_count
   FROM timesheet_expense_rule_groups tsg
   ${whereClause}

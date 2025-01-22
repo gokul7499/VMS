@@ -34,7 +34,7 @@ TimesheetExpenseRuleGroup.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-        rule_type_name: {
+        rule_type: {
             type: DataTypes.STRING,
             allowNull: true,
         },
