@@ -85,7 +85,8 @@ export const getAllTimesheetTypeConfigs = async (
             where: searchConditions,
             limit: pageSize,
             offset,
-            attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category'],
+            order: [['created_on','DESC']],
+            attributes: ['id', 'title', 'is_enabled', 'hierarchies', 'modified_on', 'timesheet_format', 'allocations', 'timesheet_rounding', 'break', 'labor_category','slug'],
         });
 
         const hierarchyIds = [...new Set(configs.flatMap(config => config.hierarchies || []))];
