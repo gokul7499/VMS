@@ -50,11 +50,12 @@ export const getAllTimesheetExpenseRuleGroups = async (
 
     try {
         const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, rule_category, is_enabled, rule_group_name, order = 'created_on DESC' } = request.query as {
+        const { page = 1, limit = 10, rule_category, is_enabled, rule_group_name, order = 'created_on DESC',rule_type_name } = request.query as {
             page?: string | number;
             limit?: string | number;
             rule_category?: string;
             rule_group_name?: string;
+            rule_type_name?:string
             is_enabled?: string;
             order?: string;
         };
@@ -67,6 +68,7 @@ export const getAllTimesheetExpenseRuleGroups = async (
             program_id,
             rule_category,
             rule_group_name,
+            rule_type_name,
             is_enabled,
             limitNumber,
             offset,
