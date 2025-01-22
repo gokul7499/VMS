@@ -277,6 +277,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
                                 // Check if user is not a "super_user" and proceed with matchinj
@@ -310,6 +311,7 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                             }
                                         }
                                     }
@@ -324,6 +326,7 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
+                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
@@ -827,9 +830,11 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                         });
 
@@ -1635,7 +1640,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);
+        // console.log(rows);
 
         let manager = rows[0]?.manager
         if (rows.length === 0) {
@@ -1660,17 +1665,64 @@ ORDER BY
         };
         let previousLevelCompleted = false;
         let levelStatusMap: { [key: number]: string } = {};
+       await getLevelData(request, reply, rows, workflow, manager);
+        (async () => {
+            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        })();
+        return reply.status(200).send({
+            statusCode: 200,
+            workflow,
+            trace_id,
+        });
+    } catch (error: any) {
+        console.log(error);
 
+        return reply.status(500).send({
+            statusCode: 500,
+            message: 'An error occurred while fetching workflow data.',
+            trace_id,
+        });
+    }
+}
+function getName(input_value: any): string {
+    if ('first_name' in input_value && 'last_name' in input_value) {
+        const firstName = (input_value as { first_name: string; last_name?: string }).first_name;
+        const lastName = (input_value as { first_name: string; last_name?: string }).last_name ?? '';
+        return `${firstName} ${lastName}`.trim();
+    } else if ('name' in input_value) {
+        return (input_value as { name: string }).name;
+    }
+    return '';
+}
+function getExistingLevel(workflow: Workflow, level_id: string) {
+    return workflow.levels.find(level => level.level_id === level_id);
+}
+const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: any, workflow: any, manager: any): Promise<any> => {
+
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+    try {
         for (const row of rows) {
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
-                    SELECT id ,name
-                    FROM recipient_type
-                    WHERE id = :recipient_type_id
-                    AND is_enabled = true
-                    LIMIT 1
-                `;
+                SELECT id ,name
+                FROM recipient_type
+                WHERE id = :recipient_type_id
+                AND is_enabled = true
+                LIMIT 1
+            `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
                     type: QueryTypes.SELECT,
                     replacements: { recipient_type_id },
@@ -1680,31 +1732,18 @@ ORDER BY
                 let meta_datas = JSON.stringify(meta_data)
                 const input_values = Object.values(meta_data);
 
-                function getName(input_value: any): string {
-                    if ('first_name' in input_value && 'last_name' in input_value) {
-                        const firstName = (input_value as { first_name: string; last_name?: string }).first_name;
-                        const lastName = (input_value as { first_name: string; last_name?: string }).last_name ?? '';
-                        return `${firstName} ${lastName}`.trim();
-                    } else if ('name' in input_value) {
-                        return (input_value as { name: string }).name;
-                    }
-                    return '';
-                }
-                function getExistingLevel(workflow: Workflow, level_id: string) {
-                    return workflow.levels.find(level => level.level_id === level_id);
-                }
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                            SELECT id, first_name, last_name, avatar, role_id,email
-                            FROM user
-                            WHERE id = :user_id
-                            AND is_enabled = true
-                            LIMIT 1
-                        `;
+                        SELECT id, first_name, last_name, avatar, role_id,email
+                        FROM user
+                        WHERE id = :user_id
+                        AND is_enabled = true
+                        LIMIT 1
+                    `;
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -1733,9 +1772,6 @@ ORDER BY
                                 replacements: { user_id: imporsonate_by },
                             });
                         }
-
-
-
                         input_value = userResult[0] ? {
                             id: userResult[0].id,
                             first_name: userResult[0].first_name,
@@ -1769,12 +1805,12 @@ ORDER BY
                 }
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                        SELECT id, first_name, last_name, email, avatar, supervisor
-                        FROM user
-                        WHERE id = :job_manager_id
-                        AND is_enabled = true
-                        LIMIT 1
-                    `;
+                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    FROM user
+                    WHERE id = :job_manager_id
+                    AND is_enabled = true
+                    LIMIT 1
+                `;
 
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
@@ -1791,12 +1827,12 @@ ORDER BY
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                                SELECT id, first_name, last_name, email, avatar
-                                FROM user
-                                WHERE id = :supervisor
-                                AND is_enabled = true
-                                LIMIT 1
-                            `;
+                            SELECT id, first_name, last_name, email, avatar
+                            FROM user
+                            WHERE id = :supervisor
+                            AND is_enabled = true
+                            LIMIT 1
+                        `;
                             let supervisorResult = null
                             // const supervisorResult = await sequelize.query(supervisorQuery, {
                             //     type: QueryTypes.SELECT,
@@ -1875,12 +1911,12 @@ ORDER BY
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                    SELECT id, first_name, last_name, email, avatar
-                    FROM user
-                    WHERE id = :user_id
-                    AND is_enabled = true
-                    LIMIT 1
-                `;
+                SELECT id, first_name, last_name, email, avatar
+                FROM user
+                WHERE id = :user_id
+                AND is_enabled = true
+                LIMIT 1
+            `;
                                     // const userData: any = await sequelize.query<Users>(userQuery, {
                                     //     type: QueryTypes.SELECT,
                                     //     replacements: { user_id: metaValue },
@@ -2070,9 +2106,7 @@ ORDER BY
                     });
                 }
                 if (input_value) {
-
                     let recipients = [];
-
                     if (Array.isArray(input_value)) {
                         recipients = input_value.map(user => {
                             return {
@@ -2084,15 +2118,12 @@ ORDER BY
                                 modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
-                                // replaced_date_times: recipient_details.replaced_modified_on,
-                                // replaced_notess: recipient_details.replaced_notes,
                                 level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
                                 email: user.email,
                                 replaced_by: user.replaced_by,
-                                // existing_replaced_user:user.existing_replaced_user,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
 
@@ -2125,9 +2156,6 @@ ORDER BY
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
-                        // if (existingLevel) {
-                        //     existingLevel.recipients.push(recipient);
-                        // } 
                         if (existingLevel) {
 
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
@@ -2149,127 +2177,283 @@ ORDER BY
                         }
                     });
                 }
+                await applyBypassDublicateStatus(request, reply, workflow)
+
+                // if (workflow.levels && workflow.levels.length > 0) {
+                //     const config = {
+                //         bypass_duplicate_approver: workflow.config.bypass_duplicate_approver,
+                //         skip_level_if_actor_is_only_approver_in_level: workflow.config.skip_level_if_actor_is_only_approver_in_level, // Assuming the value is true for this scenario
+                //     };
+
+                //     const logged_in_user_id = user.sub;
+                //     const updates: any[] = [];
+
+                //     workflow.levels.forEach(level => {
+                //         if (level.recipients && level.recipients.length > 0) {
+                //             const isOnlyApprover = level.recipients.every(
+                //                 recipient => recipient.user_id === logged_in_user_id
+                //             );
+                //             if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
+
+                //                 let new_status = "";
+                //                 if (workflow.workflow_type === "Review") {
+                //                     new_status = "reviewed";
+                //                 } else if (workflow.workflow_type === "Approval") {
+                //                     new_status = "approved";
+                //                 }
+                //                 updates.push({
+                //                     placement_order: level.placement_order,
+                //                     new_status,
+                //                     notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
+                //                 });
+                //             } else {
+                //                 level.recipients.forEach(recipient => {
 
 
-                if (workflow.levels && workflow.levels.length > 0) {
-                    const config = {
-                        bypass_duplicate_approver: workflow.config.bypass_duplicate_approver,
-                        skip_level_if_actor_is_only_approver_in_level: workflow.config.skip_level_if_actor_is_only_approver_in_level, // Assuming the value is true for this scenario
-                    };
+                //                     if (recipient.user_id === logged_in_user_id) {
 
-                    const logged_in_user_id = user.sub;
-                    const updates: any[] = [];
 
-                    workflow.levels.forEach(level => {
-                        if (level.recipients && level.recipients.length > 0) {
-                            const isOnlyApprover = level.recipients.every(
-                                recipient => recipient.user_id === logged_in_user_id
-                            );
-                            if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
+                //                         if (config.bypass_duplicate_approver) {
+                //                             // Prepare the update for each matching recipient
+                //                             updates.push({
+                //                                 placement_order: level.placement_order,
+                //                                 new_status: "bypassed",
+                //                                 user_id: logged_in_user_id,
+                //                                 notes: "Auto-approved due to config and user match.",
+                //                             });
+                //                         }
+                //                     }
+                //                 });
+                //             }
+                //         }
+                //     });
 
-                                let new_status = "";
-                                if (workflow.workflow_type === "Review") {
-                                    new_status = "reviewed";
-                                } else if (workflow.workflow_type === "Approval") {
-                                    new_status = "approved";
-                                }
+                //     if (updates.length > 0) {
+                //         // Call the `updateWorkflowStatusData` function with the collected updates.
+                //         await updateWorkflowStatusData(
+                //             workflow.program_id,
+                //             workflow.job_workflow_id,
+                //             updates,
+                //             reply
+                //         );
+                //     }
+                // }
+
+                let data = await statusHandling(request, reply, workflow)
+                // const levelStatusMap: Record<number, string> = {};
+                // if (workflow.levels && workflow.levels.length >= 0) {
+                //     const sortedLevels = [...workflow.levels].sort((a, b) => a.placement_order - b.placement_order);
+                //     for (let i = 0; i < sortedLevels.length; i++) {
+                //         const currentLevel = sortedLevels[i];
+                //         const placementOrder = currentLevel.placement_order;
+                //         if (i === 0) {
+                //             currentLevel.level_status = currentLevel.level_status;
+                //         } else {
+
+                //             const previousLevel = sortedLevels[i - 1];
+                //             if (previousLevel.level_status === "completed") {
+
+                //                 currentLevel.level_status = currentLevel.level_status;
+                //             } else {
+
+                //                 currentLevel.level_status = "not started";
+                //             }
+                //         }
+                //         if (currentLevel.level_status === "pending") {
+                //             const hasMatchingRecipient =user.userType == "super_user"|| currentLevel.recipients.some((recipient: any) => {
+
+                //                 if (recipient.replaced_by) {
+                //                     return recipient.replaced_by === user.sub;
+                //                 }
+
+                //                 return recipient.user_id === user.sub;
+                //             });
+
+                //             if (hasMatchingRecipient) {
+
+                //                 currentLevel.is_show_buttons = true;
+                //             }
+                //         }
+
+
+                //         // Update the status map for reference
+                //         levelStatusMap[placementOrder] = currentLevel.level_status;
+                //         // Update the status map for reference
+                //         if (currentLevel.recipients && currentLevel.recipients.length > 0) {
+                //             currentLevel.recipients.forEach((recipient: any) => {
+                //                 if (currentLevel.level_status === "completed") {
+                //                     // If the level is completed, preserve the recipient's existing status
+                //                     recipient.status = recipient.status;
+                //                 } else if (currentLevel.level_status === "pending") {
+                //                     // If the level is pending, keep the recipient's status as is
+                //                     recipient.status = recipient.status;
+                //                 } else {
+                //                     // If the level is not started, set recipient status to "not started"
+                //                     recipient.status = "not started";
+                //                 }
+                //             });
+                //         }
+                //     }
+                // }
+            }
+        }
+    } catch (error) {
+        return reply.status(500).send({
+            statusCode: 500,
+            message: 'An error occurred while fetching workflow data.',
+
+        });
+    }
+};
+const applyBypassDublicateStatus = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
+
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+
+    if (workflow.levels && workflow.levels.length > 0) {
+        const config = {
+            bypass_duplicate_approver: workflow.config.bypass_duplicate_approver,
+            skip_level_if_actor_is_only_approver_in_level: workflow.config.skip_level_if_actor_is_only_approver_in_level, // Assuming the value is true for this scenario
+        };
+
+        const logged_in_user_id = user.sub;
+        const updates: any[] = [];
+
+        workflow.levels.forEach((level: any) => {
+            if (level.recipients && level.recipients.length > 0) {
+                const isOnlyApprover = level.recipients.every(
+                    (recipient: any) => recipient.user_id === logged_in_user_id
+                );
+                if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
+
+                    let new_status = "";
+                    if (workflow.workflow_type === "Review") {
+                        new_status = "reviewed";
+                    } else if (workflow.workflow_type === "Approval") {
+                        new_status = "approved";
+                    }
+                    updates.push({
+                        placement_order: level.placement_order,
+                        new_status,
+                        notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
+                    });
+                } else {
+                    level.recipients.forEach((recipient: any) => {
+
+
+                        if (recipient.user_id === logged_in_user_id) {
+
+
+                            if (config.bypass_duplicate_approver) {
+                                // Prepare the update for each matching recipient
                                 updates.push({
                                     placement_order: level.placement_order,
-                                    new_status,
-                                    notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
-                                });
-                            } else {
-                                level.recipients.forEach(recipient => {
-
-
-                                    if (recipient.user_id === logged_in_user_id) {
-
-
-                                        if (config.bypass_duplicate_approver) {
-                                            // Prepare the update for each matching recipient
-                                            updates.push({
-                                                placement_order: level.placement_order,
-                                                new_status: "bypassed",
-                                                user_id: logged_in_user_id,
-                                                notes: "Auto-approved due to config and user match.",
-                                            });
-                                        }
-                                    }
+                                    new_status: "bypassed",
+                                    user_id: logged_in_user_id,
+                                    notes: "Auto-approved due to config and user match.",
                                 });
                             }
                         }
                     });
-
-                    if (updates.length > 0) {
-                        // Call the `updateWorkflowStatusData` function with the collected updates.
-                        await updateWorkflowStatusData(
-                            workflow.program_id,
-                            workflow.job_workflow_id,
-                            updates,
-                            reply
-                        );
-                    }
-                }
-                const levelStatusMap: Record<number, string> = {};
-                if (workflow.levels && workflow.levels.length >= 0) {
-                    const sortedLevels = [...workflow.levels].sort((a, b) => a.placement_order - b.placement_order);
-                    for (let i = 0; i < sortedLevels.length; i++) {
-                        const currentLevel = sortedLevels[i];
-                        const placementOrder = currentLevel.placement_order;
-                        if (i === 0) {
-                            currentLevel.level_status = currentLevel.level_status;
-                        } else {
-
-                            const previousLevel = sortedLevels[i - 1];
-                            if (previousLevel.level_status === "completed") {
-
-                                currentLevel.level_status = currentLevel.level_status;
-                            } else {
-
-                                currentLevel.level_status = "not started";
-                            }
-                        }
-
-                        // Update the status map for reference
-                        levelStatusMap[placementOrder] = currentLevel.level_status;
-                        // Update the status map for reference
-                        if (currentLevel.recipients && currentLevel.recipients.length > 0) {
-                            currentLevel.recipients.forEach((recipient: any) => {
-                                if (currentLevel.level_status === "completed") {
-                                    // If the level is completed, preserve the recipient's existing status
-                                    recipient.status = recipient.status;
-                                } else if (currentLevel.level_status === "pending") {
-                                    // If the level is pending, keep the recipient's status as is
-                                    recipient.status = recipient.status;
-                                } else {
-                                    // If the level is not started, set recipient status to "not started"
-                                    recipient.status = "not started";
-                                }
-                            });
-                        }
-                    }
                 }
             }
+        });
+
+        if (updates.length > 0) {
+            // Call the `updateWorkflowStatusData` function with the collected updates.
+            await updateWorkflowStatusData(
+                workflow.program_id,
+                workflow.job_workflow_id,
+                updates,
+                reply
+            );
         }
-        (async () => {
-
-            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
-        })();
-        return reply.status(200).send({
-            statusCode: 200,
-            workflow,
-            trace_id,
-        });
-    } catch (error: any) {
-        console.log(error);
-
-        return reply.status(500).send({
-            statusCode: 500,
-            message: 'An error occurred while fetching workflow data.',
-            trace_id,
-        });
     }
-}
+};
+const statusHandling = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
+
+    const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+
+
+    if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+    }
+
+    // 1. Filter levels with status "pending"
+    const levelStatusMap: Record<number, string> = {};
+    if (workflow.levels && workflow.levels.length >= 0) {
+        const sortedLevels = [...workflow.levels].sort((a, b) => a.placement_order - b.placement_order);
+        for (let i = 0; i < sortedLevels.length; i++) {
+            const currentLevel = sortedLevels[i];
+            const placementOrder = currentLevel.placement_order;
+            if (i === 0) {
+                currentLevel.level_status = currentLevel.level_status;
+            } else {
+
+                const previousLevel = sortedLevels[i - 1];
+                if (previousLevel.level_status === "completed") {
+
+                    currentLevel.level_status = currentLevel.level_status;
+                } else {
+
+                    currentLevel.level_status = "not started";
+                }
+            }
+            if (currentLevel.level_status === "pending") {
+                const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
+
+                    if (recipient.replaced_by) {
+                        return recipient.replaced_by === user.sub;
+                    }
+
+                    return recipient.user_id === user.sub;
+                });
+
+                if (hasMatchingRecipient) {
+
+                    currentLevel.is_approval_allowed = true;
+                }
+            }
+
+
+            // Update the status map for reference
+            levelStatusMap[placementOrder] = currentLevel.level_status;
+            // Update the status map for reference
+            if (currentLevel.recipients && currentLevel.recipients.length > 0) {
+                currentLevel.recipients.forEach((recipient: any) => {
+                    if (currentLevel.level_status === "completed") {
+                        // If the level is completed, preserve the recipient's existing status
+                        recipient.status = recipient.status;
+                    } else if (currentLevel.level_status === "pending") {
+                        // If the level is pending, keep the recipient's status as is
+                        recipient.status = recipient.status;
+                    } else {
+                        // If the level is not started, set recipient status to "not started"
+                        recipient.status = "not started";
+                    }
+                });
+            }
+        }
+    }
+};
 const sendNotificationSequencially = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
     const { program_id, job_workflow_id, levels } = workflow;
     const traceId = generateCustomUUID();
@@ -2391,34 +2575,6 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             workflow_trigger_id: string;
             hierarchy_id: any
         };
-        //         const workflowquery = `
-        //     (
-        //         SELECT *
-        //         FROM ${source_db}.jobs
-        //         WHERE id = :job_id OR id = :workflow_trigger_id
-        //     )
-        //     UNION
-        //     (
-        //         SELECT *
-        //         FROM ${teai_db}.assignments
-        //         WHERE uuid = :workflow_trigger_id
-        //     )
-        //     LIMIT 1;
-        // `;
-        //         const findJobDataDetails: any = await sequelize.query(workflowquery, {
-        //             replacements: {
-        //                 job_id: job_id,
-        //                 workflow_trigger_id: workflow_trigger_id,
-        //             },
-        //             type: QueryTypes.SELECT,
-        //         });
-        //         let findJobData = findJobDataDetails[0]
-        //         console.log(findJobData);
-        //         let hierarchy_ids
-        //         if (findJobData && findJobData.hierarchy_ids) {
-
-        //             hierarchy_ids = findJobData.hierarchy_ids;
-        //         }
         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const query = `
             SELECT
@@ -3069,7 +3225,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 reason: user.reason,
                                 // replaced_date_times: recipient_details.replaced_modified_on,
                                 // replaced_notess: recipient_details.replaced_notes,
-                                level_behaviour: level_behaviour,
+                                level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
