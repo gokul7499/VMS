@@ -293,7 +293,8 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             }
             return {
                 ...mapping.toJSON(),
-                user
+                ...user,
+                countries:user.countries
             };
         });
 

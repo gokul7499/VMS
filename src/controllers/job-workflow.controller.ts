@@ -18,7 +18,6 @@ import { FetchUsersBasedOnHierarchy, getJobManagerEmail, notifyJobManager } from
 import sendNotificationModel from '../models/send-notifications-log.model';
 const source_db = process.env.CONFIG_DB || "`dev_vms_configurators`";
 import User from "../models/user.model";
-import updateJob from '../utility/job-status-service';
 const teai_db = process.env.CONFIG_DB || "`dev_vms_configurators`";
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -239,7 +238,10 @@ export const updateWorkflowStatus = async (
     }
 
     try {
-
+        let impersonator_id: any
+        if (user.impersonator) {
+            impersonator_id = user.impersonator.id || null
+        }
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
 
         if (!workflow) {
@@ -278,7 +280,7 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, modified_on: new Date(), };
+                                    return { ...recipient, status: "approved", status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
                                 // Check if user is not a "super_user" and proceed with matching
@@ -295,7 +297,7 @@ export const updateWorkflowStatus = async (
                                                 created_on: new Date(),
                                                 user_id: user_id,
                                             });
-                                            return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+                                            return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
                                         }
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
@@ -311,7 +313,7 @@ export const updateWorkflowStatus = async (
                                                     created_on: new Date(),
                                                     user_id: user_id,
                                                 });
-                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+                                                return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
                                             }
                                         }
                                     }
@@ -326,7 +328,7 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, modified_on: new Date(), };
+                                    return { ...recipient, status: new_status, status_id: history.dataValues.id,imporsonate_by: impersonator_id, modified_on: new Date(), };
                                 }
 
                                 // If no match, return original recipient
@@ -419,9 +421,22 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     (async () => {
-        if (user.userType == "msp" || user.userType == "client" || user.userType == "super_user") {
-            // Fetch manager details
 
+        const userQuery = `
+        SELECT id, user_type,email
+        FROM user
+        WHERE id = :user_id
+        AND is_enabled = true
+        LIMIT 1
+    `;
+
+        const userData: any = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { user_id: user.sub },
+        });
+        let userType = userData[0]
+        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType.user_type.toLowerCase() == "super_user".toLowerCase()|| user.userType.toLowerCase() == "super_user".toLowerCase()) {
+            // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
                 user_type: user.userType,
@@ -766,7 +781,10 @@ export const rejectLevel = async (
 
     try {
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
+        let impersonator_id: any
+        if (user.impersonator) {
+            impersonator_id = user.impersonator.id || null
+        }
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -811,11 +829,11 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", modified_on: new Date(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected",imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
-                            return { ...recipient, status: "canceled", modified_on: new Date(), notes: notes, reason: reason };
+                            return { ...recipient, status: "canceled",imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                         });
 
                         return {
@@ -872,12 +890,7 @@ export const rejectLevel = async (
 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, modified_on: new Date() });
-        for (const update of updates) {
-            if (update.job_id) {
-              await updateJob(update.job_id, program_id, "REJECTED", token);
-            }
-        }
-
+        
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
         let allPayload = {
@@ -1708,6 +1721,7 @@ ORDER BY
                                 replacements: { user_id: input_values[0] },
                             });
                         }
+                        
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
                         if (userResult.length && replaced_by) {
@@ -1722,6 +1736,7 @@ ORDER BY
                                 replacements: { user_id: imporsonate_by },
                             });
                         }
+
 
 
                         input_value = userResult[0] ? {

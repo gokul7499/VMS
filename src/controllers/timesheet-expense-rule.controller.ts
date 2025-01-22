@@ -25,11 +25,13 @@ export async function createTimesheetExpenseRule(
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-    console.log("uuu",userId)
+    console.log("uuu", userId)
 
     try {
-        const item = await TimesheetExpenseRuleModel.create({ ...timesheetRule, program_id,  created_by: userId,
-            modified_by: userId, });
+        const item = await TimesheetExpenseRuleModel.create({
+            ...timesheetRule, program_id, created_by: userId,
+            modified_by: userId,
+        });
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -113,7 +115,7 @@ export const getTimesheetExpenseRule = async (
                 'modified_on',
                 'program_id',
                 'apply_rate_type',
-                'penalty_rules',
+                'penalty_rules', 
                 'expense_line_item',
             ],
             limit: pageSize,
@@ -133,18 +135,28 @@ export const getTimesheetExpenseRule = async (
                 timesheet_expense_rule: [],
             });
         }
-        const mergedRules = timesheetRuleData.map((rule) => {
-            const matchingExpenseData = timesheetExpenseRules.find(
-                (expenseRule) => expenseRule.id === rule.id
-            );
-            return {
-                ...rule.toJSON(),
-                expense_line_item: matchingExpenseData?.expense_line_item || [],
-                apply_rate_type: matchingExpenseData?.expense_rate_type || [],
-            };
-        });
+        const mergedRules = await Promise.all(
+            timesheetRuleData.map(async (rule) => {
+                const matchingExpenseData = timesheetExpenseRules.find(
+                    (expenseRule) => expenseRule.id === rule.id
+                );
+                const updatedRule = rule.toJSON();
+                if (updatedRule.penalty_rules && updatedRule.penalty_rules.apply_rate_type) {
+                    const penaltyRateType = await RateType.findOne({
+                        where: { id: updatedRule.penalty_rules.apply_rate_type },
+                        attributes: ['id', 'name'],
+                    });
+                    if (penaltyRateType) {
+                        updatedRule.penalty_rules.apply_rate_type = penaltyRateType;
+                    }
+                }
+                return {
+                    ...updatedRule,
+                    expense_line_item: matchingExpenseData?.expense_line_item || [],
+                    apply_rate_type: matchingExpenseData?.expense_rate_type || [],
+                };
+            }));
 
-        // Response
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -195,6 +207,19 @@ export async function getTimesheetExpenseRuleById(
             });
             timesheetRule.setDataValue('apply_rate_type', rateTypes);
         }
+
+        const penaltyRules = timesheetRule.penalty_rules;
+        if (penaltyRules && penaltyRules.apply_rate_type) {
+            const penaltyRateType = await RateType.findOne({
+                where: { id: penaltyRules.apply_rate_type },
+                attributes: ['id', 'name'],
+            });
+            if (penaltyRateType) {
+                penaltyRules.apply_rate_type = penaltyRateType;
+            }
+            timesheetRule.setDataValue('penalty_rules', penaltyRules);
+        }
+
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -228,9 +253,9 @@ export async function updateTimesheetExpenseRule(
         const token = authHeader.split(' ')[1];
         const user = await decodeToken(token);
         if (!user) {
-           return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
-        const userId=user?.sub
+        const userId = user?.sub
         const { id, program_id } = request.params as {
             id: string;
             program_id: string;
@@ -239,7 +264,7 @@ export async function updateTimesheetExpenseRule(
         const [affectedRows] = await TimesheetExpenseRuleModel.update(
             {
                 ...updateData,
-                modified_on: new Date(),
+                modified_on: Date.now(),
                 modified_by: userId,
             },
             {
@@ -284,14 +309,14 @@ export async function deleteTimesheetExpenseRule(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub
     try {
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await TimesheetExpenseRuleModel.update({
             is_deleted: true,
             is_enabled: false,
             modified_on: Date.now(),
-            modified_by:userId,
+            modified_by: userId,
         },
             { where: { id, program_id } }
         );

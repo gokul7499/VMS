@@ -22,3 +22,30 @@ export async function fetchUnavailableCandidates(
         );
     }
 }
+
+export async function fetchSubmittedCandidate(
+    job_id: string,
+    token: any,
+    vendor_id: string
+): Promise<any[]> {
+    try {
+        const response = await axios.get(
+            `https://v4-dev.simplifysandbox.net/sourcing/v1/api/vendor/${vendor_id}/submission-candidates`,
+            {
+                params: { job_id },
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+        // Extract submission_candidate_ids from response.data
+        const submissionCandidateIds = response.data?.submission_candidate_ids;
+        if (!submissionCandidateIds) {
+            throw new Error("submission_candidate_ids not found in the response");
+        }
+
+        return submissionCandidateIds;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data.message || "Failed to fetch unavailable candidates"
+        );
+    }
+}

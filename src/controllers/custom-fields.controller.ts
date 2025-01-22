@@ -268,7 +268,14 @@ export async function getAllCustomFields(
         "field_type",
         "is_required",
         "label",
-        "meta_data"
+        "meta_data",
+        "linked_modules",
+        "is_readonly",
+        "supporting_text",
+        "placeholder",
+        "description",
+        "can_edit",
+        "can_view"
       ],
       order: [["modified_on", "DESC"]],
       offset: (page - 1) * limit,

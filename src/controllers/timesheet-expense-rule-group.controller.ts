@@ -6,7 +6,6 @@ import TimesheetExpenseRuleModel from '../models/timesheet-expense-rule.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import RateType from '../models/rate-type.model';
 import { Op } from 'sequelize';
-import { sequelize } from '../config/instance';
 import { fetchTimesheetExpenseRuleGroups } from '../utility/queries';
 
 export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -44,55 +43,56 @@ export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
 };
 
 export const getAllTimesheetExpenseRuleGroups = async (
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) => {
-  const traceId = generateCustomUUID();
+    const traceId = generateCustomUUID();
 
-  try {
-    const { program_id } = request.params as { program_id: string };
-    const { page = 1, limit = 10, rule_category, is_enabled,rule_group_name ,order = 'created_on DESC' } = request.query as {
-      page?: string | number;
-      limit?: string | number;
-      rule_category?: string;
-      rule_group_name?:string;
-      is_enabled?: string;
-      order?: string;
-    };
+    try {
+        const { program_id } = request.params as { program_id: string };
+        const { page = 1, limit = 10, rule_category, is_enabled, rule_group_name, order = 'created_on DESC', rule_type_name } = request.query as {
+            page?: string | number;
+            limit?: string | number;
+            rule_category?: string;
+            rule_group_name?: string;
+            rule_type_name?: string
+            is_enabled?: string;
+            order?: string;
+        };
 
-    const pageNumber = parseInt(page as unknown as string, 10);
-    const limitNumber = parseInt(limit as unknown as string, 10);
-    const offset = (pageNumber - 1) * limitNumber;
+        const pageNumber = parseInt(page as unknown as string, 10);
+        const limitNumber = parseInt(limit as unknown as string, 10);
+        const offset = (pageNumber - 1) * limitNumber;
 
-    const { ruleGroups, totalRecords } = await fetchTimesheetExpenseRuleGroups(
-      program_id,
-      rule_category,
-      rule_group_name,
-      is_enabled,
-      limitNumber,
-      offset,
-      order
-    );
+        const { ruleGroups, totalRecords } = await fetchTimesheetExpenseRuleGroups(
+            program_id,
+            rule_category,
+            rule_group_name,
+            rule_type_name,
+            is_enabled,
+            limitNumber,
+            offset,
+            order
+        );
 
-    reply.status(200).send({
-      status_code: 200,
-      message: "Rule groups retrieved successfully.",
-      items_per_page: limitNumber,
-      total_records: totalRecords,
-      page,
-      limit,
-      timesheet_expense_rule_group: ruleGroups,
-      trace_id: traceId,
-    });
-  } catch (error: any) {
-    reply.status(500).send({
-      message: "Error fetching timesheet expense rule groups.",
-      error: error.message,
-      trace_id: traceId,
-    });
-  }
+        reply.status(200).send({
+            status_code: 200,
+            message: "Rule groups retrieved successfully.",
+            items_per_page: limitNumber,
+            total_records: totalRecords,
+            page,
+            limit,
+            timesheet_expense_rule_group: ruleGroups,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            message: "Error fetching timesheet expense rule groups.",
+            error: error.message,
+            trace_id: traceId,
+        });
+    }
 };
-
 
 export const getTimesheetExpenseRuleGroupById = async (
     request: FastifyRequest,
@@ -211,11 +211,6 @@ export const getTimesheetExpenseRuleGroupById = async (
     }
 };
 
-
-
-
-
-
 export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
@@ -232,7 +227,9 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-        const [updatedCount] = await TimesheetExpenseRuleGroup.update({ ...updates, modified_by: userId }, {
+        const [updatedCount] = await TimesheetExpenseRuleGroup.update({
+            ...updates, modified_by: userId, modified_on: Date.now()
+        }, {
             where: { id, program_id },
         });
         if (updatedCount === 0) {
