@@ -76,7 +76,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = await generateCandidateCode(program_id);
+        const candidateId = await generateCandidateCode();
 
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
