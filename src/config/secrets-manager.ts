@@ -3,8 +3,8 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const secretName = process.env.SECRET_NAME ?? "v4/dev/configurator";
-const region = "us-east-1";
+const secretName = process.env.SECRET_NAME; 
+const region = process.env.REGION; 
 
 const secretsManager = new SecretsManagerClient({ region });
 
