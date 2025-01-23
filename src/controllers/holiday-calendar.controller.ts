@@ -213,7 +213,8 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     const existingHolidayCalendar = await holidayCalendar.findOne({
       where: {
         program_id: holiday_calendar.program_id,
-        name:holiday_calendar.name
+        name:holiday_calendar.name,
+        is_deleted:false
       }
     });
   
