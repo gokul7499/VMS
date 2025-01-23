@@ -416,9 +416,7 @@ export async function updateUser(
       await UserMasterDataModel.bulkCreate(createData);
     }
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
-      console.log("%%%%%%%%%%%%%%%%%%%%%%5",userGroupMappings)
       await UserMapping.destroy({ where: { user_id: id } });
-        console.log("UUUUUUUUUUUUUUUUUUUUUU",userGroupMappings)
       const groupMappingData = userGroupMappings.map((mapping) => ({
         id: mapping.id,
         tenant_id: mapping.tenant_id,
@@ -429,9 +427,7 @@ export async function updateUser(
         is_activated: mapping.is_activated,
         status:mapping.status
       }));
-     console.log("&&&&&&&&&&&&&&",groupMappingData)
       await UserMapping.bulkCreate(groupMappingData);
-      console.log("*****************",groupMappingData)
     }
     return reply.status(200).send({
       status_code: 200,

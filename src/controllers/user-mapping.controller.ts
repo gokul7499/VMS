@@ -216,7 +216,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 "id", "tenant_id", "role_id", "user_id",
                 "program_id", "is_activated", "is_deleted",
                 "created_on", "modified_on", "created_by",
-                "modified_by", "ref_id", "status" 
+                "modified_by", "ref_id", "status"
             ],
             where: whereClause,
             include: [
@@ -293,6 +293,8 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 user.default_work_location_id = workLocations.find(location =>
                     location.id === user.default_work_location_id
                 );
+
+                user.status = mapping.status;
             }
 
             return {
@@ -302,7 +304,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     associate_hierarchy_ids: user?.associate_hierarchy_ids,
                     work_location_ids: user?.work_location_ids,
                     default_hierarchy_id: user?.default_hierarchy_id,
-                    default_work_location_id: user?.default_work_location_id
+                    default_work_location_id: user?.default_work_location_id,
                 },
                 countries: user?.countries
             };
