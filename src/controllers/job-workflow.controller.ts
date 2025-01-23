@@ -16,8 +16,8 @@ import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
-const AUTH_BASE_URL = databaseConfig.config.auth_url||"https://v4-dev.simplifysandbox.net/auth";
-let SOURCE_BASE_URL =databaseConfig.config.sourcing_url||"http://v4-devnlb.simplifysandbox.net:8002/sourcing"
+const AUTH_BASE_URL = databaseConfig.config.auth_url;
+let SOURCE_BASE_URL =databaseConfig.config.sourcing_url
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -2467,14 +2467,14 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                     // Only check for user_id if replaced_by is not present
                     if (recipient.replaced_by) {
                         // If replaced_by matches the logged-in user, set approval flag
-                        if (recipient.replaced_by === user.sub) {
+                        if (recipient.replaced_by === user.sub||user.userType=="super_user") {
                             recipient.is_approval_allowed = true; // Set flag for replaced recipient
                         } else {
                             recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
                         }
                     } else {
                         // If there is no replaced_by, check user_id
-                        if (recipient.user_id === user.sub) {
+                        if (recipient.user_id === user.sub||user.userType=="super_user") {
                             recipient.is_approval_allowed = true; // Set flag for matching user
                         } else {
                             recipient.is_approval_allowed = false; // Not allowed if user_id does not match
