@@ -2081,8 +2081,8 @@ WITH user_data AS (
            WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts 
            ELSE JSON_ARRAY(
              JSON_OBJECT(
-               'label', 'null',
-               'number', 'null',
+               'label', '',
+               'number', '',
                'isd_code', '',
                'max_phone_length', 0,
                'min_phone_length', 0,
