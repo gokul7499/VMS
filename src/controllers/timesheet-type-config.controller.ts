@@ -172,12 +172,12 @@ export const getTimesheetTypeConfigById = async (
                 ? FoundationalDataTypes.findAll({ where: { id: masterDataTypeIds }, attributes: ['id', 'name'] })
                 : [],
             breakRuleGroupId
-                ? TimesheetExpenseRuleGroup.findOne({ where: { id: breakRuleGroupId }, attributes: ['id', 'name'] })
+                ? TimesheetExpenseRuleGroup.findOne({ where: { id: breakRuleGroupId }, attributes: ['id', 'rule_group_name'] })
                 : null,
         ]);
 
-        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null; // Handle single rule group
-        const breakRuleGroupData = breakRuleGroup ? breakRuleGroup.toJSON() : null; // Handle single break rule group
+        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null; 
+        const breakRuleGroupData = breakRuleGroup ? breakRuleGroup.toJSON() : null; 
 
         const data = {
             ...config.toJSON(),
@@ -189,7 +189,7 @@ export const getTimesheetTypeConfigById = async (
             } : null,
             break_rule_group: breakRuleGroupData ? {
                 id: breakRuleGroupData.id,
-                name: breakRuleGroupData.name
+                name: breakRuleGroupData.rule_group_name
             } : null,
             allocations: {
                 ...config.allocations,
