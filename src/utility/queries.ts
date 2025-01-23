@@ -4,6 +4,7 @@ import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.int
 import { databaseConfig } from '../config/db';
 const auth_db = databaseConfig.config.database_auth;
 
+
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -2212,6 +2213,15 @@ export const getPendingUserQuery = `
       'id', user.id,
       'name', user.first_name
     ) AS supervisor_id,
+    IF(
+      invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
+      JSON_OBJECT(),
+      JSON_OBJECT(
+        'url', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')),
+        'text', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.text')),
+        'color', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.color'))
+      )
+    ) AS avatar,
     COALESCE(( 
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -2280,6 +2290,7 @@ AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
+
 
 export const vendorMarkup = `
   SELECT
@@ -2431,6 +2442,13 @@ export const rateCardMinRateMaxRate = `
             AND d.job_template_id IN (:jobTemplateIds)
             AND d.unit_of_measure = :unit_of_measure
             AND d.currency = :currency_id
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
     ),
     fallback_matches AS (
         SELECT 
@@ -2442,9 +2460,9 @@ export const rateCardMinRateMaxRate = `
         FROM 
             rate_card_decision_table d
         WHERE 
-            d.hierarchy_id IS NULL
-            AND d.job_template_id IS NULL
-            AND d.unit_of_measure IS NULL
+            d.hierarchy_id IS NULL 
+            AND d.job_template_id IS NULL 
+            AND d.unit_of_measure IS NULL 
             AND d.currency IS NULL
     )
     SELECT *

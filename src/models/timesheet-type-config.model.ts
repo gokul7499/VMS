@@ -15,6 +15,7 @@ class TimesheetTypeConfig extends Model {
   title!: string;
   slug!: string
     timesheet_rule_group: never[] | undefined;
+    break_rule_group:never [] | undefined;
 }
 
 TimesheetTypeConfig.init(
@@ -65,6 +66,10 @@ TimesheetTypeConfig.init(
       allowNull: true,
     },
     timesheet_rule_group:{
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    break_rule_group:{
       type: DataTypes.STRING,
       allowNull: true,
     },
