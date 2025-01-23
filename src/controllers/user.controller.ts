@@ -14,6 +14,8 @@ import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUser
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import JobTempletRepository from "../hooks/job-template-query";
+const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -97,6 +99,7 @@ export async function getUserHierarchiesByProgram(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
+  const {job_template_id } = request.query as {job_template_id:string};
 
   if (!authHeader?.startsWith("Bearer ")) {
     return reply
@@ -128,8 +131,24 @@ export async function getUserHierarchiesByProgram(
       });
     }
 
-    const associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
+    let associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
 
+
+    if(job_template_id){
+      const [templateData] = await Promise.all([
+        jobTempletRepositories.templateQuery(job_template_id)
+      ]);
+      const managerHierarchyIds =
+      user?.associate_hierarchy_ids ?? [];
+
+      const templateHierarchyIds = templateData.map((row:any) => row.hierarchy);
+
+      associateHierarchyIds = managerHierarchyIds.filter((id: string) =>
+      templateHierarchyIds.includes(id)
+    );
+    }
+
+    
     const hierarchiesWithChildren = await sequelize.query<{ name: any }>(getHierarchieWithChildren, {
       replacements: { program_id },
       type: QueryTypes.SELECT
