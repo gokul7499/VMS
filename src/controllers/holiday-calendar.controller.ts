@@ -213,6 +213,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     const existingHolidayCalendar = await holidayCalendar.findOne({
       where: {
         program_id: holiday_calendar.program_id,
+        name:holiday_calendar.name
       }
     });
   
@@ -222,6 +223,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
         trace_id: traceId,
         message: 'Holiday calendar already exists.',
       });
+    }
     await holidayCalendar.create({
       ...holiday_calendar, created_by: userId,
       modified_by: userId,
@@ -251,8 +253,9 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       status_code: 201,
       trace_id: traceId,
       message: 'HolidayCalendar created successfully.',
+      
     });
-  }} catch (error) {
+  }catch (error) {
     logger(
       {
         trace_id: traceId,
