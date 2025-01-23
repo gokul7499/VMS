@@ -210,6 +210,44 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     });
   }
 
+
+
+  const existingHolidayCalendar = await holidayCalendar.findOne({
+    where: {
+      program_id: holiday_calendar.program_id,
+    }
+  });
+
+  if (existingHolidayCalendar) {
+    reply.status(409).send({
+      status_code: 409,
+      trace_id: traceId,
+      message: 'HolidayCalendar already exists.',
+    });
+
+    logger(
+      {
+        trace_id: traceId,
+        actor: {
+          user_name: user?.preferred_username,
+          user_id: userId,
+        },
+        data: request.body,
+        eventname: "create holiday calendar",
+        status: "error",
+        description: `HolidayCalendar already exists.`,
+        level: 'error',
+        action: request.method,
+        url: request.url,
+        entity_id: program_id,
+        is_deleted: false
+      },
+      holidayCalendar
+    );
+
+    return;
+  }
+
   try {
     await holidayCalendar.create({
       ...holiday_calendar, created_by: userId,
