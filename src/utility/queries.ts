@@ -2,7 +2,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+const auth_db='dev_vms_auth'
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2212,6 +2213,15 @@ export const getPendingUserQuery = `
       'id', user.id,
       'name', user.first_name
     ) AS supervisor_id,
+    IF(
+      invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
+      JSON_OBJECT(),
+      JSON_OBJECT(
+        'url', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')),
+        'text', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.text')),
+        'color', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.color'))
+      )
+    ) AS avatar,
     COALESCE(( 
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -2280,6 +2290,7 @@ AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
+
 
 export const vendorMarkup = `
   SELECT
