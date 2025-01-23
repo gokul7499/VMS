@@ -2433,6 +2433,13 @@ export const rateCardMinRateMaxRate = `
             AND d.job_template_id IN (:jobTemplateIds)
             AND d.unit_of_measure = :unit_of_measure
             AND d.currency = :currency_id
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
     ),
     fallback_matches AS (
         SELECT 
@@ -2444,9 +2451,9 @@ export const rateCardMinRateMaxRate = `
         FROM 
             rate_card_decision_table d
         WHERE 
-            d.hierarchy_id IS NULL
-            AND d.job_template_id IS NULL
-            AND d.unit_of_measure IS NULL
+            d.hierarchy_id IS NULL 
+            AND d.job_template_id IS NULL 
+            AND d.unit_of_measure IS NULL 
             AND d.currency IS NULL
     )
     SELECT *

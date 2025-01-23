@@ -43,4 +43,5 @@ export interface TimesheetTypeConfigInterface {
   is_deleted?: boolean;
   slug?: string;
   timesheet_rule_group?:string;
+  break_rule_group?:string;
 }
