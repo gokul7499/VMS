@@ -1489,7 +1489,6 @@ export const timesheetConfigAdvancedFilter = (
   hasTitle: boolean,
   hierarchyIdsArray: string[],
   laborCategoryIdsArray: string[],
-  hasAllocationMethod: boolean,
   hasTimesheetRuleGroup: boolean,
   hasTimesheetFormat: boolean,
   hasIsEnabled: boolean
@@ -1501,7 +1500,7 @@ export const timesheetConfigAdvancedFilter = (
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
-       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`)})`
+       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
   return `
@@ -1522,15 +1521,10 @@ export const timesheetConfigAdvancedFilter = (
           FROM labour_category lc
           WHERE JSON_CONTAINS(timesheet_type_config.labor_category, JSON_QUOTE(lc.id))
         ) AS labor_category,
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name)
-          )
-          FROM timesheet_expense_rule_groups trg
-          WHERE trg.id = JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, '$.timesheet_rule_group.id'))
-        ) AS timesheet_rule_group
+        JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
       FROM
         timesheet_type_config
+      LEFT JOIN timesheet_expense_rule_groups trg ON timesheet_type_config.timesheet_rule_group = trg.id
       ${hierarchyIdsClause}
       ${laborCategoryClause}
       WHERE
@@ -1539,8 +1533,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasId ? 'AND timesheet_type_config.id = :id' : ''}
         ${hasTitle ? 'AND timesheet_type_config.title LIKE :title' : ''}
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
-        ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
-        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group.id")) = :timesheet_rule_group' : ''}
+        ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
       GROUP BY
         timesheet_type_config.id
@@ -2081,8 +2074,8 @@ WITH user_data AS (
            WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts 
            ELSE JSON_ARRAY(
              JSON_OBJECT(
-               'label', 'null',
-               'number', 'null',
+               'label', '',
+               'number', '',
                'isd_code', '',
                'max_phone_length', 0,
                'min_phone_length', 0,

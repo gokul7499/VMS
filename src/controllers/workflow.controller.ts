@@ -36,7 +36,6 @@ import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipie
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
-
 const AUTH_BASE_URL=databaseConfig.config.auth_url;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
