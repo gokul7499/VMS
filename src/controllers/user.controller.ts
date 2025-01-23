@@ -10,7 +10,7 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUser } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -764,6 +764,52 @@ export async function getUserAndHierarchieId(
       trace_id: traceId,
       message: 'Internal Server Error',
       error: error.message,
+    });
+  }
+}
+
+
+export async function getActiveUsers(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params;
+  const { user_id, hierarchy_id, is_enabled } = request.query;
+  const traceId = generateCustomUUID();
+
+  try {
+    const replacements = { 
+      program_id, 
+      user_id, 
+      hierarchy_id: hierarchy_id || null, 
+      is_enabled: true 
+    };
+    const users = await sequelize.query(getActiveUser, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    if (users && users.length > 0) {
+      return reply.code(200).send({
+        status_code: 200,
+        message: "get pending user data",
+        users,
+        trace_id: traceId
+      });
+    } else {
+      return reply
+        .code(200)
+        .send({ status_code: 200, message: "No matching records found.", users: [], trace_id: traceId });
+    }
+  } catch (error: any) {
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error: error.message
     });
   }
 }

@@ -2459,3 +2459,20 @@ export const getInvoiceConfigByHierarchyId = `
     WHERE program_id = :program_id 
       AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
 `;
+
+export const getActiveUser = `
+SELECT 
+    user.id,
+    user.first_name,
+    user.last_name,
+    user.associate_hierarchy_ids,
+    user.program_id,
+    user.is_enabled
+FROM 
+    user
+WHERE 
+    user.program_id = :program_id
+    AND (:user_id IS NULL OR user.id = :user_id)
+    AND user.is_enabled = true
+    AND (:hierarchy_id IS NULL OR user.associate_hierarchy_ids && :hierarchy_id)
+`;
