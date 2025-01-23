@@ -10,10 +10,12 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import JobTempletRepository from "../hooks/job-template-query";
+const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -97,6 +99,7 @@ export async function getUserHierarchiesByProgram(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
+  const {job_template_id } = request.query as {job_template_id:string};
 
   if (!authHeader?.startsWith("Bearer ")) {
     return reply
@@ -128,8 +131,24 @@ export async function getUserHierarchiesByProgram(
       });
     }
 
-    const associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
+    let associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
 
+
+    if(job_template_id){
+      const [templateData] = await Promise.all([
+        jobTempletRepositories.templateQuery(job_template_id)
+      ]);
+      const managerHierarchyIds =
+      user?.associate_hierarchy_ids ?? [];
+
+      const templateHierarchyIds = templateData.map((row:any) => row.hierarchy);
+
+      associateHierarchyIds = managerHierarchyIds.filter((id: string) =>
+      templateHierarchyIds.includes(id)
+    );
+    }
+
+    
     const hierarchiesWithChildren = await sequelize.query<{ name: any }>(getHierarchieWithChildren, {
       replacements: { program_id },
       type: QueryTypes.SELECT
@@ -397,19 +416,22 @@ export async function updateUser(
       await UserMasterDataModel.bulkCreate(createData);
     }
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
+      console.log("%%%%%%%%%%%%%%%%%%%%%%5",userGroupMappings)
       await UserMapping.destroy({ where: { user_id: id } });
-
+        console.log("UUUUUUUUUUUUUUUUUUUUUU",userGroupMappings)
       const groupMappingData = userGroupMappings.map((mapping) => ({
-        id: mapping.id || generateCustomUUID(),
+        id: mapping.id,
         tenant_id: mapping.tenant_id,
         user_id: id,
         user_type: mapping.user_type,
         role_id: mapping.role_id,
         program_id: mapping.program_id,
-        is_active: mapping.is_active,
+        is_activated: mapping.is_activated,
+        status:mapping.status
       }));
-
+     console.log("&&&&&&&&&&&&&&",groupMappingData)
       await UserMapping.bulkCreate(groupMappingData);
+      console.log("*****************",groupMappingData)
     }
     return reply.status(200).send({
       status_code: 200,
@@ -764,6 +786,53 @@ export async function getUserAndHierarchieId(
       trace_id: traceId,
       message: 'Internal Server Error',
       error: error.message,
+    });
+  }
+}
+
+
+export async function getActiveUser(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean,user_type?:string };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params;
+  const { user_id, hierarchy_id, is_enabled,user_type } = request.query;
+  const traceId = generateCustomUUID();
+
+  try {
+    const replacements = { 
+      program_id, 
+      user_id, 
+      hierarchy_id: hierarchy_id || null, 
+      is_enabled: true ,
+      user_type:'client'
+    };
+    const users = await sequelize.query(getActiveUsers, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    if (users && users.length > 0) {
+      return reply.code(200).send({
+        status_code: 200,
+        message: "get pending user data",
+        users,
+        trace_id: traceId
+      });
+    } else {
+      return reply
+        .code(200)
+        .send({ status_code: 200, message: "No matching records found.", users: [], trace_id: traceId });
+    }
+  } catch (error: any) {
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error: error.message
     });
   }
 }

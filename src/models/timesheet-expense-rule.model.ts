@@ -38,10 +38,6 @@ TimesheetExpenseRuleModel.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
-    is_break_mandatory: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
-    },
     rule_category: {
         type: DataTypes.STRING,
         allowNull: true

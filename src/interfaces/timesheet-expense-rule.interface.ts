@@ -5,7 +5,6 @@ export interface TimesheetExpenseRule{
     rule_duration?: string;
     break_type?: string;
     is_paid_break?: boolean;
-    is_break_mandatory?: boolean;
     weekend_days?: any; 
     conditions?: any; 
     penalty_rules?:{
