@@ -14,6 +14,7 @@ class TimesheetTypeConfig extends Model {
   allocations: any;
   title!: string;
   slug!: string
+    timesheet_rule_group: never[] | undefined;
 }
 
 TimesheetTypeConfig.init(
@@ -61,6 +62,10 @@ TimesheetTypeConfig.init(
     },
     allocations: {
       type: DataTypes.JSON,
+      allowNull: true,
+    },
+    timesheet_rule_group:{
+      type: DataTypes.STRING,
       allowNull: true,
     },
     allow_non_billable_hours: {
