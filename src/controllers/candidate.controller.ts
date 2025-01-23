@@ -344,6 +344,18 @@ export async function getCandidateByIdAndProgramId(
             });
         }
 
+        const candidateData = candidate.toJSON();
+
+        if (candidateData.job_templates) {
+            candidateData.title = candidateData.job_templates;
+            delete candidateData.job_templates;
+        }
+
+        if (candidateData.labour_category) {
+            candidateData.job_category_id = candidateData.labour_category;
+            delete candidateData.labour_category;
+        }
+
         const qualificationsQuery = `
             SELECT 
                 q.qulification_type_id,
@@ -373,7 +385,7 @@ export async function getCandidateByIdAndProgramId(
             status_code: 200,
             message: "Candidate fetched successfully",
             candidate: {
-                ...candidate.toJSON(),
+                ...candidateData,
                 qualifications
             },
             trace_id: traceId,
@@ -387,6 +399,8 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
+
+
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
