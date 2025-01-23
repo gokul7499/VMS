@@ -11,7 +11,13 @@ export interface TimesheetTypeConfigInterface {
   work_start_day?: string;
   timesheet_format?: string;
   time_format?: string;
-  project?: any;
+  project?: {
+    config: {
+      source: string ;
+      options: string;
+    };
+    is_enable: boolean;
+  };
   allocations?: any;
   allow_non_billable_hours?: boolean;
   break?: any;
@@ -36,4 +42,6 @@ export interface TimesheetTypeConfigInterface {
   modified_by?: string;
   is_deleted?: boolean;
   slug?: string;
+  timesheet_rule_group?:string;
+  break_rule_group?:string;
 }
