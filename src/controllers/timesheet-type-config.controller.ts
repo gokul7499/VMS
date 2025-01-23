@@ -92,15 +92,17 @@ export const getAllTimesheetTypeConfigs = async (
                 ttc.timesheet_rounding,
                 ttc.break,
                 ttc.slug,
-                JSON_OBJECT('id', ttc.timesheet_rule_group, 'name', terg.rule_group_name) AS timesheet_rule_group,
+                JSON_OBJECT('id', ttc.break_rule_group, 'name', terg_break.rule_group_name) AS break_rule_group,
+                JSON_OBJECT('id', ttc.timesheet_rule_group, 'name', terg_timesheet.rule_group_name) AS timesheet_rule_group,
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
                  FROM hierarchies h
                  WHERE JSON_CONTAINS(ttc.hierarchies, JSON_QUOTE(h.id))) AS hierarchies,
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', lc.id, 'name', lc.name))
-                 FROM labour_category  lc
+                 FROM labour_category lc
                  WHERE JSON_CONTAINS(ttc.labor_category, JSON_QUOTE(lc.id))) AS labor_category
             FROM timesheet_type_config ttc
-            LEFT JOIN timesheet_expense_rule_groups terg ON ttc.timesheet_rule_group = terg.id
+            LEFT JOIN timesheet_expense_rule_groups terg_break ON ttc.break_rule_group = terg_break.id
+            LEFT JOIN timesheet_expense_rule_groups terg_timesheet ON ttc.timesheet_rule_group = terg_timesheet.id
             WHERE ttc.is_deleted = false
             AND (ttc.program_id = ? OR ? IS NULL)
             ORDER BY ttc.created_on DESC
@@ -154,8 +156,9 @@ export const getTimesheetTypeConfigById = async (
         const laborCategoryIds = config.labor_category || [];
         const ruleGroupId = config.timesheet_rule_group || null;  // Handle single value
         const masterDataTypeIds = config.allocations?.master_data_types?.value || [];
+        const breakRuleGroupId = config.break_rule_group || null;  // Handle single value
 
-        const [hierarchiesData, laborCategories, ruleGroups, masterDataTypes] = await Promise.all([
+        const [hierarchiesData, laborCategories, ruleGroups, masterDataTypes, breakRuleGroup] = await Promise.all([
             hierarchyIds.length > 0
                 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] })
                 : [],
@@ -168,9 +171,13 @@ export const getTimesheetTypeConfigById = async (
             masterDataTypeIds.length > 0
                 ? FoundationalDataTypes.findAll({ where: { id: masterDataTypeIds }, attributes: ['id', 'name'] })
                 : [],
+            breakRuleGroupId
+                ? TimesheetExpenseRuleGroup.findOne({ where: { id: breakRuleGroupId }, attributes: ['id', 'rule_group_name'] })
+                : null,
         ]);
 
-        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null; // Handle single rule group
+        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null; 
+        const breakRuleGroupData = breakRuleGroup ? breakRuleGroup.toJSON() : null; 
 
         const data = {
             ...config.toJSON(),
@@ -179,7 +186,11 @@ export const getTimesheetTypeConfigById = async (
             timesheet_rule_group: ruleGroupData ? {
                 id: ruleGroupData.id,
                 name: ruleGroupData.rule_group_name
-            } : null, // Ensure single rule group is formatted correctly
+            } : null,
+            break_rule_group: breakRuleGroupData ? {
+                id: breakRuleGroupData.id,
+                name: breakRuleGroupData.rule_group_name
+            } : null,
             allocations: {
                 ...config.allocations,
                 master_data_types: {

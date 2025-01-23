@@ -7,24 +7,46 @@ import { decodeToken } from '../middlewares/verifyToken';
 import RateType from '../models/rate-type.model';
 import { Op } from 'sequelize';
 import { fetchTimesheetExpenseRuleGroups } from '../utility/queries';
+import ExpenseRuleMapping from '../models/expense-rule.mapping';
 
-export const createTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
+export const createTimesheetExpenseRuleGroup = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+) => {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({status_code: 401,message: 'Unauthorized - Token not found',});
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({
+                status_code: 401,
+                message: 'Unauthorized - Invalid token',
+            });
         }
         const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
-        const { timesheet_expense_rules_group_mapping, ...data } = request.body as any;
+        const { timesheet_expense_rules, ...data } = request.body as any;
 
-        const newConfig = await TimesheetExpenseRuleGroup.create({ program_id, ...data, modified_by: userId, created_by: userId });
+        const newConfig = await TimesheetExpenseRuleGroup.create({
+            program_id,
+            ...data,
+            modified_by: userId,
+            created_by: userId,
+        });
+
+        if (Array.isArray(timesheet_expense_rules)) {
+            for (const expenseRuleId of timesheet_expense_rules) {
+                await ExpenseRuleMapping.create({
+                    expense_rule_group_id: newConfig.id,
+                    expense_rule_id: expenseRuleId,
+                    program_id,
+                });
+            }
+        }
 
         reply.status(201).send({
             status_code: 201,
@@ -113,8 +135,14 @@ export const getTimesheetExpenseRuleGroupById = async (
             });
         }
 
-        const timesheetExpenseRules = ruleGroup.timesheet_expense_rules || [];
-        if (timesheetExpenseRules.length === 0) {
+        const expenseRuleMappings = await ExpenseRuleMapping.findAll({
+            where: { expense_rule_group_id: id },
+            attributes: ['expense_rule_id'],
+        });
+
+        const timesheetExpenseRuleIds = expenseRuleMappings.map(mapping => mapping.expense_rule_id);
+
+        if (timesheetExpenseRuleIds.length === 0) {
             return reply.status(200).send({
                 status_code: 200,
                 timesheet_expense_rule_group: ruleGroup,
@@ -125,7 +153,7 @@ export const getTimesheetExpenseRuleGroupById = async (
 
         const populatedRules = await TimesheetExpenseRuleModel.findAll({
             where: {
-                id: { [Op.in]: timesheetExpenseRules },
+                id: { [Op.in]: timesheetExpenseRuleIds },
                 is_enabled: true,
             },
             attributes: [
@@ -209,7 +237,6 @@ export const getTimesheetExpenseRuleGroupById = async (
         });
     }
 };
-
 export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
@@ -237,6 +264,20 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
                 trace_id: traceId,
             });
         }
+
+        if (Array.isArray(updates.timesheet_expense_rules)) {
+            await ExpenseRuleMapping.destroy({
+                where: { expense_rule_group_id: id }
+            });
+            for (const expenseRuleId of updates.timesheet_expense_rules) {
+                await ExpenseRuleMapping.create({
+                    expense_rule_group_id: id,
+                    expense_rule_id: expenseRuleId,
+                    program_id,
+                });
+            }
+        }
+
         return reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group updated successfully.',
