@@ -146,7 +146,7 @@ export const getTimesheetExpenseRule = async (
                 if (updatedRule.penalty_rules && updatedRule.penalty_rules.apply_rate_type) {
                     const penaltyRateType = await RateType.findOne({
                         where: { id: updatedRule.penalty_rules.apply_rate_type },
-                        attributes: ['id', 'name'],
+                        attributes: ['id', 'name','abbreviation'],
                     });
                     if (penaltyRateType) {
                         updatedRule.penalty_rules.apply_rate_type = penaltyRateType;
@@ -210,7 +210,7 @@ export async function getTimesheetExpenseRuleById(
                 where: {
                     id: { [Op.in]: applyRateTypeIds },
                 },
-                attributes: ['id', 'name'],
+                attributes: ['id', 'name','abbreviation'],
             });
             timesheetRule.setDataValue('apply_rate_type', rateTypes);
         }
@@ -220,7 +220,7 @@ export async function getTimesheetExpenseRuleById(
             if (penaltyRules.apply_rate_type) {
                 const penaltyRateType = await RateType.findOne({
                     where: { id: penaltyRules.apply_rate_type },
-                    attributes: ['id', 'name'],
+                    attributes: ['id', 'name','abbreviation'],
                 });
                 if (penaltyRateType) {
                     penaltyRules.apply_rate_type = penaltyRateType;

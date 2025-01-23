@@ -1899,43 +1899,50 @@ export const rateTypeShiftAndRate = `
       RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
   `;
 
-export const getExpenseTypeAndRateType = `
-SELECT
-  timesheet_expense_rules.id,
-  JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', expense_item_type_config.id,
-      'name', expense_item_type_config.name
+  export const getExpenseTypeAndRateType = `
+  SELECT
+    timesheet_expense_rules.id,
+    CASE
+      WHEN COUNT(expense_item_type_config.id) = 0 THEN NULL
+      ELSE JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', expense_item_type_config.id,
+          'name', expense_item_type_config.name
+        )
+      )
+    END AS expense_line_item,
+    CASE
+      WHEN COUNT(rate_type.id) = 0 THEN NULL
+      ELSE JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', rate_type.id,
+          'name', rate_type.name,
+          'abbreviation', rate_type.abbreviation
+        )
+      )
+    END AS expense_rate_type
+  FROM
+    timesheet_expense_rules
+  LEFT JOIN
+    expense_item_type_config
+    ON JSON_CONTAINS(
+      timesheet_expense_rules.expense_line_item,
+      JSON_QUOTE(expense_item_type_config.id),
+      '$'
     )
-  ) AS expense_line_item,
-   JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', rate_type.id,
-      'name', rate_type.name
+  LEFT JOIN
+    rate_type
+    ON JSON_CONTAINS(
+      timesheet_expense_rules.apply_rate_type,
+      JSON_QUOTE(rate_type.id),
+      '$'
     )
-  ) AS expense_rate_type
-FROM
-  timesheet_expense_rules
-LEFT JOIN
-  expense_item_type_config
-  ON JSON_CONTAINS(
-    timesheet_expense_rules.expense_line_item,
-    JSON_QUOTE(expense_item_type_config.id),
-    '$'
-  )
-LEFT JOIN
-  rate_type
-  ON JSON_CONTAINS(
-    timesheet_expense_rules.apply_rate_type,
-    JSON_QUOTE(rate_type.id),
-    '$'
-  )
-WHERE
-  timesheet_expense_rules.program_id =:program_id
-  AND timesheet_expense_rules.is_deleted=false
-GROUP BY
-  timesheet_expense_rules.id;
-`
+  WHERE
+    timesheet_expense_rules.program_id = :program_id
+    AND timesheet_expense_rules.is_deleted = false
+  GROUP BY
+    timesheet_expense_rules.id;
+  `;
 export const getQuery = () => `
     SELECT
         (SELECT id FROM currencies WHERE name = :currencyName LIMIT 1) AS currency,
@@ -2319,41 +2326,42 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleType?:string,
+  ruleType?: string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
 ) => {
-  const searchConditions: string[] = ['is_deleted = FALSE'];
+  const searchConditions: string[] = ['tsg.is_deleted = FALSE'];
 
   if (programId) {
-    searchConditions.push(`program_id = "${programId}"`);
+    searchConditions.push(`tsg.program_id = "${programId}"`);
   }
 
   if (ruleCategory) {
-    searchConditions.push(`rule_category = "${ruleCategory}"`);
+    searchConditions.push(`tsg.rule_category = "${ruleCategory}"`);
   }
 
   if (ruleGroupName) {
-    searchConditions.push(`rule_group_name LIKE "%${ruleGroupName}%"`);
+    searchConditions.push(`tsg.rule_group_name LIKE "%${ruleGroupName}%"`);
   }
 
   if (isEnabled !== undefined) {
-    searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
+    searchConditions.push(`tsg.is_enabled = ${isEnabled === 'true'}`);
   }
+
   if (ruleType) {
     const ruleTypeNames = ruleType.split(',').map((type) => type.trim());
     const ruleTypeCondition = ruleTypeNames
       .map((type) => `FIND_IN_SET("${type}", (
           SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
           FROM timesheet_expense_rules ter
-          WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+          JOIN expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+          WHERE erm.expense_rule_group_id = tsg.id
       ))`)
       .join(' OR ');
     searchConditions.push(`(${ruleTypeCondition})`);
   }
-
 
   const whereClause = searchConditions.length ? `WHERE ${searchConditions.join(' AND ')}` : '';
 
@@ -2361,16 +2369,16 @@ export const fetchTimesheetExpenseRuleGroups = async (
   SELECT
       tsg.*,
       COALESCE(
-          ( 
+          (
               SELECT JSON_ARRAYAGG(
                   JSON_OBJECT(
                       'id', ter.id,
                       'rule_name', ter.rule_name
-                    
                   )
               )
               FROM timesheet_expense_rules ter
-              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+              JOIN expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+              WHERE erm.expense_rule_group_id = tsg.id
           ),
           JSON_ARRAY()
       ) AS timesheet_expense_rules,
@@ -2378,7 +2386,8 @@ export const fetchTimesheetExpenseRuleGroups = async (
           (
               SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
               FROM timesheet_expense_rules ter
-              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+              JOIN expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+              WHERE erm.expense_rule_group_id = tsg.id
           ),
           ''
       ) AS rule_type,
@@ -2388,7 +2397,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ORDER BY ${order}
   LIMIT ${limit}
   OFFSET ${offset};
-`;
+  `;
 
   const [ruleGroups] = await sequelize.query(query) as any[];
   const totalRecords = ruleGroups.length > 0 ? ruleGroups[0].total_count : 0;
