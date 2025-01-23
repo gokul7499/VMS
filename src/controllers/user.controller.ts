@@ -10,7 +10,7 @@ import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import { generateCandidateCode } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUser } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -769,15 +769,15 @@ export async function getUserAndHierarchieId(
 }
 
 
-export async function getActiveUsers(
+export async function getActiveUser(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean };
+    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean,user_type?:string };
   }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { user_id, hierarchy_id, is_enabled } = request.query;
+  const { user_id, hierarchy_id, is_enabled,user_type } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -785,9 +785,10 @@ export async function getActiveUsers(
       program_id, 
       user_id, 
       hierarchy_id: hierarchy_id || null, 
-      is_enabled: true 
+      is_enabled: true ,
+      user_type:'client'
     };
-    const users = await sequelize.query(getActiveUser, {
+    const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
     });
