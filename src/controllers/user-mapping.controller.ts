@@ -285,6 +285,14 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     id: location.id,
                     name: location.name
                 }));
+
+                user.default_hierarchy_id = hierarchies.find(hierarchy =>
+                    hierarchy.id === user.default_hierarchy_id
+                );
+
+                user.default_work_location_id = workLocations.find(location =>
+                    location.id === user.default_work_location_id
+                );
             }
 
             return {
@@ -292,7 +300,9 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 user: {
                     ...user,
                     associate_hierarchy_ids: user?.associate_hierarchy_ids,
-                    work_location_ids: user?.work_location_ids
+                    work_location_ids: user?.work_location_ids,
+                    default_hierarchy_id: user?.default_hierarchy_id,
+                    default_work_location_id: user?.default_work_location_id
                 },
                 countries: user?.countries
             };
