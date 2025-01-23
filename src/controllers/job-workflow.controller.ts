@@ -2450,19 +2450,37 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-                const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
+                // const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
 
+                //     if (recipient.replaced_by) {
+                //         return recipient.replaced_by === user.sub;
+                //     }
+
+                //     return recipient.user_id === user.sub;
+                // });
+
+                // if (hasMatchingRecipient) {
+
+                //     currentLevel.is_approval_allowed = true;
+                // }
+                currentLevel.recipients.forEach((recipient: any) => {
+                    // Only check for user_id if replaced_by is not present
                     if (recipient.replaced_by) {
-                        return recipient.replaced_by === user.sub;
+                        // If replaced_by matches the logged-in user, set approval flag
+                        if (recipient.replaced_by === user.sub) {
+                            recipient.is_approval_allowed = true; // Set flag for replaced recipient
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                        }
+                    } else {
+                        // If there is no replaced_by, check user_id
+                        if (recipient.user_id === user.sub) {
+                            recipient.is_approval_allowed = true; // Set flag for matching user
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if user_id does not match
+                        }
                     }
-
-                    return recipient.user_id === user.sub;
                 });
-
-                if (hasMatchingRecipient) {
-
-                    currentLevel.is_approval_allowed = true;
-                }
             }
 
 
@@ -2501,7 +2519,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-console.log("ppppppppppppppppppppppppppppppp",levels);
+
 
     // 1. Filter levels with status "pending"
     const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
@@ -3124,7 +3142,10 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
                     const recipientTypes = JSON.parse(row.recipient_types);
-
+                    if (!Array.isArray(recipientTypes) || recipientTypes.length === 0) {
+                        console.log("No recipient types found, skipping further checks.");
+                        continue; // Stop further execution for this row
+                    }
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
 
