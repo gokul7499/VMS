@@ -16,8 +16,8 @@ import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
-const AUTH_BASE_URL = databaseConfig.config.auth_url||"https://v4-dev.simplifysandbox.net/auth";
-let SOURCE_BASE_URL =databaseConfig.config.sourcing_url||"http://v4-devnlb.simplifysandbox.net:8002/sourcing"
+const AUTH_BASE_URL = databaseConfig.config.auth_url;
+let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -95,7 +95,6 @@ export const createJobWorkFlow = async (
             entity_id: program_id,
             is_deleted: false,
         }, JobWorkFlowModel);
-
         console.error(error);
         reply.status(500).send({
             status_code: 500,
@@ -373,7 +372,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                await updatePendingApprovalStatus(request,reply,program_id,id,workflow)
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids,
@@ -419,10 +418,10 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         if (!authHeader?.startsWith('Bearer ')) {
             return reply.status(401).send({ message: 'Unauthorized - Token not found' });
         }
-        
+
         const token = authHeader.split(' ')[1];
         const user = await decodeToken(token);
-    
+
         if (!user) {
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
@@ -440,28 +439,28 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     authorization: authHeader
                 },
             });
-        } else 
+        } else
             if (moduleType === "offer" || moduleType === "offers") {
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
                 const payload = {
                     status: "Released",
                 };
-    
+
                 await axios.post(apiUrl, payload, {
                     headers: {
                         'Content-Type': 'application/json',
                         authorization: authHeader
                     },
                 });
-            }else{
+            } else {
                 if (moduleType === "Submissions") {
                     const offer_id = workflow.workflow_trigger_id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
                     const payload = {
                         status: "submitted",
                     };
-        
+
                     await axios.post(apiUrl, payload, {
                         headers: {
                             'Content-Type': 'application/json',
@@ -470,7 +469,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
                 }
             }
-        
+
     } catch (error) {
         console.error(error);
         return reply.status(500).send({ message: 'Internal Server Error' });
@@ -1735,11 +1734,11 @@ ORDER BY
         let previousLevelCompleted = false;
         let levelStatusMap: { [key: number]: string } = {};
         await getLevelData(request, reply, rows, workflow, manager);
-      
+
 
         (async () => {
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
-        
+
         })();
         return reply.status(200).send({
             statusCode: 200,
@@ -2252,10 +2251,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
-              
+
                 const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
                 workflow.levels = levelsWithRoles;
-              
+
 
 
             }
@@ -2278,7 +2277,7 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
         }
         const token = authHeader.split(' ')[1];
         for (const level of levels) {
-           
+
             // Iterate through all recipients in the current level
             for (const recipient of level.recipients) {
                 // Get the user_id or replaced_by
@@ -2321,10 +2320,10 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
                         'Authorization': `Bearer ${token}`,
                     },
                 });
-               const roleName = response.data.response.roles.display_name;
+                const roleName = response.data.response.roles.display_name;
 
 
-              // Add roleName to the recipient object
+                // Add roleName to the recipient object
                 recipient.roleName = roleName;
             }
         }
@@ -2450,19 +2449,37 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-                const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
+                // const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
 
+                //     if (recipient.replaced_by) {
+                //         return recipient.replaced_by === user.sub;
+                //     }
+
+                //     return recipient.user_id === user.sub;
+                // });
+
+                // if (hasMatchingRecipient) {
+
+                //     currentLevel.is_approval_allowed = true;
+                // }
+                currentLevel.recipients.forEach((recipient: any) => {
+                    // Only check for user_id if replaced_by is not present
                     if (recipient.replaced_by) {
-                        return recipient.replaced_by === user.sub;
+                        // If replaced_by matches the logged-in user, set approval flag
+                        if (recipient.replaced_by === user.sub || user.userType == "super_user") {
+                            recipient.is_approval_allowed = true; // Set flag for replaced recipient
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                        }
+                    } else {
+                        // If there is no replaced_by, check user_id
+                        if (recipient.user_id === user.sub || user.userType == "super_user") {
+                            recipient.is_approval_allowed = true; // Set flag for matching user
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if user_id does not match
+                        }
                     }
-
-                    return recipient.user_id === user.sub;
                 });
-
-                if (hasMatchingRecipient) {
-
-                    currentLevel.is_approval_allowed = true;
-                }
             }
 
 
@@ -2501,7 +2518,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-console.log("ppppppppppppppppppppppppppppppp",levels);
+
 
     // 1. Filter levels with status "pending"
     const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
@@ -3124,7 +3141,10 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
                     const recipientTypes = JSON.parse(row.recipient_types);
-
+                    if (!Array.isArray(recipientTypes) || recipientTypes.length === 0) {
+                        console.log("No recipient types found, skipping further checks.");
+                        continue; // Stop further execution for this row
+                    }
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
 
