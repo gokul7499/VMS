@@ -1537,7 +1537,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
         ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
-        ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
+        ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
       GROUP BY
         timesheet_type_config.id
       ORDER BY
