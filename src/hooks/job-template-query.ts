@@ -363,7 +363,7 @@ async getAllJobTemplateByHierarchy(
                                     'name', qualifications.name,
                                     'code', qualification_types.code,
                                     'is_locked', jq.is_locked,
-                                    'is_required', jq.is_required,
+                                    'is_required', jq.is_required=1,
                                     'level', jq.level
                                 )
                             )
