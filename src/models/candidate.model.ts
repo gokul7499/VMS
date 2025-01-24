@@ -5,7 +5,6 @@ import { Programs } from "./programs.model"
 import countriesModel from "./countries.model";
 import { ProgramVendor } from "./program-vendor.model";
 import Tenant from "./tenant.model";
-import JobCategoryModel from "./job-category.model";
 import IndustriesModel from "./labour-category.model";
 import JobTemplateModel from "./job-template.model";
 class Candidate extends Model {

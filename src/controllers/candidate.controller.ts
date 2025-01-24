@@ -8,9 +8,8 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op, QueryTypes } from "sequelize";
-import { generateCandidateCode } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
-import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
@@ -20,8 +19,8 @@ export async function createCandidate(
     request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
     reply: FastifyReply
 ) {
-    const { candidate } = request.body; 
-    const { program_id, email } = candidate;  
+    const { candidate } = request.body;
+    const { id, program_id, email, vendor_id } = candidate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -37,10 +36,10 @@ export async function createCandidate(
     }
 
     try {
-        if (email) {
+        if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
                 where: {
-                    program_id,
+                    vendor_id,
                     email,
                     is_deleted: false
                 }
@@ -75,8 +74,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = await generateCandidateCode();
-
+        const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
             candidate_id: candidateId,
@@ -139,7 +137,6 @@ export async function createCandidate(
         });
     }
 }
-
 
 export async function getAllCandidate(
     request: FastifyRequest,
@@ -531,24 +528,24 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    if(user?.userType==='super_user'){
+    if (user?.userType === 'super_user') {
         return reply.status(200).send({
             status_code: 200,
             message: "Only vendor have permission to see candidates!",
-            candidates:[],
+            candidates: [],
             trace_id: traceId,
         });
     }
     const { program_id } = request.params as { program_id: string };
     const userData = await User.findOne({ where: { program_id, id: userId } });
     const vendorId = userData?.tenant_id || undefined;
-    if(vendorId===undefined){
+    if (vendorId === undefined) {
         return reply.status(200).send({
             status_code: 200,
             message: "Only vendor have permission to see candidates!",
-            candidates:[],
+            candidates: [],
             trace_id: traceId,
-        }); 
+        });
     }
     const {
         page = "1",
@@ -594,7 +591,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     if (is_talent_pool === "true" && job_id) {
         try {
-            const submitCandidateIds = await fetchSubmittedCandidate( job_id, token, vendorId);
+            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendorId);
             whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({
