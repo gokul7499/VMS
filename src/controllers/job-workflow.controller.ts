@@ -2252,8 +2252,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
 
-                const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
-                workflow.levels = levelsWithRoles;
+                // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
+                // workflow.levels = "msp user";
 
 
 
@@ -2518,10 +2518,8 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-
-
     // 1. Filter levels with status "pending"
-    const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
+    const pendingLevels = levels?.filter((level: any) => level.level_status === "pending");
 
     for (const level of pendingLevels) {
         const placementOrder = level.placement_order;
