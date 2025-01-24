@@ -769,7 +769,6 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         } else if (recipientType?.name === "Vendor Users") {
                             input_value = {
                                 id: input_values,
-                                name: "Vendor Users"
                             } as any;
                         }
                         function getName(input_value: any): string {
