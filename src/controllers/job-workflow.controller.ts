@@ -2253,7 +2253,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let data = await statusHandling(request, reply, workflow)
 
                 const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
-                workflow.levels = levelsWithRoles;
+                workflow.levels = "msp user";
 
 
 
