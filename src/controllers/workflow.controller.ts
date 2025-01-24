@@ -35,7 +35,8 @@ import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import axios from 'axios';
-const AUTH_BASE_URL = process.env.AUTH_BASE_URL || 'https://v4-dev.simplifysandbox.net/auth/v1/api'
+import { databaseConfig } from '../config/db';
+const AUTH_BASE_URL = databaseConfig.config.auth_url;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
@@ -700,12 +701,12 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         if (behaviour == undefined || behaviour == null) {
                             if (["Top of Financial Authority Chain", "Financial Authority Chain", "Managerial Chain"].includes(recipientType?.name)) {
                                 behaviour = "CHAIN";
-                            } else if (["Manager of", "Master Data Owner", "Specific User", "Multiple users", "Vendor Users", "Users in Program Role", "Custom Field Supplied User"].includes(recipientType?.name)) {
+                            } else if (["Manager of", "Master Data Owner", "Specific User", "Multiple users",  "Users in Program Role", "Custom Field Supplied User"].includes(recipientType?.name)) {
                                 behaviour = "ANY";
                             }
                         }
 
-                        if (["Top of Financial Authority Chain", "Financial Authority Chain", "Managerial Chain", "Manager of"].includes(recipientType?.name)) {
+                        if (["Top of Financial Authority Chain", "Financial Authority Chain", "Managerial Chain", "Manager of", ""].includes(recipientType?.name)) {
                             const specificRecipientType = await RecipientTypeModel.findOne({
                                 where: { name: recipientType?.name, module_id: recipientType?.module_id, event_id: recipientType.event_id, method_id: recipientType.method_id }
                             });
@@ -748,7 +749,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 attributes: ["id", "name"]
                             });
                         } else if (recipientType?.name === "Users in Program Role") {
-                            const apiUrl = `${AUTH_BASE_URL}/roles/${input_values}?tenant-id=${program_id}`;
+                            const apiUrl = `${AUTH_BASE_URL}/v1/api/roles/${input_values}?tenant-id=${program_id}`;
                             const data = {
                                 role_id: `${input_values}`
                             };
@@ -765,6 +766,11 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     name: role.role_name,
                                 };
                             }
+                        } else if (recipientType?.name === "Vendor Users") {
+                            input_value = {
+                                id: input_values,
+                                name: "Vendor Users"
+                            } as any;
                         }
                         function getName(input_value: any): string {
                             if ('first_name' in input_value && 'last_name' in input_value) {
