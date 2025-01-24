@@ -16,6 +16,7 @@ import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
+
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 export const createJobWorkFlow = async (
@@ -1740,14 +1741,30 @@ ORDER BY
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
         })();
+        const programData = await sequelize.query(
+            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
+            {
+                replacements: { workflow_trigger_id},
+                type: QueryTypes.SELECT
+            }
+        )
+       
+
+        // Calculate the number of matching workflows
+        const totalCount = programData.length;
+
+        // Extract the flowType field from each workflow
+        const flowTypes = programData.map((programData:any) => programData.flow_type);
+        console.log(flowTypes);
+        
         return reply.status(200).send({
             statusCode: 200,
+            flowTypes:flowTypes||[],
             workflow,
             trace_id,
         });
     } catch (error: any) {
         console.log(error);
-
         return reply.status(500).send({
             statusCode: 500,
             message: 'An error occurred while fetching workflow data.',
