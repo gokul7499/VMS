@@ -49,7 +49,7 @@ ExpenseRuleMapping.init(
     },
     {
         sequelize,
-        tableName: 'expense_rule_mapping',
+        tableName: 'timesheet_expense_rule_mapping',
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
