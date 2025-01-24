@@ -454,7 +454,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         authorization: authHeader
                     },
                 });
-            } else {
+            } else 
                 if (moduleType === "Submissions") {
                     const offer_id = workflow.workflow_trigger_id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
@@ -468,8 +468,101 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                             authorization: authHeader
                         },
                     });
-                }
+                
+            }else
+            if (moduleType === "Assignment") {
+                const offer_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                const payload = {
+                    status: "Rejected",
+                };
+
+                await axios.post(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+
             }
+
+
+    } catch (error) {
+        console.error(error);
+        return reply.status(500).send({ message: 'Internal Server Error' });
+    }
+}
+export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+    try {
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+
+        if (!user) {
+            return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        }
+        const moduleType = workflow.module_type.toLowerCase();
+        if (moduleType === "job" || moduleType === "jobs") {
+            const job_id = workflow.workflow_trigger_id;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const payload = {
+                status: "Rejected",
+            };
+
+            await axios.post(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
+        } else if (moduleType === "offer" || moduleType === "offers") {
+            const offer_id = workflow.workflow_trigger_id;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+            const payload = {
+                status: "Rejected",
+            };
+
+            await axios.post(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
+        } else
+            if (moduleType === "Submissions") {
+                const offer_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                const payload = {
+                    status: "Rejected",
+                };
+
+                await axios.post(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+            }
+            else
+                if (moduleType === "Assignment") {
+                    const offer_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                    const payload = {
+                        status: "Rejected",
+                    };
+
+                    await axios.post(apiUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            authorization: authHeader
+                        },
+                    });
+
+                }
 
     } catch (error) {
         console.error(error);
@@ -970,7 +1063,7 @@ export const rejectLevel = async (
             user_type: eventCode.user_type
         }
         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-
+        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -1456,7 +1549,6 @@ export const updateWorkflowStatusData = async (
     }
 };
 
-
 export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
@@ -1710,11 +1802,28 @@ ORDER BY
             type: QueryTypes.SELECT,
         });
         // console.log(rows);
+        const programData = await sequelize.query(
+            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
+            {
+                replacements: { workflow_trigger_id },
+                type: QueryTypes.SELECT
+            }
+        )
+        // Extract the flowType field from each workflow
+        const flowTypes = programData
+        .map((program: any) => program.flow_type)
+        .sort((a: string, b: string) => {
+            if (a === 'Review') return -1; 
+            if (b === 'Review') return 1;  
+            return 0;                      
+        });
+    
 
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
+                flowTypes:flowTypes,
                 message: 'Workflow data not found',
                 workflow: [],
                 trace_id,
@@ -1741,25 +1850,10 @@ ORDER BY
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
         })();
-        const programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
-            {
-                replacements: { workflow_trigger_id},
-                type: QueryTypes.SELECT
-            }
-        )
-       
-
-        // Calculate the number of matching workflows
-        const totalCount = programData.length;
-
-        // Extract the flowType field from each workflow
-        const flowTypes = programData.map((programData:any) => programData.flow_type);
-        console.log(flowTypes);
         
         return reply.status(200).send({
             statusCode: 200,
-            flowTypes:flowTypes||[],
+            flowTypes: flowTypes,
             workflow,
             trace_id,
         });
@@ -2026,6 +2120,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
                                     id: supervisor.id,
+                                    first_name:supervisor.first_name,
+                                    last_name:supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
                                     avatar: supervisor.avatar || null, // Ensure null if avatar is missing
