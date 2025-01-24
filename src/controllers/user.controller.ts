@@ -425,7 +425,8 @@ export async function updateUser(
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_activated: mapping.is_activated,
-        status:mapping.status
+        status:mapping.status,
+        modified_on:Date.now()
       }));
       await UserMapping.bulkCreate(groupMappingData);
     }
