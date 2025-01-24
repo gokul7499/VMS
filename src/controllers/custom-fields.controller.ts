@@ -14,6 +14,8 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
 import { update } from 'lodash';
+import PicklistModel from '../models/picklist.model';
+import PicklistItemModel from '../models/picklist-item.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name, ...customFieldData } = request.body as any;
@@ -301,7 +303,10 @@ export async function getAllCustomFields(
   }
 }
 
-export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+export const getCustomFieldById = async (
+  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+  reply: FastifyReply
+) => {
   const { id, program_id } = request.params;
   const traceId = generateCustomUUID();
 
@@ -330,7 +335,6 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
     if (customfiedData) {
       const customFieldId = customfiedData.id;
 
-      // Fetch work locations only if is_all_work_location is false, otherwise set it to an empty array
       let workLocations: WorkLocationModel[] = [];
       if (!customfiedData.is_all_work_location) {
         const locationRecords = await customFieldLocations.findAll({
@@ -361,12 +365,40 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
         });
       }
 
+      let picklistData: { picklist_name: string, picklist_values: { id: string, value: string }[] } | null = null;
+      if (customfiedData.meta_data?.picklist_id) {
+        const picklistId = customfiedData.meta_data.picklist_id;
+        const picklist = await PicklistModel.findOne({
+          where: { id: picklistId },
+          attributes: ["name"],
+        });
+
+        if (picklist) {
+          const picklistItems = await PicklistItemModel.findAll({
+            where: { picklist_id: picklistId },
+            attributes: ["id", "value"],
+          })as any;
+
+          picklistData = {
+            picklist_name: picklist.name,
+            picklist_values: picklistItems.map((item: { id: any; value: any; }) => ({
+              id: item.id,
+              value: item.value,
+            })),
+          };
+        }
+      }
+
       reply.status(200).send({
         status_code: 200,
         customField: {
           ...customfiedData.toJSON(),
           hierarchies: hierarchie,
           workLocations: workLocations,
+          meta_data: {
+            ...customfiedData.meta_data,
+            ...(picklistData ? picklistData : {}),
+          },
         },
         message: 'Custom Fields Type Get Successfully',
         trace_id: traceId,
@@ -387,6 +419,7 @@ export const getCustomFieldById = async (request: FastifyRequest<{ Params: { id:
     });
   }
 };
+
 
 
 export const updateCustomFieldById = async (
