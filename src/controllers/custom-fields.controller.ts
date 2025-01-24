@@ -214,7 +214,7 @@ export const createCustomField = async (data: any, user: any) => {
 export async function getAllCustomFields(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: GetQueryInterface
+    Querystring: GetQueryInterface;
   }>,
   reply: FastifyReply
 ) {
@@ -233,7 +233,6 @@ export async function getAllCustomFields(
     whereClause.is_enabled = { [Op.eq]: isEnabledValue };
   }
   if (request.query.slug) {
-
     whereClause.slug = { [Op.like]: `%${request.query.slug}%` };
   }
   if (request.query.name) {
@@ -284,9 +283,47 @@ export async function getAllCustomFields(
       limit: limit,
     });
 
+    const customFieldsWithPicklistData = await Promise.all(
+      result.rows.map(async (customField) => {
+        let picklistData: { picklist_name: string, picklist_values: { id: string, value: string }[] } | null = null;
+
+        if (customField.meta_data?.picklist_id) {
+          const picklistId = customField.meta_data.picklist_id;
+
+          const picklist = await PicklistModel.findOne({
+            where: { id: picklistId },
+            attributes: ["name"],
+          });
+
+          if (picklist) {
+            const picklistItems = await PicklistItemModel.findAll({
+              where: { picklist_id: picklistId },
+              attributes: ["id", "value"],
+            });
+
+            picklistData = {
+              picklist_name: picklist.name,
+              picklist_values: picklistItems.map(item => ({
+                id: item.id,
+                value: item.value,
+              })),
+            };
+          }
+        }
+
+        return {
+          ...customField.toJSON(),
+          meta_data: {
+            ...customField.meta_data,
+            ...(picklistData ? picklistData : {}),
+          },
+        };
+      })
+    );
+
     return reply.status(200).send({
       status_code: 200,
-      custom_fields: result.rows,
+      custom_fields: customFieldsWithPicklistData,
       total_records: result.count,
       page: page,
       limit: limit,
@@ -302,6 +339,7 @@ export async function getAllCustomFields(
     });
   }
 }
+
 
 export const getCustomFieldById = async (
   request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
