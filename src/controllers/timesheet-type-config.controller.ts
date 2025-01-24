@@ -28,6 +28,11 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         }
         const userId = user?.sub;
         console.log("uuu", userId)
+        if (data.allow_timesheet_to_be_submitted) {
+            data.allow_timesheet_to_be_submitted = data.allow_timesheet_to_be_submitted
+                .toLowerCase()
+                .replace(/\s+/g, '_'); 
+        }
         const existingConfig = await TimesheetTypeConfig.findOne({
             where: {
                 program_id,
