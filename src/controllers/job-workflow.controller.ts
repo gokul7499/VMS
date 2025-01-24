@@ -2252,7 +2252,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
 
-                const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
+                // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
                 workflow.levels = "msp user";
 
 
