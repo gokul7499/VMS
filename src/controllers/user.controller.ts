@@ -802,7 +802,7 @@ export async function getActiveUser(
   try {
     const replacements = { 
       program_id, 
-      user_id, 
+      user_id:user_id || null, 
       hierarchy_id: hierarchy_id || null, 
       is_enabled: true ,
       user_type:'client'
