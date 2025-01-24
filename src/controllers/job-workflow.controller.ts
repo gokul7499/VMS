@@ -14,7 +14,10 @@ import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
 import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
-
+import axios from 'axios';
+import { databaseConfig } from '../config/db';
+const AUTH_BASE_URL = databaseConfig.config.auth_url;
+let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -92,7 +95,6 @@ export const createJobWorkFlow = async (
             entity_id: program_id,
             is_deleted: false,
         }, JobWorkFlowModel);
-
         console.error(error);
         reply.status(500).send({
             status_code: 500,
@@ -370,6 +372,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids,
@@ -407,6 +410,71 @@ export const updateWorkflowStatus = async (
         });
     }
 };
+
+
+export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+    try {
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+
+        if (!user) {
+            return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        }
+        const moduleType = workflow.module_type.toLowerCase();
+        if (moduleType === "job" || moduleType === "jobs") {
+            const job_id = workflow.workflow_trigger_id;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const payload = {
+                status: "OPEN",
+            };
+
+            await axios.post(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
+        } else
+            if (moduleType === "offer" || moduleType === "offers") {
+                const offer_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+                const payload = {
+                    status: "Released",
+                };
+
+                await axios.post(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+            } else {
+                if (moduleType === "Submissions") {
+                    const offer_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                    const payload = {
+                        status: "submitted",
+                    };
+
+                    await axios.post(apiUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            authorization: authHeader
+                        },
+                    });
+                }
+            }
+
+    } catch (error) {
+        console.error(error);
+        return reply.status(500).send({ message: 'Internal Server Error' });
+    }
+}
 async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any, eventCode: any) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -434,8 +502,8 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             replacements: { user_id: user.sub },
         });
         let userType = userData[0]
-        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || userType?.user_type.toLowerCase() == "super_user".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
-      
+        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
+
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
@@ -1665,9 +1733,12 @@ ORDER BY
         };
         let previousLevelCompleted = false;
         let levelStatusMap: { [key: number]: string } = {};
-       await getLevelData(request, reply, rows, workflow, manager);
+        await getLevelData(request, reply, rows, workflow, manager);
+
+
         (async () => {
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+
         })();
         return reply.status(200).send({
             statusCode: 200,
@@ -2118,6 +2189,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
+
                                 level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
@@ -2178,126 +2250,18 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     });
                 }
                 await applyBypassDublicateStatus(request, reply, workflow)
-
-                // if (workflow.levels && workflow.levels.length > 0) {
-                //     const config = {
-                //         bypass_duplicate_approver: workflow.config.bypass_duplicate_approver,
-                //         skip_level_if_actor_is_only_approver_in_level: workflow.config.skip_level_if_actor_is_only_approver_in_level, // Assuming the value is true for this scenario
-                //     };
-
-                //     const logged_in_user_id = user.sub;
-                //     const updates: any[] = [];
-
-                //     workflow.levels.forEach(level => {
-                //         if (level.recipients && level.recipients.length > 0) {
-                //             const isOnlyApprover = level.recipients.every(
-                //                 recipient => recipient.user_id === logged_in_user_id
-                //             );
-                //             if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
-
-                //                 let new_status = "";
-                //                 if (workflow.workflow_type === "Review") {
-                //                     new_status = "reviewed";
-                //                 } else if (workflow.workflow_type === "Approval") {
-                //                     new_status = "approved";
-                //                 }
-                //                 updates.push({
-                //                     placement_order: level.placement_order,
-                //                     new_status,
-                //                     notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
-                //                 });
-                //             } else {
-                //                 level.recipients.forEach(recipient => {
-
-
-                //                     if (recipient.user_id === logged_in_user_id) {
-
-
-                //                         if (config.bypass_duplicate_approver) {
-                //                             // Prepare the update for each matching recipient
-                //                             updates.push({
-                //                                 placement_order: level.placement_order,
-                //                                 new_status: "bypassed",
-                //                                 user_id: logged_in_user_id,
-                //                                 notes: "Auto-approved due to config and user match.",
-                //                             });
-                //                         }
-                //                     }
-                //                 });
-                //             }
-                //         }
-                //     });
-
-                //     if (updates.length > 0) {
-                //         // Call the `updateWorkflowStatusData` function with the collected updates.
-                //         await updateWorkflowStatusData(
-                //             workflow.program_id,
-                //             workflow.job_workflow_id,
-                //             updates,
-                //             reply
-                //         );
-                //     }
-                // }
-
                 let data = await statusHandling(request, reply, workflow)
-                // const levelStatusMap: Record<number, string> = {};
-                // if (workflow.levels && workflow.levels.length >= 0) {
-                //     const sortedLevels = [...workflow.levels].sort((a, b) => a.placement_order - b.placement_order);
-                //     for (let i = 0; i < sortedLevels.length; i++) {
-                //         const currentLevel = sortedLevels[i];
-                //         const placementOrder = currentLevel.placement_order;
-                //         if (i === 0) {
-                //             currentLevel.level_status = currentLevel.level_status;
-                //         } else {
 
-                //             const previousLevel = sortedLevels[i - 1];
-                //             if (previousLevel.level_status === "completed") {
-
-                //                 currentLevel.level_status = currentLevel.level_status;
-                //             } else {
-
-                //                 currentLevel.level_status = "not started";
-                //             }
-                //         }
-                //         if (currentLevel.level_status === "pending") {
-                //             const hasMatchingRecipient =user.userType == "super_user"|| currentLevel.recipients.some((recipient: any) => {
-
-                //                 if (recipient.replaced_by) {
-                //                     return recipient.replaced_by === user.sub;
-                //                 }
-
-                //                 return recipient.user_id === user.sub;
-                //             });
-
-                //             if (hasMatchingRecipient) {
-
-                //                 currentLevel.is_show_buttons = true;
-                //             }
-                //         }
+                // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
+                // workflow.levels = "msp user";
 
 
-                //         // Update the status map for reference
-                //         levelStatusMap[placementOrder] = currentLevel.level_status;
-                //         // Update the status map for reference
-                //         if (currentLevel.recipients && currentLevel.recipients.length > 0) {
-                //             currentLevel.recipients.forEach((recipient: any) => {
-                //                 if (currentLevel.level_status === "completed") {
-                //                     // If the level is completed, preserve the recipient's existing status
-                //                     recipient.status = recipient.status;
-                //                 } else if (currentLevel.level_status === "pending") {
-                //                     // If the level is pending, keep the recipient's status as is
-                //                     recipient.status = recipient.status;
-                //                 } else {
-                //                     // If the level is not started, set recipient status to "not started"
-                //                     recipient.status = "not started";
-                //                 }
-                //             });
-                //         }
-                //     }
-                // }
+
             }
         }
     } catch (error) {
+        console.log(error);
+
         return reply.status(500).send({
             statusCode: 500,
             message: 'An error occurred while fetching workflow data.',
@@ -2305,6 +2269,73 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         });
     }
 };
+async function getRolesForRecipients(request: FastifyRequest, reply: FastifyReply, levels: any[], program_id: string) {
+    try {
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        for (const level of levels) {
+
+            // Iterate through all recipients in the current level
+            for (const recipient of level.recipients) {
+                // Get the user_id or replaced_by
+                const userId = recipient.replaced_by || recipient.user_id;
+
+                if (!userId) {
+                    console.warn(`No user_id or replaced_by found for recipient: ${recipient}`);
+                    continue;
+                }
+
+                // Fetch user mapping details
+                const userMappingQuery = `
+                SELECT role_id
+                FROM user_mappings
+                WHERE user_id = :user_id
+                AND program_id = :program_id
+                LIMIT 1
+            `;
+                const userMapping: any = await sequelize.query(userMappingQuery, {
+                    type: QueryTypes.SELECT,
+                    replacements: { user_id: userId, program_id },
+                });
+
+                if (!userMapping.length) {
+                    console.warn(`No user mapping found for user_id: ${userId} and program_id: ${program_id}`);
+                    continue;
+                }
+
+                const role_id = userMapping[0].role_id;
+
+                // Fetch role details from the role table
+                const apiUrl = `${AUTH_BASE_URL}/v1/api/roles/${role_id}?tenant-id=${program_id}`;
+
+                const data = {
+                    role_id: `${role_id}`
+                };
+                const response = await axios.post(apiUrl, data, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                const roleName = response.data.response.roles.display_name;
+
+
+                // Add roleName to the recipient object
+                recipient.roleName = roleName;
+            }
+        }
+
+        return levels;
+    } catch (error) {
+        console.error('Error in getRolesForRecipients:', error);
+        return reply.status(500).send({ status_code: 500, message: 'role not found' });
+
+    }
+}
+
 const applyBypassDublicateStatus = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
 
     const traceId = generateCustomUUID();
@@ -2418,19 +2449,37 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-                const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
+                // const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
 
+                //     if (recipient.replaced_by) {
+                //         return recipient.replaced_by === user.sub;
+                //     }
+
+                //     return recipient.user_id === user.sub;
+                // });
+
+                // if (hasMatchingRecipient) {
+
+                //     currentLevel.is_approval_allowed = true;
+                // }
+                currentLevel.recipients.forEach((recipient: any) => {
+                    // Only check for user_id if replaced_by is not present
                     if (recipient.replaced_by) {
-                        return recipient.replaced_by === user.sub;
+                        // If replaced_by matches the logged-in user, set approval flag
+                        if (recipient.replaced_by === user.sub || user.userType == "super_user") {
+                            recipient.is_approval_allowed = true; // Set flag for replaced recipient
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                        }
+                    } else {
+                        // If there is no replaced_by, check user_id
+                        if (recipient.user_id === user.sub || user.userType == "super_user") {
+                            recipient.is_approval_allowed = true; // Set flag for matching user
+                        } else {
+                            recipient.is_approval_allowed = false; // Not allowed if user_id does not match
+                        }
                     }
-
-                    return recipient.user_id === user.sub;
                 });
-
-                if (hasMatchingRecipient) {
-
-                    currentLevel.is_approval_allowed = true;
-                }
             }
 
 
@@ -2469,9 +2518,8 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-
     // 1. Filter levels with status "pending"
-    const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
+    const pendingLevels = levels?.filter((level: any) => level.level_status === "pending");
 
     for (const level of pendingLevels) {
         const placementOrder = level.placement_order;
@@ -2580,15 +2628,17 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             SELECT
             w.id As job_workflow_id,
                 w.workflow_id AS workflow_id,
+                 w.event_id AS event_id,
+                   w.event_title AS event_title,
                 w.name AS workflow_name,
                 w.flow_type AS workflow_type,
                 w.levels,
                 w.status,
-                  w.config,
-                  w.manager,
+                w.config,
+                w.manager,
                 l.id AS level_id,
                 l.placement_order AS placement_order,
-                r.recipient_type_id,
+            r.recipient_type_id,
                 r.meta_data,
                 r.behaviour,
                   e.name,
@@ -2603,6 +2653,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         )
                     )
                 ) AS level_status,
+
                  JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -2635,7 +2686,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
             LIMIT 1
         ) AS replaced_by,
-         
+
                JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -2721,7 +2772,6 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
     WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
     LIMIT 1
 ) AS recipient_details,
- 
 
          (
             SELECT JSON_UNQUOTE(
@@ -2792,6 +2842,8 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
+            console.log(rows);
+
             let manager = row?.manager
             // Initialize workflow for the job if not already initialized
             if (!workflows[job_workflow_id]) {
@@ -2833,33 +2885,17 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let input_value: any;
                 let meta_datas = JSON.stringify(meta_data)
                 const input_values: any = Object.values(meta_data);
-
-                function getName(input_value: any): string {
-                    if ('first_name' in input_value && 'last_name' in input_value) {
-                        const firstName = (input_value as { first_name: string; last_name?: string }).first_name;
-                        const lastName = (input_value as { first_name: string; last_name?: string }).last_name ?? '';
-                        return `${firstName} ${lastName}`.trim();
-                    } else if ('name' in input_value) {
-                        return (input_value as { name: string }).name;
-                    }
-                    return '';
-                }
-
-                function getExistingLevel(workflow: Workflow, level_id: string) {
-                    return workflow.levels.find(level => level.level_id === level_id);
-                }
-
-                let replaced_user_data: any;
-                let imposonate_user_data: any;
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users') {
+                let replaced_user_data: any
+                let imposonate_user_data: any
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                            SELECT id, first_name, last_name, avatar, role_id
-                            FROM user
-                            WHERE id = :user_id
-                             AND is_enabled = true
-                            LIMIT 1
-                        `;
+                        SELECT id, first_name, last_name, avatar, role_id,email
+                        FROM user
+                        WHERE id = :user_id
+                        AND is_enabled = true
+                        LIMIT 1
+                    `;
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -2888,14 +2924,13 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 replacements: { user_id: imporsonate_by },
                             });
                         }
-
-
                         input_value = userResult[0] ? {
                             id: userResult[0].id,
                             first_name: userResult[0].first_name,
                             last_name: userResult[0].last_name,
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
+                            email: userResult[0].email,
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -2904,6 +2939,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar,
                             role_id: replacedUserResult[0].role_id,
+                            email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2913,6 +2949,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2920,17 +2957,17 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 }
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                        SELECT id, first_name, last_name, email, avatar, supervisor
-                        FROM user
-                        WHERE id = :job_manager_id
-                         AND is_enabled = true
-                        LIMIT 1
-                    `;
+                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    FROM user
+                    WHERE id = :job_manager_id
+                    AND is_enabled = true
+                    LIMIT 1
+                `;
 
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: manager },
+                        replacements: { job_manager_id: manager || manager },
                     });
 
 
@@ -2942,12 +2979,12 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                                SELECT id, first_name, last_name, email, avatar
-                                FROM user
-                                WHERE id = :supervisor
-                                 AND is_enabled = true
-                                LIMIT 1
-                            `;
+                            SELECT id, first_name, last_name, email, avatar
+                            FROM user
+                            WHERE id = :supervisor
+                            AND is_enabled = true
+                            LIMIT 1
+                        `;
                             let supervisorResult = null
                             // const supervisorResult = await sequelize.query(supervisorQuery, {
                             //     type: QueryTypes.SELECT,
@@ -2991,22 +3028,23 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         }
 
 
-                        input_value = supervisorData ? [supervisorData] : [];
+                        input_value = supervisorData ? supervisorData : null;
                         replaced_user_data = replacedUserResult ? {
                             id: replacedUserResult[0].id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar || null,
+                            email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
                         } : undefined;
-
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult[0].id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3025,12 +3063,16 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                    SELECT id, first_name, last_name, email, avatar
-                    FROM user
-                    WHERE id = :user_id
-                    AND is_enabled = true
-                    LIMIT 1
-                `;
+                SELECT id, first_name, last_name, email, avatar
+                FROM user
+                WHERE id = :user_id
+                AND is_enabled = true
+                LIMIT 1
+            `;
+                                    // const userData: any = await sequelize.query<Users>(userQuery, {
+                                    //     type: QueryTypes.SELECT,
+                                    //     replacements: { user_id: metaValue },
+                                    // });
                                     let userData: any = null
                                     if (recipients.existing_replaced_user) {
                                         userData = await sequelize.query(userQuery, {
@@ -3043,7 +3085,8 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                             type: QueryTypes.SELECT,
                                             replacements: { user_id: metaValue },
                                         });
-                                    };
+                                    }
+
                                     if (userData.length && replaced_by) {
                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
@@ -3070,6 +3113,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                         last_name: replacedUserResult[0].last_name,
                                         avatar: replacedUserResult[0].avatar,
                                         role_id: replacedUserResult[0].role_id,
+                                        email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3079,6 +3123,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                         last_name: imporsonateUserResult[0].last_name,
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
+                                        email: imporsonateUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3090,10 +3135,14 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
 
                 }
                 let users: any[] = [];
-                let level_behaviour: any
+                let level_behaviour: any;
+                let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
                     const recipientTypes = JSON.parse(row.recipient_types);
-
+                    if (!Array.isArray(recipientTypes) || recipientTypes.length === 0) {
+                        console.log("No recipient types found, skipping further checks.");
+                        continue; // Stop further execution for this row
+                    }
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
 
@@ -3122,6 +3171,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                     last_name: user.last_name,
                                     avatar: user.avatar,
                                     role_id: user.role_id,
+                                    email: user.email,
                                     receipentstatus: receipentstatus,
                                     modifiedOn: recipient.modified_on,
                                     reason: recipient.reason,
@@ -3141,6 +3191,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                             id: replacedByUser.id,
                                             first_name: replacedByUser.first_name,
                                             last_name: replacedByUser.last_name,
+                                            email: replacedByUser.email,
                                             avatar: replacedByUser.avatar,
                                             role_id: replacedByUser.role_id,
                                             replaced_notes: recipient.replaced_notes,
@@ -3158,6 +3209,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                             id: impersonatedUser.id,
                                             first_name: impersonatedUser.first_name,
                                             last_name: impersonatedUser.last_name,
+                                            email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
                                             impersonate_notes: recipient.impersonate_notes,
@@ -3208,29 +3260,25 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         };
                     });
                 }
-
                 if (input_value) {
-
                     let recipients = [];
-
                     if (Array.isArray(input_value)) {
-
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
+                                first_name: user.first_name,
+                                last_name: user.last_name,
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
-                                // replaced_date_times: recipient_details.replaced_modified_on,
-                                // replaced_notess: recipient_details.replaced_notes,
                                 level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
                                 role_id: user.role_id,
+                                email: user.email,
                                 replaced_by: user.replaced_by,
-                                // existing_replaced_user:user.existing_replaced_user,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
 
@@ -3240,6 +3288,8 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                         // If input_value is a single object, create a single recipient
                         recipients = [{
                             name: getName(input_value),
+                            first_name: input_value.first_name,
+                            last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
                             modified_on: recipient_details.modified_on,
@@ -3250,6 +3300,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                             user_id: input_value.id,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
+                            email: input_value.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                             replaced_by: replaced_user_data,
@@ -3260,9 +3311,6 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
-                        // if (existingLevel) {
-                        //     existingLevel.recipients.push(recipient);
-                        // }
                         if (existingLevel) {
 
                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
@@ -3279,110 +3327,14 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                 level_order: placement_order,
                                 placement_order,
                                 level_status,
+
                                 recipients: [recipient],
                             });
                         }
                     });
                 }
-
-
-                if (workflow.levels && workflow.levels.length > 0) {
-                    const config = {
-                        bypass_duplicate_approver: workflow.config.bypass_duplicate_approver,
-                        skip_level_if_actor_is_only_approver_in_level: workflow.config.skip_level_if_actor_is_only_approver_in_level, // Assuming the value is true for this scenario
-                    };
-
-                    const logged_in_user_id = user.sub;
-                    const updates: any[] = [];
-
-                    workflow.levels.forEach(level => {
-                        if (level.recipients && level.recipients.length > 0) {
-                            const isOnlyApprover = level.recipients.every(
-                                recipient => recipient.user_id === logged_in_user_id
-                            );
-                            if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
-
-                                let new_status = "";
-                                if (workflow.workflow_type === "Review") {
-                                    new_status = "reviewed";
-                                } else if (workflow.workflow_type === "Approval") {
-                                    new_status = "approved";
-                                }
-                                updates.push({
-                                    placement_order: level.placement_order,
-                                    new_status,
-                                    notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
-                                });
-                            } else {
-                                level.recipients.forEach(recipient => {
-
-
-                                    if (recipient.user_id === logged_in_user_id) {
-
-
-                                        if (config.bypass_duplicate_approver) {
-                                            // Prepare the update for each matching recipient
-                                            updates.push({
-                                                placement_order: level.placement_order,
-                                                new_status: "bypassed",
-                                                user_id: logged_in_user_id,
-                                                notes: "Auto-approved due to config and user match.",
-                                            });
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                    });
-
-                    if (updates.length > 0) {
-                        // Call the `updateWorkflowStatusData` function with the collected updates.
-                        await updateWorkflowStatusData(
-                            workflow.program_id,
-                            workflow.job_workflow_id,
-                            updates,
-                            reply
-                        );
-                    }
-                }
-                const levelStatusMap: Record<number, string> = {};
-                if (workflow.levels && workflow.levels.length >= 0) {
-                    const sortedLevels = [...workflow.levels].sort((a, b) => a.placement_order - b.placement_order);
-                    for (let i = 0; i < sortedLevels.length; i++) {
-                        const currentLevel = sortedLevels[i];
-                        const placementOrder = currentLevel.placement_order;
-                        if (i === 0) {
-                            currentLevel.level_status = currentLevel.level_status;
-                        } else {
-
-                            const previousLevel = sortedLevels[i - 1];
-                            if (previousLevel.level_status === "completed") {
-
-                                currentLevel.level_status = currentLevel.level_status;
-                            } else {
-
-                                currentLevel.level_status = "not started";
-                            }
-                        }
-
-                        // Update the status map for reference
-                        levelStatusMap[placementOrder] = currentLevel.level_status;
-                        if (currentLevel.recipients && currentLevel.recipients.length > 0) {
-                            currentLevel.recipients.forEach((recipient: any) => {
-                                if (currentLevel.level_status === "completed") {
-                                    // If the level is completed, preserve the recipient's existing status
-                                    recipient.status = recipient.status;
-                                } else if (currentLevel.level_status === "pending") {
-                                    // If the level is pending, keep the recipient's status as is
-                                    recipient.status = recipient.status;
-                                } else {
-                                    // If the level is not started, set recipient status to "not started"
-                                    recipient.status = "not started";
-                                }
-                            });
-                        }
-                    }
-                }
+                await applyBypassDublicateStatus(request, reply, workflow)
+                let data = await statusHandling(request, reply, workflow)
             }
         }
         // Return the workflows object with all workflows aggregated by job_workflow_id

@@ -18,6 +18,7 @@ import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 import { log } from "console";
 interface VendorDetails {
+    display_name: any;
     document_number: any;
     regain_compliance_days: null;
     attached_doc_url: null;
@@ -100,7 +101,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group','display_name', 'vendor_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
                 'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -119,7 +120,7 @@ export async function getProgramVendors(
 
         const countryIdsArray = Array.from(countryIds);
         let countries: any[] = [];
-        
+
         if (countryIdsArray.length > 0) {
             countries = await sequelize.query(
                 `SELECT * FROM countries WHERE id IN (:countryIds)`,
@@ -129,7 +130,7 @@ export async function getProgramVendors(
                 }
             );
         }
-        
+
 
         const countryMap: { [key: string]: any } = countries.reduce((acc: { [key: string]: any }, country: any) => {
             acc[country.id] = country;
@@ -244,7 +245,7 @@ export async function saveProgramVendor(
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
 
 
@@ -252,23 +253,23 @@ export async function saveProgramVendor(
     let users: any = await decodeToken(token);
 
     if (!users) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
 
-    const { tenant, user,'user-group-mapping':userGroupMapping } = request.body as any;
+    const { tenant, user, 'user-group-mapping': userGroupMapping } = request.body as any;
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
         return reply.status(400).send({
             status_code: 400,
             message: 'Program ID is required.',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 
     logger(
         {
-            trace_id:traceId,
+            trace_id: traceId,
             actor: {
                 user_name: users?.preferred_username,
                 user_id: users?.sub,
@@ -290,7 +291,7 @@ export async function saveProgramVendor(
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Tenant or User information is missing.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
 
@@ -298,7 +299,7 @@ export async function saveProgramVendor(
             vendor_name: tenant.name,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
-            display_name : tenant.display_name,
+            display_name: tenant.display_name,
             addresses: user.addresses,
             background_logo_color: tenant.background_logo_color,
         }
@@ -315,8 +316,8 @@ export async function saveProgramVendor(
 
         const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
-        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status:user.status, program_id, vendor_id: programVendors.id });
-        await UserMapping.create({id:userGroupMapping.id,status:userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
+        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
+        await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         await ProgramVendor.update(
             { user_id: userData.id, contact },
             { where: { id: programVendors.id, program_id } }
@@ -326,13 +327,13 @@ export async function saveProgramVendor(
         reply.status(201).send({
             status_code: 201,
             message: 'ProgramVendor created successfully.',
-            trace_id:traceId,
+            trace_id: traceId,
             id: programVendors.id,
         });
 
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: users?.preferred_username,
                     user_id: users?.sub,
@@ -350,10 +351,10 @@ export async function saveProgramVendor(
             ProgramVendor
         );
 
-    } catch (error:any) {
+    } catch (error: any) {
         logger(
             {
-                trace_id:traceId,
+                trace_id: traceId,
                 actor: {
                     user_name: users?.preferred_username,
                     user_id: users?.sub,
@@ -374,7 +375,7 @@ export async function saveProgramVendor(
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while saving ProgramVendor.',
-            trace_id:traceId,
+            trace_id: traceId,
             error: (error as any).message,
         });
     }
@@ -389,12 +390,12 @@ export const updateProgramVendor = async (
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
 
@@ -439,8 +440,10 @@ export const updateProgramVendor = async (
                             is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
                         },
                         {
-                            where: { id: markup.id, program_vendor_id: existingProgramVendor.id,created_by: userId,
-                                modified_by: userId, },
+                            where: {
+                                id: markup.id, program_vendor_id: existingProgramVendor.id, created_by: userId,
+                                modified_by: userId,
+                            },
                         }
                     );
                 } else if (markup.id === null || markup.id === "null") {
@@ -480,20 +483,24 @@ export async function deleteProgramVendor(
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params;
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
-            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id ,created_by: userId,
-                modified_by: userId,} });
+            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, {
+                where: {
+                    program_id, id, created_by: userId,
+                    modified_by: userId,
+                }
+            });
             reply.status(204).send({
                 status_code: 204,
                 message: 'ProgramVendor deleted successfully.',
@@ -562,7 +569,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         hierarchy_ids?: string;
         labor_category_id?: string;
         work_location_id?: string;
-        search?: string; 
+        search?: string;
     };
     try {
         const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(',').map(id => id.trim()) : [];
@@ -574,7 +581,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
             laborCategoryIdsArray,
             workLocationIdsArray
         );
-        
+
         const vendorReplacements: Record<string, any> = {
             program_id,
         };
@@ -598,14 +605,8 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
             type: QueryTypes.SELECT,
         });
 
-        const vendorGroupQuery: {
-            where: Record<string, any>; 
-            attributes: any;
-        } = {
-            where: {
-                program_id,
-                is_deleted: false,
-            },
+        const vendorGroupQuery: { where: Record<string, any>; attributes: any } = {
+            where: { program_id, is_deleted: false },
             attributes: ['id', 'vendor_group_name'],
         };
 
@@ -617,7 +618,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
 
         const responseVendors = filteredVendors.map(vendor => ({
             id: vendor.id,
-            vendor: vendor.vendor_name,
+            vendor: vendor.display_name,
         }));
 
         const combinedResponse = [
@@ -655,15 +656,15 @@ export async function updateProgramVendorByUserId(
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-    
+
     try {
         const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, user_id } });
 
@@ -675,8 +676,12 @@ export async function updateProgramVendorByUserId(
                 program_vendor: []
             });
         }
-        await existingProgramVendor.update(programVendorData,{where:{created_by: userId,
-            modified_by: userId,}});
+        await existingProgramVendor.update(programVendorData, {
+            where: {
+                created_by: userId,
+                modified_by: userId,
+            }
+        });
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             for (const markup of programVendorData.markup_config) {
@@ -876,7 +881,7 @@ export async function updateComplianceDocument(
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
     }
 
 
@@ -884,7 +889,7 @@ export async function updateComplianceDocument(
     let user: any = await decodeToken(token);
 
     if (!user) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
     const userId = user?.sub;
     try {
@@ -964,8 +969,10 @@ export async function updateComplianceDocument(
         }
 
         await VendorComplianceDocumentModel.update(complianceDocumentUpdate, {
-            where: { id: document_id ,created_by: userId,
-                modified_by: userId,}
+            where: {
+                id: document_id, created_by: userId,
+                modified_by: userId,
+            }
         });
 
         if (uploadedDocument) {
@@ -1113,7 +1120,7 @@ export async function advanceFilter(
             return reply.status(201).send({
                 status_code: 201,
                 message: 'ProgramVendors fetched successfully.',
-                trace_id:traceId,
+                trace_id: traceId,
                 total_records: data.length,
                 program_vendors: data,
                 pagination: {
@@ -1123,9 +1130,9 @@ export async function advanceFilter(
                 },
             });
         } else {
-            return reply.status(200).send({status_code:200, message: "No records found", program_vendors: [], trace_id:traceId });
+            return reply.status(200).send({ status_code: 200, message: "No records found", program_vendors: [], trace_id: traceId });
         }
     } catch (error) {
-        return reply.status(500).send({status_code:500, message: "Internal Server Error", trace_id:traceId });
+        return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }

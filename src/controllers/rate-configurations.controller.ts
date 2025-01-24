@@ -642,232 +642,248 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             rateConfigurationIdsFromJobTemplates.includes(id)
         );
 
-        const rateConfiguration = await RateConfigurationsModel.findOne({
+        const rateConfigurations = await RateConfigurationsModel.findAll({
             where: { program_id, id: finalRateConfigurationIds, is_shift_rate },
             attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
         });
 
-        if (!rateConfiguration) {
+        if (!rateConfigurations.length) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: 'Rate configuration not found.',
+                message: 'Rate configurations not found.',
                 rate_configurations: [],
             });
         }
-        const rateCardDecisionRecords: Array<{
-            id: string;
-            rate_card_id: string;
-            rate_type_id: string;
-            min_rate: { amount: number };
-            max_rate: { amount: number };
-        }> = await sequelize.query(rateCardMinRateMaxRate, {
-            replacements: {
-                hierarchyIds,
-                jobTemplateIds,
-                unit_of_measure,
-                currency_id,
-                labor_category_id,
-                program_id
-            },
-            type: QueryTypes.SELECT,
-        });
 
-        const hierarchie = await RateConfigurationHierarchies.findAll({
-            where: { rate_configuration_id: finalRateConfigurationIds },
-            include: [{ model: hierarchies, as: 'hierarchy', attributes: ['id', 'name'] }],
-        });
-
-        const uniqueHierarchies = Array.from(
-            new Set(hierarchie.map((item) => JSON.stringify({ id: item.hierarchy.id, name: item.hierarchy.name })))
-        ).map((item) => JSON.parse(item));
-
-        const baseRates = await RateConfigurationBaseRateTypes.findAll({
-            where: { rate_configuration_id: finalRateConfigurationIds },
-            include: [{
-                model: rateType,
-                as: 'rate_type',
-                where: { is_base_rate: true },
-                attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
-                include: [
-                    {
-                        model: ShiftType,
-                        as: 'shift_types',
-                        attributes: { exclude: ['created_on', 'modified_on', 'is_deleted', 'created_by', 'modified_by', 'program_id'] }
-                    }
-                ]
-            }],
-        });
-        const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number } }> = await sequelize.query(
-            ` WITH rate_card_matches AS (
-                SELECT rc.id AS rate_card_id FROM rate_card rc
-                WHERE  rc.labor_category_id = :labor_category_id AND rc.program_id = :program_id)
-            SELECT rcdt.min_rate, rcdt.max_rate
-            FROM rate_card_decision_table rcdt
-            INNER JOIN rate_card_matches rcm 
-            ON rcdt.rate_card_id = rcm.rate_card_id
-            WHERE rcdt.hierarchy_id IS NULL
-                AND rcdt.job_template_id IS NULL
-                AND rcdt.unit_of_measure IS NULL
-                AND rcdt.rate_type_id IS NULL
-                AND rcdt.currency IS NULL;`,
-            { type: QueryTypes.SELECT, replacements: { labor_category_id, program_id } }
-        );
-        const fallbackRate = allNullRates[0];
-        const rateConfigurationDetails = await Promise.all(
-            baseRates.map(async (baseRate: { rate_type: { rate_type_category: any; id: string; get: () => any; }; id: any; }) => {
-                const rateTypeCategory = baseRate.rate_type?.rate_type_category
-                    ? await picklistItemModel.findOne({
-                        where: { id: baseRate.rate_type.rate_type_category },
-                        attributes: ['id', 'value', 'label'],
-                    })
-                    : null;
-
-                const rates = await RateConfigurationRateTypes.findAll({
-                    where: { base_rate_type_id: baseRate.id },
-                    include: [{
-                        model: rateType,
-                        as: 'rate_type',
-                        where: { is_base_rate: false },
-                        attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
-                        include: [
-                            {
-                                model: ShiftType,
-                                as: 'shift_types',
-                                attributes: { exclude: ['created_on', 'modified_on', 'is_deleted', 'created_by', 'modified_by', 'program_id'] }
-                            }
-                        ]
-                    }],
+        const responses = await Promise.all(
+            rateConfigurations.map(async (rateConfiguration) => {
+                const rateCardDecisionRecords: Array<{
+                    id: string;
+                    rate_card_id: string;
+                    rate_type_id: string;
+                    min_rate: { amount: number };
+                    max_rate: { amount: number };
+                }> = await sequelize.query(rateCardMinRateMaxRate, {
+                    replacements: {
+                        hierarchyIds,
+                        jobTemplateIds,
+                        unit_of_measure,
+                        currency_id,
+                        labor_category_id,
+                        program_id
+                    },
+                    type: QueryTypes.SELECT,
                 });
 
-                const rateDetails = await Promise.all(
-                    rates.map(async (rate) => {
-                        const rateTypeCategory = rate.rate_type?.rate_type_category
+                const hierarchie = await RateConfigurationHierarchies.findAll({
+                    where: { rate_configuration_id: rateConfiguration.id },
+                    include: [{ model: hierarchies, as: 'hierarchy', attributes: ['id', 'name'] }],
+                });
+
+                const uniqueHierarchies = Array.from(
+                    new Set(hierarchie.map((item) => JSON.stringify({ id: item.hierarchy.id, name: item.hierarchy.name })))
+                ).map((item) => JSON.parse(item));
+
+                const baseRates = await RateConfigurationBaseRateTypes.findAll({
+                    where: { rate_configuration_id: rateConfiguration.id },
+                    include: [
+                        {
+                            model: rateType,
+                            as: 'rate_type',
+                            where: { is_base_rate: true },
+                            attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                        },
+                    ],
+                });
+
+                const sql = `WITH rate_card_matches AS (
+                        SELECT
+                            rc.id AS rate_card_id
+                        FROM
+                            rate_card rc
+                        WHERE
+                            rc.labor_category_id = :labor_category_id
+                            AND rc.program_id = :program_id
+                    )
+                    SELECT
+                        rcdt.min_rate,
+                        rcdt.max_rate
+                    FROM
+                        rate_card_decision_table rcdt
+                    INNER JOIN
+                        rate_card_matches rcm
+                    ON
+                        rcdt.rate_card_id = rcm.rate_card_id
+                    WHERE
+                        rcdt.hierarchy_id IS NULL
+                        AND rcdt.job_template_id IS NULL
+                        AND rcdt.unit_of_measure IS NULL
+                        AND rcdt.rate_type_id IS NULL
+                        AND rcdt.currency IS NULL`;
+
+                const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number } }> = await sequelize.query(sql,
+                    { type: QueryTypes.SELECT, replacements: { labor_category_id, program_id } }
+                );
+                const fallbackRate = allNullRates[0];
+
+                const rateConfigurationDetails = await Promise.all(
+                    baseRates.map(async (baseRate: { rate_type: { rate_type_category: any; id: string; get: () => any; }; id: any; }) => {
+                        const rateTypeCategory = baseRate.rate_type?.rate_type_category
                             ? await picklistItemModel.findOne({
-                                where: { id: rate.rate_type.rate_type_category },
+                                where: { id: baseRate.rate_type.rate_type_category },
                                 attributes: ['id', 'value', 'label'],
                             })
                             : null;
 
-                        const billRates = await RateConfigurationRateDifferentials.findAll({
-                            where: { rate_id: rate.id, type: 'BILL_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value'],
+                        const rates = await RateConfigurationRateTypes.findAll({
+                            where: { base_rate_type_id: baseRate.id },
+                            include: [{
+                                model: rateType,
+                                as: 'rate_type',
+                                where: { is_base_rate: false },
+                                attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                                include: [
+                                    {
+                                        model: ShiftType,
+                                        as: 'shift_types',
+                                        attributes: { exclude: ['created_on', 'modified_on', 'is_deleted', 'created_by', 'modified_by', 'program_id'] }
+                                    }
+                                ]
+                            }],
                         });
 
-                        const payRates = await RateConfigurationRateDifferentials.findAll({
-                            where: { rate_id: rate.id, type: 'PAY_RATE' },
-                            attributes: ['differential_on', 'differential_type', 'differential_value'],
-                        });
+                        const rateDetails = await Promise.all(
+                            rates.map(async (rate) => {
+                                const rateTypeCategory = rate.rate_type?.rate_type_category
+                                    ? await picklistItemModel.findOne({
+                                        where: { id: rate.rate_type.rate_type_category },
+                                        attributes: ['id', 'value', 'label'],
+                                    })
+                                    : null;
+
+                                const billRates = await RateConfigurationRateDifferentials.findAll({
+                                    where: { rate_id: rate.id, type: 'BILL_RATE' },
+                                    attributes: ['differential_on', 'differential_type', 'differential_value'],
+                                });
+
+                                const payRates = await RateConfigurationRateDifferentials.findAll({
+                                    where: { rate_id: rate.id, type: 'PAY_RATE' },
+                                    attributes: ['differential_on', 'differential_type', 'differential_value'],
+                                });
+
+                                const matchingDecisionRecord = rateCardDecisionRecords.find(
+                                    (record) => record.rate_type_id === baseRate.rate_type?.id
+                                ) || fallbackRate;
+
+                                const bill_rate = billRates.map((billRate) => {
+                                    const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                                    const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
+
+                                    const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                        ? 1 : billRate.differential_value || 0;
+
+                                    const calculatedMinRate = billRate.differential_type === "Factor Differential"
+                                        ? minRate * differentialValue
+                                        : minRate + differentialValue;
+
+                                    const calculatedMaxRate = billRate.differential_type === "Factor Differential"
+                                        ? maxRate * differentialValue
+                                        : maxRate + differentialValue;
+
+                                    return {
+                                        ...billRate.get(),
+                                        min_rate: calculatedMinRate.toString(),
+                                        max_rate: calculatedMaxRate.toString(),
+                                    };
+                                });
+
+                                const pay_rate = payRates.map((payRate) => {
+                                    const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
+                                    const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
+                                    const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
+                                        ? 1 : payRate.differential_value || 0;
+                                    const calculatedMinRate = payRate.differential_type === "Factor Differential"
+                                        ? minRate * differentialValue
+                                        : minRate + differentialValue;
+
+                                    const calculatedMaxRate = payRate.differential_type === "Factor Differential"
+                                        ? maxRate * differentialValue
+                                        : maxRate + differentialValue;
+
+                                    return {
+                                        ...payRate.get(),
+                                        min_rate: calculatedMinRate.toString(),
+                                        max_rate: calculatedMaxRate.toString(),
+                                    };
+                                });
+
+                                return {
+                                    rate_type: {
+                                        ...rate.rate_type?.get(),
+                                        rate_type_category: rateTypeCategory,
+                                    },
+                                    bill_rate: bill_rate,
+                                    pay_rate: pay_rate
+                                };
+                            })
+                        );
+
+                        const filteredRateType = rateDetails.filter((rate) =>
+                            rate.rate_type?.rate_type_category?.value !== 'shift' &&
+                            rate.bill_rate.some((billRate) => billRate.differential_on === rateTypeCategory?.value)
+                        );
+
+                        const filteredRate = rateDetails.filter((rate) =>
+                            rate.rate_type?.is_base_rate === false &&
+                            rate.rate_type?.rate_type_category?.value === 'shift'
+                        ).map((rate) => ({
+                            ...rate,
+                            rates: filteredRateType
+                                .filter((filteredRate) =>
+                                    filteredRate.rate_type?.rate_type_category?.value !== 'shift' &&
+                                    filteredRate.bill_rate.some((billRate) =>
+                                        billRate.differential_on === rateTypeCategory?.value
+                                    )
+                                )
+                                .map((filteredRate) => ({
+                                    ...filteredRate
+                                }))
+                        }));
 
                         const matchingDecisionRecord = rateCardDecisionRecords.find(
                             (record) => record.rate_type_id === baseRate.rate_type?.id
                         ) || fallbackRate;
 
-                        const bill_rate = billRates.map((billRate) => {
-                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
-                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
-
-                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
-                                ? 1 : billRate.differential_value || 0;
-
-                            const calculatedMinRate = billRate.differential_type === "Factor Differential"
-                                ? minRate * differentialValue
-                                : minRate + differentialValue;
-
-                            const calculatedMaxRate = billRate.differential_type === "Factor Differential"
-                                ? maxRate * differentialValue
-                                : maxRate + differentialValue;
-
-                            return {
-                                ...billRate.get(),
-                                min_rate: calculatedMinRate.toString(),
-                                max_rate: calculatedMaxRate.toString(),
-                            };
-                        });
-
-                        const pay_rate = payRates.map((payRate) => {
-                            const minRate = Number(matchingDecisionRecord?.min_rate.amount) || 0;
-                            const maxRate = Number(matchingDecisionRecord?.max_rate.amount) || 0;
-                            const differentialValue = (ot_exempt == true) && (rateTypeCategory?.value === 'overtime')
-                                ? 1 : payRate.differential_value || 0;
-                            const calculatedMinRate = payRate.differential_type === "Factor Differential"
-                                ? minRate * differentialValue
-                                : minRate + differentialValue;
-
-                            const calculatedMaxRate = payRate.differential_type === "Factor Differential"
-                                ? maxRate * differentialValue
-                                : maxRate + differentialValue;
-
-                            return {
-                                ...payRate.get(),
-                                min_rate: calculatedMinRate.toString(),
-                                max_rate: calculatedMaxRate.toString(),
-                            };
-                        });
-
                         return {
-                            rate_type: {
-                                ...rate.rate_type?.get(),
-                                rate_type_category: rateTypeCategory,
+                            base_rate: {
+                                rate_type: {
+                                    ...baseRate.rate_type?.get(),
+                                    rate_type_category: rateTypeCategory,
+                                    min_rate: matchingDecisionRecord?.min_rate,
+                                    max_rate: matchingDecisionRecord?.max_rate,
+                                },
+                                rates: filteredRateType,
                             },
-                            bill_rate: bill_rate,
-                            pay_rate: pay_rate
+                            rate: filteredRate,
                         };
                     })
                 );
 
-                const filteredRateType = rateDetails.filter((rate) =>
-                    rate.rate_type?.rate_type_category?.value !== 'shift' &&
-                    rate.bill_rate.some((billRate) => billRate.differential_on === rateTypeCategory?.value)
-                );
-
-                const filteredRate = rateDetails.filter((rate) =>
-                    rate.rate_type?.is_base_rate === false &&
-                    rate.rate_type?.rate_type_category?.value === 'shift'
-                ).map((rate) => ({
-                    ...rate,
-                    rates: filteredRateType
-                        .filter((filteredRate) =>
-                            filteredRate.rate_type?.rate_type_category?.value !== 'shift' &&
-                            filteredRate.bill_rate.some((billRate) =>
-                                billRate.differential_on === rateTypeCategory?.value
-                            )
-                        )
-                        .map((filteredRate) => ({
-                            ...filteredRate
-                        }))
-                }));
-
-                const matchingDecisionRecord = rateCardDecisionRecords.find(
-                    (record) => record.rate_type_id === baseRate.rate_type?.id
-                ) || fallbackRate;
-
                 return {
-                    base_rate: {
-                        rate_type: {
-                            ...baseRate.rate_type?.get(),
-                            rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord?.min_rate,
-                            max_rate: matchingDecisionRecord?.max_rate,
-                        },
-                        rates: filteredRateType,
-                    },
-                    rate: filteredRate,
+                    name: rateConfiguration.name,
+                    is_shift_rate: rateConfiguration.is_shift_rate,
+                    hierarchies: uniqueHierarchies,
+                    rate_configuration: rateConfigurationDetails,
                 };
             })
         );
-        const response = {
-            name: rateConfiguration.name,
-            is_shift_rate: rateConfiguration.is_shift_rate,
-            hierarchies: uniqueHierarchies,
-            rate_configuration: rateConfigurationDetails,
-        };
 
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             message: 'Rate configurations fetched successfully.',
-            rate_configurations: [response],
+            rate_configurations: responses,
         });
     } catch (error: any) {
         return reply.status(500).send({
@@ -1010,4 +1026,3 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
         });
     }
 }
-
