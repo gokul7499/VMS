@@ -29,6 +29,21 @@ export async function createTimesheetExpenseRule(
 
     try {
         timesheetRule.rule_duration = timesheetRule.rule_duration?.toLowerCase();
+        const existingRule = await TimesheetExpenseRuleModel.findOne({
+            where: {
+                program_id,
+                rule_name: timesheetRule.rule_name,
+                is_deleted: false
+            }
+        });
+        if (existingRule) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Rule name already exists.',
+                trace_id: traceId,
+            });
+        }
+
         const item = await TimesheetExpenseRuleModel.create({
             ...timesheetRule, program_id, created_by: userId,
             modified_by: userId,

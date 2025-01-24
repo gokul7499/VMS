@@ -29,10 +29,26 @@ export const createTimesheetExpenseRuleGroup = async (
         }
         const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
-        const { timesheet_expense_rules, ...data } = request.body as any;
+        const { timesheet_expense_rules,rule_group_name, ...data } = request.body as any;
+        const existingRuleGroup = await TimesheetExpenseRuleGroup.findOne({
+            where: {
+                program_id,
+                rule_group_name,
+                is_deleted: false
+            }
+        });
+
+        if (existingRuleGroup) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Rule group name already exists.',
+                trace_id: traceId,
+            });
+        }
 
         const newConfig = await TimesheetExpenseRuleGroup.create({
             program_id,
+            rule_group_name,
             ...data,
             modified_by: userId,
             created_by: userId,
