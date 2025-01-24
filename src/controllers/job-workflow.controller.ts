@@ -16,6 +16,7 @@ import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
+
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 export const createJobWorkFlow = async (
@@ -1740,14 +1741,30 @@ ORDER BY
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
         })();
+        const programData = await sequelize.query(
+            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
+            {
+                replacements: { workflow_trigger_id},
+                type: QueryTypes.SELECT
+            }
+        )
+       
+
+        // Calculate the number of matching workflows
+        const totalCount = programData.length;
+
+        // Extract the flowType field from each workflow
+        const flowTypes = programData.map((programData:any) => programData.flow_type);
+        console.log(flowTypes);
+        
         return reply.status(200).send({
             statusCode: 200,
+            flowTypes:flowTypes||[],
             workflow,
             trace_id,
         });
     } catch (error: any) {
         console.log(error);
-
         return reply.status(500).send({
             statusCode: 500,
             message: 'An error occurred while fetching workflow data.',
@@ -1874,6 +1891,76 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         } : undefined;
                     }
                 }
+
+                if ( recipientType?.name === "Job Manager") {
+                    if (input_values.length > 0) {
+                        const userQuery = `
+                        SELECT id, first_name, last_name, avatar, role_id,email
+                        FROM user
+                        WHERE id = :user_id
+                        AND is_enabled = true
+                        LIMIT 1
+                    `;
+                        let userResult = null;
+                        if (existing_replaced_user) {
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: existing_replaced_user },
+                            });
+                        } else {
+                            // If no `existing_replaced_user`, use the first `input_value`
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: manager},
+                            });
+                        }
+
+                        let replacedUserResult = null;
+                        let imporsonateUserResult = null;
+                        if (userResult.length && replaced_by) {
+                            replacedUserResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: replaced_by },
+                            });
+                        }
+                        if (userResult.length && imporsonate_by) {
+                            imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: imporsonate_by },
+                            });
+                        }
+                        input_value = userResult[0] ? {
+                            id: userResult[0].id,
+                            first_name: userResult[0].first_name,
+                            last_name: userResult[0].last_name,
+                            avatar: userResult[0].avatar,
+                            role_id: userResult[0].role_id,
+                            email: userResult[0].email,
+                        } : undefined;
+
+                        replaced_user_data = replacedUserResult ? {
+                            id: replacedUserResult[0].id,
+                            first_name: replacedUserResult[0].first_name,
+                            last_name: replacedUserResult[0].last_name,
+                            avatar: replacedUserResult[0].avatar,
+                            role_id: replacedUserResult[0].role_id,
+                            email: replacedUserResult[0].email,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
+                    }
+                }
+
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
                     SELECT id, first_name, last_name, email, avatar, supervisor
@@ -2252,8 +2339,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
 
-                const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
-                workflow.levels = levelsWithRoles;
+                // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
+                // workflow.levels = "msp user";
 
 
 
@@ -2518,10 +2605,8 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-
-
     // 1. Filter levels with status "pending"
-    const pendingLevels = levels.filter((level: any) => level.level_status === "pending");
+    const pendingLevels = levels?.filter((level: any) => level.level_status === "pending");
 
     for (const level of pendingLevels) {
         const placementOrder = level.placement_order;

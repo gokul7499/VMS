@@ -125,7 +125,8 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
       return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-        const [updatedCount] = await UserMapping.update({updates,modified_by: userId,}, { where: { id: id } });
+       updates.modified_on=Date.now()
+        const [updatedCount] = await UserMapping.update({...updates,modified_by: userId,}, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,

@@ -5,12 +5,12 @@ import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 import TimesheetExpenseRuleModel from './timesheet-expense-rule.model';
 
-class ExpenseRuleMapping extends Model {
+class TimesheetExpenseRuleMapping extends Model {
     expense_rule_id: any; 
  
 }
 
-ExpenseRuleMapping.init(
+TimesheetExpenseRuleMapping.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -49,7 +49,7 @@ ExpenseRuleMapping.init(
     },
     {
         sequelize,
-        tableName: 'expense_rule_mapping',
+        tableName: 'timesheet_expense_rule_mapping',
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
@@ -62,7 +62,7 @@ ExpenseRuleMapping.init(
     }
 );
 
-ExpenseRuleMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-ExpenseRuleMapping.belongsTo(TimesheetExpenseRuleModel, { foreignKey: 'expense_rule_id', as: 'expense_rule' });
+TimesheetExpenseRuleMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
+TimesheetExpenseRuleMapping.belongsTo(TimesheetExpenseRuleModel, { foreignKey: 'expense_rule_id', as: 'expense_rule' });
 
-export default ExpenseRuleMapping;
+export default TimesheetExpenseRuleMapping;

@@ -7,7 +7,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import RateType from '../models/rate-type.model';
 import { Op } from 'sequelize';
 import { fetchTimesheetExpenseRuleGroups } from '../utility/queries';
-import ExpenseRuleMapping from '../models/expense-rule.mapping';
+import TimesheetExpenseRuleMapping from '../models/timesheet-expense-rule.mapping';
 
 export const createTimesheetExpenseRuleGroup = async (
     request: FastifyRequest,
@@ -29,10 +29,26 @@ export const createTimesheetExpenseRuleGroup = async (
         }
         const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
-        const { timesheet_expense_rules, ...data } = request.body as any;
+        const { timesheet_expense_rules,rule_group_name, ...data } = request.body as any;
+        const existingRuleGroup = await TimesheetExpenseRuleGroup.findOne({
+            where: {
+                program_id,
+                rule_group_name,
+                is_deleted: false
+            }
+        });
+
+        if (existingRuleGroup) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Rule group name already exists.',
+                trace_id: traceId,
+            });
+        }
 
         const newConfig = await TimesheetExpenseRuleGroup.create({
             program_id,
+            rule_group_name,
             ...data,
             modified_by: userId,
             created_by: userId,
@@ -40,7 +56,7 @@ export const createTimesheetExpenseRuleGroup = async (
 
         if (Array.isArray(timesheet_expense_rules)) {
             for (const expenseRuleId of timesheet_expense_rules) {
-                await ExpenseRuleMapping.create({
+                await TimesheetExpenseRuleMapping.create({
                     expense_rule_group_id: newConfig.id,
                     expense_rule_id: expenseRuleId,
                     program_id,
@@ -135,7 +151,7 @@ export const getTimesheetExpenseRuleGroupById = async (
             });
         }
 
-        const expenseRuleMappings = await ExpenseRuleMapping.findAll({
+        const expenseRuleMappings = await TimesheetExpenseRuleMapping.findAll({
             where: { expense_rule_group_id: id },
             attributes: ['expense_rule_id'],
         });
@@ -266,11 +282,11 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
         }
 
         if (Array.isArray(updates.timesheet_expense_rules)) {
-            await ExpenseRuleMapping.destroy({
+            await TimesheetExpenseRuleMapping.destroy({
                 where: { expense_rule_group_id: id }
             });
             for (const expenseRuleId of updates.timesheet_expense_rules) {
-                await ExpenseRuleMapping.create({
+                await TimesheetExpenseRuleMapping.create({
                     expense_rule_group_id: id,
                     expense_rule_id: expenseRuleId,
                     program_id,
