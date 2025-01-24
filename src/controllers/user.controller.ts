@@ -417,17 +417,16 @@ export async function updateUser(
     }
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
       await UserMapping.destroy({ where: { user_id: id } });
-
       const groupMappingData = userGroupMappings.map((mapping) => ({
-        id: mapping.id || generateCustomUUID(),
+        id: mapping.id,
         tenant_id: mapping.tenant_id,
         user_id: id,
         user_type: mapping.user_type,
         role_id: mapping.role_id,
         program_id: mapping.program_id,
-        is_active: mapping.is_active,
+        is_activated: mapping.is_activated,
+        status:mapping.status
       }));
-
       await UserMapping.bulkCreate(groupMappingData);
     }
     return reply.status(200).send({

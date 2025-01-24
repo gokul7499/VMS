@@ -1972,7 +1972,6 @@ export const hierarchie = `
         h.is_hide_candidate_img,
         h.manage_tax,
         h.manage_adjustment,
-        h.custom_fields,
         h.default_timezone,
         h.default_currency,
         h.unit_of_measure,
@@ -1986,14 +1985,14 @@ export const hierarchie = `
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', custom_fields.id,
-                    'name', custom_fields.name
+                    'name', custom_fields.name,
+                    'value', JSON_UNQUOTE(JSON_EXTRACT(hierarchies_custom_field.value, '$'))
                 )
             )
             FROM hierarchies_custom_field
             LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
             WHERE hierarchies_custom_field.hierarchy_id = h.id
-            GROUP BY hierarchies_custom_field.id
-        ), JSON_ARRAY()) AS associate_hierarchy_ids
+        ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
     LEFT JOIN
