@@ -7,14 +7,12 @@ import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
-import { Op, QueryTypes } from "sequelize";
-import { generateCandidateCode } from "../utility/code-genrate-service";
+import { Op } from "sequelize";
+import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
-import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
-import { sequelize } from "../config/instance";
 import Qualifications from "../models/qualifications.model";
 import QualificationTypeModel from "../models/qualification-type-model";
 
@@ -23,7 +21,7 @@ export async function createCandidate(
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    const { program_id, email } = candidate;
+    const { id, program_id, email, vendor_id } = candidate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -39,10 +37,10 @@ export async function createCandidate(
     }
 
     try {
-        if (email) {
+        if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
                 where: {
-                    program_id,
+                    vendor_id,
                     email,
                     is_deleted: false
                 }
@@ -77,8 +75,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = await generateCandidateCode();
-
+        const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
             candidate_id: candidateId,
@@ -141,7 +138,6 @@ export async function createCandidate(
         });
     }
 }
-
 
 export async function getAllCandidate(
     request: FastifyRequest,
