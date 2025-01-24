@@ -1,7 +1,9 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
-const auth_db = process.env.CONFIG_DB ?? "dev_vms_auth";
+import { databaseConfig } from '../config/db';
+const auth_db = databaseConfig.config.database_auth;
+
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -1358,7 +1360,7 @@ export const masterDataQuery = `
 `;
 
 export const getAllExpenseConfigHierarchies = `
- SELECT 
+ SELECT
   ec.program_id,
   JSON_ARRAYAGG(
     JSON_OBJECT(
@@ -1488,7 +1490,6 @@ export const timesheetConfigAdvancedFilter = (
   hasTitle: boolean,
   hierarchyIdsArray: string[],
   laborCategoryIdsArray: string[],
-  hasAllocationMethod: boolean,
   hasTimesheetRuleGroup: boolean,
   hasTimesheetFormat: boolean,
   hasIsEnabled: boolean
@@ -1500,15 +1501,31 @@ export const timesheetConfigAdvancedFilter = (
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
-       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`)})`
+       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
   return `
       SELECT
         timesheet_type_config.*,
-        COUNT(timesheet_type_config.id) OVER () AS total_count
+        COUNT(timesheet_type_config.id) OVER () AS total_count,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', h.id, 'name', h.name)
+          )
+          FROM hierarchies h
+          WHERE JSON_CONTAINS(timesheet_type_config.hierarchies, JSON_QUOTE(h.id))
+        ) AS hierarchies,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT('id', lc.id, 'name', lc.name)
+          )
+          FROM labour_category lc
+          WHERE JSON_CONTAINS(timesheet_type_config.labor_category, JSON_QUOTE(lc.id))
+        ) AS labor_category,
+        JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
       FROM
         timesheet_type_config
+      LEFT JOIN timesheet_expense_rule_groups trg ON timesheet_type_config.timesheet_rule_group = trg.id
       ${hierarchyIdsClause}
       ${laborCategoryClause}
       WHERE
@@ -1517,8 +1534,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasId ? 'AND timesheet_type_config.id = :id' : ''}
         ${hasTitle ? 'AND timesheet_type_config.title LIKE :title' : ''}
         ${hasIsEnabled ? 'AND timesheet_type_config.is_enabled = :is_enabled' : ''}
-        ${hasAllocationMethod ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method")) = :allocation_method' : ''}
-        ${hasTimesheetRuleGroup ? 'AND JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.timesheet_rule_group")) = :timesheet_rule_group' : ''}
+        ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
       GROUP BY
         timesheet_type_config.id
@@ -1884,43 +1900,50 @@ export const rateTypeShiftAndRate = `
       RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
   `;
 
-export const getExpenseTypeAndRateType = `
-SELECT
-  timesheet_expense_rules.id,
-  JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', expense_item_type_config.id,
-      'name', expense_item_type_config.name
+  export const getExpenseTypeAndRateType = `
+  SELECT
+    timesheet_expense_rules.id,
+    CASE
+      WHEN COUNT(expense_item_type_config.id) = 0 THEN NULL
+      ELSE JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', expense_item_type_config.id,
+          'name', expense_item_type_config.name
+        )
+      )
+    END AS expense_line_item,
+    CASE
+      WHEN COUNT(rate_type.id) = 0 THEN NULL
+      ELSE JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', rate_type.id,
+          'name', rate_type.name,
+          'abbreviation', rate_type.abbreviation
+        )
+      )
+    END AS expense_rate_type
+  FROM
+    timesheet_expense_rules
+  LEFT JOIN
+    expense_item_type_config
+    ON JSON_CONTAINS(
+      timesheet_expense_rules.expense_line_item,
+      JSON_QUOTE(expense_item_type_config.id),
+      '$'
     )
-  ) AS expense_line_item,
-   JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', rate_type.id,
-      'name', rate_type.name
+  LEFT JOIN
+    rate_type
+    ON JSON_CONTAINS(
+      timesheet_expense_rules.apply_rate_type,
+      JSON_QUOTE(rate_type.id),
+      '$'
     )
-  ) AS expense_rate_type
-FROM
-  timesheet_expense_rules
-LEFT JOIN
-  expense_item_type_config
-  ON JSON_CONTAINS(
-    timesheet_expense_rules.expense_line_item,
-    JSON_QUOTE(expense_item_type_config.id),
-    '$'
-  )
-LEFT JOIN
-  rate_type
-  ON JSON_CONTAINS(
-    timesheet_expense_rules.apply_rate_type,
-    JSON_QUOTE(rate_type.id),
-    '$'
-  )
-WHERE
-  timesheet_expense_rules.program_id =:program_id
-  AND timesheet_expense_rules.is_deleted=false
-GROUP BY
-  timesheet_expense_rules.id;
-`
+  WHERE
+    timesheet_expense_rules.program_id = :program_id
+    AND timesheet_expense_rules.is_deleted = false
+  GROUP BY
+    timesheet_expense_rules.id;
+  `;
 export const getQuery = () => `
     SELECT
         (SELECT id FROM currencies WHERE name = :currencyName LIMIT 1) AS currency,
@@ -1949,7 +1972,6 @@ export const hierarchie = `
         h.is_hide_candidate_img,
         h.manage_tax,
         h.manage_adjustment,
-        h.custom_fields,
         h.default_timezone,
         h.default_currency,
         h.unit_of_measure,
@@ -1963,14 +1985,14 @@ export const hierarchie = `
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', custom_fields.id,
-                    'name', custom_fields.name
+                    'name', custom_fields.name,
+                    'value', JSON_UNQUOTE(JSON_EXTRACT(hierarchies_custom_field.value, '$'))
                 )
             )
             FROM hierarchies_custom_field
             LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
             WHERE hierarchies_custom_field.hierarchy_id = h.id
-            GROUP BY hierarchies_custom_field.id
-        ), JSON_ARRAY()) AS associate_hierarchy_ids
+        ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
     LEFT JOIN
@@ -2042,7 +2064,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on, 
+         u.modified_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2055,7 +2077,19 @@ WITH user_data AS (
          u.role_id,
          u.title,
          u.sso_id,
-         u.contacts,
+         CASE
+           WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
+           ELSE JSON_ARRAY(
+             JSON_OBJECT(
+               'label', '',
+               'number', '',
+               'isd_code', '',
+               'max_phone_length', 0,
+               'min_phone_length', 0,
+               'phoneFormatCountry', ''
+             )
+           )
+         END AS contacts,
          u.addresses,
          u.time_zone_id,
          CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
@@ -2067,19 +2101,18 @@ WITH user_data AS (
              'id',u.id,
              'name',u.first_name
          ) AS supervisor_id,
-
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
-             ) 
-             FROM hierarchies h 
+             )
+             FROM hierarchies h
              WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
          ) AS associate_hierarchy_ids,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', wl.id, 'name', wl.name)
-             ) 
-             FROM work_locations wl 
+             )
+             FROM work_locations wl
              WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
          ) AS work_location_ids,
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
@@ -2093,7 +2126,7 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''} 
+    ${user_id ? 'AND u.id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
@@ -2101,18 +2134,17 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-        ? `AND (${hierarchy_id
-            .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-            .join(' OR ')})`
-        : ''}
+    ? `AND (${hierarchy_id
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})`
+    : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
-`
-
+`;
 
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
@@ -2129,8 +2161,8 @@ WITH user_data AS (
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
-             ) 
-             FROM hierarchies h 
+             )
+             FROM hierarchies h
              WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
          ) AS associate_hierarchy_ids
   FROM user u
@@ -2150,8 +2182,8 @@ ORDER BY modified_on DESC;
 `;
 
 export const getPendingUserQuery = `
-  SELECT 
-    invitation.*, 
+  SELECT
+    invitation.*,
     invitation.user_email AS email,
     invitation.updated_at AS created_on,
     invitation.created_at AS created_at,
@@ -2180,7 +2212,16 @@ export const getPendingUserQuery = `
       'id', user.id,
       'name', user.first_name
     ) AS supervisor_id,
-    COALESCE(( 
+    IF(
+      invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
+      JSON_OBJECT(),
+      JSON_OBJECT(
+        'url', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')),
+        'text', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.text')),
+        'color', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.color'))
+      )
+    ) AS avatar,
+    COALESCE((
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
           'id', hierarchies.id,
@@ -2190,7 +2231,7 @@ export const getPendingUserQuery = `
       FROM hierarchies
       WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
     ), JSON_ARRAY()) AS associate_hierarchy_ids,
-    COALESCE(( 
+    COALESCE((
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
           'id', work_locations.id,
@@ -2249,6 +2290,7 @@ GROUP BY invitation.id
 LIMIT 0, 1000;
 `;
 
+
 export const vendorMarkup = `
   SELECT
         vmc.markups,
@@ -2260,32 +2302,32 @@ export const vendorMarkup = `
         AND vmc.program_vendor_id = :vendor_id
         AND (
             (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
-            OR 
+            OR
             (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
-            OR 
+            OR
             (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
             OR
             (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
         )
     ORDER BY
         -- Prioritize by exact industry and location matches
-        CASE 
-          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1 
-          ELSE 2 
+        CASE
+          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1
+          ELSE 2
         END,
         -- Fallback: Prioritize rows where all categories, locations, and hierarchy are set to 1
-        CASE 
-          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3 
-          ELSE 1 
+        CASE
+          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3
+          ELSE 1
         END,
         -- Additional sorting logic if needed
-        CASE 
-          WHEN vmc.program_industry = :labour_category_id THEN 1 
-          ELSE 2 
+        CASE
+          WHEN vmc.program_industry = :labour_category_id THEN 1
+          ELSE 2
         END,
-        CASE 
-          WHEN vmc.hierarchy = :hierarchy_id THEN 1 
-          ELSE 2 
+        CASE
+          WHEN vmc.hierarchy = :hierarchy_id THEN 1
+          ELSE 2
         END
     LIMIT 1;
 `;
@@ -2294,41 +2336,42 @@ export const fetchTimesheetExpenseRuleGroups = async (
   programId: string,
   ruleCategory?: string,
   ruleGroupName?: string,
-  ruleTypeName?:string,
+  ruleType?: string,
   isEnabled?: string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
 ) => {
-  const searchConditions: string[] = ['is_deleted = FALSE'];
+  const searchConditions: string[] = ['tsg.is_deleted = FALSE'];
 
   if (programId) {
-    searchConditions.push(`program_id = "${programId}"`);
+    searchConditions.push(`tsg.program_id = "${programId}"`);
   }
 
   if (ruleCategory) {
-    searchConditions.push(`rule_category = "${ruleCategory}"`);
+    searchConditions.push(`tsg.rule_category = "${ruleCategory}"`);
   }
 
   if (ruleGroupName) {
-    searchConditions.push(`rule_group_name LIKE "%${ruleGroupName}%"`);
+    searchConditions.push(`tsg.rule_group_name LIKE "%${ruleGroupName}%"`);
   }
 
   if (isEnabled !== undefined) {
-    searchConditions.push(`is_enabled = ${isEnabled === 'true'}`);
+    searchConditions.push(`tsg.is_enabled = ${isEnabled === 'true'}`);
   }
-  if (ruleTypeName) {
-    const ruleTypeNames = ruleTypeName.split(',').map((type) => type.trim());
+
+  if (ruleType) {
+    const ruleTypeNames = ruleType.split(',').map((type) => type.trim());
     const ruleTypeCondition = ruleTypeNames
       .map((type) => `FIND_IN_SET("${type}", (
           SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
           FROM timesheet_expense_rules ter
-          WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+          JOIN timesheet_expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+          WHERE erm.expense_rule_group_id = tsg.id
       ))`)
       .join(' OR ');
     searchConditions.push(`(${ruleTypeCondition})`);
   }
-
 
   const whereClause = searchConditions.length ? `WHERE ${searchConditions.join(' AND ')}` : '';
 
@@ -2336,16 +2379,16 @@ export const fetchTimesheetExpenseRuleGroups = async (
   SELECT
       tsg.*,
       COALESCE(
-          ( 
+          (
               SELECT JSON_ARRAYAGG(
                   JSON_OBJECT(
                       'id', ter.id,
                       'rule_name', ter.rule_name
-                    
                   )
               )
               FROM timesheet_expense_rules ter
-              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+              JOIN timesheet_expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+              WHERE erm.expense_rule_group_id = tsg.id
           ),
           JSON_ARRAY()
       ) AS timesheet_expense_rules,
@@ -2353,17 +2396,18 @@ export const fetchTimesheetExpenseRuleGroups = async (
           (
               SELECT GROUP_CONCAT(DISTINCT ter.rule_type SEPARATOR ', ')
               FROM timesheet_expense_rules ter
-              WHERE JSON_CONTAINS(tsg.timesheet_expense_rules, JSON_QUOTE(ter.id))
+              JOIN timesheet_expense_rule_mapping erm ON erm.expense_rule_id = ter.id
+              WHERE erm.expense_rule_group_id = tsg.id
           ),
           ''
-      ) AS rule_type_name,
+      ) AS rule_type,
       COUNT(*) OVER() AS total_count
   FROM timesheet_expense_rule_groups tsg
   ${whereClause}
   ORDER BY ${order}
   LIMIT ${limit}
   OFFSET ${offset};
-`;
+  `;
 
   const [ruleGroups] = await sequelize.query(query) as any[];
   const totalRecords = ruleGroups.length > 0 ? ruleGroups[0].total_count : 0;
@@ -2373,41 +2417,48 @@ export const fetchTimesheetExpenseRuleGroups = async (
 
 export const rateCardMinRateMaxRate = `
     WITH rate_card_matches AS (
-        SELECT 
+        SELECT
             rc.id AS rate_card_id
-        FROM 
+        FROM
             rate_card rc
-        WHERE 
+        WHERE
             rc.labor_category_id = :labor_category_id
             AND rc.program_id = :program_id
     ),
     primary_matches AS (
-        SELECT 
+        SELECT
             d.id,
             d.rate_card_id,
             d.rate_type_id,
             d.min_rate,
             d.max_rate
-        FROM 
+        FROM
             rate_card_decision_table d
-        JOIN 
+        JOIN
             rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
-        WHERE 
+        WHERE
             d.hierarchy_id IN (:hierarchyIds)
             AND d.job_template_id IN (:jobTemplateIds)
             AND d.unit_of_measure = :unit_of_measure
             AND d.currency = :currency_id
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
     ),
     fallback_matches AS (
-        SELECT 
+        SELECT
             d.id,
             d.rate_card_id,
             d.rate_type_id,
             d.min_rate,
             d.max_rate
-        FROM 
+        FROM
             rate_card_decision_table d
-        WHERE 
+        WHERE
             d.hierarchy_id IS NULL
             AND d.job_template_id IS NULL
             AND d.unit_of_measure IS NULL
@@ -2422,8 +2473,27 @@ export const rateCardMinRateMaxRate = `
 `;
 
 export const getInvoiceConfigByHierarchyId = `
-    SELECT * 
-    FROM invoice_config 
-    WHERE program_id = :program_id 
+    SELECT *
+    FROM invoice_config
+    WHERE program_id = :program_id
       AND JSON_CONTAINS(hierarchy_ids, :hierarchy_ids);
+`;
+
+export const getActiveUsers = `
+SELECT
+    user.id,
+    user.first_name,
+    user.last_name,
+    user.associate_hierarchy_ids,
+    user.program_id,
+    user.is_enabled,
+    user.user_type
+FROM
+    user
+WHERE
+    user.program_id = :program_id
+    AND (:user_id IS NULL OR user.id = :user_id)
+    AND user.is_enabled = true
+    AND user.user_type = 'client'
+    AND (:hierarchy_id IS NULL OR user.associate_hierarchy_ids && :hierarchy_id)
 `;

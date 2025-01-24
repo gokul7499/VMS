@@ -1,5 +1,9 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
+import { databaseConfig } from "../config/db";
+
+const config_db = databaseConfig.config.database;
+
 class JobTempletRepository {
   async getJobTemplateByHierarchies(program_id: string, hierarchy_ids: string[]) {
     const query = `
@@ -359,7 +363,7 @@ async getAllJobTemplateByHierarchy(
                                     'name', qualifications.name,
                                     'code', qualification_types.code,
                                     'is_locked', jq.is_locked,
-                                    'is_required', jq.is_required,
+                                    'is_required', jq.is_required=1,
                                     'level', jq.level
                                 )
                             )

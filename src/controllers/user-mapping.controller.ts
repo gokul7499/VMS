@@ -125,7 +125,8 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
       return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-        const [updatedCount] = await UserMapping.update({updates,modified_by: userId,}, { where: { id: id } });
+       updates.modified_on=Date.now()
+        const [updatedCount] = await UserMapping.update({...updates,modified_by: userId,}, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -216,7 +217,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 "id", "tenant_id", "role_id", "user_id",
                 "program_id", "is_activated", "is_deleted",
                 "created_on", "modified_on", "created_by",
-                "modified_by", "ref_id", "status" 
+                "modified_by", "ref_id", "status"
             ],
             where: whereClause,
             include: [
@@ -271,34 +272,41 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
         const enrichedMappings = userMappings.map(mapping => {
             const user = mapping.user?.toJSON();
-            let associate_hierarchy_ids: { id: any; name: any; }[] = [];
-            let work_location_ids: { id: any; name: any; }[] = [];
-
             if (user) {
-                associate_hierarchy_ids = hierarchies.filter(hierarchy =>
+                user.associate_hierarchy_ids = hierarchies.filter(hierarchy =>
                     user.associate_hierarchy_ids.includes(hierarchy.id)
                 ).map(hierarchy => ({
                     id: hierarchy.id,
                     name: hierarchy.name
                 }));
 
-                work_location_ids = workLocations.filter(location =>
+                user.work_location_ids = workLocations.filter(location =>
                     user.work_location_ids.includes(location.id)
                 ).map(location => ({
                     id: location.id,
                     name: location.name
                 }));
+
+                user.default_hierarchy_id = hierarchies.find(hierarchy =>
+                    hierarchy.id === user.default_hierarchy_id
+                );
+
+                user.default_work_location_id = workLocations.find(location =>
+                    location.id === user.default_work_location_id
+                );
+
+                user.status = mapping.status;
             }
 
             return {
                 ...mapping.toJSON(),
                 user: {
                     ...user,
-                    associate_hierarchy_ids: undefined, 
-                    work_location_ids: undefined 
+                    associate_hierarchy_ids: user?.associate_hierarchy_ids,
+                    work_location_ids: user?.work_location_ids,
+                    default_hierarchy_id: user?.default_hierarchy_id,
+                    default_work_location_id: user?.default_work_location_id,
                 },
-                associate_hierarchy_ids,
-                work_location_ids,
                 countries: user?.countries
             };
         });

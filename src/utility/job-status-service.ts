@@ -1,20 +1,22 @@
 
 import axios from 'axios';
+import { databaseConfig } from '../config/db';
+const sourcing_url = databaseConfig.config.sourcing_url;
 
 export const updateJob = async (
   id: string,
   program_id: string,
-  status:string,
-  token:string
+  status: string,
+  token: string
 ): Promise<any> => {
   try {
     const response = await axios.put(
-      `http://v4-qanlb.simplifysandbox.net:8002/sourcing/v1/api/program/${program_id}/job/${id}`,
+      `${sourcing_url}/v1/api/program/${program_id}/job/${id}`,
       { status: status, modified_on: Date.now() },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':`Bearer ${token}`
+          'Authorization': `Bearer ${token}`
         },
       }
     );
