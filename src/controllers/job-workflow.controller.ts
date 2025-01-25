@@ -356,14 +356,43 @@ export const updateWorkflowStatus = async (
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
 
-            // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
-            const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
-            const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+            // // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+            // const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
+            // const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+            // const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
 
+            // workflow.status = workflowStatus;
+            // workflow.is_updated = is_updatedFlag;
+            // console.log("Workflow Status:", workflowStatus);
+            let allLevelsAfterFirstCompleted = true; 
+            let workflowStatus = "completed"; 
+            
+            // Loop through levels and process
+            for (let i = 0; i < levels.length; i++) {
+                const level = levels[i];
+            
+                // Skip this level if any recipient has meta_data with null values
+                const isValidLevel = level.recipient_types && level.recipient_types.every((recipient:any) => {
+                    return recipient.meta_data !== null && Object.values(recipient.meta_data).every(value => value !== null);
+                });
+            
+                if (!isValidLevel) {
+                    continue; // Skip invalid levels where meta_data is null
+                }
+            
+                // If the level is valid (all meta_data are non-null), check the status
+                if (level.status === "pending") {
+                    allLevelsAfterFirstCompleted = false; // Mark workflow as pending
+                }
+            }
+            
+            // Set final workflow status based on valid levels
+            workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+            
+            // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
-            console.log("Workflow Status:", workflowStatus);
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
 
             let allPayload = {
