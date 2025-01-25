@@ -2692,37 +2692,47 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-                // const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
-
-                //     if (recipient.replaced_by) {
-                //         return recipient.replaced_by === user.sub;
-                //     }
-
-                //     return recipient.user_id === user.sub;
-                // });
-
-                // if (hasMatchingRecipient) {
-
-                //     currentLevel.is_approval_allowed = true;
-                // }
-                currentLevel.recipients.forEach((recipient: any) => {
-                    // Only check for user_id if replaced_by is not present
-                    if (recipient.replaced_by) {
-                        // If replaced_by matches the logged-in user, set approval flag
-                        if (recipient.replaced_by === user.sub || user.userType == "super_user") {
-                            recipient.is_approval_allowed = true; // Set flag for replaced recipient
-                        } else {
-                            recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                const hasMatchingRecipient =
+                    user.userType == "super_user" ||
+                    currentLevel.recipients.some((recipient: any) => {
+                        if (recipient.replaced_by) {
+                            return recipient.replaced_by === user.sub;
                         }
-                    } else {
-                        // If there is no replaced_by, check user_id
-                        if (recipient.user_id === user.sub || user.userType == "super_user") {
-                            recipient.is_approval_allowed = true; // Set flag for matching user
-                        } else {
-                            recipient.is_approval_allowed = false; // Not allowed if user_id does not match
-                        }
+                        return recipient.user_id === user.sub;
+                    });
+            
+                // Add `action_allowed` object to workflow if it doesn't already exist
+             
+                    workflow.action_allowed = {};
+               
+            
+                // Set `is_approval_allowed` key in the `action_allowed` object
+              
+              
+                    if (workflow.workflow_type === "Review") {
+                        workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
+                    } else if (workflow.workflow_type === "Approve") {
+                        workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
                     }
-                });
+              
+                // currentLevel.recipients.forEach((recipient: any) => {
+                //     // Only check for user_id if replaced_by is not present
+                //     if (recipient.replaced_by) {
+                //         // If replaced_by matches the logged-in user, set approval flag
+                //         if (recipient.replaced_by === user.sub || user.userType == "super_user") {
+                //             recipient.is_approval_allowed = true; // Set flag for replaced recipient
+                //         } else {
+                //             recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                //         }
+                //     } else {
+                //         // If there is no replaced_by, check user_id
+                //         if (recipient.user_id === user.sub || user.userType == "super_user") {
+                //             recipient.is_approval_allowed = true; // Set flag for matching user
+                //         } else {
+                //             recipient.is_approval_allowed = false; // Not allowed if user_id does not match
+                //         }
+                //     }
+                // });
             }
 
 
