@@ -15,6 +15,8 @@ import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
 import QualificationTypeModel from "../models/qualification-type-model";
+import CandidateRepository from "../utility/candidate-query";
+const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
     request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
@@ -537,25 +539,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    if (user?.userType === 'super_user') {
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Only vendor have permission to see candidates!",
-            candidates: [],
-            trace_id: traceId,
-        });
-    }
     const { program_id } = request.params as { program_id: string };
-    const userData = await User.findOne({ where: { program_id, id: userId } });
-    const vendorId = userData?.tenant_id || undefined;
-    if (vendorId === undefined) {
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Only vendor have permission to see candidates!",
-            candidates: [],
-            trace_id: traceId,
-        });
-    }
     const {
         page = "1",
         limit = "10",
@@ -580,6 +564,52 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
     const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
+
+    if (user?.userType === 'super_user') {
+        const replacements = {
+            program_id,
+            limit: limitNum,
+            offset,
+            candidate_id,
+            first_name: first_name ? `%${first_name}%` : undefined,
+            middle_name: middle_name ? `%${middle_name}%` : undefined,
+            last_name: last_name ? `%${last_name}%` : undefined,
+            title: title ? `%${title}%` : undefined,
+            is_active: is_active !== undefined ? is_active === 'true' : undefined,
+            worker_type_id
+        };
+
+        const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
+        if (count == 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                message: "Candidates not found.",
+                items_per_page: limitNum,
+                total_candidates: count,
+                candidates: []
+            });
+        }
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: "Candidates retrieved successfully.",
+            items_per_page: limitNum,
+            total_candidates: count,
+            candidates: candidates
+        });
+    }
+
+    const userData = await User.findOne({ where: { program_id, id: userId } });
+    const vendorId = userData?.tenant_id || undefined;
+    if (vendorId === undefined) {
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Only vendor have permission to see candidates!",
+            candidates: [],
+            trace_id: traceId,
+        });
+    }
 
     const whereClause: any = {
         vendor_id: vendorId,
