@@ -323,6 +323,7 @@ export async function timesheetTypeConfigFilter(
         is_enabled?: boolean | string;
         timesheet_rule_group?: string;
         timesheet_format?: string;
+        allocation_method?: string;
         page?: string;
         limit?: string;
       };
@@ -340,6 +341,7 @@ export async function timesheetTypeConfigFilter(
         is_enabled,
         timesheet_rule_group,
         timesheet_format,
+        allocation_method,
         page,
         limit,
       } = request.body;
@@ -366,6 +368,7 @@ export async function timesheetTypeConfigFilter(
         Array.isArray(labor_category) ? labor_category : labor_category ? [labor_category] : [],
         Boolean(timesheet_rule_group),
         Boolean(timesheet_format),
+        Boolean(allocation_method),
         isEnabledFilter !== undefined
       );
   
@@ -375,6 +378,7 @@ export async function timesheetTypeConfigFilter(
         title: title ? `%${title}%` : undefined,
         timesheet_rule_group,
         timesheet_format,
+        allocation_method,
         limit: limitNumber,
         offset,
         is_enabled: isEnabledFilter,
@@ -417,7 +421,6 @@ export async function timesheetTypeConfigFilter(
       });
     }
   }
-  
 
 export const getAllRelatedDataByProgram = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
