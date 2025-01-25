@@ -290,12 +290,12 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
       const candidateId = await generateCandidateCode();
       
-      await candidateModel.create({ ...user, user_id:user.id, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...userWithoutId, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id:user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
+        await ProgramVendor.create({ ...userWithoutId, user_id:user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
         newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
