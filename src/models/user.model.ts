@@ -4,8 +4,6 @@ import { Programs } from './programs.model';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import CountryModel from './countries.model';
-import TimeZone from "./time-zone.model";
-import Language from "./language.model";
 import hierarchies from "./hierarchies.model";
 import WorkLocationModel from "./work-location.model";
 
@@ -24,7 +22,7 @@ class User extends Model {
   work_locations: any;
   user_type: string | undefined;
   foundational_data: any;
-;
+  ;
 }
 
 User.init(
@@ -226,6 +224,10 @@ User.init(
     modified_by: {
       type: DataTypes.UUID,
       allowNull: true,
+    },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: false
     }
   },
   {
