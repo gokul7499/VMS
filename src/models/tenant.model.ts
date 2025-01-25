@@ -62,6 +62,10 @@ Tenant.init({
     type: DataTypes.JSON,
     allowNull: true,
   },
+  vendor_code:{
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   is_enabled: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
