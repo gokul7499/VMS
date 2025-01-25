@@ -290,7 +290,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
       const candidateId = await generateCandidateCode();
       
-      await candidateModel.create({ ...userWithoutId, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...userWithoutId,user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
