@@ -2497,5 +2497,10 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
-    AND (:hierarchy_id IS NULL OR user.associate_hierarchy_ids && :hierarchy_id)
+    AND (:hierarchy_id IS NULL OR 
+        -- Ensure that hierarchy_id is passed as a valid JSON array
+        JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
+    )
+
+
 `;

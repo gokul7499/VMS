@@ -783,22 +783,24 @@ export async function getUserAndHierarchieId(
 export async function getActiveUser(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean, user_type?: string };
+    Querystring: { user_id?: string; hierarchy_id?: string; is_enabled?: boolean; user_type?: string };
   }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
   const { user_id, hierarchy_id, is_enabled, user_type } = request.query;
+  const arrayOfHierarchy = hierarchy_id?.split(',').map(id => id.trim());
   const traceId = generateCustomUUID();
 
   try {
     const replacements = {
       program_id,
       user_id: user_id || null,
-      hierarchy_id: hierarchy_id || null,
+      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null, 
       is_enabled: true,
       user_type: 'client'
     };
+
     const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
@@ -807,7 +809,7 @@ export async function getActiveUser(
     if (users && users.length > 0) {
       return reply.code(200).send({
         status_code: 200,
-        message: "get pending user data",
+        message: "Get active user data",
         users,
         trace_id: traceId
       });
@@ -826,6 +828,4 @@ export async function getActiveUser(
   }
 }
 
-function uuidv4() {
-  throw new Error("Function not implemented.");
-}
+
