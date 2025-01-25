@@ -51,6 +51,7 @@ export interface programVendorInterface {
     all_work_locations: boolean;
     all_hierarchy: boolean;
     vendor_group_id: any;
+    vendor_code:string;
     com_doc_group: any;
     bussiness_structure: string;
     job_type: string;
