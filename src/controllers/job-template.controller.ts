@@ -14,7 +14,6 @@ import jobTemplateQualificationModel from "../models/job-template-qualification.
 import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
 import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
 import jobMasterDataModel from "../models/job-master-data.model";
-import { generateJobTemplateCode } from "../hooks/jobTemplateCodeGenerate";
 import { Op, QueryTypes, Transaction } from "sequelize";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
@@ -248,13 +247,10 @@ export async function createJobTemplate(
       });
     }
 
-    const job_id = await generateJobTemplateCode(program_id);
-
     const jobTemplate = await jobTemplateModel.create(
       {
         ...jobTemplateData,
         program_id,
-        job_id,
         created_by: userId,
         modified_by: userId,
       },
