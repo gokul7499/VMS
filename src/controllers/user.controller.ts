@@ -290,17 +290,17 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
       const candidateId = await generateCandidateCode();
       
-      await candidateModel.create({ ...user, user_id:user.id, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
-        const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id:user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
+        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId,user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id:user.id,user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
