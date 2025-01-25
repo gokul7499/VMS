@@ -366,7 +366,7 @@ export const updateWorkflowStatus = async (
             // console.log("Workflow Status:", workflowStatus);
             let allLevelsAfterFirstCompleted = true; 
             let workflowStatus = "completed"; 
-            
+           
             // Loop through levels and process
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
@@ -377,12 +377,12 @@ export const updateWorkflowStatus = async (
                 });
             
                 if (!isValidLevel) {
-                    continue; // Skip invalid levels where meta_data is null
+                    continue; 
                 }
             
                 // If the level is valid (all meta_data are non-null), check the status
                 if (level.status === "pending") {
-                    allLevelsAfterFirstCompleted = false; // Mark workflow as pending
+                    allLevelsAfterFirstCompleted = false;
                 }
             }
             
