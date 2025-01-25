@@ -1,6 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from '../config/instance';
 import jobCategoryModel from "./job-category.model";
+import { beforeSave } from "../hooks/timeFormatHook";
+import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
+import { Programs } from "./programs.model";
 
 class JobTemplateModel extends Model {
     id: any;
@@ -262,20 +265,48 @@ JobTemplateModel.init(
             defaultValue: false,
             allowNull: true
         },
-        job_id:{
-            type:DataTypes.STRING,
-            allowNull:true
+        job_id: {
+            type: DataTypes.STRING,
+            allowNull: true
         },
         ot_exempt: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        available_start_date_limit: {
+            type: DataTypes.JSON
+        },
+        submit_type: {
+            type: DataTypes.STRING
+        }
     },
     {
         sequelize,
         tableName: "job_templates",
         timestamps: false,
+        hooks: {
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
+            beforeValidate: async (instance) => {
+                convertEmptyStringsToNull(instance);
+                if (!instance.job_id && instance.program_id) {
+                    const program = await Programs.findByPk(instance.program_id);
+
+                    if (program?.name) {
+                        const programPrefix = program.name.substring(0, 3).toUpperCase();
+                        const count = await JobTemplateModel.count({
+                            where: { program_id: instance.program_id },
+                        });
+                        const sequence = (count + 1).toString().padStart(3, '0');
+                        instance.job_id = `${programPrefix}-JT-${sequence}`;
+                    }
+                }
+            },
+
+        },
     }
+
 );
 
 sequelize.sync();

@@ -16,19 +16,14 @@ import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import JobTempletRepository from "../hooks/job-template-query";
 const jobTempletRepositories = new JobTempletRepository();
-
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   try {
-
     const { is_enabled } = request.query as { is_enabled?: string };
-
-
     const whereConditions: any = { is_deleted: false };
 
     if (is_enabled !== undefined) {
       whereConditions.is_enabled = is_enabled === 'true' ? 1 : 0;
     }
-
 
     const result = await User.findAndCountAll({
       where: whereConditions,
@@ -39,9 +34,7 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
       ],
     });
 
-
     const { rows = [], count } = result;
-
 
     if (rows.length === 0) {
       return reply.status(200).send({
@@ -51,7 +44,6 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
 
-
     return reply.status(200).send({
       status_code: 200,
       message: "Users found",
@@ -59,8 +51,6 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
       total: count,
     });
   } catch (error: any) {
-
-
     return reply.status(500).send({
       status_code: 500,
       message: "An error occurred while fetching users",
@@ -99,7 +89,7 @@ export async function getUserHierarchiesByProgram(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-  const {job_template_id } = request.query as {job_template_id:string};
+  const { job_template_id } = request.query as { job_template_id: string };
 
   if (!authHeader?.startsWith("Bearer ")) {
     return reply
@@ -134,21 +124,21 @@ export async function getUserHierarchiesByProgram(
     let associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
 
 
-    if(job_template_id){
+    if (job_template_id) {
       const [templateData] = await Promise.all([
         jobTempletRepositories.templateQuery(job_template_id)
       ]);
       const managerHierarchyIds =
-      user?.associate_hierarchy_ids ?? [];
+        user?.associate_hierarchy_ids ?? [];
 
-      const templateHierarchyIds = templateData.map((row:any) => row.hierarchy);
+      const templateHierarchyIds = templateData.map((row: any) => row.hierarchy);
 
       associateHierarchyIds = managerHierarchyIds.filter((id: string) =>
-      templateHierarchyIds.includes(id)
-    );
+        templateHierarchyIds.includes(id)
+      );
     }
 
-    
+
     const hierarchiesWithChildren = await sequelize.query<{ name: any }>(getHierarchieWithChildren, {
       replacements: { program_id },
       type: QueryTypes.SELECT
@@ -236,6 +226,7 @@ export async function getUserHierarchiesByProgram(
   }
 }
 
+
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
@@ -258,7 +249,6 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       user: UserInterface;
       user_group_mapping: Omit<UserMappingAttributes, "id"> | Omit<UserMappingAttributes, "id">[];
     };
-
     if (!user?.tenant_id) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -268,15 +258,16 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
 
+    const user_id = user.id;    
+
     const existingUser = await User.findOne({
       where: {
-        id: user.id,
+        user_id: user_id,
         tenant_id: user.tenant_id,
         ...(user.program_id && { program_id: user.program_id }),
       },
       transaction,
     });
-
     if (existingUser) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -289,26 +280,27 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     let newUser;
 
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
-
+    const { id, ...userWithoutId } = user;
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
       const candidateId = await generateCandidateCode();
-      await candidateModel.create({ ...user, user_id: user.id, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      
+      await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
-        const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
+        // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
+        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId,user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id:user.id,user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
@@ -425,8 +417,8 @@ export async function updateUser(
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_activated: mapping.is_activated,
-        status:mapping.status,
-        modified_on:Date.now()
+        status: mapping.status,
+        modified_on: Date.now()
       }));
       await UserMapping.bulkCreate(groupMappingData);
     }
@@ -791,21 +783,21 @@ export async function getUserAndHierarchieId(
 export async function getActiveUser(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean,user_type?:string };
+    Querystring: { user_id?: string; hierarchy_id?: string[]; is_enabled?: boolean, user_type?: string };
   }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { user_id, hierarchy_id, is_enabled,user_type } = request.query;
+  const { user_id, hierarchy_id, is_enabled, user_type } = request.query;
   const traceId = generateCustomUUID();
 
   try {
-    const replacements = { 
-      program_id, 
-      user_id:user_id || null, 
-      hierarchy_id: hierarchy_id || null, 
-      is_enabled: true ,
-      user_type:'client'
+    const replacements = {
+      program_id,
+      user_id: user_id || null,
+      hierarchy_id: hierarchy_id || null,
+      is_enabled: true,
+      user_type: 'client'
     };
     const users = await sequelize.query(getActiveUsers, {
       replacements,
@@ -832,4 +824,8 @@ export async function getActiveUser(
       error: error.message
     });
   }
+}
+
+function uuidv4() {
+  throw new Error("Function not implemented.");
 }
