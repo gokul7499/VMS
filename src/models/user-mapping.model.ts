@@ -27,7 +27,7 @@ UserMapping.init({
             key: 'id',
         },
     },
-    role_id: {
+role_id: {
         type: DataTypes.UUID,
         allowNull: true
     },
