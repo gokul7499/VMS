@@ -1,6 +1,6 @@
 export interface UserInterface {
+  id: unknown;
   vendor_id: any;
-  id: string;
   program_id?: string;
   user_type?: string;
   name_prefix?: string;
