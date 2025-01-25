@@ -425,7 +425,8 @@ export async function updateUser(
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_activated: mapping.is_activated,
-        status:mapping.status
+        status:mapping.status,
+        modified_on:Date.now()
       }));
       await UserMapping.bulkCreate(groupMappingData);
     }
@@ -801,7 +802,7 @@ export async function getActiveUser(
   try {
     const replacements = { 
       program_id, 
-      user_id, 
+      user_id:user_id || null, 
       hierarchy_id: hierarchy_id || null, 
       is_enabled: true ,
       user_type:'client'

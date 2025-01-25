@@ -1985,6 +1985,76 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         } : undefined;
                     }
                 }
+
+                if ( recipientType?.name === "Job Manager") {
+                    if (input_values.length > 0) {
+                        const userQuery = `
+                        SELECT id, first_name, last_name, avatar, role_id,email
+                        FROM user
+                        WHERE id = :user_id
+                        AND is_enabled = true
+                        LIMIT 1
+                    `;
+                        let userResult = null;
+                        if (existing_replaced_user) {
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: existing_replaced_user },
+                            });
+                        } else {
+                            // If no `existing_replaced_user`, use the first `input_value`
+                            userResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: manager},
+                            });
+                        }
+
+                        let replacedUserResult = null;
+                        let imporsonateUserResult = null;
+                        if (userResult.length && replaced_by) {
+                            replacedUserResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: replaced_by },
+                            });
+                        }
+                        if (userResult.length && imporsonate_by) {
+                            imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+                                type: QueryTypes.SELECT,
+                                replacements: { user_id: imporsonate_by },
+                            });
+                        }
+                        input_value = userResult[0] ? {
+                            id: userResult[0].id,
+                            first_name: userResult[0].first_name,
+                            last_name: userResult[0].last_name,
+                            avatar: userResult[0].avatar,
+                            role_id: userResult[0].role_id,
+                            email: userResult[0].email,
+                        } : undefined;
+
+                        replaced_user_data = replacedUserResult ? {
+                            id: replacedUserResult[0].id,
+                            first_name: replacedUserResult[0].first_name,
+                            last_name: replacedUserResult[0].last_name,
+                            avatar: replacedUserResult[0].avatar,
+                            role_id: replacedUserResult[0].role_id,
+                            email: replacedUserResult[0].email,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
+                        imposonate_user_data = imporsonateUserResult ? {
+                            id: imporsonateUserResult[0].id,
+                            first_name: imporsonateUserResult[0].first_name,
+                            last_name: imporsonateUserResult[0].last_name,
+                            avatar: imporsonateUserResult[0].avatar,
+                            role_id: imporsonateUserResult[0].role_id,
+                            email: imporsonateUserResult[0].email,
+                            recipient_type: recipientType?.name || '',
+                            behaviour,
+                        } : undefined;
+                    }
+                }
+
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
                     SELECT id, first_name, last_name, email, avatar, supervisor

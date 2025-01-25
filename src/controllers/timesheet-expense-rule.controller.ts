@@ -29,6 +29,21 @@ export async function createTimesheetExpenseRule(
 
     try {
         timesheetRule.rule_duration = timesheetRule.rule_duration?.toLowerCase();
+        const existingRule = await TimesheetExpenseRuleModel.findOne({
+            where: {
+                program_id,
+                rule_name: timesheetRule.rule_name,
+                is_deleted: false
+            }
+        });
+        if (existingRule) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Rule name already exists.',
+                trace_id: traceId,
+            });
+        }
+
         const item = await TimesheetExpenseRuleModel.create({
             ...timesheetRule, program_id, created_by: userId,
             modified_by: userId,
@@ -138,30 +153,36 @@ export const getTimesheetExpenseRule = async (
         }
         const mergedRules = await Promise.all(
             timesheetRuleData.map(async (rule) => {
-                const matchingExpenseData = timesheetExpenseRules.find(
-                    (expenseRule) => expenseRule.id === rule.id
+              const matchingExpenseData = timesheetExpenseRules.find(
+                (expenseRule) => expenseRule.id === rule.id
+              );
+              const updatedRule = rule.toJSON();
+          
+              if (updatedRule.penalty_rules) {
+                const allKeysNull = Object.values(updatedRule.penalty_rules).every(
+                  (value) => value === null || value === undefined
                 );
-                const updatedRule = rule.toJSON();
-        
-                if (updatedRule.penalty_rules && updatedRule.penalty_rules.apply_rate_type) {
-                    const penaltyRateType = await RateType.findOne({
-                        where: { id: updatedRule.penalty_rules.apply_rate_type },
-                        attributes: ['id', 'name','abbreviation'],
-                    });
-                    if (penaltyRateType) {
-                        updatedRule.penalty_rules.apply_rate_type = penaltyRateType;
-                    }
-                } else {
-                    updatedRule.penalty_rules = null;
+                if (allKeysNull) {
+                  updatedRule.penalty_rules = null;
+                } else if (updatedRule.penalty_rules.apply_rate_type) {
+                  const penaltyRateType = await RateType.findOne({
+                    where: { id: updatedRule.penalty_rules.apply_rate_type },
+                    attributes: ['id', 'name', 'abbreviation'],
+                  });
+                  if (penaltyRateType) {
+                    updatedRule.penalty_rules.apply_rate_type = penaltyRateType;}
                 }
-        
-                return {
-                    ...updatedRule,
-                    expense_line_item: matchingExpenseData?.expense_line_item || [],
-                    apply_rate_type: matchingExpenseData?.expense_rate_type || [],
-                };
+              } else {
+                updatedRule.penalty_rules = null;
+              }
+          
+              return {
+                ...updatedRule,
+                expense_line_item: matchingExpenseData?.expense_line_item || [],
+                apply_rate_type: matchingExpenseData?.expense_rate_type || [],
+              };
             })
-        );
+          );
         
 
         reply.status(200).send({
@@ -214,24 +235,26 @@ export async function getTimesheetExpenseRuleById(
             });
             timesheetRule.setDataValue('apply_rate_type', rateTypes);
         }
-
         let penaltyRules = timesheetRule.penalty_rules;
         if (penaltyRules) {
+          const allKeysNull = Object.values(penaltyRules).every(value => value === null || value === undefined);
+        
+          if (!allKeysNull) {
             if (penaltyRules.apply_rate_type) {
-                const penaltyRateType = await RateType.findOne({
-                    where: { id: penaltyRules.apply_rate_type },
-                    attributes: ['id', 'name','abbreviation'],
-                });
-                if (penaltyRateType) {
-                    penaltyRules.apply_rate_type = penaltyRateType;
-                }
-            }
-            else {
-                penaltyRules = null;
+              const penaltyRateType = await RateType.findOne({
+                where: { id: penaltyRules.apply_rate_type },
+                attributes: ['id', 'name', 'abbreviation'],
+              });
+              if (penaltyRateType) {
+                penaltyRules.apply_rate_type = penaltyRateType;
+              }
             }
             timesheetRule.setDataValue('penalty_rules', penaltyRules);
-        } else {
+          } else {
             timesheetRule.setDataValue('penalty_rules', null);
+          }
+        } else {
+          timesheetRule.setDataValue('penalty_rules', null);
         }
 
         reply.status(200).send({

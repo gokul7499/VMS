@@ -61,7 +61,7 @@ export async function createReasoncode(
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
                 is_enabled: reason.is_enabled,
-                program_id:reasoncode.program_id,
+                program_id: reasoncode.program_id,
                 created_by: userId,
                 modified_by: userId,
             }))
@@ -188,15 +188,20 @@ export async function getReasoncodeById(
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });
-            if(reasonCodes.length === 0) {
+
+            if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id },
+                    where: { reason_code_id: id, program_id: null },
                     attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                     transaction,
                 });
+
                 if (reasonCodesWithoutProgram.length > 0) {
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
-                        where: { id },
+                        where: {
+                            id,
+                            program_id: null
+                        },
                         include: [
                             {
                                 model: Event,
@@ -215,9 +220,9 @@ export async function getReasoncodeById(
                         ],
                         transaction
                     });
-    
+
                     reasonCodeResponse = {
-                        id: reasonCodes[0]?.id,
+                        id: reasonCodesWithoutProgram[0]?.id,
                         module_name: reasonCodeAction?.module?.name || 'Unknown Module',
                         module_id: reasonCodeAction?.module?.id,
                         event_name: reasonCodeAction?.supporting_text_event?.name,
@@ -231,9 +236,9 @@ export async function getReasoncodeById(
                             is_enabled: reasonCode.is_enabled,
                         })),
                     };
-    
+
                     await transaction.commit();
-    
+
                     return reply.status(200).send({
                         status_code: 200,
                         message: 'Reason code retrieved successfully',
@@ -241,10 +246,9 @@ export async function getReasoncodeById(
                         trace_id: traceId,
                     });
                 }
-            }
-            if (reasonCodes.length > 0) {
+            } else {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
-                    where: { id },
+                    where: { id, program_id: null },
                     include: [
                         {
                             model: Event,
@@ -292,7 +296,7 @@ export async function getReasoncodeById(
         }
 
         const reasonCodeAction = await ReasonCodeActionModel.findOne({
-            where: { id },
+            where: { id, program_id: null },
             include: [
                 {
                     model: Event,
@@ -353,7 +357,6 @@ export async function getReasoncodeById(
         });
     }
 }
-
 
 export async function getReasoncodeByEventName(
     request: FastifyRequest<{ Params: { event_slug: string } }>,
@@ -580,7 +583,7 @@ export const getReasonCodeBySlug = async (
                 trace_id: traceId,
             });
         }
-   
+
         const reason_codes = await ReasonCodeModel.findAll({
             where: {
                 reason_code_id: data.map((d) => d.id),
@@ -592,7 +595,7 @@ export const getReasonCodeBySlug = async (
         if (!reason_codes.length) {
             const reason_codes = await ReasonCodeModel.findAll({
                 where: {
-                    reason_code_id: data.map((d) => d.id),                   
+                    reason_code_id: data.map((d) => d.id),
                 },
                 attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
             });
@@ -610,7 +613,7 @@ export const getReasonCodeBySlug = async (
             trace_id: traceId,
             reason_code_action: reason_codes,
         });
-   
+
     } catch (error: any) {
         reply.status(500).send({
             status_code: 500,

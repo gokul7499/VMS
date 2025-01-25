@@ -1,4 +1,5 @@
 export default interface CandidateInterface {
+    candidate_id: any;
     id: string;
     program_id: string;
     avatar: JSON;
