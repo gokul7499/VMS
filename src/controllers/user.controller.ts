@@ -300,7 +300,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id:user.id,user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
