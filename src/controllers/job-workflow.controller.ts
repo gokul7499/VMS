@@ -356,14 +356,43 @@ export const updateWorkflowStatus = async (
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
 
-            // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
-            const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
-            const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+            // // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
+            // const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
+            // const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+            // const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
 
+            // workflow.status = workflowStatus;
+            // workflow.is_updated = is_updatedFlag;
+            // console.log("Workflow Status:", workflowStatus);
+            let allLevelsAfterFirstCompleted = true; 
+            let workflowStatus = "completed"; 
+           
+            // Loop through levels and process
+            for (let i = 0; i < levels.length; i++) {
+                const level = levels[i];
+            
+                // Skip this level if any recipient has meta_data with null values
+                const isValidLevel = level.recipient_types && level.recipient_types.every((recipient:any) => {
+                    return recipient.meta_data !== null && Object.values(recipient.meta_data).every(value => value !== null);
+                });
+            
+                if (!isValidLevel) {
+                    continue; 
+                }
+            
+                // If the level is valid (all meta_data are non-null), check the status
+                if (level.status === "pending") {
+                    allLevelsAfterFirstCompleted = false;
+                }
+            }
+            
+            // Set final workflow status based on valid levels
+            workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
+            const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
+            
+            // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
-            console.log("Workflow Status:", workflowStatus);
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
 
             let allPayload = {
@@ -454,7 +483,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         authorization: authHeader
                     },
                 });
-            } else {
+            } else
                 if (moduleType === "Submissions") {
                     const offer_id = workflow.workflow_trigger_id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
@@ -468,8 +497,101 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                             authorization: authHeader
                         },
                     });
-                }
+
+                } else
+                    if (moduleType === "Assignment") {
+                        const offer_id = workflow.workflow_trigger_id;
+                        const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                        const payload = {
+                            status: "Rejected",
+                        };
+
+                        await axios.post(apiUrl, payload, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                authorization: authHeader
+                            },
+                        });
+
+                    }
+
+
+    } catch (error) {
+        console.error(error);
+        return reply.status(500).send({ message: 'Internal Server Error' });
+    }
+}
+export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+    try {
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const user = await decodeToken(token);
+
+        if (!user) {
+            return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+        }
+        const moduleType = workflow.module_type.toLowerCase();
+        if (moduleType === "job" || moduleType === "jobs") {
+            const job_id = workflow.workflow_trigger_id;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const payload = {
+                status: "REJECTED",
+            };
+
+            await axios.post(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
+        } else if (moduleType === "offer" || moduleType === "offers") {
+            const offer_id = workflow.workflow_trigger_id;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+            const payload = {
+                status: "Rejected",
+            };
+
+            await axios.post(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
+        } else
+            if (moduleType === "Submissions") {
+                const offer_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                const payload = {
+                    status: "Rejected",
+                };
+
+                await axios.post(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
             }
+            else
+                if (moduleType === "Assignment") {
+                    const offer_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                    const payload = {
+                        status: "Rejected",
+                    };
+
+                    await axios.post(apiUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            authorization: authHeader
+                        },
+                    });
+
+                }
 
     } catch (error) {
         console.error(error);
@@ -970,7 +1092,7 @@ export const rejectLevel = async (
             user_type: eventCode.user_type
         }
         let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-
+        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -1456,7 +1578,6 @@ export const updateWorkflowStatusData = async (
     }
 };
 
-
 export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
@@ -1710,11 +1831,28 @@ ORDER BY
             type: QueryTypes.SELECT,
         });
         // console.log(rows);
+        const programData = await sequelize.query(
+            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id  AND status="pending"`,
+            {
+                replacements: { workflow_trigger_id },
+                type: QueryTypes.SELECT
+            }
+        )
+        // Extract the flowType field from each workflow
+        const flowTypes = programData
+            .map((program: any) => program.flow_type)
+            .sort((a: string, b: string) => {
+                if (a === 'Review') return -1;
+                if (b === 'Review') return 1;
+                return 0;
+            });
+
 
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
                 statusCode: 200,
+                flowTypes: flowTypes,
                 message: 'Workflow data not found',
                 workflow: [],
                 trace_id,
@@ -1741,25 +1879,9 @@ ORDER BY
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
         })();
-        const programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
-            {
-                replacements: { workflow_trigger_id},
-                type: QueryTypes.SELECT
-            }
-        )
-       
-
-        // Calculate the number of matching workflows
-        const totalCount = programData.length;
-
-        // Extract the flowType field from each workflow
-        const flowTypes = programData.map((programData:any) => programData.flow_type);
-        console.log(flowTypes);
-        
         return reply.status(200).send({
             statusCode: 200,
-            flowTypes:flowTypes||[],
+            flowTypes: flowTypes,
             workflow,
             trace_id,
         });
@@ -2026,6 +2148,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
                                     id: supervisor.id,
+                                    first_name: supervisor.first_name,
+                                    last_name: supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
                                     avatar: supervisor.avatar || null, // Ensure null if avatar is missing
@@ -2712,190 +2836,194 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         };
         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const query = `
-            SELECT
-            w.id As job_workflow_id,
-                w.workflow_id AS workflow_id,
-                 w.event_id AS event_id,
-                   w.event_title AS event_title,
-                w.name AS workflow_name,
-                w.flow_type AS workflow_type,
-                w.levels,
-                w.status,
-                w.config,
-                w.manager,
-                l.id AS level_id,
-                l.placement_order AS placement_order,
-            r.recipient_type_id,
-                r.meta_data,
-                r.behaviour,
-                  e.name,
-        e.slug AS event_slug,
-                JSON_UNQUOTE(
-                    JSON_EXTRACT(
-                        w.levels,
-                        CONCAT(
-                            '$[',
-                            l.placement_order,
-                            '].status'
-                        )
-                    )
-                ) AS level_status,
-
-                 JSON_UNQUOTE(
-                    JSON_EXTRACT(
-                        w.levels,
-                        CONCAT(
-                            '$[',
-                            l.placement_order,
-                            '].recipient_types'
-                        )
-                    )
-                ) AS recipient_types,
-                (
-            SELECT JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    recipient.value, '$.replaced_by'
-                )
-            )
-            FROM JSON_TABLE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                ),
-                '$[*]' COLUMNS (
-                    value JSON PATH '$'
-                )
-            ) AS recipient
-            WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
-            LIMIT 1
-        ) AS replaced_by,
-
-               JSON_UNQUOTE(
-                    JSON_EXTRACT(
-                        w.levels,
-                        CONCAT(
-                            '$[',
-                            l.placement_order,
-                            '].recipient_types'
-                        )
-                    )
-                ) AS recipient_types,
-                (
-            SELECT JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    recipient.value, '$.existing_replaced_user'
-                )
-            )
-            FROM JSON_TABLE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                ),
-                '$[*]' COLUMNS (
-                    value JSON PATH '$'
-                )
-            ) AS recipient
-            WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
-            LIMIT 1
-        ) AS existing_replaced_user,
- JSON_UNQUOTE(
-                    JSON_EXTRACT(
-                        w.levels,
-                        CONCAT(
-                            '$[',
-                            l.placement_order,
-                            '].recipient_types'
-                        )
-                    )
-                ) AS recipient_types,
-                (
-            SELECT JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    recipient.value, '$.imporsonate_by'
-                )
-            )
-            FROM JSON_TABLE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                ),
-                '$[*]' COLUMNS (
-                    value JSON PATH '$'
-                )
-            ) AS recipient
-            WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
-            LIMIT 1
-        ) AS imporsonate_by,
-(
-    SELECT JSON_OBJECT(
-        'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-        'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
-        'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
-        'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
-        'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-        'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
-    )
-    FROM JSON_TABLE(
-        JSON_EXTRACT(
+        SELECT
+        w.id As job_workflow_id,
+            w.workflow_id AS workflow_id,
+             w.event_id AS event_id,
+               w.event_title AS event_title,
+            w.name AS workflow_name,
+            w.flow_type AS workflow_type,
             w.levels,
-            CONCAT('$[', l.placement_order, '].recipient_types')
-        ),
-        '$[*]' COLUMNS (
-            value JSON PATH '$'
+            w.status,
+            w.config,
+            w.manager,
+            l.id AS level_id,
+            l.placement_order AS placement_order,
+        r.recipient_type_id,
+            r.meta_data,
+            r.behaviour,
+              e.name,
+    e.slug AS event_slug,
+            JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].status'
+                    )
+                )
+            ) AS level_status,
+
+             JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].recipient_types'
+                    )
+                )
+            ) AS recipient_types,
+            (
+        SELECT JSON_UNQUOTE(
+            JSON_EXTRACT(
+                recipient.value, '$.replaced_by'
+            )
         )
-    ) AS recipient
-    WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
-    LIMIT 1
+        FROM JSON_TABLE(
+            JSON_EXTRACT(
+                w.levels,
+                CONCAT(
+                    '$[',
+                    l.placement_order,
+                    '].recipient_types'
+                )
+            ),
+            '$[*]' COLUMNS (
+                value JSON PATH '$'
+            )
+        ) AS recipient
+        WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
+        LIMIT 1
+    ) AS replaced_by,
+
+           JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].recipient_types'
+                    )
+                )
+            ) AS recipient_types,
+            (
+        SELECT JSON_UNQUOTE(
+            JSON_EXTRACT(
+                recipient.value, '$.existing_replaced_user'
+            )
+        )
+        FROM JSON_TABLE(
+            JSON_EXTRACT(
+                w.levels,
+                CONCAT(
+                    '$[',
+                    l.placement_order,
+                    '].recipient_types'
+                )
+            ),
+            '$[*]' COLUMNS (
+                value JSON PATH '$'
+            )
+        ) AS recipient
+        WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
+        LIMIT 1
+    ) AS existing_replaced_user,
+
+
+
+
+JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    w.levels,
+                    CONCAT(
+                        '$[',
+                        l.placement_order,
+                        '].recipient_types'
+                    )
+                )
+            ) AS recipient_types,
+            (
+        SELECT JSON_UNQUOTE(
+            JSON_EXTRACT(
+                recipient.value, '$.imporsonate_by'
+            )
+        )
+        FROM JSON_TABLE(
+            JSON_EXTRACT(
+                w.levels,
+                CONCAT(
+                    '$[',
+                    l.placement_order,
+                    '].recipient_types'
+                )
+            ),
+            '$[*]' COLUMNS (
+                value JSON PATH '$'
+            )
+        ) AS recipient
+        WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
+        LIMIT 1
+    ) AS imporsonate_by,
+(
+SELECT JSON_OBJECT(
+    'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
+    'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
+    'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
+    'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+    'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+    'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
+)
+FROM JSON_TABLE(
+    JSON_EXTRACT(
+        w.levels,
+        CONCAT('$[', l.placement_order, '].recipient_types')
+    ),
+    '$[*]' COLUMNS (
+        value JSON PATH '$'
+    )
+) AS recipient
+WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
+LIMIT 1
 ) AS recipient_details,
 
-         (
-            SELECT JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    recipient.value, '$.status'
-                )
+     (
+        SELECT JSON_UNQUOTE(
+            JSON_EXTRACT(
+                recipient.value, '$.status'
             )
-            FROM JSON_TABLE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                ),
-                '$[*]' COLUMNS (
-                    value JSON PATH '$'
+        )
+        FROM JSON_TABLE(
+            JSON_EXTRACT(
+                w.levels,
+                CONCAT(
+                    '$[',
+                    l.placement_order,
+                    '].recipient_types'
                 )
-            ) AS recipient
-            WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
-            LIMIT 1
-        ) AS recipient_status
-            FROM
-                workflow  w
-            INNER JOIN workflow_level l ON l.workflow_id = w.workflow_id
-            LEFT JOIN workflow_recepient_type r ON r.level_id = l.id
-            LEFT JOIN event e
-        ON w.event_id = e.id
-            WHERE
-                w.program_id = :program_id
+            ),
+            '$[*]' COLUMNS (
+                value JSON PATH '$'
+            )
+        ) AS recipient
+        WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
+        LIMIT 1
+    ) AS recipient_status
+        FROM
+            workflow  w
+        INNER JOIN workflow_triggered_level l ON l.workflow_id = w.workflow_id AND l.workflow_trigger_id = w.workflow_trigger_id
+        LEFT JOIN workflow_triggered_recepient r ON r.level_id = l.id
+        LEFT JOIN event e
+    ON w.event_id = e.id
+     WHERE
+w.program_id = :program_id
                 AND w.flow_type = :workflow_action
                 AND w.workflow_trigger_id = :workflow_trigger_id
                   AND w.is_updated = true
-                AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))ORDER BY
-        l.placement_order ASC
-        `;
+AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
+ORDER BY       
+l.placement_order ASC;`;
 
         const rows: any[] = await sequelize.query(query, {
             replacements: { workflow_action, program_id, workflow_trigger_id },
@@ -2929,7 +3057,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-            console.log(rows);
+            console.log(recipient_type_id);
 
             let manager = row?.manager
             // Initialize workflow for the job if not already initialized
@@ -2966,6 +3094,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     type: QueryTypes.SELECT,
                     replacements: { recipient_type_id },
                 });
+             
 
                 const recipientType = recipientTypeResult[0] as Recipient;
 
@@ -3050,8 +3179,6 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     AND is_enabled = true
                     LIMIT 1
                 `;
-
-
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
                         replacements: { job_manager_id: manager || manager },
@@ -3139,8 +3266,11 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 }
                 let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
+                    console.log(recipientType);
+
                     // Loop through each placement order
                     for (const level of levels) {
+
                         let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
 
@@ -3226,13 +3356,13 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
                     const recipientTypes = JSON.parse(row.recipient_types);
+
                     if (!Array.isArray(recipientTypes) || recipientTypes.length === 0) {
-                        console.log("No recipient types found, skipping further checks.");
+                       
                         continue; // Stop further execution for this row
                     }
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
-
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
                             let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
@@ -3305,22 +3435,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                                     }
                                 }
 
-                                // Fetch "existing_replaced_user" data if applicable
-                                // if (recipient.existing_replaced_user) {
-                                //     const existingReplacedUser = await fetchUserData(recipient.existing_replaced_user);
-
-                                //     if (existingReplacedUser) {
-                                //         userData.existing_replaced_user = {
-                                //             id: existingReplacedUser.id,
-                                //             first_name: existingReplacedUser.first_name,
-                                //             last_name: existingReplacedUser.last_name,
-                                //             avatar: existingReplacedUser.avatar,
-                                //             role_id: existingReplacedUser.role_id,
-                                //             existing_replaced_notes: recipient.existing_replaced_notes,
-                                //             existing_replaced_date_time: recipient.existing_replaced_modified_on,
-                                //         };
-                                //     }
-                                // }
+                               
 
                                 // Push the final user data to the users array
                                 users.push(userData);
@@ -3350,6 +3465,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                 if (input_value) {
                     let recipients = [];
                     if (Array.isArray(input_value)) {
+                      
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
@@ -3374,6 +3490,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
                     } else {
                         // If input_value is a single object, create a single recipient
                         recipients = [{
+
                             name: getName(input_value),
                             first_name: input_value.first_name,
                             last_name: input_value.last_name,
