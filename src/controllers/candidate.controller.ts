@@ -7,21 +7,23 @@ import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
-import { Op, QueryTypes } from "sequelize";
-import { generateCandidateCode } from "../utility/code-genrate-service";
+import { Op } from "sequelize";
+import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
-import JobCategoryModel from "../models/job-category.model";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
-import { sequelize } from "../config/instance";
+import Qualifications from "../models/qualifications.model";
+import QualificationTypeModel from "../models/qualification-type-model";
+import CandidateRepository from "../utility/candidate-query";
+const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
     request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
     reply: FastifyReply
 ) {
-    const { candidate } = request.body; 
-    const { program_id, email } = candidate;  
+    const { candidate } = request.body;
+    const { id, program_id, email, vendor_id } = candidate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -37,10 +39,10 @@ export async function createCandidate(
     }
 
     try {
-        if (email) {
+        if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
                 where: {
-                    program_id,
+                    vendor_id,
                     email,
                     is_deleted: false
                 }
@@ -75,8 +77,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = await generateCandidateCode();
-
+        const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
             candidate_id: candidateId,
@@ -139,7 +140,6 @@ export async function createCandidate(
         });
     }
 }
-
 
 export async function getAllCandidate(
     request: FastifyRequest,
@@ -320,7 +320,7 @@ export async function getCandidateByIdAndProgramId(
                 },
                 {
                     model: IndustriesModel,
-                    as: 'labour_category',
+                    as: 'job_category',
                     attributes: ['id', 'name'],
                 },
                 {
@@ -351,34 +351,40 @@ export async function getCandidateByIdAndProgramId(
             delete candidateData.job_templates;
         }
 
-        if (candidateData.labour_category) {
-            candidateData.job_category_id = candidateData.labour_category;
-            delete candidateData.labour_category;
+        if (candidateData.job_category) {
+            candidateData.job_category_id = candidateData.job_category;
+            delete candidateData.job_category;
         }
 
-        const qualificationsQuery = `
-            SELECT 
-                q.qulification_type_id,
-                qt.name AS qualification_type_name,
-                q.qulifications
-            FROM 
-                candidates c
-            LEFT JOIN 
-                JSON_TABLE(c.qualifications, '$[*]' COLUMNS (
-                    qulification_type_id VARCHAR(255) PATH '$.qulification_type_id',
-                    qulifications JSON PATH '$.qulifications'
-                )) q ON TRUE
-            LEFT JOIN 
-                qualification_types qt ON q.qulification_type_id = qt.id
-            WHERE 
-                c.id = :id
-                AND c.program_id = :program_id
-                AND c.is_deleted = FALSE;
-        `;
+        const qualificationsData =
+            typeof candidateData.qualifications === 'string'
+                ? JSON.parse(candidateData.qualifications)
+                : candidateData.qualifications || [];
 
-        const [qualifications] = await sequelize.query(qualificationsQuery, {
-            replacements: { id, program_id },
-            type: QueryTypes.SELECT
+        const qualificationIds = qualificationsData.flatMap((item: any) =>
+            item.qulifications.map((q: any) => q.id)
+        );
+
+        const qualificationTypeIds = qualificationsData.map((item: any) => item.qulification_type_id);
+
+        const qualifications = await Qualifications.findAll({
+            where: { id: qualificationIds },
+            attributes: ['id', 'name'],
+        });
+
+        const qualificationTypes = await QualificationTypeModel.findAll({
+            where: { id: qualificationTypeIds },
+            attributes: ['id', 'name'],
+        });
+
+        qualificationsData.forEach((item: any) => {
+            const typeMatch = qualificationTypes.find((type: any) => type.id === item.qulification_type_id);
+            item.qulification_type_name = typeMatch ? typeMatch.name : null;
+
+            item.qulifications = item.qulifications.map((q: any) => {
+                const match = qualifications.find((qual: any) => qual.id === q.id);
+                return { ...q, name: match ? match.name : null };
+            });
         });
 
         return reply.status(200).send({
@@ -386,7 +392,7 @@ export async function getCandidateByIdAndProgramId(
             message: "Candidate fetched successfully",
             candidate: {
                 ...candidateData,
-                qualifications
+                qualifications: qualificationsData,
             },
             trace_id: traceId,
         });
@@ -399,6 +405,8 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
+
+
 
 
 
@@ -531,25 +539,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    if(user?.userType==='super_user'){
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Only vendor have permission to see candidates!",
-            candidates:[],
-            trace_id: traceId,
-        });
-    }
     const { program_id } = request.params as { program_id: string };
-    const userData = await User.findOne({ where: { program_id, id: userId } });
-    const vendorId = userData?.tenant_id || undefined;
-    if(vendorId===undefined){
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Only vendor have permission to see candidates!",
-            candidates:[],
-            trace_id: traceId,
-        }); 
-    }
     const {
         page = "1",
         limit = "10",
@@ -575,6 +565,52 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const offset = (pageNum - 1) * limitNum;
     const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
 
+    if (user?.userType === 'super_user') {
+        const replacements = {
+            program_id,
+            limit: limitNum,
+            offset,
+            candidate_id,
+            first_name: first_name ? `%${first_name}%` : undefined,
+            middle_name: middle_name ? `%${middle_name}%` : undefined,
+            last_name: last_name ? `%${last_name}%` : undefined,
+            title: title ? `%${title}%` : undefined,
+            is_active: is_active !== undefined ? is_active === 'true' : undefined,
+            worker_type_id
+        };
+
+        const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
+        if (count == 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                message: "Candidates not found.",
+                items_per_page: limitNum,
+                total_candidates: count,
+                candidates: []
+            });
+        }
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: "Candidates retrieved successfully.",
+            items_per_page: limitNum,
+            total_candidates: count,
+            candidates: candidates
+        });
+    }
+
+    const userData = await User.findOne({ where: { program_id, id: userId } });
+    const vendorId = userData?.tenant_id || undefined;
+    if (vendorId === undefined) {
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Only vendor have permission to see candidates!",
+            candidates: [],
+            trace_id: traceId,
+        });
+    }
+
     const whereClause: any = {
         vendor_id: vendorId,
         is_deleted: false,
@@ -594,7 +630,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     if (is_talent_pool === "true" && job_id) {
         try {
-            const submitCandidateIds = await fetchSubmittedCandidate( job_id, token, vendorId);
+            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendorId);
             whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({

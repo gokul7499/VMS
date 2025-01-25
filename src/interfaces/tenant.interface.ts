@@ -37,6 +37,7 @@ export interface TenantData {
   name?: string;
   type?: string;
   display_name?: string;
+  vendor_code?:string;
   logo?: string;
   addresses?: Address[]; // Array of Address objects
   contacts?: any; // Replace 'any' with a more specific type if known
