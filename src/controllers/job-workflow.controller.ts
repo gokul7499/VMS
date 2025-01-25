@@ -510,7 +510,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
             const payload = {
-                status: "Rejected",
+                status: "REJECTED",
             };
 
             await axios.post(apiUrl, payload, {
@@ -1803,7 +1803,7 @@ ORDER BY
         });
         // console.log(rows);
         const programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id AND is_updated=false`,
+            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id  AND status="pending"`,
             {
                 replacements: { workflow_trigger_id },
                 type: QueryTypes.SELECT
@@ -1850,7 +1850,6 @@ ORDER BY
             let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
         })();
-
         return reply.status(200).send({
             statusCode: 200,
             flowTypes: flowTypes,
