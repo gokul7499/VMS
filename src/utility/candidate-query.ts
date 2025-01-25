@@ -1,13 +1,22 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-
+interface CandidateResponse {
+    count: number;
+    candidates: any[];
+}
 class CandidateRepository {
-    async getCandidatesWithFilters(replacements: any): Promise<any[]> {
+    async getCandidatesWithFilters(replacements: any): Promise<CandidateResponse> {
         let whereClause = `WHERE program_id = :program_id AND is_deleted = false`;
+        const countQuery = `
+        SELECT COUNT(*) as count FROM candidates ${whereClause};`;
 
+        const countResult = await sequelize.query<{ count: any }>(countQuery, {
+            replacements,
+            type: QueryTypes.SELECT
+        });
+        const count = countResult[0].count;
         if (replacements.candidate_id) whereClause += ` AND candidate_id = :candidate_id`;
         if (replacements.first_name) whereClause += ` AND first_name LIKE :first_name`;
-        if (replacements.name) whereClause += ` AND name LIKE :name`;
         if (replacements.middle_name) whereClause += ` AND middle_name LIKE :middle_name`;
         if (replacements.last_name) whereClause += ` AND last_name LIKE :last_name`;
         if (replacements.title) whereClause += ` AND title LIKE :title`;
@@ -41,13 +50,11 @@ class CandidateRepository {
                 modified_on DESC
             LIMIT :limit OFFSET :offset;
         `;
-
         const candidates = await sequelize.query(query, {
-            replacements: Object.fromEntries(Object.entries(replacements).filter(([_, v]) => v !== undefined)),
+            replacements,
             type: QueryTypes.SELECT
         });
-
-        return candidates;
+        return { count, candidates };
     }
 }
 

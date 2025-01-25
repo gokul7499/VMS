@@ -16,7 +16,7 @@ import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
 import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
-const candidateRepository =new CandidateRepository();
+const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
     request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
@@ -572,7 +572,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             offset,
             candidate_id,
             first_name: first_name ? `%${first_name}%` : undefined,
-            name: name ? `%${name}%` : undefined,
             middle_name: middle_name ? `%${middle_name}%` : undefined,
             last_name: last_name ? `%${last_name}%` : undefined,
             title: title ? `%${title}%` : undefined,
@@ -580,12 +579,23 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             worker_type_id
         };
 
-        const candidates = await candidateRepository.getCandidatesWithFilters(replacements);
-
+        const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
+        if (count == 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                message: "Candidates not found.",
+                items_per_page: limitNum,
+                total_candidates: count,
+                candidates: []
+            });
+        }
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             message: "Candidates retrieved successfully.",
+            items_per_page: limitNum,
+            total_candidates: count,
             candidates: candidates
         });
     }
