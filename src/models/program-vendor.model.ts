@@ -39,6 +39,7 @@ class ProgramVendor extends Model {
     establish_year: any;
     social_media: any;
     status: any;
+    vendor_code!:string;
     display_name:any;
     compliance_status!: { status: string; is_audited: any; is_compliant: any; };
     diversity_details: any;
@@ -70,6 +71,10 @@ ProgramVendor.init(
         work_locations: {
             type: DataTypes.JSON,
             allowNull: true,
+        },
+        vendor_code:{
+            type: DataTypes.STRING,
+            allowNull: true, 
         },
         hierarchies: {
             type: DataTypes.JSON,
