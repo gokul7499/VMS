@@ -383,7 +383,7 @@ export const updateWorkflowStatus = async (
                     continue; 
                 }
             
-                console.log(level);
+                
             
                 // If the level is valid (all meta_data are non-null), check the status
                 if (level.status === "pending") {
@@ -1843,43 +1843,35 @@ ORDER BY
         });
         // console.log(rows);
         let programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND status = "pending"`,
+            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
                 replacements: { workflow_trigger_id },
                 type: QueryTypes.SELECT,
             }
         );
         
-        let isCompleted = false; // Flag to indicate if data is from "completed"
+        // Create a map to store the latest status for each flow_type
+        const flowTypeStatusMap = new Map<string, boolean>();
         
-        // If no data is found with status "pending", fetch data with status "completed"
-        if (programData.length === 0) {
-            programData = await sequelize.query(
-                `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND status = "completed"`,
-                {
-                    replacements: { workflow_trigger_id },
-                    type: QueryTypes.SELECT,
-                }
-            );
-            isCompleted = programData.length > 0; // Mark as "completed" data if it exists
+        for (const program of programData) {
+            const { flow_type, status } = program as JobWorkFlow
+        
+            // If the flow_type is already in the map, prioritize "completed" status
+            if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+                flowTypeStatusMap.set(flow_type, status === "completed");
+            }
         }
         
-        // Extract the flowType field from each workflow
-        const flowTypes = programData
-            .map((program: any) => ({
-                flow_type: program.flow_type,
-                is_completed: isCompleted ? true: false, // Add status to each flow type
-            }))
-            .sort((a: any, b: any) => {
-                if (a.flow_type === 'Review') return -1;
-                if (b.flow_type === 'Review') return 1;
+        // Convert the map to the required array format and sort
+        const flowTypes = Array.from(flowTypeStatusMap.entries())
+            .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
+            .sort((a, b) => {
+                if (a.flow_type === "Review") return -1;
+                if (b.flow_type === "Review") return 1;
                 return 0;
             });
         
         console.log(flowTypes);
-        
-
-
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -2362,7 +2354,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 // Fetch "impersonate_by" user data if applicable
                                 if (recipient.impersonate_by) {
                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
                                             id: impersonatedUser.id,
