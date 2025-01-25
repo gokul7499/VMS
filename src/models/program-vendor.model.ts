@@ -202,7 +202,7 @@ ProgramVendor.init(
             allowNull: true,
             references: {
                 model: "user",
-                key: "id",
+                key: "user_id",
             }
         },
         compliance_status: {

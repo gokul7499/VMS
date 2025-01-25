@@ -25,7 +25,7 @@ Delegation.init({
         allowNull: false,
         references: {
             model: User,
-            key: 'id'
+            key: 'user_id'
         }
     },
     delegated_by_user_id: {
@@ -33,7 +33,7 @@ Delegation.init({
         allowNull: false,
         references: {
             model: User,
-            key: 'id'
+            key: 'user_id'
         }
     },
     delegated_to_user_mapping_id: {

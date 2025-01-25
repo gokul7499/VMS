@@ -208,6 +208,8 @@ export async function getHierarchiesById(
         replacements: { hierarchy_id: id },
         type: QueryTypes.SELECT,
       });
+      
+      hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
 
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
