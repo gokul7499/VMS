@@ -11,6 +11,9 @@ import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import Hierarchies from "../models/hierarchies.model";
+import { getMasterData } from "../utility/queries";
+import { sequelize } from "../config/instance";
+import { QueryTypes } from "sequelize";
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId=generateCustomUUID();
     try {
@@ -224,7 +227,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 {
                     model: User,
                     as: "user",
-                    attributes: { exclude: ["status"] }, 
+                    attributes: { exclude: ["status"] },
                     include: [
                         {
                             model: CountryModel,
@@ -270,7 +273,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 attributes: ["id", "name"]
             }) : [];
 
-        const enrichedMappings = userMappings.map(mapping => {
+        const enrichedMappings = await Promise.all(userMappings.map(async (mapping) => {
             const user = mapping.user?.toJSON();
             if (user) {
                 user.associate_hierarchy_ids = hierarchies.filter(hierarchy =>
@@ -296,6 +299,15 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 );
 
                 user.status = mapping.status;
+
+                const foundationalData = await sequelize.query(getMasterData, {
+                    replacements: { id: user.id },
+                    type:QueryTypes.SELECT
+                })as any;
+
+                if (foundationalData && foundationalData.length > 0) {
+                    user.foundational_data = foundationalData[0].foundational_data;
+                }
             }
 
             return {
@@ -306,10 +318,11 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     work_location_ids: user?.work_location_ids,
                     default_hierarchy_id: user?.default_hierarchy_id,
                     default_work_location_id: user?.default_work_location_id,
+                    foundational_data: user?.foundational_data // Include foundational_data within user object
                 },
                 countries: user?.countries
             };
-        });
+        }));
 
         reply.status(200).send({
             status_code: 200,

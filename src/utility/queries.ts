@@ -2534,11 +2534,9 @@ SELECT
     user.id,
     user.first_name,
     user.last_name,
-    user.associate_hierarchy_ids,
     user.program_id,
-    user.is_enabled,
-    user.user_type,
-    user.tenant_id
+    user.tenant_id,
+    user.email
 FROM
     user
 WHERE

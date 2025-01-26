@@ -578,7 +578,6 @@ export async function getAllUserIDAndUserId(
       hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
     );
 
-    // Fetch Users Data
     const users = await sequelize.query(
       userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
       {
@@ -895,22 +894,22 @@ export async function getUserContact(
       tenant_id
     };
 
-    const userContact = await sequelize.query(getUserContacts, {
+    const data = await sequelize.query(getUserContacts, {
       replacements,
       type: QueryTypes.SELECT,
     });
 
-    if (userContact && userContact.length > 0) {
+    if (data && data.length > 0) {
       return reply.code(200).send({
         status_code: 200,
         message: "Get user contact user data",
-        userContact,
+        data,
         trace_id: traceId
       });
     } else {
       return reply
         .code(200)
-        .send({ status_code: 200, message: "No matching records found.", userContact: [], trace_id: traceId });
+        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
     }
   } catch (error: any) {
     return reply.code(500).send({
