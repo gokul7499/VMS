@@ -209,11 +209,18 @@ export const complianceDocumentGetByUserId = `
             )
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
-        ) AS work_location
+        ) AS work_location,
+        (SELECT COUNT(*)
+         FROM program_vendors pv_count
+         JOIN vendor_document_groups vdg_count ON JSON_CONTAINS(pv_count.com_doc_group, JSON_QUOTE(vdg_count.id))
+         LEFT JOIN vendor_compliance_documents vcd_count ON JSON_CONTAINS(vdg_count.required_documents, JSON_QUOTE(vcd_count.id))
+         LEFT JOIN vendor_compliance_req_doc_mappings vcrm_count ON vcd_count.id = vcrm_count.required_document_id
+         WHERE pv_count.program_id = :program_id AND (pv_count.user_id IS NULL OR pv_count.user_id = :user_id)
+        ) AS total_count
     FROM
         program_vendors pv
     JOIN
-        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
+        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
@@ -221,6 +228,10 @@ export const complianceDocumentGetByUserId = `
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (:name IS NULL OR vcd.name LIKE :name)
+        AND (:is_enabled IS NULL OR vcd.is_enabled = :is_enabled)
+    LIMIT :page_size
+    OFFSET :offset;
 `;
 
 export const complianceDocumentGetByUserAndDocumentId = `
