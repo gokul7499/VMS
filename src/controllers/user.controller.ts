@@ -384,13 +384,13 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 export async function updateUser(
   request: FastifyRequest<{
     Body: { user: UserInterface; user_group_mapping: UserMappingAttributes };
-    Params: { user_id: string; program_id: string };
+    Params: { id: string; program_id: string };
   }>,
   reply: FastifyReply
 ) {
-  const { user_id, program_id } = request.params;
+  const { id, program_id } = request.params;
   const { user: userBody, user_group_mapping: userGroupMappings } = request.body;
-  const { id, ...updates } = userBody;
+  const { id: userIdToExclude, ...updates } = userBody;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -413,7 +413,7 @@ export async function updateUser(
   const userId = decodedUser.sub;
 
   try {
-    const user = await User.findOne({ where: { user_id, program_id } });
+    const user = await User.findOne({ where: { user_id: id, program_id } });
     if (!user) {
       return reply.status(404).send({
         status_code: 404,
@@ -450,6 +450,7 @@ export async function updateUser(
 
       await UserCustomFieldModel.bulkCreate(customFields);
     }
+  
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
       await UserMapping.destroy({ where: { user_id: user.user_id } });
 
@@ -485,6 +486,7 @@ export async function updateUser(
     });
   }
 }
+
 
 
 
