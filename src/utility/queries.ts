@@ -2519,3 +2519,19 @@ WHERE
 
 
 `;
+export const getUserContacts=`
+SELECT
+    user.id,
+    user.first_name,
+    user.last_name,
+    user.associate_hierarchy_ids,
+    user.program_id,
+    user.is_enabled,
+    user.user_type,
+    user.tenant_id
+FROM
+    user
+WHERE
+    user.program_id = :program_id
+    AND (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`
