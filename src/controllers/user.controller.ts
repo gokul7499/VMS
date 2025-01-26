@@ -878,19 +878,16 @@ export async function getActiveUser(
 
 export async function getUserContact(
   request: FastifyRequest<{
-    Params: { program_id: string };
     Querystring: {tenant_id:string};
   }>,
   reply: FastifyReply
 ) {
  
-  const { program_id } = request.params;
   const { tenant_id } = request.query;
   const traceId = generateCustomUUID();
 
   try {
     const replacements = {
-      program_id,
       tenant_id
     };
 
