@@ -578,7 +578,6 @@ export async function getAllUserIDAndUserId(
       hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
     );
 
-    // Fetch Users Data
     const users = await sequelize.query(
       userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
       {
