@@ -743,8 +743,19 @@ export const getVendorDocuments = async (
 
     try {
         let documents: VendorDetails[] = [];
-        let totalCount: number = 0
-        if (user_id && document_id) {
+
+        if (vendor_id && document_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
+                replacements: { program_id, vendor_id, document_id },
+                type: QueryTypes.SELECT,
+            });
+        } else if (vendor_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
+                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
+                type: QueryTypes.SELECT,
+            });
+        }
+        else if (user_id && document_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserAndDocumentId, {
                 replacements: { program_id, user_id, document_id },
                 type: QueryTypes.SELECT,
@@ -752,16 +763,6 @@ export const getVendorDocuments = async (
         } else if (user_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId, {
                 replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
-                type: QueryTypes.SELECT,
-            });
-        } else if (vendor_id && document_id) {
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
-                replacements: { program_id, vendor_id, document_id },
-                type: QueryTypes.SELECT,
-            });
-        } else if (vendor_id) {
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
-                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
                 type: QueryTypes.SELECT,
             });
         } else {
@@ -774,6 +775,7 @@ export const getVendorDocuments = async (
         const uniqueDocuments = documents.filter((doc, index, self) =>
             index === self.findIndex((d) => d.id === doc.id)
         );
+        let totalCount = uniqueDocuments.length;
         if (!uniqueDocuments.length) {
             return reply.status(200).send({
                 status_code: 200,
