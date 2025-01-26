@@ -9,6 +9,7 @@ import { sequelize } from "../config/instance";
 import expenseTypeHierarchie from "../models/expense-type-hierarchie.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
+import FoundationalDataTypes from "../models/foundational-datatypes.model";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{ Params: { program_id: string }, Querystring: { page?: string, limit?: string } }>,
@@ -122,11 +123,29 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             return expenseData;
         });
 
+        const masterData = await FoundationalDataTypes.findAll({
+            where: {
+                id: {
+                    [Op.in]: expenseConfig.master_data.value,
+                },
+            },
+            attributes: ["id", "name"],
+        });
+
+        const formattedMasterData = {
+            value: masterData.map((data: any) => ({
+                id: data.id,
+                name: data.name,
+            })),
+            is_enabled: expenseConfig.master_data.is_enabled,
+        };
+
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
             status: expenseConfig.status === "1",
             expense_item_type_config: transformedExpenseTypes,
             hierarchy: hierarchy,
+            master_data: formattedMasterData, 
         };
 
         return reply.status(200).send({
@@ -146,6 +165,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
         });
     }
 }
+
 export async function createExpenseConfiguration(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
