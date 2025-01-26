@@ -2529,3 +2529,17 @@ WHERE
 
 
 `;
+export const getUserContacts=`
+SELECT
+    user.id,
+    user.first_name,
+    user.last_name,
+    user.program_id,
+    user.tenant_id,
+    user.email
+FROM
+    user
+WHERE
+    user.program_id = :program_id
+    AND (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`
