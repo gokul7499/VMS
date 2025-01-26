@@ -464,8 +464,8 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
 
         if (!reasonCodeAction) {
             await transaction?.rollback();
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 trace_id: traceId,
                 message: 'Reason code action not found',
             });
@@ -549,8 +549,8 @@ export const getReasonCodeBySlug = async (
         });
 
         if (!event) {
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 message: `Event with slug '${event_slug}' not found`,
                 trace_id: traceId,
             });
@@ -634,8 +634,8 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
         });
 
         if (!reasonCodeAction) {
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 message: "Reason code action not found.",
                 trace_id: traceId
             });
