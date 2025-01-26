@@ -717,12 +717,23 @@ export async function updateProgramVendorByUserId(
 };
 
 export const getVendorDocuments = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; vendor_id?: string; document_id?: string, page?: string, page_size?: string, name?: string, is_enabled?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: {vendor_id?: string; document_id?: string, page?: string, page_size?: string, name?: string, is_enabled?: string } }>,
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
-    const { user_id, vendor_id, document_id, page = '1', page_size = '10', name = null, is_enabled = null } = request.query;
+    const {vendor_id, document_id, page = '1', page_size = '10', name = null, is_enabled = null } = request.query;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+    const user_id = user?.sub;
+    console.log(user_id)
 
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(page_size, 10);
@@ -875,7 +886,7 @@ export async function updateComplianceDocument(
     reply: FastifyReply
 ) {
     const { program_id } = request.params;
-    const { document_id, user_id, vendor_id } = request.query;
+    const { document_id, vendor_id } = request.query;
     const complianceDocumentUpdate = request.body as Partial<VendorComplianceDocumentInterface>;
     const traceId = generateCustomUUID();
 
@@ -887,6 +898,7 @@ export async function updateComplianceDocument(
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
+    const user_id=user?.sub;
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
@@ -922,7 +934,8 @@ export async function updateComplianceDocument(
         }
 
         const documentData = complianceDocuments[0];
-        const uploadedDocument = documentData.uploaded_document;
+
+        const uploadedDocument = complianceDocumentUpdate.uploaded_document;
 
         const expiryDateFromPayload = complianceDocumentUpdate.uploaded_document?.expiry_on;
         if (!expiryDateFromPayload) {
@@ -974,15 +987,21 @@ export async function updateComplianceDocument(
                 modified_by: userId,
             }
         });
-
         if (uploadedDocument) {
-            await VendorComplianceReqDocMappingModel.upsert({
-                program_id,
+            await VendorComplianceReqDocMappingModel.create({
+                program_id:program_id,
                 required_document_id: document_id,
-                user_id: request.query.user_id ?? null,
+                user_id: user_id,
                 vendor_id: vendor_id ?? null,
-                ...complianceDocumentUpdate.uploaded_document,
+                url:uploadedDocument.url,
+                uploaded_on:Date.now(),
+                compliance_note:uploadedDocument.compliance_note,
+                file_name:uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
+                expiry_on:uploadedDocument.expiry_on,
+                created_by:user_id,
+                modified_by:user_id,
+                status:uploadedDocument.status,
                 is_enabled: true,
                 is_deleted: false,
             });
