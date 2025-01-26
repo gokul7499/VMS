@@ -2,7 +2,9 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+
+const auth_db='dev_vms_auth'
 
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
@@ -207,11 +209,18 @@ export const complianceDocumentGetByUserId = `
             )
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
-        ) AS work_location
+        ) AS work_location,
+        (SELECT COUNT(*)
+         FROM program_vendors pv_count
+         JOIN vendor_document_groups vdg_count ON JSON_CONTAINS(pv_count.com_doc_group, JSON_QUOTE(vdg_count.id))
+         LEFT JOIN vendor_compliance_documents vcd_count ON JSON_CONTAINS(vdg_count.required_documents, JSON_QUOTE(vcd_count.id))
+         LEFT JOIN vendor_compliance_req_doc_mappings vcrm_count ON vcd_count.id = vcrm_count.required_document_id
+         WHERE pv_count.program_id = :program_id AND (pv_count.user_id IS NULL OR pv_count.user_id = :user_id)
+        ) AS total_count
     FROM
         program_vendors pv
     JOIN
-        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group ,JSON_QUOTE(vdg.id))
+        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
@@ -219,6 +228,10 @@ export const complianceDocumentGetByUserId = `
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (:name IS NULL OR vcd.name LIKE :name)
+        AND (:is_enabled IS NULL OR vcd.is_enabled = :is_enabled)
+    LIMIT :page_size
+    OFFSET :offset;
 `;
 
 export const complianceDocumentGetByUserAndDocumentId = `
@@ -2058,6 +2071,7 @@ export const userQuery = (
 ) => `
 WITH user_data AS (
   SELECT u.id,
+         u.user_id,
          u.username,
          u.last_name,
          u.middle_name,
@@ -2117,6 +2131,18 @@ WITH user_data AS (
              FROM work_locations wl
              WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
          ) AS work_location_ids,
+                 COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', custom_fields.id,
+                    'name', custom_fields.name,
+                    'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
+                )
+            )
+            FROM user_custom_fields
+            LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
+            WHERE user_custom_fields.user_id = u.id
+        ), JSON_ARRAY()) AS custom_fields,
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
@@ -2128,7 +2154,7 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
@@ -2497,5 +2523,10 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
-    AND (:hierarchy_id IS NULL OR user.associate_hierarchy_ids && :hierarchy_id)
+    AND (:hierarchy_id IS NULL OR 
+        -- Ensure that hierarchy_id is passed as a valid JSON array
+        JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
+    )
+
+
 `;
