@@ -31,5 +31,8 @@ export interface ProgramQuery {
     sort_order?: string;
     page?: string;
     limit?: string;
-    sort_field?: string
+    sort_field?: string;
+    client_id?:string;
+    msp_id:string;
+    tenant_id:string
 }
