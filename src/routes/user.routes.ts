@@ -15,7 +15,7 @@ async function userRoutes(fastify: FastifyInstance) {
         //     },
         // },
         createUser);
-    fastify.put('/user/:id/program/:program_id',
+    fastify.put('/user/:user_id/program/:program_id',
         // {
         //     preHandler: validatePermissions,
         //     config: {

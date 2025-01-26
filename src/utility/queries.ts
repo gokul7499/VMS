@@ -2,7 +2,9 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+
+const auth_db='dev_vms_auth'
 
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
@@ -2058,6 +2060,7 @@ export const userQuery = (
 ) => `
 WITH user_data AS (
   SELECT u.id,
+         u.user_id,
          u.username,
          u.last_name,
          u.middle_name,
@@ -2117,6 +2120,18 @@ WITH user_data AS (
              FROM work_locations wl
              WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
          ) AS work_location_ids,
+                 COALESCE((
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', custom_fields.id,
+                    'name', custom_fields.name,
+                    'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
+                )
+            )
+            FROM user_custom_fields
+            LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
+            WHERE user_custom_fields.user_id = u.id
+        ), JSON_ARRAY()) AS custom_fields,
          JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
@@ -2128,7 +2143,7 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}

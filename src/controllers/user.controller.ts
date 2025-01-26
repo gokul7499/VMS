@@ -15,6 +15,7 @@ import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import JobTempletRepository from "../hooks/job-template-query";
+import UserCustomFieldModel from "../models/user-custom-field.model";
 const jobTempletRepositories = new JobTempletRepository();
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -317,6 +318,34 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
     }
 
+    if (user.foundational_data && Array.isArray(user.foundational_data)) {
+      for (const foundationalEntry of user.foundational_data) {
+        await UserMasterDataModel.create(
+          {
+            user_id: user.id,
+            master_data: foundationalEntry.master_data,
+            associated_master_data: foundationalEntry.associated_master_data,
+            default_master_data: foundationalEntry.default_master_data,
+            is_all_associated: foundationalEntry.is_all_associated,
+          },
+          { transaction }
+        );
+      }
+    }
+
+    if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
+      const customFields = user.custom_fields.map((field: {
+        id: any; value: any;
+      }) => ({
+        program_id:user.program_id,
+        user_id,
+        customfield_id: field.id,
+        value: field.value,
+      }));
+      await UserCustomFieldModel.bulkCreate(customFields, { transaction });
+    }
+
+
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
         await UserMapping.create({ ...mapping, created_by: userId, modified_by: userId, }, { transaction });
@@ -353,12 +382,15 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function updateUser(
-  request: FastifyRequest<{ Body: { user: UserInterface; user_group_mapping: UserMappingAttributes }; Params: { id: string; program_id: string } }>,
+  request: FastifyRequest<{
+    Body: { user: UserInterface; user_group_mapping: UserMappingAttributes };
+    Params: { user_id: string; program_id: string };
+  }>,
   reply: FastifyReply
 ) {
-  const { id, program_id } = request.params;
-  const updates = request.body.user;
-  const userGroupMappings = request.body.user_group_mapping;
+  const { user_id, program_id } = request.params;
+  const { user: userBody, user_group_mapping: userGroupMappings } = request.body;
+  const { id, ...updates } = userBody;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -377,10 +409,11 @@ export async function updateUser(
       message: 'Unauthorized - Invalid token',
     });
   }
+
   const userId = decodedUser.sub;
 
   try {
-    const user = await User.findOne({ where: { id, program_id } });
+    const user = await User.findOne({ where: { user_id, program_id } });
     if (!user) {
       return reply.status(404).send({
         status_code: 404,
@@ -389,47 +422,61 @@ export async function updateUser(
         user: [],
       });
     }
-
     updates.modified_on = Date.now();
     updates.modified_by = userId;
     await user.update(updates);
-    const foundationalData = updates.foundational_data;
-    if (Array.isArray(foundationalData) && foundationalData.length > 0) {
-      await UserMasterDataModel.destroy({ where: { user_id: id } });
+    if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
+      await UserMasterDataModel.destroy({ where: { user_id: user.user_id } });
 
-      const createData = foundationalData.map((item) => ({
-        user_id: id,
+      const foundationalData = userBody.foundational_data.map((item) => ({
+        user_id: user.user_id,
         master_data: item.master_data,
         associated_master_data: item.associated_master_data,
         default_master_data: item.default_master_data || null,
         is_all_associated: item.is_all_associated || false,
       }));
 
-      await UserMasterDataModel.bulkCreate(createData);
+      await UserMasterDataModel.bulkCreate(foundationalData);
+    }
+    if (Array.isArray(userBody.custom_fields) && userBody.custom_fields.length > 0) {
+      await UserCustomFieldModel.destroy({ where: { user_id: user.user_id } });
+
+      const customFields = userBody.custom_fields.map((field: { id: string; value: any }) => ({
+        program_id,
+        customfield_id: field.id,
+        value: field.value,
+        user_id: user.user_id,
+      }));
+
+      await UserCustomFieldModel.bulkCreate(customFields);
     }
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
-      await UserMapping.destroy({ where: { user_id: id } });
+      await UserMapping.destroy({ where: { user_id: user.user_id } });
+
       const groupMappingData = userGroupMappings.map((mapping) => ({
         id: mapping.id,
         tenant_id: mapping.tenant_id,
-        user_id: id,
+        user_id: user.user_id,
         user_type: mapping.user_type,
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_activated: mapping.is_activated,
         status: mapping.status,
-        modified_on: Date.now()
+        modified_on: Date.now(),
       }));
+
       await UserMapping.bulkCreate(groupMappingData);
     }
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
       message: 'User updated successfully',
-      id,
+      id: user.user_id,
     });
   } catch (error: unknown) {
-    console.error('Error updating user:', error instanceof Error ? error.message : error);
+    console.error('Error updating user:', error);
+
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
