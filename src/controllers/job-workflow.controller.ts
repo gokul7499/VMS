@@ -626,7 +626,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         const userQuery = `
         SELECT id, user_type,email
         FROM user
-        WHERE id = :user_id
+        WHERE user_id = :user_id
         AND is_enabled = true
         LIMIT 1
     `;
@@ -891,7 +891,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
             },
         });
 
-        console.log("users", users);
+     
 
 
         return users; // Return the list of users that match the criteria.
@@ -927,7 +927,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
         const userQuery = `
             SELECT id, email
             FROM user
-            WHERE id = :managerId
+            WHERE user_id = :managerId
             LIMIT 1
         `;
 
@@ -1259,7 +1259,7 @@ async function fetchUserById(user_id: any) {
     const userQuery = `
         SELECT id, first_name, last_name, avatar, role_id,email
         FROM user
-        WHERE id = :user_id
+        WHERE user_id = :user_id
           AND is_enabled = true
         LIMIT 1;
     `;
@@ -1841,7 +1841,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        // console.log(rows);
+        console.log("rowsssssssssssssssssssssssssssssssssss",rows);
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -1970,14 +1970,18 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                  
+                   
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT id, first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE id = :user_id
+                        WHERE user_id = :user_id
                         AND is_enabled = true
                         LIMIT 1
                     `;
+                    console.log(userQuery);
+                    
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -1991,6 +1995,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: input_values[0] },
                             });
                         }
+
 
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
@@ -2043,7 +2048,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         const userQuery = `
                         SELECT id, first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE id = :user_id
+                        WHERE user_id = :user_id
                         AND is_enabled = true
                         LIMIT 1
                     `;
@@ -2111,7 +2116,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     const jobManagerQuery = `
                     SELECT id, first_name, last_name, email, avatar, supervisor
                     FROM user
-                    WHERE id = :job_manager_id
+                    WHERE user_id = :job_manager_id
                     AND is_enabled = true
                     LIMIT 1
                 `;
@@ -2133,7 +2138,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             const supervisorQuery = `
                             SELECT id, first_name, last_name, email, avatar
                             FROM user
-                            WHERE id = :supervisor
+                            WHERE user_id = :supervisor
                             AND is_enabled = true
                             LIMIT 1
                         `;
@@ -2219,7 +2224,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     const userQuery = `
                 SELECT id, first_name, last_name, email, avatar
                 FROM user
-                WHERE id = :user_id
+                WHERE user_id = :user_id
                 AND is_enabled = true
                 LIMIT 1
             `;
@@ -2691,7 +2696,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                         if (recipient.replaced_by) {
                             return recipient.replaced_by.id === user.sub;
                         }
-                        console.log("recipient.user_id === user.sub",recipient.user_id === user.sub);
+                    
                         return recipient.user_id === user.sub;
                      
                         
@@ -2818,7 +2823,7 @@ const fetchLevelUserData = async (userId: any) => {
     const userQuery = `
         SELECT id, first_name, last_name, avatar, role_id, email
         FROM user
-        WHERE id = :user_id
+        WHERE user_id = :user_id
         AND is_enabled = true
         LIMIT 1
     `;
@@ -3130,7 +3135,7 @@ l.placement_order ASC;`;
                         const userQuery = `
                         SELECT id, first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE id = :user_id
+                        WHERE user_id = :user_id
                         AND is_enabled = true
                         LIMIT 1
                     `;
@@ -3197,7 +3202,7 @@ l.placement_order ASC;`;
                     const jobManagerQuery = `
                     SELECT id, first_name, last_name, email, avatar, supervisor
                     FROM user
-                    WHERE id = :job_manager_id
+                    WHERE user_id = :job_manager_id
                     AND is_enabled = true
                     LIMIT 1
                 `;
@@ -3217,7 +3222,7 @@ l.placement_order ASC;`;
                             const supervisorQuery = `
                             SELECT id, first_name, last_name, email, avatar
                             FROM user
-                            WHERE id = :supervisor
+                            WHERE user_id = :supervisor
                             AND is_enabled = true
                             LIMIT 1
                         `;
@@ -3304,7 +3309,7 @@ l.placement_order ASC;`;
                                     const userQuery = `
                 SELECT id, first_name, last_name, email, avatar
                 FROM user
-                WHERE id = :user_id
+                WHERE user_id = :user_id
                 AND is_enabled = true
                 LIMIT 1
             `;
