@@ -562,8 +562,8 @@ export const getReasonCodeBySlug = async (
         });
 
         if (!module) {
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 message: `Module with slug '${module_slug}' not found`,
                 trace_id: traceId,
             });
@@ -577,8 +577,8 @@ export const getReasonCodeBySlug = async (
         });
 
         if (!data.length) {
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 message: "Reason codes action not found for the given event and module",
                 trace_id: traceId,
             });
