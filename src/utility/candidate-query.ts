@@ -6,54 +6,79 @@ interface CandidateResponse {
 }
 class CandidateRepository {
     async getCandidatesWithFilters(replacements: any): Promise<CandidateResponse> {
-        let whereClause = `WHERE program_id = :program_id AND is_deleted = false`;
+        let whereClause = `WHERE c.program_id = :program_id AND c.is_deleted = false`;
+    
+        // Count query
         const countQuery = `
-        SELECT COUNT(*) as count FROM candidates ${whereClause};`;
-
+            SELECT COUNT(*) as count 
+            FROM candidates c 
+            ${whereClause};
+        `;
+    
+        // Execute count query
         const countResult = await sequelize.query<{ count: any }>(countQuery, {
             replacements,
-            type: QueryTypes.SELECT
+            type: QueryTypes.SELECT,
         });
         const count = countResult[0].count;
-        if (replacements.candidate_id) whereClause += ` AND candidate_id = :candidate_id`;
-        if (replacements.first_name) whereClause += ` AND first_name LIKE :first_name`;
-        if (replacements.middle_name) whereClause += ` AND middle_name LIKE :middle_name`;
-        if (replacements.last_name) whereClause += ` AND last_name LIKE :last_name`;
-        if (replacements.title) whereClause += ` AND title LIKE :title`;
-        if (replacements.is_active !== undefined) whereClause += ` AND is_active = :is_active`;
-        if (replacements.worker_type_id) whereClause += ` AND worker_type_id = :worker_type_id`;
-
+    
+        // Add dynamic filters
+        if (replacements.candidate_id) whereClause += ` AND c.candidate_id = :candidate_id`;
+        if (replacements.first_name) whereClause += ` AND c.first_name LIKE :first_name`;
+        if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
+        if (replacements.last_name) whereClause += ` AND c.last_name LIKE :last_name`;
+        if (replacements.title) whereClause += ` AND c.title LIKE :title`;
+        if (replacements.is_active !== undefined) whereClause += ` AND c.is_active = :is_active`;
+        if (replacements.worker_type_id) whereClause += ` AND c.worker_type_id = :worker_type_id`;
+    
+        // Main query with LEFT JOIN and JSON_OBJECT
         const query = `
             SELECT 
-                id, 
-                first_name, 
-                middle_name, 
-                last_name, 
-                is_active, 
-                name, 
-                email, 
-                program_id, 
-                candidate_id, 
-                preferences, 
-                worker_type_id, 
-                title, 
-                birth_date, 
-                modified_on, 
-                state_national_id, 
-                do_not_rehire_notes, 
-                do_not_rehire_reason, 
-                do_not_rehire
+                c.id, 
+                c.first_name, 
+                c.middle_name, 
+                c.last_name, 
+                c.is_active, 
+                c.name, 
+                c.email, 
+                c.program_id, 
+                c.candidate_id, 
+                c.preferences, 
+                c.worker_type_id, 
+                c.title, 
+                c.birth_date, 
+                c.modified_on, 
+                c.state_national_id, 
+                c.do_not_rehire_notes, 
+                c.do_not_rehire_reason, 
+                c.do_not_rehire,
+                JSON_OBJECT(
+                    'id', v.id,
+                    'vendor_name', v.max_vendor_name
+                ) AS vendor
             FROM 
-                candidates
+                candidates c
+            LEFT JOIN (
+                SELECT 
+                    id, 
+                    MAX(vendor_name) AS max_vendor_name
+                FROM 
+                    program_vendors
+                GROUP BY id
+            ) v 
+            ON 
+                c.vendor_id = v.id
             ${whereClause}
             ORDER BY 
-                modified_on DESC
+                c.modified_on DESC
             LIMIT :limit OFFSET :offset;
         `;
+    
         const candidates = await sequelize.query(query, {
             replacements,
-            type: QueryTypes.SELECT
+            type: QueryTypes.SELECT,
         });
+    
         return { count, candidates };
     }
 }
