@@ -212,6 +212,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             }
         });
 
+        // Fetch user mappings based on the whereClause
         const userMappings = await UserMapping.findAll({
             attributes: [
                 "id", "tenant_id", "role_id", "user_id",
@@ -219,31 +220,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 "created_on", "modified_on", "created_by",
                 "modified_by", "ref_id", "status"
             ],
-            where: whereClause,
-            include: [
-                {
-                    model: User,
-                    as: "user",
-                    attributes: { exclude: ["status"] }, 
-                    include: [
-                        {
-                            model: CountryModel,
-                            as: "countries",
-                            attributes: ["id", "name"]
-                        },
-                        {
-                            model: User,
-                            as: "supervisor_id",
-                            attributes: ["id", "first_name", "last_name"]
-                        }
-                    ]
-                },
-                {
-                    model: Tenant,
-                    as: "tenant",
-                    attributes: ["id", "name", "type"]
-                }
-            ]
+            where: whereClause
         });
 
         if (userMappings.length === 0) {
@@ -255,9 +232,36 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             });
         }
 
+        // Get user IDs and tenant IDs from the user mappings
+        const userIds = userMappings.map(mapping => mapping.user_id);
+        const tenantIds = userMappings.map(mapping => mapping.tenant_id);
+
+        // Fetch related data: Users, Countries, Supervisors, Tenants
+        const users = await User.findAll({
+            where: { id: userIds },
+            attributes: { exclude: ["status"] }
+        })as any;
+
+        const countries = await CountryModel.findAll({
+            where: { id: userIds },
+            attributes: ["id", "name"]
+        });
+
+        const supervisors = await User.findAll({
+            where: { id: userIds },
+            attributes: ["id", "first_name", "last_name"]
+        });
+
+        const tenants = await Tenant.findAll({
+            where: { id: tenantIds },
+            attributes: ["id", "name", "type"]
+        });
+
+        // Get hierarchy and work location IDs
         const hierarchyIds = userMappings.flatMap(mapping => mapping.user?.associate_hierarchy_ids || []);
         const workLocationIds = userMappings.flatMap(mapping => mapping.user?.work_location_ids || []);
 
+        // Fetch related hierarchies and work locations
         const hierarchies = hierarchyIds.length > 0
             ? await Hierarchies.findAll({
                 where: { id: hierarchyIds },
@@ -270,9 +274,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 attributes: ["id", "name"]
             }) : [];
 
+        // Enrich userMappings with related data
         const enrichedMappings = userMappings.map(mapping => {
-            const user = mapping.user?.toJSON();
+            const user = users.find((u: { id: any; }) => u.id === mapping.user_id);
+            const tenantForMapping = tenants.find(t => t.id === mapping.tenant_id);
+
             if (user) {
+                // Enrich user with hierarchy and work location data
                 user.associate_hierarchy_ids = hierarchies.filter(hierarchy =>
                     user.associate_hierarchy_ids.includes(hierarchy.id)
                 ).map(hierarchy => ({
@@ -294,20 +302,24 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 user.default_work_location_id = workLocations.find(location =>
                     location.id === user.default_work_location_id
                 );
-
-                user.status = mapping.status;
             }
+
+            // Find countries and supervisors for the user
+            const userCountries = countries.filter(c => c.user_id === user?.id);
+            const supervisor = supervisors.find(s => s.id === user?.supervisor_id);
 
             return {
                 ...mapping.toJSON(),
                 user: {
-                    ...user,
+                    ...user?.toJSON(),
                     associate_hierarchy_ids: user?.associate_hierarchy_ids,
                     work_location_ids: user?.work_location_ids,
                     default_hierarchy_id: user?.default_hierarchy_id,
                     default_work_location_id: user?.default_work_location_id,
                 },
-                countries: user?.countries
+                tenant: tenantForMapping,
+                countries: userCountries,
+                supervisor: supervisor
             };
         });
 

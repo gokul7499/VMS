@@ -11,6 +11,7 @@ class UserMapping extends Model {
     user: any;
     time_zone_id: any;
     status: any;
+    tenant_id: any;
 }
 
 UserMapping.init({
@@ -34,10 +35,6 @@ UserMapping.init({
     user_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'user',
-            key: 'id',
-        },
     },
     program_id: {
         type: DataTypes.UUID,
