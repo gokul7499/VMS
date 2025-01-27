@@ -31,4 +31,9 @@ export default interface CandidateInterface {
     is_deleted: boolean;
     birth_date?: number;
     candidate_source?: string;
+    tenant?:any
+}
+
+export interface TenantInterface{
+    tenantId:string
 }

@@ -6,7 +6,7 @@ import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import { getAllRateTypes, rateTypeShiftAndRate } from "../utility/queries";
+import { getAllRateTypes, rateTypeShiftAndRate, rateTypeTotalCount } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
@@ -202,6 +202,7 @@ export async function getAllRateType(request: FastifyRequest<{
     rate_type_category?: string;
     shift_type?: string;
     rate_type_category_label?: string;
+    abbreviation?: string;
     page?: string;
     limit?: string;
   };
@@ -209,10 +210,8 @@ export async function getAllRateType(request: FastifyRequest<{
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = request.query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
-
-
 
   try {
     const parsedIsEnabled =
@@ -222,23 +221,25 @@ export async function getAllRateType(request: FastifyRequest<{
           ? false
           : undefined;
 
-    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page, limit });
+    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
-
+    const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT,
+  });
+  
+  const totalRecords = totalCount[0]?.total_records;
     if (rateType.length === 0) {
       return reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
         message: "No rate type found for the given program",
-        total_records: 0,
+        total_records: totalRecords,
         page: queryParams.pageNumber,
         limit: queryParams.pageSize,
         rate_type: [],
       });
     }
-
-    const totalRecords = rateType[0]?.total_records || 0;
-    const rateTypes = rateType.map(({ total_records, ...rest }) => rest);
 
     return reply.status(200).send({
       status_code: 200,
@@ -247,7 +248,7 @@ export async function getAllRateType(request: FastifyRequest<{
       total_records: totalRecords,
       page: queryParams.pageNumber,
       limit: queryParams.pageSize,
-      rate_type: rateTypes,
+      rate_type: rateType,
     });
   } catch (error: any) {
     return reply.status(500).send({
@@ -260,7 +261,7 @@ export async function getAllRateType(request: FastifyRequest<{
 }
 
 function getQueryParams(query: any) {
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, page = "1", limit = "10" } = query;
+  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = query;
 
   const hasName = !!name;
   const hasId = !!id;
@@ -273,12 +274,12 @@ function getQueryParams(query: any) {
   const isBaseRate = parseBoolean(is_base_rate);
 
   const { startDate, endDate } = parseDateRange(modified_on);
-
+  const hasAbbreviation = !!abbreviation;
   const pageNumber = parseInt(page, 10);
   const pageSize = parseInt(limit, 10);
   const offset = (pageNumber - 1) * pageSize;
 
-  return { id, name, differential_on, rate_type_category, shift_type, rateTypeCategoryLabels, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, startDate, endDate, pageNumber, pageSize, offset };
+  return { id, name, differential_on, rate_type_category, shift_type, abbreviation, rateTypeCategoryLabels, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, hasAbbreviation, startDate, endDate, pageNumber, pageSize, offset };
 }
 
 function parseBoolean(value: any): number | undefined {
@@ -315,6 +316,7 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
       queryParams.hasRateTypeCategory,
       queryParams.hasShiftType,
       queryParams.rateTypeCategoryLabels.length > 0,
+      queryParams.hasAbbreviation,
       queryParams.startDate,
       queryParams.endDate,
       queryParams.pageSize,
@@ -332,6 +334,7 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
         ...(queryParams.hasRateTypeCategory && { rate_type_category: queryParams.rate_type_category }),
         ...(queryParams.hasShiftType && { shift_type: queryParams.shift_type }),
         ...(queryParams.rateTypeCategoryLabels.length > 0 && { rate_type_category_labels: queryParams.rateTypeCategoryLabels }),
+        ...(queryParams.hasAbbreviation && { abbreviation: `%${queryParams.abbreviation}%` }),
         ...(queryParams.startDate !== undefined && { startDate: queryParams.startDate }),
         ...(queryParams.endDate !== undefined && { endDate: queryParams.endDate }),
         limit: queryParams.pageSize,

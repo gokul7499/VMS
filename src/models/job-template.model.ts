@@ -58,7 +58,7 @@ JobTemplateModel.init(
         },
         template_code: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         level: {
             type: DataTypes.NUMBER,
@@ -70,7 +70,7 @@ JobTemplateModel.init(
         },
         description: {
             type: DataTypes.TEXT,
-            allowNull: false
+            allowNull: true
         },
         is_submission_exceed_max_bill_rate: {
             type: DataTypes.BOOLEAN,

@@ -12,7 +12,7 @@ import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklist-item.model';
-import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
+import { allNullRate, getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
 import { QueryTypes } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -612,9 +612,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         labor_category_id?: string;
         ot_exempt?: boolean;
     };
-}>,
-    reply: FastifyReply
-) {
+}>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
@@ -657,11 +655,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         }
 
         const responses = await Promise.all(
-            rateConfigurations.map(async (rateConfiguration) => {
+            rateConfigurations.map(async (rateConfiguration: { id: any; name: any; is_shift_rate: any; }) => {
                 const rateCardDecisionRecords: Array<{
                     id: string;
                     rate_card_id: string;
                     rate_type_id: string;
+                    hierarchy_id: string;
                     min_rate: { amount: number };
                     max_rate: { amount: number };
                 }> = await sequelize.query(rateCardMinRateMaxRate, {
@@ -684,6 +683,9 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 const uniqueHierarchies = Array.from(
                     new Set(hierarchie.map((item) => JSON.stringify({ id: item.hierarchy.id, name: item.hierarchy.name })))
                 ).map((item) => JSON.parse(item));
+                uniqueHierarchies.forEach((hierarchy) => {
+                    console.log(hierarchy.id);
+                });
 
                 const baseRates = await RateConfigurationBaseRateTypes.findAll({
                     where: { rate_configuration_id: rateConfiguration.id },
@@ -696,35 +698,16 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         },
                     ],
                 });
-
-                const sql = `WITH rate_card_matches AS (
-                        SELECT
-                            rc.id AS rate_card_id
-                        FROM
-                            rate_card rc
-                        WHERE
-                            rc.labor_category_id = :labor_category_id
-                            AND rc.program_id = :program_id
-                    )
-                    SELECT
-                        rcdt.min_rate,
-                        rcdt.max_rate
-                    FROM
-                        rate_card_decision_table rcdt
-                    INNER JOIN
-                        rate_card_matches rcm
-                    ON
-                        rcdt.rate_card_id = rcm.rate_card_id
-                    WHERE
-                        rcdt.hierarchy_id IS NULL
-                        AND rcdt.job_template_id IS NULL
-                        AND rcdt.unit_of_measure IS NULL
-                        AND rcdt.rate_type_id IS NULL
-                        AND rcdt.currency IS NULL`;
-
-                const allNullRates: Array<{ min_rate: { amount: number }; max_rate: { amount: number } }> = await sequelize.query(sql,
-                    { type: QueryTypes.SELECT, replacements: { labor_category_id, program_id } }
-                );
+                const allNullRates: Array<{
+                    min_rate: { amount: number };
+                    max_rate: { amount: number };
+                }> = await sequelize.query(allNullRate, {
+                    replacements: {
+                        labor_category_id,
+                        program_id
+                    },
+                    type: QueryTypes.SELECT,
+                });
                 const fallbackRate = allNullRates[0];
 
                 const rateConfigurationDetails = await Promise.all(
@@ -759,8 +742,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                                     ? await picklistItemModel.findOne({
                                         where: { id: rate.rate_type.rate_type_category },
                                         attributes: ['id', 'value', 'label'],
-                                    })
-                                    : null;
+                                    }) : null;
 
                                 const billRates = await RateConfigurationRateDifferentials.findAll({
                                     where: { rate_id: rate.id, type: 'BILL_RATE' },
@@ -773,7 +755,10 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                                 });
 
                                 const matchingDecisionRecord = rateCardDecisionRecords.find(
-                                    (record) => record.rate_type_id === baseRate.rate_type?.id
+                                    (record) => record.rate_type_id === baseRate.rate_type?.id &&
+                                        uniqueHierarchies.some((hierarchy) => {
+                                            return record.hierarchy_id === hierarchy.id;
+                                        })
                                 ) || fallbackRate;
 
                                 const bill_rate = billRates.map((billRate) => {
@@ -852,7 +837,10 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         }));
 
                         const matchingDecisionRecord = rateCardDecisionRecords.find(
-                            (record) => record.rate_type_id === baseRate.rate_type?.id
+                            (record) => record.rate_type_id === baseRate.rate_type?.id &&
+                                uniqueHierarchies.some((hierarchy) => {
+                                    return record.hierarchy_id === hierarchy.id;
+                                })
                         ) || fallbackRate;
 
                         return {
@@ -869,7 +857,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         };
                     })
                 );
-
                 return {
                     name: rateConfiguration.name,
                     is_shift_rate: rateConfiguration.is_shift_rate,
