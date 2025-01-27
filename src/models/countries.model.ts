@@ -5,6 +5,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 class CountryModel extends Model {
   id: any;
   name: any;
+    user_id: any;
 }
 
 CountryModel.init({
