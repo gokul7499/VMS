@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import candidateModel from "../models/candidate.model";
-import candidateInterface from "../interfaces/candidate.Interface"
+import candidateInterface, { TenantInterface } from "../interfaces/candidate.Interface"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import countriesModel from "../models/countries.model";
@@ -19,11 +19,13 @@ import CandidateRepository from "../utility/candidate-query";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
-    request: FastifyRequest<{ Body: { candidate: candidateInterface } }>,
+    request: FastifyRequest<{ Body: { candidate: candidateInterface,tenant:TenantInterface } }>,
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    const { id, program_id, email, vendor_id } = candidate;
+    const {tenant}=request.body
+    const { id, program_id, email } = candidate;
+    const vendor_id=tenant.tenantId;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -80,6 +82,7 @@ export async function createCandidate(
         const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
+            vendor_id:vendor_id,
             candidate_id: candidateId,
             created_by: userId,
             modified_by: userId,

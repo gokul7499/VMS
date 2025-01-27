@@ -2458,7 +2458,8 @@ export const rateCardMinRateMaxRate = `
             d.rate_card_id,
             d.rate_type_id,
             d.min_rate,
-            d.max_rate
+            d.max_rate,
+            d.hierarchy_id
         FROM
             rate_card_decision_table d
         JOIN
@@ -2482,7 +2483,8 @@ export const rateCardMinRateMaxRate = `
             d.rate_card_id,
             d.rate_type_id,
             d.min_rate,
-            d.max_rate
+            d.max_rate,
+            d.hierarchy_id
         FROM
             rate_card_decision_table d
         WHERE
@@ -2498,6 +2500,32 @@ export const rateCardMinRateMaxRate = `
     FROM fallback_matches
     WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
 `;
+
+export const allNullRate=`
+WITH rate_card_matches AS (
+  SELECT
+      rc.id AS rate_card_id
+  FROM
+      rate_card rc
+  WHERE
+      rc.labor_category_id = :labor_category_id
+      AND rc.program_id = :program_id
+)
+SELECT
+  rcdt.min_rate,
+  rcdt.max_rate
+FROM
+  rate_card_decision_table rcdt
+INNER JOIN
+  rate_card_matches rcm
+ON
+  rcdt.rate_card_id = rcm.rate_card_id
+WHERE
+  rcdt.hierarchy_id IS NULL
+  AND rcdt.job_template_id IS NULL
+  AND rcdt.unit_of_measure IS NULL
+  AND rcdt.rate_type_id IS NULL
+  AND rcdt.currency IS NULL`;
 
 export const getInvoiceConfigByHierarchyId = `
     SELECT *
