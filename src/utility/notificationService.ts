@@ -68,7 +68,7 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
         )
     } else {
         user = await sequelize.query(
-            `SELECT * FROM user WHERE id = :user_id  AND program_id = :program_id`,
+            `SELECT * FROM user WHERE user_id = :user_id  AND program_id = :program_id`,
             {
                 replacements: { program_id: payload.program_id, user_id: payload.userId },
                 type: QueryTypes.SELECT
