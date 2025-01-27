@@ -926,11 +926,16 @@ export async function getUserProgram(
 ) {
   const { user_id } = request.query;
   const traceId = generateCustomUUID();
-  const tenant_id = user_id; 
+  if (!user_id || user_id.trim() === "") {
+    return reply.code(400).send({
+      status_code: 400,
+      message: "Bad Request: user_id is required.",
+      trace_id: traceId,
+    });
+  }
 
   try {
-    const replacements = { tenant_id };
-
+    const replacements = { user_id };
     const data = await sequelize.query(getUserPrograms, {
       replacements,
       type: QueryTypes.SELECT,
