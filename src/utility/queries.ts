@@ -1282,7 +1282,7 @@ export const getWorkLocationTimeZoneByUserId = `
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
         WHERE
-          user.id IN (:user_ids) AND user.program_id = :program_id
+          user.user_id IN (:user_ids) AND user.program_id = :program_id
       `;
 
 export const getMasterDataForHeirarchiesQuery = () => {
