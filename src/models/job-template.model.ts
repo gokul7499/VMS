@@ -58,7 +58,7 @@ JobTemplateModel.init(
         },
         template_code: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         level: {
             type: DataTypes.NUMBER,
@@ -70,7 +70,7 @@ JobTemplateModel.init(
         },
         description: {
             type: DataTypes.TEXT,
-            allowNull: false
+            allowNull: true
         },
         is_submission_exceed_max_bill_rate: {
             type: DataTypes.BOOLEAN,
@@ -274,7 +274,8 @@ JobTemplateModel.init(
             defaultValue: false,
         },
         available_start_date_limit: {
-            type: DataTypes.JSON
+            type: DataTypes.JSON,
+            defaultValue: true
         },
         submit_type: {
             type: DataTypes.STRING
