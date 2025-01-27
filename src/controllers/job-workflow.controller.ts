@@ -3608,6 +3608,7 @@ export const getModuleEvent = async (
                 job_id,
                 is_deleted: false,
             },
+            attributes: ['workflow_trigger_id'],
             include: [
                 {
                     model: Module,
@@ -3634,7 +3635,7 @@ export const getModuleEvent = async (
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
-
+            const workflowTriggerId = (workflow as any).workflow_trigger_id;
             // Check if the event is already added to avoid duplicates
             const isDuplicate = groupedData[moduleName].some(
                 (event) => event.event === eventName && event.event_slug === eventSlug
@@ -3643,6 +3644,7 @@ export const getModuleEvent = async (
             if (!isDuplicate) {
                 groupedData[moduleName].push({
                     event: eventName,
+                    workflow_trigger_id:workflowTriggerId,
                     event_slug: eventSlug,
                 });
             }
