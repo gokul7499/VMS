@@ -743,8 +743,19 @@ export const getVendorDocuments = async (
 
     try {
         let documents: VendorDetails[] = [];
-        let totalCount: number = 0
-        if (user_id && document_id) {
+
+        if (vendor_id && document_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
+                replacements: { program_id, vendor_id, document_id },
+                type: QueryTypes.SELECT,
+            });
+        } else if (vendor_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
+                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
+                type: QueryTypes.SELECT,
+            });
+        }
+        else if (user_id && document_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserAndDocumentId, {
                 replacements: { program_id, user_id, document_id },
                 type: QueryTypes.SELECT,
@@ -754,17 +765,6 @@ export const getVendorDocuments = async (
                 replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
                 type: QueryTypes.SELECT,
             });
-            totalCount = documents[0]?.total_count || 0;
-        } else if (vendor_id && document_id) {
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
-                replacements: { program_id, vendor_id, document_id },
-                type: QueryTypes.SELECT,
-            });
-        } else if (vendor_id) {
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
-                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
-                type: QueryTypes.SELECT,
-            });
         } else {
             return reply.status(400).send({
                 status_code: 400,
@@ -772,8 +772,11 @@ export const getVendorDocuments = async (
                 trace_id: traceId,
             });
         }
-
-        if (!documents.length) {
+        const uniqueDocuments = documents.filter((doc, index, self) =>
+            index === self.findIndex((d) => d.id === doc.id)
+        );
+        let totalCount = uniqueDocuments.length;
+        if (!uniqueDocuments.length) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
@@ -790,7 +793,7 @@ export const getVendorDocuments = async (
             trace_id: traceId,
             total_count: totalCount,
             page_size: pageSize,
-            uploaded_documents: documents.map(doc => ({
+            uploaded_documents: uniqueDocuments.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
                 name: doc.name,

@@ -2,9 +2,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-// const auth_db = databaseConfig.config.database_auth;
+const auth_db = databaseConfig.config.database_auth;
 
-const auth_db='dev_vms_auth'
 
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
@@ -2530,3 +2529,35 @@ WHERE
 
 
 `;
+export const getUserContacts=`
+SELECT
+    user.id,
+    user.first_name,
+    user.last_name,
+    user.tenant_id,
+    user.email
+FROM
+    user
+WHERE
+     (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`
+
+export const getUserPrograms=`
+SELECT DISTINCT
+   programs.id,
+   programs.industries,
+   programs.unique_id,
+   programs.name,
+   programs.type,
+   programs.config,
+   programs.msp_id,
+   programs.start_date,
+   programs.is_activated,
+   programs.display_name
+FROM
+    user_mappings
+LEFT JOIN programs ON user_mappings.program_id = programs.id
+WHERE
+    user_mappings.tenant_id = :tenant_id
+
+`

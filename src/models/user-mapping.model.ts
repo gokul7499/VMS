@@ -36,7 +36,7 @@ role_id: {
         allowNull: true,
         references: {
             model: 'user',
-            key: 'id',
+            key: 'user_id',
         },
     },
     program_id: {
