@@ -2541,3 +2541,23 @@ FROM
 WHERE
      (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
 `
+
+export const getUserPrograms=`
+SELECT DISTINCT
+   programs.id,
+   programs.industries,
+   programs.unique_id,
+   programs.name,
+   programs.type,
+   programs.config,
+   programs.msp_id,
+   programs.start_date,
+   programs.is_activated,
+   programs.display_name
+FROM
+    user_mappings
+LEFT JOIN programs ON user_mappings.program_id = programs.id
+WHERE
+    user_mappings.tenant_id = :tenant_id
+
+`

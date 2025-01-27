@@ -302,11 +302,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
 
                 const foundationalData = await sequelize.query(getMasterData, {
                     replacements: { id: user.id },
-                    type:QueryTypes.SELECT
-                })as any;
+                    type: QueryTypes.SELECT
+                }) as any;
 
                 if (foundationalData && foundationalData.length > 0) {
-                    user.foundational_data = foundationalData[0].foundational_data;
+                    user.foundational_data = Object.keys(foundationalData[0].foundational_data).map(key => ({
+                        [key]: foundationalData[0].foundational_data[key]
+                    }));
                 }
             }
 
@@ -318,7 +320,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     work_location_ids: user?.work_location_ids,
                     default_hierarchy_id: user?.default_hierarchy_id,
                     default_work_location_id: user?.default_work_location_id,
-                    foundational_data: user?.foundational_data // Include foundational_data within user object
+                    foundational_data: user?.foundational_data 
                 },
                 countries: user?.countries
             };
@@ -335,7 +337,6 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
-            error: error.message || error,
-        });
-    }
-};
+            error
+        })
+    }}
