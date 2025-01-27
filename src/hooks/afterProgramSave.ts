@@ -56,7 +56,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         ],
         rate_model: "bill_rate",
         is_vendor_neutral_program: false,
-        is_hide_candidate_img: true,
+        is_hide_candidate_img: false,
         support_email: "noreply@simplifyvms.com",
     },{ transaction });
 
