@@ -918,21 +918,18 @@ export async function getUserContact(
   }
 }
 
-
 export async function getUserProgram(
   request: FastifyRequest<{
-    Params: { tenant_id: string };
+    Querystring: { user_id: string };
   }>,
   reply: FastifyReply
 ) {
- 
-  const { tenant_id } = request.params;
-    const traceId = generateCustomUUID();
+  const { user_id } = request.query;
+  const traceId = generateCustomUUID();
+  const tenant_id = user_id; 
 
   try {
-    const replacements = {
-      tenant_id
-    };
+    const replacements = { tenant_id };
 
     const data = await sequelize.query(getUserPrograms, {
       replacements,
@@ -944,19 +941,19 @@ export async function getUserProgram(
         status_code: 200,
         message: "Get user program data",
         data,
-        trace_id: traceId
+        trace_id: traceId,
       });
     } else {
       return reply
-        .code(200)
-        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+      .code(200)
+      .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
     }
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error.message
+      error: error.message,
     });
   }
 }
