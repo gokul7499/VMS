@@ -58,7 +58,7 @@ JobTemplateModel.init(
         },
         template_code: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         level: {
             type: DataTypes.NUMBER,
