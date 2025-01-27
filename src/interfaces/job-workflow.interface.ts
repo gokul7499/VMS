@@ -6,6 +6,7 @@ export interface JobWorkFlow {
   event_id: string,
   method_id: string,
   hierarchies: any[],
+  flow_type?:any;
   placement_order: number,
   module: string,
   config: any,

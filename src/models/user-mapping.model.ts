@@ -28,13 +28,17 @@ UserMapping.init({
             key: 'id',
         },
     },
-    role_id: {
+role_id: {
         type: DataTypes.UUID,
         allowNull: true
     },
     user_id: {
         type: DataTypes.UUID,
         allowNull: true,
+        references: {
+            model: 'user',
+            key: 'user_id',
+        },
     },
     program_id: {
         type: DataTypes.UUID,

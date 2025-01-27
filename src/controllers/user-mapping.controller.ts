@@ -11,6 +11,9 @@ import TimeZone from "../models/time-zone.model";
 import CountryModel from "../models/countries.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import Hierarchies from "../models/hierarchies.model";
+import { getMasterData } from "../utility/queries";
+import { sequelize } from "../config/instance";
+import { QueryTypes } from "sequelize";
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId=generateCustomUUID();
     try {

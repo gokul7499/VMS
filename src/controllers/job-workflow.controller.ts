@@ -371,20 +371,26 @@ export const updateWorkflowStatus = async (
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
             
-                // Skip this level if any recipient has meta_data with null values
-                const isValidLevel = level.recipient_types && level.recipient_types.every((recipient:any) => {
-                    return recipient.meta_data !== null && Object.values(recipient.meta_data).every(value => value !== null);
-                });
+                // Skip this level if recipient_types is empty or any recipient has meta_data with null values
+                const isValidLevel = level.recipient_types &&
+                    level.recipient_types.length > 0 && // Ensure recipient_types is not empty
+                    level.recipient_types.every((recipient: any) => {
+                        return recipient.meta_data !== null && 
+                               Object.values(recipient.meta_data).every(value => value !== null);
+                    });
             
                 if (!isValidLevel) {
                     continue; 
                 }
+            
+                
             
                 // If the level is valid (all meta_data are non-null), check the status
                 if (level.status === "pending") {
                     allLevelsAfterFirstCompleted = false;
                 }
             }
+            
             
             // Set final workflow status based on valid levels
             workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
@@ -393,6 +399,8 @@ export const updateWorkflowStatus = async (
             // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
+            console.log(workflowStatus);
+            
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
 
             let allPayload = {
@@ -462,13 +470,16 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             const payload = {
                 status: "OPEN",
             };
+console.log(apiUrl);
 
-            await axios.post(apiUrl, payload, {
+          let a=  await axios.post(apiUrl, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     authorization: authHeader
                 },
             });
+            console.log(a);
+            
         } else
             if (moduleType === "offer" || moduleType === "offers") {
                 const offer_id = workflow.workflow_trigger_id;
@@ -1831,23 +1842,36 @@ ORDER BY
             type: QueryTypes.SELECT,
         });
         // console.log(rows);
-        const programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id =:workflow_trigger_id  AND status="pending"`,
+        let programData = await sequelize.query(
+            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
                 replacements: { workflow_trigger_id },
-                type: QueryTypes.SELECT
+                type: QueryTypes.SELECT,
             }
-        )
-        // Extract the flowType field from each workflow
-        const flowTypes = programData
-            .map((program: any) => program.flow_type)
-            .sort((a: string, b: string) => {
-                if (a === 'Review') return -1;
-                if (b === 'Review') return 1;
+        );
+        
+        // Create a map to store the latest status for each flow_type
+        const flowTypeStatusMap = new Map<string, boolean>();
+        
+        for (const program of programData) {
+            const { flow_type, status } = program as JobWorkFlow
+        
+            // If the flow_type is already in the map, prioritize "completed" status
+            if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+                flowTypeStatusMap.set(flow_type, status === "completed");
+            }
+        }
+        
+        // Convert the map to the required array format and sort
+        const flowTypes = Array.from(flowTypeStatusMap.entries())
+            .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
+            .sort((a, b) => {
+                if (a.flow_type === "Review") return -1;
+                if (b.flow_type === "Review") return 1;
                 return 0;
             });
-
-
+        
+        console.log(flowTypes);
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -2330,7 +2354,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 // Fetch "impersonate_by" user data if applicable
                                 if (recipient.impersonate_by) {
                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
                                             id: impersonatedUser.id,
@@ -2660,37 +2683,47 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-                // const hasMatchingRecipient = user.userType == "super_user" || currentLevel.recipients.some((recipient: any) => {
-
-                //     if (recipient.replaced_by) {
-                //         return recipient.replaced_by === user.sub;
-                //     }
-
-                //     return recipient.user_id === user.sub;
-                // });
-
-                // if (hasMatchingRecipient) {
-
-                //     currentLevel.is_approval_allowed = true;
-                // }
-                currentLevel.recipients.forEach((recipient: any) => {
-                    // Only check for user_id if replaced_by is not present
-                    if (recipient.replaced_by) {
-                        // If replaced_by matches the logged-in user, set approval flag
-                        if (recipient.replaced_by === user.sub || user.userType == "super_user") {
-                            recipient.is_approval_allowed = true; // Set flag for replaced recipient
-                        } else {
-                            recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                const hasMatchingRecipient =
+                    user.userType == "super_user" ||
+                    currentLevel.recipients.some((recipient: any) => {
+                        if (recipient.replaced_by) {
+                            return recipient.replaced_by === user.sub;
                         }
-                    } else {
-                        // If there is no replaced_by, check user_id
-                        if (recipient.user_id === user.sub || user.userType == "super_user") {
-                            recipient.is_approval_allowed = true; // Set flag for matching user
-                        } else {
-                            recipient.is_approval_allowed = false; // Not allowed if user_id does not match
-                        }
+                        return recipient.user_id === user.sub;
+                    });
+            
+                // Add `action_allowed` object to workflow if it doesn't already exist
+             
+                    workflow.action_allowed = {};
+               
+            
+                // Set `is_approval_allowed` key in the `action_allowed` object
+              
+              
+                    if (workflow.workflow_type === "Review") {
+                        workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
+                    } else if (workflow.workflow_type === "Approve") {
+                        workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
                     }
-                });
+              
+                // currentLevel.recipients.forEach((recipient: any) => {
+                //     // Only check for user_id if replaced_by is not present
+                //     if (recipient.replaced_by) {
+                //         // If replaced_by matches the logged-in user, set approval flag
+                //         if (recipient.replaced_by === user.sub || user.userType == "super_user") {
+                //             recipient.is_approval_allowed = true; // Set flag for replaced recipient
+                //         } else {
+                //             recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
+                //         }
+                //     } else {
+                //         // If there is no replaced_by, check user_id
+                //         if (recipient.user_id === user.sub || user.userType == "super_user") {
+                //             recipient.is_approval_allowed = true; // Set flag for matching user
+                //         } else {
+                //             recipient.is_approval_allowed = false; // Not allowed if user_id does not match
+                //         }
+                //     }
+                // });
             }
 
 
