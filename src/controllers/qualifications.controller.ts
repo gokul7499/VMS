@@ -25,9 +25,9 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
     const userId = user?.sub;
     try {
         const { program_id } = request.params as { program_id: string };
-        const { name } = request.body as QualificationData;
+        const { name,qualification_type_id } = request.body as QualificationData;
         const existingQualification = await Qualifications.findOne({
-            where: { name, program_id },
+            where: { name,qualification_type_id, program_id },
         });
 
         if (existingQualification) {
