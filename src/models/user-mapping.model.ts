@@ -11,6 +11,7 @@ class UserMapping extends Model {
     user: any;
     time_zone_id: any;
     status: any;
+    tenant_id: any;
 }
 
 UserMapping.init({
