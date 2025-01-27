@@ -313,8 +313,21 @@ export async function saveProgramVendor(
                 addresses: user.addresses
             }
         ]
-
-        const tenantData = await Tenant.create({ ...tenant });
+        
+        const checkExistingTenant = await Tenant.findOne({
+            where: {
+                name: tenant.display_name,
+                email: tenant.email
+            }
+        });
+        
+        if (!checkExistingTenant) {           
+            const tenantData = await Tenant.create({ ...tenant });           
+        } else {
+            console.log('Tenant already exists:', existingTenant);
+        }        
+        
+        // const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
         const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
