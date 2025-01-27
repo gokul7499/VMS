@@ -2560,21 +2560,22 @@ WHERE
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
-
-
 `;
+
 export const getUserContacts = `
 SELECT
     user.id,
     user.first_name,
     user.last_name,
     user.tenant_id,
+    tenant.name AS tenant_name,
     user.email
 FROM
     user
+LEFT JOIN tenant ON user.tenant_id = tenant.id
 WHERE
-     (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
-`
+    (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`;
 
 export const getUserPrograms = `
 SELECT DISTINCT
