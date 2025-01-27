@@ -604,8 +604,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 attributes: ['id', 'template_name']
             }),
             User.findAll({
-                where: { id: { [Op.in]: Array.from(targetValues) } },
-                attributes: ['id', 'first_name', 'last_name']
+                where: { user_id: { [Op.in]: Array.from(targetValues) } },
+                attributes: ['id','user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
                 where: { id: { [Op.in]: Array.from(targetValues) } },
@@ -735,8 +735,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             }
                         } else if (recipientType?.name === "Specific User" || recipientType?.name === "Multiple users" || recipientType?.name === "Job Manager") {
                             input_value = await User.findOne({
-                                where: { id: input_values },
-                                attributes: ["id", "first_name", "last_name"]
+                                where: { user_id: input_values },
+                                attributes: ["id","user_id", "first_name", "last_name"]
                             });
                         } else if (recipientType?.name === "Custom Field Supplied User") {
                             input_value = await CustomField.findOne({
