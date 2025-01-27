@@ -2683,13 +2683,18 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
+              
+                
                 const hasMatchingRecipient =
                     user.userType == "super_user" ||
                     currentLevel.recipients.some((recipient: any) => {
                         if (recipient.replaced_by) {
-                            return recipient.replaced_by === user.sub;
+                            return recipient.replaced_by.id === user.sub;
                         }
+                        console.log("recipient.user_id === user.sub",recipient.user_id === user.sub);
                         return recipient.user_id === user.sub;
+                     
+                        
                     });
             
                 // Add `action_allowed` object to workflow if it doesn't already exist
@@ -2698,32 +2703,16 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                
             
                 // Set `is_approval_allowed` key in the `action_allowed` object
+              console.log(workflow);
               
               
-                    if (workflow.workflow_type === "Review") {
+                    if (workflow.workflow_type == "Review") {
                         workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
-                    } else if (workflow.workflow_type === "Approve") {
+                    } else if (workflow.workflow_type == "Approval") {
                         workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
                     }
               
-                // currentLevel.recipients.forEach((recipient: any) => {
-                //     // Only check for user_id if replaced_by is not present
-                //     if (recipient.replaced_by) {
-                //         // If replaced_by matches the logged-in user, set approval flag
-                //         if (recipient.replaced_by === user.sub || user.userType == "super_user") {
-                //             recipient.is_approval_allowed = true; // Set flag for replaced recipient
-                //         } else {
-                //             recipient.is_approval_allowed = false; // Not allowed if replaced_by does not match
-                //         }
-                //     } else {
-                //         // If there is no replaced_by, check user_id
-                //         if (recipient.user_id === user.sub || user.userType == "super_user") {
-                //             recipient.is_approval_allowed = true; // Set flag for matching user
-                //         } else {
-                //             recipient.is_approval_allowed = false; // Not allowed if user_id does not match
-                //         }
-                //     }
-                // });
+                
             }
 
 
@@ -3608,6 +3597,7 @@ export const getModuleEvent = async (
                 job_id,
                 is_deleted: false,
             },
+            attributes: ['workflow_trigger_id'],
             include: [
                 {
                     model: Module,
@@ -3634,7 +3624,7 @@ export const getModuleEvent = async (
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
-
+            const workflowTriggerId = (workflow as any).workflow_trigger_id;
             // Check if the event is already added to avoid duplicates
             const isDuplicate = groupedData[moduleName].some(
                 (event) => event.event === eventName && event.event_slug === eventSlug
@@ -3643,6 +3633,7 @@ export const getModuleEvent = async (
             if (!isDuplicate) {
                 groupedData[moduleName].push({
                     event: eventName,
+                    workflow_trigger_id:workflowTriggerId,
                     event_slug: eventSlug,
                 });
             }
