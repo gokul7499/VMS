@@ -64,6 +64,6 @@ async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/pending-user', getPendingUser);
     fastify.get('/program/:program_id/get-job-manegers', getActiveUser);
     fastify.get('/get-user-contact', getUserContact);
-    fastify.get('/tenant_id/:tenant_id/get-user-program', getUserProgram);
+    fastify.get('/get-user-program', getUserProgram);
 }
 export default userRoutes;
