@@ -274,8 +274,7 @@ JobTemplateModel.init(
             defaultValue: false,
         },
         available_start_date_limit: {
-            type: DataTypes.JSON,
-            defaultValue: true
+            type: DataTypes.JSON
         },
         submit_type: {
             type: DataTypes.STRING
