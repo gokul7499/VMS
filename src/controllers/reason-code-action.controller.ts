@@ -199,8 +199,8 @@ export async function getReasoncodeById(
                 if (reasonCodesWithoutProgram.length > 0) {
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
                         where: {
-                            id,
-                            program_id: null
+                            id
+                            // program_id: null
                         },
                         include: [
                             {
