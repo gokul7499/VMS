@@ -2687,7 +2687,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                     user.userType == "super_user" ||
                     currentLevel.recipients.some((recipient: any) => {
                         if (recipient.replaced_by) {
-                            return recipient.replaced_by === user.sub;
+                            return recipient.replaced_by.id === user.sub;
                         }
                         return recipient.user_id === user.sub;
                     });
