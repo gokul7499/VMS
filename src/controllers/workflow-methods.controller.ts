@@ -296,7 +296,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
     try {
         const { module } = request.query as { module: string };
         let item;
-        if (module === 'job') {
+        if (module.toLowerCase() === 'job'.toLowerCase()) {
             const event_slug1 = "create_job";
             const event_slug2 = "update_job";
             const module_name = "Job";
@@ -385,7 +385,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     message: "Required workflow methods not found"
                 });
             }
-        } else if (module === 'offer') {
+        } else if (module.toLowerCase() === 'offer'.toLowerCase()) {
             const event_slug1 = "create_offer";
             const event_slug2 = "counter_offer";
             const module_name = "Offers";
@@ -478,7 +478,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     message: "Required workflow methods not found"
                 });
             }
-        } else if (module === 'assignment') {
+        } else if (module.toLowerCase() === 'assignment'.toLowerCase()||module.toLowerCase() === 'assignments'.toLowerCase()) {
             const event_slug1 = "create_assignment";
             const event_slug2 = "update_assignment";
             const event_slug3 = "assignment_budget_adjustment";
@@ -488,7 +488,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 moduleId = await Module.findOne({ where: { name: module_name } });
             }
             const module_ids = moduleId?.dataValues.id || "";
-
             let eventId1Value: any;
             let eventId2Value: any;
             let eventId3Value: any;
