@@ -2157,7 +2157,7 @@ WITH user_data AS (
   LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
   LEFT JOIN countries c ON u.country_id = c.id
   LEFT JOIN tenant t ON u.tenant_id = t.id
-  LEFT JOIN user_mappings um ON u.id = um.user_id
+  LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
