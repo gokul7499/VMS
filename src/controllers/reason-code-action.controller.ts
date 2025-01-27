@@ -340,8 +340,8 @@ export async function getReasoncodeById(
 
         await transaction.rollback();
 
-        return reply.status(404).send({
-            status_code: 404,
+        return reply.status(200).send({
+            status_code: 200,
             message: 'Reason code not found',
             trace_id: traceId,
         });
