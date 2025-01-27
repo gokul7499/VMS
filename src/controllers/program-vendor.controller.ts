@@ -313,7 +313,8 @@ export async function saveProgramVendor(
                 addresses: user.addresses
             }
         ]
-        
+
+        let tenantData: any;
         const checkExistingTenant = await Tenant.findOne({
             where: {
                 name: tenant.display_name,
@@ -322,9 +323,9 @@ export async function saveProgramVendor(
         });
         
         if (!checkExistingTenant) {           
-            const tenantData = await Tenant.create({ ...tenant });           
+            tenantData = await Tenant.create({ ...tenant });           
         } else {
-            console.log('Tenant already exists:', existingTenant);
+            console.log('Tenant already exists:');
         }        
         
         // const tenantData = await Tenant.create({ ...tenant });
