@@ -18,7 +18,8 @@ export interface WorkflowData {
     is_deleted: boolean,
     workflow_id: string,
     flow_count: number,
-    flow_type: string
+    flow_type: string,
+    is_associated: boolean,
 }
 
 export interface WorkflowRecepientTypeData {
