@@ -1593,8 +1593,6 @@ WHERE
     user_master_data.user_id = :id;
 `;
 
-
-
 export const getAllRateTypes = (
   hasName: boolean,
   hasId: boolean,
@@ -1605,6 +1603,7 @@ export const getAllRateTypes = (
   hasRateTypeCategory: boolean,
   hasShiftType: boolean,
   hasRateTypeCategoryLabels: boolean,
+  hasAbbreviation: boolean,
   startDate?: number,
   endDate?: number,
   limit?: number,
@@ -1655,6 +1654,7 @@ export const getAllRateTypes = (
     : ""}
         ${hasRateTypeCategory ? "AND rt.rate_type_category = :rate_type_category" : ""}
         ${hasRateTypeCategoryLabels ? "AND picklistitems.value IN (:rate_type_category_labels)" : ""}
+        ${hasAbbreviation ? "AND rt.abbreviation LIKE CONCAT('%', :abbreviation, '%')" : ""}
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
     ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
@@ -1679,6 +1679,12 @@ export const getAllRateTypes = (
     ORDER BY modified_on DESC
     LIMIT :limit OFFSET :offset;
   `;
+
+export const rateTypeTotalCount = `
+  SELECT count(*) AS total_records
+  FROM rate_type
+  WHERE program_id = :program_id AND is_deleted = false
+`;
 
 export const getExpenseType = `
    SELECT
@@ -1914,7 +1920,7 @@ export const rateTypeShiftAndRate = `
       RateTypeCategoryDetails rt ON st.shift_type_id = rt.rate_type_category_id;
   `;
 
-  export const getExpenseTypeAndRateType = `
+export const getExpenseTypeAndRateType = `
   SELECT
     timesheet_expense_rules.id,
     CASE
@@ -2501,7 +2507,7 @@ export const rateCardMinRateMaxRate = `
     WHERE NOT EXISTS (SELECT 1 FROM primary_matches);
 `;
 
-export const allNullRate=`
+export const allNullRate = `
 WITH rate_card_matches AS (
   SELECT
       rc.id AS rate_card_id
@@ -2557,7 +2563,7 @@ WHERE
 
 
 `;
-export const getUserContacts=`
+export const getUserContacts = `
 SELECT
     user.id,
     user.first_name,
@@ -2570,7 +2576,7 @@ WHERE
      (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
 `
 
-export const getUserPrograms=`
+export const getUserPrograms = `
 SELECT DISTINCT
    programs.id,
    programs.industries,
