@@ -22,6 +22,7 @@ class User extends Model {
   work_locations: any;
   user_type: string | undefined;
   foundational_data: any;
+  user_id: unknown;
   ;
 }
 

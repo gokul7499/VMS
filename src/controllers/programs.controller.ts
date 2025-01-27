@@ -158,73 +158,76 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 };
 
 export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>, reply: FastifyReply) => {
-  const { name, is_activated, start_date } = request.query as Partial<ProgramQuery>;
+  const { name, is_activated, start_date, tenant_id } = request.query as Partial<ProgramQuery>;
   const traceId = generateCustomUUID();
 
   try {
-    const query = request.query as any;
-    const page = parseInt(query.page ?? "1");
-    const limit = parseInt(query.limit ?? "10");
-    const offset = (page - 1) * limit;
-    query.page && delete query.page;
-    query.limit && delete query.limit;
+      const query = request.query as any;
+      const page = parseInt(query.page ?? "1");
+      const limit = parseInt(query.limit ?? "10");
+      const offset = (page - 1) * limit;
+      query.page && delete query.page;
+      query.limit && delete query.limit;
 
-    // Apply filters
-    const filters: any = {
-      is_deleted: false,
-      ...(name && { display_name: { [Op.like]: `%${name.trim()}%` } }),
-      ...(is_activated !== undefined && {
-        is_activated: is_activated === "true" ? 1 : 0,
-      }),
-      ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
-    };
+      const filters: any = {
+          is_deleted: false,
+          ...(name && { display_name: { [Op.like]: `%${name.trim()}%` } }),
+          ...(is_activated !== undefined && { is_activated: is_activated === "true" ? 1 : 0 }),
+          ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
+          ...(tenant_id && {
+              [Op.or]: [
+                  { client_id: tenant_id.trim() },
+                  { msp_id: tenant_id.trim() }
+              ]
+          }),
+      };
 
-    const programs = await Programs.findAll({
-      where: filters,
-      include: [
-        {
-          model: Tenant,
-          as: "client",
-          where: {
-            is_deleted: false,
-          },
-          attributes: ["name", "display_name", "id", "logo"],
-        },
-      ],
-      attributes: ["id", "name", "display_name", "is_enabled", "unique_id"],
-      order: [['created_on', 'DESC']],
-      limit: limit,
-      offset: offset,
-    });
-
-    const count = await Programs.count({
-      where: filters,
-    });
-
-    if (programs.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: "Programs not found",
-        programs: [],
-        trace_id: traceId,
+      const programs = await Programs.findAll({
+          where: filters,
+          include: [
+              {
+                  model: Tenant,
+                  as: "client",
+                  where: {
+                      is_deleted: false,
+                  },
+                  attributes: ["name", "display_name", "id", "logo"],
+              },
+          ],
+          attributes: ["id", "name", "display_name", "is_enabled", "unique_id", "client_id", "msp_id"],
+          order: [['created_on', 'DESC']],
+          limit: limit,
+          offset: offset,
       });
-    }
 
-    reply.status(200).send({
-      status_code: 200,
-      message: "Programs found",
-      items_per_page: limit,
-      total_records: count,
-      programs: programs,
-      trace_id: traceId,
-    });
+      const count = await Programs.count({
+          where: filters,
+      });
+
+      if (programs.length === 0) {
+          return reply.status(200).send({
+              status_code: 200,
+              message: "Programs not found",
+              programs: [],
+              trace_id: traceId,
+          });
+      }
+
+      reply.status(200).send({
+          status_code: 200,
+          message: "Programs found",
+          items_per_page: limit,
+          total_records: count,
+          programs: programs,
+          trace_id: traceId,
+      });
   } catch (error) {
-    console.error('Error in getAllProgram:', error);
-    reply.status(500).send({
-      status_code: 500,
-      message: "Internal Server error",
-      trace_id: traceId,
-    });
+      console.error('Error in getAllProgram:', error);
+      reply.status(500).send({
+          status_code: 500,
+          message: "Internal Server error",
+          trace_id: traceId,
+      });
   }
 };
 
