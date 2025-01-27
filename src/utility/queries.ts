@@ -2592,6 +2592,5 @@ FROM
     user_mappings
 LEFT JOIN programs ON user_mappings.program_id = programs.id
 WHERE
-    user_mappings.tenant_id = :tenant_id
-
-`
+    user_mappings.user_id = :user_id
+`;
