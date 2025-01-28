@@ -921,11 +921,11 @@ export async function getUserContact(
 
 export async function getUserProgram(
   request: FastifyRequest<{
-    Querystring: { user_id: string };
+    Querystring: { user_id: string; search?: string };
   }>,
   reply: FastifyReply
 ) {
-  const { user_id } = request.query;
+  const { user_id, search } = request.query;
   const traceId = generateCustomUUID();
   if (!user_id || user_id.trim() === "") {
     return reply.code(400).send({
@@ -936,11 +936,11 @@ export async function getUserProgram(
   }
 
   try {
-    const replacements = { user_id };
-    const data = await sequelize.query(getUserPrograms, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
+    const replacements: any = { user_id };
+    if (search) {
+      replacements.search = `%${search}%`;
+    }
+    const data = await getUserPrograms(replacements);
 
     if (data && data.length > 0) {
       return reply.code(200).send({
@@ -950,9 +950,12 @@ export async function getUserProgram(
         trace_id: traceId,
       });
     } else {
-      return reply
-      .code(200)
-      .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+      return reply.code(200).send({
+        status_code: 200,
+        message: "No matching records found.",
+        data: [],
+        trace_id: traceId,
+      });
     }
   } catch (error: any) {
     return reply.code(500).send({
