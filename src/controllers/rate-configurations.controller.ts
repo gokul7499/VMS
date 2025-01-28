@@ -759,6 +759,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                                         uniqueHierarchies.some((hierarchy) => {
                                             return record.hierarchy_id === hierarchy.id;
                                         })
+                                ) || rateCardDecisionRecords.find(
+                                    (record) => record.rate_type_id === baseRate.rate_type?.id &&
+                                        record.hierarchy_id === null &&
+                                        uniqueHierarchies.some(() => {
+                                            return record.job_template_id === job_templates &&
+                                                record.unit_of_measure === unit_of_measure &&
+                                                record.currency === currency_id;
+                                        })
                                 ) || fallbackRate;
 
                                 const bill_rate = billRates.map((billRate) => {
@@ -838,17 +846,17 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
 
                         const matchingDecisionRecord = rateCardDecisionRecords.find(
                             (record) => record.rate_type_id === baseRate.rate_type?.id &&
-                                        uniqueHierarchies.some((hierarchy) => {
-                                            return record.hierarchy_id === hierarchy.id;
-                                        })
+                                uniqueHierarchies.some((hierarchy) => {
+                                    return record.hierarchy_id === hierarchy.id;
+                                })
                         ) || rateCardDecisionRecords.find(
                             (record) => record.rate_type_id === baseRate.rate_type?.id &&
-                                        record.hierarchy_id === null &&
-                                        uniqueHierarchies.some(() => {
-                                            return record.job_template_id === job_templates &&
-                                                   record.unit_of_measure === unit_of_measure &&
-                                                   record.currency === currency_id;
-                                        })
+                                record.hierarchy_id === null &&
+                                uniqueHierarchies.some(() => {
+                                    return record.job_template_id === job_templates &&
+                                        record.unit_of_measure === unit_of_measure &&
+                                        record.currency === currency_id;
+                                })
                         ) || fallbackRate;
 
                         return {
