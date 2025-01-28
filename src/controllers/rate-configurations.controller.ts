@@ -663,6 +663,9 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     hierarchy_id: string;
                     min_rate: { amount: number };
                     max_rate: { amount: number };
+                    job_template_id: string;
+                    unit_of_measure: string;
+                    currency: string;
                 }> = await sequelize.query(rateCardMinRateMaxRate, {
                     replacements: {
                         hierarchyIds,
@@ -683,9 +686,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 const uniqueHierarchies = Array.from(
                     new Set(hierarchie.map((item) => JSON.stringify({ id: item.hierarchy.id, name: item.hierarchy.name })))
                 ).map((item) => JSON.parse(item));
-                uniqueHierarchies.forEach((hierarchy) => {
-                    console.log(hierarchy.id);
-                });
 
                 const baseRates = await RateConfigurationBaseRateTypes.findAll({
                     where: { rate_configuration_id: rateConfiguration.id },
@@ -758,6 +758,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                                     (record) => record.rate_type_id === baseRate.rate_type?.id &&
                                         uniqueHierarchies.some((hierarchy) => {
                                             return record.hierarchy_id === hierarchy.id;
+                                        })
+                                ) || rateCardDecisionRecords.find(
+                                    (record) => record.rate_type_id === baseRate.rate_type?.id &&
+                                        record.hierarchy_id === null &&
+                                        uniqueHierarchies.some(() => {
+                                            return record.job_template_id === job_templates &&
+                                                record.unit_of_measure === unit_of_measure &&
+                                                record.currency === currency_id;
                                         })
                                 ) || fallbackRate;
 
@@ -840,6 +848,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             (record) => record.rate_type_id === baseRate.rate_type?.id &&
                                 uniqueHierarchies.some((hierarchy) => {
                                     return record.hierarchy_id === hierarchy.id;
+                                })
+                        ) || rateCardDecisionRecords.find(
+                            (record) => record.rate_type_id === baseRate.rate_type?.id &&
+                                record.hierarchy_id === null &&
+                                uniqueHierarchies.some(() => {
+                                    return record.job_template_id === job_templates &&
+                                        record.unit_of_measure === unit_of_measure &&
+                                        record.currency === currency_id;
                                 })
                         ) || fallbackRate;
 

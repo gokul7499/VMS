@@ -2469,23 +2469,23 @@ export const rateCardMinRateMaxRate = `
             d.rate_type_id,
             d.min_rate,
             d.max_rate,
-            d.hierarchy_id
+            d.hierarchy_id,
+            d.job_template_id,
+            d.unit_of_measure,
+            d.currency
         FROM
             rate_card_decision_table d
         JOIN
             rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
         WHERE
-            d.hierarchy_id IN (:hierarchyIds)
-            AND d.job_template_id IN (:jobTemplateIds)
-            AND d.unit_of_measure = :unit_of_measure
-            AND d.currency = :currency_id
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency=:currency_id)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
-            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
-            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
             OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
     ),
     fallback_matches AS (
         SELECT
@@ -2494,14 +2494,17 @@ export const rateCardMinRateMaxRate = `
             d.rate_type_id,
             d.min_rate,
             d.max_rate,
-            d.hierarchy_id
+            NULL AS hierarchy_id,
+            d.job_template_id,
+            d.unit_of_measure,
+            d.currency
         FROM
             rate_card_decision_table d
         WHERE
             d.hierarchy_id IS NULL
-            AND d.job_template_id IS NULL
-            AND d.unit_of_measure IS NULL
-            AND d.currency IS NULL
+            AND d.job_template_id IN (:jobTemplateIds)
+            AND d.unit_of_measure = :unit_of_measure
+            AND d.currency = :currency_id
     )
     SELECT *
     FROM primary_matches
@@ -2565,9 +2568,8 @@ WHERE
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
-
-
 `;
+
 export const getUserContacts = `
 SELECT
     user.id,
@@ -2575,12 +2577,14 @@ SELECT
     user.first_name,
     user.last_name,
     user.tenant_id,
+    tenant.name AS tenant_name,
     user.email
 FROM
     user
+LEFT JOIN tenant ON user.tenant_id = tenant.id
 WHERE
-     (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
-`
+    (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`;
 
 export const getUserPrograms = `
 SELECT DISTINCT
