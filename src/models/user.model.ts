@@ -22,6 +22,7 @@ class User extends Model {
   work_locations: any;
   user_type: string | undefined;
   foundational_data: any;
+  user_id: unknown;
   ;
 }
 
@@ -188,6 +189,7 @@ User.init(
     is_allow_unlimited_authority: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      defaultValue:false
     },
     min_limit: {
       type: DataTypes.DOUBLE,
