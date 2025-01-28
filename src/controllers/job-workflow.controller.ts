@@ -1174,6 +1174,8 @@ export const updateReplaceLevel = async (
         // Update the matching level
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
+                console.log(level.placement_order,placement_order);
+                
                 levelFound = true;
 
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
@@ -1974,7 +1976,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                    
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -2012,7 +2014,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             });
                         }
                         input_value = userResult[0] ? {
-                            id: userResult[0].id,
+                            id: userResult[0].user_id,
                             first_name: userResult[0].first_name,
                             last_name: userResult[0].last_name,
                             avatar: userResult[0].avatar,
@@ -2021,7 +2023,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].id,
+                            id: replacedUserResult[0].user_id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar,
@@ -2031,7 +2033,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].id,
+                            id: imporsonateUserResult[0].user_id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
@@ -2046,7 +2048,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 if ( recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -2081,7 +2083,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             });
                         }
                         input_value = userResult[0] ? {
-                            id: userResult[0].id,
+                            id: userResult[0].user_id,
                             first_name: userResult[0].first_name,
                             last_name: userResult[0].last_name,
                             avatar: userResult[0].avatar,
@@ -2090,7 +2092,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].id,
+                            id: replacedUserResult[0].user_id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar,
@@ -2100,7 +2102,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].id,
+                            id: imporsonateUserResult[0].user_id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
@@ -2114,7 +2116,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
@@ -2136,7 +2138,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                            SELECT id, first_name, last_name, email, avatar
+                            SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
@@ -2176,7 +2178,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
-                                    id: supervisor.id,
+                                    id: supervisor.user_id,
                                     first_name: supervisor.first_name,
                                     last_name: supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
@@ -2189,7 +2191,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                         input_value = supervisorData ? [supervisorData] : [];
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].id,
+                            id: replacedUserResult[0].user_id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar || null,
@@ -2198,7 +2200,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].id,
+                            id: imporsonateUserResult[0].user_id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
@@ -2222,7 +2224,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                SELECT id, first_name, last_name, email, avatar
+                SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
@@ -2260,14 +2262,14 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     }
                                     if (userData.length > 0) {
                                         input_value = {
-                                            id: userData[0].id,
+                                            id: userData[0].user_id,
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
-                                        id: replacedUserResult[0].id,
+                                        id: replacedUserResult[0].user_id,
                                         first_name: replacedUserResult[0].first_name,
                                         last_name: replacedUserResult[0].last_name,
                                         avatar: replacedUserResult[0].avatar,
@@ -2277,7 +2279,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         behaviour,
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
-                                        id: imporsonateUserResult[0].id,
+                                        id: imporsonateUserResult[0].user_id,
                                         first_name: imporsonateUserResult[0].first_name,
                                         last_name: imporsonateUserResult[0].last_name,
                                         avatar: imporsonateUserResult[0].avatar,
@@ -2322,7 +2324,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                             if (user) {
                                 const userData: any = {
-                                    id: user.id,
+                                    id: user.user_id,
                                     first_name: user.first_name,
                                     last_name: user.last_name,
                                     avatar: user.avatar,
@@ -2344,7 +2346,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     replacedByUser = await fetchUserData(recipient.replaced_by);
                                     if (replacedByUser) {
                                         userData.replaced_by = {
-                                            id: replacedByUser.id,
+                                            id: replacedByUser.user_id,
                                             first_name: replacedByUser.first_name,
                                             last_name: replacedByUser.last_name,
                                             email: replacedByUser.email,
@@ -2361,7 +2363,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
-                                            id: impersonatedUser.id,
+                                            id: impersonatedUser.user_id,
                                             first_name: impersonatedUser.first_name,
                                             last_name: impersonatedUser.last_name,
                                             email: impersonatedUser.email,
@@ -2821,7 +2823,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 // Function to fetch user data from the database
 const fetchLevelUserData = async (userId: any) => {
     const userQuery = `
-        SELECT id, first_name, last_name, avatar, role_id, email
+        SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
         WHERE user_id = :user_id
         AND is_enabled = true
@@ -3133,7 +3135,7 @@ l.placement_order ASC;`;
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -3168,7 +3170,7 @@ l.placement_order ASC;`;
                             });
                         }
                         input_value = userResult[0] ? {
-                            id: userResult[0].id,
+                            id: userResult[0].user_id,
                             first_name: userResult[0].first_name,
                             last_name: userResult[0].last_name,
                             avatar: userResult[0].avatar,
@@ -3177,7 +3179,7 @@ l.placement_order ASC;`;
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].id,
+                            id: replacedUserResult[0].user_id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar,
@@ -3187,7 +3189,7 @@ l.placement_order ASC;`;
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].id,
+                            id: imporsonateUserResult[0].user_id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
@@ -3200,7 +3202,7 @@ l.placement_order ASC;`;
                 }
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
@@ -3220,7 +3222,7 @@ l.placement_order ASC;`;
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                            SELECT id, first_name, last_name, email, avatar
+                            SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
@@ -3260,7 +3262,7 @@ l.placement_order ASC;`;
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
-                                    id: supervisor.id,
+                                    id: supervisor.user_id,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
                                     avatar: supervisor.avatar || null, // Ensure null if avatar is missing
@@ -3271,7 +3273,7 @@ l.placement_order ASC;`;
 
                         input_value = supervisorData ? supervisorData : null;
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].id,
+                            id: replacedUserResult[0].user_id,
                             first_name: replacedUserResult[0].first_name,
                             last_name: replacedUserResult[0].last_name,
                             avatar: replacedUserResult[0].avatar || null,
@@ -3280,7 +3282,7 @@ l.placement_order ASC;`;
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].id,
+                            id: imporsonateUserResult[0].user_id,
                             first_name: imporsonateUserResult[0].first_name,
                             last_name: imporsonateUserResult[0].last_name,
                             avatar: imporsonateUserResult[0].avatar,
@@ -3307,7 +3309,7 @@ l.placement_order ASC;`;
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                SELECT id, first_name, last_name, email, avatar
+                SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
@@ -3345,14 +3347,14 @@ l.placement_order ASC;`;
                                     }
                                     if (userData.length > 0) {
                                         input_value = {
-                                            id: userData[0].id,
+                                            id: userData[0].user_id,
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
-                                        id: replacedUserResult[0].id,
+                                        id: replacedUserResult[0].user_id,
                                         first_name: replacedUserResult[0].first_name,
                                         last_name: replacedUserResult[0].last_name,
                                         avatar: replacedUserResult[0].avatar,
@@ -3362,7 +3364,7 @@ l.placement_order ASC;`;
                                         behaviour,
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
-                                        id: imporsonateUserResult[0].id,
+                                        id: imporsonateUserResult[0].user_id,
                                         first_name: imporsonateUserResult[0].first_name,
                                         last_name: imporsonateUserResult[0].last_name,
                                         avatar: imporsonateUserResult[0].avatar,
@@ -3410,7 +3412,7 @@ l.placement_order ASC;`;
 
                             if (user) {
                                 const userData: any = {
-                                    id: user.id,
+                                    id: user.user_id,
                                     first_name: user.first_name,
                                     last_name: user.last_name,
                                     avatar: user.avatar,
@@ -3432,7 +3434,7 @@ l.placement_order ASC;`;
                                     replacedByUser = await fetchUserData(recipient.replaced_by);
                                     if (replacedByUser) {
                                         userData.replaced_by = {
-                                            id: replacedByUser.id,
+                                            id: replacedByUser.user_id,
                                             first_name: replacedByUser.first_name,
                                             last_name: replacedByUser.last_name,
                                             email: replacedByUser.email,
@@ -3450,7 +3452,7 @@ l.placement_order ASC;`;
 
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
-                                            id: impersonatedUser.id,
+                                            id: impersonatedUser.user_id,
                                             first_name: impersonatedUser.first_name,
                                             last_name: impersonatedUser.last_name,
                                             email: impersonatedUser.email,

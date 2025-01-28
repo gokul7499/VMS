@@ -28,12 +28,15 @@ interface HierarchyItem {
   code: string;
   program_id: string;
 }
-
 export const getHierarchiesByProgram = async (
-  request: FastifyRequest<{ Params: { program_id: string, id?: string } }>,
+  request: FastifyRequest<{ 
+    Params: { program_id: string, id?: string },
+    Querystring: { is_enabled?: string }
+  }>,
   reply: FastifyReply
 ) => {
   const { program_id, id } = request.params;
+  const { is_enabled } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -51,9 +54,16 @@ export const getHierarchiesByProgram = async (
       });
     }
 
-    const filteredHierarchies = id
+    let filteredHierarchies = id
       ? hierarchiesWithChildren.filter((item) => item.id === id)
       : hierarchiesWithChildren;
+
+    if (is_enabled !== undefined) {
+      const isEnabledBoolean = is_enabled === 'true'; // Convert to boolean
+      filteredHierarchies = filteredHierarchies.filter((item) => {
+        return Boolean(item.is_enabled) === isEnabledBoolean;
+      });
+    }
 
     const buildHierarchy = (data: HierarchyItem[], parentId: string | null = null): any[] => {
       return data
@@ -63,7 +73,7 @@ export const getHierarchiesByProgram = async (
             id: item.id,
             parent_hierarchy_id: item.parent_hierarchy_id,
             name: item.name,
-            is_enabled: item.is_enabled,
+            is_enabled: Boolean(item.is_enabled), // Convert is_enabled to boolean
             preferred_date_format: item.preferred_date_format,
             rate_model: item.rate_model,
             created_on: item.created_on,
