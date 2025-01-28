@@ -2546,6 +2546,7 @@ export const getInvoiceConfigByHierarchyId = `
 export const getActiveUsers = `
 SELECT
     user.id,
+    user.user_id,
     user.first_name,
     user.last_name,
     user.associate_hierarchy_ids,
@@ -2569,6 +2570,7 @@ WHERE
 export const getUserContacts = `
 SELECT
     user.id,
+    user.user_id
     user.first_name,
     user.last_name,
     user.tenant_id,
