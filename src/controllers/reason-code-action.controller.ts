@@ -200,7 +200,6 @@ export async function getReasoncodeById(
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
                         where: {
                             id
-                            // program_id: null
                         },
                         include: [
                             {
@@ -248,7 +247,7 @@ export async function getReasoncodeById(
                 }
             } else {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
-                    where: { id, program_id: null },
+                    where: { id },
                     include: [
                         {
                             model: Event,
@@ -296,7 +295,7 @@ export async function getReasoncodeById(
         }
 
         const reasonCodeAction = await ReasonCodeActionModel.findOne({
-            where: { id, program_id: null },
+            where: { id },
             include: [
                 {
                     model: Event,
