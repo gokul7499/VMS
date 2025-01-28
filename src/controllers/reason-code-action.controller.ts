@@ -200,7 +200,6 @@ export async function getReasoncodeById(
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
                         where: {
                             id
-                            // program_id: null
                         },
                         include: [
                             {
@@ -214,7 +213,6 @@ export async function getReasoncodeById(
                                 model: Module,
                                 as: 'module',
                                 attributes: ['id', 'name'],
-                                where: { is_enabled: true },
                                 required: false
                             },
                         ],
@@ -248,7 +246,7 @@ export async function getReasoncodeById(
                 }
             } else {
                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
-                    where: { id, program_id: null },
+                    where: { id },
                     include: [
                         {
                             model: Event,
@@ -261,7 +259,6 @@ export async function getReasoncodeById(
                             model: Module,
                             as: 'module',
                             attributes: ['id', 'name'],
-                            where: { is_enabled: true },
                             required: false
                         },
                     ],
@@ -296,7 +293,7 @@ export async function getReasoncodeById(
         }
 
         const reasonCodeAction = await ReasonCodeActionModel.findOne({
-            where: { id, program_id: null },
+            where: { id },
             include: [
                 {
                     model: Event,
@@ -357,6 +354,8 @@ export async function getReasoncodeById(
         });
     }
 }
+;
+
 
 export async function getReasoncodeByEventName(
     request: FastifyRequest<{ Params: { event_slug: string } }>,

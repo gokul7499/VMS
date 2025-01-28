@@ -230,6 +230,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 um.modified_by,
                 JSON_OBJECT(
                     'id', u.id,
+                    'user_id',u.user_id,
                     'program_id', u.program_id,
                     'tenant_id', u.tenant_id,
                     'first_name', u.first_name,
@@ -237,6 +238,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'email', u.email,
                     'sso_id', u.sso_id,
                     'title', u.title,
+                    'user_type',u.user_type,
                     'avatar', u.avatar,
                     'status',um.status,
                     'theme', u.theme,
@@ -246,6 +248,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'supervisor', u.supervisor,
                     'time_zone_id', u.time_zone_id,
                     'language_id', u.language_id,
+                    'role_id',u.role_id,
                     'associate_hierarchy_ids', u.associate_hierarchy_ids,
                     'work_location_ids', u.work_location_ids,
                     'associate_cost_ids', u.associate_cost_ids,
@@ -265,9 +268,11 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'created_on', u.created_on,
                     'modified_on', u.modified_on,
                     'created_by', u.created_by,
+                    'addresses',u.addresses,
+                    'contacts',u.contacts,
                     'modified_by', u.modified_by,
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
-                    'supervisor_id', JSON_OBJECT('id', su.id, 'first_name', su.first_name, 'last_name', su.last_name),
+                    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
                     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
                     'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
                     'associate_hierarchy_ids', (
@@ -287,7 +292,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             LEFT JOIN countries ct ON u.country_id = ct.id
             LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
             LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
-            LEFT JOIN user su ON u.supervisor = su.id
+            LEFT JOIN user su ON u.supervisor = su.user_id
             WHERE um.program_id = :program_id AND um.id = :id;
         `;
 
@@ -308,48 +313,49 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             });
         }
 
-        // Add Master Data for each user
-        for (const mapping of userMappings) {
-            const userId = mapping.user?.id;
+for (const mapping of userMappings) {
+    const userId = mapping.user?.user_id;
+    console.log("63274",userId)
 
-            if (userId) {
-                const masterDataQuery = `
-                    SELECT
-                        JSON_OBJECT(
-                            'master_data', JSON_OBJECT(
-                                'id', master_data_type.id,
-                                'name', master_data_type.name,
-                                'configuration', master_data_type.configuration
-                            ),
-                            'associated_master_data', (
-                                SELECT JSON_ARRAYAGG(
-                                    JSON_OBJECT('id', md1.id, 'name', md1.name)
-                                )
-                                FROM master_data AS md1
-                                WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
-                            ),
-                            'default_master_data', JSON_OBJECT(
-                                'id', md2.id,
-                                'name', md2.name
-                            ),
-                            'is_all_associated', user_master_data.is_all_associated=1
-                        ) AS foundational_data
-                    FROM user_master_data
-                    LEFT JOIN master_data_type ON user_master_data.master_data = master_data_type.id
-                    LEFT JOIN master_data AS md2 ON user_master_data.default_master_data = md2.id
-                    WHERE user_master_data.user_id = :id;
-                `;
+    if (userId) {
+        const masterDataQuery = `
+            SELECT
+                JSON_OBJECT(
+                    'master_data', JSON_OBJECT(
+                        'id', master_data_type.id,
+                        'name', master_data_type.name,
+                        'configuration', master_data_type.configuration
+                    ),
+                    'associated_master_data', (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT('id', md1.id, 'name', md1.name)
+                        )
+                        FROM master_data AS md1
+                        WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
+                    ),
+                    'default_master_data', JSON_OBJECT(
+                        'id', md2.id,
+                        'name', md2.name
+                    ),
+                    'is_all_associated', user_master_data.is_all_associated=1
+                ) AS foundational_data
+            FROM user
+            LEFT JOIN user_master_data ON user_master_data.user_id = user.user_id
+            LEFT JOIN master_data_type ON user_master_data.master_data = master_data_type.id
+            LEFT JOIN master_data AS md2 ON user_master_data.default_master_data = md2.id
+            WHERE user_master_data.user_id = :user_id;
+        `;
 
-                const masterData = await sequelize.query(masterDataQuery, {
-                    replacements: { id: userId },
-                    type: QueryTypes.SELECT,
-                })as any;
+        const masterDataResults = await sequelize.query(masterDataQuery, {
+            replacements: { user_id: userId },
+            type: QueryTypes.SELECT,
+        }) as any;
 
-                mapping.user.foundational_data = masterData.length ? masterData[0].foundational_data : null;
-            }
-        }
+        mapping.user.foundational_data = masterDataResults.map((result: any) => result.foundational_data);
+    }
+}
 
-        reply.status(200).send({
+ reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
             message: "User mappings records fetched successfully.",

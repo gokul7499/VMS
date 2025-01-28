@@ -9,7 +9,7 @@ import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
-import { generateCandidateCode } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers, getUserContacts, getUserPrograms } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
@@ -106,7 +106,7 @@ export async function getUserHierarchiesByProgram(
   try {
     const { id: user_id, program_id } = request.params;
     const user = await User.findOne({
-      where: { id: user_id, program_id },
+      where: { user_id: user_id, program_id },
       attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id', 'default_hierarchy_id'],
     });
 
@@ -259,7 +259,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
 
-    const user_id = user.id;    
+    const user_id = user.id;
 
     const existingUser = await User.findOne({
       where: {
@@ -283,25 +283,25 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...userWithoutId, user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const candidateId = await generateCandidateCode();
-      
+      const candidateId = await CandidateCodeGenerate(user.tenant_id);
+
       await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
         // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...userWithoutId,user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_id:user.id,user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
@@ -337,7 +337,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       const customFields = user.custom_fields.map((field: {
         id: any; value: any;
       }) => ({
-        program_id:user.program_id,
+        program_id: user.program_id,
         user_id,
         customfield_id: field.id,
         value: field.value,
@@ -450,7 +450,7 @@ export async function updateUser(
 
       await UserCustomFieldModel.bulkCreate(customFields);
     }
-  
+
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
       await UserMapping.destroy({ where: { user_id: user.user_id } });
 
@@ -599,8 +599,9 @@ export async function getAllUserIDAndUserId(
     ) as any[];
 
     for (const user of users) {
+
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { id: user.id },
+        replacements: { user_id: user.user_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
@@ -844,7 +845,7 @@ export async function getActiveUser(
     const replacements = {
       program_id,
       user_id: user_id || null,
-      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null, 
+      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
       is_enabled: true,
       user_type: 'client'
     };
@@ -878,11 +879,11 @@ export async function getActiveUser(
 
 export async function getUserContact(
   request: FastifyRequest<{
-    Querystring: {tenant_id:string};
+    Querystring: { tenant_id: string };
   }>,
   reply: FastifyReply
 ) {
- 
+
   const { tenant_id } = request.query;
   const traceId = generateCustomUUID();
 
@@ -918,45 +919,50 @@ export async function getUserContact(
   }
 }
 
-
 export async function getUserProgram(
   request: FastifyRequest<{
-    Params: { tenant_id: string };
+    Querystring: { user_id: string; search?: string };
   }>,
   reply: FastifyReply
 ) {
- 
-  const { tenant_id } = request.params;
-    const traceId = generateCustomUUID();
+  const { user_id, search } = request.query;
+  const traceId = generateCustomUUID();
+  if (!user_id || user_id.trim() === "") {
+    return reply.code(400).send({
+      status_code: 400,
+      message: "Bad Request: user_id is required.",
+      trace_id: traceId,
+    });
+  }
 
   try {
-    const replacements = {
-      tenant_id
-    };
-
-    const data = await sequelize.query(getUserPrograms, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
+    const replacements: any = { user_id };
+    if (search) {
+      replacements.search = `%${search}%`;
+    }
+    const data = await getUserPrograms(replacements);
 
     if (data && data.length > 0) {
       return reply.code(200).send({
         status_code: 200,
         message: "Get user program data",
         data,
-        trace_id: traceId
+        trace_id: traceId,
       });
     } else {
-      return reply
-        .code(200)
-        .send({ status_code: 200, message: "No matching records found.", data: [], trace_id: traceId });
+      return reply.code(200).send({
+        status_code: 200,
+        message: "No matching records found.",
+        data: [],
+        trace_id: traceId,
+      });
     }
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error.message
+      error: error.message,
     });
   }
 }

@@ -257,6 +257,7 @@ export async function saveProgramVendor(
     }
 
     const { tenant, user, 'user-group-mapping': userGroupMapping } = request.body as any;
+    const {id,...userWithoutId}=user
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -314,9 +315,23 @@ export async function saveProgramVendor(
             }
         ]
 
+        // let tenantData: any;
+        // const checkExistingTenant = await Tenant.findOne({
+        //     where: {
+        //         name: tenant.display_name,
+        //         email: tenant.email
+        //     }
+        // });
+        
+        // if (!checkExistingTenant) {           
+        //     tenantData = await Tenant.create({ ...tenant });           
+        // } else {
+        //     console.log('Tenant already exists:');
+        // }        
+        
         const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
-        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
+        const userData = await UserModel.create({ ...userWithoutId,user_id:user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         await ProgramVendor.update(
             { user_id: userData.id, contact },

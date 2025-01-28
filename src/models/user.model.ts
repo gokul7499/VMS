@@ -189,6 +189,7 @@ User.init(
     is_allow_unlimited_authority: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      defaultValue:false
     },
     min_limit: {
       type: DataTypes.DOUBLE,
@@ -250,6 +251,5 @@ User.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
 User.belongsTo(CountryModel, { foreignKey: "country_id", as: "countries" });
 User.belongsToMany(hierarchies, { through: 'user_hierarchies', foreignKey: 'user_Id' });
 User.belongsToMany(WorkLocationModel, { through: 'user_work_locations', foreignKey: 'user_Id' });
-User.belongsTo(User, { foreignKey: "supervisor", as: "supervisor_id" });
 
 export default User;

@@ -6,6 +6,7 @@ const auth_db = databaseConfig.config.database_auth;
 
 
 
+
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -1282,7 +1283,7 @@ export const getWorkLocationTimeZoneByUserId = `
             JSON_CONTAINS(user.work_location_ids, JSON_QUOTE(work_locations.id))
           )
         WHERE
-          user.id IN (:user_ids) AND user.program_id = :program_id
+          user.user_id IN (:user_ids) AND user.program_id = :program_id
       `;
 
 export const getMasterDataForHeirarchiesQuery = () => {
@@ -1590,7 +1591,7 @@ LEFT JOIN
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id;
+    user_master_data.user_id = :user_id;
 `;
 
 export const getAllRateTypes = (
@@ -2119,8 +2120,9 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-             'id',u.id,
-             'name',u.first_name
+             'id',u.user_id,
+             'first_name',u.first_name,
+             'last_name',u.last_name
          ) AS supervisor_id,
          (
              SELECT JSON_ARRAYAGG(
@@ -2200,7 +2202,7 @@ WITH user_data AS (
          ) AS associate_hierarchy_ids
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2243,7 +2245,8 @@ export const getPendingUserQuery = `
     ) AS default_work_location_id,
     JSON_OBJECT(
       'id', user.id,
-      'name', user.first_name
+      'first_name', user.first_name,
+      'last_name',user.last_name
     ) AS supervisor_id,
     IF(
       invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
@@ -2282,7 +2285,8 @@ export const getPendingUserQuery = `
             'name', mdt.name,
             'configuration', mdt.configuration
           ),
-          'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')),
+  'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')) = 'true',
+
           'default_master_data', JSON_OBJECT(
             'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')),
             'name', default_mdt.name
@@ -2316,7 +2320,7 @@ LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
-LEFT JOIN user ON invitation.supervisor = user.id
+LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -2465,23 +2469,23 @@ export const rateCardMinRateMaxRate = `
             d.rate_type_id,
             d.min_rate,
             d.max_rate,
-            d.hierarchy_id
+            d.hierarchy_id,
+            d.job_template_id,
+            d.unit_of_measure,
+            d.currency
         FROM
             rate_card_decision_table d
         JOIN
             rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
         WHERE
-            d.hierarchy_id IN (:hierarchyIds)
-            AND d.job_template_id IN (:jobTemplateIds)
-            AND d.unit_of_measure = :unit_of_measure
-            AND d.currency = :currency_id
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency=:currency_id)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
-            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
-            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency=:currency_id)
+            (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
+            OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
             OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
-            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure=:unit_of_measure AND d.currency IS NULL)
+            OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
     ),
     fallback_matches AS (
         SELECT
@@ -2490,14 +2494,17 @@ export const rateCardMinRateMaxRate = `
             d.rate_type_id,
             d.min_rate,
             d.max_rate,
-            d.hierarchy_id
+            NULL AS hierarchy_id,
+            d.job_template_id,
+            d.unit_of_measure,
+            d.currency
         FROM
             rate_card_decision_table d
         WHERE
             d.hierarchy_id IS NULL
-            AND d.job_template_id IS NULL
-            AND d.unit_of_measure IS NULL
-            AND d.currency IS NULL
+            AND d.job_template_id IN (:jobTemplateIds)
+            AND d.unit_of_measure = :unit_of_measure
+            AND d.currency = :currency_id
     )
     SELECT *
     FROM primary_matches
@@ -2543,6 +2550,7 @@ export const getInvoiceConfigByHierarchyId = `
 export const getActiveUsers = `
 SELECT
     user.id,
+    user.user_id,
     user.first_name,
     user.last_name,
     user.associate_hierarchy_ids,
@@ -2560,38 +2568,57 @@ WHERE
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
-
-
 `;
+
 export const getUserContacts = `
 SELECT
     user.id,
+    user.user_id,
     user.first_name,
     user.last_name,
     user.tenant_id,
+    tenant.name AS tenant_name,
     user.email
 FROM
     user
+LEFT JOIN tenant ON user.tenant_id = tenant.id
 WHERE
-     (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
-`
+    (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
+`;
 
-export const getUserPrograms = `
-SELECT DISTINCT
-   programs.id,
-   programs.industries,
-   programs.unique_id,
-   programs.name,
-   programs.type,
-   programs.config,
-   programs.msp_id,
-   programs.start_date,
-   programs.is_activated,
-   programs.display_name
-FROM
-    user_mappings
-LEFT JOIN programs ON user_mappings.program_id = programs.id
-WHERE
-    user_mappings.tenant_id = :tenant_id
+export async function getUserPrograms(replacements: any) {
+  const userProgramsQuery = `
+    SELECT DISTINCT
+      programs.id,
+      programs.industries,
+      programs.unique_id,
+      programs.name,
+      programs.type,
+      programs.config,
+      programs.msp_id,
+      programs.start_date,
+      programs.is_activated,
+      programs.display_name,
+      programs.client_id,
+      tenant.id AS client_id,        
+      tenant.name AS client_name,     
+      tenant.logo AS logo
+    FROM
+      user_mappings
+    LEFT JOIN programs ON user_mappings.program_id = programs.id
+    LEFT JOIN tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+    WHERE
+      user_mappings.user_id = :user_id
+      ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}
+  `;
 
-`
+  try {
+    const data = await sequelize.query(userProgramsQuery, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+}
