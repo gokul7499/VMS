@@ -54,6 +54,18 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   const transaction = await sequelize.transaction();
 
   try {
+    const unique_id = programData.unique_id;
+    if (unique_id) {
+      const existingProgram = await Programs.findOne({ where: { unique_id } });
+      if (existingProgram) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Program with the same code already exists",
+          trace_id: traceId,
+        });
+      }
+    }
     const item: any = await Programs.create({ ...programData }, { transaction });
 
     reply.status(201).send({
@@ -162,72 +174,72 @@ export const getAllProgram = async (request: FastifyRequest<{ Querystring: Progr
   const traceId = generateCustomUUID();
 
   try {
-      const query = request.query as any;
-      const page = parseInt(query.page ?? "1");
-      const limit = parseInt(query.limit ?? "10");
-      const offset = (page - 1) * limit;
-      query.page && delete query.page;
-      query.limit && delete query.limit;
+    const query = request.query as any;
+    const page = parseInt(query.page ?? "1");
+    const limit = parseInt(query.limit ?? "10");
+    const offset = (page - 1) * limit;
+    query.page && delete query.page;
+    query.limit && delete query.limit;
 
-      const filters: any = {
-          is_deleted: false,
-          ...(name && { display_name: { [Op.like]: `%${name.trim()}%` } }),
-          ...(is_activated !== undefined && { is_activated: is_activated === "true" ? 1 : 0 }),
-          ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
-          ...(tenant_id && {
-              [Op.or]: [
-                  { client_id: tenant_id.trim() },
-                  { msp_id: tenant_id.trim() }
-              ]
-          }),
-      };
+    const filters: any = {
+      is_deleted: false,
+      ...(name && { display_name: { [Op.like]: `%${name.trim()}%` } }),
+      ...(is_activated !== undefined && { is_activated: is_activated === "true" ? 1 : 0 }),
+      ...(start_date && { start_date: { [Op.gte]: new Date(start_date) } }),
+      ...(tenant_id && {
+        [Op.or]: [
+          { client_id: tenant_id.trim() },
+          { msp_id: tenant_id.trim() }
+        ]
+      }),
+    };
 
-      const programs = await Programs.findAll({
-          where: filters,
-          include: [
-              {
-                  model: Tenant,
-                  as: "client",
-                  where: {
-                      is_deleted: false,
-                  },
-                  attributes: ["name", "display_name", "id", "logo"],
-              },
-          ],
-          attributes: ["id", "name", "display_name", "is_enabled", "unique_id", "client_id", "msp_id"],
-          order: [['created_on', 'DESC']],
-          limit: limit,
-          offset: offset,
+    const programs = await Programs.findAll({
+      where: filters,
+      include: [
+        {
+          model: Tenant,
+          as: "client",
+          where: {
+            is_deleted: false,
+          },
+          attributes: ["name", "display_name", "id", "logo"],
+        },
+      ],
+      attributes: ["id", "name", "display_name", "is_enabled", "unique_id", "client_id", "msp_id"],
+      order: [['created_on', 'DESC']],
+      limit: limit,
+      offset: offset,
+    });
+
+    const count = await Programs.count({
+      where: filters,
+    });
+
+    if (programs.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "Programs not found",
+        programs: [],
+        trace_id: traceId,
       });
+    }
 
-      const count = await Programs.count({
-          where: filters,
-      });
-
-      if (programs.length === 0) {
-          return reply.status(200).send({
-              status_code: 200,
-              message: "Programs not found",
-              programs: [],
-              trace_id: traceId,
-          });
-      }
-
-      reply.status(200).send({
-          status_code: 200,
-          message: "Programs found",
-          items_per_page: limit,
-          total_records: count,
-          programs: programs,
-          trace_id: traceId,
-      });
+    reply.status(200).send({
+      status_code: 200,
+      message: "Programs found",
+      items_per_page: limit,
+      total_records: count,
+      programs: programs,
+      trace_id: traceId,
+    });
   } catch (error) {
-      console.error('Error in getAllProgram:', error);
-      reply.status(500).send({
-          status_code: 500,
-          message: "Internal Server error",
-          trace_id: traceId,
-      });
+    console.error('Error in getAllProgram:', error);
+    reply.status(500).send({
+      status_code: 500,
+      message: "Internal Server error",
+      trace_id: traceId,
+    });
   }
 };
 
@@ -335,7 +347,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       });
     }
 
-    const updatedCount: any = await Programs.update({...updates, modified_by:userId}, {
+    const updatedCount: any = await Programs.update({ ...updates, modified_by: userId }, {
       where: { id: id },
     });
     reply.status(200).send({
