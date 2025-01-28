@@ -2120,7 +2120,7 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-             'id',u.id,
+             'id',u.user_id,
              'first_name',u.first_name,
              'last_name',u.last_name
          ) AS supervisor_id,
@@ -2606,7 +2606,7 @@ export async function getUserPrograms(replacements: any) {
     FROM
       user_mappings
     LEFT JOIN programs ON user_mappings.program_id = programs.id
-    LEFT JOIN Tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+    LEFT JOIN tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
     WHERE
       user_mappings.user_id = :user_id
       ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}
