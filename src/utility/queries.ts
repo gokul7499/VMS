@@ -2245,7 +2245,8 @@ export const getPendingUserQuery = `
     ) AS default_work_location_id,
     JSON_OBJECT(
       'id', user.id,
-      'name', user.first_name
+      'name', user.first_name,
+      'last_name',user.last_name
     ) AS supervisor_id,
     IF(
       invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
@@ -2319,7 +2320,7 @@ LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
-LEFT JOIN user ON invitation.supervisor = user.id
+LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
