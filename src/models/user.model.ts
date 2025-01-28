@@ -189,6 +189,7 @@ User.init(
     is_allow_unlimited_authority: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      defaultValue:false
     },
     min_limit: {
       type: DataTypes.DOUBLE,
