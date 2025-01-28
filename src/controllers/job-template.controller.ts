@@ -37,6 +37,7 @@ export const getAllJobTemplates = async (
       template_name,
       labour_category,
       is_shift_rate,
+      primary_hierarchy,
       category,
       page = 1,
       limit = 10,
@@ -70,12 +71,12 @@ export const getAllJobTemplates = async (
       replacements.category = `%${category}%`;
     }
     if (labour_category) {
-      dynamicConditions.push(`labour_category.name LIKE :labour_category`);
+      dynamicConditions.push(`labour_category.id LIKE :labour_category`);
       replacements.labour_category = `%${labour_category}%`;
     }
-    if (labour_category) {
-      dynamicConditions.push(`labour_category.name LIKE :labour_category`);
-      replacements.labour_category = `%${labour_category}%`;
+    if (primary_hierarchy) {
+      dynamicConditions.push(`job_templates.primary_hierarchy = :primary_hierarchy`);
+      replacements.primary_hierarchy = primary_hierarchy;
     }
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
