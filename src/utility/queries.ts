@@ -2202,7 +2202,7 @@ WITH user_data AS (
          ) AS associate_hierarchy_ids
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2606,7 +2606,7 @@ export async function getUserPrograms(replacements: any) {
     FROM
       user_mappings
     LEFT JOIN programs ON user_mappings.program_id = programs.id
-    LEFT JOIN tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+    LEFT JOIN tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
     WHERE
       user_mappings.user_id = :user_id
       ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}
