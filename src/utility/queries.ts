@@ -2582,21 +2582,39 @@ WHERE
      (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
 `
 
-export const getUserPrograms = `
-SELECT DISTINCT
-   programs.id,
-   programs.industries,
-   programs.unique_id,
-   programs.name,
-   programs.type,
-   programs.config,
-   programs.msp_id,
-   programs.start_date,
-   programs.is_activated,
-   programs.display_name
-FROM
-    user_mappings
-LEFT JOIN programs ON user_mappings.program_id = programs.id
-WHERE
-    user_mappings.user_id = :user_id
-`;
+export async function getUserPrograms(replacements: any) {
+  const userProgramsQuery = `
+    SELECT DISTINCT
+      programs.id,
+      programs.industries,
+      programs.unique_id,
+      programs.name,
+      programs.type,
+      programs.config,
+      programs.msp_id,
+      programs.start_date,
+      programs.is_activated,
+      programs.display_name,
+      programs.client_id,
+      tenant.id AS client_id,        
+      tenant.name AS client_name,     
+      tenant.logo AS logo
+    FROM
+      user_mappings
+    LEFT JOIN programs ON user_mappings.program_id = programs.id
+    LEFT JOIN Tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+    WHERE
+      user_mappings.user_id = :user_id
+      ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}
+  `;
+
+  try {
+    const data = await sequelize.query(userProgramsQuery, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+}
