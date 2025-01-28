@@ -2120,7 +2120,8 @@ WITH user_data AS (
          um.status,
          JSON_OBJECT(
              'id',u.id,
-             'name',u.first_name
+             'name',u.first_name,
+             'name',u.last_name
          ) AS supervisor_id,
          (
              SELECT JSON_ARRAYAGG(
