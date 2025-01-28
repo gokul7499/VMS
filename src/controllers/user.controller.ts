@@ -9,7 +9,7 @@ import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { ProgramVendor } from "../models/program-vendor.model";
-import { generateCandidateCode } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers, getUserContacts, getUserPrograms } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
@@ -289,7 +289,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const candidateId = await generateCandidateCode();
+      const candidateId = await CandidateCodeGenerate(user.tenant_id);
       
       await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {

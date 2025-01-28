@@ -68,7 +68,6 @@ export interface  GetJobTemplatesQuery {
   labour_category?: string;
   primary_hierarchy:String;
   category?: string;
-  primary_hierarchy:string;
   page?: number;
   limit?: number;
   is_shift_rate?:boolean;
