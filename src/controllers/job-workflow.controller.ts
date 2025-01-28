@@ -1976,7 +1976,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                    
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -2048,7 +2048,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 if ( recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -2116,7 +2116,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
@@ -2138,7 +2138,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                            SELECT id, first_name, last_name, email, avatar
+                            SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
@@ -2224,7 +2224,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                SELECT id, first_name, last_name, email, avatar
+                SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
@@ -2823,7 +2823,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 // Function to fetch user data from the database
 const fetchLevelUserData = async (userId: any) => {
     const userQuery = `
-        SELECT id, first_name, last_name, avatar, role_id, email
+        SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
         WHERE user_id = :user_id
         AND is_enabled = true
@@ -3135,7 +3135,7 @@ l.placement_order ASC;`;
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
-                        SELECT id, first_name, last_name, avatar, role_id,email
+                        SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
@@ -3202,7 +3202,7 @@ l.placement_order ASC;`;
                 }
                 if (recipientType?.name === "Manager of") {
                     const jobManagerQuery = `
-                    SELECT id, first_name, last_name, email, avatar, supervisor
+                    SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
@@ -3222,7 +3222,7 @@ l.placement_order ASC;`;
                         let supervisorData = null;
                         if (manager.supervisor) {
                             const supervisorQuery = `
-                            SELECT id, first_name, last_name, email, avatar
+                            SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
@@ -3309,7 +3309,7 @@ l.placement_order ASC;`;
                                     // Get the first value from the meta_data (Assuming it is a user ID)
                                     let metaValue = Object.values(metaData)[0];
                                     const userQuery = `
-                SELECT id, first_name, last_name, email, avatar
+                SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
