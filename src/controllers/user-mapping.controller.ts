@@ -230,6 +230,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 um.modified_by,
                 JSON_OBJECT(
                     'id', u.id,
+                    'user_id',u.user_id,
                     'program_id', u.program_id,
                     'tenant_id', u.tenant_id,
                     'first_name', u.first_name,
@@ -237,6 +238,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'email', u.email,
                     'sso_id', u.sso_id,
                     'title', u.title,
+                    'user_type',u.user_type,
                     'avatar', u.avatar,
                     'status',um.status,
                     'theme', u.theme,
@@ -309,9 +311,9 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             });
         }
 
-// Add Master Data for each user
 for (const mapping of userMappings) {
-    const userId = mapping.user?.id;
+    const userId = mapping.user?.user_id;
+    console.log("63274",userId)
 
     if (userId) {
         const masterDataQuery = `
@@ -335,14 +337,15 @@ for (const mapping of userMappings) {
                     ),
                     'is_all_associated', user_master_data.is_all_associated=1
                 ) AS foundational_data
-            FROM user_master_data
+            FROM user
+            LEFT JOIN user_master_data ON user_master_data.user_id = user.user_id
             LEFT JOIN master_data_type ON user_master_data.master_data = master_data_type.id
             LEFT JOIN master_data AS md2 ON user_master_data.default_master_data = md2.id
-            WHERE user_master_data.user_id = :id;
+            WHERE user_master_data.user_id = :user_id;
         `;
 
         const masterDataResults = await sequelize.query(masterDataQuery, {
-            replacements: { id: userId },
+            replacements: { user_id: userId },
             type: QueryTypes.SELECT,
         }) as any;
 

@@ -106,7 +106,7 @@ export async function getUserHierarchiesByProgram(
   try {
     const { id: user_id, program_id } = request.params;
     const user = await User.findOne({
-      where: { id: user_id, program_id },
+      where: { user_id: user_id, program_id },
       attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id', 'default_hierarchy_id'],
     });
 
@@ -599,8 +599,9 @@ export async function getAllUserIDAndUserId(
     ) as any[];
 
     for (const user of users) {
+
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { id: user.id },
+        replacements: { user_id: user.user_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);

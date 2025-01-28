@@ -15,8 +15,7 @@ export const CandidateCodeGenerate = async (vendor_id: string): Promise<string> 
     
     const vendor_code = vendor?.vendor_code ? vendor.vendor_code.toUpperCase() : 'VENDOR';
     
-    const count = await Candidate.count();
-    const nextNumber = (count + 1).toString().padStart(5, '0');
+    const count = await Candidate.count( {where: { vendor_id: vendor_id }});    const nextNumber = (count + 1).toString().padStart(5, '0');
     
     return `${vendor_code}-CN-${nextNumber}`;
 };

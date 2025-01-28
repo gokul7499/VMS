@@ -2,7 +2,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+const auth_db="dev_vms_auth"
 
 
 
@@ -1590,7 +1591,7 @@ LEFT JOIN
 LEFT JOIN
     master_data AS md2 ON user_master_data.default_master_data = md2.id
 WHERE
-    user_master_data.user_id = :id;
+    user_master_data.user_id = :user_id;
 `;
 
 export const getAllRateTypes = (
@@ -2121,7 +2122,7 @@ WITH user_data AS (
          JSON_OBJECT(
              'id',u.id,
              'name',u.first_name,
-             'name',u.last_name
+             'last_name',u.last_name
          ) AS supervisor_id,
          (
              SELECT JSON_ARRAYAGG(
@@ -2244,7 +2245,8 @@ export const getPendingUserQuery = `
     ) AS default_work_location_id,
     JSON_OBJECT(
       'id', user.id,
-      'name', user.first_name
+      'name', user.first_name,
+      'last_name',user.last_name
     ) AS supervisor_id,
     IF(
       invitation.avatar IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.url')) IS NULL,
@@ -2283,7 +2285,8 @@ export const getPendingUserQuery = `
             'name', mdt.name,
             'configuration', mdt.configuration
           ),
-          'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')),
+  'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')) = 'true',
+
           'default_master_data', JSON_OBJECT(
             'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')),
             'name', default_mdt.name
@@ -2317,7 +2320,7 @@ LEFT JOIN tenant ON invitation.tenant_id = tenant.id
 LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
-LEFT JOIN user ON invitation.supervisor = user.id
+LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -2547,6 +2550,7 @@ export const getInvoiceConfigByHierarchyId = `
 export const getActiveUsers = `
 SELECT
     user.id,
+    user.user_id,
     user.first_name,
     user.last_name,
     user.associate_hierarchy_ids,
@@ -2570,6 +2574,7 @@ WHERE
 export const getUserContacts = `
 SELECT
     user.id,
+    user.user_id
     user.first_name,
     user.last_name,
     user.tenant_id,
