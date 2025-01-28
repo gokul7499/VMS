@@ -213,7 +213,6 @@ export async function getReasoncodeById(
                                 model: Module,
                                 as: 'module',
                                 attributes: ['id', 'name'],
-                                where: { is_enabled: true },
                                 required: false
                             },
                         ],
@@ -260,7 +259,6 @@ export async function getReasoncodeById(
                             model: Module,
                             as: 'module',
                             attributes: ['id', 'name'],
-                            where: { is_enabled: true },
                             required: false
                         },
                     ],
@@ -356,6 +354,8 @@ export async function getReasoncodeById(
         });
     }
 }
+;
+
 
 export async function getReasoncodeByEventName(
     request: FastifyRequest<{ Params: { event_slug: string } }>,
