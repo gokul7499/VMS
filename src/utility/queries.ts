@@ -2571,7 +2571,7 @@ WHERE
 export const getUserContacts = `
 SELECT
     user.id,
-    user.user_id
+    user.user_id,
     user.first_name,
     user.last_name,
     user.tenant_id,
