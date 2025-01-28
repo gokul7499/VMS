@@ -213,7 +213,6 @@ export async function getReasoncodeById(
                                 model: Module,
                                 as: 'module',
                                 attributes: ['id', 'name'],
-                                where: { is_enabled: true },
                                 required: false
                             },
                         ],
@@ -235,6 +234,7 @@ export async function getReasoncodeById(
                             is_enabled: reasonCode.is_enabled,
                         })),
                     };
+                    console.log(reasonCodeResponse)
 
                     await transaction.commit();
 
@@ -260,7 +260,6 @@ export async function getReasoncodeById(
                             model: Module,
                             as: 'module',
                             attributes: ['id', 'name'],
-                            where: { is_enabled: true },
                             required: false
                         },
                     ],
@@ -356,7 +355,200 @@ export async function getReasoncodeById(
         });
     }
 }
+;
 
+// export async function getReasoncodeById(
+//     request: FastifyRequest<{ Params: { program_id?: string; id: string } }>,
+//     reply: FastifyReply
+// ) {
+//     const traceId = generateCustomUUID();
+//     let transaction = await sequelize.transaction();
+
+//     try {
+//         const { program_id, id } = request.params;
+//         let reasonCodeResponse = null;
+
+//         if (program_id) {
+//             const reasonCodes = await ReasonCodeModel.findAll({
+//                 where: { reason_code_id: id, program_id },
+//                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+//                 transaction,
+//             });
+
+//             if (reasonCodes.length === 0) {
+//                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
+//                     where: { reason_code_id: id, program_id: null },
+//                     attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+//                     transaction,
+//                 });
+
+//                 if (reasonCodesWithoutProgram.length > 0) {
+//                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
+//                         where: { id },
+//                         include: [
+//                             {
+//                                 model: Event,
+//                                 as: 'supporting_text_event',
+//                                 attributes: ['id', 'name'],
+//                                 where: { is_enabled: true },
+//                                 required: false
+//                             },
+//                             {
+//                                 model: Module,
+//                                 as: 'module',
+//                                 attributes: ['id', 'name'],
+//                                 required: false // Temporarily removing the condition
+//                             },
+//                         ],
+//                         transaction
+//                     });
+
+//                     // Log the module_id and verify data in the module table
+//                     console.log('ReasonCodeAction without program:', reasonCodeAction);
+//                     console.log('Module ID:', reasonCodeAction?.module_id);
+
+//                     reasonCodeResponse = {
+//                         id: reasonCodesWithoutProgram[0]?.id,
+//                         module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+//                         module_id: reasonCodeAction?.module?.id,
+//                         event_name: reasonCodeAction?.supporting_text_event?.name,
+//                         event_id: reasonCodeAction?.supporting_text_event?.id,
+//                         program_id,
+//                         reason_codes: reasonCodesWithoutProgram.map((reasonCode) => ({
+//                             id: reasonCode.id,
+//                             name: reasonCode.name,
+//                             created_on: reasonCode.created_on,
+//                             category: reasonCode.category,
+//                             is_enabled: reasonCode.is_enabled,
+//                         })),
+//                     };
+
+//                     await transaction.commit();
+
+//                     return reply.status(200).send({
+//                         status_code: 200,
+//                         message: 'Reason code retrieved successfully',
+//                         reason_code_action: reasonCodeResponse,
+//                         trace_id: traceId,
+//                     });
+//                 }
+//             } else {
+//                 const reasonCodeAction = await ReasonCodeActionModel.findOne({
+//                     where: { id },
+//                     include: [
+//                         {
+//                             model: Event,
+//                             as: 'supporting_text_event',
+//                             attributes: ['id', 'name'],
+//                             where: { is_enabled: true },
+//                             required: false
+//                         },
+//                         {
+//                             model: Module,
+//                             as: 'module',
+//                             attributes: ['id', 'name'],
+//                             required: false // Temporarily removing the condition
+//                         },
+//                     ],
+//                     transaction
+//                 });
+
+//                 // Log the module_id and verify data in the module table
+//                 console.log('ReasonCodeAction with program:', reasonCodeAction);
+//                 console.log('Module ID:', reasonCodeAction?.module_id);
+
+//                 reasonCodeResponse = {
+//                     id: reasonCodes[0]?.id,
+//                     module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+//                     module_id: reasonCodeAction?.module?.id,
+//                     event_name: reasonCodeAction?.supporting_text_event?.name,
+//                     event_id: reasonCodeAction?.supporting_text_event?.id,
+//                     program_id,
+//                     reason_codes: reasonCodes.map((reasonCode) => ({
+//                         id: reasonCode.id,
+//                         name: reasonCode.name,
+//                         created_on: reasonCode.created_on,
+//                         category: reasonCode.category,
+//                         is_enabled: reasonCode.is_enabled,
+//                     })),
+//                 };
+
+//                 await transaction.commit();
+
+//                 return reply.status(200).send({
+//                     status_code: 200,
+//                     message: 'Reason code retrieved successfully',
+//                     reason_code_action: reasonCodeResponse,
+//                     trace_id: traceId,
+//                 });
+//             }
+//         }
+
+//         const reasonCodeAction = await ReasonCodeActionModel.findOne({
+//             where: { id },
+//             include: [
+//                 {
+//                     model: Event,
+//                     as: 'supporting_text_event',
+//                     attributes: ['id', 'name'],
+//                     where: { is_enabled: true },
+//                     required: false
+//                 },
+//                 {
+//                     model: Module,
+//                     as: 'module',
+//                     attributes: ['id', 'name'],
+//                     required: false // Temporarily removing the condition
+//                 },
+//             ],
+//             transaction
+//         });
+
+//         // Log the module_id and verify data in the module table
+//         console.log('ReasonCodeAction without program:', reasonCodeAction);
+//         console.log('Module ID:', reasonCodeAction?.module_id);
+
+//         if (reasonCodeAction) {
+//             const { supporting_text_event, module, reason_codes } = reasonCodeAction.toJSON();
+
+//             reasonCodeResponse = {
+//                 id: reasonCodeAction.id,
+//                 module_name: module?.name || 'Unknown Module',
+//                 module_id: module?.id || 'Unknown ID',
+//                 event_name: supporting_text_event?.name || 'Unknown Event',
+//                 event_id: supporting_text_event?.id || 'Unknown ID',
+//                 reason_codes: reason_codes || [],
+//             };
+
+//             await transaction.commit();
+
+//             return reply.status(200).send({
+//                 status_code: 200,
+//                 message: 'Reason code retrieved successfully',
+//                 reason_code_action: reasonCodeResponse,
+//                 trace_id: traceId,
+//             });
+//         }
+
+//         await transaction.rollback();
+
+//         return reply.status(200).send({
+//             status_code: 200,
+//             message: 'Reason code not found',
+//             trace_id: traceId, 
+//         });
+//     } catch (error: any) {
+//         if (transaction) {
+//             await transaction.rollback();
+//         }
+//         return reply.status(500).send({
+//             status_code: 500,
+//             message: 'An error occurred while fetching reason code',
+//             trace_id: traceId,
+//             error: error.message || error,
+//         });
+//     }
+// }
 export async function getReasoncodeByEventName(
     request: FastifyRequest<{ Params: { event_slug: string } }>,
     reply: FastifyReply
