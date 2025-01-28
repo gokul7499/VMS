@@ -268,6 +268,8 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'created_on', u.created_on,
                     'modified_on', u.modified_on,
                     'created_by', u.created_by,
+                    'addresses',u.addresses,
+                    'contacts',u.contacts,
                     'modified_by', u.modified_by,
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
                     'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
