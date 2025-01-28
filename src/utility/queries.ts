@@ -2120,7 +2120,7 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-             'id',u.id,
+             'id',u.user_id,
              'first_name',u.first_name,
              'last_name',u.last_name
          ) AS supervisor_id,
