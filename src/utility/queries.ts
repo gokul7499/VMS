@@ -2202,7 +2202,7 @@ WITH user_data AS (
          ) AS associate_hierarchy_ids
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
