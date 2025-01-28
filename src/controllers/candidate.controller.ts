@@ -319,7 +319,7 @@ export async function getCandidateByIdAndProgramId(
                 {
                     model: ProgramVendor,
                     as: 'vendor',
-                    attributes: ['id', 'vendor_name'],
+                    attributes: [['display_name', 'vendor_name'],"id"],
                 },
                 {
                     model: IndustriesModel,
