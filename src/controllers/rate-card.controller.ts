@@ -149,7 +149,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             .filter((id) => id !== null);
 
         const laborCategories = await IndustriesModel.findAll({
-            where: { id: laborCategoryIdsFromRateCards, is_enabled: true },
+            where: { id: laborCategoryIdsFromRateCards },
             attributes: ['id', 'name', 'is_enabled'],
         });
 
@@ -336,7 +336,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
-        const { decision_table, ...rateCardUpdates } = request.body as any;
+        const { decision_table, is_enabled, ...rateCardUpdates } = request.body as any;
         const rateCard = await RateCard.findOne({
             where: { id, program_id, is_deleted: false },
         });
@@ -349,16 +349,26 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await RateCard.update({ ...rateCardUpdates, modified_by: userId, modified_on: Date.now() },
+
+        await RateCard.update(
             {
-                where: { id, program_id, is_deleted: false, modified_on: Date.now() },
+                ...rateCardUpdates,
+                is_enabled,
+                modified_by: userId,
+                modified_on: Date.now(),
+            },
+            {
+                where: { id, program_id, is_deleted: false },
                 transaction,
-            });
+            }
+        );
+
         if (decision_table && Array.isArray(decision_table)) {
             await DecisionTable.destroy({
                 where: { rate_card_id: id },
                 transaction,
             });
+
             for (const dt of decision_table) {
                 await DecisionTable.create(
                     {
@@ -378,6 +388,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 );
             }
         }
+
         await transaction.commit();
         reply.status(201).send({
             status_code: 201,

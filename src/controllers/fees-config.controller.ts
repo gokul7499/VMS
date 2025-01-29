@@ -7,9 +7,11 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import Hierarchy from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op, Sequelize } from 'sequelize';
+import { Op, QueryTypes, Sequelize } from 'sequelize';
 import IndustriesModel from '../models/labour-category.model';
 import { ProgramVendor } from '../models/program-vendor.model';
+import { sequelize } from '../config/instance';
+import { sameFeesConfig } from '../utility/queries';
 const baseService = new BaseService(feesConfiguration);
 
 export async function createFeesConfiguration(
@@ -33,7 +35,6 @@ export async function createFeesConfiguration(
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
   const userId = user?.sub;
-  console.log("uuu", userId)
   logger(
     {
       trace_id: traceId,
@@ -65,11 +66,30 @@ export async function createFeesConfiguration(
     if (existingConfig) {
       return reply.status(409).send({
         status_code: 409,
-        message: 'Fees configuration with this name already exists'
+        message: 'Fees configuration with this name already exists.'
+      });
+    }
+
+    const existingConfigurations = await sequelize.query(sameFeesConfig, {
+      replacements: {
+        program_id,
+        hierarchies: JSON.stringify(feesConfig.hierarchy_levels),
+        labor_category: JSON.stringify(feesConfig.labor_category)
+      },
+      type: QueryTypes.SELECT,
+    });
+
+    if (existingConfigurations.length > 0) {
+      return reply.status(409).send({
+        status_code: 409,
+        message: 'Fees configurations with the same hierarchy and labor category already exist.',
+        trace_id: traceId,
       });
     }
     const fees: any = await feesConfiguration.create({
-      ...feesConfig, program_id, created_by: userId,
+      ...feesConfig,
+      program_id,
+      created_by: userId,
       modified_by: userId,
     });
     reply.status(201).send({
@@ -262,14 +282,14 @@ export async function deleteFeesConfigurationById(
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
   if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId=user?.sub
+  const userId = user?.sub
   try {
     const { id } = request.params;
     const [feesConfig] = await feesConfiguration.update(

@@ -231,8 +231,8 @@ export async function getAllCandidate(
             {
                 model: ProgramVendor,
                 as: 'vendor',
-                attributes: ['id', 'vendor_name'],
-                where: vendor_name ? { vendor_name: { [Op.like]: `%${vendor_name}%` } } : undefined
+                attributes: ['id', 'vendor_name','display_name'],
+                where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
             }
         ];
 
@@ -319,7 +319,7 @@ export async function getCandidateByIdAndProgramId(
                 {
                     model: ProgramVendor,
                     as: 'vendor',
-                    attributes: ['id', 'vendor_name'],
+                    attributes: [['display_name', 'vendor_name'],"id"],
                 },
                 {
                     model: IndustriesModel,
@@ -408,10 +408,6 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
-
-
-
-
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
@@ -603,7 +599,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({ where: { program_id, id: userId } });
+    const userData = await User.findOne({ where: { program_id, user_id: userId } });
     const vendorId = userData?.tenant_id || undefined;
     if (vendorId === undefined) {
         return reply.status(200).send({
@@ -649,8 +645,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         {
             model: ProgramVendor,
             as: 'vendor',
-            attributes: ['id', 'vendor_name'],
-            where: vendor_name ? { vendor_name: { [Op.like]: `%${vendor_name}%` } } : undefined
+            attributes: ['id','display_name','vendor_name'],
+            where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
         }
     ];
 

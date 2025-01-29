@@ -259,7 +259,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       });
     }
 
-    const user_id = user.id;    
+    const user_id = user.id;
 
     const existingUser = await User.findOne({
       where: {
@@ -283,25 +283,25 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...userWithoutId, user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
       const candidateId = await CandidateCodeGenerate(user.tenant_id);
-      
+
       await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user,user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
         // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...userWithoutId,user_id:user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_id:user.id,user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
@@ -337,7 +337,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       const customFields = user.custom_fields.map((field: {
         id: any; value: any;
       }) => ({
-        program_id:user.program_id,
+        program_id: user.program_id,
         user_id,
         customfield_id: field.id,
         value: field.value,
@@ -450,7 +450,7 @@ export async function updateUser(
 
       await UserCustomFieldModel.bulkCreate(customFields);
     }
-  
+
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
       await UserMapping.destroy({ where: { user_id: user.user_id } });
 
@@ -486,8 +486,6 @@ export async function updateUser(
     });
   }
 }
-
-
 
 
 export async function deleteUser(
@@ -845,9 +843,10 @@ export async function getActiveUser(
     const replacements = {
       program_id,
       user_id: user_id || null,
-      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null, 
+      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
       is_enabled: true,
-      user_type: 'client'
+      user_type: 'client',
+      status: 'active',
     };
 
     const users = await sequelize.query(getActiveUsers, {
@@ -879,11 +878,11 @@ export async function getActiveUser(
 
 export async function getUserContact(
   request: FastifyRequest<{
-    Querystring: {tenant_id:string};
+    Querystring: { tenant_id: string };
   }>,
   reply: FastifyReply
 ) {
- 
+
   const { tenant_id } = request.query;
   const traceId = generateCustomUUID();
 
