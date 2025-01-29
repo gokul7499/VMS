@@ -376,16 +376,11 @@ export const updateWorkflowStatus = async (
                 if (!isValidLevel) {
                     continue;
                 }
-
-
-
                 // If the level is valid (all meta_data are non-null), check the status
                 if (level.status === "pending") {
                     allLevelsAfterFirstCompleted = false;
                 }
             }
-
-
             // Set final workflow status based on valid levels
             workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
