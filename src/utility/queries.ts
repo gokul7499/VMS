@@ -2574,7 +2574,8 @@ SELECT
     user.associate_hierarchy_ids,
     user.program_id,
     user.is_enabled,
-    user.user_type
+    user.user_type,
+    user.status
 FROM
     user
 WHERE
@@ -2582,6 +2583,7 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
+    AND user.status = 'active'
     AND (:hierarchy_id IS NULL OR 
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
