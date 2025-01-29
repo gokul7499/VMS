@@ -599,7 +599,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({ where: { program_id, id: userId } });
+    const userData = await User.findOne({ where: { program_id, user_id: userId } });
     const vendorId = userData?.tenant_id || undefined;
     if (vendorId === undefined) {
         return reply.status(200).send({
