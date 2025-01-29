@@ -19,6 +19,9 @@ import { databaseConfig } from '../config/db';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
+let TEAI_BASE_URL = databaseConfig.config.teai_url
+
+
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -355,52 +358,38 @@ export const updateWorkflowStatus = async (
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
+            let allLevelsAfterFirstCompleted = true;
+            let workflowStatus = "completed";
 
-            // // const allLevelsAfterFirstCompleted = levels.slice(1).every((level: any) => level.status === "completed");
-            // const allLevelsAfterFirstCompleted = levels[levels.length - 1]?.status === "completed";
-            // const workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
-            // const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
-
-            // workflow.status = workflowStatus;
-            // workflow.is_updated = is_updatedFlag;
-            // console.log("Workflow Status:", workflowStatus);
-            let allLevelsAfterFirstCompleted = true; 
-            let workflowStatus = "completed"; 
-           
             // Loop through levels and process
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
-            
+
                 // Skip this level if recipient_types is empty or any recipient has meta_data with null values
                 const isValidLevel = level.recipient_types &&
                     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
                     level.recipient_types.every((recipient: any) => {
-                        return recipient.meta_data !== null && 
-                               Object.values(recipient.meta_data).every(value => value !== null);
+                        return recipient.meta_data !== null &&
+                            Object.values(recipient.meta_data).every(value => value !== null);
                     });
-            
+
                 if (!isValidLevel) {
-                    continue; 
+                    continue;
                 }
-            
-                
-            
                 // If the level is valid (all meta_data are non-null), check the status
                 if (level.status === "pending") {
                     allLevelsAfterFirstCompleted = false;
                 }
             }
-            
-            
             // Set final workflow status based on valid levels
             workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
-            
+
             // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
             console.log(workflowStatus);
-            
+
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
 
             let allPayload = {
@@ -470,16 +459,16 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             const payload = {
                 status: "OPEN",
             };
-console.log(apiUrl);
+            console.log(apiUrl);
 
-          let a=  await axios.post(apiUrl, payload, {
+            let a = await axios.post(apiUrl, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     authorization: authHeader
                 },
             });
             console.log(a);
-            
+
         } else
             if (moduleType === "offer" || moduleType === "offers") {
                 const offer_id = workflow.workflow_trigger_id;
@@ -487,7 +476,6 @@ console.log(apiUrl);
                 const payload = {
                     status: "Released",
                 };
-
                 await axios.post(apiUrl, payload, {
                     headers: {
                         'Content-Type': 'application/json',
@@ -496,8 +484,8 @@ console.log(apiUrl);
                 });
             } else
                 if (moduleType === "Submissions") {
-                    const offer_id = workflow.workflow_trigger_id;
-                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                    const submission_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
                         status: "submitted",
                     };
@@ -511,11 +499,9 @@ console.log(apiUrl);
 
                 } else
                     if (moduleType === "Assignment") {
-                        const offer_id = workflow.workflow_trigger_id;
-                        const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
-                        const payload = {
-                            status: "Rejected",
-                        };
+                        const assignment_id = workflow.workflow_trigger_id;
+                        const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
+                        const payload = { status: "approved", display_status: null };
 
                         await axios.post(apiUrl, payload, {
                             headers: {
@@ -525,7 +511,6 @@ console.log(apiUrl);
                         });
 
                     }
-
 
     } catch (error) {
         console.error(error);
@@ -589,10 +574,11 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             }
             else
                 if (moduleType === "Assignment") {
-                    const offer_id = workflow.workflow_trigger_id;
-                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                    const assignment_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                     const payload = {
-                        status: "Rejected",
+                        status: "rejected",
+                        display_status: "rejected"
                     };
 
                     await axios.post(apiUrl, payload, {
@@ -624,7 +610,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
     (async () => {
 
         const userQuery = `
-        SELECT id, user_type,email
+        SELECT user_id, user_type,email
         FROM user
         WHERE user_id = :user_id
         AND is_enabled = true
@@ -891,7 +877,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
             },
         });
 
-     
+
 
 
         return users; // Return the list of users that match the criteria.
@@ -925,7 +911,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
 
         // Step 2: Query the user table to get the manager details
         const userQuery = `
-            SELECT id, email
+            SELECT user_id, email
             FROM user
             WHERE user_id = :managerId
             LIMIT 1
@@ -1174,8 +1160,8 @@ export const updateReplaceLevel = async (
         // Update the matching level
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
-                console.log(level.placement_order,placement_order);
-                
+                console.log(level.placement_order, placement_order);
+
                 levelFound = true;
 
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
@@ -1259,7 +1245,7 @@ export const updateReplaceLevel = async (
 
 async function fetchUserById(user_id: any) {
     const userQuery = `
-        SELECT id, first_name, last_name, avatar, role_id,email
+        SELECT user_id, first_name, last_name, avatar, role_id,email
         FROM user
         WHERE user_id = :user_id
           AND is_enabled = true
@@ -1843,7 +1829,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log("rowsssssssssssssssssssssssssssssssssss",rows);
+
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -1851,19 +1837,19 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-        
+
         // Create a map to store the latest status for each flow_type
         const flowTypeStatusMap = new Map<string, boolean>();
-        
+
         for (const program of programData) {
             const { flow_type, status } = program as JobWorkFlow
-        
+
             // If the flow_type is already in the map, prioritize "completed" status
             if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
                 flowTypeStatusMap.set(flow_type, status === "completed");
             }
         }
-        
+
         // Convert the map to the required array format and sort
         const flowTypes = Array.from(flowTypeStatusMap.entries())
             .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
@@ -1872,7 +1858,7 @@ ORDER BY
                 if (b.flow_type === "Review") return 1;
                 return 0;
             });
-        
+
         console.log(flowTypes);
         let manager = rows[0]?.manager
         if (rows.length === 0) {
@@ -1972,18 +1958,19 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
-                  
-                   
+
+
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
+                          AND is_activated = true
                         LIMIT 1
                     `;
-                    console.log(userQuery);
-                    
+                        console.log(userQuery);
+
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -2031,6 +2018,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult[0].user_id,
@@ -2041,17 +2029,19 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: imporsonateUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
+
                         } : undefined;
                     }
                 }
 
-                if ( recipientType?.name === "Job Manager") {
+                if (recipientType?.name === "Job Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
+                           AND is_activated = true
                         LIMIT 1
                     `;
                         let userResult = null;
@@ -2064,7 +2054,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             // If no `existing_replaced_user`, use the first `input_value`
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: manager},
+                                replacements: { user_id: manager },
                             });
                         }
 
@@ -2100,6 +2090,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult[0].user_id,
@@ -2120,6 +2111,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
+                       AND is_activated = true
                     LIMIT 1
                 `;
 
@@ -2198,6 +2190,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult[0].user_id,
@@ -2228,6 +2221,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
+                   AND is_activated = true
                 LIMIT 1
             `;
                                     // const userData: any = await sequelize.query<Users>(userQuery, {
@@ -2277,6 +2271,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
+                                        replaced_date_time: recipient_details.replaced_modified_on
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
                                         id: imporsonateUserResult[0].user_id,
@@ -2375,22 +2370,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     }
                                 }
 
-                                // Fetch "existing_replaced_user" data if applicable
-                                // if (recipient.existing_replaced_user) {
-                                //     const existingReplacedUser = await fetchUserData(recipient.existing_replaced_user);
 
-                                //     if (existingReplacedUser) {
-                                //         userData.existing_replaced_user = {
-                                //             id: existingReplacedUser.id,
-                                //             first_name: existingReplacedUser.first_name,
-                                //             last_name: existingReplacedUser.last_name,
-                                //             avatar: existingReplacedUser.avatar,
-                                //             role_id: existingReplacedUser.role_id,
-                                //             existing_replaced_notes: recipient.existing_replaced_notes,
-                                //             existing_replaced_date_time: recipient.existing_replaced_modified_on,
-                                //         };
-                                //     }
-                                // }
 
                                 // Push the final user data to the users array
                                 users.push(userData);
@@ -2690,36 +2670,36 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 }
             }
             if (currentLevel.level_status === "pending") {
-              
-                
+
+
                 const hasMatchingRecipient =
                     user.userType == "super_user" ||
                     currentLevel.recipients.some((recipient: any) => {
                         if (recipient.replaced_by) {
                             return recipient.replaced_by.id === user.sub;
                         }
-                    
+
                         return recipient.user_id === user.sub;
-                     
-                        
+
+
                     });
-            
+
                 // Add `action_allowed` object to workflow if it doesn't already exist
-             
-                    workflow.action_allowed = {};
-               
-            
+
+                workflow.action_allowed = {};
+
+
                 // Set `is_approval_allowed` key in the `action_allowed` object
-              console.log(workflow);
-              
-              
-                    if (workflow.workflow_type == "Review") {
-                        workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
-                    } else if (workflow.workflow_type == "Approval") {
-                        workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
-                    }
-              
-                
+                console.log(workflow);
+
+
+                if (workflow.workflow_type == "Review") {
+                    workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
+                } else if (workflow.workflow_type == "Approval") {
+                    workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
+                }
+
+
             }
 
 
@@ -2827,6 +2807,7 @@ const fetchLevelUserData = async (userId: any) => {
         FROM user
         WHERE user_id = :user_id
         AND is_enabled = true
+           AND is_activated = true
         LIMIT 1
     `;
     const userResult = await sequelize.query<Users>(userQuery, {
@@ -3117,13 +3098,14 @@ l.placement_order ASC;`;
                     FROM recipient_type
                     WHERE id = :recipient_type_id
                      AND is_enabled = true
+                        AND is_activated = true
                     LIMIT 1
                 `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
                     type: QueryTypes.SELECT,
                     replacements: { recipient_type_id },
                 });
-             
+
 
                 const recipientType = recipientTypeResult[0] as Recipient;
 
@@ -3139,6 +3121,7 @@ l.placement_order ASC;`;
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
+                           AND is_activated = true
                         LIMIT 1
                     `;
                         let userResult = null;
@@ -3206,6 +3189,7 @@ l.placement_order ASC;`;
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
+                       AND is_activated = true
                     LIMIT 1
                 `;
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
@@ -3226,6 +3210,7 @@ l.placement_order ASC;`;
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
+                               AND is_activated = true
                             LIMIT 1
                         `;
                             let supervisorResult = null
@@ -3313,12 +3298,10 @@ l.placement_order ASC;`;
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
+                   AND is_activated = true
                 LIMIT 1
             `;
-                                    // const userData: any = await sequelize.query<Users>(userQuery, {
-                                    //     type: QueryTypes.SELECT,
-                                    //     replacements: { user_id: metaValue },
-                                    // });
+
                                     let userData: any = null
                                     if (recipients.existing_replaced_user) {
                                         userData = await sequelize.query(userQuery, {
@@ -3387,7 +3370,7 @@ l.placement_order ASC;`;
                     const recipientTypes = JSON.parse(row.recipient_types);
 
                     if (!Array.isArray(recipientTypes) || recipientTypes.length === 0) {
-                       
+
                         continue; // Stop further execution for this row
                     }
                     for (const recipient of recipientTypes) {
@@ -3464,7 +3447,7 @@ l.placement_order ASC;`;
                                     }
                                 }
 
-                               
+
 
                                 // Push the final user data to the users array
                                 users.push(userData);
@@ -3494,7 +3477,7 @@ l.placement_order ASC;`;
                 if (input_value) {
                     let recipients = [];
                     if (Array.isArray(input_value)) {
-                      
+
                         recipients = input_value.map(user => {
                             return {
                                 name: getName(user),
@@ -3640,7 +3623,7 @@ export const getModuleEvent = async (
             if (!isDuplicate) {
                 groupedData[moduleName].push({
                     event: eventName,
-                    workflow_trigger_id:workflowTriggerId,
+                    workflow_trigger_id: workflowTriggerId,
                     event_slug: eventSlug,
                 });
             }

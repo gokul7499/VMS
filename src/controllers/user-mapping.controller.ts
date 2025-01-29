@@ -240,7 +240,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'title', u.title,
                     'user_type',u.user_type,
                     'avatar', u.avatar,
-                    'status',um.status,
+                    'status',u.status,
                     'theme', u.theme,
                     'country_id', u.country_id,
                     'applications', u.applications,
@@ -370,4 +370,45 @@ for (const mapping of userMappings) {
         });
     }
 };
+
+export async function updateStatus(
+  request: FastifyRequest<{
+    Params: { program_id: string; id: string };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id, id } = request.params;
+  const traceId = generateCustomUUID();
+
+  try {
+    const userMapping = await UserMapping.findOne({
+      where: { program_id, id },
+    });
+    if (!userMapping) {
+      return reply.code(404).send({
+        status_code: 404,
+        message: "No matching user mapping record found.",
+        trace_id: traceId,
+      });
+    }
+
+    const newStatus = !userMapping.is_activated;
+    await UserMapping.update(
+      { is_activated: newStatus },
+      { where: { program_id, id } }
+    );
+    return reply.code(200).send({
+      status_code: 200,
+      message: `User mapping updatd successfully`,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
 

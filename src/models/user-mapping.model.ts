@@ -12,6 +12,7 @@ class UserMapping extends Model {
     time_zone_id: any;
     status: any;
     tenant_id: any;
+    is_activated: any;
 }
 
 UserMapping.init({
@@ -79,9 +80,6 @@ role_id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         allowNull: true
-    },
-    status:{
-    type:DataTypes.STRING
     },
     ref_id: {
         type: DataTypes.STRING,

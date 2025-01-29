@@ -272,13 +272,10 @@ export async function getTimesheetExpenseRuleById(
         });
     }
 }
-export async function updateTimesheetExpenseRule(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
+export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-
     const authHeader = request.headers.authorization;
+    
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({
             status_code: 401,
@@ -290,14 +287,31 @@ export async function updateTimesheetExpenseRule(
         const token = authHeader.split(' ')[1];
         const user = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({
+                status_code: 401,
+                message: 'Unauthorized - Invalid token',
+            });
         }
-        const userId = user?.sub
+        const userId = user?.sub;
         const { id, program_id } = request.params as {
-            id: string;
-            program_id: string;
-        };
+             id: string; program_id: string };
         const updateData = request.body as Partial<TimesheetExpenseRule>;
+
+        const existingRule = await TimesheetExpenseRuleModel.findOne({
+            where: {
+                rule_name: updateData.rule_name, 
+                program_id,
+                id: { [Op.ne]: id }, 
+            },
+        });
+
+        if (existingRule) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Rule name already exists.',
+                trace_id: traceId,
+            });
+        }
         const [affectedRows] = await TimesheetExpenseRuleModel.update(
             {
                 ...updateData,
@@ -305,7 +319,11 @@ export async function updateTimesheetExpenseRule(
                 modified_by: userId,
             },
             {
-                where: { id, program_id, is_deleted: false },
+                where: {
+                    id,
+                    program_id,
+                    is_deleted: false,
+                },
             }
         );
 
@@ -331,6 +349,7 @@ export async function updateTimesheetExpenseRule(
         });
     }
 }
+
 
 export async function deleteTimesheetExpenseRule(
     request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
