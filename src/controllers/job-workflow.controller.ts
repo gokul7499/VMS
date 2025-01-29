@@ -517,7 +517,6 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
 
                     }
 
-
     } catch (error) {
         console.error(error);
         return reply.status(500).send({ message: 'Internal Server Error' });
