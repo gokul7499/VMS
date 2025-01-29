@@ -8,7 +8,7 @@ export async function userMappingRoutes(fastify: FastifyInstance) {
     fastify.put('/usermapping/:id', updateUserMappingById);
     fastify.delete('/usermapping/:id', deleteUserMappingById);
     fastify.get('/program/:program_id/usermapping/:id',getUserMappings);
-    fastify.put('/program/:program_id/uspdate-user-mapping-status/:id',updateStatus);
+    fastify.put('/program/:program_id/update-user-mapping-status/:id',updateStatus);
 }
 
 export default userMappingRoutes;
