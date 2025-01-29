@@ -315,8 +315,14 @@ export async function saveProgramVendor(
                 addresses: user.addresses
             }
         ]
-
-        const tenantData = await Tenant.create({ ...tenant }, { transaction });
+       let tenantData;
+        const tenants=await Tenant.findOne({where:{id:tenant.id}});
+        if(!tenants){
+             tenantData = await Tenant.create({ ...tenant }, { transaction });
+        }
+        else{
+            tenantData=tenants
+        }
         const programVendors = await ProgramVendor.create({ ...vendor,  program_id, id: tenantData.id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id }, { transaction });
