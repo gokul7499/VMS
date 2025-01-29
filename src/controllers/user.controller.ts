@@ -488,8 +488,6 @@ export async function updateUser(
 }
 
 
-
-
 export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
