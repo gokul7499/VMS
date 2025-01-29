@@ -506,9 +506,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     if (moduleType === "Assignment") {
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-                        const payload = {
-                            status: "approved",
-                        };
+                        const payload = {status: "approved" , display_status:  null};
 
                         await axios.post(apiUrl, payload, {
                             headers: {
@@ -585,7 +583,8 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     const assignment_id = workflow.workflow_trigger_id;
                     const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                     const payload = {
-                        status: "Rejected",
+                        status: "rejected",
+                        display_status:  "rejected"
                     };
 
                     await axios.post(apiUrl, payload, {
