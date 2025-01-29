@@ -2137,7 +2137,7 @@ WITH user_data AS (
          MAX(CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END) AS is_all_work_location_associate,
          MAX(CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END) AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
-         MAX(um.status) AS status,
+         MAX(u.status) AS status,
          JSON_OBJECT(
              'id', u.user_id,
              'first_name', u.first_name,
