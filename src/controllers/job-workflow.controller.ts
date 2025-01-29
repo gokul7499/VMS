@@ -1858,7 +1858,6 @@ ORDER BY
                 if (b.flow_type === "Review") return 1;
                 return 0;
             });
-
         console.log(flowTypes);
         let manager = rows[0]?.manager
         if (rows.length === 0) {
@@ -3098,8 +3097,7 @@ l.placement_order ASC;`;
                     SELECT id, name
                     FROM recipient_type
                     WHERE id = :recipient_type_id
-                     AND is_enabled = true
-                       
+                     AND is_enabled = true                      
                     LIMIT 1
                 `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
