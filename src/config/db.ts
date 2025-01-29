@@ -29,6 +29,7 @@ export const databaseConfig = {
       database_auth: config.database_auth,
       sourcing_url:config.sourcing_url,
       auth_url:config.auth_url,
+      teai_url:config.teai_url,
       reconnect: {
         max: 10,
         delay: 1000,
