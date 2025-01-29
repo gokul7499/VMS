@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 
 interface HierarchyItem {
@@ -28,12 +28,15 @@ interface HierarchyItem {
   code: string;
   program_id: string;
 }
-
 export const getHierarchiesByProgram = async (
-  request: FastifyRequest<{ Params: { program_id: string, id?: string } }>,
+  request: FastifyRequest<{
+    Params: { program_id: string, id?: string },
+    Querystring: { is_enabled?: string }
+  }>,
   reply: FastifyReply
 ) => {
   const { program_id, id } = request.params;
+  const { is_enabled } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -51,9 +54,16 @@ export const getHierarchiesByProgram = async (
       });
     }
 
-    const filteredHierarchies = id
+    let filteredHierarchies = id
       ? hierarchiesWithChildren.filter((item) => item.id === id)
       : hierarchiesWithChildren;
+
+    if (is_enabled !== undefined) {
+      const isEnabledBoolean = is_enabled === 'true'; // Convert to boolean
+      filteredHierarchies = filteredHierarchies.filter((item) => {
+        return Boolean(item.is_enabled) === isEnabledBoolean;
+      });
+    }
 
     const buildHierarchy = (data: HierarchyItem[], parentId: string | null = null): any[] => {
       return data
@@ -63,7 +73,7 @@ export const getHierarchiesByProgram = async (
             id: item.id,
             parent_hierarchy_id: item.parent_hierarchy_id,
             name: item.name,
-            is_enabled: item.is_enabled,
+            is_enabled: Boolean(item.is_enabled), // Convert is_enabled to boolean
             preferred_date_format: item.preferred_date_format,
             rate_model: item.rate_model,
             created_on: item.created_on,
@@ -208,7 +218,7 @@ export async function getHierarchiesById(
         replacements: { hierarchy_id: id },
         type: QueryTypes.SELECT,
       });
-      
+
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
 
       if (masterDataResult) {
@@ -585,10 +595,38 @@ export const getRateModel = async (
       parent_hierarchy_id: item.parent_hierarchy_id,
       parent_name: item.parent_name,
       rate_model: item.rate,
+      is_assoiciate: hierarchyIdsArray.includes(item.id),
       hierarchies: [],
     }));
 
-    const hierarchyTree = buildHierarchyTree(hierarchyDetails);
+    const parentHierarchyIds = hierarchyDetails
+      .map(h => h.parent_hierarchy_id)
+      .filter((id, index, self) => id && self.indexOf(id) === index && !hierarchyIdsArray.includes(id));
+
+    let parentHierarchyDetails: Hierarchy[] = [];
+    if (parentHierarchyIds.length > 0) {
+      const parentHierarchyDetailsResult = await sequelize.query(parentHierarchyDetailsQuery, {
+        replacements: {
+          parentHierarchyIds,
+          programId: program_id,
+        },
+        type: QueryTypes.SELECT,
+      });
+
+      parentHierarchyDetails = parentHierarchyDetailsResult.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        parent_hierarchy_id: item.parent_hierarchy_id,
+        parent_name: item.parent_name,
+        rate_model: item.rate,
+        is_assoiciate: false,
+        hierarchies: []
+      }));
+    }
+
+    const allHierarchies = [...hierarchyDetails, ...parentHierarchyDetails];
+
+    const hierarchyTree = buildHierarchyTree(allHierarchies);
     const rateModels = hierarchyDetails.map(h => h.rate_model);
     const uniqueRateModels = Array.from(new Set(rateModels));
 
@@ -604,12 +642,12 @@ export const getRateModel = async (
       hierarchies: hierarchyTree,
     });
 
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal server error',
       trace_id: traceId,
+      error: error.message
     });
   }
 };

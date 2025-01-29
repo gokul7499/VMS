@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getAllUserMappings, getUserMappingById, createUserMappings, updateUserMappingById, deleteUserMappingById, getUserMappings } from '../controllers/user-mapping.controller';
+import { getAllUserMappings, getUserMappingById, createUserMappings, updateUserMappingById, deleteUserMappingById, getUserMappings,updateStatus } from '../controllers/user-mapping.controller';
 import { UserMappingAttributes } from '../interfaces/user-mapping.interface'
 export async function userMappingRoutes(fastify: FastifyInstance) {
     fastify.get('/usermapping/', getAllUserMappings);
@@ -8,6 +8,7 @@ export async function userMappingRoutes(fastify: FastifyInstance) {
     fastify.put('/usermapping/:id', updateUserMappingById);
     fastify.delete('/usermapping/:id', deleteUserMappingById);
     fastify.get('/program/:program_id/usermapping/:id',getUserMappings);
+    fastify.put('/program/:program_id/update-user-mapping-status/:id',updateStatus);
 }
 
 export default userMappingRoutes;

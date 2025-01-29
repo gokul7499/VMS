@@ -66,6 +66,7 @@ export interface  GetJobTemplatesQuery {
   is_enabled?: boolean;
   template_name?: string;
   labour_category?: string;
+  primary_hierarchy:String;
   category?: string;
   page?: number;
   limit?: number;
