@@ -603,23 +603,26 @@ export const getRateModel = async (
       .map(h => h.parent_hierarchy_id)
       .filter((id, index, self) => id && self.indexOf(id) === index && !hierarchyIdsArray.includes(id));
 
-    const parentHierarchyDetailsResult = await sequelize.query(parentHierarchyDetailsQuery, {
-      replacements: {
-        parentHierarchyIds,
-        programId: program_id,
-      },
-      type: QueryTypes.SELECT,
-    });
+    let parentHierarchyDetails: Hierarchy[] = [];
+    if (parentHierarchyIds.length > 0) {
+      const parentHierarchyDetailsResult = await sequelize.query(parentHierarchyDetailsQuery, {
+        replacements: {
+          parentHierarchyIds,
+          programId: program_id,
+        },
+        type: QueryTypes.SELECT,
+      });
 
-    const parentHierarchyDetails: Hierarchy[] = parentHierarchyDetailsResult.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      parent_hierarchy_id: item.parent_hierarchy_id,
-      parent_name: item.parent_name,
-      rate_model: item.rate,
-      is_assoiciate: false,
-      hierarchies: []
-    }));
+      parentHierarchyDetails = parentHierarchyDetailsResult.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        parent_hierarchy_id: item.parent_hierarchy_id,
+        parent_name: item.parent_name,
+        rate_model: item.rate,
+        is_assoiciate: false,
+        hierarchies: []
+      }));
+    }
 
     const allHierarchies = [...hierarchyDetails, ...parentHierarchyDetails];
 
