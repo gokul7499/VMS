@@ -269,6 +269,25 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
+
+        if (updates.rule_group_name) {
+            const existingGroup = await TimesheetExpenseRuleGroup.findOne({
+                where: {
+                    rule_group_name: updates.rule_group_name,
+                    program_id,
+                    id: { [Op.ne]: id },
+                },
+            });
+
+            if (existingGroup) {
+                return reply.status(409).send({
+                    status_code: 409,
+                    message: 'Timesheet expense rule group with this name already exists.',
+                    trace_id: traceId,
+                });
+            }
+        }
+
         const [updatedCount] = await TimesheetExpenseRuleGroup.update({
             ...updates, modified_by: userId, modified_on: Date.now()
         }, {
@@ -299,12 +318,12 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
             message: 'Timesheet expense rule group updated successfully.',
             trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
-            error,
+            error: error.message,
         });
     }
 }
