@@ -943,10 +943,11 @@ export async function getUserProgram(
     const data = await getUserPrograms(replacements);
 
     if (data && data.length > 0) {
+      const allNull = Object.values(data[0]).every(value => value === null);
       return reply.code(200).send({
         status_code: 200,
-        message: "Get user program data",
-        data,
+        message: allNull ? "No matching records found." : "Get user program data",
+        data: allNull ? null : data,
         trace_id: traceId,
       });
     } else {
