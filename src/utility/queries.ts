@@ -1238,21 +1238,36 @@ export const vendorFilterQueryBuilder = (
     `;
 };
 
-
 export const hierarchyDetailsQuery = `
 SELECT
-  h.id,
-  h.name,
-  h.parent_hierarchy_id,
-  parent_h.name AS parent_name,
-  h.rate_model AS rate
+    h.id,
+    h.name,
+    h.parent_hierarchy_id,
+    parent_h.name AS parent_name,
+    h.rate_model AS rate
 FROM
-  hierarchies h
+    hierarchies h
 LEFT JOIN
-  hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
+    hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
 WHERE
-  h.id IN (:hierarchyIds)
-  AND h.program_id = :programId
+    h.id IN (:hierarchyIds)
+    AND h.program_id = :programId
+`;
+
+export const parentHierarchyDetailsQuery = `
+SELECT
+    h.id,
+    h.name,
+    h.parent_hierarchy_id,
+    parent_h.name AS parent_name,
+    h.rate_model AS rate
+FROM
+    hierarchies h
+LEFT JOIN
+    hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
+WHERE
+    h.id IN (:parentHierarchyIds)
+    AND h.program_id = :programId
 `;
 
 export const parentRateModelQuery = `
@@ -2094,35 +2109,39 @@ WITH user_data AS (
          u.is_activated,
          u.user_type,
          u.is_associated,
-         u.applications,
+         u.supervisor,
+         MAX(CASE
+             WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
+             ELSE JSON_ARRAY(
+               JSON_OBJECT(
+                 'label', '',
+                 'number', '',
+                 'isd_code', '',
+                 'max_phone_length', 0,
+                 'min_phone_length', 0,
+                 'phoneFormatCountry', ''
+               )
+             )
+         END) AS contacts,
+         MAX(CASE
+             WHEN JSON_LENGTH(u.applications) > 0 THEN u.applications
+             ELSE JSON_ARRAY()
+         END) AS applications,
          u.name_prefix,
          u.role_id,
          u.title,
          u.sso_id,
-         CASE
-           WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
-           ELSE JSON_ARRAY(
-             JSON_OBJECT(
-               'label', '',
-               'number', '',
-               'isd_code', '',
-               'max_phone_length', 0,
-               'min_phone_length', 0,
-               'phoneFormatCountry', ''
-             )
-           )
-         END AS contacts,
-         u.addresses,
+         MAX(CASE WHEN JSON_LENGTH(u.addresses) > 0 THEN u.addresses ELSE JSON_ARRAY() END) AS addresses,
          u.time_zone_id,
-         CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END AS is_allow_unlimited_authority,
-         CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END AS is_all_work_location_associate,
-         CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END AS is_all_hierarchy_associate,
+         MAX(CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END) AS is_allow_unlimited_authority,
+         MAX(CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END) AS is_all_work_location_associate,
+         MAX(CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END) AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
-         um.status,
+         MAX(u.status) AS status,
          JSON_OBJECT(
-             'id',u.id,
-             'first_name',u.first_name,
-             'last_name',u.last_name
+             'id', u.user_id,
+             'first_name', u.first_name,
+             'last_name', u.last_name
          ) AS supervisor_id,
          (
              SELECT JSON_ARRAYAGG(
@@ -2138,7 +2157,7 @@ WITH user_data AS (
              FROM work_locations wl
              WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
          ) AS work_location_ids,
-                 COALESCE((
+         COALESCE((
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', custom_fields.id,
@@ -2161,26 +2180,25 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.user_id = :user_id' : ''}
-    ${user_type ? 'AND u.user_type = :user_type' : ''}
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
-    ${role_id ? 'AND u.role_id = :role_id' : ''}
-    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
-    ${email ? 'AND u.email = :email' : ''}
-    ${first_name ? 'AND u.first_name = :first_name' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''} 
+    ${user_type ? 'AND u.user_type = :user_type' : ''} 
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''} 
+    ${role_id ? 'AND u.role_id = :role_id' : ''} 
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''} 
+    ${email ? 'AND u.email = :email' : ''} 
+    ${first_name ? 'AND u.first_name = :first_name' : ''} 
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
       .join(' OR ')})`
-    : ''}
-  GROUP BY u.id, dh.id, dwl.id, c.id, t.id, um.id
+    : ''} 
+  GROUP BY u.id, dh.id, dwl.id, c.id, t.id
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
 `;
-
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
 WITH user_data AS (
@@ -2202,7 +2220,7 @@ WITH user_data AS (
          ) AS associate_hierarchy_ids
   FROM user u
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.id = :user_id' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2556,7 +2574,8 @@ SELECT
     user.associate_hierarchy_ids,
     user.program_id,
     user.is_enabled,
-    user.user_type
+    user.user_type,
+    user.status
 FROM
     user
 WHERE
@@ -2564,6 +2583,7 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
+    AND user.status = 'active'
     AND (:hierarchy_id IS NULL OR 
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
@@ -2606,7 +2626,7 @@ export async function getUserPrograms(replacements: any) {
     FROM
       user_mappings
     LEFT JOIN programs ON user_mappings.program_id = programs.id
-    LEFT JOIN Tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+    LEFT JOIN tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
     WHERE
       user_mappings.user_id = :user_id
       ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}

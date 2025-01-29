@@ -149,7 +149,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             .filter((id) => id !== null);
 
         const laborCategories = await IndustriesModel.findAll({
-            where: { id: laborCategoryIdsFromRateCards, is_enabled: true },
+            where: { id: laborCategoryIdsFromRateCards},
             attributes: ['id', 'name', 'is_enabled'],
         });
 
