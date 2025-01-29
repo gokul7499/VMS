@@ -2109,6 +2109,7 @@ WITH user_data AS (
          u.is_activated,
          u.user_type,
          u.is_associated,
+         u.supervisor,
          MAX(CASE
              WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
              ELSE JSON_ARRAY(
@@ -2136,7 +2137,7 @@ WITH user_data AS (
          MAX(CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END) AS is_all_work_location_associate,
          MAX(CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END) AS is_all_hierarchy_associate,
          um.id as user_mapping_id,
-         MAX(um.status) AS status,
+         MAX(u.status) AS status,
          JSON_OBJECT(
              'id', u.user_id,
              'first_name', u.first_name,
@@ -2573,7 +2574,8 @@ SELECT
     user.associate_hierarchy_ids,
     user.program_id,
     user.is_enabled,
-    user.user_type
+    user.user_type,
+    user.status
 FROM
     user
 WHERE
@@ -2581,6 +2583,7 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
+    AND user.status = 'active'
     AND (:hierarchy_id IS NULL OR 
         -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
