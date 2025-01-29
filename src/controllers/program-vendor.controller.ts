@@ -248,7 +248,6 @@ export async function saveProgramVendor(
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
 
-
     const token = authHeader.split(' ')[1];
     let users: any = await decodeToken(token);
 
@@ -287,6 +286,8 @@ export async function saveProgramVendor(
         },
         ProgramVendor
     );
+
+    const transaction = await sequelize.transaction();
     try {
         if (!tenant || !user) {
             return reply.status(400).send({
@@ -315,29 +316,17 @@ export async function saveProgramVendor(
             }
         ]
 
-        // let tenantData: any;
-        // const checkExistingTenant = await Tenant.findOne({
-        //     where: {
-        //         name: tenant.display_name,
-        //         email: tenant.email
-        //     }
-        // });
+        const tenantData = await Tenant.create({ ...tenant }, { transaction });
+        const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
+        await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id }, { transaction });
         
-        // if (!checkExistingTenant) {           
-        //     tenantData = await Tenant.create({ ...tenant });           
-        // } else {
-        //     console.log('Tenant already exists:');
-        // }        
-        
-        const tenantData = await Tenant.create({ ...tenant });
-        const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
-        const userData = await UserModel.create({ ...userWithoutId,user_id:user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
-        await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         await ProgramVendor.update(
             { user_id: userData.id, contact },
-            { where: { id: programVendors.id, program_id } }
-
+            { where: { id: programVendors.id, program_id }, transaction }
         );
+
+        await transaction.commit();
 
         reply.status(201).send({
             status_code: 201,
@@ -367,6 +356,9 @@ export async function saveProgramVendor(
         );
 
     } catch (error: any) {
+        // Rollback transaction in case of an error
+        await transaction.rollback();
+
         logger(
             {
                 trace_id: traceId,
@@ -395,6 +387,7 @@ export async function saveProgramVendor(
         });
     }
 };
+
 
 export const updateProgramVendor = async (
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
