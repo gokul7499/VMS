@@ -677,8 +677,8 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 rate_card_id: string;
                 rate_type_id: string;
                 hierarchy_id: string;
-                min_rate: { amount: number };
-                max_rate: { amount: number };
+                min_rate: { amount: number, is_changeable: boolean, is_reduceable: boolean };
+                max_rate: { amount: number, is_changeable: boolean, is_reduceable: boolean };
                 job_template_id: string;
                 unit_of_measure: string;
                 currency: string;
@@ -700,21 +700,32 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 extractedHierarchyIds.includes(record.hierarchy_id) || record.hierarchy_id === null
             );
 
-            console.log(matchingDecisionRecords)
-            const minRateValue = matchingDecisionRecords.length
-                ? Math.min(...matchingDecisionRecords.map(record => record.min_rate.amount))
-                : 0;
+            let minRateRecord = matchingDecisionRecords.length
+                ? matchingDecisionRecords.reduce((prev, curr) => (curr.min_rate.amount < prev.min_rate.amount ? curr : prev))
+                : null;
 
-            const maxRateValue = matchingDecisionRecords.length
-                ? Math.max(...matchingDecisionRecords.map(record => record.max_rate.amount))
-                : 0;
+            let maxRateRecord = matchingDecisionRecords.length
+                ? matchingDecisionRecords.reduce((prev, curr) => (curr.max_rate.amount > prev.max_rate.amount ? curr : prev))
+                : null;
 
             const matchingDecisionRecord = {
-                min_rate: { amount: minRateValue },
-                max_rate: { amount: maxRateValue }
+                min_rate: minRateRecord
+                    ? {
+                        amount: minRateRecord.min_rate.amount,
+                        is_changeable: minRateRecord.min_rate.is_changeable,
+                        is_reduceable: minRateRecord.min_rate.is_reduceable
+                    }
+                    : { amount: 0, is_changeable: true, is_reduceable: false },
+
+                max_rate: maxRateRecord
+                    ? {
+                        amount: maxRateRecord.max_rate.amount,
+                        is_changeable: maxRateRecord.max_rate.is_changeable,
+                        is_reduceable: maxRateRecord.max_rate.is_reduceable
+                    }
+                    : { amount: 0, is_changeable: true, is_reduceable: false }
             };
 
-            // Fetch base rate types
             const baseRates = await RateConfigurationBaseRateTypes.findAll({
                 where: { rate_configuration_id: rateConfiguration.id },
                 include: [{
