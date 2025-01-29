@@ -10,6 +10,7 @@ class ExpenseConfigurationModel extends Model {
   hierarchy: any;
   status!: any;
   expense_item_type_config: any;
+    master_data: any;
 }
 
 ExpenseConfigurationModel.init(

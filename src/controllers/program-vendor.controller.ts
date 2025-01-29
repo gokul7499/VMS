@@ -257,6 +257,7 @@ export async function saveProgramVendor(
     }
 
     const { tenant, user, 'user-group-mapping': userGroupMapping } = request.body as any;
+    const {id,...userWithoutId}=user
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -314,9 +315,23 @@ export async function saveProgramVendor(
             }
         ]
 
+        // let tenantData: any;
+        // const checkExistingTenant = await Tenant.findOne({
+        //     where: {
+        //         name: tenant.display_name,
+        //         email: tenant.email
+        //     }
+        // });
+        
+        // if (!checkExistingTenant) {           
+        //     tenantData = await Tenant.create({ ...tenant });           
+        // } else {
+        //     console.log('Tenant already exists:');
+        // }        
+        
         const tenantData = await Tenant.create({ ...tenant });
         const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id });
-        const userData = await UserModel.create({ ...user, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
+        const userData = await UserModel.create({ ...userWithoutId,user_id:user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id });
         await ProgramVendor.update(
             { user_id: userData.id, contact },
@@ -717,63 +732,65 @@ export async function updateProgramVendorByUserId(
 };
 
 export const getVendorDocuments = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string; vendor_id?: string; document_id?: string, page?: string, page_size?: string, name?: string, is_enabled?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { vendor_id?: string; document_id?: string, page?: string, limit?: string, name?: string, is_enabled?: string } }>,
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
-    const { user_id, vendor_id, document_id, page = '1', page_size = '10', name = null, is_enabled = null } = request.query;
+    const { vendor_id, document_id, page = '1', limit = '10', name = null, is_enabled = null } = request.query;
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const user_id = user?.sub;
     const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(page_size, 10);
+    const pageSize = parseInt(limit, 10);
     const offset = (pageNumber - 1) * pageSize;
-    const limit = pageSize;
 
     try {
-        const query =
-            user_id && document_id ? complianceDocumentGetByUserAndDocumentId :
-                user_id ? complianceDocumentGetByUserId :
-                    vendor_id && document_id ? complianceDocumentGetByVendorAndDocumentId :
-                        vendor_id ? complianceDocumentGetByVendorId :
-                            null;
+        let documents: VendorDetails[] = [];
 
-        if (!query) {
+        if (vendor_id && document_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
+                replacements: { program_id, vendor_id, document_id },
+                type: QueryTypes.SELECT,
+            });
+        } else if (vendor_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
+                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
+                type: QueryTypes.SELECT,
+            });
+        }
+        else if (user_id && document_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserAndDocumentId, {
+                replacements: { program_id, user_id, document_id },
+                type: QueryTypes.SELECT,
+            });
+        } else if (user_id) {
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId, {
+                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
+                type: QueryTypes.SELECT,
+            });
+        } else {
             return reply.status(400).send({
                 status_code: 400,
                 message: 'Invalid request parameters.',
                 trace_id: traceId,
             });
         }
-
-        const complianceDocuments: VendorDetails[] = await sequelize.query(query, {
-            replacements: {
-                program_id,
-                user_id,
-                vendor_id,
-                document_id,
-                name: name ? `%${name}%` : null,
-                is_enabled: is_enabled ? `%${is_enabled}%` : null,
-                limit,
-                offset,
-            },
-            type: QueryTypes.SELECT,
-        });
-
-        const queryForCount = vendor_id
-            ? complianceDocumentCountByVendorId
-            : complianceDocumentGetByUserId;
-
-        const totalCountResult = await sequelize.query<VendorDetails>(queryForCount, {
-            replacements: { program_id, vendor_id, user_id },
-            type: QueryTypes.SELECT,
-        });
-
-        const totalCount = totalCountResult[0]?.total_count || 0;
-
-        const uniqueDocuments = complianceDocuments.filter((doc, index, self) =>
+        const uniqueDocuments = documents.filter((doc, index, self) =>
             index === self.findIndex((d) => d.id === doc.id)
         );
-
+        let totalCount = uniqueDocuments.length;
         if (!uniqueDocuments.length) {
             return reply.status(200).send({
                 status_code: 200,
@@ -784,6 +801,7 @@ export const getVendorDocuments = async (
                 uploaded_documents: [],
             });
         }
+
         return reply.status(200).send({
             status_code: 200,
             message: 'Vendor documents fetched successfully.',
@@ -818,12 +836,12 @@ export const getVendorDocuments = async (
                 vendor_name: doc.vendor_name,
             })),
         });
-
-    } catch (error) {
+    } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching vendor documents.',
             trace_id: traceId,
+            error: error.message,
         });
     }
 };
@@ -875,7 +893,7 @@ export async function updateComplianceDocument(
     reply: FastifyReply
 ) {
     const { program_id } = request.params;
-    const { document_id, user_id, vendor_id } = request.query;
+    const { document_id, vendor_id } = request.query;
     const complianceDocumentUpdate = request.body as Partial<VendorComplianceDocumentInterface>;
     const traceId = generateCustomUUID();
 
@@ -887,6 +905,7 @@ export async function updateComplianceDocument(
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
+    const user_id = user?.sub;
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
@@ -922,7 +941,8 @@ export async function updateComplianceDocument(
         }
 
         const documentData = complianceDocuments[0];
-        const uploadedDocument = documentData.uploaded_document;
+
+        const uploadedDocument = complianceDocumentUpdate.uploaded_document;
 
         const expiryDateFromPayload = complianceDocumentUpdate.uploaded_document?.expiry_on;
         if (!expiryDateFromPayload) {
@@ -974,15 +994,21 @@ export async function updateComplianceDocument(
                 modified_by: userId,
             }
         });
-
         if (uploadedDocument) {
-            await VendorComplianceReqDocMappingModel.upsert({
-                program_id,
+            await VendorComplianceReqDocMappingModel.create({
+                program_id: program_id,
                 required_document_id: document_id,
-                user_id: request.query.user_id ?? null,
+                user_id: user_id,
                 vendor_id: vendor_id ?? null,
-                ...complianceDocumentUpdate.uploaded_document,
+                url: uploadedDocument.url,
+                uploaded_on: Date.now(),
+                compliance_note: uploadedDocument.compliance_note,
+                file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
+                expiry_on: uploadedDocument.expiry_on,
+                created_by: user_id,
+                modified_by: user_id,
+                status: uploadedDocument.status,
                 is_enabled: true,
                 is_deleted: false,
             });

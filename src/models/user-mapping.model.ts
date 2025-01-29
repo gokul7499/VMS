@@ -11,6 +11,8 @@ class UserMapping extends Model {
     user: any;
     time_zone_id: any;
     status: any;
+    tenant_id: any;
+    is_activated: any;
 }
 
 UserMapping.init({
@@ -36,7 +38,7 @@ role_id: {
         allowNull: true,
         references: {
             model: 'user',
-            key: 'id',
+            key: 'user_id',
         },
     },
     program_id: {

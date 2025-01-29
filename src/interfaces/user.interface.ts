@@ -51,5 +51,6 @@ export interface UserInterface {
   foundational_data?:any[];
   user:any,
   background_logo_color?:string;
-  user_id?:string;
+  user_id?:string| undefined;
+  custom_fields?:any[]
 }
