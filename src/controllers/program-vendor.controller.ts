@@ -299,6 +299,7 @@ export async function saveProgramVendor(
 
         const vendor = {
             vendor_name: tenant.name,
+            user_id:user.id,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             display_name: tenant.display_name,
