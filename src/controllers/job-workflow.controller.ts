@@ -1966,7 +1966,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
-                          AND is_activated = true
+                          AND status = 'active'
                         LIMIT 1
                     `;
                         console.log(userQuery);
@@ -2041,7 +2041,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
-                           AND is_activated = true
+                            AND status = 'active'
                         LIMIT 1
                     `;
                         let userResult = null;
@@ -2111,7 +2111,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
-                       AND is_activated = true
+                        AND status = 'active'
                     LIMIT 1
                 `;
 
@@ -2134,6 +2134,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
+                             AND status = 'active'
                             LIMIT 1
                         `;
                             let supervisorResult = null
@@ -2221,7 +2222,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
-                   AND is_activated = true
+                    AND status = 'active'
                 LIMIT 1
             `;
                                     // const userData: any = await sequelize.query<Users>(userQuery, {
@@ -2807,7 +2808,7 @@ const fetchLevelUserData = async (userId: any) => {
         FROM user
         WHERE user_id = :user_id
         AND is_enabled = true
-           AND is_activated = true
+         AND status = 'active'
         LIMIT 1
     `;
     const userResult = await sequelize.query<Users>(userQuery, {
@@ -3098,7 +3099,7 @@ l.placement_order ASC;`;
                     FROM recipient_type
                     WHERE id = :recipient_type_id
                      AND is_enabled = true
-                        AND is_activated = true
+                       
                     LIMIT 1
                 `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
@@ -3121,7 +3122,7 @@ l.placement_order ASC;`;
                         FROM user
                         WHERE user_id = :user_id
                         AND is_enabled = true
-                           AND is_activated = true
+                          
                         LIMIT 1
                     `;
                         let userResult = null;
@@ -3189,7 +3190,7 @@ l.placement_order ASC;`;
                     FROM user
                     WHERE user_id = :job_manager_id
                     AND is_enabled = true
-                       AND is_activated = true
+                       
                     LIMIT 1
                 `;
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
@@ -3210,7 +3211,7 @@ l.placement_order ASC;`;
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
-                               AND is_activated = true
+                              
                             LIMIT 1
                         `;
                             let supervisorResult = null
@@ -3298,7 +3299,7 @@ l.placement_order ASC;`;
                 FROM user
                 WHERE user_id = :user_id
                 AND is_enabled = true
-                   AND is_activated = true
+                 
                 LIMIT 1
             `;
 
