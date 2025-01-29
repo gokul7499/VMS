@@ -2593,7 +2593,6 @@ WHERE
     AND user.user_type = 'client'
     AND user.status = 'active'
     AND (:hierarchy_id IS NULL OR
-        -- Ensure that hierarchy_id is passed as a valid JSON array
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
 `;
