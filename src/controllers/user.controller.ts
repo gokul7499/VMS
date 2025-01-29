@@ -488,8 +488,6 @@ export async function updateUser(
 }
 
 
-
-
 export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
@@ -847,7 +845,8 @@ export async function getActiveUser(
       user_id: user_id || null,
       hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
       is_enabled: true,
-      user_type: 'client'
+      user_type: 'client',
+      status: 'active',
     };
 
     const users = await sequelize.query(getActiveUsers, {

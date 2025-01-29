@@ -240,7 +240,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'title', u.title,
                     'user_type',u.user_type,
                     'avatar', u.avatar,
-                    'status',um.status,
+                    'status',u.status,
                     'theme', u.theme,
                     'country_id', u.country_id,
                     'applications', u.applications,

@@ -81,9 +81,6 @@ role_id: {
         defaultValue: DataTypes.UUIDV4,
         allowNull: true
     },
-    status:{
-    type:DataTypes.STRING
-    },
     ref_id: {
         type: DataTypes.STRING,
         allowNull: true
