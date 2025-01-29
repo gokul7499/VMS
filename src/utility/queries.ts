@@ -2109,6 +2109,7 @@ WITH user_data AS (
          u.is_activated,
          u.user_type,
          u.is_associated,
+         u.supervisor,
          MAX(CASE
              WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
              ELSE JSON_ARRAY(
