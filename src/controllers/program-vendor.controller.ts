@@ -299,7 +299,6 @@ export async function saveProgramVendor(
 
         const vendor = {
             vendor_name: tenant.name,
-            user_id:user.id,
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             display_name: tenant.display_name,
@@ -318,12 +317,12 @@ export async function saveProgramVendor(
         ]
 
         const tenantData = await Tenant.create({ ...tenant }, { transaction });
-        const programVendors = await ProgramVendor.create({ ...vendor, program_id, id: tenantData.id }, { transaction });
+        const programVendors = await ProgramVendor.create({ ...vendor,  program_id, id: tenantData.id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.id, program_id, role_id: user.role_id }, { transaction });
         
         await ProgramVendor.update(
-            { user_id: userData.id, contact },
+            { user_id: userData.user_id, contact },
             { where: { id: programVendors.id, program_id }, transaction }
         );
 
