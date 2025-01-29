@@ -1238,21 +1238,36 @@ export const vendorFilterQueryBuilder = (
     `;
 };
 
-
 export const hierarchyDetailsQuery = `
 SELECT
-  h.id,
-  h.name,
-  h.parent_hierarchy_id,
-  parent_h.name AS parent_name,
-  h.rate_model AS rate
+    h.id,
+    h.name,
+    h.parent_hierarchy_id,
+    parent_h.name AS parent_name,
+    h.rate_model AS rate
 FROM
-  hierarchies h
+    hierarchies h
 LEFT JOIN
-  hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
+    hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
 WHERE
-  h.id IN (:hierarchyIds)
-  AND h.program_id = :programId
+    h.id IN (:hierarchyIds)
+    AND h.program_id = :programId
+`;
+
+export const parentHierarchyDetailsQuery = `
+SELECT
+    h.id,
+    h.name,
+    h.parent_hierarchy_id,
+    parent_h.name AS parent_name,
+    h.rate_model AS rate
+FROM
+    hierarchies h
+LEFT JOIN
+    hierarchies parent_h ON h.parent_hierarchy_id = parent_h.id
+WHERE
+    h.id IN (:parentHierarchyIds)
+    AND h.program_id = :programId
 `;
 
 export const parentRateModelQuery = `
@@ -2120,7 +2135,7 @@ WITH user_data AS (
          um.id as user_mapping_id,
          um.status,
          JSON_OBJECT(
-             'id',u.id,
+             'id',u.user_id,
              'first_name',u.first_name,
              'last_name',u.last_name
          ) AS supervisor_id,
