@@ -6,7 +6,7 @@ import { sequelize } from '../config/instance';
 import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 import IndustriesModel from '../models/labour-category.model';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { timesheetConfigAdvancedFilter } from '../utility/queries';
 import hierarchies from '../models/hierarchies.model';
 import { decodeToken } from '../middlewares/verifyToken';
@@ -234,36 +234,55 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId = user?.sub
+    const userId = user?.sub;
+
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const configData = request.body as TimesheetTypeConfigInterface;
+
+        const existingConfig = await TimesheetTypeConfig.findOne({
+            where: {
+                title: configData.title,
+                program_id,
+                id: { [Op.ne]: id }, 
+            },
+        });
+
+        if (existingConfig) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Timesheet Type Config name already exists for the given program.',
+                trace_id: traceId,
+            });
+        }
+
         const config = await TimesheetTypeConfig.findOne({ where: { id, is_deleted: false } });
         if (!config) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Timesheet Type Config not found.',
                 trace_id: traceId,
-                config: []
+                config: [],
             });
         }
         await config.update({
             program_id,
             ...configData,
             modified_by: userId,
-            modified_on: Date.now()
-        });
+            modified_on: Date.now(),
+        }, { transaction });
+        await transaction.commit();
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet Type Config updated successfully.',
             trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
             message: 'Error updating Timesheet Type Config.',
-            error: error || 'Unknown error',
+            error: error?.message || 'Unknown error',
             trace_id: traceId,
         });
     }
