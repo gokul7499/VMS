@@ -23,7 +23,9 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
       });
     }
 
-    const moduleIds = programData.modules.map((module: any) => module.module_id);
+    const moduleIds = programData.modules
+      .filter((module: any) => module.module_id) 
+      .map((module: any) => module.module_id);
     const modulesData = await Module.findAll({
       where: {
         id: {
@@ -39,10 +41,12 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
       return acc;
     }, {});
 
-    const transformedModules = programData.modules.map((module: any) => ({
-      module_id: moduleMap[module.module_id],
-      is_enabled: module.is_enabled,
-    }));
+    const transformedModules = programData.modules
+      .map((module: any) => ({
+        module_id: moduleMap[module.module_id],
+        is_enabled: module.is_enabled,
+      }))
+      .filter((module: any) => module.module_id); 
 
     const program = {
       ...programData.toJSON(),
@@ -51,7 +55,7 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
 
     reply.send({
       status_code: 200,
-      message: "program module Data found",
+      message: "Program module data found",
       data: program,
       trace_id: traceId,
     });
