@@ -790,6 +790,28 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     };
                 }));
 
+                const filteredRateType = rateDetails.filter((rate) =>
+                    rate.rate_type?.rate_type_category?.value !== 'shift' &&
+                    rate.bill_rate.some((billRate) => billRate.differential_on === rateTypeCategory?.value)
+                );
+
+                const filteredRate = rateDetails.filter((rate) =>
+                    rate.rate_type?.is_base_rate === false &&
+                    rate.rate_type?.rate_type_category?.value === 'shift'
+                ).map((rate) => ({
+                    ...rate,
+                    rates: filteredRateType
+                        .filter((filteredRate) =>
+                            filteredRate.rate_type?.rate_type_category?.value !== 'shift' &&
+                            filteredRate.bill_rate.some((billRate) =>
+                                billRate.differential_on === rateTypeCategory?.value
+                            )
+                        )
+                        .map((filteredRate) => ({
+                            ...filteredRate
+                        }))
+                }));
+
                 return {
                     base_rate: {
                         rate_type: {
@@ -800,6 +822,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         },
                         rates: rateDetails,
                     },
+                    rate: filteredRate
                 };
             }));
 
