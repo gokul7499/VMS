@@ -283,7 +283,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                   
                                 }
 
                                 // Check if user is not a "super_user" and proceed with matchinj
@@ -317,7 +317,7 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                                
                                             }
                                         }
                                     }
@@ -333,7 +333,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    
                                 }
 
                                 // If no match, return original recipient
@@ -440,6 +440,8 @@ export const updateWorkflowStatus = async (
 
 
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+   
+    
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -453,7 +455,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
         const moduleType = workflow.module_type.toLowerCase();
-        if (moduleType === "job" || moduleType === "jobs") {
+        if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
             const payload = {
@@ -470,7 +472,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             console.log(a);
 
         } else
-            if (moduleType === "offer" || moduleType === "offers") {
+            if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
                 const payload = {
@@ -483,7 +485,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     },
                 });
             } else
-                if (moduleType === "Submissions") {
+                if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
@@ -498,17 +500,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
 
                 } else
-                    if (moduleType === "Assignment") {
+               
+                
+                    if (moduleType === "Assignment".toLowerCase()) {
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                         const payload = { status: "approved", display_status: null };
 
-                        await axios.post(apiUrl, payload, {
+                        await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
                                 authorization: authHeader
                             },
                         });
+                      
+                        
 
                     }
 
@@ -531,7 +537,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
         const moduleType = workflow.module_type.toLowerCase();
-        if (moduleType === "job" || moduleType === "jobs") {
+        if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
             const payload = {
@@ -544,7 +550,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     authorization: authHeader
                 },
             });
-        } else if (moduleType === "offer" || moduleType === "offers") {
+        } else if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
             const offer_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
             const payload = {
@@ -558,7 +564,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 },
             });
         } else
-            if (moduleType === "Submissions") {
+            if (moduleType === "Submissions".toLowerCase()) {
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
                 const payload = {
@@ -573,7 +579,9 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 });
             }
             else
-                if (moduleType === "Assignment") {
+            console.log(moduleType);
+            
+                if (moduleType === "Assignment".toLowerCase()) {
                     const assignment_id = workflow.workflow_trigger_id;
                     const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                     const payload = {
@@ -581,7 +589,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                         display_status: "rejected"
                     };
 
-                    await axios.post(apiUrl, payload, {
+                    await axios.put(apiUrl, payload, {
                         headers: {
                             'Content-Type': 'application/json',
                             authorization: authHeader
@@ -1968,8 +1976,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                           AND status = 'active'
                         LIMIT 1
                     `;
-                        console.log(userQuery);
-
+                    
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -2006,6 +2013,11 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
+                           
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -2078,6 +2090,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -2175,7 +2191,11 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     last_name: supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, // Ensure null if avatar is missing
+                                    avatar: supervisor.avatar || null, 
+                                    modified_on: recipient_details.modified_on,
+                                    notes:recipient_details.notes,
+                                    reason:recipient_details.reason,
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -2260,6 +2280,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
+                                            modified_on: recipient_details.modified_on,
+                                            notes:recipient_details.notes,
+                                            reason:recipient_details.reason,
+                                            replaced_notes:recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -2333,6 +2357,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
+                                    modified_on: recipient_details.modified_on,                                
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
@@ -3158,6 +3184,10 @@ l.placement_order ASC;`;
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -3249,7 +3279,11 @@ l.placement_order ASC;`;
                                     id: supervisor.user_id,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, // Ensure null if avatar is missing
+                                    avatar: supervisor.avatar || null, 
+                                    modified_on: recipient_details.modified_on,
+                                    notes:recipient_details.notes,
+                                    reason:recipient_details.reason,
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -3333,6 +3367,10 @@ l.placement_order ASC;`;
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
+                                            modified_on: recipient_details.modified_on,
+                                            notes:recipient_details.notes,
+                                            reason:recipient_details.reason,
+                                            replaced_notes:recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -3408,6 +3446,9 @@ l.placement_order ASC;`;
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
+                                    modified_on: recipient_details.modified_on,
+                                
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
