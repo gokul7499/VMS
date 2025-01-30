@@ -440,7 +440,7 @@ export const updateWorkflowStatus = async (
 
 
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
-    console.log("workflowsssssssssssssssss",workflow);
+   
     
     try {
         const authHeader = request.headers.authorization;
@@ -537,7 +537,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
         const moduleType = workflow.module_type.toLowerCase();
-        if (moduleType === "job" || moduleType === "jobs") {
+        if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
             const payload = {
@@ -550,7 +550,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     authorization: authHeader
                 },
             });
-        } else if (moduleType === "offer" || moduleType === "offers") {
+        } else if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
             const offer_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
             const payload = {
@@ -564,7 +564,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 },
             });
         } else
-            if (moduleType === "Submissions") {
+            if (moduleType === "Submissions".toLowerCase()) {
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
                 const payload = {
@@ -581,7 +581,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             else
             console.log(moduleType);
             
-                if (moduleType === "Assignment") {
+                if (moduleType === "Assignment".toLowerCase()) {
                     const assignment_id = workflow.workflow_trigger_id;
                     const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                     const payload = {
