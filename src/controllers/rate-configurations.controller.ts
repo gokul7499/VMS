@@ -641,7 +641,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
 
         // Fetch Rate Configurations
         const rateConfigurations = await RateConfigurationsModel.findAll({
-            where: { program_id, id: finalRateConfigurationIds, is_shift_rate },
+            where: { program_id, id: finalRateConfigurationIds, is_shift_rate, is_enabled: true, is_deleted: false },
             attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
         });
 
@@ -693,8 +693,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 },
                 type: QueryTypes.SELECT,
             });
-
-            console.log("rateCardDecisionRecords", rateCardDecisionRecords)
 
             let matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
                 extractedHierarchyIds.includes(record.hierarchy_id) || record.hierarchy_id === null
