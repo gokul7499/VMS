@@ -2494,7 +2494,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
-
+// await updateMissingLevels(levels,workflow)
                 // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
                 // workflow.levels = "msp user";
 
@@ -2512,6 +2512,23 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         });
     }
 };
+// function updateMissingLevels(levels: any, workflow: any) {
+//     // Create a Set of placement orders from the workflow levels
+//     const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
+// console.log(workflowPlacementOrders);
+
+//     // Loop through the levels and update the status to "completed" for missing levels
+//     return levels.map((level: any) => {
+//         console.log(levels);
+        
+//         // If the level's placement_order is not in the workflow's placement orders, set status to "completed"
+//         if (!workflowPlacementOrders.has(level.placement_order)) {
+//             return { ...level, status: "completed" };
+//         }
+//         return level;
+//     });
+// }
+
 async function getRolesForRecipients(request: FastifyRequest, reply: FastifyReply, levels: any[], program_id: string) {
     try {
         const authHeader = request.headers.authorization;
