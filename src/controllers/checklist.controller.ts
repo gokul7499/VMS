@@ -490,3 +490,57 @@ export async function filterChecklists(
         });
     }
 }
+
+export async function enableDisableChecklist(request: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { program_id, entity_id } = request.params as { program_id: string; entity_id: string };
+        const { is_enabled } = request.body as { is_enabled: boolean };
+
+        if (!entity_id || !program_id) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "Program ID and Entity ID are required",
+            });
+        }
+
+        if (is_enabled === undefined) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "'is_enabled' is required in the payload",
+            });
+        }
+
+        const traceId = generateCustomUUID();
+
+        const checklist = await Checklist.findOne({
+            where: { program_id, entity_id, latest: true, is_deleted: false },
+        });
+
+        if (!checklist) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "Checklist not found",
+                trace_id: traceId,
+            });
+        }
+
+        await Checklist.update(
+            { is_enabled,  updated_on: new Date() },
+            { where: { program_id, entity_id, latest: true, is_deleted: false } }
+        );
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Checklist is_enabled status updated successfully",
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        console.error("Error in enableDisableChecklist:", error);
+        return reply.status(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            trace_id: generateCustomUUID(),
+            error,
+        });
+    }
+}
