@@ -2493,7 +2493,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
-                // await updateMissingLevels(levels,workflow)
+                await updateMissingLevels(levels, workflow)
                 // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
                 // workflow.levels = "msp user";
 
@@ -2511,22 +2511,32 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         });
     }
 };
-// function updateMissingLevels(levels: any, workflow: any) {
-//     // Create a Set of placement orders from the workflow levels
-//     const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
-// console.log(workflowPlacementOrders);
+async function updateMissingLevels(levels: any[], workflow: any) {
+    // Extract all placement orders from workflow.levels into a Set
+    const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
 
-//     // Loop through the levels and update the status to "completed" for missing levels
-//     return levels.map((level: any) => {
-//         console.log(levels);
+    // Update status for levels where placement_order is NOT in workflowPlacementOrders
+    const updatedLevels = levels.map((level: any) => {
+        if (!workflowPlacementOrders.has(level.placement_order)) {
+            return { ...level, status: "completed" };
+        }
+        return level;
+    });
+    for (const updatedLevel of updatedLevels) {
+        await JobWorkFlowModel.update(
+            { levels: updatedLevels },
+            {
+                where: {
+                    placement_order: updatedLevel.placement_order,
+                    id: workflow.job_workflow_id
+                }
+            }
+        );
+    }
+    // Optionally, return the updated levels or any other information
+    return updatedLevels;
+}
 
-//         // If the level's placement_order is not in the workflow's placement orders, set status to "completed"
-//         if (!workflowPlacementOrders.has(level.placement_order)) {
-//             return { ...level, status: "completed" };
-//         }
-//         return level;
-//     });
-// }
 
 async function getRolesForRecipients(request: FastifyRequest, reply: FastifyReply, levels: any[], program_id: string) {
     try {
