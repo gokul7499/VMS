@@ -1965,18 +1965,14 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
-
-
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE user_id = :user_id
-                       
+                        WHERE user_id = :user_id                      
                           AND status = 'active'
                         LIMIT 1
-                    `;
-                    
+                    `;  
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -1990,8 +1986,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: input_values[0] },
                             });
                         }
-
-
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
                         if (userResult.length && replaced_by) {
@@ -2351,13 +2345,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     email: user.email,
                                     receipentstatus: receipentstatus,
                                     modifiedOn: recipient.modified_on,
-                                    reason: recipient.reason,
-                                    notes: recipient.notes,
+                                    // reason: recipient.reason,
+                                    // notes: recipient.notes,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient_details.modified_on,                                
+                                    modified_on: recipient_details.modified_on,
+                                    notes:recipient_details.notes,
+                                    reason:recipient_details.reason,
+                                                               
                                     replaced_notes:recipient_details.replaced_notes
                                 };
 
@@ -2418,7 +2415,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
                             receipentStatus: user.receipentstatus,
                             reason: user.reason,
-                            modifiedOn: user.modifiedOn,
+                            modified_on: user.modified_on,
                             notes: user.notes
                         };
                     });
@@ -2436,7 +2433,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
-
                                 level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
@@ -2831,8 +2827,7 @@ const fetchLevelUserData = async (userId: any) => {
     const userQuery = `
         SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
-        WHERE user_id = :user_id
-        
+        WHERE user_id = :user_id  
          AND status = 'active'
         LIMIT 1
     `;
