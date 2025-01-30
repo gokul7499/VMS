@@ -583,7 +583,9 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             
                 if (moduleType === "Assignment".toLowerCase()) {
                     const assignment_id = workflow.workflow_trigger_id;
+                    console.log('TEAI base URL:', TEAI_BASE_URL);
                     const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
+                    console.log('URL:', apiUrl);
                     const payload = {
                         status: "rejected",
                         display_status: "rejected"
