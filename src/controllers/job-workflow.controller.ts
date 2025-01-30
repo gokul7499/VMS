@@ -500,7 +500,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
 
                 } else
-                console.log(moduleType);
+               
                 
                     if (moduleType === "Assignment".toLowerCase()) {
                         const assignment_id = workflow.workflow_trigger_id;
@@ -513,7 +513,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                                 authorization: authHeader
                             },
                         });
-                        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",apiUrl,payload);
+                      
                         
 
                     }
@@ -1976,8 +1976,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                           AND status = 'active'
                         LIMIT 1
                     `;
-                        console.log(userQuery);
-
+                    
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -2014,6 +2013,11 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
+                           
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -2086,6 +2090,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -2183,7 +2191,11 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     last_name: supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, // Ensure null if avatar is missing
+                                    avatar: supervisor.avatar || null, 
+                                    modified_on: recipient_details.modified_on,
+                                    notes:recipient_details.notes,
+                                    reason:recipient_details.reason,
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -2268,6 +2280,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
+                                            modified_on: recipient_details.modified_on,
+                                            notes:recipient_details.notes,
+                                            reason:recipient_details.reason,
+                                            replaced_notes:recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -2341,6 +2357,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
+                                    modified_on: recipient_details.modified_on,                                
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
@@ -3166,6 +3184,10 @@ l.placement_order ASC;`;
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
+                            modified_on: recipient_details.modified_on,
+                            notes:recipient_details.notes,
+                            reason:recipient_details.reason,
+                            replaced_notes:recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -3257,7 +3279,11 @@ l.placement_order ASC;`;
                                     id: supervisor.user_id,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, // Ensure null if avatar is missing
+                                    avatar: supervisor.avatar || null, 
+                                    modified_on: recipient_details.modified_on,
+                                    notes:recipient_details.notes,
+                                    reason:recipient_details.reason,
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -3341,6 +3367,10 @@ l.placement_order ASC;`;
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
+                                            modified_on: recipient_details.modified_on,
+                                            notes:recipient_details.notes,
+                                            reason:recipient_details.reason,
+                                            replaced_notes:recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -3416,6 +3446,9 @@ l.placement_order ASC;`;
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
+                                    modified_on: recipient_details.modified_on,
+                                
+                                    replaced_notes:recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
