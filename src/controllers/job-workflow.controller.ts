@@ -576,10 +576,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     },
                 });
             }
-            else
-                console.log(moduleType);
-
-        if (moduleType === "Assignment".toLowerCase()) {
+            else if (moduleType === "Assignment".toLowerCase()) {
             const assignment_id = workflow.workflow_trigger_id;
             const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
             const payload = {

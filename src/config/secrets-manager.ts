@@ -48,7 +48,7 @@ export const getSecretsManager = async () => {
                 database_auth: secret.DATABASE_AUTH,
                 sourcing_url: secret.SOURCING_URL,
                 auth_url: secret.AUTH_URL,
-                teai_url:process.env.TEAI_URL
+                teai_url:secret.TEAI_URL
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");
