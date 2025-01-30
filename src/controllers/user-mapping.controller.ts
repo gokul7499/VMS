@@ -217,83 +217,100 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         // Main User Mappings SQL query
         const query = `
             SELECT 
-                um.id, 
-                um.tenant_id, 
-                um.role_id, 
-                um.user_id, 
-                um.program_id, 
-                um.is_activated, 
-                um.is_deleted, 
-                um.created_on, 
-                um.modified_on, 
-                um.created_by, 
-                um.modified_by,
+    um.id, 
+    um.tenant_id, 
+    um.role_id, 
+    um.user_id, 
+    um.program_id, 
+    um.is_activated, 
+    um.is_deleted, 
+    um.created_on, 
+    um.modified_on, 
+    um.created_by, 
+    um.modified_by,
+    JSON_OBJECT(
+        'id', u.id,
+        'user_id', u.user_id,
+        'program_id', u.program_id,
+        'tenant_id', u.tenant_id,
+        'first_name', u.first_name,
+        'last_name', u.last_name,
+        'email', u.email,
+        'sso_id', u.sso_id,
+        'title', u.title,
+        'user_mapping_id', um.id,
+        'name_prefix', u.name_prefix,
+        'middle_name', u.middle_name,
+        'name_suffix', u.name_suffix,
+        'user_type', u.user_type,
+        'avatar', u.avatar,
+        'status', u.status,
+        'theme', u.theme,
+        'country_id', u.country_id,
+        'applications', u.applications,
+        'credentials', u.credentials,
+        'supervisor', u.supervisor,
+        'time_zone_id', u.time_zone_id,
+        'language_id', u.language_id,
+        'role_id', u.role_id,
+        'associate_hierarchy_ids', u.associate_hierarchy_ids,
+        'work_location_ids', u.work_location_ids,
+        'associate_cost_ids', u.associate_cost_ids,
+        'spend_category_ids', u.spend_category_ids,
+        'is_all_hierarchy_associate', u.is_all_hierarchy_associate,
+        'is_all_work_location_associate', u.is_all_work_location_associate,
+        'is_all_cost_center_associate', u.is_all_cost_center_associate,
+        'default_cost_center_id', u.default_cost_center_id,
+        'is_all_spend_category_associate', u.is_all_spend_category_associate,
+        'default_spend_category_id', u.default_spend_category_id,
+        'is_allow_unlimited_authority', u.is_allow_unlimited_authority,
+        'min_limit', u.min_limit,
+        'max_limit', u.max_limit,
+        'is_enabled', u.is_enabled,
+        'is_activated', u.is_activated,
+        'is_deleted', u.is_deleted,
+        'created_on', u.created_on,
+        'modified_on', u.modified_on,
+        'created_by', u.created_by,
+        'addresses', u.addresses,
+        'contacts', u.contacts,
+        'modified_by', u.modified_by,
+        'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
+        'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
+        'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
+        'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
+        'associate_hierarchy_ids', (
+            SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+            FROM hierarchies h
+            WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+        ),
+        'work_location_ids', (
+            SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+            FROM work_locations wl
+            WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+        ),
+        'custom_fields', COALESCE((
+            SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
-                    'id', u.id,
-                    'user_id',u.user_id,
-                    'program_id', u.program_id,
-                    'tenant_id', u.tenant_id,
-                    'first_name', u.first_name,
-                    'last_name', u.last_name,
-                    'email', u.email,
-                    'sso_id', u.sso_id,
-                    'title', u.title,
-                    'user_type',u.user_type,
-                    'avatar', u.avatar,
-                    'status',u.status,
-                    'theme', u.theme,
-                    'country_id', u.country_id,
-                    'applications', u.applications,
-                    'credentials', u.credentials,
-                    'supervisor', u.supervisor,
-                    'time_zone_id', u.time_zone_id,
-                    'language_id', u.language_id,
-                    'role_id',u.role_id,
-                    'associate_hierarchy_ids', u.associate_hierarchy_ids,
-                    'work_location_ids', u.work_location_ids,
-                    'associate_cost_ids', u.associate_cost_ids,
-                    'spend_category_ids', u.spend_category_ids,
-                    'is_all_hierarchy_associate', u.is_all_hierarchy_associate,
-                    'is_all_work_location_associate', u.is_all_work_location_associate,
-                    'is_all_cost_center_associate', u.is_all_cost_center_associate,
-                    'default_cost_center_id', u.default_cost_center_id,
-                    'is_all_spend_category_associate', u.is_all_spend_category_associate,
-                    'default_spend_category_id', u.default_spend_category_id,
-                    'is_allow_unlimited_authority', u.is_allow_unlimited_authority,
-                    'min_limit', u.min_limit,
-                    'max_limit', u.max_limit,
-                    'is_enabled', u.is_enabled,
-                    'is_activated', u.is_activated,
-                    'is_deleted', u.is_deleted,
-                    'created_on', u.created_on,
-                    'modified_on', u.modified_on,
-                    'created_by', u.created_by,
-                    'addresses',u.addresses,
-                    'contacts',u.contacts,
-                    'modified_by', u.modified_by,
-                    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
-                    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
-                    'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
-                    'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
-                    'associate_hierarchy_ids', (
-                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
-                        FROM hierarchies h
-                        WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
-                    ),
-                    'work_location_ids', (
-                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
-                        FROM work_locations wl
-                        WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
-                    )
-                ) AS user
-            FROM user_mappings um
-            LEFT JOIN user u ON um.user_id = u.user_id
-            LEFT JOIN tenant t ON um.tenant_id = t.id
-            LEFT JOIN countries ct ON u.country_id = ct.id
-            LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
-            LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
-            LEFT JOIN user su ON u.supervisor = su.user_id
-            WHERE um.program_id = :program_id AND um.id = :id;
+                    'id', custom_fields.id,
+                    'name', custom_fields.name,
+                    'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
+                )
+            )
+            FROM user_custom_fields
+            LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
+            WHERE user_custom_fields.user_id = u.user_id
+        ), JSON_ARRAY())
+    ) AS user
+FROM user_mappings um
+LEFT JOIN user u ON um.user_id = u.user_id
+LEFT JOIN tenant t ON um.tenant_id = t.id
+LEFT JOIN countries ct ON u.country_id = ct.id
+LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
+LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
+LEFT JOIN user su ON u.supervisor = su.user_id
+WHERE um.program_id = :program_id AND um.id = :id;
+
         `;
 
         // Query execution
@@ -323,8 +340,7 @@ for (const mapping of userMappings) {
                 JSON_OBJECT(
                     'master_data', JSON_OBJECT(
                         'id', master_data_type.id,
-                        'name', master_data_type.name,
-                        'configuration', master_data_type.configuration
+                        'name', master_data_type.name
                     ),
                     'associated_master_data', (
                         SELECT JSON_ARRAYAGG(
