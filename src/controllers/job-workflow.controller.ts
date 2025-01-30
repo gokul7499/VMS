@@ -440,6 +440,8 @@ export const updateWorkflowStatus = async (
 
 
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+    console.log("workflowsssssssssssssssss",workflow);
+    
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -453,7 +455,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
         const moduleType = workflow.module_type.toLowerCase();
-        if (moduleType === "job" || moduleType === "jobs") {
+        if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
             const payload = {
@@ -470,7 +472,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             console.log(a);
 
         } else
-            if (moduleType === "offer" || moduleType === "offers") {
+            if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
                 const payload = {
@@ -483,7 +485,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     },
                 });
             } else
-                if (moduleType === "Submissions") {
+                if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
@@ -498,17 +500,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
 
                 } else
-                    if (moduleType === "Assignment") {
+                console.log(moduleType);
+                
+                    if (moduleType === "Assignment".toLowerCase()) {
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                         const payload = { status: "approved", display_status: null };
 
-                        await axios.post(apiUrl, payload, {
+                        await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
                                 authorization: authHeader
                             },
                         });
+                        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",apiUrl,payload);
+                        
 
                     }
 
@@ -573,6 +579,8 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 });
             }
             else
+            console.log(moduleType);
+            
                 if (moduleType === "Assignment") {
                     const assignment_id = workflow.workflow_trigger_id;
                     const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
@@ -581,7 +589,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                         display_status: "rejected"
                     };
 
-                    await axios.post(apiUrl, payload, {
+                    await axios.put(apiUrl, payload, {
                         headers: {
                             'Content-Type': 'application/json',
                             authorization: authHeader
