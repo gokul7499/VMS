@@ -250,11 +250,11 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       user: UserInterface;
       user_group_mapping: Omit<UserMappingAttributes, "id"> | Omit<UserMappingAttributes, "id">[];
     };
-    if (!user?.tenant_id) {
+    if (!user?.program_id) {
       await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
-        message: "Missing user or tenant id in request body",
+        message: "Missing user or program_id id in request body",
         trace_id: traceId,
       });
     }
@@ -273,7 +273,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
-        message: "User with tenant_id or program_id already exists!",
+        message: "User with program_id already exists!",
         trace_id: traceId,
       });
     }
