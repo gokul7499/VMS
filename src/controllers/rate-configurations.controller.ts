@@ -12,9 +12,8 @@ import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklist-item.model';
-import { allNullRate, getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameRateConfiguration } from '../utility/queries';
+import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
 import { QueryTypes } from 'sequelize';
-import ShiftType from '../models/shift-type.model';
 import { decodeToken } from '../middlewares/verifyToken';
 
 export const createRateConfigurations = async (
@@ -183,7 +182,27 @@ export const updateRateConfigurations = async (
                 trace_id: traceId,
             });
         }
+        if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
+            const existingConfigurations = await sequelize.query(sameHierarchieRateConfiguration, {
+                replacements: {
+                    program_id,
+                    hierarchies: rateConfigurationsPayload.hierarchies || [],
+                    job_templates: rateConfigurationsPayload.job_templates || [],
+                    id
+                },
+                type: QueryTypes.SELECT,
+                transaction
+            });
 
+            if (existingConfigurations.length > 0) {
+                await transaction.rollback();
+                return reply.status(409).send({
+                    status_code: 409,
+                    message: 'Rate configurations with the same hierarchy and job template already exist.',
+                    trace_id: traceId,
+                });
+            }
+        }
         await existingRateConfig.update(
             {
                 name: rateConfigurationsPayload.name,
@@ -641,7 +660,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
 
         // Fetch Rate Configurations
         const rateConfigurations = await RateConfigurationsModel.findAll({
-            where: { program_id, id: finalRateConfigurationIds, is_shift_rate },
+            where: { program_id, id: finalRateConfigurationIds, is_shift_rate, is_enabled: true, is_deleted: false },
             attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
         });
 
@@ -693,8 +712,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 },
                 type: QueryTypes.SELECT,
             });
-
-            console.log("rateCardDecisionRecords", rateCardDecisionRecords)
 
             let matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
                 extractedHierarchyIds.includes(record.hierarchy_id) || record.hierarchy_id === null
@@ -755,6 +772,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 });
 
                 const rateDetails = await Promise.all(rates.map(async (rate) => {
+                    const rateTypeCategory = rate.rate_type?.rate_type_category
                     const billRates = await RateConfigurationRateDifferentials.findAll({
                         where: { rate_id: rate.id, type: 'BILL_RATE' },
                         attributes: ['differential_on', 'differential_type', 'differential_value'],
