@@ -283,7 +283,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                   
                                 }
 
                                 // Check if user is not a "super_user" and proceed with matchinj
@@ -317,7 +317,7 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                                
                                             }
                                         }
                                     }
@@ -333,7 +333,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    
                                 }
 
                                 // If no match, return original recipient
