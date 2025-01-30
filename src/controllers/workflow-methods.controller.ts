@@ -465,7 +465,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             const workflows = await JobWorkFlowModel.findAll({
                 where: {
                     workflow_trigger_id: workflow_trigger_id,
-                    is_updated: false,
                     is_deleted: false,
                     is_enabled: true
                 }
