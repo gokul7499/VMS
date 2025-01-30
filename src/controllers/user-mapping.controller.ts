@@ -332,7 +332,6 @@ WHERE um.program_id = :program_id AND um.id = :id;
 
 for (const mapping of userMappings) {
     const userId = mapping.user?.user_id;
-    console.log("63274",userId)
 
     if (userId) {
         const masterDataQuery = `
@@ -375,7 +374,7 @@ for (const mapping of userMappings) {
             status_code: 200,
             trace_id: traceId,
             message: "User mappings records fetched successfully.",
-            user_mappings: userMappings,
+            user_mappings: [userMappings[userMappings.length-1]],
         });
     } catch (error: any) {
         reply.status(500).send({
