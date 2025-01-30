@@ -253,7 +253,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-        let managerData: any = await getManagerDetails(program_id, id)
+        // let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
@@ -283,7 +283,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                   
+
                                 }
 
                                 // Check if user is not a "super_user" and proceed with matchinj
@@ -317,7 +317,7 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                                
+
                                             }
                                         }
                                     }
@@ -333,7 +333,7 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
-                                    
+
                                 }
 
                                 // If no match, return original recipient
@@ -440,8 +440,8 @@ export const updateWorkflowStatus = async (
 
 
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
-   
-    
+
+
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -500,26 +500,24 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
 
                 } else
-               
-                
+
+
                     if (moduleType === "Assignment".toLowerCase()) {
+                        console.log('inside assignment approval status')
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-                        const payload = { status: "approved", display_status: null };
-
+                        const payload = { status: "approved", display_status: 'approved' };
+                        console.log('payload for update status:', payload)
                         await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
                                 authorization: authHeader
                             },
                         });
-                      
-                        
-
                     }
 
     } catch (error) {
-        console.error(error);
+        console.error('error while updating status:', error);
         return reply.status(500).send({ message: 'Internal Server Error' });
     }
 }
@@ -578,27 +576,22 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     },
                 });
             }
-            else
-            console.log(moduleType);
-            
-                if (moduleType === "Assignment".toLowerCase()) {
-                    const assignment_id = workflow.workflow_trigger_id;
-                    console.log('TEAI base URL:', TEAI_BASE_URL);
-                    const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-                    console.log('URL:', apiUrl);
-                    const payload = {
-                        status: "rejected",
-                        display_status: "rejected"
-                    };
+            else if (moduleType === "Assignment".toLowerCase()) {
+            const assignment_id = workflow.workflow_trigger_id;
+            const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
+            const payload = {
+                status: "rejected",
+                display_status: "rejected"
+            };
 
-                    await axios.put(apiUrl, payload, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            authorization: authHeader
-                        },
-                    });
+            await axios.put(apiUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                },
+            });
 
-                }
+        }
 
     } catch (error) {
         console.error(error);
@@ -648,7 +641,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             if (managerData && managerData.data && managerData.data.email) {
 
                 const recipeintEmail: EmailRecipient = {
-                    email: managerData.data.email
+                    email: managerData.data.email,
+                    first_name: managerData.data.first_name,
+                    last_name: managerData.data.last_name
                 }
                 recipientEmailArray.push(recipeintEmail);
 
@@ -661,7 +656,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
                 for (const user of mspUserData) {
                     const recipeintEmail: EmailRecipient = {
-                        email: user.email
+                        email: user.email,
+                        first_name: user.first_name,
+                        last_name: user.last_name
                     }
                     recipientEmailArray.push(recipeintEmail);
                 }
@@ -921,7 +918,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
 
         // Step 2: Query the user table to get the manager details
         const userQuery = `
-            SELECT user_id, email
+            SELECT user_id, email,first_name ,last_name
             FROM user
             WHERE user_id = :managerId
             LIMIT 1
@@ -1967,18 +1964,14 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let replaced_user_data: any
                 let imposonate_user_data: any
                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
-
-
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE user_id = :user_id
-                        AND is_enabled = true
+                        WHERE user_id = :user_id                      
                           AND status = 'active'
                         LIMIT 1
                     `;
-                    
                         let userResult = null;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
@@ -1992,8 +1985,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: input_values[0] },
                             });
                         }
-
-
                         let replacedUserResult = null;
                         let imporsonateUserResult = null;
                         if (userResult.length && replaced_by) {
@@ -2009,37 +2000,37 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             });
                         }
                         input_value = userResult[0] ? {
-                            id: userResult[0].user_id,
-                            first_name: userResult[0].first_name,
-                            last_name: userResult[0].last_name,
-                            avatar: userResult[0].avatar,
+                            id: userResult[0]?.user_id,
+                            first_name: userResult[0]?.first_name,
+                            last_name: userResult[0]?.last_name,
+                            avatar: userResult[0]?.avatar,
                             role_id: userResult[0].role_id,
-                            email: userResult[0].email,
+                            email: userResult[0]?.email,
                             modified_on: recipient_details.modified_on,
-                            notes:recipient_details.notes,
-                            reason:recipient_details.reason,
-                            replaced_notes:recipient_details.replaced_notes
-                           
+                            notes: recipient_details.notes,
+                            reason: recipient_details.reason,
+                            replaced_notes: recipient_details.replaced_notes
+
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].user_id,
-                            first_name: replacedUserResult[0].first_name,
-                            last_name: replacedUserResult[0].last_name,
-                            avatar: replacedUserResult[0].avatar,
-                            role_id: replacedUserResult[0].role_id,
-                            email: replacedUserResult[0].email,
+                            id: replacedUserResult[0]?.user_id,
+                            first_name: replacedUserResult[0]?.first_name,
+                            last_name: replacedUserResult[0]?.last_name,
+                            avatar: replacedUserResult[0]?.avatar,
+                            role_id: replacedUserResult[0]?.role_id,
+                            email: replacedUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                             replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].user_id,
-                            first_name: imporsonateUserResult[0].first_name,
-                            last_name: imporsonateUserResult[0].last_name,
-                            avatar: imporsonateUserResult[0].avatar,
-                            role_id: imporsonateUserResult[0].role_id,
-                            email: imporsonateUserResult[0].email,
+                            id: imporsonateUserResult[0]?.user_id,
+                            first_name: imporsonateUserResult[0]?.first_name,
+                            last_name: imporsonateUserResult[0]?.last_name,
+                            avatar: imporsonateUserResult[0]?.avatar,
+                            role_id: imporsonateUserResult[0]?.role_id,
+                            email: imporsonateUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2053,7 +2044,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                        AND is_enabled = true
+                        
                             AND status = 'active'
                         LIMIT 1
                     `;
@@ -2086,36 +2077,36 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             });
                         }
                         input_value = userResult[0] ? {
-                            id: userResult[0].user_id,
-                            first_name: userResult[0].first_name,
-                            last_name: userResult[0].last_name,
-                            avatar: userResult[0].avatar,
-                            role_id: userResult[0].role_id,
-                            email: userResult[0].email,
+                            id: userResult[0]?.user_id,
+                            first_name: userResult[0]?.first_name,
+                            last_name: userResult[0]?.last_name,
+                            avatar: userResult[0]?.avatar,
+                            role_id: userResult[0]?.role_id,
+                            email: userResult[0]?.email,
                             modified_on: recipient_details.modified_on,
-                            notes:recipient_details.notes,
-                            reason:recipient_details.reason,
-                            replaced_notes:recipient_details.replaced_notes
+                            notes: recipient_details.notes,
+                            reason: recipient_details.reason,
+                            replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].user_id,
-                            first_name: replacedUserResult[0].first_name,
-                            last_name: replacedUserResult[0].last_name,
-                            avatar: replacedUserResult[0].avatar,
-                            role_id: replacedUserResult[0].role_id,
-                            email: replacedUserResult[0].email,
+                            id: replacedUserResult[0]?.user_id,
+                            first_name: replacedUserResult[0]?.first_name,
+                            last_name: replacedUserResult[0]?.last_name,
+                            avatar: replacedUserResult[0]?.avatar,
+                            role_id: replacedUserResult[0]?.role_id,
+                            email: replacedUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                             replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].user_id,
-                            first_name: imporsonateUserResult[0].first_name,
-                            last_name: imporsonateUserResult[0].last_name,
-                            avatar: imporsonateUserResult[0].avatar,
-                            role_id: imporsonateUserResult[0].role_id,
-                            email: imporsonateUserResult[0].email,
+                            id: imporsonateUserResult[0]?.user_id,
+                            first_name: imporsonateUserResult[0]?.first_name,
+                            last_name: imporsonateUserResult[0]?.last_name,
+                            avatar: imporsonateUserResult[0]?.avatar,
+                            role_id: imporsonateUserResult[0]?.role_id,
+                            email: imporsonateUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2127,7 +2118,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                    AND is_enabled = true
+                    
                         AND status = 'active'
                     LIMIT 1
                 `;
@@ -2150,7 +2141,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
-                            AND is_enabled = true
+                            
                              AND status = 'active'
                             LIMIT 1
                         `;
@@ -2193,11 +2184,11 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     last_name: supervisor.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, 
+                                    avatar: supervisor.avatar || null,
                                     modified_on: recipient_details.modified_on,
-                                    notes:recipient_details.notes,
-                                    reason:recipient_details.reason,
-                                    replaced_notes:recipient_details.replaced_notes
+                                    notes: recipient_details.notes,
+                                    reason: recipient_details.reason,
+                                    replaced_notes: recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -2242,7 +2233,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                AND is_enabled = true
+               
                     AND status = 'active'
                 LIMIT 1
             `;
@@ -2283,9 +2274,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             modified_on: recipient_details.modified_on,
-                                            notes:recipient_details.notes,
-                                            reason:recipient_details.reason,
-                                            replaced_notes:recipient_details.replaced_notes
+                                            notes: recipient_details.notes,
+                                            reason: recipient_details.reason,
+                                            replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -2353,14 +2344,17 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     email: user.email,
                                     receipentstatus: receipentstatus,
                                     modifiedOn: recipient.modified_on,
-                                    reason: recipient.reason,
-                                    notes: recipient.notes,
+                                    // reason: recipient.reason,
+                                    // notes: recipient.notes,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient_details.modified_on,                                
-                                    replaced_notes:recipient_details.replaced_notes
+                                    modified_on: recipient_details.modified_on,
+                                    notes: recipient_details.notes,
+                                    reason: recipient_details.reason,
+
+                                    replaced_notes: recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
@@ -2420,7 +2414,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
                             receipentStatus: user.receipentstatus,
                             reason: user.reason,
-                            modifiedOn: user.modifiedOn,
+                            modified_on: user.modified_on,
                             notes: user.notes
                         };
                     });
@@ -2438,7 +2432,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
-
                                 level_behaviour: user.level_behaviour,
                                 user_id: user.id,
                                 avatar: user.avatar?.url || '',
@@ -2500,7 +2493,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
                 await applyBypassDublicateStatus(request, reply, workflow)
                 let data = await statusHandling(request, reply, workflow)
-
+                // await updateMissingLevels(levels,workflow)
                 // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
                 // workflow.levels = "msp user";
 
@@ -2518,6 +2511,23 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         });
     }
 };
+// function updateMissingLevels(levels: any, workflow: any) {
+//     // Create a Set of placement orders from the workflow levels
+//     const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
+// console.log(workflowPlacementOrders);
+
+//     // Loop through the levels and update the status to "completed" for missing levels
+//     return levels.map((level: any) => {
+//         console.log(levels);
+
+//         // If the level's placement_order is not in the workflow's placement orders, set status to "completed"
+//         if (!workflowPlacementOrders.has(level.placement_order)) {
+//             return { ...level, status: "completed" };
+//         }
+//         return level;
+//     });
+// }
+
 async function getRolesForRecipients(request: FastifyRequest, reply: FastifyReply, levels: any[], program_id: string) {
     try {
         const authHeader = request.headers.authorization;
@@ -2833,8 +2843,7 @@ const fetchLevelUserData = async (userId: any) => {
     const userQuery = `
         SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
-        WHERE user_id = :user_id
-        AND is_enabled = true
+        WHERE user_id = :user_id  
          AND status = 'active'
         LIMIT 1
     `;
@@ -3147,7 +3156,7 @@ l.placement_order ASC;`;
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                        AND is_enabled = true
+                       
                           
                         LIMIT 1
                     `;
@@ -3187,9 +3196,9 @@ l.placement_order ASC;`;
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
                             modified_on: recipient_details.modified_on,
-                            notes:recipient_details.notes,
-                            reason:recipient_details.reason,
-                            replaced_notes:recipient_details.replaced_notes
+                            notes: recipient_details.notes,
+                            reason: recipient_details.reason,
+                            replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
                         replaced_user_data = replacedUserResult ? {
@@ -3219,7 +3228,7 @@ l.placement_order ASC;`;
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                    AND is_enabled = true
+                    
                        
                     LIMIT 1
                 `;
@@ -3281,11 +3290,11 @@ l.placement_order ASC;`;
                                     id: supervisor.user_id,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
-                                    avatar: supervisor.avatar || null, 
+                                    avatar: supervisor.avatar || null,
                                     modified_on: recipient_details.modified_on,
-                                    notes:recipient_details.notes,
-                                    reason:recipient_details.reason,
-                                    replaced_notes:recipient_details.replaced_notes
+                                    notes: recipient_details.notes,
+                                    reason: recipient_details.reason,
+                                    replaced_notes: recipient_details.replaced_notes
                                 };
                             }
                         }
@@ -3332,7 +3341,7 @@ l.placement_order ASC;`;
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                AND is_enabled = true
+                
                  
                 LIMIT 1
             `;
@@ -3370,9 +3379,9 @@ l.placement_order ASC;`;
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             modified_on: recipient_details.modified_on,
-                                            notes:recipient_details.notes,
-                                            reason:recipient_details.reason,
-                                            replaced_notes:recipient_details.replaced_notes
+                                            notes: recipient_details.notes,
+                                            reason: recipient_details.reason,
+                                            replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
                                     replaced_user_data = replacedUserResult ? {
@@ -3449,8 +3458,8 @@ l.placement_order ASC;`;
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
                                     modified_on: recipient_details.modified_on,
-                                
-                                    replaced_notes:recipient_details.replaced_notes
+
+                                    replaced_notes: recipient_details.replaced_notes
                                 };
 
                                 // Fetch "replaced_by" user data if applicable
