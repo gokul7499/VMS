@@ -657,7 +657,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
                 for (const user of mspUserData) {
                     const recipeintEmail: EmailRecipient = {
-                        email: user.email
+                        email: user.email,
+                        first_name: user.first_name,
+                        last_name: user.last_name
                     }
                     recipientEmailArray.push(recipeintEmail);
                 }
