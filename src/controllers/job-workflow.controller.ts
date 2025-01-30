@@ -509,6 +509,9 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         const payload = { status: "approved", display_status: 'approved' };
                         console.log('payload for update status:', payload)
                         await axios.put(apiUrl, payload, {
+                        const payload = { status: "approved", display_status: 'approved' };
+                        console.log('payload for update status:', payload)
+                        await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
                                 authorization: authHeader
