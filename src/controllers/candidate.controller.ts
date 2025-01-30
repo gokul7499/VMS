@@ -678,7 +678,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             email: cand.email,
             vendor: cand.vendor ? {
                 id: cand.vendor.id,
-                vendor_name: cand.vendor.vendor_name
+                vendor_name: cand.vendor.vendor_name,
+                display_name: cand.vendor.display_name
             } : null,
             modified_on: cand.modified_on,
             state_national_id: cand.state_national_id,
