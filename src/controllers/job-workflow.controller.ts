@@ -503,23 +503,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                
                 
                     if (moduleType === "Assignment".toLowerCase()) {
+                        console.log('inside assignment approval status')
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-                        const payload = { status: "approved", display_status: null };
-
+                        const payload = { status: "approved", display_status: 'approved' };
+                        console.log('payload for update status:', payload)
                         await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
                                 authorization: authHeader
                             },
                         });
-                      
-                        
-
                     }
 
     } catch (error) {
-        console.error(error);
+        console.error('error while updating status:',error);
         return reply.status(500).send({ message: 'Internal Server Error' });
     }
 }
