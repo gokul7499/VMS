@@ -2087,6 +2087,7 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
+  status?:string,
   user_id?: string,
   hierarchy_id?: string[]
 ) => `
@@ -2182,6 +2183,7 @@ WITH user_data AS (
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${status ? 'AND u.status = :status' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
