@@ -92,6 +92,7 @@ export const getAllTimesheetTypeConfigs = async (
                 ttc.title,
                 ttc.is_enabled,
                 ttc.modified_on,
+                ttc.work_start_day,
                 ttc.timesheet_format,
                 ttc.allocations,
                 ttc.timesheet_rounding,
