@@ -304,7 +304,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         ), JSON_ARRAY())
     ) AS user
 FROM user_mappings um
-LEFT JOIN user u ON um.user_id = u.user_id
+LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
 LEFT JOIN tenant t ON um.tenant_id = t.id
 LEFT JOIN countries ct ON u.country_id = ct.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
@@ -374,7 +374,7 @@ WHERE um.program_id = :program_id AND um.id = :id
             status_code: 200,
             trace_id: traceId,
             message: "User mappings records fetched successfully.",
-            user_mappings: [userMappings[userMappings.length-1]],,
+            user_mappings: [userMappings[userMappings.length-1]],
         });
     } catch (error: any) {
         reply.status(500).send({
