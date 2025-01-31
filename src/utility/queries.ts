@@ -2087,6 +2087,7 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
+  status?:string,
   user_id?: string,
   hierarchy_id?: string[]
 ) => `
@@ -2182,6 +2183,7 @@ WITH user_data AS (
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${status ? 'AND u.status = :status' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
@@ -2262,7 +2264,7 @@ export const getPendingUserQuery = `
       'name', work_locations.name
     ) AS default_work_location_id,
     JSON_OBJECT(
-      'id', user.id,
+      'id', user.user_id,
       'first_name', user.first_name,
       'last_name',user.last_name
     ) AS supervisor_id,
@@ -2496,22 +2498,10 @@ export const rateCardMinRateMaxRate = `
     JOIN
       rate_card_matches rcm ON d.rate_card_id = rcm.rate_card_id
     WHERE
-      (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure IS NULL AND d.currency = :currency_id)
-      OR (d.hierarchy_id IN (:hierarchyIds) AND d.job_template_id IS NULL AND d.unit_of_measure IS NULL AND d.currency IS NULL)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IN (:jobTemplateIds) AND d.unit_of_measure IS NULL AND d.currency IS NULL)
-      OR (d.hierarchy_id IS NULL AND d.job_template_id IS NULL AND d.unit_of_measure = :unit_of_measure AND d.currency IS NULL)
+      (d.hierarchy_id IN (:hierarchyIds) OR d.hierarchy_id IS NULL)
+      AND (d.job_template_id IN (:jobTemplateIds) OR d.job_template_id IS NULL)
+      AND (d.unit_of_measure = :unit_of_measure OR d.unit_of_measure IS NULL)
+      AND (d.currency = :currency_id OR d.currency IS NULL)
   ),
   fallback_matches AS (
     SELECT
@@ -2657,3 +2647,14 @@ export const sameFeesConfig = `
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
 `;
+
+export const sameHierarchieRateConfiguration = `
+    SELECT rc.id
+    FROM rate_configurations rc
+    JOIN rate_configuration_hierarchies rh ON rc.id = rh.rate_configuration_id
+    JOIN rate_configuration_job_templates rjt ON rc.id = rjt.rate_configuration_id
+    WHERE rc.program_id = :program_id
+    AND rc.id <> :id
+    AND rh.hierarchy_id IN (:hierarchies)
+    AND rjt.job_template_id IN (:job_templates)
+    `;

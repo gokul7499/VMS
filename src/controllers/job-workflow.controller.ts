@@ -206,9 +206,11 @@ export const updateWorkflowStatus = async (
         Body:
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }[];
+
     }>,
     reply: FastifyReply
 ) => {
+
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -258,6 +260,7 @@ export const updateWorkflowStatus = async (
         // let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
+
 
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
             let levelFound = false;
@@ -451,7 +454,7 @@ export const updateWorkflowStatus = async (
                 await updateworkflowCompltedStatus(request, reply, workflow)
             }
         }
-       
+
         if (!updatedLevels) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1126,12 +1129,12 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                             }
 
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
                         });
 
                         return {
@@ -2114,10 +2117,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
-                            actor_first_name: recipient_details.actor_first_name,
-                            actor_last_name: recipient_details.actor_last_name,
-                            actor_by_avatar: recipient_details.actor_by_avatar,
-                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
 
                         } : undefined;
@@ -2195,10 +2194,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
-                            actor_first_name: recipient_details.actor_first_name,
-                            actor_last_name: recipient_details.actor_last_name,
-                            actor_by_avatar: recipient_details.actor_by_avatar,
-                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
@@ -2301,10 +2296,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
-                                    actor_first_name: recipient_details.actor_first_name,
-                                    actor_last_name: recipient_details.actor_last_name,
-                                    actor_by_avatar: recipient_details.actor_by_avatar,
-                                    is_admin_override: recipient_details.is_admin_override,
                                     replaced_notes: recipient_details.replaced_notes
                                 };
                             }
@@ -2393,10 +2384,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             modified_on: recipient_details.modified_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
-                                            actor_first_name: recipient_details.actor_first_name,
-                                            actor_last_name: recipient_details.actor_last_name,
-                                            actor_by_avatar: recipient_details.actor_by_avatar,
-                                            is_admin_override: recipient_details.is_admin_override,
                                             replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
@@ -2474,10 +2461,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
-                                    actor_first_name: recipient_details.actor_first_name,
-                                    actor_last_name: recipient_details.actor_last_name,
-                                    actor_by_avatar: recipient_details.actor_by_avatar,
-                                    is_admin_override: recipient_details.is_admin_override,
+
                                     replaced_notes: recipient_details.replaced_notes
                                 };
 
@@ -2524,7 +2508,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         }
 
                     }
-
 
                     // After processing all users, map them to the final input_value format
                     input_value = users.map(user => {
@@ -3163,10 +3146,6 @@ SELECT JSON_OBJECT(
     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-     'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
-          'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
-              'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
     'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
 )
 FROM JSON_TABLE(
@@ -3345,10 +3324,6 @@ l.placement_order ASC;`;
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
-                            actor_first_name: recipient_details.actor_first_name,
-                            actor_last_name: recipient_details.actor_last_name,
-                            actor_by_avatar: recipient_details.actor_by_avatar,
-                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
@@ -3445,10 +3420,6 @@ l.placement_order ASC;`;
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
-                                    actor_first_name: recipient_details.actor_first_name,
-                                    actor_last_name: recipient_details.actor_last_name,
-                                    actor_by_avatar: recipient_details.actor_by_avatar,
-                                    is_admin_override: recipient_details.is_admin_override,
                                     replaced_notes: recipient_details.replaced_notes
                                 };
                             }
@@ -3536,10 +3507,6 @@ l.placement_order ASC;`;
                                             modified_on: recipient_details.modified_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
-                                            actor_first_name: recipient_details.actor_first_name,
-                                            actor_last_name: recipient_details.actor_last_name,
-                                            actor_by_avatar: recipient_details.actor_by_avatar,
-                                            is_admin_override: recipient_details.is_admin_override,
                                             replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
@@ -3616,10 +3583,6 @@ l.placement_order ASC;`;
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    actor_first_name: recipient_details.actor_first_name,
-                                    actor_last_name: recipient_details.actor_last_name,
-                                    actor_by_avatar: recipient_details.actor_by_avatar,
-                                    is_admin_override: recipient_details.is_admin_override,
                                     modified_on: recipient_details.modified_on,
 
                                     replaced_notes: recipient_details.replaced_notes

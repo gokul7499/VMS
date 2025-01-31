@@ -304,6 +304,7 @@ export async function saveProgramVendor(
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             display_name: tenant.display_name,
+            vendor_code : tenant.tenant_code,
             addresses: user.addresses,
             background_logo_color: tenant.background_logo_color,
         }

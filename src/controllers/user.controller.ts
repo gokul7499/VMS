@@ -185,7 +185,7 @@ export async function getUserHierarchiesByProgram(
     const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds },
+        where: { id: workLocationIds,is_enabled:true },
         attributes: ['id', 'name'],
       })
       : [];
@@ -250,11 +250,11 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       user: UserInterface;
       user_group_mapping: Omit<UserMappingAttributes, "id"> | Omit<UserMappingAttributes, "id">[];
     };
-    if (!user?.tenant_id) {
+    if (!user?.program_id) {
       await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
-        message: "Missing user or tenant id in request body",
+        message: "Missing user or program_id id in request body",
         trace_id: traceId,
       });
     }
@@ -273,7 +273,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
-        message: "User with tenant_id or program_id already exists!",
+        message: "User with program_id already exists!",
         trace_id: traceId,
       });
     }
@@ -541,6 +541,7 @@ export async function getAllUserIDAndUserId(
       user_type?: string;
       first_name?: string;
       is_activated?: boolean;
+      status?:string;
       role_id?: string;
       tenant_id?: string;
       email?: string;
@@ -560,6 +561,7 @@ export async function getAllUserIDAndUserId(
     is_activated,
     role_id,
     tenant_id,
+    status,
     email,
     hierarchy_id,
     page = '1',
@@ -577,12 +579,13 @@ export async function getAllUserIDAndUserId(
     );
 
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
+      userQuery(first_name,status, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
       {
         replacements: {
           program_id,
           user_id,
           user_type,
+          status,
           is_activated: isActivatedStr === 'true',
           role_id,
           tenant_id,
