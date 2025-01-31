@@ -2645,3 +2645,14 @@ export const sameFeesConfig = `
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
 `;
+
+export const sameHierarchieRateConfiguration = `
+    SELECT rc.id
+    FROM rate_configurations rc
+    JOIN rate_configuration_hierarchies rh ON rc.id = rh.rate_configuration_id
+    JOIN rate_configuration_job_templates rjt ON rc.id = rjt.rate_configuration_id
+    WHERE rc.program_id = :program_id
+    AND rc.id <> :id
+    AND rh.hierarchy_id IN (:hierarchies)
+    AND rjt.job_template_id IN (:job_templates)
+    `;
