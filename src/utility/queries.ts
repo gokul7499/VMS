@@ -2262,7 +2262,7 @@ export const getPendingUserQuery = `
       'name', work_locations.name
     ) AS default_work_location_id,
     JSON_OBJECT(
-      'id', user.id,
+      'id', user.user_id,
       'first_name', user.first_name,
       'last_name',user.last_name
     ) AS supervisor_id,
