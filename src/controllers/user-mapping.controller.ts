@@ -304,7 +304,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         ), JSON_ARRAY())
     ) AS user
 FROM user_mappings um
-LEFT JOIN user u ON um.user_id = u.user_id
+LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
 LEFT JOIN tenant t ON um.tenant_id = t.id
 LEFT JOIN countries ct ON u.country_id = ct.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
