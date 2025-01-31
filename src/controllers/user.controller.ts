@@ -541,6 +541,7 @@ export async function getAllUserIDAndUserId(
       user_type?: string;
       first_name?: string;
       is_activated?: boolean;
+      status?:string;
       role_id?: string;
       tenant_id?: string;
       email?: string;
@@ -560,6 +561,7 @@ export async function getAllUserIDAndUserId(
     is_activated,
     role_id,
     tenant_id,
+    status,
     email,
     hierarchy_id,
     page = '1',
@@ -577,12 +579,13 @@ export async function getAllUserIDAndUserId(
     );
 
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
+      userQuery(first_name,status, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
       {
         replacements: {
           program_id,
           user_id,
           user_type,
+          status,
           is_activated: isActivatedStr === 'true',
           role_id,
           tenant_id,
