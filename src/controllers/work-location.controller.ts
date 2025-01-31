@@ -171,9 +171,9 @@ export async function getAllWorkLocations(
   try {
     const params = request.params as WorkLocationInterface;
     const query = request.query as WorkLocationInterface | any;
-    const page = parseInt(query.page ?? "1");
-    const limit = parseInt(query.limit ?? "10");
-    const offset = (page - 1) * limit;
+    const page = query.page ? parseInt(query.page) : undefined;
+    const limit = query.limit ? parseInt(query.limit) : undefined;
+    const offset = page && limit ? (page - 1) * limit : undefined;
     delete query.page;
     delete query.limit;
 
@@ -218,8 +218,8 @@ export async function getAllWorkLocations(
   }
     const workLocations = await WorkLocationModel.findAll({
       where: whereClause,
-      limit,
-      offset,
+    ...(limit ? { limit } : {}), 
+    ...(offset ? { offset } : {}),
       order,
       include: [
         {
