@@ -204,12 +204,11 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override:boolean }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] ,is_admin_override:boolean}[];
     }>,
     reply: FastifyReply
 ) => {
-
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -240,6 +239,8 @@ export const updateWorkflowStatus = async (
     }
 
     try {
+        const userResult= await getUsersStatus(sequelize,userId);
+          let userData=userResult[0] as any
         let impersonator_id: any
         if (user.impersonator) {
             impersonator_id = user.impersonator.id || null
@@ -257,11 +258,29 @@ export const updateWorkflowStatus = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
-        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids,is_admin_override } of updates) {
             let levelFound = false;
 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
+                    if (is_admin_override) {
+                        // Admin override: Mark all levels and recipients as reviewed & completed
+                        return {
+                            ...level,
+                            status: "completed",
+                            recipient_types: level.recipient_types.map((recipient: any) => ({
+                                ...recipient,
+                                status: "approved",
+                                is_admin_override: is_admin_override,
+                                actor_first_name: userData.first_name,
+                                actor_last_name: userData.last_name,
+                                actor_by_avatar: userData.avatar,
+                                impersonate_by: impersonator_id,
+                                modified_on: new Date(),
+                            })),
+                        };
+                    }
+            
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
@@ -282,7 +301,10 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    return { ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id,is_admin_override: is_admin_override,
+                                        actor_first_name: userData.first_name,
+                                        actor_last_name: userData.last_name,
+                                        actor_by_avatar: userData.avatar, modified_on: new Date(), };
 
                                 }
 
@@ -300,7 +322,10 @@ export const updateWorkflowStatus = async (
                                                 created_on: new Date(),
                                                 user_id: user_id,
                                             });
-                                            return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                            return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,is_admin_override: is_admin_override,
+                                                actor_first_name: userData.first_name,
+                                                actor_last_name: userData.last_name,
+                                                actor_by_avatar: userData.avatar, modified_on: new Date(), };
                                         }
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
@@ -316,7 +341,10 @@ export const updateWorkflowStatus = async (
                                                     created_on: new Date(),
                                                     user_id: user_id,
                                                 });
-                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                                return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,is_admin_override: is_admin_override,
+                                                    actor_first_name: userData.first_name,
+                                                    actor_last_name: userData.last_name,
+                                                    actor_by_avatar: userData.avatar, modified_on: new Date(), };
 
                                             }
                                         }
@@ -332,7 +360,10 @@ export const updateWorkflowStatus = async (
                                         created_on: new Date(),
                                         user_id: user_id,
                                     });
-                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id, modified_on: new Date(), };
+                                    return { ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,is_admin_override: is_admin_override,
+                                        actor_first_name: userData.first_name,
+                                        actor_last_name: userData.last_name,
+                                        actor_by_avatar: userData.avatar, modified_on: new Date(), };
 
                                 }
 
@@ -438,7 +469,27 @@ export const updateWorkflowStatus = async (
     }
 };
 
+export async function getUsersStatus(sequelize: any, userId:any) {
+   
+    const userQuery = `
+        SELECT user_id, status,first_name,last_name,avatar
+        FROM user
+        WHERE user_id IN (:userId) 
+          AND is_enabled = true;`;
 
+    const users = await sequelize.query(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { userId},
+    });
+
+    return users.map((user: any) => ({
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar: user.avatar?.url,
+        status: user.status,
+    }));
+}
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
 
 
@@ -577,21 +628,21 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 });
             }
             else if (moduleType === "Assignment".toLowerCase()) {
-            const assignment_id = workflow.workflow_trigger_id;
-            const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-            const payload = {
-                status: "rejected",
-                display_status: "rejected"
-            };
+                const assignment_id = workflow.workflow_trigger_id;
+                const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
+                const payload = {
+                    status: "rejected",
+                    display_status: "rejected"
+                };
 
-            await axios.put(apiUrl, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    authorization: authHeader
-                },
-            });
+                await axios.put(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
 
-        }
+            }
 
     } catch (error) {
         console.error(error);
@@ -1025,12 +1076,12 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+
                             }
 
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+
                         });
 
                         return {
@@ -1759,6 +1810,10 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
         'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+         'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
+          'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
+           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
+              'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
         'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
     )
@@ -2009,6 +2064,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
+                            actor_first_name: recipient_details.actor_first_name,
+                            actor_last_name: recipient_details.actor_last_name,
+                            actor_by_avatar: recipient_details.actor_by_avatar,
+                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
 
                         } : undefined;
@@ -2086,6 +2145,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
+                            actor_first_name: recipient_details.actor_first_name,
+                            actor_last_name: recipient_details.actor_last_name,
+                            actor_by_avatar: recipient_details.actor_by_avatar,
+                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
@@ -2188,6 +2251,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
+                                    actor_first_name: recipient_details.actor_first_name,
+                                    actor_last_name: recipient_details.actor_last_name,
+                                    actor_by_avatar: recipient_details.actor_by_avatar,
+                                    is_admin_override: recipient_details.is_admin_override,
                                     replaced_notes: recipient_details.replaced_notes
                                 };
                             }
@@ -2276,6 +2343,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             modified_on: recipient_details.modified_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
+                                            actor_first_name: recipient_details.actor_first_name,
+                                            actor_last_name: recipient_details.actor_last_name,
+                                            actor_by_avatar: recipient_details.actor_by_avatar,
+                                            is_admin_override: recipient_details.is_admin_override,
                                             replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
@@ -2353,7 +2424,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
-
+                                    actor_first_name: recipient_details.actor_first_name,
+                                    actor_last_name: recipient_details.actor_last_name,
+                                    actor_by_avatar: recipient_details.actor_by_avatar,
+                                    is_admin_override: recipient_details.is_admin_override,
                                     replaced_notes: recipient_details.replaced_notes
                                 };
 
@@ -2401,6 +2475,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                     }
 
+
                     // After processing all users, map them to the final input_value format
                     input_value = users.map(user => {
                         return {
@@ -2413,6 +2488,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             impersonate_by: user.impersonate_by,  // Attach impersonate_by data
                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
                             receipentStatus: user.receipentstatus,
+                            actor_first_name:user.actor_first_name,
+                            actor_last_name:user.actor_last_name,
+                            actor_by_avatar:user.actor_by_avatar,
+                            is_admin_override:user.is_admin_override,
                             reason: user.reason,
                             modified_on: user.modified_on,
                             notes: user.notes
@@ -2428,6 +2507,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 first_name: user.first_name,
                                 last_name: user.last_name,
                                 level_id,
+                                actor_first_name:user.actor_first_name,
+                                actor_last_name:user.actor_last_name,
+                                actor_by_avatar:user.actor_by_avatar,
+                                is_admin_override:user.is_admin_override,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
                                 notes: user.notes,
@@ -2456,6 +2539,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
+                            actor_first_name:recipient_details.actor_first_name,
+                            actor_last_name:recipient_details.actor_last_name,
+                            actor_by_avatar:recipient_details.actor_by_avatar,
+                            is_admin_override:recipient_details.is_admin_override,
                             user_id: input_value.id,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
@@ -3030,6 +3117,10 @@ SELECT JSON_OBJECT(
     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+     'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
+          'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
+           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
+              'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
     'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
 )
 FROM JSON_TABLE(
@@ -3208,6 +3299,10 @@ l.placement_order ASC;`;
                             modified_on: recipient_details.modified_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
+                            actor_first_name: recipient_details.actor_first_name,
+                            actor_last_name: recipient_details.actor_last_name,
+                            actor_by_avatar: recipient_details.actor_by_avatar,
+                            is_admin_override: recipient_details.is_admin_override,
                             replaced_notes: recipient_details.replaced_notes
                         } : undefined;
 
@@ -3304,6 +3399,10 @@ l.placement_order ASC;`;
                                     modified_on: recipient_details.modified_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
+                                    actor_first_name: recipient_details.actor_first_name,
+                                    actor_last_name: recipient_details.actor_last_name,
+                                    actor_by_avatar: recipient_details.actor_by_avatar,
+                                    is_admin_override: recipient_details.is_admin_override,
                                     replaced_notes: recipient_details.replaced_notes
                                 };
                             }
@@ -3391,6 +3490,10 @@ l.placement_order ASC;`;
                                             modified_on: recipient_details.modified_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
+                                            actor_first_name: recipient_details.actor_first_name,
+                                            actor_last_name: recipient_details.actor_last_name,
+                                            actor_by_avatar: recipient_details.actor_by_avatar,
+                                            is_admin_override: recipient_details.is_admin_override,
                                             replaced_notes: recipient_details.replaced_notes
                                         };
                                     }
@@ -3467,6 +3570,10 @@ l.placement_order ASC;`;
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
+                                    actor_first_name: recipient_details.actor_first_name,
+                                    actor_last_name: recipient_details.actor_last_name,
+                                    actor_by_avatar: recipient_details.actor_by_avatar,
+                                    is_admin_override: recipient_details.is_admin_override,
                                     modified_on: recipient_details.modified_on,
 
                                     replaced_notes: recipient_details.replaced_notes
@@ -3529,6 +3636,10 @@ l.placement_order ASC;`;
                             impersonate_by: user.impersonate_by,  // Attach impersonate_by data
                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
                             receipentStatus: user.receipentstatus,
+                            actor_first_name:user.actor_first_name,
+                            actor_last_name:user.actor_last_name,
+                            actor_by_avatar:user.actor_by_avatar,
+                            is_admin_override:user.is_admin_override,
                             reason: user.reason,
                             modifiedOn: user.modifiedOn,
                             notes: user.notes
@@ -3544,6 +3655,10 @@ l.placement_order ASC;`;
                                 name: getName(user),
                                 first_name: user.first_name,
                                 last_name: user.last_name,
+                                actor_first_name:user.actor_first_name,
+                                actor_last_name:user.actor_last_name,
+                                actor_by_avatar:user.actor_by_avatar,
+                                is_admin_override:user.is_admin_override,
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
@@ -3575,6 +3690,10 @@ l.placement_order ASC;`;
                             replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
+                            actor_first_name:recipient_details.actor_first_name,
+                            actor_last_name:recipient_details.actor_last_name,
+                            actor_by_avatar:recipient_details.actor_by_avatar,
+                            is_admin_override:recipient_details.is_admin_override,
                             avatar: input_value.avatar?.url || '',
                             role_id: input_value.role_id,
                             email: input_value.email,
