@@ -2137,7 +2137,7 @@ WITH user_data AS (
          MAX(CASE WHEN u.is_allow_unlimited_authority = 1 THEN true ELSE false END) AS is_allow_unlimited_authority,
          MAX(CASE WHEN u.is_all_work_location_associate = 1 THEN true ELSE false END) AS is_all_work_location_associate,
          MAX(CASE WHEN u.is_all_hierarchy_associate = 1 THEN true ELSE false END) AS is_all_hierarchy_associate,
-         um.id as user_mapping_id,
+         MAX(um.id) as user_mapping_id,  -- Aggregate um.id
          MAX(u.status) AS status,
          JSON_OBJECT(
              'id', u.user_id,
@@ -2181,14 +2181,14 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.user_id = :user_id' : ''}
-    ${user_type ? 'AND u.user_type = :user_type' : ''}
-    ${status ? 'AND u.status = :status' : ''}
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
-    ${role_id ? 'AND u.role_id = :role_id' : ''}
-    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
-    ${email ? 'AND u.email = :email' : ''}
-    ${first_name ? 'AND u.first_name = :first_name' : ''}
+    ${user_id ? 'AND u.user_id = :user_id' : ''} 
+    ${user_type ? 'AND u.user_type = :user_type' : ''} 
+    ${status ? 'AND u.status = :status' : ''} 
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''} 
+    ${role_id ? 'AND u.role_id = :role_id' : ''} 
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''} 
+    ${email ? 'AND u.email = :email' : ''} 
+    ${first_name ? 'AND u.first_name = :first_name' : ''} 
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2200,6 +2200,7 @@ SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
 ORDER BY modified_on DESC
 LIMIT :limit OFFSET :offset;
+
 `;
 
 export const userHierarchiesQuery = (user_id?: string, hierarchy_id?: string[]) => `
