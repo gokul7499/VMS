@@ -18,7 +18,7 @@ import axios from 'axios';
 import { databaseConfig } from '../config/db';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
-let SOURCE_BASE_URL = databaseConfig.config.sourcing_url||"http://localhost:8002/sourcing"
+let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 let TEAI_BASE_URL = databaseConfig.config.teai_url
 
 
