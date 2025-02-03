@@ -2161,6 +2161,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0]?.avatar,
                             role_id: imporsonateUserResult[0]?.role_id,
                             email: imporsonateUserResult[0]?.email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2237,6 +2238,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0]?.avatar,
                             role_id: imporsonateUserResult[0]?.role_id,
                             email: imporsonateUserResult[0]?.email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2342,6 +2344,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2427,6 +2430,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
                                         email: imporsonateUserResult[0].email,
+                                        modified_on: recipient_details.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2516,6 +2520,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
+                                            modified_on: recipient_details.modified_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                         };
@@ -2576,6 +2581,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 role_id: user.role_id,
                                 email: user.email,
                                 replaced_by: user.replaced_by,
+                                // imporsonate_by: imposonate_user_data,
+                                imporsonate_by: user.imposonate_user_data,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
 
@@ -3358,6 +3365,7 @@ l.placement_order ASC;`;
                             role_id: replacedUserResult[0].role_id,
                             email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3367,6 +3375,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3457,6 +3466,7 @@ l.placement_order ASC;`;
                             avatar: replacedUserResult[0].avatar || null,
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3466,6 +3476,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3540,6 +3551,7 @@ l.placement_order ASC;`;
                                         avatar: replacedUserResult[0].avatar,
                                         role_id: replacedUserResult[0].role_id,
                                         email: replacedUserResult[0].email,
+                                        replaced_date_time: recipient_details.replaced_modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3550,6 +3562,7 @@ l.placement_order ASC;`;
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
                                         email: imporsonateUserResult[0].email,
+                                        modified_on: recipient_details.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3641,6 +3654,7 @@ l.placement_order ASC;`;
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
+                                            modified_on: recipient_details.modified_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                         };
