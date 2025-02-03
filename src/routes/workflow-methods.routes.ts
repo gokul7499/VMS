@@ -18,7 +18,7 @@ async function WorkflowMethodRoutes(fastify: FastifyInstance) {
     fastify.get('/workflow-methods', getAllWorkflowMethods);
     fastify.get('/workflow-method', getWorkflowMethods);
     fastify.get('/workflow-method/:id', getWorkflowMethodById);
-    fastify.get('/job-workflow-method', getWorkflowMethod);
+    fastify.get('/get-workflow-method', getWorkflowMethod);
 }
 
 export default WorkflowMethodRoutes;
