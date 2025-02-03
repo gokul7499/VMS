@@ -579,7 +579,7 @@ export async function getAllUserIDAndUserId(
     );
 
     const users = await sequelize.query(
-      userQuery(first_name,status, email, tenant_id, role_id, isActivatedStr, user_type, user_id, hierarchyIdsArray),
+      userQuery(first_name,email, tenant_id, role_id, isActivatedStr,user_type,status, user_id, hierarchyIdsArray),
       {
         replacements: {
           program_id,
