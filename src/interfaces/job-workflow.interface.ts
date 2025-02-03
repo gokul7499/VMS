@@ -44,6 +44,7 @@ export interface Level {
   level_status: string;
   placement_order: number;
   level_order: number;
+  behaviour: string;
   // is_bypassed:string;
   is_show_buttons?:any;
   recipients: Recipient[];

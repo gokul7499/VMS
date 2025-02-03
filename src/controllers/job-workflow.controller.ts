@@ -3755,7 +3755,7 @@ l.placement_order ASC;`;
                                 level_order: placement_order,
                                 placement_order,
                                 level_status,
-
+                                behaviour,
                                 recipients: [recipient],
                             });
                         }
