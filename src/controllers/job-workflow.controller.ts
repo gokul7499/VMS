@@ -204,8 +204,8 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[], is_admin_override?: boolean }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[], is_admin_override?: boolean }[];
 
     }>,
     reply: FastifyReply
@@ -262,7 +262,7 @@ export const updateWorkflowStatus = async (
         let updatedLevels = false;
 
 
-        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids,is_admin_override } of updates) {
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
 
             levels = await Promise.all(
@@ -317,14 +317,14 @@ export const updateWorkflowStatus = async (
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
                                     const history = await WorkflowStatusHistory.create({
-                                                job_workflow_id: id,
-                                                placement_order,
-                                                new_status,
-                                                program_id,
-                                                notes: notes || "",
-                                                created_on: new Date(),
-                                                user_id: user_id,
-                                            });
+                                        job_workflow_id: id,
+                                        placement_order,
+                                        new_status,
+                                        program_id,
+                                        notes: notes || "",
+                                        created_on: new Date(),
+                                        user_id: user_id,
+                                    });
                                     return {
                                         ...recipient,
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
@@ -408,7 +408,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved"|| recipient.status === "Not needed"
+                            (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
                         );
                         return {
                             ...level,
@@ -1151,12 +1151,12 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                             
+
                             }
 
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                          
+
                         });
 
                         return {
