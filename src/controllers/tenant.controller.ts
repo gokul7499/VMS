@@ -372,14 +372,26 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
         if (query.info_level === "detail") {
             attributes = undefined;
         } else {
-            attributes.push([
-                Sequelize.literal(`(
-                    SELECT COUNT(*)
-                    FROM programs AS p
-                    WHERE p.msp_id = Tenant.id OR p.client_id = Tenant.id
-                )`),
-                "program_count"
-            ]);
+            if (query.type.toUpperCase() === "VENDOR") {
+                attributes.push([
+                    Sequelize.literal(`(
+                        SELECT COUNT(*)
+                        FROM program_vendors AS pv
+                        WHERE pv.tenant_id = Tenant.id
+                    )`),
+                    "program_count"
+                ]);
+            }
+            else{
+                attributes.push([
+                    Sequelize.literal(`(
+                        SELECT COUNT(*)
+                        FROM programs AS p
+                        WHERE p.msp_id = Tenant.id OR p.client_id = Tenant.id
+                    )`),
+                    "program_count"
+                ]);
+            }
         }
 
         const { rows: results, count } = await Tenant.findAndCountAll({
@@ -397,8 +409,8 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
             tenants: results,
             trace_id:traceId
         });
-    } catch (error) {
-        return reply.status(500).send({status_code:500, message: "Internal Server Error" ,trace_id:traceId});
+    } catch (error:any) {
+        return reply.status(500).send({status_code:500, message: "Internal Server Error" ,error:error.message,trace_id:traceId});
     }
 }
 

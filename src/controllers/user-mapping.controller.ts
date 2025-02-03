@@ -277,6 +277,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         'contacts', u.contacts,
         'modified_by', u.modified_by,
         'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
+        'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
         'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
         'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
         'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
@@ -305,7 +306,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
     ) AS user
 FROM user_mappings um
 LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
-LEFT JOIN tenant t ON um.tenant_id = t.id
+LEFT JOIN tenant t ON u.tenant_id = t.id
 LEFT JOIN countries ct ON u.country_id = ct.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
 LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
