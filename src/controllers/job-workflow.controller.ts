@@ -473,7 +473,7 @@ export const updateWorkflowStatus = async (
 
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
-                await updateworkflowCompltedStatus(request, reply, workflow)
+                await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
             }
         }
 
@@ -501,7 +501,7 @@ export const updateWorkflowStatus = async (
         });
     }
 };
-export async function updateworkflowCompltedStatus(request: FastifyRequest, reply: FastifyReply, workflow: any) {
+export async function updateWorkflowPreviousCompltedStatus(request: FastifyRequest, reply: FastifyReply, workflow: any) {
     try {
         const userQuery = `
         SELECT *
