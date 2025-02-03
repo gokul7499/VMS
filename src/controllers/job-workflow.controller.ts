@@ -2628,6 +2628,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 level_order: placement_order,
                                 placement_order,
                                 level_status,
+                                behaviour,
                                 recipients: [recipient],
                             });
                         }
