@@ -18,7 +18,7 @@ import axios from 'axios';
 import { databaseConfig } from '../config/db';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
-let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
+let SOURCE_BASE_URL = databaseConfig.config.sourcing_url||"http://localhost:8002/sourcing"
 let TEAI_BASE_URL = databaseConfig.config.teai_url
 
 
@@ -1151,12 +1151,12 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+                             
                             }
 
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+                          
                         });
 
                         return {
@@ -3305,7 +3305,7 @@ l.placement_order ASC;`;
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                       
+                         AND status = 'active'
                           
                         LIMIT 1
                     `;
@@ -3377,7 +3377,7 @@ l.placement_order ASC;`;
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                    
+                      AND status = 'active'
                        
                     LIMIT 1
                 `;
@@ -3399,7 +3399,7 @@ l.placement_order ASC;`;
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
-                              
+                                AND status = 'active'
                             LIMIT 1
                         `;
                             let supervisorResult = null
@@ -3490,7 +3490,7 @@ l.placement_order ASC;`;
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                
+                  AND status = 'active'
                  
                 LIMIT 1
             `;
