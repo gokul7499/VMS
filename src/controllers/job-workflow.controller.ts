@@ -204,8 +204,8 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[] }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }[];
 
     }>,
     reply: FastifyReply
@@ -262,28 +262,28 @@ export const updateWorkflowStatus = async (
         let updatedLevels = false;
 
 
-        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids } of updates) {
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids,is_admin_override } of updates) {
             let levelFound = false;
 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
-                    // if (is_admin_override) {
-                    //     // Admin override: Mark all levels and recipients as reviewed & completed
-                    //     return {
-                    //         ...level,
-                    //         status: "completed",
-                    //         recipient_types: level.recipient_types.map((recipient: any) => ({
-                    //             ...recipient,
-                    //             status: "approved",
-                    //             is_admin_override: is_admin_override,
-                    //             actor_first_name: userData.first_name,
-                    //             actor_last_name: userData.last_name,
-                    //             actor_by_avatar: userData.avatar,
-                    //             impersonate_by: impersonator_id,
-                    //             modified_on: new Date(),
-                    //         })),
-                    //     };
-                    // }
+                    if (is_admin_override) {
+                        // Admin override: Mark all levels and recipients as reviewed & completed
+                        return {
+                            ...level,
+                            status: "completed",
+                            recipient_types: level.recipient_types.map((recipient: any) => ({
+                                ...recipient,
+                                status: "approved",
+                                is_admin_override: is_admin_override,
+                                actor_first_name: userData.first_name,
+                                actor_last_name: userData.last_name,
+                                actor_by_avatar: userData.avatar,
+                                impersonate_by: impersonator_id,
+                                modified_on: new Date(),
+                            })),
+                        };
+                    }
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
@@ -295,25 +295,47 @@ export const updateWorkflowStatus = async (
                                 const isSuperUser = user.userType = "super_user"
 
                                 // If the behavior is "any", update all recipients with "approved"
-                                if (behavior === "any") {
+                                // if (behavior === "any") {
+                                //     const history = await WorkflowStatusHistory.create({
+                                //         job_workflow_id: id,
+                                //         placement_order,
+                                //         new_status,
+                                //         program_id,
+                                //         notes: notes || "",
+                                //         created_on: new Date(),
+                                //         user_id: user_id,
+                                //     });
+                                //     return {
+                                //         ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id,
+                                //         actor_first_name: userData.first_name,
+                                //         actor_last_name: userData.last_name,
+                                //         actor_by_avatar: userData.avatar, modified_on: new Date(),
+                                //     };
+
+                                // }
+                                if (behavior == "any" && level.placement_order === placement_order) {
+                                    // Check if the recipient's user_id matches any value in meta_data
+                                    const matchesUser = Object.values(recipient.meta_data).includes(user_id);
                                     const history = await WorkflowStatusHistory.create({
-                                        job_workflow_id: id,
-                                        placement_order,
-                                        new_status,
-                                        program_id,
-                                        notes: notes || "",
-                                        created_on: new Date(),
-                                        user_id: user_id,
-                                    });
+                                                job_workflow_id: id,
+                                                placement_order,
+                                                new_status,
+                                                program_id,
+                                                notes: notes || "",
+                                                created_on: new Date(),
+                                                user_id: user_id,
+                                            });
                                     return {
-                                        ...recipient, status: "approved", status_id: history.dataValues.id, imporsonate_by: impersonator_id,
+                                        ...recipient,
+                                        status: matchesUser ? "approved" : "Not needed", // Set status based on the match
+                                        impersonate_by: impersonator_id,
+                                        modified_on: new Date(),
+                                        status_id: history.dataValues.id,
                                         actor_first_name: userData.first_name,
                                         actor_last_name: userData.last_name,
-                                        actor_by_avatar: userData.avatar, modified_on: new Date(),
+                                        actor_by_avtar: userData.avatar,
                                     };
-
                                 }
-
                                 // Check if user is not a "super_user" and proceed with matchinj
                                 if (!isSuperUser) {
                                     if (user_id) {
@@ -386,7 +408,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved"
+                            (recipient: any) => recipient.status === "approved"|| recipient.status === "Not needed"
                         );
                         return {
                             ...level,
