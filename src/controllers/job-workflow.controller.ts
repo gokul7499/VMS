@@ -204,8 +204,8 @@ export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
         Body:
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }
-        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[],is_admin_override?:boolean }[];
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[], is_admin_override?: boolean }
+        | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids: any[], is_admin_override?: boolean }[];
 
     }>,
     reply: FastifyReply
@@ -262,7 +262,7 @@ export const updateWorkflowStatus = async (
         let updatedLevels = false;
 
 
-        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids,is_admin_override } of updates) {
+        for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
 
             levels = await Promise.all(
@@ -317,14 +317,14 @@ export const updateWorkflowStatus = async (
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
                                     const history = await WorkflowStatusHistory.create({
-                                                job_workflow_id: id,
-                                                placement_order,
-                                                new_status,
-                                                program_id,
-                                                notes: notes || "",
-                                                created_on: new Date(),
-                                                user_id: user_id,
-                                            });
+                                        job_workflow_id: id,
+                                        placement_order,
+                                        new_status,
+                                        program_id,
+                                        notes: notes || "",
+                                        created_on: new Date(),
+                                        user_id: user_id,
+                                    });
                                     return {
                                         ...recipient,
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
@@ -408,7 +408,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved"|| recipient.status === "Not needed"
+                            (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
                         );
                         return {
                             ...level,
@@ -1151,12 +1151,12 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+
                             }
 
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
+
                         });
 
                         return {
@@ -2161,6 +2161,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0]?.avatar,
                             role_id: imporsonateUserResult[0]?.role_id,
                             email: imporsonateUserResult[0]?.email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2237,6 +2238,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0]?.avatar,
                             role_id: imporsonateUserResult[0]?.role_id,
                             email: imporsonateUserResult[0]?.email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2342,6 +2344,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2427,6 +2430,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
                                         email: imporsonateUserResult[0].email,
+                                        modified_on: recipient_details.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2516,6 +2520,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
+                                            modified_on: recipient_details.modified_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                         };
@@ -2576,6 +2581,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 role_id: user.role_id,
                                 email: user.email,
                                 replaced_by: user.replaced_by,
+                                // imporsonate_by: imposonate_user_data,
+                                imporsonate_by: user.imposonate_user_data,
                                 recipient_type: recipientType?.name || '',
                                 behaviour,
 
@@ -3305,7 +3312,7 @@ l.placement_order ASC;`;
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                       
+                         AND status = 'active'
                           
                         LIMIT 1
                     `;
@@ -3358,6 +3365,7 @@ l.placement_order ASC;`;
                             role_id: replacedUserResult[0].role_id,
                             email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3367,6 +3375,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3377,7 +3386,7 @@ l.placement_order ASC;`;
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                    
+                      AND status = 'active'
                        
                     LIMIT 1
                 `;
@@ -3399,7 +3408,7 @@ l.placement_order ASC;`;
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
-                              
+                                AND status = 'active'
                             LIMIT 1
                         `;
                             let supervisorResult = null
@@ -3457,6 +3466,7 @@ l.placement_order ASC;`;
                             avatar: replacedUserResult[0].avatar || null,
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3466,6 +3476,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult[0].avatar,
                             role_id: imporsonateUserResult[0].role_id,
                             email: imporsonateUserResult[0].email,
+                            modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3490,7 +3501,7 @@ l.placement_order ASC;`;
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                
+                  AND status = 'active'
                  
                 LIMIT 1
             `;
@@ -3540,6 +3551,7 @@ l.placement_order ASC;`;
                                         avatar: replacedUserResult[0].avatar,
                                         role_id: replacedUserResult[0].role_id,
                                         email: replacedUserResult[0].email,
+                                        replaced_date_time: recipient_details.replaced_modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3550,6 +3562,7 @@ l.placement_order ASC;`;
                                         avatar: imporsonateUserResult[0].avatar,
                                         role_id: imporsonateUserResult[0].role_id,
                                         email: imporsonateUserResult[0].email,
+                                        modified_on: recipient_details.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3641,6 +3654,7 @@ l.placement_order ASC;`;
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
+                                            modified_on: recipient_details.modified_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                         };
