@@ -11,10 +11,13 @@ import {
   getAllJobTempletsByHierarchies,
   findJobTemplatesByHierarchyIds,
   findJobTemplatesByLabourCategories,
-  getCommonHierarchies
+  getCommonHierarchies,
+  uploadFile,
 } from "../controllers/job-template.controller";
+import fastifyMultipart from "@fastify/multipart";
 
 async function jobTemplate(fastify: FastifyInstance) {
+  fastify.register(fastifyMultipart);
   fastify.get("/program/:program_id/job-template", getAllJobTemplates);
   fastify.get("/program/:program_id/job-template/:id", getJobTemplateById);
   fastify.post("/program/:program_id/job-template", createJobTemplate);
@@ -39,5 +42,6 @@ async function jobTemplate(fastify: FastifyInstance) {
     "/program/:program_id/common-hierarchies",
     getCommonHierarchies
   );
+  fastify.post("/upload-file", uploadFile);
 }
 export default jobTemplate;
