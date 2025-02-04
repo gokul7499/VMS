@@ -564,6 +564,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    
     const { program_id } = request.params as { program_id: string };
     const {
         page = "1",
@@ -625,7 +626,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({ where: { program_id, user_id: userId } });
+    const userData = await User.findOne({ where: { program_id:program_id, user_id: userId } });
+    
     const vendorId = userData?.tenant_id || undefined;
 
     if (vendorId === undefined) {
@@ -673,24 +675,25 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'candidate_id', 'preferences', 'vendor_id','worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
             order
         });
 
-        const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendorIds = candidates.map((cand: any) => cand.vendor_id);
+    
         const vendors = await ProgramVendor.findAll({
             where: {
-                id: vendorIds,
+                tenant_id: vendorIds,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
             attributes: ['id', 'vendor_name', 'display_name']
         });
-
+       
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
+            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
