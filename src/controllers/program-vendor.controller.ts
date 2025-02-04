@@ -10,13 +10,12 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import { Op, QueryTypes } from "sequelize";
-import { complianceDocumentCountByVendorId, complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
+import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorDetailsQuery, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
-import { log } from "console";
 interface VendorDetails {
     display_name: any;
     document_number: any;
@@ -49,7 +48,7 @@ interface VendorDetails {
     total_count: number;
     id: any;
     status: any;
-    tenant_id :any;
+    tenant_id: any;
     compliance_documents: any;
 }
 
@@ -258,8 +257,8 @@ export async function saveProgramVendor(
 
     const { tenant, user, 'user-group-mapping': userGroupMapping } = request.body as any;
     console.log('tenant', request.body);
-    const {id,...userWithoutId}=user
-    console.log("weruyitur",user)
+    const { id, ...userWithoutId } = user
+    console.log("weruyitur", user)
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -305,9 +304,9 @@ export async function saveProgramVendor(
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             display_name: tenant.display_name,
-            vendor_code : tenant.tenant_code,
+            vendor_code: tenant.tenant_code,
             addresses: user.addresses,
-            tenant_id:tenant.id,
+            tenant_id: tenant.id,
             background_logo_color: tenant.background_logo_color,
         }
 
@@ -320,18 +319,18 @@ export async function saveProgramVendor(
                 addresses: user.addresses
             }
         ]
-       let tenantData;
-        const tenants=await Tenant.findOne({where:{id:tenant.id}});
-        if(!tenants){
-             tenantData = await Tenant.create({ ...tenant }, { transaction });
+        let tenantData;
+        const tenants = await Tenant.findOne({ where: { id: tenant.id } });
+        if (!tenants) {
+            tenantData = await Tenant.create({ ...tenant }, { transaction });
         }
-        else{
-            tenantData=tenants
+        else {
+            tenantData = tenants
         }
-        const programVendors = await ProgramVendor.create({ ...vendor,  program_id}, { transaction });
+        const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
-        
+
         await ProgramVendor.update(
             { user_id: userData.user_id, contact },
             { where: { id: programVendors.id, program_id }, transaction }
@@ -1166,3 +1165,48 @@ export async function advanceFilter(
         return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
+
+export const getProgramVendorDetails = async (
+    request: FastifyRequest<{ Params: { program_id: string }, Querystring: { tenant_id?: string } }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+    const { program_id } = request.params;
+    const { tenant_id } = request.query;
+    try {
+        if (!tenant_id) {
+            return reply.status(400).send({
+                trace_id: traceId,
+                message: "tenant_id is a required query parameter.",
+            });
+        }
+        const vendorData = await sequelize.query<ProgramVendor>(programVendorDetailsQuery, {
+            replacements: { tenant_id, program_id },
+            type: QueryTypes.SELECT
+        });
+
+        if (vendorData.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Program vendor not found.',
+                trace_id: traceId,
+                program_vendor: null,
+            });
+        }
+
+        const programVendor: ProgramVendor = vendorData[0];
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: 'Program vendor data fetched successfully.',
+            trace_id: traceId,
+            program_vendor: programVendor,
+        });
+    } catch (error) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while retrieving Program vendor data.',
+            trace_id: traceId,
+        });
+    }
+};
