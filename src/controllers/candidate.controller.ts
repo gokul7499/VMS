@@ -39,7 +39,7 @@ export async function createCandidate(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-
+  console.log("userr",user)
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -227,28 +227,27 @@ export async function getAllCandidate(
                 });
             }
         }
-        const includeClause = [
-            {
-                model: ProgramVendor,
-                as: 'vendor',
-                attributes: ['id', 'vendor_name', 'display_name'],
-                where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
-            }
-        ];
 
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order,
-            include: includeClause
+            order
         });
-
+         const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendors = await ProgramVendor.findAll({
+            where: {
+                id:vendorIds,
+                ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
+            },
+            attributes: ['id', 'vendor_name', 'display_name']
+        });
         const formattedCandidates = candidates.map((cand: any) => {
+            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
@@ -262,27 +261,26 @@ export async function getAllCandidate(
                 worker_type_id: cand.worker_type_id,
                 title: cand.title,
                 email: cand.email,
-                vendor: cand.vendor ? {
-                    id: cand.vendor.id,
-                    vendor_name: cand.vendor.vendor_name,
-                    display_name: cand.vendor.display_name
+                vendor: vendor ? {
+                    id: vendor.id,
+                    vendor_name: vendor.vendor_name,
+                    display_name: vendor.display_name
                 } : null,
                 modified_on: cand.modified_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
-                do_not_rehire_reason: cand.do_not_rehire,
+                do_not_rehire_reason: cand.do_not_rehire_reason,
                 do_not_rehire: cand.do_not_rehire
             };
         });
 
         const count = await candidateModel.count({
-            where: whereClause,
-            include: includeClause
+            where: whereClause
         });
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate get successfully",
+            message: "Candidates fetched successfully",
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
@@ -299,6 +297,8 @@ export async function getAllCandidate(
         });
     }
 }
+
+
 
 export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
@@ -317,11 +317,6 @@ export async function getCandidateByIdAndProgramId(
                 exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
             },
             include: [
-                {
-                    model: ProgramVendor,
-                    as: 'vendor',
-                    attributes: [['display_name', 'vendor_name'], "id"],
-                },
                 {
                     model: IndustriesModel,
                     as: 'job_category',
@@ -360,17 +355,19 @@ export async function getCandidateByIdAndProgramId(
             delete candidateData.job_category;
         }
 
-        let qualificationsData = [];
-        if (candidateData.qualifications) {
-            try {
-                qualificationsData = typeof candidateData.qualifications === 'string'
-                    ? JSON.parse(candidateData.qualifications)
-                    : candidateData.qualifications;
-            } catch (error) {
-                console.error("Error parsing qualifications:", error);
-                qualificationsData = [];
-            }
+        const vendor = await ProgramVendor.findOne({
+            where: { id: candidateData.tenant_id },
+            attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
+        });
+
+        if (vendor) {
+            candidateData.vendor = vendor.toJSON();
         }
+
+        let qualificationsData =
+            typeof candidateData.qualifications === 'string'
+                ? JSON.parse(candidateData.qualifications)
+                : candidateData.qualifications || [];
 
         if (!Array.isArray(qualificationsData)) {
             qualificationsData = [];
@@ -436,6 +433,7 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
+
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
@@ -607,7 +605,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         };
 
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
-        if (count == 0) {
+        if (count === 0) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -677,61 +675,62 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         }
     }
 
-    const includeClause = [
-        {
-            model: ProgramVendor,
-            as: 'vendor',
-            attributes: ['id', 'display_name', 'vendor_name'],
-            where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
-        }
-    ];
-
     try {
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order,
-            include: includeClause
+            order
         });
 
-        const formattedCandidates = candidates.map((cand: any) => ({
-            id: cand.id,
-            first_name: cand.first_name,
-            middle_name: cand.middle_name,
-            last_name: cand.last_name,
-            name: cand.name,
-            birth_date: cand.birth_date,
-            is_active: cand.is_active,
-            candidate_id: cand.candidate_id,
-            preferences: cand.preferences,
-            worker_type_id: cand.worker_type_id,
-            title: cand.title,
-            email: cand.email,
-            vendor: cand.vendor ? {
-                id: cand.vendor.id,
-                vendor_name: cand.vendor.vendor_name,
-                display_name: cand.vendor.display_name
-            } : null,
-            modified_on: cand.modified_on,
-            state_national_id: cand.state_national_id,
-            do_not_rehire_notes: cand.do_not_rehire_notes,
-            do_not_rehire_reason: cand.do_not_rehire,
-            do_not_rehire: cand.do_not_rehire
-        }));
+        const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendors = await ProgramVendor.findAll({
+            where: {
+                id: vendorIds,
+                ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
+            },
+            attributes: ['id', 'vendor_name', 'display_name']
+        });
+
+        const formattedCandidates = candidates.map((cand: any) => {
+            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
+            return {
+                id: cand.id,
+                first_name: cand.first_name,
+                middle_name: cand.middle_name,
+                last_name: cand.last_name,
+                name: cand.name,
+                birth_date: cand.birth_date,
+                is_active: cand.is_active,
+                candidate_id: cand.candidate_id,
+                preferences: cand.preferences,
+                worker_type_id: cand.worker_type_id,
+                title: cand.title,
+                email: cand.email,
+                vendor: vendor ? {
+                    id: vendor.id,
+                    vendor_name: vendor.vendor_name,
+                    display_name: vendor.display_name
+                } : null,
+                modified_on: cand.modified_on,
+                state_national_id: cand.state_national_id,
+                do_not_rehire_notes: cand.do_not_rehire_notes,
+                do_not_rehire_reason: cand.do_not_rehire_reason,
+                do_not_rehire: cand.do_not_rehire
+            };
+        });
 
         const count = await candidateModel.count({
-            where: whereClause,
-            include: includeClause
+            where: whereClause
         });
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate get successfully",
+            message: "Candidates fetched successfully",
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
