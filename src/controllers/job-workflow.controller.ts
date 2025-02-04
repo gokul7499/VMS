@@ -267,23 +267,7 @@ export const updateWorkflowStatus = async (
 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
-                    if (is_admin_override) {
-                        // Admin override: Mark all levels and recipients as reviewed & completed
-                        return {
-                            ...level,
-                            status: "completed",
-                            recipient_types: level.recipient_types.map((recipient: any) => ({
-                                ...recipient,
-                                status: "approved",
-                                is_admin_override: is_admin_override,
-                                actor_first_name: userData.first_name,
-                                actor_last_name: userData.last_name,
-                                actor_by_avatar: userData.avatar,
-                                impersonate_by: impersonator_id,
-                                modified_on: new Date(),
-                            })),
-                        };
-                    }
+                  
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
@@ -313,9 +297,11 @@ export const updateWorkflowStatus = async (
                                 //     };
 
                                 // }
-                                if (behavior == "any" && level.placement_order === placement_order) {
+                                if (behavior?.toLowerCase() == "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                    console.log(matchesUser);
+                                    
                                     const history = await WorkflowStatusHistory.create({
                                         job_workflow_id: id,
                                         placement_order,
@@ -414,6 +400,32 @@ export const updateWorkflowStatus = async (
                             ...level,
                             status: allApproved ? "completed" : "pending",
                             recipient_types: updatedRecipientTypes,
+                        };
+                    }
+                    if (is_admin_override) {
+                       
+                        // Check recipient_types starting from index 1
+                        const hasOverrideFromIndex1 = level?.recipient_types?.slice(1).some(
+                            (recipient: any) => recipient.is_admin_override
+                        );
+                    
+                        return {
+                            ...level,
+                            status: "completed",
+                            recipient_types: level?.recipient_types?.map((recipient: any, index: number) =>
+                                index >= 1 // Apply changes only from index 1
+                                    ? {
+                                          ...recipient,
+                                          status: "reviewed",
+                                          is_admin_override: is_admin_override,
+                                          actor_first_name: userData.first_name,
+                                          actor_last_name: userData.last_name,
+                                          actor_by_avtar: userData.avatar,
+                                          imporsonate_by: impersonator_id,
+                                          modified_on: new Date(),
+                                      }
+                                    : recipient
+                            ),
                         };
                     }
                     return level;
@@ -2313,16 +2325,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             if (supervisorResult.length > 0) {
                                 const supervisor: any = supervisorResult[0];
                                 supervisorData = {
-                                    id: supervisor.user_id,
-                                    first_name: supervisor.first_name,
-                                    last_name: supervisor.last_name,
+                                    id: supervisor?.user_id,
+                                    first_name: supervisor?.first_name,
+                                    last_name: supervisor?.last_name,
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
-                                    email: supervisor.email,
-                                    avatar: supervisor.avatar || null,
-                                    modified_on: recipient_details.modified_on,
-                                    notes: recipient_details.notes,
-                                    reason: recipient_details.reason,
-                                    replaced_notes: recipient_details.replaced_notes
+                                    email: supervisor?.email,
+                                    avatar: supervisor?.avatar || null,
+                                    modified_on: recipient_details?.modified_on,
+                                    notes: recipient_details?.notes,
+                                    reason: recipient_details?.reason,
+                                    replaced_notes: recipient_details?.replaced_notes
                                 };
                             }
                         }
@@ -3750,10 +3762,11 @@ l.placement_order ASC;`;
                                 name: getName(user),
                                 first_name: user.first_name,
                                 last_name: user.last_name,
-                                actor_first_name: user.actor_first_name,
-                                actor_last_name: user.actor_last_name,
-                                actor_by_avatar: user.actor_by_avatar,
-                                is_admin_override: user.is_admin_override,
+                                actor_first_name: recipient_details.actor_first_name,
+                                actor_last_name: recipient_details.actor_last_name,
+                                actor_by_avatar: recipient_details.actor_by_avatar,
+                                is_admin_override: recipient_details.is_admin_override,
+                               
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
