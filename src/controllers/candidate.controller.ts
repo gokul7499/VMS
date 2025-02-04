@@ -19,13 +19,13 @@ import CandidateRepository from "../utility/candidate-query";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
-    request: FastifyRequest<{ Body: { candidate: candidateInterface,tenant:TenantInterface } }>,
+    request: FastifyRequest<{ Body: { candidate: candidateInterface, tenant: TenantInterface } }>,
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    const {tenant}=request.body
+    const { tenant } = request.body
     const { id, program_id, email } = candidate;
-    const vendor_id=tenant.tenantId;
+    const vendor_id = tenant.tenantId;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -39,7 +39,7 @@ export async function createCandidate(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-
+  console.log("userr",user)
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -82,7 +82,7 @@ export async function createCandidate(
         const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
-            vendor_id:vendor_id,
+            vendor_id: vendor_id,
             candidate_id: candidateId,
             created_by: userId,
             modified_by: userId,
@@ -227,28 +227,27 @@ export async function getAllCandidate(
                 });
             }
         }
-        const includeClause = [
-            {
-                model: ProgramVendor,
-                as: 'vendor',
-                attributes: ['id', 'vendor_name','display_name'],
-                where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
-            }
-        ];
 
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order,
-            include: includeClause
+            order
         });
-
+         const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendors = await ProgramVendor.findAll({
+            where: {
+                id:vendorIds,
+                ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
+            },
+            attributes: ['id', 'vendor_name', 'display_name']
+        });
         const formattedCandidates = candidates.map((cand: any) => {
+            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
@@ -262,27 +261,26 @@ export async function getAllCandidate(
                 worker_type_id: cand.worker_type_id,
                 title: cand.title,
                 email: cand.email,
-                vendor: cand.vendor ? {
-                    id: cand.vendor.id,
-                    vendor_name: cand.vendor.vendor_name,
-                    display_name:cand.vendor.display_name
+                vendor: vendor ? {
+                    id: vendor.id,
+                    vendor_name: vendor.vendor_name,
+                    display_name: vendor.display_name
                 } : null,
                 modified_on: cand.modified_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
-                do_not_rehire_reason: cand.do_not_rehire,
+                do_not_rehire_reason: cand.do_not_rehire_reason,
                 do_not_rehire: cand.do_not_rehire
             };
         });
 
         const count = await candidateModel.count({
-            where: whereClause,
-            include: includeClause
+            where: whereClause
         });
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate get successfully",
+            message: "Candidates fetched successfully",
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
@@ -300,13 +298,15 @@ export async function getAllCandidate(
     }
 }
 
+
+
 export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params as { program_id: string, id: string; };
+        const { program_id, id } = request.params as { program_id: string, id: string };
         const candidate = await candidateModel.findOne({
             where: {
                 id,
@@ -317,11 +317,6 @@ export async function getCandidateByIdAndProgramId(
                 exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
             },
             include: [
-                {
-                    model: ProgramVendor,
-                    as: 'vendor',
-                    attributes: [['display_name', 'vendor_name'],"id"],
-                },
                 {
                     model: IndustriesModel,
                     as: 'job_category',
@@ -360,35 +355,62 @@ export async function getCandidateByIdAndProgramId(
             delete candidateData.job_category;
         }
 
-        const qualificationsData =
+        const vendor = await ProgramVendor.findOne({
+            where: { id: candidateData.tenant_id },
+            attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
+        });
+
+        if (vendor) {
+            candidateData.vendor = vendor.toJSON();
+        }
+
+        let qualificationsData =
             typeof candidateData.qualifications === 'string'
                 ? JSON.parse(candidateData.qualifications)
                 : candidateData.qualifications || [];
 
-        const qualificationIds = qualificationsData.flatMap((item: any) =>
-            item.qulifications.map((q: any) => q.id)
-        );
+        if (!Array.isArray(qualificationsData)) {
+            qualificationsData = [];
+        }
 
-        const qualificationTypeIds = qualificationsData.map((item: any) => item.qulification_type_id);
+        const qualificationIds: string[] = [];
+        const qualificationTypeIds: string[] = [];
 
-        const qualifications = await Qualifications.findAll({
-            where: { id: qualificationIds },
-            attributes: ['id', 'name'],
+        qualificationsData.forEach((item: any) => {
+            if (item.qulifications && Array.isArray(item.qulifications)) {
+                qualificationIds.push(...item.qulifications.map((q: any) => q.id));
+            }
+            if (item.qulification_type_id) {
+                qualificationTypeIds.push(item.qulification_type_id);
+            }
         });
 
-        const qualificationTypes = await QualificationTypeModel.findAll({
-            where: { id: qualificationTypeIds },
-            attributes: ['id', 'name'],
-        });
+        const qualifications = qualificationIds.length > 0
+            ? await Qualifications.findAll({
+                where: { id: qualificationIds },
+                attributes: ['id', 'name'],
+            })
+            : [];
+
+        const qualificationTypes = qualificationTypeIds.length > 0
+            ? await QualificationTypeModel.findAll({
+                where: { id: qualificationTypeIds },
+                attributes: ['id', 'name'],
+            })
+            : [];
 
         qualificationsData.forEach((item: any) => {
             const typeMatch = qualificationTypes.find((type: any) => type.id === item.qulification_type_id);
             item.qulification_type_name = typeMatch ? typeMatch.name : null;
 
-            item.qulifications = item.qulifications.map((q: any) => {
-                const match = qualifications.find((qual: any) => qual.id === q.id);
-                return { ...q, name: match ? match.name : null };
-            });
+            if (item.qulifications && Array.isArray(item.qulifications)) {
+                item.qulifications = item.qulifications.map((q: any) => {
+                    const match = qualifications.find((qual: any) => qual.id === q.id);
+                    return { ...q, name: match ? match.name : null };
+                });
+            } else {
+                item.qulifications = [];
+            }
         });
 
         return reply.status(200).send({
@@ -400,15 +422,18 @@ export async function getCandidateByIdAndProgramId(
             },
             trace_id: traceId,
         });
-    } catch (error) {
+
+    } catch (error: any) {
         console.error("Error fetching candidate:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
+            error: error.message
         });
     }
 }
+
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
@@ -580,7 +605,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         };
 
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
-        if (count == 0) {
+        if (count === 0) {
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -602,6 +627,14 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     const userData = await User.findOne({ where: { program_id, user_id: userId } });
     const vendorId = userData?.tenant_id || undefined;
+    const vendor = await ProgramVendor.findOne({
+        where: { program_id: program_id, tenant_id: vendorId },
+        attributes: ['id'],
+        raw: true, 
+      });
+      
+    const vendor_id = vendor?.id || null; 
+    
     if (vendorId === undefined) {
         return reply.status(200).send({
             status_code: 200,
@@ -612,7 +645,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     }
 
     const whereClause: any = {
-        vendor_id: vendorId,
+        vendor_id: vendor_id,
         is_deleted: false,
         ...filters
     };
@@ -630,7 +663,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     if (is_talent_pool === "true" && job_id) {
         try {
-            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendorId);
+            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendor_id);
             whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({
@@ -642,61 +675,62 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         }
     }
 
-    const includeClause = [
-        {
-            model: ProgramVendor,
-            as: 'vendor',
-            attributes: ['id','display_name','vendor_name'],
-            where: vendor_name ? { display_name: { [Op.like]: `%${vendor_name}%` } } : undefined
-        }
-    ];
-
     try {
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order,
-            include: includeClause
+            order
         });
 
-        const formattedCandidates = candidates.map((cand: any) => ({
-            id: cand.id,
-            first_name: cand.first_name,
-            middle_name: cand.middle_name,
-            last_name: cand.last_name,
-            name: cand.name,
-            birth_date: cand.birth_date,
-            is_active: cand.is_active,
-            candidate_id: cand.candidate_id,
-            preferences: cand.preferences,
-            worker_type_id: cand.worker_type_id,
-            title: cand.title,
-            email: cand.email,
-            vendor: cand.vendor ? {
-                id: cand.vendor.id,
-                vendor_name: cand.vendor.vendor_name,
-                display_name: cand.vendor.display_name
-            } : null,
-            modified_on: cand.modified_on,
-            state_national_id: cand.state_national_id,
-            do_not_rehire_notes: cand.do_not_rehire_notes,
-            do_not_rehire_reason: cand.do_not_rehire,
-            do_not_rehire: cand.do_not_rehire
-        }));
+        const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendors = await ProgramVendor.findAll({
+            where: {
+                id: vendorIds,
+                ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
+            },
+            attributes: ['id', 'vendor_name', 'display_name']
+        });
+
+        const formattedCandidates = candidates.map((cand: any) => {
+            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
+            return {
+                id: cand.id,
+                first_name: cand.first_name,
+                middle_name: cand.middle_name,
+                last_name: cand.last_name,
+                name: cand.name,
+                birth_date: cand.birth_date,
+                is_active: cand.is_active,
+                candidate_id: cand.candidate_id,
+                preferences: cand.preferences,
+                worker_type_id: cand.worker_type_id,
+                title: cand.title,
+                email: cand.email,
+                vendor: vendor ? {
+                    id: vendor.id,
+                    vendor_name: vendor.vendor_name,
+                    display_name: vendor.display_name
+                } : null,
+                modified_on: cand.modified_on,
+                state_national_id: cand.state_national_id,
+                do_not_rehire_notes: cand.do_not_rehire_notes,
+                do_not_rehire_reason: cand.do_not_rehire_reason,
+                do_not_rehire: cand.do_not_rehire
+            };
+        });
 
         const count = await candidateModel.count({
-            where: whereClause,
-            include: includeClause
+            where: whereClause
         });
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate get successfully",
+            message: "Candidates fetched successfully",
             items_per_page: limitNum,
             total_candidates: count,
             candidates: formattedCandidates,
