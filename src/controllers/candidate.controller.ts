@@ -356,7 +356,7 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const vendor = await ProgramVendor.findOne({
-            where: { id: candidateData.tenant_id },
+            where: { tenant_id: candidateData.tenant_id },
             attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
         });
 
