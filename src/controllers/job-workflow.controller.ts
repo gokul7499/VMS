@@ -313,9 +313,11 @@ export const updateWorkflowStatus = async (
                                 //     };
 
                                 // }
-                                if (behavior == "any" && level.placement_order === placement_order) {
+                                if (behavior?.toLowerCase() == "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                    console.log(matchesUser);
+                                    
                                     const history = await WorkflowStatusHistory.create({
                                         job_workflow_id: id,
                                         placement_order,
@@ -3749,10 +3751,11 @@ l.placement_order ASC;`;
                                 name: getName(user),
                                 first_name: user.first_name,
                                 last_name: user.last_name,
-                                actor_first_name: user.actor_first_name,
-                                actor_last_name: user.actor_last_name,
-                                actor_by_avatar: user.actor_by_avatar,
-                                is_admin_override: user.is_admin_override,
+                                actor_first_name: recipient_details.actor_first_name,
+                                actor_last_name: recipient_details.actor_last_name,
+                                actor_by_avatar: recipient_details.actor_by_avatar,
+                                is_admin_override: recipient_details.is_admin_override,
+                               
                                 level_id,
                                 status: user.receipentStatus,
                                 modified_on: user.modified_on,
