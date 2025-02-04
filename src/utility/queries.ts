@@ -2582,7 +2582,7 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
-    AND user.status = 'active'
+    AND LOWER(user.status) = 'active'
     AND (:hierarchy_id IS NULL OR
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
