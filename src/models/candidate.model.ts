@@ -10,6 +10,8 @@ import JobTemplateModel from "./job-template.model";
 class Candidate extends Model {
     id: any;
     qualifications: any;
+    tenant_id: any;
+    vendor_id: any;
 }
 
 Candidate.init(
@@ -99,11 +101,7 @@ Candidate.init(
         },
         vendor_id: {
             type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: "program_vendors",
-                key: "id",
-            },
+            allowNull: true
         },
         email: {
             type: DataTypes.STRING,
@@ -217,7 +215,6 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(ProgramVendor, { foreignKey: 'vendor_id', as: 'vendor' });
 Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category_id', as: 'job_category' });
 Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
