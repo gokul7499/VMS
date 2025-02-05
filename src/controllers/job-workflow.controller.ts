@@ -300,7 +300,7 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avtar: userData?.avatar,
                                     };
-                                }
+                                }else
                                 if(isSuperUser){
                                     if (behavior?.toLowerCase() === "any"&& level.placement_order === placement_order) {
                                         // Check if the recipient's user_id matches any value in meta_data
