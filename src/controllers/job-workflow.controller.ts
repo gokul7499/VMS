@@ -574,7 +574,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         const moduleType = workflow.module_type.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
-            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
             const payload = {
                 status: "OPEN",
             };
