@@ -295,10 +295,10 @@ export const updateWorkflowStatus = async (
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
                                         impersonate_by: impersonator_id,
                                         modified_on: new Date(),
-                                        status_id: history.dataValues.id,
-                                        actor_first_name: userData.first_name,
-                                        actor_last_name: userData.last_name,
-                                        actor_by_avtar: userData.avatar,
+                                        status_id: history.dataValues?.id,
+                                        actor_first_name: userData?.first_name,
+                                        actor_last_name: userData?.last_name,
+                                        actor_by_avtar: userData?.avatar,
                                     };
                                 }
                                 // Check if user is not a "super_user" and proceed with matchinj
@@ -317,9 +317,9 @@ export const updateWorkflowStatus = async (
                                             });
                                             return {
                                                 ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
-                                                actor_first_name: userData.first_name,
-                                                actor_last_name: userData.last_name,
-                                                actor_by_avatar: userData.avatar, modified_on: new Date(),
+                                                actor_first_name: userData?.first_name,
+                                                actor_last_name: userData?.last_name,
+                                                actor_by_avatar: userData?.avatar, modified_on: new Date(),
                                             };
                                         }
 
@@ -338,9 +338,9 @@ export const updateWorkflowStatus = async (
                                                 });
                                                 return {
                                                     ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
-                                                    actor_first_name: userData.first_name,
-                                                    actor_last_name: userData.last_name,
-                                                    actor_by_avatar: userData.avatar, modified_on: new Date(),
+                                                    actor_first_name: userData?.first_name,
+                                                    actor_last_name: userData?.last_name,
+                                                    actor_by_avatar: userData?.avatar, modified_on: new Date(),
                                                 };
 
                                             }
@@ -359,9 +359,9 @@ export const updateWorkflowStatus = async (
                                     });
                                     return {
                                         ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
-                                        actor_first_name: userData.first_name,
-                                        actor_last_name: userData.last_name,
-                                        actor_by_avatar: userData.avatar, modified_on: new Date(),
+                                        actor_first_name: userData?.first_name,
+                                        actor_last_name: userData?.last_name,
+                                        actor_by_avatar: userData?.avatar, modified_on: new Date(),
                                     };
 
                                 }
@@ -397,9 +397,9 @@ export const updateWorkflowStatus = async (
                                           ...recipient,
                                           status: "reviewed",
                                           is_admin_override: is_admin_override,
-                                          actor_first_name: userData.first_name,
-                                          actor_last_name: userData.last_name,
-                                          actor_by_avtar: userData.avatar,
+                                          actor_first_name: userData?.first_name,
+                                          actor_last_name: userData?.last_name,
+                                          actor_by_avtar: userData?.avatar,
                                           imporsonate_by: impersonator_id,
                                           modified_on: new Date(),
                                       }
@@ -539,13 +539,12 @@ export async function getUsersStatus(sequelize: any, userId: any,program_id:any)
     const userQuery = `
         SELECT user_id, status,first_name,last_name,avatar
         FROM user
-        WHERE user_id IN (:userId) 
-          AND program_id=:program_id    
+        WHERE user_id IN (:userId)  
           AND is_enabled = true;`;
 
     const users = await sequelize.query(userQuery, {
         type: QueryTypes.SELECT,
-        replacements: { userId,program_id },
+        replacements: { userId },
     });
 
     return users.map((user: any) => ({
@@ -580,7 +579,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             };
             console.log(apiUrl);
 
-            let a = await axios.post(apiUrl, payload, {
+            let a = await axios.put(apiUrl, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     authorization: authHeader
