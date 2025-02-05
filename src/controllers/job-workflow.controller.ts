@@ -733,14 +733,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         SELECT user_id, user_type,email
         FROM user
         WHERE user_id = :user_id
-          AND program_id=:program_id    
         AND is_enabled = true
         LIMIT 1
     `;
 
         const userData: any = await sequelize.query(userQuery, {
             type: QueryTypes.SELECT,
-            replacements: { user_id: user.sub,program_id:workflow.program_id },
+            replacements: { user_id: user.sub},
         });
         let userType = userData[0]
         if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
@@ -1147,21 +1146,16 @@ export const rejectLevel = async (
 
                             }
 
-
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
 
-                        });
-
+                        });                       
                         return {
                             ...level,
                             modified_on: new Date(),
-                            status: "completed",
+                            status: "Rejected",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
-
-
-
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
@@ -1171,7 +1165,7 @@ export const rejectLevel = async (
                     return {
                         ...level,
                         modified_on: new Date(),
-                        status: "completed",
+                        status: "Not needed",
                         recipient_types: updatedRecipientTypes,
                     };
                 }
