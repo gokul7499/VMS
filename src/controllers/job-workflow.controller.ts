@@ -278,7 +278,7 @@ export const updateWorkflowStatus = async (
                                 // Check user type
                                 const isSuperUser = user.userType = "super_user"
                            
-                                if (behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
+                                if (!isSuperUser&&behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);                                  
                                     const history = await WorkflowStatusHistory.create({
@@ -300,6 +300,31 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avtar: userData?.avatar,
                                     };
+                                }
+                                if(isSuperUser){
+                                    if (behavior?.toLowerCase() === "any"&& level.placement_order === placement_order) {
+                                        // Check if the recipient's user_id matches any value in meta_data
+                                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);                                  
+                                        const history = await WorkflowStatusHistory.create({
+                                            job_workflow_id: id,
+                                            placement_order,
+                                            new_status,
+                                            program_id,
+                                            notes: notes || "",
+                                            created_on: new Date(),
+                                            user_id: user_id,
+                                        });
+                                        return {
+                                            ...recipient,
+                                            status: "approved", 
+                                            impersonate_by: impersonator_id,
+                                            modified_on: new Date(),
+                                            status_id: history.dataValues?.id,
+                                            actor_first_name: userData?.first_name,
+                                            actor_last_name: userData?.last_name,
+                                            actor_by_avtar: userData?.avatar,
+                                        };
+                                    }
                                 }
                                 // Check if user is not a "super_user" and proceed with matchinj
                                 if (!isSuperUser) {
@@ -382,30 +407,32 @@ export const updateWorkflowStatus = async (
                         };
                     }
                     if (is_admin_override) {
-                       
-                        // Check recipient_types starting from index 1
-                        const hasOverrideFromIndex1 = level?.recipient_types?.slice(1).some(
-                            (recipient: any) => recipient.is_admin_override
+                        // Slice levels from index 1 onwards
+                        const slicedLevels = levels.slice(1);
+                    
+                        // Check if any recipient in sliced levels has is_admin_override
+                        const hasOverrideFromIndex1 = slicedLevels.some((level:any) =>
+                            level?.recipient_types?.some((recipient:any) => recipient.is_admin_override)
                         );
                     
-                        return {
-                            ...level,
-                            status: "completed",
-                            recipient_types: level?.recipient_types?.map((recipient: any, index: number) =>
-                                index >= 1 // Apply changes only from index 1
-                                    ? {
+                        return levels.map((level:any, index:any) =>
+                            index === 0
+                                ? level // Keep the first level unchanged
+                                : {
+                                      ...level,
+                                      status: "completed",
+                                      recipient_types: level?.recipient_types?.map((recipient:any) => ({
                                           ...recipient,
                                           status: "reviewed",
                                           is_admin_override: is_admin_override,
-                                          actor_first_name: userData?.first_name,
-                                          actor_last_name: userData?.last_name,
-                                          actor_by_avtar: userData?.avatar,
+                                          actor_first_name: userData.first_name,
+                                          actor_last_name: userData.last_name,
+                                          actor_by_avtar: userData.avatar,
                                           imporsonate_by: impersonator_id,
                                           modified_on: new Date(),
-                                      }
-                                    : recipient
-                            ),
-                        };
+                                      })),
+                                  }
+                        );
                     }
                     return level;
                 })
