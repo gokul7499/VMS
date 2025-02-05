@@ -29,7 +29,7 @@ UserMapping.init({
             key: 'id',
         },
     },
-role_id: {
+    role_id: {
         type: DataTypes.UUID,
         allowNull: true
     },
@@ -41,6 +41,10 @@ role_id: {
             key: 'user_id',
         },
     },
+    candidate_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
     program_id: {
         type: DataTypes.UUID,
         allowNull: true,
@@ -51,6 +55,10 @@ role_id: {
     },
     vendor_id: {
         type: DataTypes.UUID,
+        allowNull: true
+    },
+    user_type:{
+        type: DataTypes.STRING,
         allowNull: true
     },
     is_activated: {
