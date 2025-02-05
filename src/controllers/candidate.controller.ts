@@ -314,7 +314,7 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
+                exclude: ['country_id', 'job_category_id', 'title']
             },
             include: [
                 {
@@ -356,10 +356,10 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.tenant_id },
+            where: { tenant_id: candidateData.vendor_id,program_id:program_id },
             attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
         });
-
+      
         if (vendor) {
             candidateData.vendor = vendor.toJSON();
         }
@@ -630,6 +630,17 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     
     const vendorId = userData?.tenant_id || undefined;
 
+    const vendor = await ProgramVendor.findOne({
+        where: {
+          program_id: program_id,
+          tenant_id: vendorId
+        },
+        plain:true
+      });
+      
+    const vendor_id = vendor?.id || null; 
+      
+
     if (vendorId === undefined) {
         return reply.status(200).send({
             status_code: 200,
@@ -658,7 +669,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     if (is_talent_pool === "true" && job_id) {
         try {
-            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendorId);
+            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendor_id);
             whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({
