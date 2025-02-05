@@ -314,7 +314,7 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'vendor_id', 'job_category_id', 'title']
+                exclude: ['country_id', 'job_category_id', 'title']
             },
             include: [
                 {
@@ -356,10 +356,10 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.tenant_id },
+            where: { tenant_id: candidateData.vendor_id,program_id:program_id },
             attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
         });
-
+      
         if (vendor) {
             candidateData.vendor = vendor.toJSON();
         }
