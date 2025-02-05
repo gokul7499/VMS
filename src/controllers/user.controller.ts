@@ -185,7 +185,7 @@ export async function getUserHierarchiesByProgram(
     const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds,is_enabled:true },
+        where: { id: workLocationIds, is_enabled: true },
         attributes: ['id', 'name'],
       })
       : [];
