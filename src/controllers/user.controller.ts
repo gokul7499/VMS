@@ -185,7 +185,7 @@ export async function getUserHierarchiesByProgram(
     const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds,is_enabled:true },
+        where: { id: workLocationIds, is_enabled: true },
         attributes: ['id', 'name'],
       })
       : [];
@@ -291,7 +291,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
       const candidateId = await CandidateCodeGenerate(user.tenant_id);
 
-      await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...userWithoutId, user_id: user.id, candidate_id: candidateId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
@@ -345,13 +345,12 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       await UserCustomFieldModel.bulkCreate(customFields, { transaction });
     }
 
-
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping, created_by: userId, modified_by: userId, }, { transaction });
+        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping, created_by: userId, modified_by: userId, }, { transaction });
+      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
 
     await transaction.commit();
