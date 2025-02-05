@@ -49,6 +49,7 @@ interface VendorDetails {
     total_count: number;
     id: any;
     status: any;
+    tenant_id :any;
     compliance_documents: any;
 }
 
@@ -635,7 +636,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         const vendorGroups = await VendorGroup.findAll(vendorGroupQuery);
 
         const responseVendors = filteredVendors.map(vendor => ({
-            id: vendor.id,
+            id: vendor.tenant_id,
             vendor: vendor.display_name,
         }));
 
