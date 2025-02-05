@@ -410,29 +410,22 @@ export const updateWorkflowStatus = async (
                         // Slice levels from index 1 onwards
                         const slicedLevels = levels.slice(1);
                     
-                        // Check if any recipient in sliced levels has is_admin_override
-                        const hasOverrideFromIndex1 = slicedLevels.some((level:any) =>
-                            level?.recipient_types?.some((recipient:any) => recipient.is_admin_override)
-                        );
+                        // Update only recipient_types in levels from index 1 onwards
+                        slicedLevels.forEach((level:any) => {
+                            level.recipient_types = level.recipient_types.map((recipient:any) => ({
+                                ...recipient,
+                                status: "reviewed",
+                                is_admin_override: is_admin_override,
+                                actor_first_name: userData.first_name,
+                                actor_last_name: userData.last_name,
+                                actor_by_avtar: userData.avatar,
+                                imporsonate_by: impersonator_id,
+                                modified_on: new Date(),
+                            }));
+                            level.status = "completed";
+                        });
                     
-                        return levels.map((level:any, index:any) =>
-                            index === 0
-                                ? level // Keep the first level unchanged
-                                : {
-                                      ...level,
-                                      status: "completed",
-                                      recipient_types: level?.recipient_types?.map((recipient:any) => ({
-                                          ...recipient,
-                                          status: "reviewed",
-                                          is_admin_override: is_admin_override,
-                                          actor_first_name: userData.first_name,
-                                          actor_last_name: userData.last_name,
-                                          actor_by_avtar: userData.avatar,
-                                          imporsonate_by: impersonator_id,
-                                          modified_on: new Date(),
-                                      })),
-                                  }
-                        );
+                      
                     }
                     return level;
                 })
@@ -1981,6 +1974,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
+console.log(rows);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
@@ -2086,8 +2080,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        for (const row of rows) {
+        for (const row of rows) {    
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
+            console.log(recipient_details);
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                 SELECT id ,name
@@ -2145,6 +2140,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
                             });
                         }
+                        console.log("recipient_details",recipient_details);
+                        
                         input_value = userResult[0] ? {
                             id: userResult[0]?.user_id,
                             first_name: userResult[0]?.first_name,
@@ -2152,10 +2149,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0]?.avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
-                            notes: recipient_details.notes,
-                            reason: recipient_details.reason,
-                            replaced_notes: recipient_details.replaced_notes
+                            modified_on: recipient_details?.modified_on,
+                            notes: recipient_details?.notes,
+                            reason: recipient_details?.reason,
+                            replaced_notes: recipient_details?.replaced_notes
 
                         } : undefined;
 
