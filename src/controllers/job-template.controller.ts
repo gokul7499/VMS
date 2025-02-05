@@ -20,6 +20,7 @@ import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
+import { extractFileContent } from "../utility/fileUpload";
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
@@ -1050,6 +1051,38 @@ export async function getCommonHierarchies(
       trace_id: traceId,
       message: "An error occurred while fetching common hierarchies.",
       error: error.message
+    });
+  }
+}
+
+export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No file uploaded.",
+        trace_id: traceId,
+      });
+    }
+
+    const htmlContent = await extractFileContent(data);
+
+    const htmlResponse = `<html><body>${htmlContent}</body></html>`;
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "File uploaded successfully",
+      trace_id: traceId,
+      data: htmlResponse,
+    });
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "File upload failed",
+      trace_id: traceId,
     });
   }
 }
