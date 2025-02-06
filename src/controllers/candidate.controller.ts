@@ -39,7 +39,7 @@ export async function createCandidate(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-  console.log("userr",user)
+    console.log("userr", user)
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -79,7 +79,7 @@ export async function createCandidate(
             candidateModel
         );
 
-        const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id);
+        const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id, program_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
             vendor_id: vendor_id,
@@ -231,17 +231,17 @@ export async function getAllCandidate(
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
             order
         });
-         const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendorIds = candidates.map((cand: any) => cand.tenant_id);
         const vendors = await ProgramVendor.findAll({
             where: {
-                id:vendorIds,
+                id: vendorIds,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
             attributes: ['id', 'vendor_name', 'display_name']
@@ -356,10 +356,10 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.vendor_id,program_id:program_id },
-            attributes: [['display_name', 'vendor_name',], "id","tenant_id"]
+            where: { tenant_id: candidateData.vendor_id, program_id: program_id },
+            attributes: [['display_name', 'vendor_name',], "id", "tenant_id"]
         });
-      
+
         if (vendor) {
             candidateData.vendor = vendor.toJSON();
         }
@@ -564,7 +564,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
-    
+
     const { program_id } = request.params as { program_id: string };
     const {
         page = "1",
@@ -626,20 +626,20 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({ where: { program_id:program_id, user_id: userId } });
-    
+    const userData = await User.findOne({ where: { program_id: program_id, user_id: userId } });
+
     const vendorId = userData?.tenant_id || undefined;
 
     const vendor = await ProgramVendor.findOne({
         where: {
-          program_id: program_id,
-          tenant_id: vendorId
+            program_id: program_id,
+            tenant_id: vendorId
         },
-        plain:true
-      });
-      
-    const vendor_id = vendor?.id || null; 
-      
+        plain: true
+    });
+
+    const vendor_id = vendor?.id || null;
+
 
     if (vendorId === undefined) {
         return reply.status(200).send({
@@ -685,8 +685,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email','tenant_id',
-                'candidate_id', 'preferences', 'vendor_id','worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id',
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -694,7 +694,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
-    
+
         const vendors = await ProgramVendor.findAll({
             where: {
                 tenant_id: vendorIds,
@@ -702,7 +702,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             },
             attributes: ['id', 'vendor_name', 'display_name']
         });
-       
+
         const formattedCandidates = candidates.map((cand: any) => {
             const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
             return {
