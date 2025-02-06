@@ -231,24 +231,25 @@ export async function getAllCandidate(
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id','vendor_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
             order
         });
-        const vendorIds = candidates.map((cand: any) => cand.tenant_id);
+        const vendorIds = candidates.map((cand: any) => cand.vendor_id);
+
         const vendors = await ProgramVendor.findAll({
             where: {
                 program_id,
-                id: vendorIds,
+                tenant_id: { [Op.in]: vendorIds },
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
-            attributes: ['id', 'vendor_name', 'display_name']
+            attributes: ['id', 'vendor_name', 'display_name','tenant_id']
         });
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.id === cand.tenant_id);
+            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
@@ -265,7 +266,8 @@ export async function getAllCandidate(
                 vendor: vendor ? {
                     id: vendor.id,
                     vendor_name: vendor.vendor_name,
-                    display_name: vendor.display_name
+                    display_name: vendor.display_name,
+                    tenant_id:vendor.tenant_id
                 } : null,
                 modified_on: cand.modified_on,
                 state_national_id: cand.state_national_id,
