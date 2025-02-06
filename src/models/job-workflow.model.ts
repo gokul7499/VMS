@@ -148,6 +148,10 @@ JobWorkFlowModel.init(
       code: {
         type: DataTypes.STRING,
         allowNull: true
+      },
+      unique_key: {
+        type: DataTypes.STRING,
+        allowNull: true
       }
     },
     {

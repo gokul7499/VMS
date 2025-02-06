@@ -771,8 +771,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     }],
                 });
 
-                const rateDetails = await Promise.all(rates.map(async (rate) => {
+                const rateDetails = await Promise.all(rates.map(async (rate: { rate_type: { rate_type_category: any; get: () => any; }; id: any; }) => {
                     const rateTypeCategory = rate.rate_type?.rate_type_category
+                        ? await picklistItemModel.findOne({
+                            where: { id: rate.rate_type?.rate_type_category },
+                            attributes: ['id', 'value', 'label'],
+                        })
+                        : null;
+
                     const billRates = await RateConfigurationRateDifferentials.findAll({
                         where: { rate_id: rate.id, type: 'BILL_RATE' },
                         attributes: ['differential_on', 'differential_type', 'differential_value'],
