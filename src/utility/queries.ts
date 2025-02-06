@@ -453,7 +453,7 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
-
+    AND h.is_enabled = true
   UNION ALL
 
   SELECT
@@ -475,7 +475,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
-  WHERE h.is_deleted = false
+  WHERE h.is_deleted = false AND h.is_enabled = true
 )
 SELECT *
 FROM hierarchy_cte;

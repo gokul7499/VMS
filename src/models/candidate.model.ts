@@ -25,7 +25,6 @@ Candidate.init(
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
-          
         },
         tenant_id: {
             type: DataTypes.UUID,
@@ -34,6 +33,10 @@ Candidate.init(
                 model: "tenant",
                 key: "id",
             },
+        },
+        user_id: {
+            type: DataTypes.UUID,
+            allowNull: true
         },
         resume_url: {
             type: DataTypes.STRING,
@@ -147,9 +150,9 @@ Candidate.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
-        is_all_required_qualification:{
-            type:DataTypes.BOOLEAN,
-            defaultValue:false
+        is_all_required_qualification: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
         },
         addresses: {
             type: DataTypes.JSON,
