@@ -690,7 +690,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 )
             ).map(item => JSON.parse(item));
 
-            // Fetch Decision Records
             const rateCardDecisionRecords: Array<{
                 id: string;
                 rate_card_id: string;
@@ -714,8 +713,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             });
 
             let matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
-                extractedHierarchyIds.includes(record.hierarchy_id) || record.hierarchy_id === null
+                extractedHierarchyIds.includes(record.hierarchy_id)
             );
+
+            if (matchingDecisionRecords.length === 0) {
+                matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
+                    record.hierarchy_id === null
+                );
+            }
 
             let minRateRecord = matchingDecisionRecords.length
                 ? matchingDecisionRecords.reduce((prev, curr) => (curr.min_rate.amount < prev.min_rate.amount ? curr : prev))
@@ -771,8 +776,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     }],
                 });
 
-                const rateDetails = await Promise.all(rates.map(async (rate) => {
+                const rateDetails = await Promise.all(rates.map(async (rate: { rate_type: { rate_type_category: any; get: () => any; }; id: any; }) => {
                     const rateTypeCategory = rate.rate_type?.rate_type_category
+                        ? await picklistItemModel.findOne({
+                            where: { id: rate.rate_type?.rate_type_category },
+                            attributes: ['id', 'value', 'label'],
+                        })
+                        : null;
+
                     const billRates = await RateConfigurationRateDifferentials.findAll({
                         where: { rate_id: rate.id, type: 'BILL_RATE' },
                         attributes: ['differential_on', 'differential_type', 'differential_value'],
