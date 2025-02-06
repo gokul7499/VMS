@@ -337,7 +337,10 @@ async getAllJobTemplateByHierarchy(
             ), JSON_ARRAY()) AS hierarchies,
             JSON_OBJECT(
                 'id', primary_hierarchy.id,
-                'name', primary_hierarchy.name
+                'name', primary_hierarchy.name,
+                'default_date_format', primary_hierarchy.default_date_format,
+                'default_time_format', primary_hierarchy.default_time_format,
+                'default_timezone', primary_hierarchy.default_timezone
             ) AS primary_hierarchy,
             COALESCE((
                 SELECT JSON_ARRAYAGG(
