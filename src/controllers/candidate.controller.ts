@@ -266,7 +266,8 @@ export async function getAllCandidate(
                 vendor: vendor ? {
                     id: vendor.id,
                     vendor_name: vendor.vendor_name,
-                    display_name: vendor.display_name
+                    display_name: vendor.display_name,
+                    tenant_id:vendor.tenant_id
                 } : null,
                 modified_on: cand.modified_on,
                 state_national_id: cand.state_national_id,
