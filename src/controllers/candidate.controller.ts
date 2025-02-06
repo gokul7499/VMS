@@ -241,6 +241,7 @@ export async function getAllCandidate(
         const vendorIds = candidates.map((cand: any) => cand.tenant_id);
         const vendors = await ProgramVendor.findAll({
             where: {
+                program_id,
                 id: vendorIds,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
