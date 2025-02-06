@@ -698,10 +698,11 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
         const vendors = await ProgramVendor.findAll({
             where: {
-                tenant_id: vendorIds,
+                tenant_id: { [Op.in]: vendorIds },
+                program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
-            attributes: ['id', 'vendor_name', 'display_name']
+            attributes: ['id', 'vendor_name', 'display_name','tenant_id']
         });
 
         const formattedCandidates = candidates.map((cand: any) => {
