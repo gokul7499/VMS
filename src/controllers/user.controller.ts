@@ -185,7 +185,7 @@ export async function getUserHierarchiesByProgram(
     const workLocationIds = user?.work_location_ids ?? [];
     const workLocationsData = workLocationIds.length
       ? await WorkLocationModel.findAll({
-        where: { id: workLocationIds,is_enabled:true },
+        where: { id: workLocationIds, is_enabled: true },
         attributes: ['id', 'name'],
       })
       : [];
@@ -289,9 +289,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const candidateId = await CandidateCodeGenerate(user.tenant_id);
+      const candidateId = await CandidateCodeGenerate(user.tenant_id,program_id);
 
-      await candidateModel.create({ ...user, candidate_id: candidateId, created_by: userId, modified_by: userId, }, { transaction });
+      await candidateModel.create({ ...userWithoutId, user_id: user.id, candidate_id: candidateId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
@@ -333,25 +333,24 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
     }
 
-    if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
-      const customFields = user.custom_fields.map((field: {
-        id: any; value: any;
+    if (Array.isArray(user.customFields) && user.customFields.length > 0) {
+      const customField= user.customFields.map((field: {
+        custom_field_id: any; value: any;
       }) => ({
         program_id: user.program_id,
-        user_id,
-        customfield_id: field.id,
+        user_id:user.id,
+        customfield_id: field.custom_field_id,
         value: field.value,
       }));
-      await UserCustomFieldModel.bulkCreate(customFields, { transaction });
+      await UserCustomFieldModel.bulkCreate(customField, { transaction });
     }
-
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping, created_by: userId, modified_by: userId, }, { transaction });
+        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping, created_by: userId, modified_by: userId, }, { transaction });
+      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     }
 
     await transaction.commit();
@@ -438,17 +437,17 @@ export async function updateUser(
 
       await UserMasterDataModel.bulkCreate(foundationalData);
     }
-    if (Array.isArray(userBody.custom_fields) && userBody.custom_fields.length > 0) {
+    if (Array.isArray(userBody.customFields) && userBody.customFields.length > 0) {
       await UserCustomFieldModel.destroy({ where: { user_id: user.user_id } });
 
-      const customFields = userBody.custom_fields.map((field: { id: string; value: any }) => ({
+      const customField = userBody.customFields.map((field: { custom_field_id: string; value: any }) => ({
         program_id,
-        customfield_id: field.id,
+        customfield_id: field.custom_field_id,
         value: field.value,
         user_id: user.user_id,
       }));
 
-      await UserCustomFieldModel.bulkCreate(customFields);
+      await UserCustomFieldModel.bulkCreate(customField);
     }
 
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
