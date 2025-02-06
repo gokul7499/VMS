@@ -250,6 +250,10 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -2087,7 +2091,7 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
-  status?:string,
+  status?: string,
   user_id?: string,
   hierarchy_id?: string[]
 ) => `
