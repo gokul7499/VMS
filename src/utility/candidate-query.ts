@@ -53,21 +53,23 @@ class CandidateRepository {
                 c.do_not_rehire_reason, 
                 c.do_not_rehire,
                 JSON_OBJECT(
-                    'id', v.id,
+                    'id',v.id,
+                    'tenant_id', v.tenant_id,  -- Use tenant_id from the subquery
                     'vendor_name', v.max_vendor_name
                 ) AS vendor
             FROM 
                 candidates c
             LEFT JOIN (
                 SELECT 
-                    id, 
+                    id,
+                    tenant_id, 
                     MAX(vendor_name) AS max_vendor_name
                 FROM 
                     program_vendors
-                GROUP BY id
+                GROUP BY tenant_id
             ) v 
             ON 
-                c.vendor_id = v.id
+                c.vendor_id = v.tenant_id -- Join vendor_id to tenant_id
             ${whereClause}
             ORDER BY 
                 c.modified_on DESC
@@ -81,6 +83,8 @@ class CandidateRepository {
     
         return { count, candidates };
     }
+    
+    
 }
 
 export default CandidateRepository;
