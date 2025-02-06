@@ -30,6 +30,7 @@ export interface TimesheetTypeConfigInterface {
   weekly_limit?: any;
   weekend?: any;
   modification_rules?: any;
+  is_modification_rule?:boolean;
   thresholds?: any;
   copy_timesheet?: any;
   is_overnight_allowed?: boolean;
