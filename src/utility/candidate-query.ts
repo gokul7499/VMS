@@ -55,7 +55,8 @@ class CandidateRepository {
                 JSON_OBJECT(
                     'id',v.id,
                     'tenant_id', v.tenant_id,  -- Use tenant_id from the subquery
-                    'vendor_name', v.max_vendor_name
+                    'vendor_name', v.max_vendor_name,
+                    'display_name', v.max_display_name                
                 ) AS vendor
             FROM 
                 candidates c
@@ -63,7 +64,8 @@ class CandidateRepository {
                 SELECT 
                     id,
                     tenant_id, 
-                    MAX(vendor_name) AS max_vendor_name
+                    MAX(vendor_name) AS max_vendor_name,
+                    MAX(display_name) AS max_display_name
                 FROM 
                     program_vendors
                 GROUP BY tenant_id
