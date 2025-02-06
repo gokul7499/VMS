@@ -100,7 +100,7 @@ export const getAllTimesheetTypeConfigs = async (
                 ttc.slug,
                 ttc.is_modification_rule,
                 JSON_OBJECT('id', ttc.break_rule_group, 'name', terg_break.rule_group_name) AS break_rule_group,
-                JSON_OBJECT('id', ttc., 'name', terg_timesheet.rule_group_name) AS timesheet_rule_group,
+                JSON_OBJECT('id', ttc.timesheet_rule_group, 'name', terg_timesheet.rule_group_name) AS timesheet_rule_group,
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
                  FROM hierarchies h
                  WHERE JSON_CONTAINS(ttc.hierarchies, JSON_QUOTE(h.id))) AS hierarchies,
