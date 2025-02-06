@@ -125,6 +125,10 @@ TimesheetTypeConfig.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    is_modification_rule:{
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     thresholds: {
       type: DataTypes.JSON,
       allowNull: true,
