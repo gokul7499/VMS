@@ -2140,7 +2140,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
                             });
                         }
-                        console.log("recipient_details",recipient_details);
                         
                         input_value = userResult[0] ? {
                             id: userResult[0]?.user_id,
@@ -2891,7 +2890,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed") {
+                if (previousLevel.level_status === "completed"||previousLevel.level_status === "Rejected") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
@@ -2899,34 +2898,6 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                     currentLevel.level_status = "not started";
                 }
             }
-            // if (currentLevel.level_status === "pending") {
-
-
-            //     const hasMatchingRecipient =
-            //         user.userType == "super_user" ||
-            //         currentLevel.recipients.some((recipient: any) => {
-            //             if (recipient.replaced_by) {
-            //                 return recipient.replaced_by.id === user.sub;
-            //             }
-
-            //             return recipient.user_id === user.sub;
-
-
-            //         });
-
-            //     // Add `action_allowed` object to workflow if it doesn't already exist
-
-            //     workflow.action_allowed = {};
-
-
-            //     // Set `is_approval_allowed` key in the `action_allowed` object
-            //     console.log(workflow);
-            //     if (workflow.workflow_type == "Review") {
-            //         workflow.action_allowed.is_review = hasMatchingRecipient ? true : false;
-            //     } else if (workflow.workflow_type == "Approval") {
-            //         workflow.action_allowed.is_approve = hasMatchingRecipient ? true : false;
-            //     }
-            // }
             if (currentLevel.level_status === "pending") {
                 const hasMatchingRecipient =
                 user.userType == "super_user" ||
@@ -2956,7 +2927,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             // Update the status map for reference
             if (currentLevel.recipients && currentLevel.recipients.length > 0) {
                 currentLevel.recipients.forEach((recipient: any) => {
-                    if (currentLevel.level_status === "completed") {
+                    if (currentLevel.level_status === "completed"||currentLevel.level_status === "Rejected"||currentLevel.level_status === "Not needed") {
                         // If the level is completed, preserve the recipient's existing status
                         recipient.status = recipient.status;
                     } else if (currentLevel.level_status === "pending") {
