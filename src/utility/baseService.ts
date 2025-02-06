@@ -115,68 +115,74 @@ export class BaseService {
 
     async advancedFilter(request: FastifyRequest, program_id: string, include?: any[]) {
         const { filters = {}, pagination } = request.body as {
-          filters?: Record<string, any>;
-          pagination?: { page?: number; limit?: number };
+            filters?: Record<string, any>;
+            pagination?: { page?: number; limit?: number };
         };
-              const whereCondition: { [key: string]: any } = { 
-          is_deleted: false,
-          program_id 
+    
+        const whereCondition: { [key: string]: any } = {
+            is_deleted: false,
+            program_id
         };
-      
-        // Loop through the filters provided by the user
+    
         Object.keys(filters).forEach((field) => {
-          const value = filters[field];
-      
-          if (Array.isArray(value)) {
-            if (value.length === 2 && !isNaN(Date.parse(value[0])) && !isNaN(Date.parse(value[1]))) {
-              // Handle date range filters
-              whereCondition[field] = {
-                [Op.between]: [new Date(value[0]), new Date(value[1])]
-              };
-            } else if (value.length > 0) {
-              whereCondition[field] = sequelize.where(
-                sequelize.fn('JSON_CONTAINS', sequelize.col(field), JSON.stringify(value)),
-                true
-              );
+            const value = filters[field];
+    
+            if (field === 'modified_on' && Array.isArray(value) && value.length === 2) {
+                const startTimestamp = value[0];
+                const endTimestamp = value[1]; 
+    
+                whereCondition.modified_on = {
+                    [Op.between]: [startTimestamp, endTimestamp]
+                };
+    
+                console.log(`Modified On Date Range: ${new Date(startTimestamp).toISOString()} - ${new Date(endTimestamp).toISOString()}`);
+            } else if (Array.isArray(value)) {
+                if (value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+                    whereCondition[field] = {
+                        [Op.between]: [new Date(value[0]), new Date(value[1])]
+                    };
+                } else if (value.length > 0) {
+                    whereCondition[field] = sequelize.where(
+                        sequelize.fn('JSON_CONTAINS', sequelize.col(field), JSON.stringify(value)),
+                        true
+                    );
+                }
+            } else if (typeof value === "boolean") {
+                whereCondition[field] = value;
+            } else if (typeof value === "string") {
+                whereCondition[field] = {
+                    [Op.like]: `%${value}%`
+                };
+            } else if (typeof value === "number") {
+                whereCondition[field] = value;
+            } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                const timestamp = value.modified_on; 
+                if (typeof timestamp === 'number') {
+                    whereCondition[field] = {
+                        [Op.eq]: timestamp
+                    };
+                }
             }
-          } else if (typeof value === "boolean") {
-            // Handle boolean values (e.g., is_active)
-            whereCondition[field] = value;
-          } else if (typeof value === "string") {
-            // Handle string values (e.g., title)
-            whereCondition[field] = {
-              [Op.like]: `%${value}%`
-            };
-          } else if (typeof value === "number") {
-            // Handle exact numeric values
-            whereCondition[field] = value;
-          } else if (value instanceof Date || !isNaN(Date.parse(value))) {
-            // Handle single date values
-            whereCondition[field] = {
-              [Op.eq]: new Date(value)
-            };
-          }
         });
-      
-        // Handle pagination
+    
         const offset = pagination?.page ? (pagination.page - 1) * (pagination.limit ?? 10) : undefined;
         const limit = pagination?.limit ?? undefined;
-      
+    
         const options: any = {
-          where: whereCondition,
-          distinct: true,
-          order: [["created_on", "DESC"]],
-          include: include
+            where: whereCondition,
+            distinct: true,
+            order: [["created_on", "DESC"]],
+            include: include
         };
-        
+    
         if (offset !== undefined && limit !== undefined) {
-          options.offset = offset;
-          options.limit = limit;
+            options.offset = offset;
+            options.limit = limit;
         }
-      
+    
         const results = await this.model.findAndCountAll(options);
         return results;
-      }
+    }
       
 
 }

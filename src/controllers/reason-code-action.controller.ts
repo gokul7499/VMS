@@ -572,7 +572,7 @@ export const getReasonCodeBySlug = async (
         const module_id = module.id;
 
         const data = await ReasonCodeActionModel.findAll({
-            where: { event_id, module_id },
+            where: { event_id, module_id, is_deleted: false },
         });
 
         if (!data.length) {
