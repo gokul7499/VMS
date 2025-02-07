@@ -839,7 +839,7 @@ export const getVendorDocuments = async (
                     url:doc.url,
                 },
                 work_location: doc.work_location,
-                vendor_name: doc.vendor_name,
+                vendor_name: doc.display_name,
             })),
         });
     } catch (error: any) {
