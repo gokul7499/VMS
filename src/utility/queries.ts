@@ -4,9 +4,6 @@ import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.int
 import { databaseConfig } from '../config/db';
 const auth_db = databaseConfig.config.database_auth;
 
-
-
-
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -2250,6 +2247,7 @@ export const getPendingUserQuery = `
   SELECT
     invitation.*,
     invitation.user_email AS email,
+    invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
     invitation.updated_at AS created_on,
     invitation.created_at AS created_at,
     user_group_mapping.user_type AS user_type,
