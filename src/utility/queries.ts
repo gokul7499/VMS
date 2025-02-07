@@ -247,6 +247,10 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -299,7 +303,7 @@ export const complianceDocumentGetByVendorId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.vendor_name
+        pv.display_name
     FROM
         program_vendors pv
     JOIN
@@ -353,6 +357,11 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
+        vcd.uploaded_document,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -2084,7 +2093,7 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
-  status?:string,
+  status?: string,
   user_id?: string,
   hierarchy_id?: string[]
 ) => `
