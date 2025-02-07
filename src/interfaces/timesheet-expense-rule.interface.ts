@@ -1,17 +1,17 @@
-export interface TimesheetExpenseRule{
-    id?: string; 
+export interface TimesheetExpenseRule {
+    id?: string;
     rule_name?: string;
     rule_type?: string;
     rule_duration?: string;
     break_type?: string;
     is_paid_break?: boolean;
-    weekend_days?: any; 
-    conditions?: any; 
-    penalty_rules?:{
-        method:string;
-        apply_rate_type:string;
-        no_missing_breaks:number;
-        penalty_rat_hours:number;
+    weekend_days?: any;
+    conditions?: any;
+    penalty_rules?: {
+        method: string;
+        apply_rate_type: string;
+        no_missing_breaks: number;
+        penalty_rat_hours: number;
     }
     apply_rate_type?: any;
     created_by?: string;
@@ -20,5 +20,62 @@ export interface TimesheetExpenseRule{
     is_deleted?: boolean;
     created_on?: number;
     modified_on?: number;
-    program_id: string; 
+    program_id: string;
 }
+
+export const QuerySchema = {
+    type: 'object',
+    properties: {
+        rule_name: { type: 'string' },
+        rule_type: { type: 'string' },
+        rule_category: { type: 'string' },
+        is_enabled: { type: 'string' },
+        modified_on: { type: 'string' },
+        page: { type: 'string' },
+        limit: { type: 'string' }
+    },
+};
+
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+        program_id: { type: 'string' },
+        id: { type: 'string' }
+    },
+    required: ['program_id']
+};
+
+
+export const createTimesheetExpenseRuleSchema = {
+    type: 'object',
+    required: ['rule_name'],
+    properties: {
+        id: { type: 'string' },
+        rule_name: { type: 'string' },
+        rule_type: { type: 'string' },
+        rule_duration: { type: 'string' },
+        break_type: { type: 'string' },
+        is_paid_break: { type: 'boolean' },
+        rule_category: { type: 'string' },
+        weekend_days: { type: 'array' },
+        conditions: { type: 'array' },
+        penalty_rules: {
+            type: 'object',
+            properties: {
+                method: { type: 'string' },
+                apply_rate_type: { type: 'string' },
+                no_missing_breaks: { type: 'number' },
+                penalty_rat_hours: { type: 'number' }
+            }
+        },
+        apply_rate_type: { type: 'array' },
+        expense_line_item: { type: 'array' },
+        created_by: { type: 'string' },
+        modified_by: { type: 'string' },
+        is_enabled: { type: 'boolean' },
+        is_deleted: { type: 'boolean' },
+        created_on: { type: 'number' },
+        modified_on: { type: 'number' },
+        program_id: { type: 'string' }
+    }
+};
