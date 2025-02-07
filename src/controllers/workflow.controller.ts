@@ -604,7 +604,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 attributes: ['id', 'template_name']
             }),
             User.findAll({
-                where: { user_id: { [Op.in]: Array.from(targetValues) } },
+                where: { id: { [Op.in]: Array.from(targetValues) } },
                 attributes: ['id','user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
