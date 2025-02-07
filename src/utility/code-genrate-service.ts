@@ -8,9 +8,9 @@ export const generateCandidateCode = async (): Promise<string> => {
     return `CAN-${nextNumber}`;
 };
 
-export const CandidateCodeGenerate = async (vendor_id: string): Promise<string> => {
+export const CandidateCodeGenerate = async (vendor_id: string,program_id:string): Promise<string> => {
     const vendor = await ProgramVendor.findOne({
-        where: { id: vendor_id }
+        where: { tenant_id: vendor_id,program_id:program_id }
     });
     
     const vendor_code = vendor?.vendor_code ? vendor.vendor_code.toUpperCase() : 'VENDOR';
