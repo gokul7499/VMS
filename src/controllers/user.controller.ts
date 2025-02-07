@@ -725,13 +725,13 @@ function removeDuplicates<T>(array: T[], key: keyof T): T[] {
 
 export async function getPendingUser(
   request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { user_mapping_id: string };
+    Params: { program_id: string,user_mapping_id:string };
+    // Querystring: { user_mapping_id: string };
   }>,
   reply: FastifyReply
 ) {
-  const { program_id } = request.params;
-  const { user_mapping_id } = request.query;
+  const { program_id,user_mapping_id } = request.params;
+  // const { user_mapping_id } = request.query;
   const traceId = generateCustomUUID()
 
   try {

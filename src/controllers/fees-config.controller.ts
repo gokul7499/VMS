@@ -356,7 +356,6 @@ export async function advancedSearchFeesConfiguration(
   }
 }
 
-
 export async function getFeesConfig(
   request: FastifyRequest<{
     Params: { program_id: string };
@@ -385,52 +384,52 @@ export async function getFeesConfig(
         Sequelize.where(
           Sequelize.fn('JSON_CONTAINS', Sequelize.col('source_model'), JSON.stringify(source_model)),
           true
-        ),
-        {
-          [Op.or]: [
-            Sequelize.where(
-              Sequelize.fn('JSON_CONTAINS', Sequelize.col('vendors'), JSON.stringify(vendors)),
-              true
-            ),
-            {
-              [Op.not]: Sequelize.literal(`
-                NOT EXISTS (
-                  SELECT 1
-                  FROM fees AS sub_fees
-                  WHERE
-                    JSON_CONTAINS(sub_fees.hierarchy_levels, '${JSON.stringify(hierarchyLevelsArray)}') = TRUE
-                    AND JSON_CONTAINS(sub_fees.labor_category, '${JSON.stringify(labor_category)}') = TRUE
-                    AND JSON_CONTAINS(sub_fees.source_model, '${JSON.stringify(source_model)}') = TRUE
-                    AND sub_fees.program_id = '${program_id}'
-                    AND JSON_LENGTH(sub_fees.vendors) > 0
-                )
-              `)
-            }
-          ]
-        }
+        )
       ]
     };
+
+    if (vendors) {
+      whereConditions[Op.or] = [
+        Sequelize.where(
+          Sequelize.fn('JSON_CONTAINS', Sequelize.col('vendors'), JSON.stringify(vendors)),
+          true
+        ),
+        Sequelize.where(
+          Sequelize.fn('JSON_LENGTH', Sequelize.col('vendors')),
+          0
+        )
+      ];
+    }
 
     if (whereConditions.is_enabled === undefined) {
       delete whereConditions.is_enabled;
     }
 
-    const data = await feesConfiguration.findAll({
+    const data = await feesConfiguration.findOne({
       where: whereConditions,
+      order: [['created_on', 'DESC']]
     });
 
-    reply.status(200).send({
-      status_code: 200,
-      message: "Fees config get successfully",
-      fees: data,
-      trace_id: traceId,
-    });
+    if (!data) {
+      reply.status(404).send({
+        status_code: 404,
+        message: "No matching record found",
+        trace_id: traceId,
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: "Fees config retrieved successfully",
+        fees: [data],
+        trace_id: traceId
+      });
+    }
   } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       trace_id: traceId,
+      error: error.message
     });
   }
 }
-
