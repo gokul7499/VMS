@@ -81,7 +81,6 @@ export const timesheetTypeConfigFilterSchema = {
 };
 export const createTimesheetTypeConfigSchema = {
   type: 'object',
-  required: ['program_id', 'title'],
   properties: {
     id: { type: 'string' },
     title: { type: 'string' },
