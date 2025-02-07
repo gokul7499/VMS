@@ -414,7 +414,7 @@ export const updateWorkflowStatus = async (
                         slicedLevels.forEach((level:any) => {
                             level.recipient_types = level.recipient_types.map((recipient:any) => ({
                                 ...recipient,
-                                status: "reviewed",
+                                status: "approved",
                                 is_admin_override: is_admin_override,
                                 actor_first_name: userData.first_name,
                                 actor_last_name: userData.last_name,
