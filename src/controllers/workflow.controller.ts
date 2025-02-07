@@ -800,7 +800,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.user_id,
+                                        id: input_value.id,
                                         name: getName(input_value)
                                     }];
                                 } else {
