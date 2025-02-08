@@ -604,7 +604,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 attributes: ['id', 'template_name']
             }),
             User.findAll({
-                where: { user_id: { [Op.in]: Array.from(targetValues) } },
+                where: { id: { [Op.in]: Array.from(targetValues) } },
                 attributes: ['id','user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
@@ -800,7 +800,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.user_id,
+                                        id: input_value.id,
                                         name: getName(input_value)
                                     }];
                                 } else {
