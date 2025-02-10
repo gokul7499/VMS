@@ -118,11 +118,11 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
                     email: {
                         to: [
                             {
-                                email: emailData,
+                                email: emailData
                             }
                         ],
                         sender: {
-                            email: senderEmail,
+                            email: senderEmail
                         }
                     }
                 },
