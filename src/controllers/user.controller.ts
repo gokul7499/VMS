@@ -676,7 +676,7 @@ export async function getUserWorkLocationAndTimeZone(
     })) as [UserLocationAndTimeZone | undefined];
   
     const workLocationValid = result?.work_location?.some(loc => loc.work_location_id !== null);
-    const timeZoneValid = result?.time_zone?.some(zone => zone.time_zone_name !== null);
+    const timeZoneValid = result?.time_zone?.some(zone => zone.time_zone_name.toLowerCase() !== null);
   
     if (!result || !workLocationValid || !timeZoneValid) {
       return reply.status(200).send({
