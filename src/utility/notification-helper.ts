@@ -224,6 +224,8 @@ export async function getWorkflowDetails(
     workflowId: string
 ): Promise<WorkflowDetails | null> {
     try {
+        console.log(`Executing query to fetch workflow details for workflow ID: ${workflowId}`);
+
         const result = await sequelize.query(
             `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
              FROM workflow w
@@ -235,6 +237,7 @@ export async function getWorkflowDetails(
                 type: QueryTypes.SELECT,
             }
         ) as WorkflowDetails[];
+        console.log("Query Result:", result);
 
         return result.length > 0 ? result[0] : null;
     } catch (error) {
