@@ -3,8 +3,8 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const secretName = process.env.SECRET_NAME; 
-const region = process.env.REGION; 
+const secretName = process.env.SECRET_NAME;
+const region = process.env.REGION;
 
 const secretsManager = new SecretsManagerClient({ region });
 
@@ -21,9 +21,11 @@ export const getSecretsManager = async () => {
             notification_url: process.env.NOTIFICATION_URL,
             database_auth: process.env.DATABASE_AUTH,
             sourcing_url: process.env.SOURCING_URL,
-            auth_url:process.env.AUTH_URL,
-            teai_url:process.env.TEAI_URL
- 
+            auth_url: process.env.AUTH_URL,
+            teai_url: process.env.TEAI_URL,
+            db_sourcing: process.env.DB_SOURCING,
+
+
         };
     }
 
@@ -48,7 +50,9 @@ export const getSecretsManager = async () => {
                 database_auth: secret.DATABASE_AUTH,
                 sourcing_url: secret.SOURCING_URL,
                 auth_url: secret.AUTH_URL,
-                teai_url:secret.TEAI_URL
+                teai_url: secret.TEAI_URL,
+                db_sourcing: secret.DB_SOURCING,
+
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");
