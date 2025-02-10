@@ -2993,13 +2993,16 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         if (workflowDetails) {
             const { job_id, first_name, last_name, email, unique_key } = workflowDetails;
             payload = {
-                job_id: workflowDetails.job_id,
+                job_id: workflowDetails?.job_id,
                 user_type: user?.userType,
-                candidate_first_name: workflowDetails.first_name,
-                candidate_last_name: workflowDetails.last_name,
-                submission_id: workflowDetails.unique_key,
+                candidate_first_name: workflowDetails?.first_name,
+                candidate_last_name: workflowDetails?.last_name,
+                submission_id: workflowDetails?.unique_key,
             }
 
+        } else {
+            console.error('workflowDetails is undefined or missing required properties');
+            // You can set a default payload or take other appropriate actions here
         }
         // 5. Create the notification payload
 
