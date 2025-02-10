@@ -131,31 +131,35 @@ export const getHierarchies = async (
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
-    let startDate;
-    let endDate;
+    let startDate: number | undefined;
+    let endDate: number | undefined;
 
     if (modified_on) {
       const dateRange = modified_on.split(",");
-      if (dateRange.length === 2) {
-        startDate = parseInt(dateRange[0], 10);
-        endDate = parseInt(dateRange[1], 10);
+      if (dateRange.length === 2 || dateRange.length === 1) {
+        const parsedStartDate = parseInt(dateRange[0], 10);
+        const parsedEndDate =
+          dateRange.length === 2 ? parseInt(dateRange[1], 10) : parsedStartDate;
+        if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
+        if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
       }
     }
-
     const offset = (page - 1) * limit;
+
+    const replacements: any = {
+      program_id,
+      ...(hasName && { name: `%${name}%` }),
+      ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+      ...(startDate !== undefined && { startDate }),
+      ...(endDate !== undefined && { endDate }),
+      limit: Number(limit),
+      offset: Number(offset),
+    };
 
     const hierarchies: any[] = await sequelize.query(
       getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
       {
-        replacements: {
-          program_id,
-          ...(hasName && { name: `%${name}%` }),
-          ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-          ...(startDate !== undefined && { startDate }),
-          ...(endDate !== undefined && { endDate }),
-          limit: Number(limit),
-          offset: Number(offset),
-        },
+        replacements,
         type: QueryTypes.SELECT,
       }
     );
@@ -193,8 +197,6 @@ export const getHierarchies = async (
     });
   }
 };
-
-
 
 interface MasterDataResult {
   foundational_data: string | null;
