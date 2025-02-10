@@ -27,10 +27,9 @@ export const databaseConfig = {
       redis_replica_host: config.redis_replica_host,
       notification_url: config.notification_url,
       database_auth: config.database_auth,
-      sourcing_url: config.sourcing_url,
-      auth_url: config.auth_url,
-      teai_url: config.teai_url,
-      db_sourcing: config.db_sourcing,
+      sourcing_url:config.sourcing_url,
+      auth_url:config.auth_url,
+      teai_url:config.teai_url,
       reconnect: {
         max: 10,
         delay: 1000,
