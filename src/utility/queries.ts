@@ -1787,6 +1787,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
           WHERE rcbr.rate_type_id = :rate_type
       )`;
   }
+
   const sqlQuery = `
     SELECT
       rc.id AS rate_configuration_id,
@@ -1813,7 +1814,19 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcjt.rate_configuration_id
     ) AS jt ON jt.rate_configuration_id = rc.id
     LEFT JOIN (
-      SELECT rcbt.rate_configuration_id, JSON_ARRAYAGG(JSON_OBJECT('id', rt.id, 'name', rt.name)) AS base_rates
+      SELECT rcbt.rate_configuration_id, 
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', rt.id, 
+            'name', rt.name,
+            'rate_types', (
+              SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rt2.id, 'name', rt2.name))
+              FROM rate_configuration_rate_types AS rcrt
+              JOIN rate_type AS rt2 ON rcrt.rate_type_id = rt2.id
+              WHERE rcrt.base_rate_type_id = rcbt.id
+            )
+          )
+        ) AS base_rates
       FROM rate_configuration_base_rate_types AS rcbt
       LEFT JOIN rate_type AS rt ON rcbt.rate_type_id = rt.id
       GROUP BY rcbt.rate_configuration_id
@@ -1822,6 +1835,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     ORDER BY rc.created_on DESC
     LIMIT :limit OFFSET :offset;
   `;
+
   return await sequelize.query(sqlQuery, {
     replacements,
     type: QueryTypes.SELECT,
