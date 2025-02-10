@@ -136,21 +136,14 @@ export const getHierarchies = async (
 
     if (modified_on) {
       const dateRange = modified_on.split(",");
-      if (dateRange.length === 2) {
+      if (dateRange.length === 2 || dateRange.length === 1) {
         const parsedStartDate = parseInt(dateRange[0], 10);
-        const parsedEndDate = parseInt(dateRange[1], 10);
-
-        if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
-        if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
-      } else if (dateRange.length === 1) {
-        const parsedStartDate = parseInt(dateRange[0], 10);
-        const parsedEndDate = parseInt(dateRange[0], 10);
-
+        const parsedEndDate =
+          dateRange.length === 2 ? parseInt(dateRange[1], 10) : parsedStartDate;
         if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
         if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
       }
     }
-
     const offset = (page - 1) * limit;
 
     const replacements: any = {
