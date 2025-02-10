@@ -605,7 +605,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             }),
             User.findAll({
                 where: { user_id: { [Op.in]: Array.from(targetValues) } },
-                attributes: ['id','user_id' ,'first_name', 'last_name']
+                attributes: ['user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
                 where: { id: { [Op.in]: Array.from(targetValues) } },
@@ -658,7 +658,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             return acc;
         }, {});
         const userMap = userDetails.reduce((acc: any, item: any) => {
-            acc[item.id] = item;
+            acc[item.user_id] = item;
             return acc;
         }, {});
         const timesheetTypeMap = timesheetType.reduce((acc: any, item: any) => {
@@ -694,6 +694,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         }, {});
 
                         const input_values = Object.values(meta_data)[0];
+                       
+                        
                         const input_val = Object.values(meta_data)[1];
                         let input_value: CustomField | User | FoundationalDataTypes | null | any = null;
 
@@ -738,6 +740,9 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 where: { user_id: input_values },
                                 attributes: ["id","user_id", "first_name", "last_name"]
                             });
+                           
+                          
+                            
                         } else if (recipientType?.name === "Custom Field Supplied User") {
                             input_value = await CustomField.findOne({
                                 where: { id: input_values },
@@ -790,12 +795,12 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             if (index === 0) {
                                 if (Array.isArray(input_value)) {
                                     populatedMetaData[fieldConfigId].input_value = input_value.map((value: any) => ({
-                                        id: value.id,
+                                        id: value.user_id,
                                         name: getName(value)
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.id,
+                                        id: input_value.user_id,
                                         name: getName(input_value)
                                     }];
                                 } else {
@@ -861,12 +866,15 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
                             condition.target_field_obj = values.flatMap((value: string | number) => {
                                 for (const { map, nameField, username } of targetMaps) {
+                                  
                                     const item = map[value];
                                     if (item) {
                                         if (username && Array.isArray(username)) {
                                             const fullName = username.map(field => item[field]).filter(Boolean).join(' ');
+                                        
+                                           
                                             return {
-                                                id: item.id ?? item[nameField ?? 'name'],
+                                                id: item.id ?? (item[nameField ?? 'name'] || item.user_id),
                                                 name: fullName || item[nameField ?? 'name'],
                                             };
                                         }

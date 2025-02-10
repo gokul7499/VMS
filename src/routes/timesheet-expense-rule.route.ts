@@ -6,12 +6,38 @@ import {
     updateTimesheetExpenseRule,
     deleteTimesheetExpenseRule
 } from '../controllers/timesheet-expense-rule.controller';
+import { createTimesheetExpenseRuleSchema, paramsSchema, QuerySchema } from '../interfaces/timesheet-expense-rule.interface';
 
 async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
-    fastify.post('/program/:program_id/timesheet-expense-rule', createTimesheetExpenseRule);
-    fastify.get('/program/:program_id/timesheet-expense-rules', getTimesheetExpenseRule);
-    fastify.get('/program/:program_id/timesheet-expense-rule/:id', getTimesheetExpenseRuleById);
-    fastify.put('/program/:program_id/timesheet-expense-rule/:id', updateTimesheetExpenseRule);
-    fastify.delete('/program/:program_id/timesheet-expense-rule/:id', deleteTimesheetExpenseRule);
+    fastify.post('/program/:program_id/timesheet-expense-rule',{
+        schema: {
+            params: paramsSchema,
+            body: createTimesheetExpenseRuleSchema
+        }
+    }, createTimesheetExpenseRule);
+    fastify.get('/program/:program_id/timesheet-expense-rules', {
+        schema:{
+            params:paramsSchema,
+            querystring:QuerySchema
+        }
+    },getTimesheetExpenseRule);
+    fastify.get('/program/:program_id/timesheet-expense-rule/:id',{
+        schema:{
+            params:paramsSchema
+        }
+    }, getTimesheetExpenseRuleById);
+    fastify.put('/program/:program_id/timesheet-expense-rule/:id', 
+        {
+            schema:{
+                params:paramsSchema,
+                body: createTimesheetExpenseRuleSchema
+            }
+        },updateTimesheetExpenseRule);
+    fastify.delete('/program/:program_id/timesheet-expense-rule/:id', 
+        {
+            schema:{
+                params:paramsSchema
+            }
+        },deleteTimesheetExpenseRule);
 }
 export default TimesheetExpenseRuleRoutes;

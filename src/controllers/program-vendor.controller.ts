@@ -17,6 +17,9 @@ import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
+    expiry_on: any;
+    url: any;
+    file_name: any;
     display_name: any;
     document_number: any;
     regain_compliance_days: null;
@@ -827,16 +830,15 @@ export const getVendorDocuments = async (
                 to_uploaded: doc.to_uploaded,
                 no_of_days: doc.no_of_days,
                 uploaded_document: {
-                    status: doc.uploaded_document ? doc.uploaded_document.status : null,
-                    expiry_on: doc.uploaded_document ? doc.uploaded_document.expiry_on : null,
-                    file_name: doc.uploaded_document ? doc.uploaded_document.file_name : "",
+                    expiry_on: doc.expiry_on,
                     audited_by: doc.uploaded_document ? doc.uploaded_document.audited_by : "--",
-                    audited_on: doc.uploaded_document ? doc.uploaded_document.audited_on : null,
-                    compliance_note: doc.uploaded_document ? doc.uploaded_document.compliance_note : null,
                     next_expiry_on: doc.next_expiry_on,
+                    status: doc.status,
+                    file_name: doc.file_name,
+                    url:doc.url,
                 },
                 work_location: doc.work_location,
-                vendor_name: doc.vendor_name,
+                vendor_name: doc.display_name,
             })),
         });
     } catch (error: any) {
@@ -904,7 +906,6 @@ export async function updateComplianceDocument(
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
     }
-
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);

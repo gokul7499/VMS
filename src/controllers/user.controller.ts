@@ -333,16 +333,16 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
     }
 
-    if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
-      const customFields = user.custom_fields.map((field: {
-        id: any; value: any;
+    if (Array.isArray(user.customFields) && user.customFields.length > 0) {
+      const customField= user.customFields.map((field: {
+        custom_field_id: any; value: any;
       }) => ({
         program_id: user.program_id,
-        user_id,
-        customfield_id: field.id,
+        user_id:user.id,
+        customfield_id: field.custom_field_id,
         value: field.value,
       }));
-      await UserCustomFieldModel.bulkCreate(customFields, { transaction });
+      await UserCustomFieldModel.bulkCreate(customField, { transaction });
     }
 
     if (Array.isArray(user_group_mapping)) {
@@ -437,17 +437,17 @@ export async function updateUser(
 
       await UserMasterDataModel.bulkCreate(foundationalData);
     }
-    if (Array.isArray(userBody.custom_fields) && userBody.custom_fields.length > 0) {
+    if (Array.isArray(userBody.customFields) && userBody.customFields.length > 0) {
       await UserCustomFieldModel.destroy({ where: { user_id: user.user_id } });
 
-      const customFields = userBody.custom_fields.map((field: { id: string; value: any }) => ({
+      const customField = userBody.customFields.map((field: { custom_field_id: string; value: any }) => ({
         program_id,
-        customfield_id: field.id,
+        customfield_id: field.custom_field_id,
         value: field.value,
         user_id: user.user_id,
       }));
 
-      await UserCustomFieldModel.bulkCreate(customFields);
+      await UserCustomFieldModel.bulkCreate(customField);
     }
 
     if (Array.isArray(userGroupMappings) && userGroupMappings.length > 0) {
@@ -725,13 +725,13 @@ function removeDuplicates<T>(array: T[], key: keyof T): T[] {
 
 export async function getPendingUser(
   request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { user_mapping_id: string };
+    Params: { program_id: string,user_mapping_id:string };
+    // Querystring: { user_mapping_id: string };
   }>,
   reply: FastifyReply
 ) {
-  const { program_id } = request.params;
-  const { user_mapping_id } = request.query;
+  const { program_id,user_mapping_id } = request.params;
+  // const { user_mapping_id } = request.query;
   const traceId = generateCustomUUID()
 
   try {

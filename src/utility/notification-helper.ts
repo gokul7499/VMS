@@ -1,7 +1,10 @@
 import { NotificationDataPayload } from '../interfaces/noifications-data-payload.interface';
 import { EmailRecipient } from '../interfaces/email-recipient';
-import { QueryTypes } from "sequelize";
+import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
+import { sequelize } from '../config/instance';
+
+const sourcing_db = databaseConfig.config.db_sourcing;
 const config_db = databaseConfig.config.database;
 
 export async function getUsersWithHierarchy(
@@ -204,5 +207,38 @@ export async function FetchUsersBasedOnHierarchy(
     } catch (error) {
         console.error("Error fetching users:", error);
         throw new Error("Error fetching users based on hierarchy and program_id.");
+    }
+}
+
+
+interface WorkflowDetails {
+    job_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    unique_key: string;
+}
+
+export async function getWorkflowDetails(
+    sequelize: Sequelize,
+    workflowId: string
+): Promise<WorkflowDetails | null> {
+    try {
+        const result = await sequelize.query(
+            `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
+             FROM workflow w
+             LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
+             LEFT JOIN candidates c ON w.candidate_id = c.id
+             WHERE w.id = :workflow_id;`,
+            {
+                replacements: { workflow_id: workflowId },
+                type: QueryTypes.SELECT,
+            }
+        ) as WorkflowDetails[];
+
+        return result.length > 0 ? result[0] : null;
+    } catch (error) {
+        console.error("Error fetching workflow details:", error);
+        throw error;
     }
 }
