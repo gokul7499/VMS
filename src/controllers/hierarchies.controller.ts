@@ -140,7 +140,12 @@ export const getHierarchies = async (
         const parsedStartDate = parseInt(dateRange[0], 10);
         const parsedEndDate = parseInt(dateRange[1], 10);
 
-        // Ensure parsed dates are valid numbers
+        if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
+        if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
+      } else if (dateRange.length === 1) {
+        const parsedStartDate = parseInt(dateRange[0], 10);
+        const parsedEndDate = parseInt(dateRange[0], 10);
+
         if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
         if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
       }
