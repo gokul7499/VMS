@@ -51,7 +51,7 @@ export const getSecretsManager = async () => {
                 sourcing_url: secret.SOURCING_URL,
                 auth_url: secret.AUTH_URL,
                 teai_url: secret.TEAI_URL,
-                db_sourcing: secret.DB_SOURCING,
+                db_sourcing: secret.DATABASE_SOURCING,
 
             };
         } else {
