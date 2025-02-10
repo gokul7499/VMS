@@ -196,6 +196,10 @@ export const complianceDocumentGetByUserId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -291,8 +295,12 @@ export const complianceDocumentGetByVendorId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
-        vcd.uploaded_document,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
+        vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
