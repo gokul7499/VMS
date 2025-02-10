@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getCandidateDetailsFromWorkflow, getJobDataFromWorkflow, getSubmissionDetailsFromWorkflow } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -241,7 +241,7 @@ export const updateWorkflowStatus = async (
     }
 
     try {
-        const userResult = await getUsersStatus(sequelize, userId,program_id);
+        const userResult = await getUsersStatus(sequelize, userId, program_id);
         let userData = userResult[0] as any
         let impersonator_id: any
         if (user.impersonator) {
@@ -267,7 +267,7 @@ export const updateWorkflowStatus = async (
 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
-                  
+
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
@@ -277,10 +277,10 @@ export const updateWorkflowStatus = async (
                             level.recipient_types.map(async (recipient: any) => {
                                 // Check user type
                                 const isSuperUser = user.userType = "super_user"
-                           
-                                if (!isSuperUser&&behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
+
+                                if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
-                                    const matchesUser = Object.values(recipient.meta_data).includes(user_id);                                  
+                                    const matchesUser = Object.values(recipient.meta_data).includes(user_id);
                                     const history = await WorkflowStatusHistory.create({
                                         job_workflow_id: id,
                                         placement_order,
@@ -300,32 +300,32 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avtar: userData?.avatar,
                                     };
-                                }else
-                                if(isSuperUser){
-                                    if (behavior?.toLowerCase() === "any"&& level.placement_order === placement_order) {
-                                        // Check if the recipient's user_id matches any value in meta_data
-                                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);                                  
-                                        const history = await WorkflowStatusHistory.create({
-                                            job_workflow_id: id,
-                                            placement_order,
-                                            new_status,
-                                            program_id,
-                                            notes: notes || "",
-                                            created_on: new Date(),
-                                            user_id: user_id,
-                                        });
-                                        return {
-                                            ...recipient,
-                                            status: "approved", 
-                                            impersonate_by: impersonator_id,
-                                            modified_on: new Date(),
-                                            status_id: history.dataValues?.id,
-                                            actor_first_name: userData?.first_name,
-                                            actor_last_name: userData?.last_name,
-                                            actor_by_avtar: userData?.avatar,
-                                        };
+                                } else
+                                    if (isSuperUser) {
+                                        if (behavior?.toLowerCase() === "any" && level.placement_order === placement_order) {
+                                            // Check if the recipient's user_id matches any value in meta_data
+                                            const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                            const history = await WorkflowStatusHistory.create({
+                                                job_workflow_id: id,
+                                                placement_order,
+                                                new_status,
+                                                program_id,
+                                                notes: notes || "",
+                                                created_on: new Date(),
+                                                user_id: user_id,
+                                            });
+                                            return {
+                                                ...recipient,
+                                                status: "approved",
+                                                impersonate_by: impersonator_id,
+                                                modified_on: new Date(),
+                                                status_id: history.dataValues?.id,
+                                                actor_first_name: userData?.first_name,
+                                                actor_last_name: userData?.last_name,
+                                                actor_by_avtar: userData?.avatar,
+                                            };
+                                        }
                                     }
-                                }
                                 // Check if user is not a "super_user" and proceed with matchinj
                                 if (!isSuperUser) {
                                     if (user_id) {
@@ -409,12 +409,12 @@ export const updateWorkflowStatus = async (
                     if (is_admin_override) {
                         // Slice levels from index 1 onwards
                         const slicedLevels = levels.slice(1);
-                    
+
                         // Update only recipient_types in levels from index 1 onwards
-                        slicedLevels.forEach((level:any) => {
-                            level.recipient_types = level.recipient_types.map((recipient:any) => ({
+                        slicedLevels.forEach((level: any) => {
+                            level.recipient_types = level.recipient_types.map((recipient: any) => ({
                                 ...recipient,
-                                status: "reviewed",
+                                status: "approved",
                                 is_admin_override: is_admin_override,
                                 actor_first_name: userData.first_name,
                                 actor_last_name: userData.last_name,
@@ -424,8 +424,8 @@ export const updateWorkflowStatus = async (
                             }));
                             level.status = "completed";
                         });
-                    
-                      
+
+
                     }
                     return level;
                 })
@@ -464,7 +464,7 @@ export const updateWorkflowStatus = async (
             // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
-           
+
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: new Date(), modified_by: userId });
 
             let allPayload = {
@@ -477,7 +477,7 @@ export const updateWorkflowStatus = async (
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
-                    hierarchy_ids: hierarchy_ids||null,
+                    hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
                     user_type: eventCode.user_type
 
@@ -554,7 +554,7 @@ export async function updateWorkflowPreviousCompltedStatus(request: FastifyReque
         });
     }
 }
-export async function getUsersStatus(sequelize: any, userId: any,program_id:any) {
+export async function getUsersStatus(sequelize: any, userId: any, program_id: any) {
 
     const userQuery = `
         SELECT user_id, status,first_name,last_name,avatar
@@ -605,7 +605,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     authorization: authHeader
                 },
             });
-          
+
 
         } else
             if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
@@ -758,7 +758,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
 
         const userData: any = await sequelize.query(userQuery, {
             type: QueryTypes.SELECT,
-            replacements: { user_id: user.sub},
+            replacements: { user_id: user.sub },
         });
         let userType = userData[0]
         if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
@@ -1063,7 +1063,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
 
         const userResult = await sequelize.query(userQuery, {
             type: QueryTypes.SELECT,
-            replacements: { managerId,program_id },
+            replacements: { managerId, program_id },
         });
 
         if (userResult.length === 0) {
@@ -1167,7 +1167,7 @@ export const rejectLevel = async (
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: new Date(), notes: notes, reason: reason };
 
-                        });                       
+                        });
                         return {
                             ...level,
                             modified_on: new Date(),
@@ -1637,7 +1637,7 @@ export const updateWorkflowStatusData = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
-   
+
 
     if (!program_id || !workflow_id || updates.length === 0) {
         return reply.status(400).send({
@@ -1648,7 +1648,7 @@ export const updateWorkflowStatusData = async (
     }
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id: workflow_id, program_id } });
-    
+
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1658,15 +1658,15 @@ export const updateWorkflowStatusData = async (
         }
         let levels = workflow.levels || [];
         let updatedLevels = false;
-    
+
         updates.forEach(({ placement_order, new_status, behavior }) => {
             let levelFound = false;
-        
+
             levels = levels.map((level: any) => {
                 if (level.placement_order == placement_order) {
                     levelFound = true;
                     updatedLevels = true;
-        
+
                     // Update all recipients in the specified level
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
                         if (behavior === "any") {
@@ -1674,11 +1674,11 @@ export const updateWorkflowStatusData = async (
                         }
                         return { ...recipient, status: new_status };
                     });
-        
+
                     const allApproved = updatedRecipientTypes.every(
                         (recipient: any) => recipient.status === "bypassed" || recipient.status == "reviewed"
                     );
-        
+
                     return {
                         ...level,
                         status: allApproved ? "completed" : "pending",
@@ -1687,27 +1687,27 @@ export const updateWorkflowStatusData = async (
                 }
                 return level;
             });
-        
+
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
         });
-        
-     
+
+
         console.log("Final Updated Levels:", JSON.stringify(levels, null, 2));
-        
-       
-      let Result=  await workflow.update(
+
+
+        let Result = await workflow.update(
             { levels, modified_on: new Date() },
             { where: { id: workflow_id } } // Replace with the correct identifier
-          );
-          
-        
-        
-        console.log("Levels successfully updated in the database!",Result);
-        
-    
-    } 
+        );
+
+
+
+        console.log("Levels successfully updated in the database!", Result);
+
+
+    }
     catch (error) {
         console.error("Error updating job workflow:", error);
         return reply.status(500).send({
@@ -1974,7 +1974,7 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-console.log(rows);
+        console.log(rows);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
@@ -2004,7 +2004,7 @@ console.log(rows);
                 if (b.flow_type === "Review") return 1;
                 return 0;
             });
-      
+
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -2080,7 +2080,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     try {
-        for (const row of rows) {    
+        for (const row of rows) {
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
             console.log(recipient_details);
             if (meta_data && Object.keys(meta_data).length > 0) {
@@ -2117,13 +2117,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: existing_replaced_user,program_id:workflow.program_id },
+                                replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
                             });
                         } else {
                             // If no `existing_replaced_user`, use the first `input_value`
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: input_values[0],program_id:workflow.program_id },
+                                replacements: { user_id: input_values[0], program_id: workflow.program_id },
                             });
                         }
                         let replacedUserResult = null;
@@ -2131,16 +2131,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         if (userResult.length && replaced_by) {
                             replacedUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: replaced_by,program_id:workflow.program_id },
+                                replacements: { user_id: replaced_by, program_id: workflow.program_id },
                             });
                         }
                         if (userResult.length && imporsonate_by) {
                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
+                                replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                             });
                         }
-                        
+
                         input_value = userResult[0] ? {
                             id: userResult[0]?.user_id,
                             first_name: userResult[0]?.first_name,
@@ -2195,13 +2195,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: existing_replaced_user ,program_id:workflow.program_id},
+                                replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
                             });
                         } else {
                             // If no `existing_replaced_user`, use the first `input_value`
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: manager,program_id:workflow.program_id },
+                                replacements: { user_id: manager, program_id: workflow.program_id },
                             });
                         }
 
@@ -2210,13 +2210,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         if (userResult.length && replaced_by) {
                             replacedUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: replaced_by,program_id:workflow.program_id },
+                                replacements: { user_id: replaced_by, program_id: workflow.program_id },
                             });
                         }
                         if (userResult.length && imporsonate_by) {
                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
+                                replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                             });
                         }
                         input_value = userResult[0] ? {
@@ -2270,7 +2270,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: manager || manager,program_id:workflow.program_id },
+                        replacements: { job_manager_id: manager || manager, program_id: workflow.program_id },
                     });
 
 
@@ -2297,26 +2297,26 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             if (existing_replaced_user) {
                                 supervisorResult = await sequelize.query(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: existing_replaced_user,program_id:workflow.program_id },
+                                    replacements: { supervisor: existing_replaced_user, program_id: workflow.program_id },
                                 });
                             } else {
                                 // If no `existing_replaced_user`, use the first `input_value`
                                 supervisorResult = await sequelize.query(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: manager.supervisor,program_id:workflow.program_id },
+                                    replacements: { supervisor: manager.supervisor, program_id: workflow.program_id },
                                 });
                             }
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: replaced_by,program_id:workflow.program_id },
+                                    replacements: { supervisor: replaced_by, program_id: workflow.program_id },
                                 });
                             }
                             if (supervisorResult.length && imporsonate_by) {
                                 imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: imporsonate_by,program_id:workflow.program_id },
+                                    replacements: { supervisor: imporsonate_by, program_id: workflow.program_id },
                                 });
                             }
 
@@ -2390,26 +2390,26 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     if (recipients.existing_replaced_user) {
                                         userData = await sequelize.query(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: recipients.existing_replaced_user,program_id:workflow.program_id },
+                                            replacements: { user_id: recipients.existing_replaced_user, program_id: workflow.program_id },
                                         });
                                     } else {
                                         // If no `existing_replaced_user`, use the first `input_value`
                                         userData = await sequelize.query(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: metaValue,program_id:workflow.program_id },
+                                            replacements: { user_id: metaValue, program_id: workflow.program_id },
                                         });
                                     }
 
                                     if (userData.length && replaced_by) {
                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: replaced_by ,program_id:workflow.program_id},
+                                            replacements: { user_id: replaced_by, program_id: workflow.program_id },
                                         });
                                     }
                                     if (userData.length && imporsonate_by) {
                                         imporsonateUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: imporsonate_by,program_id:workflow.program_id},
+                                            replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                                         });
                                     }
                                     if (userData.length > 0) {
@@ -2474,7 +2474,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                             // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
                             const fetchUserData = async (userId: any) => {
-                                const user = await fetchLevelUserData(userId,workflow.program_id);
+                                const user = await fetchLevelUserData(userId, workflow.program_id);
                                 return user;
                             };
 
@@ -2529,8 +2529,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 // Fetch "impersonate_by" user data if applicable
                                 if (recipient.impersonate_by) {
                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-                                   
-                                    
+
+
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
                                             id: impersonatedUser.user_id,
@@ -2809,8 +2809,8 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
 //                 const isOnlyApprover = level.recipients.every(
 //                     (recipient: any) => recipient.user_id == "a4370a39-c88a-4567-99f9-8df0b348e5c5"
 //                 );
-              
-                
+
+
 //                 if (config.skip_level_if_actor_is_only_approver_in_level && isOnlyApprover) {
 //                     let new_status = "";
 //                     if (workflow.workflow_type == "Review") {
@@ -2825,8 +2825,8 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
 //                         notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
 //                     });
 //                 } 
-                
-                
+
+
 //                 else {
 //                     level.recipients.forEach((recipient: any) => {
 
@@ -2847,8 +2847,8 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
 //                     });
 //                 }
 //             }
-           
-            
+
+
 //         });
 
 //         if (updates.length > 0) {
@@ -2890,7 +2890,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed"||previousLevel.level_status === "Rejected") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "Rejected") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
@@ -2900,19 +2900,19 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             }
             if (currentLevel.level_status === "pending") {
                 const hasMatchingRecipient =
-                user.userType == "super_user" ||
-                currentLevel.recipients.some((recipient: any) => {
-                    const isUserMatched =
-                        (recipient.replaced_by && recipient.replaced_by.id === user.sub) ||
-                        (!recipient.replaced_by && recipient.user_id === user.sub);  // Fallback to user_id if replaced_by is not present
-        
-                    return isUserMatched && recipient.status === "pending"; 
-                });
+                    user.userType == "super_user" ||
+                    currentLevel.recipients.some((recipient: any) => {
+                        const isUserMatched =
+                            (recipient.replaced_by && recipient.replaced_by.id === user.sub) ||
+                            (!recipient.replaced_by && recipient.user_id === user.sub);  // Fallback to user_id if replaced_by is not present
+
+                        return isUserMatched && recipient.status === "pending";
+                    });
                 // Ensure `action_allowed` exists in workflow
                 if (!workflow.action_allowed) {
                     workflow.action_allowed = {};
                 }
-            
+
                 // Set flags based on workflow type
                 if (workflow.workflow_type === "Review") {
                     workflow.action_allowed.is_review = hasMatchingRecipient;
@@ -2920,14 +2920,14 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                     workflow.action_allowed.is_approve = hasMatchingRecipient;
                 }
             }
-            
+
 
             // Update the status map for reference
             levelStatusMap[placementOrder] = currentLevel.level_status;
             // Update the status map for reference
             if (currentLevel.recipients && currentLevel.recipients.length > 0) {
                 currentLevel.recipients.forEach((recipient: any) => {
-                    if (currentLevel.level_status === "completed"||currentLevel.level_status === "Rejected"||currentLevel.level_status === "Not needed") {
+                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "Rejected" || currentLevel.level_status === "Not needed") {
                         // If the level is completed, preserve the recipient's existing status
                         recipient.status = recipient.status;
                     } else if (currentLevel.level_status === "pending") {
@@ -2988,16 +2988,23 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 
         // 4. Create event code
         const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
+        const jobData = await getJobDataFromWorkflow(sequelize, workflow.job_workflow_id);
+        const candidateData = await getCandidateDetailsFromWorkflow(sequelize, workflow.job_workflow_id);
+        const submissionData = await getSubmissionDetailsFromWorkflow(sequelize, workflow.job_workflow_id);
 
         // 5. Create the notification payload
+
         const notificationPayloads: NotificationDataPayload = {
             program_id,
             traceId,
             eventCode,
             recipientEmail: recipientEmails,
             payload: {
-                job_id: workflow.event_title,
+                job_id: jobData[0].job_id,
                 user_type: user?.userType,
+                candidate_first_name: candidateData[0]?.first_name,
+                candidate_last_name: candidateData[0]?.last_name,
+                submission_id: submissionData[0].unique_key,
             },
             token,
             userId: user?.sub ?? "",
@@ -3020,7 +3027,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 };
 
 // Function to fetch user data from the database
-const fetchLevelUserData = async (userId: any,program_id:any) => {
+const fetchLevelUserData = async (userId: any, program_id: any) => {
     const userQuery = `
         SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
@@ -3031,7 +3038,7 @@ const fetchLevelUserData = async (userId: any,program_id:any) => {
     `;
     const userResult = await sequelize.query<Users>(userQuery, {
         type: QueryTypes.SELECT,
-        replacements: { user_id: userId ,program_id:program_id},
+        replacements: { user_id: userId, program_id: program_id },
     });
 
     if (userResult.length > 0) {
@@ -3352,13 +3359,13 @@ l.placement_order ASC;`;
                         if (existing_replaced_user) {
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: existing_replaced_user,program_id:workflow.program_id },
+                                replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
                             });
                         } else {
                             // If no `existing_replaced_user`, use the first `input_value`
                             userResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: input_values[0],program_id:workflow.program_id },
+                                replacements: { user_id: input_values[0], program_id: workflow.program_id },
                             });
                         }
 
@@ -3367,13 +3374,13 @@ l.placement_order ASC;`;
                         if (userResult.length && replaced_by) {
                             replacedUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: replaced_by,program_id:workflow.program_id },
+                                replacements: { user_id: replaced_by, program_id: workflow.program_id },
                             });
                         }
                         if (userResult.length && imporsonate_by) {
                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
                                 type: QueryTypes.SELECT,
-                                replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
+                                replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                             });
                         }
                         input_value = userResult[0] ? {
@@ -3425,7 +3432,7 @@ l.placement_order ASC;`;
                 `;
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
                         type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: manager || manager,program_id:workflow.program_id },
+                        replacements: { job_manager_id: manager || manager, program_id: workflow.program_id },
                     });
 
 
@@ -3453,26 +3460,26 @@ l.placement_order ASC;`;
                             if (existing_replaced_user) {
                                 supervisorResult = await sequelize.query(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: existing_replaced_user,program_id:workflow.program_id },
+                                    replacements: { supervisor: existing_replaced_user, program_id: workflow.program_id },
                                 });
                             } else {
                                 // If no `existing_replaced_user`, use the first `input_value`
                                 supervisorResult = await sequelize.query(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: manager.supervisor ,program_id:workflow.program_id},
+                                    replacements: { supervisor: manager.supervisor, program_id: workflow.program_id },
                                 });
                             }
 
                             if (supervisorResult.length && replaced_by) {
                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: replaced_by,program_id:workflow.program_id },
+                                    replacements: { supervisor: replaced_by, program_id: workflow.program_id },
                                 });
                             }
                             if (supervisorResult.length && imporsonate_by) {
                                 imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
                                     type: QueryTypes.SELECT,
-                                    replacements: { supervisor: imporsonate_by,program_id:workflow.program_id },
+                                    replacements: { supervisor: imporsonate_by, program_id: workflow.program_id },
                                 });
                             }
 
@@ -3545,26 +3552,26 @@ l.placement_order ASC;`;
                                     if (recipients.existing_replaced_user) {
                                         userData = await sequelize.query(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: recipients.existing_replaced_user ,program_id:workflow.program_id},
+                                            replacements: { user_id: recipients.existing_replaced_user, program_id: workflow.program_id },
                                         });
                                     } else {
                                         // If no `existing_replaced_user`, use the first `input_value`
                                         userData = await sequelize.query(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: metaValue,program_id:workflow.program_id },
+                                            replacements: { user_id: metaValue, program_id: workflow.program_id },
                                         });
                                     }
 
                                     if (userData.length && replaced_by) {
                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: replaced_by ,program_id:workflow.program_id},
+                                            replacements: { user_id: replaced_by, program_id: workflow.program_id },
                                         });
                                     }
                                     if (userData.length && imporsonate_by) {
                                         imporsonateUserResult = await sequelize.query<Users>(userQuery, {
                                             type: QueryTypes.SELECT,
-                                            replacements: { user_id: imporsonate_by,program_id:workflow.program_id },
+                                            replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                                         });
                                     }
                                     if (userData.length > 0) {
@@ -3629,7 +3636,7 @@ l.placement_order ASC;`;
 
                             // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
                             const fetchUserData = async (userId: any) => {
-                                const user = await fetchLevelUserData(userId,workflow.program_id);
+                                const user = await fetchLevelUserData(userId, workflow.program_id);
                                 return user;
                             };
 
@@ -3684,8 +3691,8 @@ l.placement_order ASC;`;
                                 // Fetch "impersonate_by" user data if applicable
                                 if (recipient.impersonate_by) {
                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-                                   
-                                    
+
+
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
                                             id: impersonatedUser.user_id,

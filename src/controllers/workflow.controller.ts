@@ -605,7 +605,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             }),
             User.findAll({
                 where: { user_id: { [Op.in]: Array.from(targetValues) } },
-                attributes: ['id','user_id' ,'first_name', 'last_name']
+                attributes: ['user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
                 where: { id: { [Op.in]: Array.from(targetValues) } },
@@ -658,7 +658,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             return acc;
         }, {});
         const userMap = userDetails.reduce((acc: any, item: any) => {
-            acc[item.id] = item;
+            acc[item.user_id] = item;
             return acc;
         }, {});
         const timesheetTypeMap = timesheetType.reduce((acc: any, item: any) => {
@@ -874,7 +874,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                         
                                            
                                             return {
-                                                id: item.id ?? item[nameField ?? 'name'],
+                                                id: item.id ?? (item[nameField ?? 'name'] || item.user_id),
                                                 name: fullName || item[nameField ?? 'name'],
                                             };
                                         }
