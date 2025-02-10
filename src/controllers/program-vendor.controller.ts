@@ -1039,6 +1039,7 @@ export async function getComplianceDocument(
     reply: FastifyReply
 ) {
     const { program_id, user_id } = request.params;
+    console.log("request.query", request.query);
     const { document_id } = request.query;
     const traceId = generateCustomUUID();
 
