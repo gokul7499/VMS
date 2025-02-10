@@ -3000,11 +3000,11 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
             eventCode,
             recipientEmail: recipientEmails,
             payload: {
-                job_id: jobData[0].job_id,
+                job_id: jobData[0]?.job_id || '',
                 user_type: user?.userType,
                 candidate_first_name: candidateData[0]?.first_name,
                 candidate_last_name: candidateData[0]?.last_name,
-                submission_id: submissionData[0].unique_key,
+                submission_id: submissionData[0]?.unique_key || '',
             },
             token,
             userId: user?.sub ?? "",
