@@ -14,7 +14,7 @@ export interface TimesheetTypeConfigInterface {
   project?: {
     config: {
       source: string;
-      options: string;
+      options: string[];
     };
     is_enable: boolean;
   };
