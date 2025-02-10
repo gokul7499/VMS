@@ -192,7 +192,7 @@ export async function getFeesConfigurationById(
         where: {
           id: vendorIds
         },
-        attributes: ['id', 'vendor_name'],
+        attributes: ['id', 'vendor_name','disply_name'],
       });
 
       reply.status(200).send({
@@ -207,7 +207,7 @@ export async function getFeesConfigurationById(
           })),
           vendors: vendors.map((vendor: any) => ({
             id: vendor.id,
-            name: vendor.vendor_name.replace(/_/g, ' ').toLowerCase(),
+            name: vendor.display_name,
           })),
         },
         trace_id: traceId,
