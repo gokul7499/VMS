@@ -301,7 +301,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         if (module.toLowerCase() === 'job') {
             const event_slug1 = "create_job";
             const event_slug2 = "update_job";
-            const module_slug = "Job";
+            const module_slug = "job";
             let moduleId;
         
             if (module_slug) {
@@ -409,7 +409,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         else if (module.toLowerCase() === 'offer') {
             const event_slug1 = "create_offer";
             const event_slug2 = "counter_offer";
-            const module_slug = "Offers";
+            const module_slug = "offer";
 
             let moduleId;
             if (module_slug) {
@@ -521,7 +521,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             const event_slug1 = "create_assignment";
             const event_slug2 = "update_assignment";
             const event_slug3 = "assignment_budget_adjustment";
-            const module_slug = "Assignment";
+            const module_slug = "assignment";
             let moduleId;
             if (module_slug) {
                 moduleId = await Module.findOne({ where: { slug: module_slug } });
@@ -608,7 +608,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         } else if (module === 'submit_candidate_rehire_check') {
             const event_slug1 = "submit_candidate_rehire_check";
             const event_slug2 = "submit_candidate_shortlist";
-            const module_slug = "Submissions";
+            const module_slug = "submission";
 
             let moduleId;
             if (module_slug) {
@@ -690,7 +690,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             }
         } else if (module === 'submit_candidate_shortlist') {
             const event_slug = "submit_candidate_shortlist";
-            const module_slug = "Submissions";
+            const module_slug = "submission";
             let moduleId
             if (module_slug) {
                 moduleId = await Module.findOne({ where: { slug: module_slug } })
@@ -708,7 +708,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             });
         } else if (module === 'candidate') {
             const event_slug = "locum_name_clear";
-            const module_slug = "Candidates";
+            const module_slug = "candidates";
             let moduleId
             if (module_slug) {
                 moduleId = await Module.findOne({ where: { slug: module_slug } })
