@@ -7,7 +7,7 @@ import countriesModel from "../models/countries.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
-import { Op } from "sequelize";
+import { Op} from "sequelize";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import IndustriesModel from "../models/labour-category.model";
@@ -25,7 +25,15 @@ export async function createCandidate(
     const { candidate } = request.body;
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
-    const vendor_id = tenant.tenantId;
+    const vendor = await ProgramVendor.findOne({
+        where: {
+            program_id: program_id,
+            tenant_id: tenant.tenantId
+        },
+    });
+
+    const vendor_id = vendor?.id || null;
+    
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
