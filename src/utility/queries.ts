@@ -4,9 +4,6 @@ import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.int
 import { databaseConfig } from '../config/db';
 const auth_db = databaseConfig.config.database_auth;
 
-
-
-
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -250,6 +247,10 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -302,7 +303,7 @@ export const complianceDocumentGetByVendorId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.vendor_name
+        pv.display_name
     FROM
         program_vendors pv
     JOIN
@@ -356,6 +357,11 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.to_uploaded,
         vcd.no_of_days,
         vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
+        vcd.uploaded_document,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -453,7 +459,7 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
-
+    AND h.is_enabled = true
   UNION ALL
 
   SELECT
@@ -475,7 +481,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_time_format
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
-  WHERE h.is_deleted = false
+  WHERE h.is_deleted = false AND h.is_enabled = true
 )
 SELECT *
 FROM hierarchy_cte;
@@ -2087,7 +2093,7 @@ export const userQuery = (
   role_id?: string,
   is_activated?: string,
   user_type?: string,
-  status?:string,
+  status?: string,
   user_id?: string,
   hierarchy_id?: string[]
 ) => `
@@ -2241,6 +2247,7 @@ export const getPendingUserQuery = `
   SELECT
     invitation.*,
     invitation.user_email AS email,
+    invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
     invitation.updated_at AS created_on,
     invitation.created_at AS created_at,
     user_group_mapping.user_type AS user_type,
@@ -2582,7 +2589,7 @@ WHERE
     AND (:user_id IS NULL OR user.id = :user_id)
     AND user.is_enabled = true
     AND user.user_type = 'client'
-    AND user.status = 'active'
+    AND LOWER(user.status) = 'active'
     AND (:hierarchy_id IS NULL OR
         JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
     )
