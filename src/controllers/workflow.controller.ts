@@ -604,8 +604,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 attributes: ['id', 'template_name']
             }),
             User.findAll({
-                where: { id: { [Op.in]: Array.from(targetValues) } },
-                attributes: ['id','user_id' ,'first_name', 'last_name']
+                where: { user_id: { [Op.in]: Array.from(targetValues) } },
+                attributes: ['user_id' ,'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
                 where: { id: { [Op.in]: Array.from(targetValues) } },
@@ -658,7 +658,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             return acc;
         }, {});
         const userMap = userDetails.reduce((acc: any, item: any) => {
-            acc[item.id] = item;
+            acc[item.user_id] = item;
             return acc;
         }, {});
         const timesheetTypeMap = timesheetType.reduce((acc: any, item: any) => {
@@ -800,7 +800,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.id,
+                                        id: input_value.user_id,
                                         name: getName(input_value)
                                     }];
                                 } else {
@@ -874,7 +874,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                         
                                            
                                             return {
-                                                id: item.id ?? item[nameField ?? 'name'],
+                                                id: item.id ?? (item[nameField ?? 'name'] || item.user_id),
                                                 name: fullName || item[nameField ?? 'name'],
                                             };
                                         }

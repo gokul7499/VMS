@@ -410,13 +410,16 @@ export async function getAllRateConfigurations(
             offset,
         };
 
-        const rateConfigurationsWithDetails = await getAllRateConfigurationsQuery(replacements);
-        const result = await sequelize.query<{ total_count: any }>(`SELECT COUNT(*) AS total_count FROM rate_configurations AS rc WHERE rc.is_deleted = 0 AND rc.program_id = :program_id`,
+        const rateConfigurationsWithDetails: { base_rates?: { id: string; name: string; rate_types?: { id: string; name: string }[] }[] }[] = await getAllRateConfigurationsQuery(replacements);
+
+        const result = await sequelize.query<{ total_count: any }>(
+            `SELECT COUNT(*) AS total_count FROM rate_configurations AS rc WHERE rc.is_deleted = 0 AND rc.program_id = :program_id`,
             {
                 replacements: { program_id: replacements.program_id },
                 type: QueryTypes.SELECT,
             }
         );
+
         const totalCount = result[0]?.total_count ?? 0;
 
         if (!rateConfigurationsWithDetails.length) {
@@ -428,13 +431,24 @@ export async function getAllRateConfigurations(
             });
         }
 
+        const transformedData = rateConfigurationsWithDetails.map((config) => ({
+            ...config,
+            base_rates: config.base_rates?.flatMap((rate) => [
+                { id: rate.id, name: rate.name },
+                ...(rate.rate_types ?? []).map((type) => ({
+                    id: type.id,
+                    name: type.name,
+                })),
+            ]) ?? [],
+        }));
+
         return reply.status(200).send({
             status_code: 200,
             message: "Rate configurations fetched successfully.",
             trace_id: traceId,
             items_per_page: limit,
             total_records: totalCount,
-            rate_configurations: rateConfigurationsWithDetails,
+            rate_configurations: transformedData,
         });
     } catch (error: any) {
         return reply.status(500).send({

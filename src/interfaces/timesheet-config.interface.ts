@@ -5,7 +5,7 @@ export interface TimesheetTypeConfigInterface {
   program_id?: string;
   hierarchies?: string[];
   labor_category?: string[];
-  master_data_types?: string[];
+  master_data_types?: any[];
   is_all_labor_category_associate?: boolean;
   work_period?: string;
   work_start_day?: string;
@@ -14,7 +14,7 @@ export interface TimesheetTypeConfigInterface {
   project?: {
     config: {
       source: string;
-      options: string;
+      options: string[];
     };
     is_enable: boolean;
   };
@@ -88,7 +88,7 @@ export const createTimesheetTypeConfigSchema = {
     program_id: { type: 'string' },
     hierarchies: { type: 'array', items: { type: 'string' } },
     labor_category: { type: 'array', items: { type: 'string' } },
-    master_data_types: { type: 'array', items: { type: 'string' } },
+    master_data_types: { type: 'object', items: { type: 'array' } },
     is_all_labor_category_associate: { type: 'boolean' },
     work_period: { type: 'string' },
     work_start_day: { type: 'string' },
@@ -101,7 +101,7 @@ export const createTimesheetTypeConfigSchema = {
           type: 'object',
           properties: {
             source: { type: 'string' },
-            options: { type: 'string' }
+            options: { type: 'array' }
           }
         },
         is_enable: { type: 'boolean' }
