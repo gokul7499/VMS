@@ -674,10 +674,10 @@ export async function getUserWorkLocationAndTimeZone(
       replacements: { user_ids: userIdsArray, program_id },
       type: QueryTypes.SELECT,
     })) as [UserLocationAndTimeZone | undefined];
-
+  
     const workLocationValid = result?.work_location?.some(loc => loc.work_location_id !== null);
-    const timeZoneValid = result?.time_zone?.some(zone => zone.time_zone_id !== null);
-
+    const timeZoneValid = result?.time_zone?.some(zone => zone.time_zone_name.toLowerCase() !== null);
+  
     if (!result || !workLocationValid || !timeZoneValid) {
       return reply.status(200).send({
         status_code: 200,
@@ -691,7 +691,7 @@ export async function getUserWorkLocationAndTimeZone(
     }
 
     const uniqueWorkLocations = removeDuplicates(result.work_location || [], 'work_location_id');
-    const uniqueTimeZones = removeDuplicates(result.time_zone || [], 'time_zone_id');
+    const uniqueTimeZones = removeDuplicates(result.time_zone || [], 'time_zone_name');
 
     return reply.status(200).send({
       status_code: 200,
