@@ -219,29 +219,29 @@ interface WorkflowDetails {
     unique_key: string;
 }
 
-export async function getWorkflowDetails(
-    sequelize: Sequelize,
-    workflowId: string
-): Promise<WorkflowDetails | null> {
-    try {
-        console.log(`Executing query to fetch workflow details for workflow ID: ${workflowId}`);
+// export async function getWorkflowDetails(
+//     sequelize: Sequelize,
+//     workflowId: string
+// ): Promise<WorkflowDetails | null> {
+//     try {
+//         console.log(`Executing query to fetch workflow details for workflow ID: ${workflowId}`);
 
-        const result = await sequelize.query(
-            `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
-             FROM workflow w
-             LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
-             LEFT JOIN candidates c ON w.candidate_id = c.id
-             WHERE w.id = :workflow_id;`,
-            {
-                replacements: { workflow_id: workflowId },
-                type: QueryTypes.SELECT,
-            }
-        ) as WorkflowDetails[];
-        console.log("Query Result:", result);
+//         const result = await sequelize.query(
+//             `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
+//              FROM workflow w
+//              LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
+//              LEFT JOIN candidates c ON w.candidate_id = c.id
+//              WHERE w.id = :workflow_id;`,
+//             {
+//                 replacements: { workflow_id: workflowId },
+//                 type: QueryTypes.SELECT,
+//             }
+//         ) as WorkflowDetails[];
+//         console.log("Query Result:", result);
 
-        return result.length > 0 ? result[0] : null;
-    } catch (error) {
-        console.error("Error fetching workflow details:", error);
-        throw error;
-    }
-}
+//         return result.length > 0 ? result[0] : null;
+//     } catch (error) {
+//         console.error("Error fetching workflow details:", error);
+//         throw error;
+//     }
+// }
