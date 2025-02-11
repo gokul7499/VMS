@@ -62,7 +62,7 @@ async function userRoutes(fastify: FastifyInstance) {
         getUserAndHierarchieId);
 
     // fastify.get('/program/:program_id/pending-user', getPendingUser);
-    fastify.get('/program/:program_id/get-job-managers', getActiveUser);
+    fastify.get('/program/:program_id/get-job-manegers', getActiveUser);
     fastify.get('/get-user-contact', getUserContact);
     fastify.get('/get-user-program', getUserProgram);
 }
