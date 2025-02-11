@@ -26,10 +26,6 @@ TimesheetExpenseRuleGroup.init(
                 key: 'id',
             },
         },
-        timesheet_expense_rules: {
-            type: DataTypes.JSON,
-            allowNull: true
-        },
         rule_group_name: {
             type: DataTypes.STRING,
             allowNull: true,

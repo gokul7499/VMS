@@ -4,6 +4,7 @@ import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
 import { sequelize } from '../config/instance';
 const config_db = databaseConfig.config.database;
+const sourcing_db = databaseConfig.config.db_sourcing;
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -210,67 +211,37 @@ export async function FetchUsersBasedOnHierarchy(
 
 
 
-export async function getJobDataFromWorkflow(
-    sequelize: Sequelize,
-    workflowId: string
-): Promise<{ job_id: string }[]> {
-    try {
-        const jobData = await sequelize.query(
-            `SELECT  j.job_id
-               FROM workflow w
-                    JOIN jobs j ON w.job_id = j.id
-         WHERE w.id = :workflow_id;`,
-            {
-                replacements: { workflow_id: workflowId },
-                type: QueryTypes.SELECT,
-            }
-        ) as [{ job_id: string }];
-
-        return jobData;
-    } catch (error) {
-        console.error("Error fetching job data:", error);
-        throw error;
-    }
+interface WorkflowDetails {
+    job_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    unique_key: string;
 }
 
+// export async function getWorkflowDetails(
+//     sequelize: Sequelize,
+//     workflowId: string
+// ): Promise<WorkflowDetails | null> {
+//     try {
+//         console.log(`Executing query to fetch workflow details for workflow ID: ${workflowId}`);
 
-export async function getCandidateDetailsFromWorkflow(
-    sequelize: Sequelize,
-    workflowId: string
-): Promise<{ first_name: string; last_name: string; email: string }[]> {
-    try {
-        const candidateData = await sequelize.query(
-            `SELECT c.first_name, c.last_name, c.email
-                FROM workflow w
-                     JOIN candidates c ON w.candidate_id = c.id
-         WHERE w.id = :workflow_id;`,
-            {
-                replacements: { workflow_id: workflowId },
-                type: QueryTypes.SELECT,
-            }
-        ) as [{ first_name: string; last_name: string; email: string }];
+//         const result = await sequelize.query(
+//             `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
+//              FROM workflow w
+//              LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
+//              LEFT JOIN candidates c ON w.candidate_id = c.id
+//              WHERE w.id = :workflow_id;`,
+//             {
+//                 replacements: { workflow_id: workflowId },
+//                 type: QueryTypes.SELECT,
+//             }
+//         ) as WorkflowDetails[];
+//         console.log("Query Result:", result);
 
-        return candidateData;
-    } catch (error) {
-        console.error("Error fetching candidate data:", error);
-        throw error;
-    }
-}
-
-export async function getSubmissionDetailsFromWorkflow(
-    sequelize: any,
-    workflowID: string
-): Promise<{ unique_key: string }[]> {
-    const result = await sequelize.query(
-        `SELECT 
-            unique_key 
-        FROM workflow
-                   WHERE id = :workflow_id;`,
-        {
-            replacements: { workflow_id: workflowID },
-            type: QueryTypes.SELECT
-        }
-    ) as [{ unique_key: string }];
-
-    return result;
-}
+//         return result.length > 0 ? result[0] : null;
+//     } catch (error) {
+//         console.error("Error fetching workflow details:", error);
+//         throw error;
+//     }
+// }

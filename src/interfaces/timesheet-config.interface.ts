@@ -101,7 +101,7 @@ export const createTimesheetTypeConfigSchema = {
           type: 'object',
           properties: {
             source: { type: 'string' },
-            options: { type: 'string' }
+            options: { type: 'array' }
           }
         },
         is_enable: { type: 'boolean' }
