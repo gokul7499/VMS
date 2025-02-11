@@ -10,7 +10,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import { Op, QueryTypes } from "sequelize";
-import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorDetailsQuery, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
+import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
@@ -1166,48 +1166,3 @@ export async function advanceFilter(
         return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
-
-export const getProgramVendorDetails = async (
-    request: FastifyRequest<{ Params: { program_id: string }, Querystring: { tenant_id?: string } }>,
-    reply: FastifyReply
-) => {
-    const traceId = generateCustomUUID();
-    const { program_id } = request.params;
-    const { tenant_id } = request.query;
-    try {
-        if (!tenant_id) {
-            return reply.status(400).send({
-                trace_id: traceId,
-                message: "tenant_id is a required query parameter.",
-            });
-        }
-        const vendorData = await sequelize.query<ProgramVendor>(programVendorDetailsQuery, {
-            replacements: { tenant_id, program_id },
-            type: QueryTypes.SELECT
-        });
-
-        if (vendorData.length === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'Program vendor not found.',
-                trace_id: traceId,
-                program_vendor: null,
-            });
-        }
-
-        const programVendor: ProgramVendor = vendorData[0];
-
-        return reply.status(200).send({
-            status_code: 200,
-            message: 'Program vendor data fetched successfully.',
-            trace_id: traceId,
-            program_vendor: programVendor,
-        });
-    } catch (error) {
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'An error occurred while retrieving Program vendor data.',
-            trace_id: traceId,
-        });
-    }
-};

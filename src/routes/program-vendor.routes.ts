@@ -12,7 +12,6 @@ import {
     updateComplianceDocument,
     getComplianceDocument,
     advanceFilter,
-    getProgramVendorDetails
 } from "../controllers/program-vendor.controller";
 
 export default async function programVendorRoutes(fastify: FastifyInstance) {
@@ -28,7 +27,6 @@ export default async function programVendorRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/program-vendor/required-document', getVendorDocuments);
     fastify.put('/program/:program_id/program-vendor/user', updateComplianceDocument);
     fastify.get('/program/:program_id/program-vendor/user/:user_id', getComplianceDocument);
-    fastify.get('/program/:program_id/vendor-detail', getProgramVendorDetails);
 }
 
 
