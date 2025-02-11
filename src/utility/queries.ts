@@ -211,13 +211,7 @@ export const complianceDocumentGetByUserId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        (SELECT COUNT(*)
-         FROM program_vendors pv_count
-         JOIN vendor_document_groups vdg_count ON JSON_CONTAINS(pv_count.com_doc_group, JSON_QUOTE(vdg_count.id))
-         LEFT JOIN vendor_compliance_documents vcd_count ON JSON_CONTAINS(vdg_count.required_documents, JSON_QUOTE(vcd_count.id))
-         LEFT JOIN vendor_compliance_req_doc_mappings vcrm_count ON vcd_count.id = vcrm_count.required_document_id
-         WHERE pv_count.program_id = :program_id AND (pv_count.user_id IS NULL OR pv_count.user_id = :user_id)
-        ) AS total_count
+        pv.display_name
     FROM
         program_vendors pv
     JOIN
@@ -225,14 +219,20 @@ export const complianceDocumentGetByUserId = `
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  -- Joining with mapping table
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        -- Added name filter condition
         AND (:name IS NULL OR vcd.name LIKE :name)
-        AND (:is_enabled IS NULL OR vcd.is_enabled = :is_enabled)
-    LIMIT :page_size
-    OFFSET :offset;
+        -- Added is_enabled filter condition
+        AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+    GROUP BY
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
+        vcd.upload_document_days, vcd.attached_doc_url,
+        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
+        vcd.no_of_days, vcd.uploaded_document, pv.vendor_name, vcrm.next_expiry_on  -- Add next_expiry_on in GROUP BY
+    LIMIT :limit OFFSET :offset
 `;
 
 export const complianceDocumentGetByUserAndDocumentId = `
@@ -319,7 +319,7 @@ export const complianceDocumentGetByVendorId = `
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  -- Joining with mapping table
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)

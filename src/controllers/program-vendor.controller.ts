@@ -784,7 +784,7 @@ export const getVendorDocuments = async (
             });
         } else if (user_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId, {
-                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
+                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
                 type: QueryTypes.SELECT,
             });
         } else {
@@ -915,7 +915,6 @@ export async function updateComplianceDocument(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
-    const userId = user?.sub;
     try {
         const query = user_id && document_id
             ? complianceGroupQueryWithUserId
@@ -944,7 +943,18 @@ export async function updateComplianceDocument(
                 user_document: []
             });
         }
-
+        const vendorRecord: any = await sequelize.query(
+            `SELECT pv.id 
+             FROM user u
+             JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
+             WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
+            {
+                replacements: { user_id, program_id },
+                type: QueryTypes.SELECT,
+            }
+        );
+        
+        const vendorId = vendorRecord[0].id;
         const documentData = complianceDocuments[0];
 
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
@@ -993,10 +1003,10 @@ export async function updateComplianceDocument(
             complianceDocumentUpdate.uploaded_document.audited_on = new Date();
         }
 
-        await VendorComplianceDocumentModel.update(complianceDocumentUpdate, {
+        await VendorComplianceReqDocMappingModel.destroy({
             where: {
-                id: document_id, created_by: userId,
-                modified_by: userId,
+                vendor_id: vendorId,
+                program_id: program_id
             }
         });
         if (uploadedDocument) {
@@ -1004,7 +1014,7 @@ export async function updateComplianceDocument(
                 program_id: program_id,
                 required_document_id: document_id,
                 user_id: user_id,
-                vendor_id: vendor_id ?? null,
+                vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
                 uploaded_on: Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
@@ -1025,11 +1035,12 @@ export async function updateComplianceDocument(
             trace_id: traceId,
         });
 
-    } catch (error) {
+    } catch (error:any) {
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
+            error:error.message
         });
     }
 }
