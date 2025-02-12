@@ -298,14 +298,14 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
     try {
         const {module ,workflow_trigger_id } = request.query as { module: string,workflow_trigger_id?:string };
         let item;
-        if (module.toLowerCase() === 'job'.toLowerCase()) {
+        if (module.toLowerCase() === 'job') {
             const event_slug1 = "create_job";
             const event_slug2 = "update_job";
-            const module_name = "Job";
+            const module_slug = "job";
             let moduleId;
         
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } });
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } });
             }
         
             const module_ids = moduleId?.dataValues.id || "";
@@ -336,8 +336,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     ]
                 }
             });
-      
-             
+                  
             const createReviewMethod = item.find(
                 i => i.dataValues.event_id === eventId1 &&
                     i.dataValues.name?.trim().toLowerCase() == "review"
@@ -406,16 +405,15 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     message: "Required workflow methods not found"
                 });
             }
-        }
-        
-        else if (module.toLowerCase() === 'offer'.toLowerCase()) {
+        }       
+        else if (module.toLowerCase() === 'offer') {
             const event_slug1 = "create_offer";
             const event_slug2 = "counter_offer";
-            const module_name = "Offers";
+            const module_slug = "offer";
 
             let moduleId;
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } });
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } });
             }
             const module_ids = moduleId?.dataValues.id || "";
 
@@ -519,14 +517,14 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     message: "Required workflow methods not found"
                 });
             }
-        } else if (module.toLowerCase() === 'assignment'.toLowerCase()||module.toLowerCase() === 'assignments'.toLowerCase()) {
+        } else if (module.toLowerCase() === 'assignment'||module.toLowerCase() === 'assignments') {
             const event_slug1 = "create_assignment";
             const event_slug2 = "update_assignment";
             const event_slug3 = "assignment_budget_adjustment";
-            const module_name = "Assignment";
+            const module_slug = "assignment";
             let moduleId;
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } });
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } });
             }
             const module_ids = moduleId?.dataValues.id || "";
             let eventId1Value: any;
@@ -610,11 +608,11 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         } else if (module === 'submit_candidate_rehire_check') {
             const event_slug1 = "submit_candidate_rehire_check";
             const event_slug2 = "submit_candidate_shortlist";
-            const module_name = "Submissions";
+            const module_slug = "submission";
 
             let moduleId;
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } });
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } });
             }
             const module_ids = moduleId?.dataValues.id || "";
             let eventId1Value: any;
@@ -692,10 +690,10 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             }
         } else if (module === 'submit_candidate_shortlist') {
             const event_slug = "submit_candidate_shortlist";
-            const module_name = "Submissions";
+            const module_slug = "submission";
             let moduleId
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } })
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } })
             }
             const module_ids = moduleId?.dataValues.id || "";
             let eventId
@@ -710,10 +708,10 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             });
         } else if (module === 'candidate') {
             const event_slug = "locum_name_clear";
-            const module_name = "Candidates";
+            const module_slug = "candidates";
             let moduleId
-            if (module_name) {
-                moduleId = await Module.findOne({ where: { name: module_name } })
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } })
             }
             const module_ids = moduleId?.dataValues.id || "";
             let eventId
