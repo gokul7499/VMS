@@ -239,10 +239,7 @@ User.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
-      },
-      beforeSave: async (instance) => {
-        beforeSave(instance);
-      },
+      }
     }
   }
 );
