@@ -1,14 +1,21 @@
 import fastify from "fastify";
-import pino from "pino";
 import dotenv from "dotenv";
 import cors from "@fastify/cors";
 import { checkDatabaseConnection, initializeSequelize } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
+import keycloak, { KeycloakOptions } from 'fastify-keycloak-adapter';
+import { databaseConfig } from './config/db';
+import { handleRouteSecurity } from "./utility/securityUtils";
 
 dotenv.config();
 
 const app = fastify({
-  logger: pino({ level: "info" }),
+  logger: {
+    level: "info",
+    transport: {
+      target: "pino-pretty"
+    }
+  }
 });
 
 app.register(cors, {
@@ -21,7 +28,6 @@ app.register(formBodyPlugin);
 
 const start = async () => {
   try {
-    // Initialize Sequelize and check DB connection
     await initializeSequelize();
     const dbStatus = await checkDatabaseConnection();
     console.log('DB status:', dbStatus);
@@ -30,30 +36,55 @@ const start = async () => {
       throw new Error(dbStatus.message);
     }
 
-    // Register health-check route after DB connection is confirmed
+    const config = databaseConfig.config;
+    const opts: KeycloakOptions = {
+      appOrigin: config.app_origin,
+      keycloakSubdomain: config.keycloak_subdomain,
+      clientId: config.client_id,
+      clientSecret: config.client_secret,
+      bypassFn: (req: any) => handleRouteSecurity(req),
+      unauthorizedHandler: (request: any, reply: any) => {
+        const authHeader = request.headers?.authorization;
+        if (!(authHeader?.startsWith("Bearer "))) {
+          reply.status(401).send({
+            statusCode: 401,
+            error: "Unauthorized",
+            message: "Token not found",
+          });
+        } else {
+          reply.status(401).send({
+            statusCode: 401,
+            error: "Unauthorized",
+            message: "Access denied. You are not authorized to perform this action.",
+          });
+        }
+      },
+    };
+    try {
+      app.register(keycloak, opts);
+      console.log("Keycloak plugin registered successfully");
+    } catch (error) {
+      console.error("Failed to register Keycloak plugin:", error);
+    }
+
     app.get("/config/health-check", async (request, reply) => {
-      const startTime = Date.now();
       try {
-        app.log.info(`Route Trace ID: ${(request as any).traceId || "N/A"}`);
         await initializeSequelize();
         const connectionStatus = await checkDatabaseConnection();
-        console.log('connectionStatus', connectionStatus)
-        app.log.info(`Database connection status: ${connectionStatus.connected ? "connected" : "disconnected"}`);
-        const latency = Date.now() - startTime;
         return reply.status(connectionStatus.connected ? 200 : 503).send({
           "message": "Health Check Page",
           "name": "Config API",
           "version": '1.0.0',
           "status": 200,
           "dependencies": [
-              {
-                  "type": "database-mysql",
-                  "status": connectionStatus.connected,
-                  "required": true
-              },
-    
+            {
+              "type": "database-mysql",
+              "status": connectionStatus.connected,
+              "required": true
+            },
+
           ],
-      timestamp:new Date().toUTCString()
+          timestamp: new Date().toUTCString()
         });
       } catch (error) {
         return reply.status(500).send({
@@ -64,7 +95,6 @@ const start = async () => {
       }
     });
 
-    // Register other routes here
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
 
