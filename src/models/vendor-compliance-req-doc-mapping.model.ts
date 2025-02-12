@@ -24,6 +24,10 @@ VendorComplianceReqDocMappingModel.init({
         type: DataTypes.UUID,
         allowNull: true,
     },
+    vendor_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
     file_name: {
         type: DataTypes.STRING,
         allowNull: true,
