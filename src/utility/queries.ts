@@ -219,7 +219,7 @@ export const complianceDocumentGetByUserId = `
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  -- Joining with mapping table
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -273,7 +273,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -389,7 +389,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
     LEFT JOIN
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
