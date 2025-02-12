@@ -363,7 +363,6 @@ JSON_OBJECT(
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', custom_fields.id,
-                'name', custom_fields.name,
                 'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
             )
         )
