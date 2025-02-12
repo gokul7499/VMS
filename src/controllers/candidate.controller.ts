@@ -25,7 +25,15 @@ export async function createCandidate(
     const { candidate } = request.body;
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
-    const vendor_id = tenant.tenantId;
+    const vendor = await ProgramVendor.findOne({
+        where: {
+            program_id: program_id,
+            tenant_id: tenant.tenantId
+        },
+    });
+
+    const vendor_id = vendor?.id || null;
+
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -231,7 +239,7 @@ export async function getAllCandidate(
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id','vendor_id',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id',
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
@@ -246,7 +254,7 @@ export async function getAllCandidate(
                 tenant_id: { [Op.in]: vendorIds },
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
-            attributes: ['id', 'vendor_name', 'display_name','tenant_id']
+            attributes: ['id', 'vendor_name', 'display_name', 'tenant_id']
         });
         const formattedCandidates = candidates.map((cand: any) => {
             const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
@@ -267,7 +275,7 @@ export async function getAllCandidate(
                     id: vendor.id,
                     vendor_name: vendor.vendor_name,
                     display_name: vendor.display_name,
-                    tenant_id:vendor.tenant_id
+                    tenant_id: vendor.tenant_id
                 } : null,
                 modified_on: cand.modified_on,
                 state_national_id: cand.state_national_id,
@@ -704,7 +712,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
-            attributes: ['id', 'vendor_name', 'display_name','tenant_id']
+            attributes: ['id', 'vendor_name', 'display_name', 'tenant_id']
         });
 
         const formattedCandidates = candidates.map((cand: any) => {

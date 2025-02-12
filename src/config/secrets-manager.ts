@@ -21,9 +21,10 @@ export const getSecretsManager = async () => {
             notification_url: process.env.NOTIFICATION_URL,
             database_auth: process.env.DATABASE_AUTH,
             sourcing_url: process.env.SOURCING_URL,
-            db_sourcing: process.env.DB_SOURCING,
             auth_url: process.env.AUTH_URL,
-            teai_url: process.env.TEAI_URL
+            teai_url: process.env.TEAI_URL,
+            db_sourcing: process.env.DB_SOURCING,
+
 
         };
     }
@@ -48,9 +49,10 @@ export const getSecretsManager = async () => {
                 notification_url: secret.NOTIFICATION_URL,
                 database_auth: secret.DATABASE_AUTH,
                 sourcing_url: secret.SOURCING_URL,
-                db_sourcing: secret.DB_SOURCING,
                 auth_url: secret.AUTH_URL,
-                teai_url: secret.TEAI_URL
+                teai_url: secret.TEAI_URL,
+                db_sourcing: secret.DATABASE_SOURCING,
+
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");

@@ -15,9 +15,9 @@ const initializeSequelize = async () => {
       dialect: 'mysql',
       logging: false,
       pool: {
-        max: 100,
+        max: 300,
         min: 0,
-        acquire: 80000,
+        acquire: 150000,
         idle: 40000,
       },
       retry: {
