@@ -31,6 +31,10 @@ export const databaseConfig = {
       auth_url: config.auth_url,
       teai_url: config.teai_url,
       db_sourcing: config.db_sourcing,
+      app_origin: config.app_origin,
+      keycloak_subdomain: config.keycloak_subdomain,
+      client_id: config.client_id,
+      client_secret: config.client_secret,
       reconnect: {
         max: 10,
         delay: 1000,
@@ -38,4 +42,3 @@ export const databaseConfig = {
     };
   }
 };
-
