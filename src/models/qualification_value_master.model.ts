@@ -1,10 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-import { Programs } from "./programs.model";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
-import qualificationTypeModel from "./qualification-type-model";
-import QualificationTypeMaster from "./qualification_type_master.model";
 
 class QualificationValueMaster extends Model {
   
@@ -36,14 +33,6 @@ QualificationValueMaster.init(
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
-        },
-        qualification_type_master_id: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            references: {
-                model: QualificationTypeMaster,
-                key: "id",
-            },
         },
         is_deleted: {
             type: DataTypes.BOOLEAN,
@@ -80,10 +69,5 @@ QualificationValueMaster.init(
 );
 
 sequelize.sync();
-
-QualificationValueMaster.belongsTo(QualificationTypeMaster, {
-    foreignKey: "qualification_type_master_id",
-    as: "qualification_type_master",
-});
 
 export default QualificationValueMaster;
