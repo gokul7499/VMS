@@ -192,7 +192,7 @@ export async function getFeesConfigurationById(
         where: {
           id: vendorIds
         },
-        attributes: ['id', 'vendor_name','disply_name'],
+        attributes: ['id', 'vendor_name','display_name'],
       });
 
       reply.status(200).send({
