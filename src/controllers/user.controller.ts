@@ -335,11 +335,11 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
       const customField= user.custom_fields.map((field: {
-        custom_field_id: any; value: any;
+        id: any; value: any;
       }) => ({
         program_id: user.program_id,
         user_id:user.id,
-        custom_field_id: field.custom_field_id,
+        custom_field_id: field.id,
         value: field.value,
       }));
       await UserCustomFieldModel.bulkCreate(customField, { transaction });
@@ -440,9 +440,9 @@ export async function updateUser(
     if (Array.isArray(userBody.custom_fields) && userBody.custom_fields.length > 0) {
       await UserCustomFieldModel.destroy({ where: { user_id: user.user_id } });
 
-      const customField = userBody.custom_fields.map((field: { custom_field_id: string; value: any }) => ({
+      const customField = userBody.custom_fields.map((field: { id: string; value: any }) => ({
         program_id,
-        custom_field_id: field.custom_field_id,
+        custom_field_id: field.id,
         value: field.value,
         user_id: user.user_id,
       }));
