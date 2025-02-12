@@ -6,6 +6,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
+import QualificationValueMaster from '../models/qualification_value_master.model';
 
 export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
@@ -296,6 +297,52 @@ export async function deleteQualificationTypes(request: FastifyRequest, reply: F
       message: 'Internal server error: Failed to delete qualification type',
       trace_id: traceId,
       error: error as Error,
+    });
+  }
+}
+
+
+export async function getQualificationValueMaster(
+  request: FastifyRequest<{ Querystring: { qualification_type?: string; page?: string; limit?: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const query = request.query as any;
+
+    const page = parseInt(query.page ?? "1");
+    const limit = parseInt(query.limit ?? "10");
+    const offset = (page - 1) * limit;
+    
+    query.page && delete query.page;
+    query.limit && delete query.limit;
+
+    const searchConditions: any = { is_deleted: false };
+
+    if (query.qualification_type) {
+      searchConditions.slug = query.qualification_type;
+    }
+
+    const { rows: qualifications, count } = await QualificationValueMaster.findAndCountAll({
+      where: searchConditions,
+      order: [["created_on", "DESC"]],
+      limit: limit,
+      offset: offset,
+    });
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: qualifications.length ? "Qualifications Found" : "No Qualifications Found",
+      items_per_page: limit,
+      total_records: count,
+      current_page: page,
+      total_pages: Math.ceil(count / limit),
+      qualifications,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
 }
