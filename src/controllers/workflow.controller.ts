@@ -740,8 +740,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 where: { user_id: input_values },
                                 attributes: ["id","user_id", "first_name", "last_name"]
                             });
-                           
-                          
+                                                    
                             
                         } else if (recipientType?.name === "Custom Field Supplied User") {
                             input_value = await CustomField.findOne({
@@ -770,7 +769,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 input_value = {
                                     id: role.id,
                                     name: role.display_name,
+                                   
                                 };
+                               
+                                
                             }
                         } else if (recipientType?.name === "Vendor Users") {
                             input_value = {
@@ -801,7 +803,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.user_id,
+                                        id: input_value.user_id||input_value.id,
                                         name: getName(input_value)
                                     }];
                                 } else {
