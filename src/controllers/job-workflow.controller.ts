@@ -568,11 +568,11 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     });
 
     return users.map((user: any) => ({
-        user_id: user.user_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        avatar: user.avatar?.url,
-        status: user.status,
+        user_id: user.user_id||null,
+        first_name: user.first_name||null,
+        last_name: user.last_name||null,
+        avatar: user.avatar?.url||null,
+        status: user.status||null,
     }));
 }
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
@@ -1023,7 +1023,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
 
 
 
-        return users; // Return the list of users that match the criteria.
+        return users ||null; // Return the list of users that match the criteria.
     } catch (error) {
         console.error("Error fetching users:", error);
         throw new Error("Error fetching users based on hierarchy and program_id.");
@@ -1070,7 +1070,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
             return { status: 'Error', message: 'Manager not found' };
         }
 
-        return { status: 'Success', data: userResult[0] };
+        return { status: 'Success', data: userResult[0]||null };
     } catch (error) {
         console.error('Error fetching manager details:', error);
         return { status: 'Error', message: 'An error occurred while fetching manager details', error };
