@@ -7,14 +7,42 @@ import {
   getPicklistAndPicklistItem,
   getAllPickListByProgramId
 } from '../controllers/picklist.controller';
+import { createPicklistSchema, paramsSchema, querySchema } from '../interfaces/picklist.interface';
 
 async function picklistRoutes(fastify: FastifyInstance) {
-  fastify.get('/program/:program_id/picklist', getPicklistById);
-  fastify.post('/program/:program_id/picklist', createPicklist);
-  fastify.put('/program/:program_id/picklist/:id', updatePicklistAndItem);
-  fastify.delete('/program/:program_id/picklist/:id', deletePicklist);
-  fastify.get('/program/:program_id/picklist/:picklist_id', getPicklistAndPicklistItem);
-  fastify.get('/get-all/pickList', getAllPickListByProgramId)
-}
+  fastify.get('/program/:program_id/picklist', {
+    schema: {
+      querystring: querySchema,
+    }
+  }, getPicklistById);
+  fastify.post('/program/:program_id/picklist', {
+    schema: {
+      body: createPicklistSchema,
+    }
+  }, createPicklist);
+  fastify.put('/program/:program_id/picklist/:id', {
+    schema: {
+      body: createPicklistSchema,
+      params: paramsSchema,
+    }
+  }, updatePicklistAndItem);
+  fastify.delete('/program/:program_id/picklist/:id', {
+    schema: {
+      params: paramsSchema
+    }
+  }, deletePicklist);
+  fastify.get('/program/:program_id/picklist/:picklist_id', {
+    schema: {
+      params: paramsSchema,
+      querystring: querySchema,
+    }
+  }, getPicklistAndPicklistItem);
+  fastify.get('/get-all/pickList', {
+    schema: {
+      querystring: querySchema,
+    }
+  }, getAllPickListByProgramId)
+}		
+
 
 export default picklistRoutes;

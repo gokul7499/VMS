@@ -28,3 +28,34 @@ export interface ReasonCodeResponse {
     modified_on: number;
     trace_id: string;
 }
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+        program_id: { type: 'string' },
+        id: { type: 'string' }
+    },
+    required: ['program_id']
+};
+
+export const querySchema = {
+    type: 'object',
+    properties: {
+        search: { type: 'string' },
+        limit: { type: 'integer' },
+        offset: { type: 'integer' }
+    }
+};
+
+export const createReasoncodeSchema ={
+    type: 'object',
+    required: ['reasons_count', 'reason_codes'],
+    properties: {
+        reasons_count: { type: 'number' },
+        is_deleted: { type: 'boolean' },
+        event_id: { type: 'string' },
+        module_id: { type: 'string' },
+        reason_codes: {
+            type: 'array',
+        }
+    }
+}
