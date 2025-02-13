@@ -339,7 +339,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }) => ({
         program_id: user.program_id,
         user_id:user.id,
-        custom_field_id: field.id,
+        customfield_id: field.id,
         value: field.value,
       }));
       await UserCustomFieldModel.bulkCreate(customField, { transaction });

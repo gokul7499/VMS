@@ -65,11 +65,11 @@ export const createHierarchy = async (record: Model, transaction: any) => {
 
 export const createQualificationTypes = async (record: Model,transaction: any) => {
     const defaultQualificationTypes = [
+        { name: 'Certifications', code: 'certifications', type: 'Predefined' },
+        { name: 'Speciality', code: 'speciality', type: 'Predefined' },
         { name: 'Skill', code: 'skill', type: 'Predefined' },
         { name: 'Education', code: 'education', type: 'Predefined' },
-        { name: 'Certificates', code: 'certificate', type: 'Predefined' },
         { name: 'Vaccination', code: 'vaccination', type: 'Predefined' },
-        { name: 'Speciality', code: 'speciality', type: 'Predefined' },
         { name: 'Document', code: 'document', type: 'Predefined' },
     ];
 
