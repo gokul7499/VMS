@@ -18,7 +18,7 @@ QualificationValueMaster.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-        slug: {
+        qualification_type_slug: {
             type: DataTypes.STRING,
             allowNull: true,
         },
