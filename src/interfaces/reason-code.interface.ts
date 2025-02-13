@@ -3,18 +3,18 @@ export interface ReasonCode {
     id: string;
     name: string;
     source: string;
-    entity_ref:string;
-    category:'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
+    entity_ref: string;
+    category: 'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
     created_on: number;
     modified_on: number;
-    modified_by:JSON;
+    modified_by: JSON;
     created_by: JSON;
     is_enabled: boolean;
     module_id: string;
     event_id: string;
     is_editable: boolean;
     reason_code_limit: number;
-    reason:JSON;
+    reason: JSON;
 }
 
 export interface ReasonCodeResponse {
@@ -42,11 +42,14 @@ export const querySchema = {
     properties: {
         search: { type: 'string' },
         limit: { type: 'integer' },
-        offset: { type: 'integer' }
+        offset: { type: 'integer' },
+        module_name:{type:"string"},
+        reasons_count:{type:'integer'},
+        event_name:{type:'string'}
     }
 };
 
-export const createReasoncodeSchema ={
+export const createReasoncodeSchema = {
     type: 'object',
     required: ['reasons_count', 'reason_codes'],
     properties: {
@@ -56,6 +59,15 @@ export const createReasoncodeSchema ={
         module_id: { type: 'string' },
         reason_codes: {
             type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    category: { type: 'string' },
+                    name: { type: 'string' },
+                    is_enabled: { type: 'boolean' },
+                    is_deleted: { type: ['boolean', 'null'] }
+                },
+            }
         }
     }
 }

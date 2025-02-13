@@ -99,17 +99,17 @@ export const createPicklistSchema = {
     multiselect: { type: 'boolean' },
     picklist_items: {
       type: 'array',
-      // items: {
-      //   type: 'object',
-      //   properties: {
-      //     value: { type: 'string' },
-      //     label: { type: 'string' },
-      //     defined_by: { type: 'string' },
-      //     is_enabled: { type: 'boolean' },
-      //     program_id: { type: 'string' }
-      //   },
+      items: {
+        type: 'object',
+        properties: {
+          value: { type: 'string' },
+          label: { type: 'string' },
+          defined_by: { type: 'string' },
+          is_enabled: { type: 'boolean' },
+          program_id: { type: 'string' }
+        },
       }
     }
-  }
+  }}
 
 export default picklist;
