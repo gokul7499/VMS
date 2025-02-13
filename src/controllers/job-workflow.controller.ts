@@ -1889,7 +1889,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 (
     SELECT JSON_OBJECT(
         'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-        'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
+        'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
         'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
          'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
@@ -1897,7 +1897,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
            'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-        'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
+         'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
     )
     FROM JSON_TABLE(
         JSON_EXTRACT(
@@ -2081,7 +2081,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     try {
         for (const row of rows) {
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
-            console.log(recipient_details);
+           
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                 SELECT id ,name
@@ -2139,6 +2139,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
                             });
                         }
+
 
                         input_value = userResult[0] ? {
                             id: userResult[0]?.user_id,
@@ -3197,7 +3198,7 @@ JSON_UNQUOTE(
 (
 SELECT JSON_OBJECT(
     'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-    'modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')), NULL),
+   'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
@@ -3206,7 +3207,7 @@ SELECT JSON_OBJECT(
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
        
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-    'replaced_modified_on', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')), NULL)
+     'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
 )
 FROM JSON_TABLE(
     JSON_EXTRACT(
@@ -3272,6 +3273,7 @@ l.placement_order ASC;`;
             });
         }
         const workflows: { [key: string]: Workflow } = {};  // Store workflows by job_id
+
 
         for (const row of rows) {
             const {
