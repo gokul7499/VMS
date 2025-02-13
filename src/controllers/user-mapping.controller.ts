@@ -354,16 +354,18 @@ JSON_OBJECT(
         FROM hierarchies h
         WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
     ),
-    'work_location_ids', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
-        FROM work_locations wl
-        WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
-    ),
+   'work_location_ids', (
+    SELECT COALESCE(
+        JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name)), 
+        JSON_ARRAY()
+    )
+    FROM work_locations wl
+    WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+),
     'custom_fields', COALESCE((
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', custom_fields.id,
-                'name', custom_fields.name,
                 'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
             )
         )

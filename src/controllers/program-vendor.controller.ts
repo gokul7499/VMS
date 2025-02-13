@@ -10,13 +10,12 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import { Op, QueryTypes } from "sequelize";
-import { complianceDocumentCountByVendorId, complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
+import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
-import { log } from "console";
 interface VendorDetails {
     expiry_on: any;
     url: any;
@@ -52,7 +51,7 @@ interface VendorDetails {
     total_count: number;
     id: any;
     status: any;
-    tenant_id :any;
+    tenant_id: any;
     compliance_documents: any;
 }
 
@@ -261,8 +260,8 @@ export async function saveProgramVendor(
 
     const { tenant, user, 'user-group-mapping': userGroupMapping } = request.body as any;
     console.log('tenant', request.body);
-    const {id,...userWithoutId}=user
-    console.log("weruyitur",user)
+    const { id, ...userWithoutId } = user
+    console.log("weruyitur", user)
     const traceId = generateCustomUUID();
     const { program_id } = request.params;
     if (!program_id) {
@@ -308,9 +307,9 @@ export async function saveProgramVendor(
             status: 'Pending Setup',
             vendor_logo: tenant.logo,
             display_name: tenant.display_name,
-            vendor_code : tenant.tenant_code,
+            vendor_code: tenant.tenant_code,
             addresses: user.addresses,
-            tenant_id:tenant.id,
+            tenant_id: tenant.id,
             background_logo_color: tenant.background_logo_color,
         }
 
@@ -323,18 +322,18 @@ export async function saveProgramVendor(
                 addresses: user.addresses
             }
         ]
-       let tenantData;
-        const tenants=await Tenant.findOne({where:{id:tenant.id}});
-        if(!tenants){
-             tenantData = await Tenant.create({ ...tenant }, { transaction });
+        let tenantData;
+        const tenants = await Tenant.findOne({ where: { id: tenant.id } });
+        if (!tenants) {
+            tenantData = await Tenant.create({ ...tenant }, { transaction });
         }
-        else{
-            tenantData=tenants
+        else {
+            tenantData = tenants
         }
-        const programVendors = await ProgramVendor.create({ ...vendor,  program_id}, { transaction });
+        const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
-        
+
         await ProgramVendor.update(
             { user_id: userData.user_id, contact },
             { where: { id: programVendors.id, program_id }, transaction }
@@ -739,7 +738,7 @@ export async function updateProgramVendorByUserId(
 };
 
 export const getVendorDocuments = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { vendor_id?: string; document_id?: string, page?: string, limit?: string, name?: string, is_enabled?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { vendor_id?: string; document_id?: string; page?: string; limit?: string; name?: string; is_enabled?: string } }>,
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
@@ -752,7 +751,7 @@ export const getVendorDocuments = async (
     }
 
     const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
+    const user = await decodeToken(token);
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
@@ -766,6 +765,19 @@ export const getVendorDocuments = async (
     try {
         let documents: VendorDetails[] = [];
 
+        const getVendorRecord = async () => {
+            return sequelize.query<{ id: any }>(
+                `SELECT pv.id 
+                FROM user u
+                JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
+                WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
+                {
+                    replacements: { user_id, program_id },
+                    type: QueryTypes.SELECT,
+                }
+            );
+        };
+
         if (vendor_id && document_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
                 replacements: { program_id, vendor_id, document_id },
@@ -776,15 +788,18 @@ export const getVendorDocuments = async (
                 replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
                 type: QueryTypes.SELECT,
             });
-        }
-        else if (user_id && document_id) {
+        } else if (user_id && document_id) {
+            const vendorRecord = await getVendorRecord();
+            const vendorId = vendorRecord[0].id;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserAndDocumentId, {
-                replacements: { program_id, user_id, document_id },
+                replacements: { program_id, user_id, document_id, vendor_id: vendorId },
                 type: QueryTypes.SELECT,
             });
         } else if (user_id) {
+            const vendorRecord = await getVendorRecord();
+            const vendorId = vendorRecord[0].id;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId, {
-                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, page_size: pageSize, offset },
+                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset, vendor_id: vendorId },
                 type: QueryTypes.SELECT,
             });
         } else {
@@ -794,11 +809,13 @@ export const getVendorDocuments = async (
                 trace_id: traceId,
             });
         }
+
         const uniqueDocuments = documents.filter((doc, index, self) =>
             index === self.findIndex((d) => d.id === doc.id)
         );
-        let totalCount = uniqueDocuments.length;
-        if (!uniqueDocuments.length) {
+        const totalCount = uniqueDocuments.length;
+
+        if (!totalCount) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
@@ -836,7 +853,7 @@ export const getVendorDocuments = async (
                     next_expiry_on: doc.next_expiry_on,
                     status: doc.status,
                     file_name: doc.file_name,
-                    url:doc.url,
+                    url: doc.url,
                 },
                 work_location: doc.work_location,
                 vendor_name: doc.display_name,
@@ -915,7 +932,6 @@ export async function updateComplianceDocument(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
-    const userId = user?.sub;
     try {
         const query = user_id && document_id
             ? complianceGroupQueryWithUserId
@@ -944,7 +960,18 @@ export async function updateComplianceDocument(
                 user_document: []
             });
         }
+        const vendorRecord: any = await sequelize.query(
+            `SELECT pv.id 
+             FROM user u
+             JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
+             WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
+            {
+                replacements: { user_id, program_id },
+                type: QueryTypes.SELECT,
+            }
+        );
 
+        const vendorId = vendorRecord[0].id;
         const documentData = complianceDocuments[0];
 
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
@@ -993,10 +1020,10 @@ export async function updateComplianceDocument(
             complianceDocumentUpdate.uploaded_document.audited_on = new Date();
         }
 
-        await VendorComplianceDocumentModel.update(complianceDocumentUpdate, {
+        await VendorComplianceReqDocMappingModel.destroy({
             where: {
-                id: document_id, created_by: userId,
-                modified_by: userId,
+                vendor_id: vendorId,
+                program_id: program_id
             }
         });
         if (uploadedDocument) {
@@ -1004,7 +1031,7 @@ export async function updateComplianceDocument(
                 program_id: program_id,
                 required_document_id: document_id,
                 user_id: user_id,
-                vendor_id: vendor_id ?? null,
+                vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
                 uploaded_on: Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
@@ -1025,11 +1052,12 @@ export async function updateComplianceDocument(
             trace_id: traceId,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
+            error: error.message
         });
     }
 }
