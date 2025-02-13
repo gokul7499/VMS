@@ -15,6 +15,7 @@ import picklistItemModel from '../models/picklist-item.model';
 import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
 import { QueryTypes } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
+import ShiftType from '../models/shift-type.model';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -643,7 +644,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         currency_id?: string;
         unit_of_measure?: string;
         labor_category_id?: string;
-        ot_exempt?: boolean;
+        ot_exempt?: string;
     };
 }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -768,7 +769,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     model: rateType,
                     as: 'rate_type',
                     where: { is_base_rate: true },
-                    attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                    attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
                 }],
             });
 
@@ -780,13 +781,20 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     })
                     : null;
 
+                const shiftType = baseRate.rate_type?.shift_type
+                    ? await ShiftType.findOne({
+                        where: { id: baseRate.rate_type.shift_type },
+                        attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
+                    })
+                    : null;
+
                 const rates = await RateConfigurationRateTypes.findAll({
                     where: { base_rate_type_id: baseRate.id },
                     include: [{
                         model: rateType,
                         as: 'rate_type',
                         where: { is_base_rate: false },
-                        attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate'],
+                        attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
                     }],
                 });
 
@@ -795,6 +803,13 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         ? await picklistItemModel.findOne({
                             where: { id: rate.rate_type?.rate_type_category },
                             attributes: ['id', 'value', 'label'],
+                        })
+                        : null;
+
+                    const shiftType = baseRate.rate_type?.shift_type
+                        ? await ShiftType.findOne({
+                            where: { id: baseRate.rate_type.shift_type },
+                            attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
                         })
                         : null;
 
@@ -808,36 +823,51 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         attributes: ['differential_on', 'differential_type', 'differential_value'],
                     });
 
-                    const bill_rate = billRates.map((billRate) => ({
-                        ...billRate.get(),
-                        min_rate: (billRate.differential_type === "Factor Differential"
-                            ? matchingDecisionRecord.min_rate.amount * billRate.differential_value
-                            : matchingDecisionRecord.min_rate.amount + billRate.differential_value
-                        ).toString(),
+                    const bill_rate = billRates.map((billRate) => {
+                        const differential_value = ot_exempt == 'true'
+                            ? 1
+                            : billRate.differential_value;
 
-                        max_rate: (billRate.differential_type === "Factor Differential"
-                            ? matchingDecisionRecord.max_rate.amount * billRate.differential_value
-                            : matchingDecisionRecord.max_rate.amount + billRate.differential_value
-                        ).toString(),
-                    }));
+                        return {
+                            ...billRate.get(),
+                            differential_value,
+                            min_rate: (billRate.differential_type === "Factor Differential"
+                                ? matchingDecisionRecord.min_rate.amount * differential_value
+                                : matchingDecisionRecord.min_rate.amount + differential_value
+                            ).toString(),
 
-                    const pay_rate = payRates.map((payRate) => ({
-                        ...payRate.get(),
-                        min_rate: (payRate.differential_type === "Factor Differential"
-                            ? matchingDecisionRecord.min_rate.amount * payRate.differential_value
-                            : matchingDecisionRecord.min_rate.amount + payRate.differential_value
-                        ).toString(),
+                            max_rate: (billRate.differential_type === "Factor Differential"
+                                ? matchingDecisionRecord.max_rate.amount * differential_value
+                                : matchingDecisionRecord.max_rate.amount + differential_value
+                            ).toString(),
+                        };
+                    });
 
-                        max_rate: (payRate.differential_type === "Factor Differential"
-                            ? matchingDecisionRecord.max_rate.amount * payRate.differential_value
-                            : matchingDecisionRecord.max_rate.amount + payRate.differential_value
-                        ).toString(),
-                    }));
+                    const pay_rate = payRates.map((payRate) => {
+                        const differential_value = ot_exempt
+                            ? 1
+                            : payRate.differential_value;
+
+                        return {
+                            ...payRate.get(),
+                            differential_value,
+                            min_rate: (payRate.differential_type === "Factor Differential"
+                                ? matchingDecisionRecord.min_rate.amount * differential_value
+                                : matchingDecisionRecord.min_rate.amount + differential_value
+                            ).toString(),
+
+                            max_rate: (payRate.differential_type === "Factor Differential"
+                                ? matchingDecisionRecord.max_rate.amount * differential_value
+                                : matchingDecisionRecord.max_rate.amount + differential_value
+                            ).toString(),
+                        };
+                    });
 
                     return {
                         rate_type: {
                             ...rate.rate_type?.get(),
                             rate_type_category: rateTypeCategory,
+                            shift_type: shiftType,
                         },
                         bill_rate: bill_rate,
                         pay_rate: pay_rate
@@ -870,6 +900,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     base_rate: {
                         rate_type: {
                             ...baseRate.rate_type?.get(),
+                            shift_type: shiftType,
                             rate_type_category: rateTypeCategory,
                             min_rate: matchingDecisionRecord.min_rate,
                             max_rate: matchingDecisionRecord.max_rate,
