@@ -1,6 +1,7 @@
 import { FastifyRequest } from 'fastify';
 export const unProtectedRoutes: { url: string; method: string; queryParams?: Record<string, string> }[] = [
     { url: '/config/health-check', method: 'GET' },
+    { url: '/config/v1/api/countries/get-all', method: 'GET' }
 ];
 export const handleRouteSecurity = (request: FastifyRequest): boolean => {
     const query = (request.query as Record<string, string>) || {};

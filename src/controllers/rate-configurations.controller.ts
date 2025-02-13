@@ -879,10 +879,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     rate.bill_rate.some((billRate) => billRate.differential_on === rateTypeCategory?.value)
                 );
 
-                const filteredRate = rateDetails.filter((rate) =>
-                    rate.rate_type?.is_base_rate === false &&
-                    rate.rate_type?.rate_type_category?.value === 'shift'
-                ).map((rate) => ({
+                const filteredRate = rateDetails.filter((rate) => rate.rate_type?.is_base_rate === false && rate.rate_type?.rate_type_category?.value === 'shift').map((rate) => ({
                     ...rate,
                     rates: filteredRateType
                         .filter((filteredRate) =>
@@ -905,7 +902,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             min_rate: matchingDecisionRecord.min_rate,
                             max_rate: matchingDecisionRecord.max_rate,
                         },
-                        rates: rateDetails,
+                        rates: filteredRateType,
                     },
                     rate: filteredRate
                 };
