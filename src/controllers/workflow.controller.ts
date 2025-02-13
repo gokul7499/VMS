@@ -766,9 +766,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             });
                             if (response.data && response.data.response && response.data.response.roles) {
                                 const role = response.data.response.roles;
+                               
                                 input_value = {
                                     id: role.id,
-                                    name: role.role_name,
+                                    name: role.display_name,
                                 };
                             }
                         } else if (recipientType?.name === "Vendor Users") {
