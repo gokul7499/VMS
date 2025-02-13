@@ -528,25 +528,51 @@ export async function updateJobTemplate(
     }
 
     if (jobMasterData?.foundational_data) {
+      const incomingIds = jobMasterData.foundational_data
+        .map((data: { foundation_data_type_id: any; }) => data.foundation_data_type_id)
+        .filter(Boolean);
+    
       for (const data of jobMasterData.foundational_data) {
+        const { foundation_data_type_id, ...foundationData } = data;
+    
         const existingRecord = await jobMasterDataModel.findOne({
           where: {
             program_id,
             job_temp_id: id,
-            foundation_data_type_id: data.foundation_data_type_id,
+            foundation_data_type_id,
           },
         });
+    
         if (existingRecord) {
-          await existingRecord.update(data);
+          await existingRecord.update(foundationData);
         } else {
           await jobMasterDataModel.create({
-            ...data,
+            foundation_data_type_id,
+            ...foundationData,
             program_id,
             job_temp_id: id,
           });
         }
       }
-    }
+          const existingRecords = await jobMasterDataModel.findAll({
+        where: {
+          program_id,
+          job_temp_id: id,
+        },
+      });
+      const existingIds = existingRecords.map((record) => record.foundation_data_type_id);
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+    
+      if (idsToDelete.length > 0) {
+        await jobMasterDataModel.destroy({
+          where: {
+            program_id,
+            job_temp_id: id,
+            foundation_data_type_id: idsToDelete,
+          },
+        });
+      }
+    }  
 
     if (jobDistSchedule?.distribute_schedule_data) {
       for (const schedule of jobDistSchedule.distribute_schedule_data) {
@@ -570,23 +596,49 @@ export async function updateJobTemplate(
     }
 
     if (jobQualification?.qualification_types) {
+      const incomingIds = jobQualification.qualification_types
+        .map((qualification_type: { qualification_type_id: any; }) => qualification_type.qualification_type_id)
+        .filter(Boolean);
+    
       for (const qualification_type of jobQualification.qualification_types) {
+        const { qualification_type_id, ...qualificationData } = qualification_type;
+    
         const existingRecord = await jobTemplateQualificationModel.findOne({
           where: {
             program_id,
             job_temp_id: id,
-            qualification_type_id: qualification_type.qualification_type_id,
+            qualification_type_id,
           },
         });
+    
         if (existingRecord) {
-          await existingRecord.update(qualification_type);
+          await existingRecord.update(qualificationData);
         } else {
           await jobTemplateQualificationModel.create({
-            ...qualification_type,
+            qualification_type_id,
+            ...qualificationData,
             program_id,
             job_temp_id: id,
           });
         }
+      }
+    
+      const existingQualifications = await jobTemplateQualificationModel.findAll({
+        where: {
+          program_id,
+          job_temp_id: id,
+        },
+      });
+      const existingIds = existingQualifications.map((q) => q.qualification_type_id);
+      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
+      if (idsToDelete.length > 0) {
+        await jobTemplateQualificationModel.destroy({
+          where: {
+            program_id,
+            job_temp_id: id,
+            qualification_type_id: idsToDelete,
+          },
+        });
       }
     }
 

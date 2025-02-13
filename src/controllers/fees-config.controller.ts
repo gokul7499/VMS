@@ -166,6 +166,7 @@ export async function getFeesConfigurationById(
       const hierarchyLevels = fees.hierarchy_levels || [];
       const laborCategoryIds = fees.labor_category || [];
       const vendorIds = fees.vendors || [];
+
       const getHierarchies = async (hierarchyIds: string[]) => {
         const hierarchies = await Hierarchy.findAll({
           where: {
@@ -191,7 +192,7 @@ export async function getFeesConfigurationById(
         where: {
           id: vendorIds
         },
-        attributes: ['id', 'vendor_name'],
+        attributes: ['id', 'vendor_name','display_name'],
       });
 
       reply.status(200).send({
@@ -206,7 +207,7 @@ export async function getFeesConfigurationById(
           })),
           vendors: vendors.map((vendor: any) => ({
             id: vendor.id,
-            name: vendor.vendor_name,
+            name: vendor.display_name,
           })),
         },
         trace_id: traceId,
@@ -226,6 +227,7 @@ export async function getFeesConfigurationById(
     });
   }
 }
+
 
 export async function updateFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
