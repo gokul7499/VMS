@@ -60,12 +60,12 @@ const start = async () => {
         }
       },
     };
-    // try {
-    //   app.register(keycloak, opts);
-    //   console.log("Keycloak plugin registered successfully");
-    // } catch (error) {
-    //   console.error("Failed to register Keycloak plugin:", error);
-    // }
+    try {
+      app.register(keycloak, opts);
+      console.log("Keycloak plugin registered successfully");
+    } catch (error) {
+      console.error("Failed to register Keycloak plugin:", error);
+    }
 
     app.get("/config/health-check", async (request, reply) => {
       try {
