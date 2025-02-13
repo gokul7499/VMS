@@ -285,9 +285,6 @@ JobTemplateModel.init(
         tableName: "job_templates",
         timestamps: false,
         hooks: {
-            beforeSave: (instance) => {
-                beforeSave(instance);
-            },
             beforeValidate: async (instance) => {
                 convertEmptyStringsToNull(instance);
                 if (!instance.job_id && instance.program_id) {
