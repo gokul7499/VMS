@@ -34,8 +34,8 @@ export const createEventSchema ={
     name: { type: 'string' },
     slug: { type: 'string' },
     module_id: { type: 'string' },
-    is_deleted: { type: 'string' },
-    is_enabled: { type: 'string' },
+    is_deleted: { type: 'boolean' },
+    is_enabled: { type: 'boolean' },
     created_on: { type: 'string' },
     type: { type: 'string' }
 }}
