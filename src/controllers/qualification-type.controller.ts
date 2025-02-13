@@ -331,11 +331,11 @@ export async function getQualificationValueMaster(
 
     return reply.status(200).send({
       status_code: 200,
-      message: qualifications.length ? "Qualifications Found" : "No Qualifications Found",
+      message: qualifications ? "Qualifications Found successfully" : "No Qualifications Found",
       items_per_page: limit,
       total_records: count,
-      current_page: page,
-      total_pages: Math.ceil(count / limit),
+      page,
+      limit,
       qualifications,
     });
   } catch (error: any) {
