@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { getHolidayCalendar, getHolidayCalendarById, createHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar } from "../controllers/holiday-calendar.controller"
-import { Permissions,Actions } from "../constants/permissions";
+// import { Permissions,Actions } from "../constants/permissions";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 
 async function holidayCalendarRoutes(fastify: FastifyInstance) {
@@ -28,10 +28,10 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
       }, updateHolidayCalendar);
     fastify.delete('/program/:program_id/holiday-calendar/:id',{
         preHandler: validatePermissions,
-        config: {
-          permissions: [Permissions.HOLIDAY_CALANDER],
-          action: Actions.DELETE,
-        },
+        // config: {
+        //   permissions: [Permissions.HOLIDAY_CALANDER],
+        //   action: Actions.DELETE,
+        // },
       }, deleteHolidayCalendar);
 }
 
