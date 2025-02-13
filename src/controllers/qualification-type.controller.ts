@@ -31,6 +31,9 @@ export async function getQualificationTypes(
       if (query.name) {
         searchConditions.name = { [Op.like]: `%${query.name}%` };
       }
+      if (query.type) {
+        searchConditions.type = { [Op.like]: `%${query.type}%` };
+      }
       if (query.is_enabled !== undefined) {
         searchConditions.is_enabled = query.is_enabled === "true" ? true : query.is_enabled === "false" ? false : null;
       }
