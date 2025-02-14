@@ -53,10 +53,7 @@ RateConfigurationRateDifferentials.init(
         hooks: {
             beforeValidate: (instance) => {
                 convertEmptyStringsToNull(instance);
-            },
-            beforeSave: (instance) => {
-                beforeSave(instance);
-            },
+            }
         },
     }
 );
