@@ -442,7 +442,7 @@ export async function updateUser(
 
       const customField = userBody.custom_fields.map((field: { id: string; value: any }) => ({
         program_id,
-        custom_field_id: field.id,
+        customfield_id: field.id,
         value: field.value,
         user_id: user.user_id,
       }));
@@ -926,8 +926,22 @@ export async function getUserProgram(
   }>,
   reply: FastifyReply
 ) {
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Token not found" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
+  }
+  const userType = user?.userType; 
   const { user_id, search } = request.query;
   const traceId = generateCustomUUID();
+
   if (!user_id || user_id.trim() === "") {
     return reply.code(400).send({
       status_code: 400,
@@ -937,28 +951,21 @@ export async function getUserProgram(
   }
 
   try {
-    const replacements: any = { user_id };
+    const isSuperAdmin = userType === "super_user"; 
+    console.log("isSuperAdmin",isSuperAdmin)
+    const replacements: any = isSuperAdmin ? {} : { user_id };
     if (search) {
       replacements.search = `%${search}%`;
     }
-    const data = await getUserPrograms(replacements);
 
-    if (data && data.length > 0) {
-      const allNull = Object.values(data[0]).every(value => value === null);
-      return reply.code(200).send({
-        status_code: 200,
-        message: allNull ? "No matching records found." : "Get user program data",
-        data: allNull ? null : data,
-        trace_id: traceId,
-      });
-    } else {
-      return reply.code(200).send({
-        status_code: 200,
-        message: "No matching records found.",
-        data: [],
-        trace_id: traceId,
-      });
-    }
+    const data = await getUserPrograms(replacements, isSuperAdmin);
+
+    return reply.code(200).send({
+      status_code: 200,
+      message: data.length > 0 ? "Get user program data" : "No matching records found.",
+      data: data.length > 0 ? data : [],
+      trace_id: traceId,
+    });
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
@@ -968,3 +975,5 @@ export async function getUserProgram(
     });
   }
 }
+
+

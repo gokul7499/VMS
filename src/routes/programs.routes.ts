@@ -17,10 +17,10 @@ async function programsRoutes(fastify: FastifyInstance) {
   fastify.put("/program/:id", updateProgramById);
   fastify.delete("/program/:id", {
     preHandler: validatePermissions,
-    config: {
-      permissions: [Permissions.PROGRAM],
-      action: Actions.CREATE,
-    },
+    // config: {
+    //   permissions: [Permissions.PROGRAM],
+    //   action: Actions.CREATE,
+    // },
   }, deleteProgramById);
   fastify.get("/program/advanced-filters", advancedFilter);
 }

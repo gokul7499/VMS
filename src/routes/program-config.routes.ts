@@ -41,13 +41,13 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
     // },
     updateConfiguration);
   fastify.delete("/program/:program_id/program-config/:id",
-    {
-      preHandler: validatePermissions,
-      config: {
-        permissions: [Permissions.PROGRAM_CONFIGURATION],
-        action: Actions.DELETE,
-      },
-    },
+    // {
+    //   preHandler: validatePermissions,
+    //   config: {
+    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
+    //     action: Actions.DELETE,
+    //   },
+   
     deleteConfiguration);
   fastify.get("/program/:program_id/program-config",
     // {
