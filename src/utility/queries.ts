@@ -2633,7 +2633,7 @@ WHERE
     (:tenant_id IS NULL OR user.tenant_id = :tenant_id)
 `;
 
-export async function getUserPrograms(replacements: any) {
+export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) {
   const userProgramsQuery = `
     SELECT DISTINCT
       programs.id,
@@ -2651,12 +2651,12 @@ export async function getUserPrograms(replacements: any) {
       tenant.name AS client_name,
       tenant.logo AS logo
     FROM
-      user_mappings
-    LEFT JOIN programs ON user_mappings.program_id = programs.id
-    LEFT JOIN tenant tenant ON programs.client_id = tenant.id  -- Join with Tenant table
+      programs
+    LEFT JOIN tenant ON programs.client_id = tenant.id
+    ${!isSuperAdmin ? "LEFT JOIN user_mappings ON user_mappings.program_id = programs.id" : ""}
     WHERE
-      user_mappings.user_id = :user_id
-      ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ''}
+      ${!isSuperAdmin ? "user_mappings.user_id = :user_id" : "1=1"}
+      ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ""}
   `;
 
   try {
@@ -2669,6 +2669,8 @@ export async function getUserPrograms(replacements: any) {
     throw new Error(error.message);
   }
 }
+
+
 
 export const sameFeesConfig = `
     SELECT fees.id

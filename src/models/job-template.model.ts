@@ -290,8 +290,8 @@ JobTemplateModel.init(
                 if (!instance.job_id && instance.program_id) {
                     const program = await Programs.findByPk(instance.program_id);
 
-                    if (program?.name) {
-                        const programPrefix = program.name.substring(0, 3).toUpperCase();
+                    if (program?.display_name) {
+                        const programPrefix = program.display_name.substring(0, 3).toUpperCase();
                         const count = await JobTemplateModel.count({
                             where: { program_id: instance.program_id },
                         });
