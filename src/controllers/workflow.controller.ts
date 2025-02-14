@@ -220,7 +220,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
 export const updateWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const workflowData = request.body as WorkflowData;
-    const { name } = request.body as WorkflowData;
+    const { name } = workflowData;
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -251,31 +251,36 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             });
         }
 
-        const data = await WorkFlow.findOne({
+        const existingWorkflow = await WorkFlow.findOne({
             where: { id, is_deleted: false, program_id }
         });
-        if (data) {
-            await data.update(workflowData);
-            reply.status(201).send({
-                status_code: 201,
+
+        if (existingWorkflow) {
+            await existingWorkflow.update({
+                ...workflowData,
+                modified_on: new Date(), 
+                modified_by: userId
+            }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['modified_on', 'modified_by']) });
+
+            return reply.status(200).send({
+                status_code: 200,
                 modified_by: userId,
                 workflow_id: id,
                 message: 'Workflow updated successfully.',
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ status_code: 200, message: 'Workflow data not found.', trace_id: traceId });
+            return reply.status(200).send({ status_code: 200, message: 'Workflow data not found.', trace_id: traceId });
         }
     } catch (error) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            message: ' An error occurred while updating the workflow',
+            message: 'An error occurred while updating the workflow',
             error: (error as any).message,
             trace_id: traceId
         });
     }
-}
-
+};
 export const updateReorder = async (
     request: FastifyRequest<{
         Params: { program_id: string; module: string; event_id: string; flow_type: string };
@@ -605,7 +610,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             }),
             User.findAll({
                 where: { user_id: { [Op.in]: Array.from(targetValues) } },
-                attributes: ['user_id' ,'first_name', 'last_name']
+                attributes: ['user_id', 'first_name', 'last_name']
             }),
             TimesheetTypeConfig.findAll({
                 where: { id: { [Op.in]: Array.from(targetValues) } },
@@ -694,8 +699,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         }, {});
 
                         const input_values = Object.values(meta_data)[0];
-                       
-                        
+
+
                         const input_val = Object.values(meta_data)[1];
                         let input_value: CustomField | User | FoundationalDataTypes | null | any = null;
 
@@ -703,7 +708,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         if (behaviour == undefined || behaviour == null) {
                             if (["Top of Financial Authority Chain", "Financial Authority Chain", "Managerial Chain"].includes(recipientType?.name)) {
                                 behaviour = "CHAIN";
-                            } else if (["Manager of", "Master Data Owner", "Specific User", "Multiple users",  "Users in Program Role", "Custom Field Supplied User"].includes(recipientType?.name)) {
+                            } else if (["Manager of", "Master Data Owner", "Specific User", "Multiple users", "Users in Program Role", "Custom Field Supplied User"].includes(recipientType?.name)) {
                                 behaviour = "ANY";
                             }
                         }
@@ -738,10 +743,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                         } else if (recipientType?.name === "Specific User" || recipientType?.name === "Multiple users" || recipientType?.name === "Job Manager") {
                             input_value = await User.findOne({
                                 where: { user_id: input_values },
-                                attributes: ["id","user_id", "first_name", "last_name"]
+                                attributes: ["id", "user_id", "first_name", "last_name"]
                             });
-                                                    
-                            
+
+
                         } else if (recipientType?.name === "Custom Field Supplied User") {
                             input_value = await CustomField.findOne({
                                 where: { id: input_values },
@@ -765,14 +770,14 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             });
                             if (response.data && response.data.response && response.data.response.roles) {
                                 const role = response.data.response.roles;
-                               
+
                                 input_value = {
                                     id: role.id,
                                     name: role.display_name,
-                                   
+
                                 };
-                               
-                                
+
+
                             }
                         } else if (recipientType?.name === "Vendor Users") {
                             input_value = {
@@ -803,7 +808,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                     }));
                                 } else if (input_value) {
                                     populatedMetaData[fieldConfigId].input_value = [{
-                                        id: input_value.user_id||input_value.id,
+                                        id: input_value.user_id || input_value.id,
                                         name: getName(input_value)
                                     }];
                                 } else {
@@ -869,13 +874,13 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
 
                             condition.target_field_obj = values.flatMap((value: string | number) => {
                                 for (const { map, nameField, username } of targetMaps) {
-                                  
+
                                     const item = map[value];
                                     if (item) {
                                         if (username && Array.isArray(username)) {
                                             const fullName = username.map(field => item[field]).filter(Boolean).join(' ');
-                                        
-                                           
+
+
                                             return {
                                                 id: item.id ?? (item[nameField ?? 'name'] || item.user_id),
                                                 name: fullName || item[nameField ?? 'name'],
