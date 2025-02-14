@@ -305,7 +305,7 @@ export async function deleteQualificationTypes(request: FastifyRequest, reply: F
 
 
 export async function getQualificationValueMaster(
-  request: FastifyRequest<{ Querystring: { qualification_type_slug?: string;name?:string;type?:string; page?: string; limit?: string } }>,
+  request: FastifyRequest<{ Querystring: { qualification_type?: string;name?:string;type?:string; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) {
   try {
@@ -320,8 +320,8 @@ export async function getQualificationValueMaster(
 
     const searchConditions: any = { is_deleted: false };
 
-    if (query.qualification_type_slug) {
-      searchConditions.qualification_type_slug= query.qualification_type_slug;
+    if (query.qualification_type) {
+      searchConditions.qualification_type_slug= query.qualification_type;
     }
     if (query.name) {
       searchConditions.name= query.name;
@@ -333,6 +333,7 @@ export async function getQualificationValueMaster(
 
     const { rows: qualifications, count } = await QualificationValueMaster.findAndCountAll({
       where: searchConditions,
+      attributes: { exclude: ["created_on", "modified_on", "created_by", "modified_by"] },
       order: [["created_on", "DESC"]],
       limit: limit,
       offset: offset,
