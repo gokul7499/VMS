@@ -15,7 +15,6 @@ import {
   uploadFile,
 } from "../controllers/job-template.controller";
 import fastifyMultipart from "@fastify/multipart";
-
 async function jobTemplate(fastify: FastifyInstance) {
   fastify.register(fastifyMultipart);
   fastify.get("/program/:program_id/job-template", getAllJobTemplates);
