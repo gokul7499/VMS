@@ -926,18 +926,16 @@ export async function updateComplianceDocument(
     }
 
     const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    const user_id = user?.sub;
+    const user = await decodeToken(token);
+    const user_id = user?.sub;;
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
     }
+
     try {
-        const query = user_id && document_id
-            ? complianceGroupQueryWithUserId
-            : vendor_id && document_id
-                ? complianceGroupQueryWithVendorId
-                : null;
+        const query = vendor_id && document_id ? complianceGroupQueryWithVendorId : (user_id && document_id ? complianceGroupQueryWithUserId : null);
+        const vendorId = vendor_id ?? (user_id ? await getVendorId(user_id, program_id) : null);
 
         if (!query) {
             return reply.status(400).send({
@@ -947,12 +945,12 @@ export async function updateComplianceDocument(
             });
         }
 
-        const complianceDocuments: VendorDetails[] = await sequelize.query<VendorDetails>(query, {
+        const complianceDocuments = await sequelize.query<VendorDetails>(query, {
             replacements: { program_id, user_id, vendor_id, document_id },
             type: QueryTypes.SELECT,
         });
 
-        if (!complianceDocuments || complianceDocuments.length === 0) {
+        if (!complianceDocuments.length) {
             return reply.status(404).send({
                 status_code: 404,
                 message: "Program vendor or document not found.",
@@ -960,60 +958,15 @@ export async function updateComplianceDocument(
                 user_document: []
             });
         }
-        const vendorRecord: any = await sequelize.query(
-            `SELECT pv.id 
-             FROM user u
-             JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
-             WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
-            {
-                replacements: { user_id, program_id },
-                type: QueryTypes.SELECT,
-            }
-        );
 
-        const vendorId = vendorRecord[0].id;
         const documentData = complianceDocuments[0];
-
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
+        const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
+        if (!expiryDate) return;
 
-        const expiryDateFromPayload = complianceDocumentUpdate.uploaded_document?.expiry_on;
-        if (!expiryDateFromPayload) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Expiry date must be provided in the uploaded_document.",
-                trace_id: traceId,
-            });
-        }
+        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
 
-        const expiryDate = new Date(expiryDateFromPayload);
-        if (isNaN(expiryDate.getTime())) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Invalid expiry date format.",
-                trace_id: traceId,
-            });
-        }
-
-        const upload_document_days = documentData.upload_document_days || 0;
-        const status = documentData.to_uploaded;
-
-        let nextUpdateDueDate = new Date(expiryDate);
-
-        if (status === "Before Expiration") {
-            nextUpdateDueDate.setDate(nextUpdateDueDate.getDate() - upload_document_days);
-        } else if (status === 'After Expiration') {
-            nextUpdateDueDate.setDate(nextUpdateDueDate.getDate() + upload_document_days);
-        }
-
-        const userData = await UserModel.findAll({
-            where: { program_id, id: user.sub }
-        });
-
-        let audited_by = user.preferred_username;
-
-        if (userData.length > 0 && userData[0].user_type === 'vendor' || 'Vendor') {
-            audited_by = "--";
-        }
+        const audited_by = await getAuditedBy(user, program_id);
 
         if (complianceDocumentUpdate) {
             complianceDocumentUpdate.uploaded_document.audited_by = audited_by;
@@ -1021,14 +974,12 @@ export async function updateComplianceDocument(
         }
 
         await VendorComplianceReqDocMappingModel.destroy({
-            where: {
-                vendor_id: vendorId,
-                program_id: program_id
-            }
+            where: { vendor_id: vendorId, program_id, required_document_id: document_id }
         });
+
         if (uploadedDocument) {
             await VendorComplianceReqDocMappingModel.create({
-                program_id: program_id,
+                program_id,
                 required_document_id: document_id,
                 user_id: user_id,
                 vendor_id: vendorId ?? null,
@@ -1051,7 +1002,6 @@ export async function updateComplianceDocument(
             message: "Compliance document updated successfully.",
             trace_id: traceId,
         });
-
     } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
@@ -1060,6 +1010,63 @@ export async function updateComplianceDocument(
             error: error.message
         });
     }
+}
+
+async function getVendorId(user_id: string, program_id: string) {
+    const vendorRecord: any = await sequelize.query(
+        `SELECT pv.id 
+         FROM user u
+         JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
+         WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
+        {
+            replacements: { user_id, program_id },
+            type: QueryTypes.SELECT,
+        }
+    );
+    return vendorRecord[0].id;
+}
+
+function validateAndParseDate(expiryDateFromPayload: string | undefined, traceId: string, reply: FastifyReply) {
+    if (!expiryDateFromPayload) {
+        reply.status(400).send({
+            status_code: 400,
+            message: "Expiry date must be provided in the uploaded_document.",
+            trace_id: traceId,
+        });
+        return null;
+    }
+
+    const expiryDate = new Date(expiryDateFromPayload);
+    if (isNaN(expiryDate.getTime())) {
+        reply.status(400).send({
+            status_code: 400,
+            message: "Invalid expiry date format.",
+            trace_id: traceId,
+        });
+        return null;
+    }
+    return expiryDate;
+}
+
+function calculateNextUpdateDueDate(expiryDate: Date, upload_document_days: number, status: string) {
+    let nextUpdateDueDate = new Date(expiryDate);
+    if (status === "Before Expiration") {
+        nextUpdateDueDate.setDate(nextUpdateDueDate.getDate() - upload_document_days);
+    } else if (status === 'After Expiration') {
+        nextUpdateDueDate.setDate(nextUpdateDueDate.getDate() + upload_document_days);
+    }
+    return nextUpdateDueDate;
+}
+
+async function getAuditedBy(user: any, program_id: string) {
+    const userData = await UserModel.findAll({
+        where: { program_id, id: user.sub }
+    });
+
+    if (userData.length > 0 && (userData[0]?.user_type?.toLowerCase() === 'vendor')) {
+        return "--";
+    }
+    return user.preferred_username;
 }
 
 export async function getComplianceDocument(
