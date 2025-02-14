@@ -798,7 +798,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     }],
                 });
 
-                const rateDetails = await Promise.all(rates.map(async (rate: { rate_type: { rate_type_category: any; get: () => any; }; id: any; }) => {
+                const rateDetails = await Promise.all(rates.map(async (rate: { rate_type: { rate_type_category: any; shift_type: any; get: () => any; }; id: any; }) => {
                     const rateTypeCategory = rate.rate_type?.rate_type_category
                         ? await picklistItemModel.findOne({
                             where: { id: rate.rate_type?.rate_type_category },
@@ -806,9 +806,9 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         })
                         : null;
 
-                    const shiftType = baseRate.rate_type?.shift_type
+                    const shiftType = rate.rate_type?.shift_type
                         ? await ShiftType.findOne({
-                            where: { id: baseRate.rate_type.shift_type },
+                            where: { id: rate.rate_type.shift_type },
                             attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
                         })
                         : null;
@@ -883,10 +883,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     ...rate,
                     rates: filteredRateType
                         .filter((filteredRate) =>
-                            filteredRate.rate_type?.rate_type_category?.value !== 'shift' &&
-                            filteredRate.bill_rate.some((billRate) =>
-                                billRate.differential_on === rateTypeCategory?.value
-                            )
+                            filteredRate.bill_rate[0].differential_on === 'shift' && filteredRate.pay_rate[0].differential_on === 'shift'
                         )
                         .map((filteredRate) => ({
                             ...filteredRate
