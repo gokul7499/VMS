@@ -3,7 +3,6 @@ import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
 const auth_db = databaseConfig.config.database_auth;
-
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -2656,7 +2655,7 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
     ${!isSuperAdmin ? "LEFT JOIN user_mappings ON user_mappings.program_id = programs.id" : ""}
     WHERE
       ${!isSuperAdmin ? "user_mappings.user_id = :user_id" : "1=1"}
-      ${replacements.search ? `AND (programs.name LIKE :search OR tenant.name LIKE :search)` : ""}
+       ${replacements.search ? `AND (programs.display_name LIKE :search OR tenant.name LIKE :search)` : ""}
   `;
 
   try {
