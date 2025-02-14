@@ -270,7 +270,7 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 trace_id: traceId,
             });
         } else {
-            return reply.status(200).send({ status_code: 200, message: 'Workflow data not found.', trace_id: traceId });
+            reply.status(200).send({ status_code: 200, message: 'Workflow data not found.', trace_id: traceId });
         }
     } catch (error) {
         return reply.status(500).send({
