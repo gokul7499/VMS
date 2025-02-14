@@ -251,12 +251,12 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             });
         }
 
-        const existingWorkflow = await WorkFlow.findOne({
+        const data = await WorkFlow.findOne({
             where: { id, is_deleted: false, program_id }
         });
 
-        if (existingWorkflow) {
-            await existingWorkflow.update({
+        if (data) {
+            await data.update({
                 ...workflowData,
                 modified_on: new Date(), 
                 modified_by: userId
