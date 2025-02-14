@@ -10,6 +10,7 @@ class Programs extends Model {
   unique_id: any;
   name: any;
   id: any;
+  display_name:any;
 }
 
 Programs.init(

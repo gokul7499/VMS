@@ -189,7 +189,7 @@ User.init(
     is_allow_unlimited_authority: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
-      defaultValue:false
+      defaultValue: false
     },
     min_limit: {
       type: DataTypes.DOUBLE,
@@ -208,16 +208,15 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
-    is_deleted: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: false
-    },
     created_on: {
       type: DataTypes.DOUBLE,
+      allowNull: true,
+      defaultValue: Date.now()
     },
     modified_on: {
       type: DataTypes.DOUBLE,
+      allowNull: true,
+      defaultValue: Date.now()
     },
     created_by: {
       type: DataTypes.UUID,
