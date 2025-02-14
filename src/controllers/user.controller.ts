@@ -674,11 +674,8 @@ export async function getUserWorkLocationAndTimeZone(
       replacements: { user_ids: userIdsArray, program_id },
       type: QueryTypes.SELECT,
     })) as [UserLocationAndTimeZone | undefined];
-  
-    const workLocationValid = result?.work_location?.some(loc => loc.work_location_id !== null);
-    const timeZoneValid = result?.time_zone?.some(zone => zone.time_zone_name.toLowerCase() !== null);
-  
-    if (!result || !workLocationValid || !timeZoneValid) {
+     
+    if (!result) {
       return reply.status(200).send({
         status_code: 200,
         message: "No data found for the provided user IDs and program ID.",
