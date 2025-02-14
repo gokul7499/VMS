@@ -289,7 +289,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const candidateId = await CandidateCodeGenerate(user.tenant_id,program_id);
+      const candidateId = await CandidateCodeGenerate(user.tenant_id, program_id);
 
       await candidateModel.create({ ...userWithoutId, user_id: user.id, candidate_id: candidateId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
     } else if (userType === "vendor") {
@@ -334,11 +334,11 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     if (Array.isArray(user.custom_fields) && user.custom_fields.length > 0) {
-      const customField= user.custom_fields.map((field: {
+      const customField = user.custom_fields.map((field: {
         id: any; value: any;
       }) => ({
         program_id: user.program_id,
-        user_id:user.id,
+        user_id: user.id,
         customfield_id: field.id,
         value: field.value,
       }));
@@ -540,7 +540,7 @@ export async function getAllUserIDAndUserId(
       user_type?: string;
       first_name?: string;
       is_activated?: boolean;
-      status?:string;
+      status?: string;
       role_id?: string;
       tenant_id?: string;
       email?: string;
@@ -578,7 +578,7 @@ export async function getAllUserIDAndUserId(
     );
 
     const users = await sequelize.query(
-      userQuery(first_name,email, tenant_id, role_id, isActivatedStr,user_type,status, user_id, hierarchyIdsArray),
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray),
       {
         replacements: {
           program_id,
@@ -722,12 +722,12 @@ function removeDuplicates<T>(array: T[], key: keyof T): T[] {
 
 export async function getPendingUser(
   request: FastifyRequest<{
-    Params: { program_id: string,user_mapping_id:string };
+    Params: { program_id: string, user_mapping_id: string };
     // Querystring: { user_mapping_id: string };
   }>,
   reply: FastifyReply
 ) {
-  const { program_id,user_mapping_id } = request.params;
+  const { program_id, user_mapping_id } = request.params;
   // const { user_mapping_id } = request.query;
   const traceId = generateCustomUUID()
 
@@ -829,48 +829,81 @@ export async function getUserAndHierarchieId(
 export async function getActiveUser(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { user_id?: string; hierarchy_id?: string; is_enabled?: boolean; user_type?: string };
+    Querystring: {
+      user_id?: string;
+      hierarchy_id?: string;
+      is_enabled?: boolean;
+      user_type?: string;
+    };
   }>,
   reply: FastifyReply
 ) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: "Unauthorized - Token not found",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({
+      status_code: 401,
+      message: "Unauthorized - Invalid token",
+    });
+  }
+
   const { program_id } = request.params;
   const { user_id, hierarchy_id, is_enabled, user_type } = request.query;
-  const arrayOfHierarchy = hierarchy_id?.split(',').map(id => id.trim());
   const traceId = generateCustomUUID();
-
+  const userId = user?.sub;
   try {
+    let arrayOfHierarchy: string[] | null = null;
+    if (hierarchy_id) {
+      arrayOfHierarchy = hierarchy_id.split(',').map(id => id.trim());
+    } else {
+      const currentUser = await sequelize.models.User.findOne({
+        where: { program_id: program_id, user_id: userId },
+        attributes: ['associate_hierarchy_ids'],
+      }) as any;
+      arrayOfHierarchy = currentUser.associate_hierarchy_ids;
+    }
+
     const replacements = {
       program_id,
-      user_id: user_id || null,
+      user_id: hierarchy_id ? null : user_id || userId || null,
       hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
       is_enabled: true,
       user_type: 'client',
       status: 'active',
     };
-
     const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
-    if (users && users.length > 0) {
+    if (users.length > 0) {
       return reply.code(200).send({
         status_code: 200,
         message: "Get active user data",
         users,
-        trace_id: traceId
+        trace_id: traceId,
       });
     } else {
-      return reply
-        .code(200)
-        .send({ status_code: 200, message: "No matching records found.", users: [], trace_id: traceId });
+      return reply.code(200).send({
+        status_code: 200,
+        message: "No matching records found.",
+        users: [],
+        trace_id: traceId,
+      });
     }
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -935,7 +968,7 @@ export async function getUserProgram(
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
   }
-  const userType = user?.userType; 
+  const userType = user?.userType;
   const { user_id, search } = request.query;
   const traceId = generateCustomUUID();
 
@@ -948,8 +981,8 @@ export async function getUserProgram(
   }
 
   try {
-    const isSuperAdmin = userType === "super_user"; 
-    console.log("isSuperAdmin",isSuperAdmin)
+    const isSuperAdmin = userType === "super_user";
+    console.log("isSuperAdmin", isSuperAdmin)
     const replacements: any = isSuperAdmin ? {} : { user_id };
     if (search) {
       replacements.search = `%${search}%`;
