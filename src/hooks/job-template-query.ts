@@ -156,8 +156,17 @@ async getAllJobTemplateByHierarchy(
   name?: string,
   labour_category_id?: string
 ) {
+  const hierarchyCondition = hierarchyIdsArray.length > 0
+  ? `job_templates.id IN (
+      SELECT job_temp_id
+      FROM job_template_hierarchies
+      WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+      GROUP BY job_temp_id
+      HAVING COUNT(DISTINCT hierarchy) = ?
+    )`
+  : "";
   const conditions = [
-    hierarchyIdsArray.length > 0 && `job_template_hierarchies.hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})`,
+    hierarchyCondition,
     laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
     qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
     job_type && `job_templates.job_type = ?`,
@@ -221,8 +230,7 @@ async getAllJobTemplateByHierarchy(
   `;
 
   const replacements: (string | number)[] = [program_id];
-  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray);
-  if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
+  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);  if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
   if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
   if (job_type) replacements.push(job_type);
   if (name) replacements.push(`%${name}%`);
