@@ -859,45 +859,41 @@ export async function getActiveUser(
   const { user_id, hierarchy_id, is_enabled, user_type } = request.query;
   const traceId = generateCustomUUID();
   const userId = user?.sub;
+  const userType = user?.userType;
+
   try {
     let arrayOfHierarchy: string[] | null = null;
     if (hierarchy_id) {
       arrayOfHierarchy = hierarchy_id.split(',').map(id => id.trim());
     } else {
       const currentUser = await sequelize.models.User.findOne({
-        where: { program_id: program_id, user_id: userId },
+        where: { program_id, user_id: userId },
         attributes: ['associate_hierarchy_ids'],
       }) as any;
-      arrayOfHierarchy = currentUser.associate_hierarchy_ids;
+
+      arrayOfHierarchy = currentUser?.associate_hierarchy_ids || null;
     }
 
     const replacements = {
       program_id,
-      user_id: hierarchy_id ? null : user_id || userId || null,
+      user_id: userType === "super_user" ? null : hierarchy_id ? null : user_id || userId || null,
       hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
       is_enabled: true,
       user_type: 'client',
       status: 'active',
     };
+
     const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
     });
-    if (users.length > 0) {
-      return reply.code(200).send({
-        status_code: 200,
-        message: "Get active user data",
-        users,
-        trace_id: traceId,
-      });
-    } else {
-      return reply.code(200).send({
-        status_code: 200,
-        message: "No matching records found.",
-        users: [],
-        trace_id: traceId,
-      });
-    }
+
+    return reply.code(200).send({
+      status_code: 200,
+      message: users.length > 0 ? "Get active user data" : "No matching records found.",
+      users,
+      trace_id: traceId,
+    });
   } catch (error: any) {
     return reply.code(500).send({
       status_code: 500,
