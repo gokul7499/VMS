@@ -7,6 +7,8 @@ import foundationalDataModel from '../models/foundational-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { FoundationalDataInterface } from '../interfaces/foundational-data.interface';
+import FoundationalData from '../models/foundational-data.model';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
@@ -403,6 +405,133 @@ export async function getAllFoundationalDataTypes(
             statusCode: 500,
             message: 'Internal server error',
             trace_id: traceId,
+        });
+    }
+}
+
+export async function createFoundationalDataInBulk(request: FastifyRequest, reply: FastifyReply) {
+    const foundational_data_list = request.body as FoundationalDataInterface[];
+    const traceId = generateCustomUUID();
+    const {program_id}=request.params as {program_id:string}
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
+    
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "bulk creating foundational data",
+            status: "in_progress",
+            description: "Bulk creation of foundational data started",
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            is_deleted: false
+        },
+        FoundationalData
+    );
+
+    try {
+        const createdEntries = [];
+        const failedEntries = [];
+
+        for (const foundational_data of foundational_data_list) {
+            const { name } = foundational_data;
+            try {
+                const existingData = await FoundationalData.findOne({
+                    where: { name, program_id },
+                });
+
+                if (existingData) {
+                    failedEntries.push({
+                        name,
+                        program_id,
+                        message: "Master Data Already Exists."
+                    });
+                    continue;
+                }
+
+                const newEntry = await FoundationalData.create({
+                    ...foundational_data,
+                    created_by: userId,
+                    modified_by: userId,
+                    program_id:program_id
+                });
+                createdEntries.push(newEntry.id);
+            } catch (error: any) {
+                failedEntries.push({
+                    name,
+                    program_id,
+                    message: error.message
+                });
+            }
+        }
+
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                data: { createdEntries, failedEntries },
+                eventname: "bulk created foundational data",
+                status: "completed",
+                description: `Bulk creation completed with ${createdEntries.length} successes and ${failedEntries.length} failures`,
+                level: 'info',
+                action: request.method,
+                url: request.url,
+                is_deleted: false
+            },
+            FoundationalData
+        );
+
+        reply.status(201).send({
+            status_code: 201,
+            created_entries: createdEntries,
+            failed_entries: failedEntries,
+            trace_id: traceId,
+            message: 'Bulk Foundational Data Processing Completed.',
+        });
+    } catch (error: any) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                eventname: "bulk creating foundational data",
+                status: "error",
+                description: "Error in bulk creating foundational data",
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                is_deleted: false
+            },
+            FoundationalData
+        );
+
+        reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while processing bulk Foundational Data.',
+            trace_id: traceId,
+            error: error.message
         });
     }
 }
