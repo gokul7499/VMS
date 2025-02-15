@@ -655,7 +655,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
 
-        // Fetch rate configuration IDs for hierarchies
         const hierarchyRecords = await RateConfigurationHierarchies.findAll({
             where: { hierarchy_id: hierarchyIds },
             attributes: ['rate_configuration_id'],
@@ -673,18 +672,120 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             rateConfigurationIdsFromJobTemplates.includes(id)
         );
 
-        // Fetch Rate Configurations
         const rateConfigurations = await RateConfigurationsModel.findAll({
             where: { program_id, id: finalRateConfigurationIds, is_shift_rate, is_enabled: true, is_deleted: false },
             attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
         });
 
         if (!rateConfigurations.length) {
+            const standardBaseRate = await rateType.findOne({
+                where: { abbreviation: 'ST', is_base_rate: true },
+                attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
+            });
+
+            if (!standardBaseRate) {
+                return reply.status(200).send({
+                    status_code: 200,
+                    trace_id: traceId,
+                    message: 'No rate configurations found and no standard base rate available.',
+                    rate_configurations: [],
+                });
+            }
+
+            const rateCardDecisionRecords: Array<{
+                id: string;
+                rate_card_id: string;
+                rate_type_id: string;
+                hierarchy_id: string;
+                min_rate: { amount: number, is_changeable: boolean, is_reduceable: boolean };
+                max_rate: { amount: number, is_changeable: boolean, is_reduceable: boolean };
+                job_template_id: string;
+                unit_of_measure: string;
+                currency: string;
+            }> = await sequelize.query(rateCardMinRateMaxRate, {
+                replacements: {
+                    hierarchyIds: hierarchyIds,
+                    jobTemplateIds: jobTemplateIds,
+                    unit_of_measure,
+                    currency_id,
+                    labor_category_id,
+                    program_id
+                },
+                type: QueryTypes.SELECT,
+            });
+
+            let matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
+                hierarchyIds.includes(record.hierarchy_id)
+            );
+
+            if (matchingDecisionRecords.length === 0) {
+                matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
+                    record.hierarchy_id === null
+                );
+            }
+
+            let minRateRecord = matchingDecisionRecords.length
+                ? matchingDecisionRecords.reduce((prev, curr) => (curr.min_rate.amount < prev.min_rate.amount ? curr : prev))
+                : null;
+
+            let maxRateRecord = matchingDecisionRecords.length
+                ? matchingDecisionRecords.reduce((prev, curr) => (curr.max_rate.amount > prev.max_rate.amount ? curr : prev))
+                : null;
+
+            const matchingDecisionRecord = {
+                min_rate: minRateRecord
+                    ? {
+                        amount: minRateRecord.min_rate.amount,
+                        is_changeable: minRateRecord.min_rate.is_changeable,
+                        is_reduceable: minRateRecord.min_rate.is_reduceable
+                    }
+                    : { amount: 0, is_changeable: true, is_reduceable: false },
+
+                max_rate: maxRateRecord
+                    ? {
+                        amount: maxRateRecord.max_rate.amount,
+                        is_changeable: maxRateRecord.max_rate.is_changeable,
+                        is_reduceable: maxRateRecord.max_rate.is_reduceable
+                    }
+                    : { amount: 0, is_changeable: true, is_reduceable: false }
+            };
+
+            const rateTypeCategory = standardBaseRate.rate_type_category
+                ? await picklistItemModel.findOne({
+                    where: { id: standardBaseRate.rate_type_category },
+                    attributes: ['id', 'value', 'label'],
+                })
+                : null;
+
+            const shiftType = standardBaseRate.shift_type
+                ? await ShiftType.findOne({
+                    where: { id: standardBaseRate.shift_type },
+                    attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
+                })
+                : null;
+
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: 'Rate configurations not found.',
-                rate_configurations: [],
+                message: 'No rate configurations found. Returning standard base rate.',
+                rate_configurations: [{
+                    name: 'Standard Base Rate',
+                    is_shift_rate: false,
+                    hierarchies: hierarchyIds.map(id => ({ id, name: 'Hierarchy ' + id })),
+                    rate_configuration: [{
+                        base_rate: {
+                            rate_type: {
+                                ...standardBaseRate.get(),
+                                shift_type: shiftType,
+                                rate_type_category: rateTypeCategory,
+                                min_rate: matchingDecisionRecord.min_rate,
+                                max_rate: matchingDecisionRecord.max_rate,
+                            },
+                            rates: [],
+                        },
+                        rate: []
+                    }]
+                }],
             });
         }
 
