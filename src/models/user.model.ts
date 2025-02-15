@@ -158,6 +158,22 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true
     },
+    is_all_labour_category_associate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true
+    },
+    associate_labour_category: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    is_all_job_type_associate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true
+    },
+    associate_job_type: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: true

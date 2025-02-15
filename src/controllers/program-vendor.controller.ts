@@ -134,7 +134,6 @@ export async function getProgramVendors(
             );
         }
 
-
         const countryMap: { [key: string]: any } = countries.reduce((acc: { [key: string]: any }, country: any) => {
             acc[country.id] = country;
             return acc;
@@ -161,20 +160,14 @@ export async function getProgramVendors(
                         },
                     });
 
-                    let allDocumentsCompliant = true;
+                    const allDocumentsCompliant = await Promise.all(required_documents.map(async (doc) => {
+                        const mapping = await VendorComplianceReqDocMappingModel.findOne({
+                            where: { required_document_id: doc.id, vendor_id: vendor.id }
+                        });
 
-                    for (const doc of required_documents) {
-                        if (
-                            !doc.uploaded_document ||
-                            !doc.uploaded_document.status ||
-                            doc.uploaded_document.status.toLowerCase() !== 'compliant'
-                        ) {
-                            allDocumentsCompliant = false;
-                            break;
-                        }
-                    }
-
-                    if (allDocumentsCompliant) {
+                        return mapping && mapping.status.toLowerCase() === 'compliant';
+                    }));
+                    if (allDocumentsCompliant.every(status => status)) {
                         compliance_status = {
                             status: 'Compliant',
                             is_audited: true,
@@ -239,7 +232,6 @@ export async function getProgramVendors(
         });
     }
 }
-
 
 export async function saveProgramVendor(
     request: FastifyRequest<{ Params: { program_id: string } }>,
