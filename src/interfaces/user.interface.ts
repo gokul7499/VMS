@@ -52,5 +52,9 @@ export interface UserInterface {
   user:any,
   background_logo_color?:string;
   user_id?:string| undefined;
-  custom_fields?:any[]
+  custom_fields?:any[];
+  is_all_labour_category_associate?:boolean;
+  associate_labour_category?:any;
+  is_all_job_type_associate?:boolean;
+  associate_job_type?:any;
 }
