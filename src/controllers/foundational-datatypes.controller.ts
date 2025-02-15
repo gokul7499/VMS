@@ -503,10 +503,8 @@ export async function createFoundationalDataInBulk(request: FastifyRequest, repl
 
         reply.status(201).send({
             status_code: 201,
-            created_entries: createdEntries,
-            failed_entries: failedEntries,
             trace_id: traceId,
-            message: 'Bulk Foundational Data Processing Completed.',
+            message: 'Master data created successfully.',
         });
     } catch (error: any) {
         logger(
