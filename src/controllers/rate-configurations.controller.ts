@@ -682,7 +682,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 where: { abbreviation: 'ST', is_base_rate: true },
                 attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
             });
-
+            
             if (!standardBaseRate) {
                 return reply.status(200).send({
                     status_code: 200,
@@ -691,7 +691,10 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     rate_configurations: [],
                 });
             }
-
+            const hierarchyDetails = await hierarchies.findAll({
+                where: { id: hierarchyIds },
+                attributes: ['id', 'name'],
+            });
             const rateCardDecisionRecords: Array<{
                 id: string;
                 rate_card_id: string;
@@ -767,11 +770,11 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: 'No rate configurations found. Returning standard base rate.',
+                message: 'Rate configurations fetched successfully.',
                 rate_configurations: [{
                     name: 'Standard Base Rate',
                     is_shift_rate: false,
-                    hierarchies: hierarchyIds.map(id => ({ id, name: 'Hierarchy ' + id })),
+                    hierarchies: hierarchyDetails,
                     rate_configuration: [{
                         base_rate: {
                             rate_type: {
@@ -790,7 +793,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         }
 
         const responses = await Promise.all(rateConfigurations.map(async (rateConfiguration) => {
-            // Fetch hierarchies related to the rate configuration
             const hierarchie = await RateConfigurationHierarchies.findAll({
                 where: { rate_configuration_id: rateConfiguration.id, hierarchy_id: hierarchyIds },
                 include: [{ model: hierarchies, as: 'hierarchy', attributes: ['id', 'name'] }],
