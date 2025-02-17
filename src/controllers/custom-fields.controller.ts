@@ -62,8 +62,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
         trace_id: traceId,
       });
     }
-    
-    
+  
     const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');

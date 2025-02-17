@@ -674,7 +674,7 @@ export async function getUserWorkLocationAndTimeZone(
       replacements: { user_ids: userIdsArray, program_id },
       type: QueryTypes.SELECT,
     })) as [UserLocationAndTimeZone | undefined];
-     
+
     if (!result) {
       return reply.status(200).send({
         status_code: 200,
@@ -825,16 +825,10 @@ export async function getUserAndHierarchieId(
   }
 }
 
-
 export async function getActiveUser(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: {
-      user_id?: string;
-      hierarchy_id?: string;
-      is_enabled?: boolean;
-      user_type?: string;
-    };
+    Querystring: { hierarchy_id?: string };
   }>,
   reply: FastifyReply
 ) {
@@ -856,38 +850,66 @@ export async function getActiveUser(
   }
 
   const { program_id } = request.params;
-  const { user_id, hierarchy_id, is_enabled, user_type } = request.query;
+  const { hierarchy_id } = request.query;
   const traceId = generateCustomUUID();
   const userId = user?.sub;
   const userType = user?.userType;
 
   try {
     let arrayOfHierarchy: string[] | null = null;
+    if (userType === "super_admin" || userType === "super_user") {
+
+      const users = await sequelize.query(
+        getActiveUsers,
+        {
+          replacements: { program_id, hierarchy_id: null, user_id: null },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      return reply.code(200).send({
+        status_code: 200,
+        message: users.length > 0 ? "Get active user data" : "No matching records found.",
+        users,
+        trace_id: traceId,
+      });
+    }
     if (hierarchy_id) {
-      arrayOfHierarchy = hierarchy_id.split(',').map(id => id.trim());
+      arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
     } else {
       const currentUser = await sequelize.models.User.findOne({
         where: { program_id, user_id: userId },
-        attributes: ['associate_hierarchy_ids'],
+        attributes: ["associate_hierarchy_ids"],
       }) as any;
+      if (!currentUser) {
+        return reply.status(404).send({
+          status_code: 404,
+          message: "User not found",
+          trace_id: traceId,
+        });
+      }
 
-      arrayOfHierarchy = currentUser?.associate_hierarchy_ids || null;
+      arrayOfHierarchy = currentUser.dataValues.associate_hierarchy_ids || null;
+    }
+
+    if (!arrayOfHierarchy) {
+      return reply.code(200).send({
+        status_code: 200,
+        message: "No matching records found.",
+        users: [],
+        trace_id: traceId,
+      });
     }
 
     const replacements = {
       program_id,
-      user_id: userType === "super_user" ? null : hierarchy_id ? null : user_id || userId || null,
-      hierarchy_id: arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null,
-      is_enabled: true,
-      user_type: 'client',
-      status: 'active',
+      hierarchy_id: JSON.stringify(arrayOfHierarchy),
     };
-
+    console.log(hierarchy_id)
     const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
     return reply.code(200).send({
       status_code: 200,
       message: users.length > 0 ? "Get active user data" : "No matching records found.",
@@ -903,6 +925,7 @@ export async function getActiveUser(
     });
   }
 }
+
 
 export async function getUserContact(
   request: FastifyRequest<{
