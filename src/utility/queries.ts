@@ -2607,13 +2607,11 @@ FROM
     user
 WHERE
     user.program_id = :program_id
-    AND (:user_id IS NULL OR user.user_id = :user_id)
     AND user.is_enabled = true
-    AND user.user_type = 'client'
     AND LOWER(user.status) = 'active'
-    AND (:hierarchy_id IS NULL OR
-        JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
-    )
+    AND user.user_type = 'client'
+    AND (:hierarchy_id IS NULL OR JSON_CONTAINS(:hierarchy_id, user.associate_hierarchy_ids))
+
 `;
 
 export const getUserContacts = `
