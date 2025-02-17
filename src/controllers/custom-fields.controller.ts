@@ -46,14 +46,24 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   logCreatingCustomField(traceId, user, request, program_id);
 
   try {
-    const existingData=await CustomField.findOne({where:{name:name,label:label,program_id:program_id}});
-    if(existingData){
+    const existingName = await CustomField.findOne({
+      where: { name, program_id }
+    });
+    
+    const existingLabel = await CustomField.findOne({
+      where: { label, program_id }
+    });
+    
+    if (existingName || existingLabel) {
       return reply.status(400).send({
         status_code: 400,
-        message: 'Custom field already exists with this name and label',
+        message: existingName 
+          ? 'Custom field already exists with this name' 
+          : 'Custom field already exists with this label',
         trace_id: traceId,
       });
     }
+    
     const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
