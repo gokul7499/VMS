@@ -7,6 +7,8 @@ import { Op } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 import QualificationValueMaster from '../models/qualification_value_master.model';
+import { QualificationData } from '../interfaces/qualifications.interface';
+import { logger } from '../utility/loggerService';
 
 export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
@@ -357,5 +359,130 @@ export async function getQualificationValueMaster(
       message: "Internal Server Error",
       error: error.message,
     });
+  }
+}
+
+export async function createQualificationsInBulk(request: FastifyRequest, reply: FastifyReply) {
+  const qualification_list = request.body as QualificationData[];
+  const traceId = generateCustomUUID();
+  const {program_id}=request.params as {program_id:string}
+
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+
+  const userId = user?.sub;
+  
+  logger(
+      {
+          trace_id: traceId,
+          actor: {
+              user_name: user?.preferred_username,
+              user_id: userId,
+          },
+          data: request.body,
+          eventname: "bulk creating foundational data",
+          status: "in_progress",
+          description: "Bulk creation of foundational data started",
+          level: 'info',
+          action: request.method,
+          url: request.url,
+          is_deleted: false
+      },
+      Qualifications
+  );
+
+  try {
+      const createdEntries = [];
+      const failedEntries = [];
+
+      for (const qualification of qualification_list) {
+          const { name } = qualification;
+          try {
+              const existingData = await Qualifications.findOne({
+                  where: { name, program_id },
+              });
+
+              if (existingData) {
+                  failedEntries.push({
+                      name,
+                      program_id,
+                      message: "Qaulification Already Exists."
+                  });
+                  continue;
+              }
+
+              const newEntry = await Qualifications.create({
+                  ...qualification,
+                  created_by: userId,
+                  modified_by: userId,
+                  program_id:program_id
+              });
+              createdEntries.push(newEntry.id);
+          } catch (error: any) {
+              failedEntries.push({
+                  name,
+                  program_id,
+                  message: error.message
+              });
+          }
+      }
+
+      logger(
+          {
+              trace_id: traceId,
+              actor: {
+                  user_name: user?.preferred_username,
+                  user_id: userId,
+              },
+              data: { createdEntries, failedEntries },
+              eventname: "bulk created qaulification",
+              status: "completed",
+              description: `Bulk creation completed with ${createdEntries.length} successes and ${failedEntries.length} failures`,
+              level: 'info',
+              action: request.method,
+              url: request.url,
+              is_deleted: false
+          },
+          Qualifications
+      );
+
+      reply.status(201).send({
+          status_code: 201,
+          trace_id: traceId,
+          message: 'Qualifications created successfully.',
+      });
+  } catch (error: any) {
+      logger(
+          {
+              trace_id: traceId,
+              actor: {
+                  user_name: user?.preferred_username,
+                  user_id: userId,
+              },
+              eventname: "bulk creating qualifications",
+              status: "error",
+              description: "Error in bulk creating qualifications",
+              level: 'error',
+              action: request.method,
+              url: request.url,
+              is_deleted: false
+          },
+          Qualifications
+      );
+
+      reply.status(500).send({
+          status_code: 500,
+          message: 'An error occurred while processing bulk qualifications.',
+          trace_id: traceId,
+          error: error.message
+      });
   }
 }
