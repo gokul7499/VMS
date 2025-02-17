@@ -7,6 +7,8 @@ import { Op } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 import QualificationValueMaster from '../models/qualification_value_master.model';
+import { QualificationData } from '../interfaces/qualifications.interface';
+import { logger } from '../utility/loggerService';
 
 export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
@@ -359,3 +361,103 @@ export async function getQualificationValueMaster(
     });
   }
 }
+
+export async function createQualificationsInBulk(request: FastifyRequest, reply: FastifyReply) {
+  const qualificationList = request.body as QualificationData[];
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params as { program_id: string };
+  
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+
+  const userId = user?.sub;
+  
+  try {
+      const existingData = await Qualifications.findAll({
+          where: {
+              name: qualificationList.map(q => q.name),
+              program_id,
+              qualification_type_id: qualificationList.map(q => q.qualification_type_id)
+          }
+      });
+
+      if (existingData.length > 0) {
+          return reply.status(400).send({
+              status_code: 400,
+              message: `Some qualifications already exist for program ${program_id}.`,
+              trace_id: traceId,
+              existingQualifications: existingData.map(q => q.name)
+          });
+      }
+
+      const createdEntries = await Qualifications.bulkCreate(
+          qualificationList.map(qualification => ({
+              ...qualification,
+              created_by: userId,
+              modified_by: userId,
+              program_id
+          }))
+      );
+
+      logger(
+          {
+              trace_id: traceId,
+              actor: {
+                  user_name: user?.preferred_username,
+                  user_id: userId,
+              },
+              data: { createdEntries },
+              eventname: "bulk created qualification",
+              status: "completed",
+              description: `Bulk creation completed with ${createdEntries.length} successes.`,
+              level: 'info',
+              action: request.method,
+              url: request.url,
+              is_deleted: false
+          },
+          Qualifications
+      );
+
+      return reply.status(201).send({
+          status_code: 201,
+          trace_id: traceId,
+          createdEntries: createdEntries.map(entry => entry.id),
+          message: 'Qualifications created successfully.',
+      });
+  } catch (error: any) {
+      logger(
+          {
+              trace_id: traceId,
+              actor: {
+                  user_name: user?.preferred_username,
+                  user_id: userId,
+              },
+              eventname: "bulk creating qualifications",
+              status: "error",
+              description: "Error in bulk creating qualifications",
+              level: 'error',
+              action: request.method,
+              url: request.url,
+              is_deleted: false
+          },
+          Qualifications
+      );
+
+      return reply.status(500).send({
+          status_code: 500,
+          message: 'An error occurred while processing bulk qualifications.',
+          trace_id: traceId,
+          error: error.message
+      });
+  }
+}
+
+

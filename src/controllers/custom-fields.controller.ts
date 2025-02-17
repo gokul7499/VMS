@@ -46,6 +46,23 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   logCreatingCustomField(traceId, user, request, program_id);
 
   try {
+    const existingField = await CustomField.findOne({
+      where: {
+        program_id,
+        [Op.or]: [{ name }, { label }]
+      }
+    });
+    
+    if (existingField) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: existingField.name === name 
+          ? 'Custom field already exists with this name' 
+          : 'Custom field already exists with this label',
+        trace_id: traceId,
+      });
+    }
+  
     const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
@@ -66,13 +83,14 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       trace_id: traceId,
     });
 
-  } catch (error) {
+  } catch (error:any) {
     console.error('Error processing custom field:', error);
     logError(traceId, user, request, program_id);
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       traceId,
+      error:error.message
     });
   }
 };
