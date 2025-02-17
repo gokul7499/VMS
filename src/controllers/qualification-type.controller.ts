@@ -363,77 +363,49 @@ export async function getQualificationValueMaster(
 }
 
 export async function createQualificationsInBulk(request: FastifyRequest, reply: FastifyReply) {
-  const qualification_list = request.body as QualificationData[];
+  const qualificationList = request.body as QualificationData[];
   const traceId = generateCustomUUID();
-  const {program_id}=request.params as {program_id:string}
-
+  const { program_id } = request.params as { program_id: string };
+  
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
       return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
   if (!user) {
       return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
 
   const userId = user?.sub;
   
-  logger(
-      {
-          trace_id: traceId,
-          actor: {
-              user_name: user?.preferred_username,
-              user_id: userId,
-          },
-          data: request.body,
-          eventname: "bulk creating foundational data",
-          status: "in_progress",
-          description: "Bulk creation of foundational data started",
-          level: 'info',
-          action: request.method,
-          url: request.url,
-          is_deleted: false
-      },
-      Qualifications
-  );
-
   try {
-      const createdEntries = [];
-      const failedEntries = [];
-
-      for (const qualification of qualification_list) {
-          const { name } = qualification;
-          try {
-              const existingData = await Qualifications.findOne({
-                  where: { name, program_id },
-              });
-
-              if (existingData) {
-                  failedEntries.push({
-                      name,
-                      program_id,
-                      message: "Qaulification Already Exists."
-                  });
-                  continue;
-              }
-
-              const newEntry = await Qualifications.create({
-                  ...qualification,
-                  created_by: userId,
-                  modified_by: userId,
-                  program_id:program_id
-              });
-              createdEntries.push(newEntry.id);
-          } catch (error: any) {
-              failedEntries.push({
-                  name,
-                  program_id,
-                  message: error.message
-              });
+      const existingData = await Qualifications.findAll({
+          where: {
+              name: qualificationList.map(q => q.name),
+              program_id,
+              qualification_type_id: qualificationList.map(q => q.qualification_type_id)
           }
+      });
+
+      if (existingData.length > 0) {
+          return reply.status(400).send({
+              status_code: 400,
+              message: `Some qualifications already exist for program ${program_id}.`,
+              trace_id: traceId,
+              existingQualifications: existingData.map(q => q.name)
+          });
       }
+
+      const createdEntries = await Qualifications.bulkCreate(
+          qualificationList.map(qualification => ({
+              ...qualification,
+              created_by: userId,
+              modified_by: userId,
+              program_id
+          }))
+      );
 
       logger(
           {
@@ -442,10 +414,10 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
                   user_name: user?.preferred_username,
                   user_id: userId,
               },
-              data: { createdEntries, failedEntries },
-              eventname: "bulk created qaulification",
+              data: { createdEntries },
+              eventname: "bulk created qualification",
               status: "completed",
-              description: `Bulk creation completed with ${createdEntries.length} successes and ${failedEntries.length} failures`,
+              description: `Bulk creation completed with ${createdEntries.length} successes.`,
               level: 'info',
               action: request.method,
               url: request.url,
@@ -454,9 +426,10 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
           Qualifications
       );
 
-      reply.status(201).send({
+      return reply.status(201).send({
           status_code: 201,
           trace_id: traceId,
+          createdEntries: createdEntries.map(entry => entry.id),
           message: 'Qualifications created successfully.',
       });
   } catch (error: any) {
@@ -478,7 +451,7 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
           Qualifications
       );
 
-      reply.status(500).send({
+      return reply.status(500).send({
           status_code: 500,
           message: 'An error occurred while processing bulk qualifications.',
           trace_id: traceId,
@@ -486,3 +459,5 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
       });
   }
 }
+
+
