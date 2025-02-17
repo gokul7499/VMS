@@ -854,18 +854,19 @@ export async function getActiveUser(
   const traceId = generateCustomUUID();
   const userId = user?.sub;
   const userType = user?.userType;
-
   try {
     let arrayOfHierarchy: string[] | null = null;
-    if (userType === "super_admin" || userType === "super_user") {
-
-      const users = await sequelize.query(
-        getActiveUsers,
-        {
-          replacements: { program_id, hierarchy_id: null, user_id: null },
-          type: QueryTypes.SELECT,
-        }
-      );
+    let replacements: Record<string, any> = { program_id };
+    if (hierarchy_id) {
+      arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
+      replacements.hierarchy_id = JSON.stringify(arrayOfHierarchy);
+    }
+    else if (userType === "super_admin" || userType === "super_user") {
+      replacements.hierarchy_id = null;
+      const users = await sequelize.query(getActiveUsers, {
+        replacements,
+        type: QueryTypes.SELECT,
+      });
 
       return reply.code(200).send({
         status_code: 200,
@@ -874,13 +875,12 @@ export async function getActiveUser(
         trace_id: traceId,
       });
     }
-    if (hierarchy_id) {
-      arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
-    } else {
+    else {
       const currentUser = await sequelize.models.User.findOne({
         where: { program_id, user_id: userId },
         attributes: ["associate_hierarchy_ids"],
       }) as any;
+
       if (!currentUser) {
         return reply.status(404).send({
           status_code: 404,
@@ -890,9 +890,9 @@ export async function getActiveUser(
       }
 
       arrayOfHierarchy = currentUser.dataValues.associate_hierarchy_ids || null;
+      replacements.hierarchy_id = arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null;
     }
-
-    if (!arrayOfHierarchy) {
+    if (!arrayOfHierarchy && !(userType === "super_admin" || userType === "super_user")) {
       return reply.code(200).send({
         status_code: 200,
         message: "No matching records found.",
@@ -901,15 +901,11 @@ export async function getActiveUser(
       });
     }
 
-    const replacements = {
-      program_id,
-      hierarchy_id: JSON.stringify(arrayOfHierarchy),
-    };
-    console.log(hierarchy_id)
     const users = await sequelize.query(getActiveUsers, {
       replacements,
       type: QueryTypes.SELECT,
     });
+
     return reply.code(200).send({
       status_code: 200,
       message: users.length > 0 ? "Get active user data" : "No matching records found.",
@@ -925,7 +921,6 @@ export async function getActiveUser(
     });
   }
 }
-
 
 export async function getUserContact(
   request: FastifyRequest<{
