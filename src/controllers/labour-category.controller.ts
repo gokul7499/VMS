@@ -58,7 +58,7 @@ export async function createIndustries(
     if (existingIndustryWithSameName) {
       return reply.status(400).send({
         status_code: 400,
-        message: "Invalid Name Field, Name Must Be Unique.",
+        message: " labour category already exists with this name",
         trace_id:traceId,
       });
     }
