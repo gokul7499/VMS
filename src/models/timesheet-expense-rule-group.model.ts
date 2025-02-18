@@ -51,7 +51,7 @@ TimesheetExpenseRuleGroup.init(
             allowNull: false,
             defaultValue: Date.now(),
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
             allowNull: false,
             defaultValue: Date.now(),
@@ -60,9 +60,9 @@ TimesheetExpenseRuleGroup.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
-            allowNull: true,
+            allowNull: false,
         },
     },
     {

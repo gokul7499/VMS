@@ -19,7 +19,7 @@ export interface TimesheetExpenseRule {
     is_enabled?: boolean;
     is_deleted?: boolean;
     created_on?: number;
-    modified_on?: number;
+    updated_on?: number;
     program_id: string;
 }
 
@@ -30,7 +30,7 @@ export const QuerySchema = {
         rule_type: { type: 'string' },
         rule_category: { type: 'string' },
         is_enabled: { type: 'string' },
-        modified_on: { type: 'string' },
+        updated_on: { type: 'string' },
         page: { type: 'string' },
         limit: { type: 'string' }
     },
@@ -71,11 +71,11 @@ export const createTimesheetExpenseRuleSchema = {
         apply_rate_type: { type: 'array' },
         expense_line_item: { type: 'array' },
         created_by: { type: 'string' },
-        modified_by: { type: 'string' },
+        updated_by: { type: 'string' },
         is_enabled: { type: 'boolean' },
         is_deleted: { type: 'boolean' },
         created_on: { type: 'number' },
-        modified_on: { type: 'number' },
+        updated_on: { type: 'number' },
         program_id: { type: 'string' }
     }
 };

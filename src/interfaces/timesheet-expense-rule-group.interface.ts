@@ -8,9 +8,9 @@ export interface TimesheetExpenseRuleGroupData {
     is_enabled: boolean;
     is_deleted?: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
 }
 
 export const paramsSchema = {
@@ -46,8 +46,8 @@ export const createTimesheetExpenseRuleGroupSchema = {
         is_enabled: { type: 'boolean' },
         is_deleted: { type: 'boolean' },
         created_on: { type: 'number' },
-        modified_on: { type: 'number' },
+        updated_on: { type: 'number' },
         created_by: { type: 'string' },
-        modified_by: { type: 'string' }
+        updated_by: { type: 'string' }
     }
 };

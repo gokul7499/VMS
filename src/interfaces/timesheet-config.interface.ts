@@ -38,9 +38,9 @@ export interface TimesheetTypeConfigInterface {
   allow_timesheet_to_be_submitted?: string;
   is_enabled?: boolean;
   created_on?: number;
-  modified_on?: number;
+  updated_on?: number;
   created_by?: string;
-  modified_by?: string;
+  updated_by?: string;
   is_deleted?: boolean;
   slug?: string;
   timesheet_rule_group?: string;
@@ -127,9 +127,9 @@ export const createTimesheetTypeConfigSchema = {
     allow_timesheet_to_be_submitted: { type: 'string' },
     is_enabled: { type: 'boolean' },
     created_on: { type: 'number' },
-    modified_on: { type: 'number' },
+    updated_on: { type: 'number' },
     created_by: { type: 'string' },
-    modified_by: { type: 'string' },
+    updated_by: { type: 'string' },
     is_deleted: { type: 'boolean' },
     slug: { type: 'string' },
     timesheet_rule_group: { type: 'string' },

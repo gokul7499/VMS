@@ -42,10 +42,20 @@ TimesheetExpenseRuleMapping.init(
             type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW
-        }
+            allowNull: false,
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: false,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: false,
+        },
+
     },
     {
         sequelize,

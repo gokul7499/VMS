@@ -152,16 +152,17 @@ TimesheetTypeConfig.init(
     created_on: {
       type: DataTypes.DOUBLE,
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
+      allowNull: false,
     },
     created_by: {
       type: DataTypes.UUID,
-      allowNull: true,
+      allowNull: false,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
-      allowNull: true,
+      allowNull: false,
     },
     is_deleted: {
       type: DataTypes.BOOLEAN,
