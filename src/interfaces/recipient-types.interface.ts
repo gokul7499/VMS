@@ -9,9 +9,9 @@ export interface RecipientTypesData {
     parameter_schema: any,
     method_id: string,
     created_on: number,
-    modified_on: number,
+    updated_on: number,
     created_by: string,
-    modified_by: string,
+    updated_by: string,
     is_deleted: boolean,
     is_enabled: boolean
 }

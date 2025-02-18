@@ -51,24 +51,6 @@ RecipientType.init(
             type: DataTypes.STRING,
             allowNull: true
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-            defaultValue: DataTypes.NOW
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-            defaultValue: DataTypes.NOW
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         module_id: {
             type: DataTypes.UUID,
             allowNull: true,
@@ -84,6 +66,24 @@ RecipientType.init(
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+            defaultValue: DataTypes.NOW
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+            defaultValue: DataTypes.NOW
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {
