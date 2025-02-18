@@ -36,6 +36,24 @@ TimeZone.init({
     type: DataTypes.CHAR(255),
     allowNull: false,
   },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+    defaultValue: Date.now(),
+},
+updated_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+    defaultValue: Date.now(),
+},
+created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+},
+updated_by: {
+    type: DataTypes.UUID,
+    allowNull: false,
+},
 }, {
   sequelize,
   tableName: 'time_zones',
