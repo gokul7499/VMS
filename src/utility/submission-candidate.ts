@@ -50,3 +50,24 @@ export async function fetchSubmittedCandidate(
         );
     }
 }
+
+export async function getSubmissionCandidate(
+    program_id: string,
+    candidate_id: string,
+    token: any,
+): Promise<any> {
+    try {
+        const response = await axios.get(
+            `${sourcing_url}/v1/api/program/${program_id}/get-submission-candidate/${candidate_id}`,
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+        console.log('response', response.data);
+        return response.data
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data.message || "Failed to fetch unavailable candidates"
+        );
+    }
+}
