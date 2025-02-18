@@ -39,20 +39,6 @@ Qualifications.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -72,6 +58,20 @@ Qualifications.init(
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {
