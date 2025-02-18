@@ -385,6 +385,7 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
       const existingData = await Qualifications.findAll({
           where: {
               name: qualificationList.map(q => q.name),
+              code:qualificationList.map(q => q.code),
               program_id,
               qualification_type_id: qualificationList.map(q => q.qualification_type_id)
           }
