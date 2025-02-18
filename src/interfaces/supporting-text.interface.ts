@@ -19,11 +19,11 @@ export interface supportingTextAttributes {
     is_enabled: boolean;
     is_deleted: boolean;
     created_on?: number;
-    modified_on?: number;
+    updated_on?: number;
     program_id: string;
     event_id: string;
     module_id: string;
     support_text_action: SupportTextAction[];
     created_by: string;
-    modified_by: string;
+    updated_by: string;
 }

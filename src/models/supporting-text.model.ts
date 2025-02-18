@@ -17,12 +17,12 @@ class SupportingTextModel
   public is_enabled!: boolean;
   public is_deleted!: boolean;
   public created_on?: number;
-  public modified_on?: number;
+  public updated_on?: number;
   public program_id!: string;
   public event_id!: string;
   public module_id!: string;
   public created_by!: string;
-  public modified_by!: string;
+  public updated_by!: string;
   public support_text_action!: { id: string; name: string; slug: string; is_enabled: boolean; support_text: { description: string; url: string; label: string; is_enabled: boolean } }[];
   supporting_text_event: any;
   module: any;
@@ -50,22 +50,6 @@ SupportingTextModel.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-    },
-    created_on: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-    },
-    created_by: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    modified_by: {
-      type: DataTypes.STRING,
-      allowNull: true,
     },
     program_id: {
       type: DataTypes.UUID,
@@ -101,6 +85,22 @@ SupportingTextModel.init(
           }
         },
       },
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {
