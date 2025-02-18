@@ -38,7 +38,7 @@ TimeZone.init({
   },
   created_on: {
     type: DataTypes.DOUBLE,
-    allowNull: false,
+    allowNull: true,
     defaultValue: Date.now(),
 },
 updated_on: {
