@@ -7,6 +7,7 @@ import qualificationTypeModel from "./qualification-type-model";
 
 class Qualifications extends Model {
     code: any;
+    id!:string;
     qualification_type_id: any;
     name: any;
 }
