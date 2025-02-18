@@ -71,6 +71,21 @@ Tenant.init({
     allowNull: false,
     defaultValue: true,
   },
+
+ 
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  ref_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  vendor_industry: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   created_on: {
     type: DataTypes.DOUBLE,
     allowNull: true,
@@ -87,19 +102,6 @@ Tenant.init({
     type: DataTypes.UUID,
     allowNull: true,
   },
-  is_deleted: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  ref_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  vendor_industry: {
-    type: DataTypes.JSON,
-    allowNull: true,
-  }
 }, {
   sequelize,
   tableName: 'tenant',
