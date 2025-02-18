@@ -1,4 +1,4 @@
-import {  DataTypes, Model } from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
@@ -66,14 +66,7 @@ TimesheetExpenseRuleModel.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
-    created_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
-   updated_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
+
     is_enabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -81,6 +74,15 @@ TimesheetExpenseRuleModel.init({
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
+    },
+
+    program_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: Programs,
+            key: 'id',
+        },
     },
     created_on: {
         type: DataTypes.DOUBLE,
@@ -92,13 +94,13 @@ TimesheetExpenseRuleModel.init({
         defaultValue: Date.now(),
         allowNull: true,
     },
-    program_id: {
+    created_by: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Programs,
-            key: 'id',
-        },
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
     },
 },
     {

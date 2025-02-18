@@ -149,21 +149,7 @@ TimesheetTypeConfig.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    updated_on: {
-      type: DataTypes.DOUBLE,
-      allowNull: false,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-      allowNull: false,
-    },
-    updated_by: {
-      type: DataTypes.UUID,
-      allowNull: false,
-    },
+   
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -183,7 +169,23 @@ TimesheetTypeConfig.init(
     master_data_types: {
       type: DataTypes.JSON,
       allowNull: true
-    }
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     sequelize,
