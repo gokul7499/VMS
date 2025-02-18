@@ -57,7 +57,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const userId = user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
-            where: { name: name, program_id: program_id }
+            where: { name: name, program_id: program_id,is_deleted: false }
         });
 
         if (existingWorkflow) {
@@ -362,14 +362,15 @@ export async function deleteWorkflow(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId = generateCustomUUID()
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const workFlowData = await WorkFlow.findOne({ where: { program_id, id } });
         if (workFlowData) {
             await WorkFlow.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
-            reply.status(204).send({
-                status_code: 204,
+            reply.status(200).send({
+                status_code: 200,
+                workflow: id,
                 message: 'Workflow deleted successfully.',
                 trace_id: traceId,
             });
