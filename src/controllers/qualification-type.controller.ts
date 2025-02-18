@@ -29,6 +29,7 @@ export async function getQualificationTypes(
 
     if (query.type) {
       searchConditions.type = query.type;
+      searchConditions.program_id = params.program_id;
     } else {
       if (query.name) {
         searchConditions.name = { [Op.like]: `%${query.name}%` };
@@ -44,7 +45,7 @@ export async function getQualificationTypes(
 
     const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
       where: { ...searchConditions, is_deleted: false },
-      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'created_on', 'created_by', 'type'],
+      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'created_on', 'created_by', 'type','program_id'],
       order: [['created_on', 'DESC']],
       limit: limit,
       offset: offset,
