@@ -16,7 +16,7 @@ export const getAllshiftConfiguration = async (
     Querystring: {
       name?: string;
       is_enabled?: boolean | string;
-      modified_on?: string;
+      updated_on?: string;
       hierarchy_names?: string;
       shift_type_name?: string;
       page?: string;
@@ -75,15 +75,15 @@ export const getAllshiftConfiguration = async (
     }
 
     if (start_date && end_date) {
-      searchFilters.modified_on = {
+      searchFilters.updated_on = {
         [Op.between]: [start_date,end_date],
       };
     } else if (start_date) {
-      searchFilters.modified_on = {
+      searchFilters.updated_on = {
         [Op.gte]:start_date,
       };
     } else if (end_date) {
-      searchFilters.modified_on = {
+      searchFilters.updated_on = {
         [Op.lte]:end_date,
       };
     }
@@ -125,7 +125,7 @@ export const getAllshiftConfiguration = async (
       where: searchFilters,
       limit: pageSize,
       offset,
-      order:[["modified_on","DESC"]]
+      order:[["updated_on","DESC"]]
     });
 
     if (shiftConfigData.length > 0) {
@@ -297,7 +297,7 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
       });
     }
     const shiftType = await ShiftConfiguration.create({ name, ...rest ,created_by: userId,
-      modified_by: userId,}, { transaction });
+      updated_by: userId,}, { transaction });
 
     if (Array.isArray(hierarchy_ids)) {
       const hierarchyPromises = hierarchy_ids.map((hierarchy_id: any) => {
@@ -386,7 +386,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       });
     }
 
-    await shiftType.update(rest,{where:{modified_by: userId}});
+    await shiftType.update(rest,{where:{updated_by: userId}});
 
     if (Array.isArray(hierarchy_ids)) {
       const existingHierarchies = await shiftConfigurationHierarchies.findAll({
@@ -482,7 +482,7 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
       },
     });
     if (shiftConfiguration) {
-      await shiftConfiguration.update({ is_deleted: true, is_enabled: false ,modified_by: userId});
+      await shiftConfiguration.update({ is_deleted: true, is_enabled: false ,updated_by: userId});
       reply.status(200).send({
         status_code: 200,
         trace_id:traceId,

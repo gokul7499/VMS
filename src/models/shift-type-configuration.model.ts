@@ -24,6 +24,22 @@ shiftTypeConfiguration.init(
       type: DataTypes.UUID,
       allowNull: true
     },
+    created_on: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_on: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     sequelize,
