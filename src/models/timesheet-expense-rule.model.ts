@@ -72,7 +72,7 @@ TimesheetExpenseRuleModel.init({
     },
    updated_by: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
     },
     is_enabled: {
         type: DataTypes.BOOLEAN,
@@ -85,10 +85,12 @@ TimesheetExpenseRuleModel.init({
     created_on: {
         type: DataTypes.DOUBLE,
         defaultValue: Date.now(),
+        allowNull: true,
     },
     updated_on: {
         type: DataTypes.DOUBLE,
         defaultValue: Date.now(),
+        allowNull: true,
     },
     program_id: {
         type: DataTypes.UUID,

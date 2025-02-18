@@ -48,12 +48,12 @@ TimesheetExpenseRuleGroup.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            allowNull: false,
+            allowNull: true,
             defaultValue: Date.now(),
         },
         updated_on: {
             type: DataTypes.DOUBLE,
-            allowNull: false,
+            allowNull: true,
             defaultValue: Date.now(),
         },
         created_by: {
@@ -62,7 +62,7 @@ TimesheetExpenseRuleGroup.init(
         },
         updated_by: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
         },
     },
     {

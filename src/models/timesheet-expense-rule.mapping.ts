@@ -40,20 +40,21 @@ TimesheetExpenseRuleMapping.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
+            defaultValue: DataTypes.NOW,
+            allowNull: true,
         },
         updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
-            allowNull: false,
+            defaultValue: DataTypes.NOW,
+            allowNull: true,
         },
         created_by: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
         },
         updated_by: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
         },
 
     },

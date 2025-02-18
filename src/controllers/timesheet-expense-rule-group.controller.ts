@@ -289,7 +289,7 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
         }
 
         const [updatedCount] = await TimesheetExpenseRuleGroup.update({
-            ...updates, modified_by: userId, modified_on: Date.now()
+            ...updates, modified_by: userId, updated_on: Date.now()
         }, {
             where: { id, program_id },
         });
