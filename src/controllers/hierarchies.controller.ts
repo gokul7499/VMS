@@ -16,6 +16,7 @@ interface HierarchyItem {
   default_currency: any;
   default_language: any;
   is_hide_candidate_img: any;
+  is_vendor_neutral_program: any;
   default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
@@ -82,6 +83,7 @@ export const getHierarchiesByProgram = async (
             program_id: item.program_id,
             default_timezone: item.default_timezone,
             is_hide_candidate_img: item.is_hide_candidate_img,
+            is_vendor_neutral_program: item?.is_vendor_neutral_program,
             default_language: item.default_language,
             default_currency: item.default_currency,
             default_date_format: item.default_date_format,
