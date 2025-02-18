@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
-import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
+import { fetchSubmittedCandidate, fetchUnavailableCandidates, getSubmissionCandidate } from "../utility/submission-candidate";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
@@ -315,6 +315,13 @@ export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
@@ -350,7 +357,9 @@ export async function getCandidateByIdAndProgramId(
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: "Candidate fetched successfully!",
+                message: "Candidate not found!",
+                candidate:[]
+
             });
         }
 
@@ -423,19 +432,19 @@ export async function getCandidateByIdAndProgramId(
                 item.qulifications = [];
             }
         });
-
-        return reply.status(200).send({
+      const workerClassification=await getSubmissionCandidate(program_id,id,token)
+       return reply.status(200).send({
             status_code: 200,
             message: "Candidate fetched successfully",
             candidate: {
                 ...candidateData,
                 qualifications: qualificationsData,
+                worker_classification: workerClassification.submission_candidate.worker_classification,
             },
             trace_id: traceId,
         });
 
     } catch (error: any) {
-        console.error("Error fetching candidate:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
