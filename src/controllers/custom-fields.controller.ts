@@ -73,7 +73,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       });
     }
 
-    const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
+    const customField = await createCustomField({ program_id, label, name,module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
