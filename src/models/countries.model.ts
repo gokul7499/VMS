@@ -53,7 +53,7 @@ CountryModel.init({
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
-  modified_on: {
+  updated_on: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
@@ -61,7 +61,7 @@ CountryModel.init({
     type: DataTypes.CHAR(36),
     allowNull: true,
   },
-  modified_by: {
+  updated_by: {
     type: DataTypes.CHAR(36),
     allowNull: true,
   }
