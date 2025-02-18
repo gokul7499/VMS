@@ -28,15 +28,29 @@ UserCustomFieldModel.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    created_on: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
     user_id: {
       type: DataTypes.UUID,
       allowNull: true,
     },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
+      allowNull: true,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+
   },
   {
     sequelize,

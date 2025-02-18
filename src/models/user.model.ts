@@ -224,12 +224,16 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
       defaultValue: Date.now()
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
       defaultValue: Date.now()
@@ -238,14 +242,10 @@ User.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    user_id: {
-      type: DataTypes.UUID,
-      allowNull: true
-    }
   },
   {
     sequelize,

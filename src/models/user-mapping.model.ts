@@ -69,12 +69,16 @@ UserMapping.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    ref_id: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     created_on: {
         type: DataTypes.DOUBLE,
         allowNull: true,
         defaultValue: Date.now()
     },
-    modified_on: {
+    updated_on: {
         type: DataTypes.DOUBLE,
         allowNull: true,
         defaultValue: Date.now()
@@ -84,18 +88,15 @@ UserMapping.init({
         defaultValue: DataTypes.UUIDV4,
         allowNull: true
     },
-    modified_by: {
+    updated_by: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         allowNull: true
     },
-    ref_id: {
-        type: DataTypes.STRING,
-        allowNull: true
-    }
 }, {
     sequelize,
     tableName: 'user_mappings',
+    timestamps:false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);

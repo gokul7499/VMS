@@ -51,7 +51,25 @@ UserMasterDataModel.init({
     is_all_associated: {
         type: DataTypes.BOOLEAN,
         allowNull: true
-    }
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue:Date.now(),
+        allowNull: true,
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue:Date.now(),
+        allowNull: true,
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
 }, {
     sequelize,
     tableName: 'user_master_data',
