@@ -4,8 +4,7 @@ import {
     updateFoundationalDataTypes,
     deleteFoundationalDataTypes,
     getAllFoundationalDataTypes,
-    getFoundationalDataTypeById,
-    createFoundationalDataInBulk
+    getFoundationalDataTypeById
 } from '../controllers/foundational-datatypes.controller';
 
 async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
@@ -16,7 +15,6 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
     fastify.delete('/program/:program_id/foundational-datatypes/:id', deleteFoundationalDataTypes);
     fastify.get('/program/:program_id/foundational-datatypes', getAllFoundationalDataTypes);
     fastify.get('/program/:program_id/foundational-datatypes/:id', getFoundationalDataTypeById);
-    fastify.post('/program/:program_id/master-data-import', createFoundationalDataInBulk);
 }
 
 export default foundationalDataTypeRoutes;
