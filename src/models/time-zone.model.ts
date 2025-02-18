@@ -43,7 +43,7 @@ TimeZone.init({
 },
 updated_on: {
     type: DataTypes.DOUBLE,
-    allowNull: false,
+    allowNull: true,
     defaultValue: Date.now(),
 },
 created_by: {
@@ -52,7 +52,7 @@ created_by: {
 },
 updated_by: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
 },
 }, {
   sequelize,

@@ -85,7 +85,7 @@ Tenant.init({
   },
   updated_by: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
   },
   is_deleted: {
     type: DataTypes.BOOLEAN,
