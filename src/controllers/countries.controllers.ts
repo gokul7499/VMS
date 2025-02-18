@@ -37,7 +37,7 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
             message: 'Country Created successfully',
             trace_id: traceId,
             created_by: userId,
-            modified_by:userId 
+            updated_by:userId 
         });
     } catch (error) {
         reply.status(500).send({
@@ -86,9 +86,9 @@ export const getCountries = async (request: FastifyRequest, reply: FastifyReply)
                 exclude: [
                     "is_deleted",
                     "created_on",
-                    "modified_on",
+                    "updated_on",
                     "created_by",
-                    "modified_by",
+                    "updated_by",
                 ],
             },
             order: [["name", "ASC"]],
@@ -121,7 +121,7 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
             where: {
                 id: id,
                 is_deleted: false,
-            }, attributes: { exclude: ['is_deleted', 'created_on', 'modified_on', 'created_by', 'modified_by'], },
+            }, attributes: { exclude: ['is_deleted', 'created_on', 'updated_on', 'created_by', 'updated_by'], },
         });
         if (countries) {
             reply.status(200).send({
@@ -188,7 +188,7 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
                 min_phone_length,
                 max_phone_length,
                 created_by: userId,
-                modified_by:userId
+                updated_by:userId
             },
             {
                 where: { id },
@@ -236,7 +236,7 @@ export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply
             {
                 is_enabled: false,
                 is_deleted: true,
-                modified_by:userId,
+                updated_by:userId,
             },
             {
                 where: { id },
