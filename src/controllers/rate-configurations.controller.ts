@@ -678,14 +678,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
         });
 
         if (!rateConfigurations.length) {
-            const standardBaseRate = await rateType.findOne({
-                where: { abbreviation: 'ST', is_base_rate: true },
+            const standardBaseRate = await rateType.findAll({
+                where: { is_base_rate: true, program_id, is_enabled: true, is_deleted: false },
                 attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
+                order: [['created_on', 'ASC']]
             });
-            
+
             if (!standardBaseRate) {
-                return reply.status(200).send({
-                    status_code: 200,
+                return reply.status(400).send({
+                    status_code: 400,
                     trace_id: traceId,
                     message: 'No rate configurations found and no standard base rate available.',
                     rate_configurations: [],
@@ -695,6 +696,11 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 where: { id: hierarchyIds },
                 attributes: ['id', 'name'],
             });
+
+            if (hierarchyDetails.length === 0) {
+                throw new Error("Hierarchies not found.");
+            }
+
             const rateCardDecisionRecords: Array<{
                 id: string;
                 rate_card_id: string;
@@ -753,41 +759,45 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     : { amount: 0, is_changeable: true, is_reduceable: false }
             };
 
-            const rateTypeCategory = standardBaseRate.rate_type_category
-                ? await picklistItemModel.findOne({
-                    where: { id: standardBaseRate.rate_type_category },
-                    attributes: ['id', 'value', 'label'],
-                })
-                : null;
+            const rateConfigurations = await Promise.all(standardBaseRate.map(async (standardBaseRate) => {
+                const rateTypeCategory = standardBaseRate.rate_type_category
+                    ? await picklistItemModel.findOne({
+                        where: { id: standardBaseRate.rate_type_category },
+                        attributes: ['id', 'value', 'label'],
+                    })
+                    : null;
 
-            const shiftType = standardBaseRate.shift_type
-                ? await ShiftType.findOne({
-                    where: { id: standardBaseRate.shift_type },
-                    attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
-                })
-                : null;
+                const shiftType = standardBaseRate.shift_type
+                    ? await ShiftType.findOne({
+                        where: { id: standardBaseRate.shift_type },
+                        attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time'],
+                    })
+                    : null;
+
+                return {
+                    base_rate: {
+                        rate_type: {
+                            ...standardBaseRate.get(),
+                            shift_type: shiftType,
+                            rate_type_category: rateTypeCategory,
+                            min_rate: matchingDecisionRecord.min_rate,
+                            max_rate: matchingDecisionRecord.max_rate,
+                        },
+                        rates: [],
+                    },
+                    rate: []
+                };
+            }));
 
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
                 message: 'Rate configurations fetched successfully.',
                 rate_configurations: [{
-                    name: standardBaseRate.name,
+                    name: standardBaseRate[0].name,
                     is_shift_rate: false,
                     hierarchies: hierarchyDetails,
-                    rate_configuration: [{
-                        base_rate: {
-                            rate_type: {
-                                ...standardBaseRate.get(),
-                                shift_type: shiftType,
-                                rate_type_category: rateTypeCategory,
-                                min_rate: matchingDecisionRecord.min_rate,
-                                max_rate: matchingDecisionRecord.max_rate,
-                            },
-                            rates: [],
-                        },
-                        rate: []
-                    }]
+                    rate_configurations: rateConfigurations
                 }],
             });
         }
