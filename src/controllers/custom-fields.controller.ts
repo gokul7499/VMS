@@ -18,7 +18,7 @@ import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
-  const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name, ...customFieldData } = request.body as any;
+  const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name,module_id, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -49,21 +49,31 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
     const existingField = await CustomField.findOne({
       where: {
         program_id,
-        [Op.or]: [{ name }, { label }]
+        [Op.and]: [{ name }, { label }, { module_id }]
       }
     });
     
     if (existingField) {
+      let errorMessage = 'Custom field already exists';
+    
+      if (existingField.name === name) {
+        errorMessage += ' with this name';
+      } 
+      if (existingField.label === label) {
+        errorMessage += ' with this label';
+      } 
+      if (existingField.module_id === module_id) {
+        errorMessage += ' with this module';
+      }
+    
       return reply.status(400).send({
         status_code: 400,
-        message: existingField.name === name 
-          ? 'Custom field already exists with this name' 
-          : 'Custom field already exists with this label',
+        message: errorMessage,
         trace_id: traceId,
       });
     }
-  
-    const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
+
+    const customField = await createCustomField({ program_id, label, name,module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
