@@ -27,6 +27,7 @@ interface HierarchyItem {
   modified_on: number;
   code: string;
   program_id: string;
+  is_vendor_neutral_program:any;
 }
 export const getHierarchiesByProgram = async (
   request: FastifyRequest<{
@@ -86,6 +87,7 @@ export const getHierarchiesByProgram = async (
             default_currency: item.default_currency,
             default_date_format: item.default_date_format,
             support_email: item.support_email,
+            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program), 
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -175,7 +177,10 @@ export const getHierarchies = async (
         hierarchies: [],
       });
     }
-
+    const formattedHierarchies = hierarchies.map((hierarchy) => ({
+      ...hierarchy,
+      is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
+    }));
     const total_count = hierarchies[0]?.total_count || 0;
 
     return reply.status(200).send({
@@ -185,7 +190,7 @@ export const getHierarchies = async (
       total_records: total_count,
       page,
       limit,
-      hierarchies,
+      hierarchies:formattedHierarchies,
     });
   } catch (error: any) {
     console.error(error);
@@ -222,7 +227,7 @@ export async function getHierarchiesById(
       });
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
-
+      hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
           ? JSON.parse(masterDataResult.foundational_data)
