@@ -7,11 +7,21 @@ import {
     deleteCountyById,
     getAllCounty,
 } from "../controllers/county.controller";
+import { createCountySchema } from "../interfaces/county.interface";
+
 async function countyRoutes(fastify: FastifyInstance) {
     fastify.get("/county/:id", getCountyById);
-    fastify.post("/county", createCounty);
+    fastify.post("/county", {
+        schema:{
+            body:createCountySchema
+        }
+    }, createCounty);
     fastify.delete("/county/:id", deleteCountyById);
-    fastify.put("/county/:id", updateCountyById);
+    fastify.put("/county/:id",{
+        schema:{
+            body:createCountySchema,
+        }
+    }, updateCountyById);
     fastify.get("/county", getAllCounty);
 }
 export default countyRoutes;

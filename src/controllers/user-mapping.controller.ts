@@ -332,6 +332,8 @@ JSON_OBJECT(
     'is_all_spend_category_associate', u.is_all_spend_category_associate,
     'default_spend_category_id', u.default_spend_category_id,
     'is_allow_unlimited_authority', u.is_allow_unlimited_authority,
+    'is_all_labour_category_associate',u.is_all_labour_category_associate,
+    'associate_labour_category',u.associate_labour_category,
     'min_limit', u.min_limit,
     'supervisor',u.supervisor,
     'max_limit', u.max_limit,
@@ -353,6 +355,11 @@ JSON_OBJECT(
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
         FROM hierarchies h
         WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+    ),
+    'associate_labour_category', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
+        FROM labour_category l
+        WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
     ),
    'work_location_ids', (
     SELECT COALESCE(
