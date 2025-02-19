@@ -16,6 +16,7 @@ interface HierarchyItem {
   default_currency: any;
   default_language: any;
   is_hide_candidate_img: any;
+  is_vendor_neutral_program: any;
   default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
@@ -27,7 +28,7 @@ interface HierarchyItem {
   modified_on: number;
   code: string;
   program_id: string;
-  is_vendor_neutral_program:any;
+  
 }
 export const getHierarchiesByProgram = async (
   request: FastifyRequest<{
