@@ -461,7 +461,8 @@ WITH RECURSIVE hierarchy_cte AS (
     h.is_hide_candidate_img,
     h.default_language,
     h.default_currency,
-    h.default_time_format
+    h.default_time_format,
+    h.is_vendor_neutral_program
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -485,7 +486,8 @@ WITH RECURSIVE hierarchy_cte AS (
     h.is_hide_candidate_img,
     h.default_language,
     h.default_currency,
-    h.default_time_format
+    h.default_time_format,
+    h.is_vendor_neutral_program
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false AND h.is_enabled = true
@@ -511,6 +513,7 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.is_vendor_neutral_program,
     h.is_not_editable,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
