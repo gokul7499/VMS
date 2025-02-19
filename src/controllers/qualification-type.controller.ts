@@ -330,7 +330,7 @@ export async function getQualificationValueMaster(
       searchConditions.qualification_type_slug= query.qualification_type;
     }
     if (query.name) {
-      searchConditions.name= query.name;
+      searchConditions.name = { [Op.like]: `%${query.name}%` };
     }
     if(query.type){
       searchConditions.type=query.type;
