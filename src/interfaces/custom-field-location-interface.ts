@@ -6,3 +6,25 @@ export interface CustomFieldLocationInterface {
     is_enabled: boolean;
     is_deleted?: boolean;
 }
+
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+      program_id: { type: 'string' },
+      id: { type: 'string' }
+    },
+      required: ['program_id']
+  };
+
+export const createCustomFieldLocations = {
+    type: 'object',
+    properties: {
+        id: { type: 'string' },
+        program_id: { type: 'string' },
+        custom_field_id: { type: 'string' },
+        location_id: { type: 'string' },
+        is_enabled: { type: 'boolean' },
+        is_deleted: { type: 'boolean' }
+    },
+   
+};
