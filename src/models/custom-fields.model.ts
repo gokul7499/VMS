@@ -77,7 +77,7 @@ CustomField.init(
     },
     is_all_work_location: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
     },
     is_all_hierarchy: {
       type: DataTypes.BOOLEAN,
