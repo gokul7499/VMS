@@ -794,7 +794,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 trace_id: traceId,
                 message: 'Rate configurations fetched successfully.',
                 rate_configurations: [{
-                    name: standardBaseRate[0].name,
+                    name: null,
                     is_shift_rate: false,
                     hierarchies: hierarchyDetails,
                     rate_configurations: rateConfigurations
