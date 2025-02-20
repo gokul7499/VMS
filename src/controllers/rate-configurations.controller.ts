@@ -679,7 +679,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
 
         if (!rateConfigurations.length) {
             const standardBaseRate = await rateType.findAll({
-                where: { is_base_rate: true, program_id, is_enabled: true, is_deleted: false },
+                where: { is_base_rate: true, program_id, is_enabled: true, is_deleted: false, is_shift_rate },
                 attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
                 order: [['created_on', 'ASC']]
             });
