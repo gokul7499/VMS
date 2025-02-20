@@ -463,3 +463,45 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
 }
 
 
+export const getQualificationById = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id, program_id } = request.params as { id: string, program_id: string };
+  const traceId=generateCustomUUID();
+  if (!program_id) {
+    reply.status(400).send({
+      status_code: 400,
+      message: 'Program Id is required',
+      trace_id: traceId,
+    });
+    return;
+  }
+
+  try {
+    const qualificationData = await Qualifications.findOne({
+      where: { id, program_id },
+      // attributes: ['id', 'name', 'code', 'description', 'is_enabled', "type"],
+    });
+
+    if (qualificationData) {
+      reply.status(200).send({
+        status_code: 200,
+        message: 'Qualification  retrieved successfully',
+        data: qualificationData,
+        trace_id: traceId,
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: 'Qualification  not found',
+        trace_id: traceId,
+        data: []
+      });
+    }
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: (error as Error).message,
+    });
+  }
+};
