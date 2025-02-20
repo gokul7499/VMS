@@ -72,6 +72,10 @@ Programs.init(
       type: DataTypes.DOUBLE,
       allowNull: false,
     },
+    industry: {
+      type: DataTypes.STRING,
+      allowNull:true,
+    },
     is_activated: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
