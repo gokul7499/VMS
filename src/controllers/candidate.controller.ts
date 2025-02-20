@@ -358,7 +358,7 @@ export async function getCandidateByIdAndProgramId(
                 status_code: 200,
                 trace_id: traceId,
                 message: "Candidate not found!",
-                candidate:[]
+                candidate: []
 
             });
         }
@@ -432,8 +432,8 @@ export async function getCandidateByIdAndProgramId(
                 item.qulifications = [];
             }
         });
-      const workerClassification=await getSubmissionCandidate(program_id,id,token)
-       return reply.status(200).send({
+        const workerClassification = await getSubmissionCandidate(program_id, id, token)
+        return reply.status(200).send({
             status_code: 200,
             message: "Candidate fetched successfully",
             candidate: {
@@ -474,7 +474,7 @@ export async function updateCandidateByIdAndProgramId(
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId }, {
+        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId, modified_on: Date.now() }, {
             where: {
                 program_id,
                 id,
