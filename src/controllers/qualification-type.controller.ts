@@ -485,7 +485,7 @@ export const getQualificationById = async (request: FastifyRequest, reply: Fasti
       reply.status(200).send({
         status_code: 200,
         message: 'Qualification  retrieved successfully',
-        qualification: qualificationData,
+        data: qualificationData,
         trace_id: traceId,
       });
     } else {
@@ -493,7 +493,7 @@ export const getQualificationById = async (request: FastifyRequest, reply: Fasti
         status_code: 200,
         message: 'Qualification  not found',
         trace_id: traceId,
-        qualificationType: []
+        data: []
       });
     }
   } catch (error) {
