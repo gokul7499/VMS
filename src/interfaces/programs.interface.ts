@@ -10,6 +10,7 @@ export interface CreateProgramData {
   client_id: string;
   msp_id: string;
   start_date: string;
+  industry?: string;
   is_enabled?: boolean;
   ref_id?: string;
   decoration?: any;
