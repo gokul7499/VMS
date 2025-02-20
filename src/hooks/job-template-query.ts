@@ -351,15 +351,16 @@ async getAllJobTemplateByHierarchy(
                 'default_timezone', primary_hierarchy.default_timezone
             ) AS primary_hierarchy,
             COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'custom_field_id', job_template_custom_field.custom_field_id,
-                        'value', job_template_custom_field.value
-                    )
-                )
-                FROM job_template_custom_field
-                WHERE job_template_custom_field.job_temp_id = job_templates.id
-            ), JSON_ARRAY()) AS job_template_custom_fields,
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'custom_field_id', job_template_custom_field.custom_field_id,
+            'value', JSON_UNQUOTE(job_template_custom_field.value)
+        )
+    )
+    FROM job_template_custom_field
+    WHERE job_template_custom_field.job_temp_id = job_templates.id
+), JSON_ARRAY()) AS job_template_custom_fields,
+
             COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
