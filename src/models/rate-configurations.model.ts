@@ -60,11 +60,9 @@ RateConfigurationsModel.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
         },
         modified_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
         },
     },
     {
