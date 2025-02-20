@@ -7,7 +7,8 @@ import {
   deleteQualificationTypes,
   getQualificationValueMaster,
   createQualificationsInBulk,
-  getQualificationById
+  getQualificationById,
+  updateQualificationById
 } from "../controllers/qualification-type.controller";
 
 async function qualificationTypeRouter(fastify: FastifyInstance) {
@@ -19,7 +20,7 @@ async function qualificationTypeRouter(fastify: FastifyInstance) {
   fastify.get('/qualification-value', getQualificationValueMaster);
   fastify.post('/program/:program_id/qualifications-data-import', createQualificationsInBulk);
   fastify.get('/program/:program_id/qualification/:id', getQualificationById);
-
+  fastify.put('/program/:program_id/qualification/:id', updateQualificationById);
 }
 
 export default qualificationTypeRouter;
