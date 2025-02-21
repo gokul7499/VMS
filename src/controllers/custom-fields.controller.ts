@@ -292,6 +292,7 @@ export async function getAllCustomFields(
         "name",
         "is_enabled",
         "modified_on",
+        "created_on",
         "module_id",
         "module_name",
         "field_type",

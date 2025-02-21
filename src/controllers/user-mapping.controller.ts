@@ -346,18 +346,22 @@ JSON_OBJECT(
     'addresses', u.addresses,
     'associate_job_type',u.associate_job_type,
     'is_all_job_type_associate',u.is_all_job_type_associate,
-  'countries', (
+'countries', (
     SELECT JSON_OBJECT(
         'id', IFNULL(c.id, ''),
         'name', IFNULL(c.name, '')
     )
     FROM countries c
-    WHERE JSON_CONTAINS(
-        JSON_EXTRACT(u.addresses, '$[*].country'), 
-        JSON_QUOTE(c.id)
+    WHERE c.id = u.country_id 
+    OR (
+        u.country_id IS NULL AND JSON_CONTAINS(
+            JSON_EXTRACT(u.addresses, '$[*].country'), 
+            JSON_QUOTE(c.id)
+        )
     )
     LIMIT 1
 ),
+
 
     'contacts', u.contacts,
     'modified_by', u.modified_by,
@@ -398,6 +402,7 @@ JSON_OBJECT(
 ) AS user
 FROM user_mappings um
 LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
+LEFT JOIN countries ON u.country_id=countries.id
 LEFT JOIN tenant t ON u.tenant_id = t.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
 LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
