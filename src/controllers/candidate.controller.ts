@@ -192,12 +192,12 @@ export async function getAllCandidate(
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
-        let order: [string, string][] = [["createdAt", "DESC"]];
+        let order: [string, string][] = [["modified_on", "DESC"]];
 
         if (sort === "asc") {
-            order = [["createdAt", "ASC"]];
+            order = [["modified_on", "ASC"]];
         } else if (sort === "desc") {
-            order = [["createdAt", "DESC"]];
+            order = [["modified_on", "DESC"]];
         }
 
         const whereClause: any = {
