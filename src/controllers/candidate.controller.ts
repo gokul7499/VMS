@@ -397,11 +397,11 @@ export async function getCandidateByIdAndProgramId(
         const qualificationTypeIds: string[] = [];
 
         qualificationsData.forEach((item: any) => {
-            if (item.qulifications && Array.isArray(item.qulifications)) {
-                qualificationIds.push(...item.qulifications.map((q: any) => q.id));
+            if (item.qualifications && Array.isArray(item.qualifications)) {
+                qualificationIds.push(...item.qualifications.map((q: any) => q.id));
             }
-            if (item.qulification_type_id) {
-                qualificationTypeIds.push(item.qulification_type_id);
+            if (item.qualification_type_id) {
+                qualificationTypeIds.push(item.qualification_type_id);
             }
         });
 
@@ -420,26 +420,26 @@ export async function getCandidateByIdAndProgramId(
             : [];
 
         qualificationsData.forEach((item: any) => {
-            const typeMatch = qualificationTypes.find((type: any) => type.id === item.qulification_type_id);
-            item.qulification_type_name = typeMatch ? typeMatch.name : null;
+            const typeMatch = qualificationTypes.find((type: any) => type.id === item.qualification_type_id);
+            item.qualification_type_name = typeMatch ? typeMatch.name : null;
 
-            if (item.qulifications && Array.isArray(item.qulifications)) {
-                item.qulifications = item.qulifications.map((q: any) => {
+            if (item.qualifications && Array.isArray(item.qualifications)) {
+                item.qualifications = item.qualifications.map((q: any) => {
                     const match = qualifications.find((qual: any) => qual.id === q.id);
                     return { ...q, name: match ? match.name : null };
                 });
             } else {
-                item.qulifications = [];
+                item.qualifications = [];
             }
         });
-        const workerClassification = await getSubmissionCandidate(program_id, id, token)
+        // const workerClassification = await getSubmissionCandidate(program_id, id, token)
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate fetched successfully",
             candidate: {
                 ...candidateData,
                 qualifications: qualificationsData,
-                worker_classification: workerClassification.submission_candidate.worker_classification,
+                // worker_classification: workerClassification.submission_candidate.worker_classification,
             },
             trace_id: traceId,
         });
@@ -453,7 +453,6 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
-
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
