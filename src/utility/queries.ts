@@ -1842,7 +1842,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.created_on DESC
+    ORDER BY rc.modified_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
