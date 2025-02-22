@@ -1,6 +1,8 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
+import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 class TimesheetExpenseRuleGroup extends Model {
     id: any;
@@ -48,13 +50,9 @@ TimesheetExpenseRuleGroup.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            allowNull: false,
-            defaultValue: Date.now(),
         },
         modified_on: {
             type: DataTypes.DOUBLE,
-            allowNull: false,
-            defaultValue: Date.now(),
         },
         created_by: {
             type: DataTypes.UUID,
@@ -69,6 +67,14 @@ TimesheetExpenseRuleGroup.init(
         sequelize,
         modelName: 'TimesheetExpenseRuleGroup',
         tableName: 'timesheet_expense_rule_groups',
+        hooks: {
+            beforeValidate: (instance) => {
+                convertEmptyStringsToNull(instance);
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
+        },
     }
 );
 TimesheetExpenseRuleGroup.belongsTo(Programs, {

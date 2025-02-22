@@ -39,9 +39,6 @@ export interface GetQueryInterface {
   program_id?: string;
 }
 
-
-
-
 export const paramsSchema = {
   type: 'object',
   properties: {
@@ -66,14 +63,13 @@ const getQuerySchema = {
     slug: { type: "string" },
     program_id: { type: "string" },
   },
-
 };
 
 export const createCustomFieldsSchema = {
   type: 'object',
   properties: {
-     can_view_vendor: { type: 'array', items: { type: 'string' } },
-     can_edit_vendor: { type: 'array', items: { type: 'string' }},
+    can_view_vendor: { type: 'array', items: { type: 'string' } },
+    can_edit_vendor: { type: 'array', items: { type: 'string' } },
     program_id: { type: 'string' },
     module_name: { type: 'string' },
     module_id: { type: 'string' },
@@ -104,9 +100,8 @@ export const createCustomFieldsSchema = {
           type: 'object',
           properties: {
             is_multi_select: { type: 'boolean' },
-            options: { type: 'array', items: { type: 'string' } }
+            options: { type: 'array' }
           },
-
         },
         depends_on: {
           type: 'object',
@@ -114,10 +109,8 @@ export const createCustomFieldsSchema = {
             action: { type: 'string' },
             conditions: { type: 'array', items: { type: 'object' } }
           },
-
         }
       },
-
     },
     linked_modules: {
       type: 'array',
@@ -130,10 +123,8 @@ export const createCustomFieldsSchema = {
           can_view: { type: ['string', 'null'] },
           can_edit: { type: ['string', 'null'] }
         },
-
       }
     }
   },
-
 };
 
