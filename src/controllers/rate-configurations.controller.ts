@@ -795,7 +795,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 message: 'Rate configurations fetched successfully.',
                 rate_configurations: [{
                     name: null,
-                    is_shift_rate: false,
+                    is_shift_rate: is_shift_rate,
                     hierarchies: hierarchyDetails,
                     rate_configurations: rateConfigurations
                 }],
