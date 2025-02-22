@@ -289,10 +289,35 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
+      const existingCandidate = await candidateModel.findOne({
+        where: {
+          email: user.email,
+          vendor_id: user.vendor_id, 
+          is_deleted: false,
+        },
+        transaction,
+      });
+    
+      if (existingCandidate) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Candidate with the same email and vendor already exists!",
+          trace_id: traceId,
+        });
+      }
+    
       const candidateId = await CandidateCodeGenerate(user.tenant_id, program_id);
-
-      await candidateModel.create({ ...userWithoutId, user_id: user.id, candidate_id: candidateId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
-    } else if (userType === "vendor") {
+    
+      await candidateModel.create({
+        ...userWithoutId,
+        user_id: user.id,
+        candidate_id: candidateId,
+        user_type: userType,
+        created_by: userId,
+        modified_by: userId,
+      }, { transaction });
+    }else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
