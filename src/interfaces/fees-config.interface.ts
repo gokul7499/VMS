@@ -40,7 +40,7 @@ export const feesConfigurationSchema = {
     title: { type: 'string' },
     hierarchy_levels: { type: 'array' },
     source_model: { type: 'array' },
-    labor_category: { type: 'string' },
+    labor_category: { type: 'array' },
     vendors: { type: 'array' },
     effective_date: { type: 'string' },
     funding_model: { type: 'string' },
