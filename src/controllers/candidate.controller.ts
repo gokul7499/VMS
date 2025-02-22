@@ -609,8 +609,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
-    const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
-
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
@@ -710,7 +708,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             ],
             limit: limitNum,
             offset,
-            order
+            order: [['modified_on', 'DESC']] 
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
