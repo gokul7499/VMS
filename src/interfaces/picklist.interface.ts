@@ -89,7 +89,6 @@ export const querySchema = {
 
 export const createPicklistSchema = {
   type: 'object',
-  required: ['name'],
   properties: {
     name: { type: 'string' },
     description: { type: 'string' },
