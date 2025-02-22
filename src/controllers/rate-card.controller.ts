@@ -364,12 +364,28 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         );
 
         if (decision_table && Array.isArray(decision_table)) {
-            await DecisionTable.destroy({
-                where: { rate_card_id: id },
-                transaction,
-            });
-
             for (const dt of decision_table) {
+                const existingEntry = await DecisionTable.findOne({
+                    where: {
+                        rate_card_id: id,
+                        hierarchy_id: dt.hierarchy_id === "ALL" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "ALL" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "ALL" ? null : dt.rate_type_id,
+                        currency: dt.currency === "ALL" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "ALL" ? null : dt.unit_of_measure,
+                    },
+                    transaction,
+                });
+
+                if (existingEntry) {
+                    await transaction.rollback();
+                    return reply.status(200).send({
+                        status_code: 200,
+                        message: "Decision table entry already exists.",
+                        trace_id: traceId,
+                    });
+                }
+
                 await DecisionTable.create(
                     {
                         id: dt.id,
@@ -404,6 +420,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
+
 
 export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
