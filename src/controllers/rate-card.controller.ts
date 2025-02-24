@@ -72,7 +72,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             page?: number;
             limit?: number;
             modified_on?: string;
-            is_enabled?: String;
+            is_enabled?: string;
             name?: string;
         };
 
@@ -203,11 +203,11 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                 decision_table: relatedDecisionTables.map((dt) => ({
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "ALL", name: "All" },
-                    job_template: dt.job_template || { id: "ALL", template_name: "All" },
-                    rate_type: dt.rate_type || { id: "ALL", name: "All" },
-                    currency: dt.currency || { id: "ALL", name: "All", label: "ALL", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "ALL",
+                    hierarchy: dt.hierarchy || { id: "any", name: "any" },
+                    job_template: dt.job_template || { id: "any", template_name: "any" },
+                    rate_type: dt.rate_type || { id: "any", name: "any" },
+                    currency: dt.currency || { id: "any", name: "any", label: "any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure || "any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
@@ -290,11 +290,11 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                 return {
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "ALL", name: "All" },
-                    job_template: dt.job_template || { id: "ALL", template_name: "All" },
-                    rate_type: dt.rate_type || { id: "ALL", name: "All" },
-                    currency: currencyDetails || { id: "ALL", name: "All", label: "ALL", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "ALL",
+                    hierarchy: dt.hierarchy || { id: "any", name: "any" },
+                    job_template: dt.job_template || { id: "any", template_name: "any" },
+                    rate_type: dt.rate_type || { id: "any", name: "any" },
+                    currency: currencyDetails || { id: "any", name: "any", label: "any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure || "any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
