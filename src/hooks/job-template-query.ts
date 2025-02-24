@@ -79,7 +79,7 @@ class JobTempletRepository {
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
       ${jobTypeCondition}
-      AND job_templates.job_submitted_count > 1
+      AND job_templates.job_submitted_count >=0
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
       ${paginationCondition};

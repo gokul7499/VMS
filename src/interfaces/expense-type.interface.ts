@@ -42,7 +42,6 @@ export const querySchema = {
 
 export const createExpenseTypeSchema = {
     type: 'object',
-    required: ['name', 'category', 'code'],
     properties: {
         name: { type: 'string' },
         category: { type: 'string' },
@@ -52,8 +51,8 @@ export const createExpenseTypeSchema = {
             type: 'object',
             properties: {
                 unitType: { type: 'string' },
-                rate: { type: 'number' },
-                max_limit: { type: 'number' }
+                rate: { type: 'string' },
+                max_limit: { type: 'string' }
             }
         },
         is_mandatory_attachment: { type: 'boolean' },

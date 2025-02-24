@@ -239,7 +239,7 @@ export async function getAllCandidate(
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id', "contacts",
                 'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
@@ -281,7 +281,8 @@ export async function getAllCandidate(
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
-                do_not_rehire: cand.do_not_rehire
+                do_not_rehire: cand.do_not_rehire,
+                phone_number: cand.contacts[0]?.number
             };
         });
 
@@ -608,8 +609,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
-    const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
-
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
@@ -704,12 +703,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id',
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
                 'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order
+            order: [['modified_on', 'DESC']] 
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
@@ -747,7 +746,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
-                do_not_rehire: cand.do_not_rehire
+                do_not_rehire: cand.do_not_rehire,
+                phone_number: cand.contacts[0]?.number
             };
         });
 

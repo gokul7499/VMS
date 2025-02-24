@@ -323,7 +323,7 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id,title:user.title }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
@@ -393,7 +393,6 @@ export async function saveProgramVendor(
     }
 };
 
-
 export const updateProgramVendor = async (
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
@@ -424,43 +423,30 @@ export const updateProgramVendor = async (
             });
         }
 
-        await existingProgramVendor.update(programVendorData);
+        await existingProgramVendor.update({ ...programVendorData, modified_by: userId, modified_on: Date.now() });
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
-            const incomingMarkupIds = programVendorData.markup_config
-                .map(markup => markup.id)
-                .filter(id => id !== null && id !== "null");
 
             await vendorMarkupConfig.destroy({
                 where: {
+                    program_id,
                     program_vendor_id: existingProgramVendor.id,
-                    id: { [Op.notIn]: incomingMarkupIds },
                 },
             });
 
             for (const markup of programVendorData.markup_config) {
-                if (markup.id && markup.id !== null && markup.id !== "null") {
-                    await vendorMarkupConfig.update(
-                        {
-                            ...(markup.rate_model && { rate_model: markup.rate_model }),
-                            ...(markup.program_industry && { program_industry: markup.program_industry }),
-                            ...(markup.hierarchy && { hierarchy: markup.hierarchy }),
-                            ...(markup.work_locations && { work_locations: markup.work_locations }),
-                            ...(markup.sliding_scale !== undefined && { sliding_scale: markup.sliding_scale }),
-                            ...(markup.markups && { markups: markup.markups }),
-                            is_all_hierarchy: markup.is_all_hierarchy ? 1 : 0,
-                            is_all_work_locations: markup.is_all_work_locations ? 1 : 0,
-                            is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
-                        },
-                        {
-                            where: {
-                                id: markup.id, program_vendor_id: existingProgramVendor.id, created_by: userId,
-                                modified_by: userId,
-                            },
-                        }
-                    );
-                } else if (markup.id === null || markup.id === "null") {
-                    const { id, ...markupData } = markup;
+                const { id, ...markupData } = markup;
+                const existingRecord = await vendorMarkupConfig.findOne({
+                    where: {
+                        program_id,
+                        program_vendor_id: existingProgramVendor.id,
+                        hierarchy: markup.hierarchy,
+                        rate_model: markup.rate_model,
+                        program_industry: markup.program_industry,
+                        work_locations: markup.work_locations,
+                    },
+                });
+                if (!existingRecord) {
                     await vendorMarkupConfig.create({
                         ...markupData,
                         program_vendor_id: existingProgramVendor.id,
@@ -470,7 +456,11 @@ export const updateProgramVendor = async (
                         is_all_hierarchy: markup.is_all_hierarchy ? 1 : 0,
                         is_all_work_locations: markup.is_all_work_locations ? 1 : 0,
                         is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
+                        created_by: userId,
+                        modified_by: userId
                     });
+                } else {
+                    throw new Error("A record with the same markup already exists.");
                 }
             }
         }
