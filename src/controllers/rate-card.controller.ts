@@ -379,8 +379,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
 
                 if (existingEntry) {
                     await transaction.rollback();
-                    return reply.status(404).send({
-                        status_code: 404,
+                    return reply.status(400).send({
+                        status_code: 400,
                         message: "Decision table entry already exists.",
                         trace_id: traceId,
                     });
