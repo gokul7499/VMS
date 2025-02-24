@@ -34,7 +34,6 @@ export const querySchema = {
 };
 export const feesConfigurationSchema = {
   type: 'object',
-  required: ['title'],
   properties: {
     program_id: { type: 'string' },
     title: { type: 'string' },
