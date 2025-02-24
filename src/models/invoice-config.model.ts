@@ -25,7 +25,7 @@ InvoiceConfigModel.init(
         uuid: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
-            allowNull: false,    
+            allowNull: false,
         },
         program_id: {
             type: DataTypes.UUID,
@@ -92,7 +92,7 @@ InvoiceConfigModel.init(
             allowNull: true,
         },
         rollup_group: {
-            type: DataTypes.ENUM('hierarchy', 'vendor', 'program'),
+            type: DataTypes.ENUM('hierarchy', 'vendor', 'program', 'hierarchy_vendor'),
             allowNull: true,
         },
         consolidated_start_number: {
@@ -203,7 +203,7 @@ InvoiceConfigModel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        is_enabled:{
+        is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         }
