@@ -99,7 +99,7 @@ export async function getProgramVendors(
             where: filters,
             limit,
             offset,
-            order: [['created_on', 'DESC']],
+            order: [['modified_on', 'DESC']],
         };
 
         if (!user_id) {
