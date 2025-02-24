@@ -368,11 +368,11 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 const existingEntry = await DecisionTable.findOne({
                     where: {
                         rate_card_id: id,
-                        hierarchy_id: dt.hierarchy_id === "ALL" ? null : dt.hierarchy_id,
-                        job_template_id: dt.job_template_id === "ALL" ? null : dt.job_template_id,
-                        rate_type_id: dt.rate_type_id === "ALL" ? null : dt.rate_type_id,
-                        currency: dt.currency === "ALL" ? null : dt.currency,
-                        unit_of_measure: dt.unit_of_measure === "ALL" ? null : dt.unit_of_measure,
+                        hierarchy_id: dt.hierarchy_id === "any" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "any" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "any" ? null : dt.rate_type_id,
+                        currency: dt.currency === "any" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                     },
                     transaction,
                 });
@@ -390,11 +390,11 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                     {
                         id: dt.id,
                         rate_card_id: id,
-                        hierarchy_id: dt.hierarchy_id === "ALL" ? null : dt.hierarchy_id,
-                        job_template_id: dt.job_template_id === "ALL" ? null : dt.job_template_id,
-                        rate_type_id: dt.rate_type_id === "ALL" ? null : dt.rate_type_id,
-                        currency: dt.currency === "ALL" ? null : dt.currency,
-                        unit_of_measure: dt.unit_of_measure === "ALL" ? null : dt.unit_of_measure,
+                        hierarchy_id: dt.hierarchy_id === "any" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "any" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "any" ? null : dt.rate_type_id,
+                        currency: dt.currency === "any" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
                         created_on: dt.created_on,
