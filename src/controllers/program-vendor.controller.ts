@@ -17,6 +17,8 @@ import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
+    audited_on: any;
+    audited_by: any;
     expiry_on: any;
     url: any;
     file_name: any;
@@ -831,7 +833,8 @@ export const getVendorDocuments = async (
                 no_of_days: doc.no_of_days,
                 uploaded_document: {
                     expiry_on: doc.expiry_on,
-                    audited_by: doc.uploaded_document ? doc.uploaded_document.audited_by : "--",
+                    audited_by: doc.audited_by,
+                    audited_on: doc.audited_on,
                     next_expiry_on: doc.next_expiry_on,
                     status: doc.status,
                     file_name: doc.file_name,
@@ -950,10 +953,10 @@ export async function updateComplianceDocument(
 
         const audited_by = await getAuditedBy(user, program_id);
 
-        if (complianceDocumentUpdate) {
-            complianceDocumentUpdate.uploaded_document.audited_by = audited_by;
-            complianceDocumentUpdate.uploaded_document.audited_on = new Date();
-        }
+        // if (complianceDocumentUpdate) {
+        //     complianceDocumentUpdate.uploaded_document.audited_by = audited_by;
+        //     complianceDocumentUpdate.uploaded_document.audited_on = new Date();
+        // }
 
         await VendorComplianceReqDocMappingModel.destroy({
             where: { vendor_id: vendorId, program_id, required_document_id: document_id }
@@ -971,6 +974,8 @@ export async function updateComplianceDocument(
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
                 expiry_on: uploadedDocument.expiry_on,
+                audited_on: Date.now(),
+                audited_by: audited_by,
                 created_by: user_id,
                 modified_by: user_id,
                 status: uploadedDocument.status,
@@ -1041,14 +1046,14 @@ function calculateNextUpdateDueDate(expiryDate: Date, upload_document_days: numb
 }
 
 async function getAuditedBy(user: any, program_id: string) {
-    const userData = await UserModel.findAll({
-        where: { program_id, id: user.sub }
+    const userData = await UserModel.findOne({
+        where: { program_id, user_id: user.sub }
     });
 
-    if (userData.length > 0 && (userData[0]?.user_type?.toLowerCase() === 'vendor')) {
+    if (userData?.user_type?.toLowerCase() === 'vendor') {
         return "--";
     }
-    return user.preferred_username;
+    return user.sub;
 }
 
 export async function getComplianceDocument(
