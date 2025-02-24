@@ -42,7 +42,6 @@ export const querySchema = {
 
 export const createExpenseTypeSchema = {
     type: 'object',
-    required: ['name', 'category', 'code'],
     properties: {
         name: { type: 'string' },
         category: { type: 'string' },
