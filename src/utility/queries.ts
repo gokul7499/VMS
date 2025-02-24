@@ -199,6 +199,8 @@ export const complianceDocumentGetByUserId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.audited_by,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -227,10 +229,11 @@ export const complianceDocumentGetByUserId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
         vcd.upload_document_days, vcd.attached_doc_url,
         vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.vendor_name, vcrm.next_expiry_on  -- Add next_expiry_on in GROUP BY
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
+        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
     LIMIT :limit OFFSET :offset
 `;
 
@@ -254,6 +257,8 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.audited_by,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -299,6 +304,8 @@ export const complianceDocumentGetByVendorId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.audited_by,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -327,10 +334,10 @@ export const complianceDocumentGetByVendorId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
         vcd.upload_document_days, vcd.attached_doc_url,
-        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.vendor_name, vcrm.next_expiry_on  -- Add next_expiry_on in GROUP BY
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
+        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
     LIMIT :limit OFFSET :offset
 `;
 
@@ -368,7 +375,8 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
-        vcd.uploaded_document,
+        vcrm.audited_on, 
+        vcrm.audited_by,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
