@@ -200,6 +200,7 @@ export const complianceDocumentGetByUserId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
+        vcrm.compliance_note,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -232,7 +233,7 @@ export const complianceDocumentGetByUserId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
@@ -261,6 +262,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
+        vcrm.compliance_note,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -311,6 +313,7 @@ export const complianceDocumentGetByVendorId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
+        vcrm.compliance_note,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -343,7 +346,7 @@ export const complianceDocumentGetByVendorId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
@@ -385,6 +388,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on, 
+        vcrm.compliance_note,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
