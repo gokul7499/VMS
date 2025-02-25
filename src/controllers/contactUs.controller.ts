@@ -61,7 +61,7 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                         from_email,
                         from_name: `${first_name} ${last_name}`,
                         url: URL,
-                        message:message,
+                        message: message,
                     },
                     userId: user.sub ?? "",
                 };
@@ -134,7 +134,7 @@ async function getUserDetails(userId: string, traceId: string) {
         FROM 
             user u
         WHERE 
-            u.id = :userId
+            u.user_id = :userId
         `,
         {
             replacements: { userId },
