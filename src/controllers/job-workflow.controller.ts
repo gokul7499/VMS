@@ -767,9 +767,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
                 user_type: user.userType,
-                fullName: managerData.data.first_name,
-                job_id: updates[0].job_id,
-                job_name: workflow.event_title
+                fullName: managerData.data?.first_name,
+                job_id: updates?.[0]?.job_id,
+                job_name: workflow?.event_title
             };
             const recipientEmailArray: EmailRecipient[] = [];
 
