@@ -280,6 +280,8 @@ async getAllJobTemplateByHierarchy(
         job_templates.is_shift_rate,
         job_templates.is_checklist_enable,
         job_templates.ot_exempt,
+        job_templates.created_on,
+        job_templates.modified_on,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -306,7 +308,7 @@ async getAllJobTemplateByHierarchy(
         AND job_templates.is_deleted = false
         ${dynamicConditions}
       ORDER BY
-        job_templates.created_on DESC
+        job_templates.modified_on DESC
       LIMIT :limit OFFSET :offset;
     `;
 
