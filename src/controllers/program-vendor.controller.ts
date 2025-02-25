@@ -17,6 +17,8 @@ import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 interface VendorDetails {
+    last_name: any;
+    first_name: any;
     audited_on: any;
     audited_by: any;
     expiry_on: any;
@@ -833,12 +835,13 @@ export const getVendorDocuments = async (
                 no_of_days: doc.no_of_days,
                 uploaded_document: {
                     expiry_on: doc.expiry_on,
-                    audited_by: doc.audited_by,
                     audited_on: doc.audited_on,
                     next_expiry_on: doc.next_expiry_on,
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
+                    first_name: doc.first_name,
+                    last_name: doc.last_name
                 },
                 work_location: doc.work_location,
                 vendor_name: doc.display_name,
@@ -952,11 +955,10 @@ export async function updateComplianceDocument(
         const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
 
         const audited_by = await getAuditedBy(user, program_id);
+        const audited_on = Date.now();
 
-        // if (complianceDocumentUpdate) {
-        //     complianceDocumentUpdate.uploaded_document.audited_by = audited_by;
-        //     complianceDocumentUpdate.uploaded_document.audited_on = new Date();
-        // }
+        const finalAudited_by = complianceDocumentUpdate.name ? audited_by : null;
+        const finalAudited_on = complianceDocumentUpdate.name ? audited_on : null;
 
         await VendorComplianceReqDocMappingModel.destroy({
             where: { vendor_id: vendorId, program_id, required_document_id: document_id }
@@ -974,8 +976,8 @@ export async function updateComplianceDocument(
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
                 expiry_on: uploadedDocument.expiry_on,
-                audited_on: Date.now(),
-                audited_by: audited_by,
+                audited_on: finalAudited_on,
+                audited_by: finalAudited_by,
                 created_by: user_id,
                 modified_by: user_id,
                 status: uploadedDocument.status,
