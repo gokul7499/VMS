@@ -29,56 +29,51 @@ class CandidateRepository {
         if (replacements.worker_type_id) whereClause += ` AND c.worker_type_id = :worker_type_id`;
 
         const query = `
-            SELECT 
-                c.id, 
-                c.first_name, 
-                c.middle_name, 
-                c.last_name, 
-                c.is_active, 
-                c.name, 
-                c.email, 
-                c.program_id, 
-                c.candidate_id, 
-                c.preferences, 
-                c.worker_type_id, 
-                c.title, 
-                c.birth_date, 
-                c.modified_on, 
-                c.state_national_id, 
-                c.do_not_rehire_notes, 
-                c.do_not_rehire_reason, 
-                c.do_not_rehire,
-                JSON_OBJECT(
-                    'id', v.id,
-                    'tenant_id', v.tenant_id,  -- Use tenant_id from the subquery
-                    'vendor_name', v.max_vendor_name,
-                    'display_name', v.max_display_name                
-                ) AS vendor
-            FROM 
-                candidates c
-            LEFT JOIN (
-                SELECT 
-                    id,
-                    tenant_id, 
-                    MAX(vendor_name) AS max_vendor_name,
-                    MAX(display_name) AS max_display_name
-                FROM 
-                    program_vendors
-                GROUP BY 
-                    id, tenant_id  -- Include id in GROUP BY
-            ) v 
-            ON 
-                c.vendor_id = v.tenant_id -- Join vendor_id to tenant_id
-            ${whereClause}
-            ORDER BY 
-                c.modified_on DESC
-            LIMIT :limit OFFSET :offset;
+        SELECT DISTINCT
+        c.id, 
+        c.first_name, 
+        c.middle_name, 
+        c.last_name, 
+        c.is_active, 
+        c.name, 
+        c.email, 
+        c.program_id, 
+        c.candidate_id, 
+        c.preferences, 
+        c.worker_type_id, 
+        c.title, 
+        c.birth_date, 
+        c.modified_on, 
+        c.state_national_id, 
+        c.do_not_rehire_notes, 
+        c.do_not_rehire_reason, 
+        c.do_not_rehire,
+        JSON_OBJECT(
+            'id', v.id,  
+            'tenant_id', v.tenant_id,   
+            'vendor_name', v.max_vendor_name,
+            'display_name', v.max_display_name                
+        ) AS vendor
+        FROM candidates c
+        LEFT JOIN (
+        SELECT 
+            tenant_id,
+            MAX(id) AS id,
+            MAX(vendor_name) AS max_vendor_name,
+            MAX(display_name) AS max_display_name
+        FROM program_vendors
+        GROUP BY tenant_id  
+        ) v 
+        ON c.vendor_id = v.tenant_id  
+        ${whereClause}
+        ORDER BY c.modified_on DESC
+        LIMIT :limit OFFSET :offset;
         `;
 
-        const candidates = await sequelize.query(query, {
-            replacements,
-            type: QueryTypes.SELECT,
-        });
+      const candidates = await sequelize.query(query, {
+       replacements,
+       type: QueryTypes.SELECT,
+      });
 
         return { count, candidates };
     }
