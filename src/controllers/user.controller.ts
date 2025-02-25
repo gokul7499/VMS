@@ -445,7 +445,6 @@ export async function updateUser(
         user: [],
       });
     }
-    updates.modified_on = Date.now();
     updates.modified_by = userId;
     await user.update(updates);
     if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
