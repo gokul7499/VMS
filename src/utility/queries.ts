@@ -200,7 +200,9 @@ export const complianceDocumentGetByUserId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
-        vcrm.audited_by,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -221,6 +223,8 @@ export const complianceDocumentGetByUserId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by 
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -229,8 +233,8 @@ export const complianceDocumentGetByUserId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
-        vcd.upload_document_days, vcd.attached_doc_url,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
@@ -258,7 +262,9 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
-        vcrm.audited_by,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -278,6 +284,8 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by 
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -305,7 +313,9 @@ export const complianceDocumentGetByVendorId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on,
-        vcrm.audited_by,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -326,6 +336,8 @@ export const complianceDocumentGetByVendorId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by 
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -334,8 +346,8 @@ export const complianceDocumentGetByVendorId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,
-        vcd.upload_document_days, vcd.attached_doc_url,
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
     LIMIT :limit OFFSET :offset
@@ -376,7 +388,9 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.expiry_on,
         vcrm.url,
         vcrm.audited_on, 
-        vcrm.audited_by,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -397,6 +411,8 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by 
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
