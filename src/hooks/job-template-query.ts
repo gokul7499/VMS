@@ -308,7 +308,8 @@ async getAllJobTemplateByHierarchy(
         AND job_templates.is_deleted = false
         ${dynamicConditions}
       ORDER BY
-        job_templates.modified_on DESC
+        job_templates.created_on DESC,
+        job_templates.job_id DESC
       LIMIT :limit OFFSET :offset;
     `;
 
