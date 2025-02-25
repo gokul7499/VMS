@@ -8,7 +8,6 @@ import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
-import { ProgramVendor } from "../models/program-vendor.model";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers, getUserContacts, getUserPrograms } from "../utility/queries";
 import { QueryTypes } from "sequelize";
@@ -901,7 +900,7 @@ export async function getActiveUser(
       });
     }
     else {
-      const currentUser = await sequelize.models.User.findOne({
+      const currentUser = await User.findOne({
         where: { program_id, user_id: userId },
         attributes: ["associate_hierarchy_ids"],
       }) as any;

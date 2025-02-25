@@ -133,8 +133,8 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         });
 
         if (!rateCards.length) {
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 total_records: totalRecords,
                 total_pages: totalPages,
                 current_page: parsedPage,
@@ -242,8 +242,8 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
             where: { id, program_id, is_deleted: false },
         });
         if (!rateCard) {
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
@@ -342,8 +342,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
         if (!rateCard) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
@@ -379,8 +379,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
 
                 if (existingEntry) {
                     await transaction.rollback();
-                    return reply.status(200).send({
-                        status_code: 200,
+                    return reply.status(400).send({
+                        status_code: 400,
                         message: "Decision table entry already exists.",
                         trace_id: traceId,
                     });
@@ -443,8 +443,8 @@ export const deleteRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
         if (!rateCard) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
