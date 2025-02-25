@@ -30,6 +30,8 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                 traceId,
             };
         }
+        const plainMessage = stripHtmlTags(message);
+
         (async () => {
             const { from_name, from_last_name, from_email } = await getUserDetails(user.sub as string, traceId);
 
@@ -61,7 +63,7 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
                         from_email,
                         from_name: `${first_name} ${last_name}`,
                         url: URL,
-                        message: message,
+                        message: plainMessage,
                     },
                     userId: user.sub ?? "",
                 };
@@ -86,6 +88,9 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
     }
 }
 
+function stripHtmlTags(input: string): string {
+    return input.replace(/<\/?[^>]+(>|$)/g, "");
+}
 
 function validateRequestBody(body: any, traceId: string) {
     const { your_detail, support_email, subject, message } = body;
