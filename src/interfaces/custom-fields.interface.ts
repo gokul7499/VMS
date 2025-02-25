@@ -91,7 +91,7 @@ export const createCustomFieldsSchema = {
     is_required: { type: 'boolean' },
     is_readonly: { type: 'boolean' },
     is_linked: { type: 'boolean' },
-    job_type: { type: ['object', 'null'] },
+    job_type: { type: ['array', 'null'] },
     meta_data: {
       type: 'object',
       properties: {
