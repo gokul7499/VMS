@@ -56,7 +56,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
         GROUP BY
             rcc.id
         ORDER BY
@@ -115,7 +115,7 @@ export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: numb
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
     `;
 };
 

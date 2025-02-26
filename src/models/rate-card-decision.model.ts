@@ -17,7 +17,7 @@ class DecisionTable extends Model {
     min_rate: any;
     max_rate: any;
     created_on: any;
-    modified_on: any;   
+    updated_on: any;   
     id: any;
     rate_type_id: any;
 }
@@ -76,12 +76,21 @@ DecisionTable.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW,
-        },
-        modified_on: {
+            allowNull : true
+          },
+          updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW,
-        },
+            allowNull:true
+          },
+          created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+          },
+          updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+          },
+       
     },
     {
         sequelize,
