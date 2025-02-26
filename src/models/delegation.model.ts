@@ -3,7 +3,7 @@ import { Programs } from './programs.model';
 import { sequelize } from "../config/instance";
 import User from "./user.model";
 
-class Delegation extends Model {}
+class Delegation extends Model { }
 
 Delegation.init({
     id: {
@@ -139,12 +139,14 @@ Delegation.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
+   
+
 },
-{
-    sequelize,
-    tableName: 'delegation',
-    timestamps: false,
-});
+    {
+        sequelize,
+        tableName: 'delegation',
+        timestamps: false,
+    });
 
 Delegation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 
