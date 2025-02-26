@@ -99,11 +99,11 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
         const defaultConfigs = await Configuration.findAll({ transaction });
 
         const programConfigs = defaultConfigs.map((config) => {
-          const { id, created_by, modified_by, created_on, modified_on, ...configWithoutId } = config.toJSON();
+          const { id, created_by, updated_by, created_on, updated_on, ...configWithoutId } = config.toJSON();
           return {
             program_id: item.id,
             created_by: user.sub,
-            modified_by: user.sub,
+            updated_by: user.sub,
             configuration_id: id,
             ...configWithoutId,
           };
@@ -347,7 +347,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       });
     }
 
-    const updatedCount: any = await Programs.update({ ...updates, modified_by: userId }, {
+    const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
     });
     reply.status(200).send({
@@ -385,7 +385,7 @@ export async function deleteProgramById(request: FastifyRequest, reply: FastifyR
       await program.update({
         is_enabled: false,
         is_deleted: true,
-        modified_by: userId,
+        updated_by: userId,
       });
       reply.status(204).send({
         status_code: 204,

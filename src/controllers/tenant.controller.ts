@@ -285,7 +285,7 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
         }
         const userId = user?.sub;
         if (tenant) {
-            await tenant.update({...TenantData, modified_by:userId});
+            await tenant.update({...TenantData, updated_by:userId});
             reply.status(200).send({
                 status_code: 200,
                 message: 'Tenant updated successfully.',
@@ -415,7 +415,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
 }
 
 export async function advancedSearchTenants(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ["name", "display_name", "is_enabled", "modified_on", "display_name"];
+    const searchFields = ["name", "display_name", "is_enabled", "updated_on", "display_name"];
     const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
     return advanceSearch(request, reply, Tenant, searchFields, responseFields);
 }

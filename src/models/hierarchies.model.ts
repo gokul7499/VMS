@@ -34,18 +34,6 @@ Hierarchies.init(
       ),
       allowNull: true,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-    },
-    modified_by: {
-      type: DataTypes.UUID,
-    },
     code: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -110,15 +98,31 @@ Hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    is_not_editable:{
+    is_not_editable: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
-      defaultValue:false
+      defaultValue: false
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {

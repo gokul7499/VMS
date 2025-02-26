@@ -62,7 +62,7 @@ Tenant.init({
     type: DataTypes.JSON,
     allowNull: true,
   },
-  vendor_code:{
+  vendor_code: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -70,22 +70,6 @@ Tenant.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true,
-  },
-  created_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
-  modified_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  modified_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
   },
   is_deleted: {
     type: DataTypes.BOOLEAN,
@@ -99,11 +83,27 @@ Tenant.init({
   vendor_industry: {
     type: DataTypes.JSON,
     allowNull: true,
-  }
+  },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
 }, {
   sequelize,
   tableName: 'tenant',
-  timestamps: false, 
+  timestamps: false,
   hooks: {
     beforeValidate: (instance) => {
       convertEmptyStringsToNull(instance);

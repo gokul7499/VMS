@@ -16,6 +16,7 @@ import VendorComplianceDocumentModel from "../models/vendor-compliance-document.
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
+import User from "../models/user.model";
 interface VendorDetails {
     compliance_note: any;
     last_name: any;
@@ -87,7 +88,15 @@ export async function getProgramVendors(
         }
 
         if (user_id !== undefined) {
-            filters.user_id = user_id;
+            const userRecord = await User.findOne({ where: { user_id: user_id } });
+            if (!userRecord) {
+                return reply.status(404).send({
+                    status_code: 404,
+                    message: 'User not found.',
+                    trace_id: traceId,
+                });
+            }
+            filters.tenant_id = userRecord.tenant_id;
         }
 
         if (status) {
@@ -837,7 +846,7 @@ export const getVendorDocuments = async (
                 uploaded_document: {
                     expiry_on: doc.expiry_on,
                     audited_on: doc.audited_on,
-                    compliance_note:doc.compliance_note,
+                    compliance_note: doc.compliance_note,
                     next_expiry_on: doc.next_expiry_on,
                     status: doc.status,
                     file_name: doc.file_name,
