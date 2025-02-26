@@ -27,5 +27,8 @@ export interface WorkLocationInterface {
     custom_fields?: any;
     ref_id?: string;
     program_id: string;
-
+    created_on:any;
+    updated_on:any;
+    created_by :string ;
+    updated_by :string ;
 }
