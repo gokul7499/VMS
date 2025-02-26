@@ -36,11 +36,9 @@ RateType.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
     },
     modified_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
     },
     created_by: {
       type: DataTypes.CHAR(36),
@@ -94,6 +92,9 @@ RateType.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
       }
     },
   }

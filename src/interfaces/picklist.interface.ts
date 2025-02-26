@@ -69,5 +69,46 @@ export interface PicklistRow {
   value: string | null;
   item_program_id: string | null;
 }
+export const paramsSchema = {
+  type: 'object',
+  properties: {
+      program_id: { type: 'string' },
+      id: { type: 'string' }
+  },
+  required: ['program_id']
+}; 
+
+export const querySchema = {
+  type: 'object',
+  properties: {
+      search: { type: 'string' },
+      limit: { type: 'integer' },
+      offset: { type: 'integer' }
+  }
+};
+
+export const createPicklistSchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    is_enabled: { type: 'boolean' },
+    defined_by: { type: 'string' },
+    program_id: { type: 'string' },
+    multiselect: { type: 'boolean' },
+    picklist_items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          value: { type: 'string' },
+          label: { type: 'string' },
+          defined_by: { type: 'string' },
+          is_enabled: { type: 'boolean' },
+          program_id: { type: 'string' }
+        },
+      }
+    }
+  }}
 
 export default picklist;

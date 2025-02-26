@@ -50,18 +50,18 @@ CountryModel.init({
     allowNull: false,
   },
   created_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    allowNull:true,
   },
-  modified_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    allowNull:true,
   },
   created_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.CHAR(39),
     allowNull: true,
   },
-  modified_by: {
+  updated_by: {
     type: DataTypes.CHAR(36),
     allowNull: true,
   }
