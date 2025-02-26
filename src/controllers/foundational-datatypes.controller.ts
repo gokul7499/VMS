@@ -67,9 +67,9 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             ...foundationalDataPayload,
             program_id,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
             created_on: Date.now(),
-            modified_on: Date.now(),
+            updated_on: Date.now(),
         });
         reply.status(201).send({
             status_code: 201,
@@ -165,7 +165,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
         }
         const data = await foundationalDataTypes.findByPk(id);
         if (data) {
-            await data.update({ ...foundationalData, modified_on: Date.now(), modified_by: userId, });
+            await data.update({ ...foundationalData, updated_on: Date.now(), updated_by: userId, });
             reply.status(201).send({
                 status_code: 201,
                 foundational_datatype_id: id,
@@ -214,7 +214,7 @@ export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply
             });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
+        await data.update({ is_enabled: false, is_deleted: true, updated_by: userId, });
         reply.status(204).send({
             status_code: 204,
             foundational_datatype_id: id,
@@ -240,7 +240,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'modified_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations']
         });
 
         if (foundationalDataType) {
@@ -310,7 +310,7 @@ export async function getAllFoundationalDataTypes(
         'program_id',
         'name',
         'is_enabled',
-        'modified_on',
+        'updated_on',
         'description',
         'configuration',
     ];
@@ -351,7 +351,7 @@ export async function getAllFoundationalDataTypes(
                 attributes: responseFields,
                 offset,
                 limit: Number(limit),
-                order: [['modified_on', 'DESC']],
+                order: [['updated_on', 'DESC']],
             });
 
         if (!foundationalDataItems.length) {
@@ -400,11 +400,12 @@ export async function getAllFoundationalDataTypes(
             foundationalData: populatedFoundationalData,
             trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
             trace_id: traceId,
+            error: error.message
         });
     }
 }
