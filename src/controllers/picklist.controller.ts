@@ -53,7 +53,6 @@ export async function getPicklistById(
       const [searchField, searchValue] = search.includes(":")
         ? search.split(":")
         : ["", search];
-      console.log("serch",searchField)
       if (searchField && searchFields.includes(searchField)) {
         whereClause[searchField] = {
           [Op.like]: `%${searchValue}%`,
