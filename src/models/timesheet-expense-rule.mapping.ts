@@ -6,8 +6,8 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import TimesheetExpenseRuleModel from './timesheet-expense-rule.model';
 
 class TimesheetExpenseRuleMapping extends Model {
-    expense_rule_id: any; 
- 
+    expense_rule_id: any;
+
 }
 
 TimesheetExpenseRuleMapping.init(
@@ -40,12 +40,21 @@ TimesheetExpenseRuleMapping.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
+            allowNull: true,
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
-        }
+            allowNull: true,
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,

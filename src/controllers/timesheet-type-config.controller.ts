@@ -50,7 +50,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         const newConfig = await TimesheetTypeConfig.create(
             {
                 program_id, ...data, created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             },
         );
         reply.status(201).send({
@@ -91,7 +91,7 @@ export const getAllTimesheetTypeConfigs = async (
                 ttc.id,
                 ttc.title,
                 ttc.is_enabled,
-                ttc.modified_on,
+                ttc.updated_on,
                 ttc.work_start_day,
                 ttc.timesheet_format,
                 ttc.allocations,
@@ -270,8 +270,8 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
         await config.update({
             program_id,
             ...configData,
-            modified_by: userId,
-            modified_on: Date.now(),
+            updated_by: userId,
+           updated_on: Date.now(),
         }, { transaction });
         await transaction.commit();
         reply.status(200).send({
@@ -316,7 +316,7 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             });
         }
 
-        await config.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
+        await config.update({ is_enabled: false, is_deleted: true, updated_by: userId, });
 
         reply.status(200).send({
             status_code: 200,
