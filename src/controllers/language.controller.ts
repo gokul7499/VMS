@@ -145,7 +145,7 @@ export async function deleteLanguage(
     const { id } = request.params;
     const [numRowsDeleted] = await Language.update({
       is_deleted: true,
-      modified_on: Date.now(),
+      updated_on: Date.now(),
     },
       { where: { id } }
     );
