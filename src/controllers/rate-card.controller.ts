@@ -32,7 +32,7 @@ export const createRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 ...rateCardData,
                 program_id,
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             },
             { transaction }
         );
@@ -68,10 +68,10 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, modified_on, is_enabled, name } = request.query as {
+        const { page = 1, limit = 10, updated_on, is_enabled, name } = request.query as {
             page?: number;
             limit?: number;
-            modified_on?: string;
+            updated_on?: string;
             is_enabled?: string;
             name?: string;
         };
@@ -83,12 +83,12 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             program_id,
             is_deleted: false,
         };
-        if (modified_on) {
-            const dateRange = modified_on.split(',');
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
                 const startDate = parseFloat(dateRange[0].trim());
                 const endDate = parseFloat(dateRange[1].trim());
-                whereConditions.modified_on = { [Op.between]: [startDate, endDate] };
+                whereConditions.updated_on = { [Op.between]: [startDate, endDate] };
             }
         }
         if (is_enabled !== undefined) {
@@ -211,7 +211,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
-                    modified_on: dt.modified_on,
+                    updated_on: dt.updated_on,
                 })),
             };
         });
@@ -298,7 +298,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
-                    modified_on: dt.modified_on,
+                    updated_on: dt.updated_on,
                 }
             }),
         );
@@ -354,8 +354,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
             {
                 ...rateCardUpdates,
                 is_enabled,
-                modified_by: userId,
-                modified_on: Date.now(),
+                updated_by: userId,
+                updated_on: Date.now(),
             },
             {
                 where: { id, program_id, is_deleted: false },
@@ -398,7 +398,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
                         created_on: dt.created_on,
-                        modified_on: dt.modified_on,
+                        updated_on: dt.updated_on,
                     },
                     { transaction }
                 );
@@ -450,7 +450,7 @@ export const deleteRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-        await rateCard.update({ is_deleted: true, modified_by: userId }, { transaction });
+        await rateCard.update({ is_deleted: true, updated_by: userId }, { transaction });
         await DecisionTable.update(
             { is_deleted: true },
             { where: { rate_card_id: id }, transaction }

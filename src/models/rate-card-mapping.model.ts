@@ -26,12 +26,6 @@ RateCardMapping.init(
             type: DataTypes.UUID,
             allowNull: false
         },
-        created_on: {
-            type: DataTypes.DOUBLE
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE
-        },
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
@@ -39,7 +33,24 @@ RateCardMapping.init(
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull : true
+          },
+          updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull:true
+          },
+          created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+          },
+          updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+          },
+       
     },
     {
         sequelize,
