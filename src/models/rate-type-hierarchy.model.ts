@@ -44,11 +44,16 @@ RateTypeHierarchy.init({
     allowNull: false,
     defaultValue: true,
   },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   created_on: {
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
-  modified_on: {
+  updated_on: {
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
@@ -56,15 +61,10 @@ RateTypeHierarchy.init({
     type: DataTypes.UUID,
     allowNull: true,
   },
-  modified_by: {
+  updated_by: {
     type: DataTypes.UUID,
     allowNull: true,
   },
-  is_deleted: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  }
 }, {
   sequelize,
   tableName: 'rate_type_hierarchies',
