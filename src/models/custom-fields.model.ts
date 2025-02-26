@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from './programs.model';
 import { Module } from './module.model';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 
 class CustomField extends Model {
@@ -32,7 +33,7 @@ class CustomField extends Model {
   modified_on: any;
   created_on: any;
   program_id: any;
-  modified_by:any;
+  modified_by: any;
 
 }
 
@@ -77,7 +78,7 @@ CustomField.init(
     },
     is_all_work_location: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
     },
     is_all_hierarchy: {
       type: DataTypes.BOOLEAN,
@@ -114,11 +115,9 @@ CustomField.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue:Date.now()
     },
     modified_on: {
       type: DataTypes.DOUBLE,
-      defaultValue:Date.now()
     },
     module_id: {
       type: DataTypes.UUID,
@@ -157,20 +156,24 @@ CustomField.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       allowNull: true,
-  },
+    },
   },
   {
     sequelize,
     tableName: 'custom_fields',
     timestamps: false,
     hooks: {
-      beforeValidate: convertEmptyStringsToNull
+      beforeValidate: (instance) => {
+        convertEmptyStringsToNull(instance);
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
+      },
     },
   }
 );
 
 CustomField.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 CustomField.belongsTo(Module, { foreignKey: 'module_id', as: 'module' });
-
 
 export default CustomField;

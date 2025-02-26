@@ -15,7 +15,7 @@ export interface TimesheetExpenseRule {
     }
     apply_rate_type?: any;
     created_by?: string;
-    modified_by?: string;
+    updated_by?: string;
     is_enabled?: boolean;
     is_deleted?: boolean;
     created_on?: number;

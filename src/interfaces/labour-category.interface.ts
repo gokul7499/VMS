@@ -6,8 +6,51 @@ interface IndustriesInterface {
   is_enabled: boolean | string;
   page?: string;
   limit?: string;
-  modified_on?:number;
+  modified_on?: number;
 }
 
 
+
+
+export const paramsSchema = {
+  type: 'object',
+  properties: {
+    program_id: { type: 'string' },
+    id: { type: 'string' }
+  },
+  required: ['program_id']
+};
+
+export const querySchema = {
+  type: 'object',
+  properties: {
+    search: { type: 'string' },
+    limit: { type: 'integer' },
+    offset: { type: 'integer' }
+  }
+
+};
+
+export const createIndustriesSchema = {
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: { type: 'string' },
+    is_enabled: { type: 'boolean' },
+    program_id: { type: 'string' }
+  }
+}
+
+export const bulkUploadIndustriesSchema = {
+  type: 'array',
+  items: {
+    "type": "object",
+    required: ['name'],
+    properties: {
+      name: { type: 'string' },
+      is_enabled: { type: 'boolean' },
+      program_id: { type: 'string' }
+    }
+  }
+}
 export { IndustriesInterface, };

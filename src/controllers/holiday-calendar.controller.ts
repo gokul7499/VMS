@@ -8,13 +8,13 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 
 export async function getHolidayCalendar(
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { name?: string, year?: number, is_enabled?: string, modified_on?: string, page?: string, limit?: string } }>,
+  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { name?: string, year?: number, is_enabled?: string, updated_on?: string, page?: string, limit?: string } }>,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { name, year, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -33,10 +33,10 @@ export async function getHolidayCalendar(
       filters.is_enabled = is_enabled === 'true';
     }
 
-    if (modified_on) {
-      const modifiedOnRange = modified_on.split(',').map(Number);
+    if (updated_on) {
+      const modifiedOnRange = updated_on.split(',').map(Number);
       if (modifiedOnRange.length === 2) {
-        filters.modified_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
+        filters.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
       }
     }
 
@@ -44,10 +44,10 @@ export async function getHolidayCalendar(
 
     const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
       where: filters,
-      attributes: ['id', 'name', 'year', 'is_enabled', 'modified_on', 'program_id'],
+      attributes: ['id', 'name', 'year', 'is_enabled', 'updated_on', 'program_id'],
       offset,
       limit: limitNum,
-      order: [['modified_on', 'DESC']],
+      order: [['updated_on', 'DESC']],
     });
 
     reply.status(200).send({
@@ -227,7 +227,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     }
     await holidayCalendar.create({
       ...holiday_calendar, created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
     });
 
     logger(
@@ -305,7 +305,7 @@ export const updateHolidayCalendar = async (
   const userId = user?.sub
 
   try {
-    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, modified_by: userId }, { where: { program_id, id } });
+    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,
@@ -348,7 +348,7 @@ export async function deleteHolidayCalendar(
     const { program_id, id } = request.params;
     const holidayCalendarData = await holidayCalendar.findOne({ where: { program_id, id } });
     if (holidayCalendarData) {
-      await holidayCalendar.update({ is_deleted: true, is_enabled: false ,modified_by:userId}, { where: { program_id, id } });
+      await holidayCalendar.update({ is_deleted: true, is_enabled: false ,updated_by:userId}, { where: { program_id, id } });
       reply.status(204).send({
         status_code: 204,
         message: 'HolidayCalendar deleted successfully.',
