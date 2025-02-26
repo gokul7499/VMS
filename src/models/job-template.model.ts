@@ -171,24 +171,6 @@ JobTemplateModel.init(
             type: DataTypes.INTEGER,
             defaultValue: 0
         },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true
-        },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-            allowNull: true
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-            allowNull: true
-        },
         is_shift_rate: {
             type: DataTypes.BOOLEAN,
             allowNull: true
@@ -278,7 +260,23 @@ JobTemplateModel.init(
         },
         submit_type: {
             type: DataTypes.STRING
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,

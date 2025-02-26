@@ -59,25 +59,22 @@ JobMasterDataModel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
-        created_by: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            allowNull: true
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            allowNull: true
-        },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: Date.now()
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: Date.now()
+            allowNull: true
         },
-
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,

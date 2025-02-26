@@ -55,22 +55,6 @@ JobTemplateDistScheduleModel.init(
       allowNull: false,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      allowNull: true,
-    },
-    modified_by: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      allowNull: true,
-    },
     program_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -78,6 +62,22 @@ JobTemplateDistScheduleModel.init(
         model: Programs,
         key: 'id',
       },
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {
