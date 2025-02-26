@@ -88,6 +88,26 @@ vendorMarkupConfig.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
+        job_type: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        job_template: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        worker_type: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        worker_classification: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        },
+        rate_type: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
@@ -97,32 +117,20 @@ vendorMarkupConfig.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             allowNull: true,
         },
-        modified_on: {
-            type: DataTypes.DATE,
+        updated_on: {
+            type: DataTypes.DOUBLE,
             allowNull: true,
         },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
-        },
-        is_all_hierarchy: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
-        },
-        is_all_work_locations: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
-        },
-        is_all_labor_category: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
         }
     },
     {
