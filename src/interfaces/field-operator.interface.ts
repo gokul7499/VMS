@@ -4,9 +4,9 @@ export interface FieldOperatorData {
     eval_text: string,
     is_enabled: boolean,
     created_on: Date,
-    modified_on: Date,
+    updated_on: Date,
     created_by: string,
-    modified_by: string,
+    updated_by: string,
     is_deleted: boolean,
     is_separator:boolean
 }
