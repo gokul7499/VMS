@@ -67,6 +67,7 @@ FoundationalDataTypes.init(
     }
   },
   {
+    
     sequelize,
     tableName: "master_data_type",
     timestamps: false,

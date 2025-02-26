@@ -94,8 +94,10 @@ FoundationalData.init({
         defaultValue: true,
     }
 }, {
+    
     sequelize,
     modelName: 'master_data',
+    timestamps:false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
