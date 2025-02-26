@@ -5,7 +5,7 @@ import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
-class vendorMarkupConfig extends Model {
+class VendorMarkupConfig extends Model {
     id: any;
     rate_model: any;
     sliding_scale: any;
@@ -32,7 +32,7 @@ class vendorMarkupConfig extends Model {
     is_all_labor_category!: boolean;
 }
 
-vendorMarkupConfig.init(
+VendorMarkupConfig.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -73,20 +73,40 @@ vendorMarkupConfig.init(
             allowNull: true,
         },
         program_industry: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         hierarchy: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         work_locations: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         is_default: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
+        },
+        job_type: {
+            type: DataTypes.UUID,
+            allowNull: true
+        },
+        job_template: {
+            type: DataTypes.UUID,
+            allowNull: true
+        },
+        worker_type: {
+            type: DataTypes.UUID,
+            allowNull: true
+        },
+        worker_classification: {
+            type: DataTypes.UUID,
+            allowNull: true
+        },
+        rate_type: {
+            type: DataTypes.UUID,
+            allowNull: true
         },
         is_enabled: {
             type: DataTypes.BOOLEAN,
@@ -97,32 +117,20 @@ vendorMarkupConfig.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             allowNull: true,
         },
-        modified_on: {
-            type: DataTypes.DATE,
+        updated_on: {
+            type: DataTypes.DOUBLE,
             allowNull: true,
         },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
-        },
-        is_all_hierarchy: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
-        },
-        is_all_work_locations: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
-        },
-        is_all_labor_category: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true
         }
     },
     {
@@ -140,7 +148,7 @@ vendorMarkupConfig.init(
     }
 );
 
-vendorMarkupConfig.belongsTo(Tenant, { foreignKey: "tenant_id", as: "tenant" });
-vendorMarkupConfig.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
+VendorMarkupConfig.belongsTo(Tenant, { foreignKey: "tenant_id", as: "tenant" });
+VendorMarkupConfig.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
 
-export default vendorMarkupConfig;
+export default VendorMarkupConfig;

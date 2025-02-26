@@ -53,22 +53,18 @@ vendorWorkLocationMapping.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            allowNull: true,
-            defaultValue: Date.now(),
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
-            allowNull: true,
-            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
             allowNull: true,
         },
     },
