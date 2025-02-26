@@ -14,7 +14,7 @@ class RateConfigurationsModel extends Model {
     name: any;
     is_enabled: any;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
 }
 
 RateConfigurationsModel.init(

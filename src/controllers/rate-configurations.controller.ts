@@ -381,7 +381,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; updated_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -395,7 +395,7 @@ export async function getAllRateConfigurations(
 
         const isEnabled = parseBoolean(query.is_enabled);
         const isShiftRate = parseBoolean(query.is_shift_rate);
-        const { startDate, endDate } = parseDateRange(query.modified_on);
+        const { startDate, endDate } = parseDateRange(query.updated_on);
 
         const replacements: any = {
             program_id,
@@ -493,7 +493,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'modified_on'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'updated_on'],
         });
 
         if (!rateConfiguration) {
@@ -613,7 +613,7 @@ export async function getRateConfigurationById(
             is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
             created_on: rateConfiguration.created_on,
-            modified_on: rateConfiguration.modified_on,
+            updated_on: rateConfiguration.updated_on,
             hierarchie,
             job_templates: jobTemplates,
             rate_configuration: rateConfigurationDetails,
