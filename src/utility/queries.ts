@@ -1798,7 +1798,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.updated_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
     whereConditions += ` AND rc.id IN (
@@ -1829,7 +1829,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       rc.is_enabled,
       rc.is_shift_rate,
       rc.created_on,
-      rc.modified_on,
+      rc.updated_on,
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
@@ -1866,7 +1866,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.modified_on DESC
+    ORDER BY rc.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 

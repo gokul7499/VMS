@@ -61,7 +61,7 @@ export const createRateConfigurations = async (
             name: rateConfigurationsPayload.name,
             is_shift_rate: rateConfigurationsPayload.is_shift_rate,
             created_by: userId,
-            modified_by: userId
+            updated_by: userId
         }, { transaction });
 
         if (rateConfigurationsPayload.hierarchies) {
@@ -208,9 +208,9 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now(),
+                updated_on: Date.now(),
                 is_enabled: rateConfigurationsPayload.is_enabled,
-                modified_by: userId
+                updated_by: userId
             },
             { transaction }
         );
