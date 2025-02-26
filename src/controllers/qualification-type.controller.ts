@@ -127,7 +127,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     }
 
     const qualification_types = request.body as qualificationType;
-    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id ,created_by: userId,modified_by: userId,});
+    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id ,created_by: userId,updated_by: userId,});
     reply.status(201).send({
       status_code: 201,
       message: 'Qualification type created successfully',
@@ -244,8 +244,8 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
     }
     await data.update({
       ...updates,
-      modified_by: userId,
-      modified_on: new Date(),
+      updated_by: userId,
+      updated_on: new Date(),
     });
 
     return reply.status(200).send({
@@ -284,7 +284,7 @@ export async function deleteQualificationTypes(request: FastifyRequest, reply: F
       await qualificationType.update({
         is_enabled: false,
         is_deleted: true,
-        modified_by: userId,
+        updated_by: userId,
       })
       reply.status(200).send({
         status_code: 200,
@@ -338,7 +338,7 @@ export async function getQualificationValueMaster(
 
     const { rows: qualifications, count } = await QualificationValueMaster.findAndCountAll({
       where: searchConditions,
-      attributes: { exclude: ["created_on", "modified_on", "created_by", "modified_by"] },
+      attributes: { exclude: ["created_on", "updated_on", "created_by", "updated_by"] },
       order: [["created_on", "DESC"]],
       limit: limit,
       offset: offset,
@@ -402,7 +402,7 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
           qualificationList.map(qualification => ({
               ...qualification,
               created_by: userId,
-              modified_by: userId,
+              updated_by: userId,
               program_id
           }))
       );
