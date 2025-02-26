@@ -51,7 +51,7 @@ export const querySchema = {
 
 export const createReasoncodeSchema = {
     type: 'object',
-    required: ['reasons_count', 'reason_codes'],
+    required: ['reason_codes'],
     properties: {
         reasons_count: { type: 'number' },
         is_deleted: { type: 'boolean' },
