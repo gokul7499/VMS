@@ -54,7 +54,7 @@ export async function createCity(
         ...cityData,
         state_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       })),
       { transaction }
     );
@@ -166,7 +166,7 @@ export async function updateCity(
     if (City) {
       await City.update({
         cityData,
-        modified_by: userId,
+        updated_by: userId,
       });
       reply.status(200).send({
         status_code: 200,
@@ -211,7 +211,7 @@ export async function deleteCity(
       {
         is_deleted: true,
         is_enabled: false,
-        modified_by: userId,
+        updated_by: userId,
       },
       {
         where: {
