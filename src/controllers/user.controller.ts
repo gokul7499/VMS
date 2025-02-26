@@ -8,7 +8,6 @@ import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
-import { ProgramVendor } from "../models/program-vendor.model";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
 import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers, getUserContacts, getUserPrograms } from "../utility/queries";
 import { QueryTypes } from "sequelize";
@@ -289,10 +288,35 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
+      const existingCandidate = await candidateModel.findOne({
+        where: {
+          email: user.email,
+          vendor_id: user.vendor_id, 
+          is_deleted: false,
+        },
+        transaction,
+      });
+    
+      if (existingCandidate) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Candidate with the same email and vendor already exists!",
+          trace_id: traceId,
+        });
+      }
+    
       const candidateId = await CandidateCodeGenerate(user.tenant_id, program_id);
-
-      await candidateModel.create({ ...userWithoutId, user_id: user.id, candidate_id: candidateId, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
-    } else if (userType === "vendor") {
+    
+      await candidateModel.create({
+        ...userWithoutId,
+        user_id: user.id,
+        candidate_id: candidateId,
+        user_type: userType,
+        created_by: userId,
+        modified_by: userId,
+      }, { transaction });
+    }else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
@@ -421,7 +445,6 @@ export async function updateUser(
         user: [],
       });
     }
-    updates.modified_on = Date.now();
     updates.modified_by = userId;
     await user.update(updates);
     if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
@@ -876,7 +899,7 @@ export async function getActiveUser(
       });
     }
     else {
-      const currentUser = await sequelize.models.User.findOne({
+      const currentUser = await User.findOne({
         where: { program_id, user_id: userId },
         attributes: ["associate_hierarchy_ids"],
       }) as any;

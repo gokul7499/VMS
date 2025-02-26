@@ -348,7 +348,7 @@ export async function getAllExpenseType(
         whereClause.code = code;
     }
     if (category) {
-        whereClause.category = category;
+        whereClause.category = { [Op.like]: `%${category}%` };
     }
     if (apply_msp_fee !== undefined) {
         whereClause.apply_msp_fee = apply_msp_fee === "true";

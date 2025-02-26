@@ -386,7 +386,10 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       });
     }
 
-    await shiftType.update(rest,{where:{modified_by: userId}});
+    await shiftType.update(
+      { ...rest, modified_on: Date.now() },
+      { where: { modified_by: userId } }
+    );
 
     if (Array.isArray(hierarchy_ids)) {
       const existingHierarchies = await shiftConfigurationHierarchies.findAll({

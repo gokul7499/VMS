@@ -16,6 +16,7 @@ interface HierarchyItem {
   default_currency: any;
   default_language: any;
   is_hide_candidate_img: any;
+  is_vendor_neutral_program: any;
   default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
@@ -24,9 +25,10 @@ interface HierarchyItem {
   preferred_date_format: string;
   rate_model: string;
   created_on: number;
-  modified_on: number;
+  updated_on: number;
   code: string;
   program_id: string;
+  
 }
 export const getHierarchiesByProgram = async (
   request: FastifyRequest<{
@@ -77,7 +79,7 @@ export const getHierarchiesByProgram = async (
             preferred_date_format: item.preferred_date_format,
             rate_model: item.rate_model,
             created_on: item.created_on,
-            modified_on: item.modified_on,
+            updated_on: item.updated_on,
             code: item.code,
             program_id: item.program_id,
             default_timezone: item.default_timezone,
@@ -86,6 +88,7 @@ export const getHierarchiesByProgram = async (
             default_currency: item.default_currency,
             default_date_format: item.default_date_format,
             support_email: item.support_email,
+            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program), 
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -114,7 +117,7 @@ export const getHierarchies = async (
     Querystring: {
       name?: string;
       is_enabled?: boolean | string;
-      modified_on?: string;
+      updated_on?: string;
       page?: number;
       limit?: number;
     };
@@ -122,7 +125,7 @@ export const getHierarchies = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on, page = 1, limit = 10 } = request.query;
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -134,8 +137,8 @@ export const getHierarchies = async (
     let startDate: number | undefined;
     let endDate: number | undefined;
 
-    if (modified_on) {
-      const dateRange = modified_on.split(",");
+    if (updated_on) {
+      const dateRange = updated_on.split(",");
       if (dateRange.length === 2 || dateRange.length === 1) {
         const parsedStartDate = parseInt(dateRange[0], 10);
         const parsedEndDate =
@@ -175,7 +178,10 @@ export const getHierarchies = async (
         hierarchies: [],
       });
     }
-
+    const formattedHierarchies = hierarchies.map((hierarchy) => ({
+      ...hierarchy,
+      is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
+    }));
     const total_count = hierarchies[0]?.total_count || 0;
 
     return reply.status(200).send({
@@ -185,7 +191,7 @@ export const getHierarchies = async (
       total_records: total_count,
       page,
       limit,
-      hierarchies,
+      hierarchies:formattedHierarchies,
     });
   } catch (error: any) {
     console.error(error);
@@ -222,7 +228,7 @@ export async function getHierarchiesById(
       });
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
-
+      hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
           ? JSON.parse(masterDataResult.foundational_data)
@@ -312,7 +318,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
         ...hierarchie,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       },
       { transaction }
     );
@@ -419,9 +425,9 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update({ ...updatableData, modified_by: userId, modified_on: Date.now() }, { transaction });
+        await hierarchy.update({ ...updatableData, updated_by: userId, updated_on: Date.now() }, { transaction });
       } else {
-        await hierarchy.update({ ...hierarchiesData, modified_by: userId, modified_on: Date.now() }, { transaction });
+        await hierarchy.update({ ...hierarchiesData, updated_by: userId, updated_on: Date.now() }, { transaction });
       }
 
       if (hierarchiesData.custom_fields && hierarchiesData.custom_fields.length > 0) {
@@ -503,8 +509,8 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
-        modified_by: userId
+        updated_on: Date.now(),
+        updated_by: userId
       },
       { where: { id } }
     );
@@ -536,7 +542,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
 export async function searchHierarchies(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
 
   const searchFields = ['is_enabled', 'name', 'code', 'program_id'];
-  const responseFields = ['id', 'name', 'modified_on', 'is_enabled', 'program_id'];
+  const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'program_id'];
   return baseSearch(request, reply, HierarchiesModel, searchFields, responseFields);
 }
 
@@ -544,8 +550,8 @@ export async function advancedSearchHierarchies(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const searchFields = ['name', 'modified_on', 'is_enabled', 'name', 'code', 'program_id'];
-  const responseFields = ['id', 'name', 'modified_on', 'is_enabled', 'code', 'program_id'];
+  const searchFields = ['name', 'updated_on', 'is_enabled', 'name', 'code', 'program_id'];
+  const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'code', 'program_id'];
   return advanceSearch(
     request,
     reply,

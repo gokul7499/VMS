@@ -81,6 +81,14 @@ VendorComplianceReqDocMappingModel.init({
         type: DataTypes.DOUBLE,
         allowNull: true,
     },
+    audited_by:{
+        type:DataTypes.UUID,
+        allowNull:true
+    },
+    audited_on:{
+        type:DataTypes.DOUBLE,
+        allowNull:true
+    },
     created_on: {
         type: DataTypes.DOUBLE,
         allowNull: true,

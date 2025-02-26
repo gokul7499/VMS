@@ -16,3 +16,37 @@ export interface FoundationalDataInterface {
     depended_fields: any,
     is_billable: boolean
 }
+
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+        program_id: { type: 'string' },
+        id: { type: 'string' }
+    },
+    required: ['program_id']
+};
+export const querySchema = {
+    type: 'object',
+    properties: {
+        search: { type: 'string' },
+        limit: { type: 'integer' },
+        offset: { type: 'integer' }
+    }
+};
+export const createFoundationalDataSchema = {
+    type: 'object',
+    required: ['name'],
+    properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+        is_enabled: { type: 'boolean' },
+        code: { type: 'string' },
+        manager_id: { type: 'string' },
+        is_billable: { type: 'boolean' },
+        depended_fields: {
+            type: 'array'
+        },
+        program_id: { type: 'string' },
+        foundational_data_type_id: { type: 'string' }
+    }
+}
