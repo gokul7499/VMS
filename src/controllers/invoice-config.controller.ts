@@ -37,7 +37,7 @@ export async function createInvoiceConfig(
             },
             type: QueryTypes.SELECT,
         });
-        
+
         if (existingConfig.length > 0) {
             return reply.status(400).send({
                 status_code: 400,
@@ -47,7 +47,7 @@ export async function createInvoiceConfig(
         }
 
         const invoiceConfigData: any = await InvoiceConfigModel.create({
-            ...invoiceConfig, program_id, created_by: userId, modified_by: userId,
+            ...invoiceConfig, program_id, created_by: userId, updated_by: userId,
         });
 
         reply.status(201).send({
@@ -158,7 +158,7 @@ export async function updateInvoiceConfigById(
         const newInvoiceConfig = await InvoiceConfigModel.create({
             ...newPayload,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
 
         return reply.status(201).send({
@@ -201,8 +201,8 @@ export async function deleteInvoiceConfigById(
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: Date.now(),
-                modified_by: userId
+                updated_on: Date.now(),
+                updated_by: userId
             },
             { where: { uuid: id, program_id } }
         );
@@ -250,7 +250,7 @@ export async function getAllInvoiceConfig(
     try {
         const { rows: invoiceConfig, count: total_records } = await InvoiceConfigModel.findAndCountAll({
             where: whereClause,
-            attributes: ['uuid', 'name', 'slug', 'hierarchy_ids', 'is_active', 'is_enabled', 'modified_on'],
+            attributes: ['uuid', 'name', 'slug', 'hierarchy_ids', 'is_active', 'is_enabled', 'updated_on'],
             order: [["created_on", "DESC"]],
             limit: Number(limit),
             offset: Number(offset),

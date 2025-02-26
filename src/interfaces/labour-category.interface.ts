@@ -6,7 +6,10 @@ interface IndustriesInterface {
   is_enabled: boolean | string;
   page?: string;
   limit?: string;
-  modified_on?: number;
+  created_by?:string;
+  created_on?:any;
+  updated_on?:any;
+  updated_by?:string;
 }
 
 

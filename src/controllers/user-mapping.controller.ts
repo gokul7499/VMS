@@ -129,8 +129,8 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-        updates.modified_on = Date.now()
-        const [updatedCount] = await UserMapping.update({ ...updates, modified_by: userId, }, { where: { id: id } });
+        updates.updated_on = Date.now()
+        const [updatedCount] = await UserMapping.update({ ...updates, updated_by: userId, }, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -293,9 +293,9 @@ um.program_id,
 um.is_activated, 
 um.is_deleted, 
 um.created_on, 
-um.modified_on, 
+um.updated_on, 
 um.created_by, 
-um.modified_by,
+um.updated_by,
 JSON_OBJECT(
     'id', u.id,
     'user_id', u.user_id,
@@ -341,7 +341,7 @@ JSON_OBJECT(
     'is_activated', u.is_activated,
     'is_deleted', u.is_deleted,
     'created_on', u.created_on,
-    'modified_on', u.modified_on,
+    'updated_on', u.updated_on,
     'created_by', u.created_by,
     'addresses', u.addresses,
     'associate_job_type',u.associate_job_type,
@@ -364,7 +364,8 @@ JSON_OBJECT(
 
 
     'contacts', u.contacts,
-    'modified_by', u.modified_by,
+    'updated_by', u.updated_by,
+    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
     'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),

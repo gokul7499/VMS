@@ -3,7 +3,9 @@ export interface LanguageData {
   name?: string;
   type?: string;
   locale?:string;
-  created_on?: number;
-  modified_on?: number;
+  created_on?: any;
+  updated_on?: any;
+  created_by:string;
+  updated_by:string;
   is_deleted?: boolean
 }

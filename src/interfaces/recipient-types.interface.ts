@@ -8,10 +8,10 @@ export interface RecipientTypesData {
     is_chain: boolean,
     parameter_schema: any,
     method_id: string,
-    created_on: number,
-    modified_on: number,
+    created_on: any,
+    updated_on: any,
     created_by: string,
-    modified_by: string,
+    updated_by: string,
     is_deleted: boolean,
     is_enabled: boolean
 }

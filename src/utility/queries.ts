@@ -477,7 +477,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -502,7 +502,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -533,7 +533,7 @@ WITH hierarchy_cte AS (
     h.code,
     h.parent_hierarchy_id,
     h.is_enabled,
-    h.modified_on,
+    h.updated_on,
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
@@ -548,7 +548,7 @@ WITH hierarchy_cte AS (
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
     : ''
   }
 ),
@@ -870,7 +870,7 @@ SELECT
     md.program_id,
     md.name,
     md.is_enabled,
-    md.modified_on,
+    md.updated_on,
     md.code,
     md.foundational_data_type_id,
     md.depended_fields,
@@ -892,7 +892,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -919,7 +919,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -1408,7 +1408,7 @@ export const masterDataQuery = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
@@ -1828,7 +1828,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.updated_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
     whereConditions += ` AND rc.id IN (
@@ -1859,7 +1859,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       rc.is_enabled,
       rc.is_shift_rate,
       rc.created_on,
-      rc.modified_on,
+      rc.updated_on,
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
@@ -1896,7 +1896,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.modified_on DESC
+    ORDER BY rc.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -2081,7 +2081,7 @@ export const hierarchie = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
@@ -2186,7 +2186,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2282,7 +2282,7 @@ WITH user_data AS (
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY modified_on DESC
+ORDER BY updated_on DESC
 LIMIT :limit OFFSET :offset;
 
 `;
@@ -2297,7 +2297,7 @@ WITH user_data AS (
          u.program_id,
          u.is_activated,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2318,7 +2318,7 @@ WITH user_data AS (
 )
 SELECT *
 FROM user_data
-ORDER BY modified_on DESC;
+ORDER BY updated_on DESC;
 `;
 
 export const getPendingUserQuery = `
@@ -2326,7 +2326,7 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS modified_on,
+    invitation.updated_at AS updated_on,
     invitation.created_at AS created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
