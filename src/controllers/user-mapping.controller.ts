@@ -344,9 +344,27 @@ JSON_OBJECT(
     'modified_on', u.modified_on,
     'created_by', u.created_by,
     'addresses', u.addresses,
+    'associate_job_type',u.associate_job_type,
+    'is_all_job_type_associate',u.is_all_job_type_associate,
+'countries', (
+    SELECT JSON_OBJECT(
+        'id', IFNULL(c.id, ''),
+        'name', IFNULL(c.name, '')
+    )
+    FROM countries c
+    WHERE c.id = u.country_id 
+    OR (
+        u.country_id IS NULL AND JSON_CONTAINS(
+            JSON_EXTRACT(u.addresses, '$[*].country'), 
+            JSON_QUOTE(c.id)
+        )
+    )
+    LIMIT 1
+),
+
+
     'contacts', u.contacts,
     'modified_by', u.modified_by,
-    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
     'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
@@ -356,11 +374,12 @@ JSON_OBJECT(
         FROM hierarchies h
         WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
     ),
-    'associate_labour_category', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
-        FROM labour_category l
-        WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
-    ),
+    'associate_labour_category', COALESCE((
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
+    FROM labour_category l
+    WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
+), JSON_ARRAY()),
+
    'work_location_ids', (
     SELECT COALESCE(
         JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name)), 
@@ -383,8 +402,8 @@ JSON_OBJECT(
 ) AS user
 FROM user_mappings um
 LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
+LEFT JOIN countries ON u.country_id=countries.id
 LEFT JOIN tenant t ON u.tenant_id = t.id
-LEFT JOIN countries ct ON u.country_id = ct.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
 LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
 LEFT JOIN user su ON u.supervisor = su.user_id

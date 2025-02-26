@@ -396,7 +396,7 @@ export async function getAllFoundationalDataTypes(
         reply.send({
             status_code: 200,
             message: 'Foundational get successfully',
-            total_records: populatedFoundationalData.length,
+            total_records: totalRecords,
             foundationalData: populatedFoundationalData,
             trace_id: traceId,
         });

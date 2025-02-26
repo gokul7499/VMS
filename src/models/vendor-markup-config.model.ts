@@ -106,12 +106,10 @@ vendorMarkupConfig.init(
         },
         created_by: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
             allowNull: true,
         },
         modified_by: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
             allowNull: true,
         },
         is_all_hierarchy: {
@@ -126,7 +124,6 @@ vendorMarkupConfig.init(
             type: DataTypes.BOOLEAN,
             allowNull: true
         }
-
     },
     {
         sequelize,

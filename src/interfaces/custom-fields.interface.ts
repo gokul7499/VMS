@@ -38,3 +38,93 @@ export interface GetQueryInterface {
   slug?: string;
   program_id?: string;
 }
+
+export const paramsSchema = {
+  type: 'object',
+  properties: {
+    program_id: { type: 'string' },
+    id: { type: 'string' }
+  },
+  required: ['program_id']
+};
+
+const getQuerySchema = {
+  type: "object",
+  properties: {
+    limit: { type: "string" },
+    page: { type: "string" },
+    is_enabled: { type: "string" },
+    name: { type: "string" },
+    module_name: { type: "string" },
+    label: { type: "string" },
+    field_type: { type: "string" },
+    is_required: { type: "string" },
+    modified_on: { type: "string" },
+    slug: { type: "string" },
+    program_id: { type: "string" },
+  },
+};
+
+export const createCustomFieldsSchema = {
+  type: 'object',
+  properties: {
+    can_view_vendor: { type: 'array', items: { type: 'string' } },
+    can_edit_vendor: { type: 'array', items: { type: 'string' } },
+    program_id: { type: 'string' },
+    module_name: { type: 'string' },
+    module_id: { type: 'string' },
+    name: { type: 'string' },
+    is_enabled: { type: 'boolean' },
+    description: { type: ['string', 'null'] },
+    field_type: { type: 'string' },
+    label: { type: 'string' },
+    is_all_hierarchy: { type: 'boolean' },
+    work_location_ids: { type: 'array', items: { type: 'string' } },
+    hierarchy_ids: { type: 'array', items: { type: 'string' } },
+    master_data_ids: { type: ['array', 'null'], items: { type: 'string' } },
+    is_all_work_location: { type: 'boolean' },
+    can_view: { type: 'array', items: { type: 'string' } },
+    can_edit: { type: 'array', items: { type: 'string' } },
+    org_category_ids: { type: ['array', 'null'], items: { type: 'string' } },
+    supporting_text: { type: 'string' },
+    placeholder: { type: ['string', 'null'] },
+    is_required: { type: 'boolean' },
+    is_readonly: { type: 'boolean' },
+    is_linked: { type: 'boolean' },
+    job_type: { type: ['array', 'null'] },
+    meta_data: {
+      type: 'object',
+      properties: {
+        default_email: { type: 'string' },
+        datasource: {
+          type: 'object',
+          properties: {
+            is_multi_select: { type: 'boolean' },
+            options: { type: 'array' }
+          },
+        },
+        depends_on: {
+          type: 'object',
+          properties: {
+            action: { type: 'string' },
+            conditions: { type: 'array', items: { type: 'object' } }
+          },
+        }
+      },
+    },
+    linked_modules: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          linked: { type: 'boolean' },
+          module_name: { type: 'string' },
+          is_readonly: { type: 'boolean' },
+          can_view: { type: ['string', 'null'] },
+          can_edit: { type: ['string', 'null'] }
+        },
+      }
+    }
+  },
+};
+
