@@ -25,7 +25,7 @@ export async function createVendorComplianceReqDoc(
         const vendorComplianceMappingData: any = await VendorComplianceReqDocMappingModel.create({
             ...vendorComplianceMapping,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
  
         return reply.status(201).send({
@@ -44,8 +44,8 @@ export async function createVendorComplianceReqDoc(
 }
 
 export async function getAllVendorComplianceReqDoc(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['id','program_id','vendor_id','document_group_id', 'is_enabled','modified_on'];
-    const responseFields = ['id','program_id','vendor_id','document_group_id', 'is_enabled','modified_on'];
+    const searchFields = ['id','program_id','vendor_id','document_group_id', 'is_enabled','updated_on'];
+    const responseFields = ['id','program_id','vendor_id','document_group_id', 'is_enabled','updated_on'];
     return baseSearch(request, reply, VendorComplianceReqDocMappingModel, searchFields, responseFields);
 }
 
@@ -72,11 +72,12 @@ export async function getVendorComplianceReqDocById(
                 vendor_compliance_mapping : [],
             });
         }
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching vendor compliance req doc mapping .',
             trace_id:traceId,
+            error:error.message
         });
     }
 }
@@ -100,7 +101,7 @@ export async function updateVendorComplianceReqDoc(
     const userId=user?.sub
     try {
         const [updatedCount] = await VendorComplianceReqDocMappingModel.update(request.body as VendorComplianceReqDocMappingInterface, {
-            where: { program_id, id, is_deleted: false,modified_by:userId },
+            where: { program_id, id, is_deleted: false,updated_by:userId },
         });
         if (updatedCount > 0) {
             reply.send({
@@ -147,7 +148,7 @@ export async function deleteVendorComplianceReqDoc(
         });
         if (vendorComplianceMapping) {
             await VendorComplianceReqDocMappingModel.update(
-                { is_deleted: true, is_enabled: false,modified_by:userId, },
+                { is_deleted: true, is_enabled: false,updated_by:userId, },
                 { where: { program_id, id } }
             );
             reply.status(204).send({

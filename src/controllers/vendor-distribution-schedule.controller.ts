@@ -71,7 +71,7 @@ export const createVendorDistributionSchedule = async (
             ...scheduleData,
             program_id,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
 
         if (Array.isArray(schedules)) {
@@ -144,8 +144,8 @@ export const createVendorDistributionSchedule = async (
 };
 
 export async function getAllvendorDistributionSchedules(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['program_id', 'name', 'is_enabled', 'description', 'modified_on'];
-    const responseFields = ['program_id', 'id', 'name', 'is_enabled', 'description', 'modified_on'];
+    const searchFields = ['program_id', 'name', 'is_enabled', 'description', 'updated_on'];
+    const responseFields = ['program_id', 'id', 'name', 'is_enabled', 'description', 'updated_on'];
     return baseSearch(request, reply, vendorDistributionScheduleModel, searchFields, responseFields);
 }
 
@@ -240,16 +240,16 @@ export const deleteVendorDistributionSchedule = async (
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: Date.now(),
+                updated_on: Date.now(),
             },
-            { where: { id, program_id, is_deleted: false ,modified_by: userId} }
+            { where: { id, program_id, is_deleted: false ,updated_by: userId} }
         );
         const [distSchedule] = await DistScheduleDetail.update(
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: Date.now(),
-                modified_by: userId
+                updated_on: Date.now(),
+                updated_by: userId
             },
             { where: { vendor_distrubution_id: id, is_deleted: false } }
         );
@@ -333,7 +333,7 @@ export const updateVendorDistributionSchedule = async (
             ...(updateData.name && { name: updateData.name }),
             ...(updateData.description && { description: updateData.description }),
             ...(updateData.is_enabled !== undefined && { is_enabled: updateData.is_enabled }),
-                modified_by: userId
+                updated_by: userId
         });
 
         if (updateData.schedules && Array.isArray(updateData.schedules)) {
@@ -364,7 +364,7 @@ export const updateVendorDistributionSchedule = async (
                             ...(schedule.vendors !== undefined && { vendors: schedule.vendors }),
                         },
                         {
-                            where: { id: schedule.id, vendor_distrubution_id: id ,modified_by: userId},
+                            where: { id: schedule.id, vendor_distrubution_id: id ,updated_by: userId},
                         }
                     );
                 } else {

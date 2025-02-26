@@ -15,8 +15,8 @@ export interface VendorComplianceReqDocMappingInterface {
     uploaded_on?: number;
     complied_on?: number;
     created_on?: number;
-    modified_on?: number;
+    updated_on?: number;
     created_by?: string;
-    modified_by?: string;
+    updated_by?: string;
     program_id?: string;
 }

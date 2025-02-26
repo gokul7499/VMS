@@ -403,7 +403,7 @@ JSON_OBJECT(
 ) AS user
 FROM user_mappings um
 LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
-LEFT JOIN countries ON u.country_id=countries.id
+LEFT JOIN countries ct ON u.country_id=ct.id
 LEFT JOIN tenant t ON u.tenant_id = t.id
 LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
 LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
