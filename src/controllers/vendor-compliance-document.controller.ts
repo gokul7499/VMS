@@ -83,7 +83,7 @@ export async function createVendorComplianceDocument(
       ...vendor_comp_doc,
       program_id,
       created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
     });
     logger(
       {
@@ -231,7 +231,7 @@ export async function updateVendorComplianceDocumentById(
       });
     }
 
-    await vendorComplianceDocumentService.updateById(request, { program_id, id,modified_by:userId, });
+    await vendorComplianceDocumentService.updateById(request, { program_id, id,updated_by:userId, });
 
     if (vendorDocuments.uploaded_document && Array.isArray(vendorDocuments.uploaded_document)) {
       for (const doc of vendorDocuments.uploaded_document) {
@@ -278,7 +278,7 @@ export async function deleteVendorComplianceDocumentById(
   try {
     const { program_id, id } = request.params;
 
-    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id ,modified_by:userId,});
+    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id ,updated_by:userId,});
 
     if (deletedCount > 0) {
       reply.status(200).send({
@@ -312,23 +312,23 @@ export async function getAllVendorCompDocummentByProgramId(
       name?: string;
       is_enabled?: string;
       document_details?: string;
-      modified_on?: number;
+      updated_on?: number;
     }
   }>,
   reply: FastifyReply
 ) {
   const { program_id } = request.params;
-  const { page = 1, limit = 10, name, is_enabled, document_details, modified_on } = request.query;
+  const { page = 1, limit = 10, name, is_enabled, document_details, updated_on } = request.query;
 
   const query = {
     program_id,
     name,
     is_enabled,
     document_details,
-    modified_on
+    updated_on
   };
 
-  const responseFields = ['id', 'name', 'document_details', 'modified_on', 'is_enabled', 'program_id'];
+  const responseFields = ['id', 'name', 'document_details', 'updated_on', 'is_enabled', 'program_id'];
   const traceId = generateCustomUUID();
   try {
     const result = await baseService.getAllByCriteriaPopulate(

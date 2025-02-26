@@ -96,22 +96,6 @@ vendorMarkupConfig.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        created_on: {
-            type: DataTypes.DATE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DATE,
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         is_all_hierarchy: {
             type: DataTypes.BOOLEAN,
             allowNull: true
@@ -123,7 +107,23 @@ vendorMarkupConfig.init(
         is_all_labor_category: {
             type: DataTypes.BOOLEAN,
             allowNull: true
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,
