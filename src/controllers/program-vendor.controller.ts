@@ -450,6 +450,12 @@ export const updateProgramVendor = async (
 
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
+                const fieldsToCheck = ['hierarchy', 'work_locations','program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification'];
+                fieldsToCheck.forEach(field => {
+                    if (markupData[field] === 'any') {
+                        markupData[field] = null;
+                    }
+                });
                 const existingRecord = await vendorMarkupConfig.findOne({
                     where: {
                         program_id,
@@ -457,7 +463,6 @@ export const updateProgramVendor = async (
                         hierarchy: markup.hierarchy,
                         rate_model: markup.rate_model,
                         program_industry: markup.program_industry,
-                        work_locations: markup.work_locations,
                     },
                 });
                 if (!existingRecord) {
@@ -465,13 +470,8 @@ export const updateProgramVendor = async (
                         ...markupData,
                         program_vendor_id: existingProgramVendor.id,
                         program_id: program_id,
-                        is_enabled: true,
-                        is_deleted: false,
-                        is_all_hierarchy: markup.is_all_hierarchy ? 1 : 0,
-                        is_all_work_locations: markup.is_all_work_locations ? 1 : 0,
-                        is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
                         created_by: userId,
-                        modified_by: userId
+                        updated_by: userId
                     });
                 } else {
                     throw new Error("A record with the same markup already exists.");
@@ -570,11 +570,12 @@ export const getProgramVendorById = async (
             trace_id: traceId,
             program_vendor: programVendor,
         });
-    } catch (error) {
+    } catch (error:any) {
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while retrieving ProgramVendor data.',
             trace_id: traceId,
+            error:error.message
         });
     }
 };

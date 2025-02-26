@@ -793,32 +793,96 @@ SELECT
                 'rate_model', vmc.rate_model,
                 'sliding_scale', vmc.sliding_scale,
                 'markups', vmc.markups,
-                'is_all_hierarchy', vmc.is_all_hierarchy = 1,
-                'is_all_work_locations', vmc.is_all_work_locations = 1,
-                'is_all_labor_category', vmc.is_all_labor_category = 1,
-                'work_locations', (
-                   SELECT JSON_OBJECT(
-                        'id', wl.id,
-                        'name', wl.name
-                    )
-                    FROM work_locations wl
-                    WHERE wl.id = vmc.work_locations
+                'job_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.job_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
                 ),
-                'hierarchy', (
-                    SELECT JSON_OBJECT(
-                        'id', h.id,
-                        'name', h.name
-                    )
-                    FROM hierarchies h
-                    WHERE h.id = vmc.hierarchy
+                'job_template', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', jt.id,
+                            'name', jt.template_name
+                        )
+                        FROM job_templates jt
+                        WHERE jt.id = vmc.job_template
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
-                'program_industry', (
-                     SELECT JSON_OBJECT(
-                        'id', i.id,
-                        'name', i.name
-                    )
-                    FROM labour_category i
-                    WHERE i.id = vmc.program_industry
+                'worker_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'worker_classification', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_classification
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'rate_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', rt.id,
+                            'name', rt.name
+                        )
+                        FROM rate_type rt
+                        WHERE rt.id = vmc.rate_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'work_locations', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', wl.id,
+                            'name', wl.name
+                        )
+                        FROM work_locations wl
+                        WHERE wl.id = vmc.work_locations
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'hierarchy', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', h.id,
+                            'name', h.name
+                        )
+                        FROM hierarchies h
+                        WHERE h.id = vmc.hierarchy
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'program_industry', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', i.id,
+                            'name', i.name
+                        )
+                        FROM labour_category i
+                        WHERE i.id = vmc.program_industry
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
                 'is_enabled', vmc.is_enabled
             )
@@ -832,7 +896,6 @@ FROM program_vendors pv
 WHERE pv.id = :id
   AND pv.program_id = :program_id;
 `;
-
 
 export const foundationDataQuery = `
 SELECT
