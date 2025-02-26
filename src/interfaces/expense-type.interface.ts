@@ -17,9 +17,9 @@ export interface ExpenseTypeInterface {
     expense_icon?: any;
     program_id: string;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
     created_by?: any;
-    modified_by?: any;
+    updated_by?: any;
     ref_id?: string;
     is_deleted: boolean;
 }
