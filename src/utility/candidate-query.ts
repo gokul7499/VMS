@@ -43,7 +43,7 @@ class CandidateRepository {
         c.worker_type_id, 
         c.title, 
         c.birth_date, 
-        c.modified_on, 
+        c.updated_on, 
         c.state_national_id, 
         c.do_not_rehire_notes, 
         c.do_not_rehire_reason, 
@@ -66,7 +66,7 @@ class CandidateRepository {
         ) v 
         ON c.vendor_id = v.tenant_id  
         ${whereClause}
-        ORDER BY c.modified_on DESC
+        ORDER BY c.updated_on DESC
         LIMIT :limit OFFSET :offset;
         `;
 

@@ -1738,7 +1738,7 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         COUNT(*) OVER() AS total_records,
         CASE
           WHEN shift_types.id IS NULL THEN NULL
@@ -1776,7 +1776,7 @@ export const getAllRateTypes = (
         ${hasAbbreviation ? "AND rt.abbreviation LIKE CONCAT('%', :abbreviation, '%')" : ""}
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
-    ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+    ? "AND rt.updated_on BETWEEN :startDate AND :endDate"
     : ""
   }
       GROUP BY
@@ -1788,7 +1788,7 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         picklistitems.picklist_id,
         picklistitems.label,
         picklistitems.value
