@@ -84,20 +84,6 @@ Programs.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-    },
-    modified_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-    },
     ref_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -110,6 +96,20 @@ Programs.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
       allowNull: false,
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {
