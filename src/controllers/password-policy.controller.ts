@@ -62,7 +62,7 @@ export const createPasswordPolicy = async (request: FastifyRequest, reply: Fasti
         await passwordPolicyModel.create({
             ...password_policy,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
         reply.status(201).send({
             status_code: 201,
@@ -98,7 +98,7 @@ export async function updatePasswordPolicy(
     }
     const userId = user?.sub
     try {
-        const [updatedCount] = await passwordPolicyModel.update({ ...data, modified_by: userId, }, { where: { id } });
+        const [updatedCount] = await passwordPolicyModel.update({ ...data, updated_by: userId, }, { where: { id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -140,7 +140,7 @@ export async function deletePasswordPolicy(
         const { program_id, id } = request.params;
         const passwordPolicyData = await passwordPolicyModel.findOne({ where: { program_id, id } });
         if (passwordPolicyData) {
-            await passwordPolicyModel.update({ is_deleted: true, is_enabled: false, modified_by: userId, }, { where: { program_id, id } });
+            await passwordPolicyModel.update({ is_deleted: true, is_enabled: false, updated_by: userId, }, { where: { program_id, id } });
             reply.status(204).send({
                 status_code: 204,
                 message: 'PasswordPolicy deleted successfully.',
