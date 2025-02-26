@@ -224,7 +224,7 @@ export const complianceDocumentGetByUserId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -285,7 +285,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -337,7 +337,7 @@ export const complianceDocumentGetByVendorId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -387,7 +387,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
-        vcrm.audited_on, 
+        vcrm.audited_on,
         vcrm.compliance_note,
         u.first_name,
         u.last_name,
@@ -412,7 +412,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -1795,7 +1795,7 @@ export const getAllRateTypes = (
     )
     SELECT *
     FROM rate_type
-    ORDER BY modified_on DESC
+    ORDER BY updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -1911,10 +1911,10 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcjt.rate_configuration_id
     ) AS jt ON jt.rate_configuration_id = rc.id
     LEFT JOIN (
-      SELECT rcbt.rate_configuration_id, 
+      SELECT rcbt.rate_configuration_id,
         JSON_ARRAYAGG(
           JSON_OBJECT(
-            'id', rt.id, 
+            'id', rt.id,
             'name', rt.name,
             'rate_types', (
               SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rt2.id, 'name', rt2.name))
@@ -2298,14 +2298,14 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.user_id = :user_id' : ''} 
-    ${user_type ? 'AND u.user_type = :user_type' : ''} 
-    ${status ? 'AND u.status = :status' : ''} 
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''} 
-    ${role_id ? 'AND u.role_id = :role_id' : ''} 
-    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''} 
-    ${email ? 'AND u.email = :email' : ''} 
-    ${first_name ? 'AND u.first_name = :first_name' : ''} 
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
+    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${status ? 'AND u.status = :status' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${role_id ? 'AND u.role_id = :role_id' : ''}
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
+    ${email ? 'AND u.email = :email' : ''}
+    ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
