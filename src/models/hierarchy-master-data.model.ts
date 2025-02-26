@@ -20,7 +20,23 @@ HierarchyMasterData.init(
         foundation_data_type_id: {
             type: DataTypes.STRING,
             allowNull: true
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,
