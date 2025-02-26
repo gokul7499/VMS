@@ -5,9 +5,9 @@ export interface hierarchiesData {
   name: string;
   rate_model?: string;
   created_on?: number; 
-  modified_on?: number; 
+  updated_on?: number; 
   created_by?: string; 
-  modified_by?: string; 
+  updated_by?: string; 
   code?: string; 
   is_deleted?: boolean; 
   unit_of_measure?: any; 
