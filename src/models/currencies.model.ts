@@ -39,9 +39,19 @@ Currencies.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      allowNull:true,
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
+      allowNull:true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull:true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull:true,
     },
   },
   {
