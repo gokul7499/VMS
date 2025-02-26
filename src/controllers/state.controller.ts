@@ -45,7 +45,7 @@ export async function createState(
         const states = request.body as stateInterface;
 
         const state_data: any = await stateModel.create(
-            { ...states, created_by: userId, updated_by: userId },
+            { ...states, created_by: userId, modified_by: userId },
             { transaction }
         );
 
@@ -200,7 +200,7 @@ export async function updateStateById(request: FastifyRequest, reply: FastifyRep
     }, stateModel);
 
     try {
-        const [states] = await stateModel.update({...updates,updated_by:userId}, {
+        const [states] = await stateModel.update({...updates,modified_by:userId}, {
             where: { id }
         });
 
@@ -292,8 +292,8 @@ export async function deleteStatesById(
             {
                 is_deleted: true,
                 is_enabled: false,
-                updated_on: Date.now(),
-                updated_by:userId
+                modified_on: Date.now(),
+                modified_by:userId
             },
             { where: { id } }
         );
