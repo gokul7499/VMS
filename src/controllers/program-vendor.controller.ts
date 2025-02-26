@@ -31,7 +31,7 @@ interface VendorDetails {
     regain_compliance_days: null;
     attached_doc_url: null;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
     is_enabled: any;
     is_deleted: any;
     no_of_days: any;
@@ -72,7 +72,7 @@ export async function getProgramVendors(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { vendor_name, user_id, is_enabled, status, modified_on } = request.query;
+        const { vendor_name, user_id, is_enabled, status, updated_on } = request.query;
 
         const page = parseInt(request.query.page as unknown as string, 10) || 1;
         const limit = parseInt(request.query.limit as unknown as string, 10) || 10;
@@ -103,8 +103,8 @@ export async function getProgramVendors(
             filters.status = status;
         }
 
-        if (modified_on) {
-            filters.modified_on = modified_on;
+        if (updated_on) {
+            filters.updated_on = updated_on;
         }
 
         const offset = (page - 1) * limit;
@@ -113,13 +113,13 @@ export async function getProgramVendors(
             where: filters,
             limit,
             offset,
-            order: [['modified_on', 'DESC']],
+            order: [['updated_on', 'DESC']],
         };
 
         if (!user_id) {
             queryOptions.attributes = [
                 'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
-                'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
+                'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
 
@@ -437,7 +437,7 @@ export const updateProgramVendor = async (
             });
         }
 
-        await existingProgramVendor.update({ ...programVendorData, modified_by: userId, modified_on: Date.now() });
+        await existingProgramVendor.update({ ...programVendorData, updated_by: userId, updated_on: Date.now() });
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
 
@@ -515,7 +515,7 @@ export async function deleteProgramVendor(
             await ProgramVendor.update({ is_deleted: true, is_enabled: false }, {
                 where: {
                     program_id, id, created_by: userId,
-                    modified_by: userId,
+                    updated_by: userId,
                 }
             });
             reply.status(204).send({
@@ -697,7 +697,7 @@ export async function updateProgramVendorByUserId(
         await existingProgramVendor.update(programVendorData, {
             where: {
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             }
         });
 
@@ -839,7 +839,7 @@ export const getVendorDocuments = async (
                 regain_compliance_days: doc.regain_compliance_days,
                 attached_doc_url: doc.attached_doc_url,
                 created_on: doc.created_on,
-                modified_on: doc.modified_on,
+                updated_on: doc.updated_on,
                 is_enabled: doc.is_enabled,
                 is_deleted: doc.is_deleted,
                 to_uploaded: doc.to_uploaded,
@@ -991,7 +991,7 @@ export async function updateComplianceDocument(
                 audited_on: finalAudited_on,
                 audited_by: finalAudited_by,
                 created_by: user_id,
-                modified_by: user_id,
+                updated_by: user_id,
                 status: uploadedDocument.status,
                 is_enabled: true,
                 is_deleted: false,

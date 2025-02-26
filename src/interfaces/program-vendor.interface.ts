@@ -59,9 +59,9 @@ export interface programVendorInterface {
     is_deleted: boolean;
     is_enabled: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     markup_config?: VendorMarkupInterface;
     description: string;
     company_website: string;
@@ -83,7 +83,7 @@ export interface programVendorQueryInterface {
     user_id?: string,
     is_enabled?: boolean,
     status?: string,
-    modified_on?: string,
+    updated_on?: string,
     page?: number,
     limit?: number
 }
