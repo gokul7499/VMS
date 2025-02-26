@@ -793,7 +793,18 @@ SELECT
                 'rate_model', vmc.rate_model,
                 'sliding_scale', vmc.sliding_scale,
                 'markups', vmc.markups,
-                'job_type', COALESCE(vmc.job_type, 'Any'),
+                'job_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.job_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
                 'job_template', COALESCE(
                     (
                         SELECT JSON_OBJECT(
@@ -805,8 +816,30 @@ SELECT
                     ),
                     JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
-                'worker_type', COALESCE(vmc.worker_type, 'Any'),
-                'worker_classification', COALESCE(vmc.worker_classification, 'Any'),
+                'worker_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'worker_classification', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_classification
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
                 'rate_type', COALESCE(
                     (
                         SELECT JSON_OBJECT(

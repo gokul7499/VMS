@@ -5,7 +5,7 @@ import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
 
-class vendorMarkupConfig extends Model {
+class VendorMarkupConfig extends Model {
     id: any;
     rate_model: any;
     sliding_scale: any;
@@ -32,7 +32,7 @@ class vendorMarkupConfig extends Model {
     is_all_labor_category!: boolean;
 }
 
-vendorMarkupConfig.init(
+VendorMarkupConfig.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -89,7 +89,7 @@ vendorMarkupConfig.init(
             defaultValue: true,
         },
         job_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true
         },
         job_template: {
@@ -97,11 +97,11 @@ vendorMarkupConfig.init(
             allowNull: true
         },
         worker_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true
         },
         worker_classification: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true
         },
         rate_type: {
@@ -148,7 +148,7 @@ vendorMarkupConfig.init(
     }
 );
 
-vendorMarkupConfig.belongsTo(Tenant, { foreignKey: "tenant_id", as: "tenant" });
-vendorMarkupConfig.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
+VendorMarkupConfig.belongsTo(Tenant, { foreignKey: "tenant_id", as: "tenant" });
+VendorMarkupConfig.belongsTo(Programs, { foreignKey: "program_id", as: "programs" });
 
-export default vendorMarkupConfig;
+export default VendorMarkupConfig;
