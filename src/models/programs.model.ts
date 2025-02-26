@@ -99,18 +99,20 @@ Programs.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-    },
-    updated_on: {
+      allowNull : true
+      },
+      updated_on: {
       type: DataTypes.DOUBLE,
-    },
-    created_by: {
+      allowNull:true
+      },
+      created_by: {
       type: DataTypes.UUID,
       allowNull: true,
-    },
-    updated_by: {
+      },
+      updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
-    },
+      },
   },
   {
     sequelize,
