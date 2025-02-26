@@ -35,24 +35,6 @@ FoundationalData.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue:Date.now(),
-        allowNull: false,
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue:Date.now(),
-        allowNull: false,
-    },
-    created_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
-    modified_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
     foundational_data_type_id: {
         type: DataTypes.UUID,
         allowNull: true,
@@ -92,10 +74,27 @@ FoundationalData.init({
     is_billable:{
         type: DataTypes.BOOLEAN,
         defaultValue: true,
-    }
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+       allowNull: true,
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
 }, {
     sequelize,
     modelName: 'master_data',
+    timestamps:false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);

@@ -8,7 +8,7 @@ export interface vendorLabourCategoriesInterface {
     is_deleted: boolean;
     is_enabled: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
 }

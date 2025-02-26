@@ -219,6 +219,7 @@ export async function getAllQualifications(
 
         if (query.type) {
             searchConditions.type = query.type;
+            searchConditions.program_id = params.program_id;
         } else {
             if (query.name) {
                 searchConditions.name = { [Op.like]: `%${query.name}%` };

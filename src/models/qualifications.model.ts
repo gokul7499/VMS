@@ -32,7 +32,11 @@ Qualifications.init(
             allowNull: true,
         },
         type: {
-            type: DataTypes.STRING,
+            type: DataTypes.ENUM(
+                'imported',
+                'program',
+                'predefined'
+              ),
             allowNull: true,
         },
         is_enabled: {

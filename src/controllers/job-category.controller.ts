@@ -22,7 +22,7 @@ export async function getJobCategoryById(
     const { id } = request.params as { id: string };
     const category = await jobCategoryModel.findOne({
       where: { id },
-      attributes: { exclude: ['is_deleted', 'is_enabled', 'created_on', 'modified_on', 'created_by', 'modified_by'] },
+      attributes: { exclude: ['is_deleted', 'is_enabled', 'created_on', 'updated_on', 'created_by', 'updated_by'] },
     });
     if (category) {
       reply.status(200).send({
@@ -59,9 +59,9 @@ export async function createJobCategory(
     const newJobCategory = await jobCategoryModel.create({
       ...JobCategoryData,
       created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
       created_on: Date.now(),
-      modified_on: Date.now()
+      updated_on: Date.now()
     });
 
     reply.status(201).send({
@@ -100,8 +100,8 @@ export async function updateJobCategory(
     const jobcategory = request.body as JobCategoryInterface;
     const [numRowsUpdated] = await jobCategoryModel.update({
       ...jobcategory,
-      modified_by: userId,
-      modified_on: Date.now()
+      updated_by: userId,
+   updated_on: Date.now()
     }, { where: { id } }
     );
     reply.status(200).send({

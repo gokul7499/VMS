@@ -34,6 +34,14 @@ StateModel.init({
     ref_id: {
         type: DataTypes.UUID,
     },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+    },
+    modified_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+    },
     is_enabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -42,14 +50,6 @@ StateModel.init({
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-    },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
     },
     country_id: {
         type: DataTypes.UUID,

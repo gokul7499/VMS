@@ -7,7 +7,7 @@ export interface vendorWorkLocationMappingInterface {
     is_enabled: boolean;
     is_deleted: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
 }

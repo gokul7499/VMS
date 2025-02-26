@@ -19,7 +19,7 @@ export const createFieldOperator = async (request: FastifyRequest, reply: Fastif
     const userId = user?.sub;
     try {
         const FieldOperatorPayload = request.body as Omit<FieldOperatorData, '_id'>;
-        const FieldOperator: any = await FieldOperatorModel.create({ ...FieldOperatorPayload,created_by: userId, modified_by: userId, });
+        const FieldOperator: any = await FieldOperatorModel.create({ ...FieldOperatorPayload,created_by: userId, updated_by: userId, });
         reply.status(201).send({
             statusCode: 201,
             field_operator_id: FieldOperator.id,
@@ -57,7 +57,7 @@ export const updateFieldOperator = async (request: FastifyRequest, reply: Fastif
         });
         if (data) {
             await data.update(fieldOperator,{
-                where:{created_by: userId, modified_by: userId,}});
+                where:{created_by: userId, updated_by: userId,}});
             reply.status(201).send({
                 statusCode: 201,
                 field_operator_id: id,
@@ -107,7 +107,7 @@ export const deleteFieldOperator = async (request: FastifyRequest, reply: Fastif
         }
 
         await data.update({ is_enabled: false, is_deleted: true,created_by: userId,
-            modified_by: userId, });
+            updated_by: userId, });
         reply.status(200).send({
             statusCode: 200,
             field_operator_id: id,
@@ -151,7 +151,7 @@ export async function getAllFieldOperator(
         const { rows: fieldOperator, count } = await FieldOperatorModel.findAndCountAll({
             where: { ...query, ...searchConditions, is_deleted: false },
             attributes: {
-                exclude: ["is_enabled", "created_on", "modified_on", "created_by", "modified_by", "is_deleted"]
+                exclude: ["is_enabled", "created_on", "updated_on", "created_by", "updated_by", "is_deleted"]
             },
             limit: limit,
             order: [["created_on", "DESC"]],

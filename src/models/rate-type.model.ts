@@ -34,22 +34,6 @@ RateType.init(
       defaultValue: false,
       allowNull: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
-    },
-    created_by: {
-      type: DataTypes.CHAR(36),
-      allowNull: true,
-    },
-    modified_by: {
-      type: DataTypes.CHAR(36),
-      allowNull: true,
-    },
     abbreviation: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -85,7 +69,23 @@ RateType.init(
     rate_type_category: {
       type: DataTypes.UUID,
       allowNull: true
-    }
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull:true,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull:true,
+    },
+    created_by: {
+      type: DataTypes.CHAR(36),
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.CHAR(36),
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -94,6 +94,9 @@ RateType.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
       }
     },
   }

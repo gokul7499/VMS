@@ -56,19 +56,25 @@ JobTemplateCustomField.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-            allowNull: false,
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-            allowNull: false,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {
         sequelize,
         tableName: "job_template_custom_field",
-        timestamps: true,
+        timestamps: false,
     }
 );
 
