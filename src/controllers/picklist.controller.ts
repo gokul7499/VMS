@@ -53,7 +53,6 @@ export async function getPicklistById(
       const [searchField, searchValue] = search.includes(":")
         ? search.split(":")
         : ["", search];
-
       if (searchField && searchFields.includes(searchField)) {
         whereClause[searchField] = {
           [Op.like]: `%${searchValue}%`,
@@ -71,8 +70,16 @@ export async function getPicklistById(
     if (is_enabled !== undefined)
       whereClause.is_enabled = is_enabled === "true";
     if (defined_by) whereClause.defined_by = defined_by;
-    if (modified_on) whereClause.modified_on = parseInt(modified_on, 10);
-
+    if (modified_on) {
+      const modifiedOnRange = modified_on.split(",");
+      if (modifiedOnRange.length === 2) {
+        const [start, end] = modifiedOnRange.map((val) => parseInt(val, 10));
+        whereClause.modified_on = { [Op.between]: [start, end] };
+      } else {
+        whereClause.modified_on = parseInt(modified_on, 10);
+      }
+    }
+    
     const pageNumber = parseInt(page as any, 10) || 1;
     const limitNumber = parseInt(limit as any, 10) || 10;
 

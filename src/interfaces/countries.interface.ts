@@ -6,8 +6,8 @@ export default interface Countries {
     isd_code: string;
     min_phone_length: number;
     max_phone_length: number;
-    created_on:Date;
-    updated_on:Date;
+    created_on:any;
+    updated_on:any;
     created_by:string;
     updated_by:string;
 }

@@ -50,19 +50,19 @@ CountryModel.init({
     allowNull: false,
   },
   created_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    allowNull:true,
   },
   updated_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    allowNull:true,
   },
   created_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: true,
   }
 },

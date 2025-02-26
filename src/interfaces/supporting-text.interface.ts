@@ -27,3 +27,46 @@ export interface supportingTextAttributes {
     created_by: string;
     modified_by: string;
 }
+
+
+
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+      program_id: { type: 'string' },
+      id: { type: 'string' }
+    },
+    required: ['program_id']
+  };
+  
+  export const querySchema = {
+    type: 'object',
+    properties: {
+      search: { type: 'string' },
+      limit: { type: 'integer' },
+      offset: { type: 'integer' }
+    }
+  };
+  export const createsupportingTextSchema = {
+    type: 'object',
+    required: ['module_id','event_id'],
+    properties: {
+        module_id:{type:'string'},
+        event_id:{type:'string'},
+        performed_by:{type:'string'},
+        is_enabled:{type:'boolean'},
+        program_id:{type:'string'},
+        support_text_action:{type:'array',
+            items: {
+                type: "object",
+                properties: {
+                    description: { "type": "string" },
+                    url: { "type": 'string'},
+                    placement:{type:'string'},
+                    label:{type:'string'}
+                },
+        }
+    }
+  }
+  
+}

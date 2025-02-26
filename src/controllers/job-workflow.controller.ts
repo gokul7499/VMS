@@ -767,9 +767,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
                 user_type: user.userType,
-                fullName: managerData.data.first_name,
-                job_id: updates[0].job_id,
-                job_name: workflow.event_title
+                fullName: managerData.data?.first_name,
+                job_id: updates?.[0]?.job_id,
+                job_name: workflow?.event_title
             };
             const recipientEmailArray: EmailRecipient[] = [];
 
@@ -2167,13 +2167,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0]?.user_id,
-                            first_name: imporsonateUserResult[0]?.first_name,
-                            last_name: imporsonateUserResult[0]?.last_name,
-                            avatar: imporsonateUserResult[0]?.avatar,
-                            role_id: imporsonateUserResult[0]?.role_id,
-                            email: imporsonateUserResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            id: imporsonateUserResult?.[0]?.user_id,
+                            first_name: imporsonateUserResult?.[0]?.first_name,
+                            last_name: imporsonateUserResult?.[0]?.last_name,
+                            avatar: imporsonateUserResult?.[0]?.avatar,
+                            role_id: imporsonateUserResult?.[0]?.role_id,
+                            email: imporsonateUserResult?.[0]?.email,
+                            modified_on: recipient_details?.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2244,13 +2244,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0]?.user_id,
-                            first_name: imporsonateUserResult[0]?.first_name,
-                            last_name: imporsonateUserResult[0]?.last_name,
-                            avatar: imporsonateUserResult[0]?.avatar,
-                            role_id: imporsonateUserResult[0]?.role_id,
-                            email: imporsonateUserResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            id: imporsonateUserResult?.[0]?.user_id,
+                            first_name: imporsonateUserResult?.[0]?.first_name,
+                            last_name: imporsonateUserResult?.[0]?.last_name,
+                            avatar: imporsonateUserResult?.[0]?.avatar,
+                            role_id: imporsonateUserResult?.[0]?.role_id,
+                            email: imporsonateUserResult?.[0]?.email,
+                            modified_on: recipient_details?.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2350,13 +2350,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0].user_id,
-                            first_name: imporsonateUserResult[0].first_name,
-                            last_name: imporsonateUserResult[0].last_name,
-                            avatar: imporsonateUserResult[0].avatar,
-                            role_id: imporsonateUserResult[0].role_id,
-                            email: imporsonateUserResult[0].email,
-                            modified_on: recipient_details.modified_on,
+                            id: imporsonateUserResult?.[0]?.user_id,
+                            first_name: imporsonateUserResult?.[0]?.first_name,
+                            last_name: imporsonateUserResult?.[0]?.last_name,
+                            avatar: imporsonateUserResult?.[0]?.avatar,
+                            role_id: imporsonateUserResult?.[0]?.role_id,
+                            email: imporsonateUserResult?.[0]?.email,
+                            modified_on: recipient_details?.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2436,13 +2436,13 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         replaced_date_time: recipient_details.replaced_modified_on
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
-                                        id: imporsonateUserResult[0].user_id,
-                                        first_name: imporsonateUserResult[0].first_name,
-                                        last_name: imporsonateUserResult[0].last_name,
-                                        avatar: imporsonateUserResult[0].avatar,
-                                        role_id: imporsonateUserResult[0].role_id,
-                                        email: imporsonateUserResult[0].email,
-                                        modified_on: recipient_details.modified_on,
+                                        id: imporsonateUserResult?.[0]?.user_id,
+                                        first_name: imporsonateUserResult?.[0]?.first_name,
+                                        last_name: imporsonateUserResult?.[0]?.last_name,
+                                        avatar: imporsonateUserResult?.[0]?.avatar,
+                                        role_id: imporsonateUserResult?.[0]?.role_id,
+                                        email: imporsonateUserResult?.[0]?.email,
+                                        modified_on: recipient_details?.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3402,13 +3402,13 @@ l.placement_order ASC;`;
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0]?.user_id,
-                            first_name: imporsonateUserResult[0]?.first_name,
-                            last_name: imporsonateUserResult[0]?.last_name,
-                            avatar: imporsonateUserResult[0]?.avatar,
-                            role_id: imporsonateUserResult[0]?.role_id,
-                            email: imporsonateUserResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            id: imporsonateUserResult?.[0]?.user_id,
+                            first_name: imporsonateUserResult?.[0]?.first_name,
+                            last_name: imporsonateUserResult?.[0]?.last_name,
+                            avatar: imporsonateUserResult?.[0]?.avatar,
+                            role_id: imporsonateUserResult?.[0]?.role_id,
+                            email: imporsonateUserResult?.[0]?.email,
+                            modified_on: recipient_details?.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3505,12 +3505,12 @@ l.placement_order ASC;`;
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult[0]?.user_id,
-                            first_name: imporsonateUserResult[0]?.first_name,
-                            last_name: imporsonateUserResult[0]?.last_name,
-                            avatar: imporsonateUserResult[0]?.avatar,
-                            role_id: imporsonateUserResult[0]?.role_id,
-                            email: imporsonateUserResult[0]?.email,
+                            id: imporsonateUserResult?.[0]?.user_id,
+                            first_name: imporsonateUserResult?.[0]?.first_name,
+                            last_name: imporsonateUserResult?.[0]?.last_name,
+                            avatar: imporsonateUserResult?.[0]?.avatar,
+                            role_id: imporsonateUserResult?.[0]?.role_id,
+                            email: imporsonateUserResult?.[0]?.email,
                             modified_on: recipient_details.modified_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
@@ -3592,12 +3592,12 @@ l.placement_order ASC;`;
                                         behaviour,
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
-                                        id: imporsonateUserResult[0]?.user_id,
-                                        first_name: imporsonateUserResult[0]?.first_name,
-                                        last_name: imporsonateUserResult[0]?.last_name,
-                                        avatar: imporsonateUserResult[0]?.avatar,
-                                        role_id: imporsonateUserResult[0]?.role_id,
-                                        email: imporsonateUserResult[0]?.email,
+                                        id: imporsonateUserResult?.[0]?.user_id,
+                                        first_name: imporsonateUserResult?.[0]?.first_name,
+                                        last_name: imporsonateUserResult?.[0]?.last_name,
+                                        avatar: imporsonateUserResult?.[0]?.avatar,
+                                        role_id: imporsonateUserResult?.[0]?.role_id,
+                                        email: imporsonateUserResult?.[0]?.email,
                                         modified_on: recipient_details.modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,

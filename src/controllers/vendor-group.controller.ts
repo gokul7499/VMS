@@ -151,14 +151,7 @@ export async function getVendorGroupById(
   const traceId = generateCustomUUID();
   try {
     const vendorGroup = await VendorGroup.findOne({
-      where: { id, program_id, is_deleted: false },
-      include: [
-        {
-          model: ProgramVendor,
-          as: 'program_vendor',
-          attributes: ['id', 'vendor_name'],
-        },
-      ],
+      where: { id, program_id, is_deleted: false }
     });
 
     if (!vendorGroup) {
@@ -171,7 +164,7 @@ export async function getVendorGroupById(
     const vendorIds = vendorGroup.vendors || [];
     const detailedVendors = await ProgramVendor.findAll({
       where: { id: vendorIds },
-      attributes: ['id', 'vendor_name'],
+      attributes: ['id', 'vendor_name', 'display_name'],
     });
 
     return reply.status(200).send({
@@ -184,7 +177,6 @@ export async function getVendorGroupById(
       trace_id: traceId,
     });
   } catch (error) {
-    console.error('Server error:', error);
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
