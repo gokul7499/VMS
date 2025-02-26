@@ -840,7 +840,7 @@ SELECT
     md.program_id,
     md.name,
     md.is_enabled,
-    md.modified_on,
+    md.updated_on,
     md.code,
     md.foundational_data_type_id,
     md.depended_fields,
@@ -862,7 +862,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -889,7 +889,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
