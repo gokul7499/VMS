@@ -32,25 +32,25 @@ export interface PasswordPolicy {
 }
 
 export interface TenantData {
-  id?: string; // UUID
-  tenant_parent_id?: string; // UUID
+  id?: string;
+  tenant_parent_id?: string; 
   name?: string;
   type?: string;
   display_name?: string;
   vendor_code?:string;
   logo?: string;
-  addresses?: Address[]; // Array of Address objects
-  contacts?: any; // Replace 'any' with a more specific type if known
+  addresses?: Address[]; 
+  contacts?: any; 
   password_policy?: PasswordPolicy;
   primary_contact?: Contact;
   secondary_contact?: Contact;
   is_enabled?: boolean;
-  created_on?: number; // Unix timestamp
-  modified_on?: number; // Unix timestamp
-  created_by?: string; // UUID
-  modified_by?: string; // UUID
+  created_on?: number; 
+  updated_on?: number;
+  created_by?: string; 
+  updated_by?: string; 
   is_deleted?: boolean;
-  ref_id?: string; // UUID
+  ref_id?: string; 
   vendor_industry?: any;
 }
 

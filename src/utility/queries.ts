@@ -477,7 +477,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -502,7 +502,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -533,7 +533,7 @@ WITH hierarchy_cte AS (
     h.code,
     h.parent_hierarchy_id,
     h.is_enabled,
-    h.modified_on,
+    h.updated_on,
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
@@ -548,7 +548,7 @@ WITH hierarchy_cte AS (
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
     : ''
   }
 ),
@@ -1378,7 +1378,7 @@ export const masterDataQuery = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
@@ -2051,7 +2051,7 @@ export const hierarchie = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
