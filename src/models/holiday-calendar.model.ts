@@ -49,26 +49,6 @@ HolidayCalendar.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
-        defaultValue: Date.now(),
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
-        defaultValue: Date.now(),
-    },
-    created_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
-    },
-    modified_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
-    },
     program_id: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -77,10 +57,27 @@ HolidayCalendar.init({
             key: 'id',
         },
     },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
 }, {
     sequelize,
     modelName: 'holiday_calendar',
-    tableName: 'holiday_calendar'
+    tableName: 'holiday_calendar',
+    timestamps:false
 });
 sequelize.sync();
 HolidayCalendar.belongsTo(ProgramModule, { foreignKey: 'program_id', as: 'programs' });
