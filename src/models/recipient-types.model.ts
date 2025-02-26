@@ -70,12 +70,10 @@ RecipientType.init(
         created_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
-            defaultValue: DataTypes.NOW
         },
         updated_on: {
             type: DataTypes.DOUBLE,
             allowNull: true,
-            defaultValue: DataTypes.NOW
         },
         created_by: {
             type: DataTypes.UUID,
