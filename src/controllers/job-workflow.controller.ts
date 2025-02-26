@@ -766,13 +766,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
-                user_type: user.userType,
-                fullName: managerData.data.first_name,
-                job_id: workflow.event_title,
-                status_reason: updates[0].reason
+                user_type: user?.userType,
+                fullName: managerData?.data?.first_name,
+                job_id: workflow?.event_title,
+                status_reason: updates[0]?.reason
             };
+
             const recipientEmailArray: EmailRecipient[] = [];
-            
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
 
