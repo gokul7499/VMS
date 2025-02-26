@@ -2714,3 +2714,13 @@ export const sameHierarchieRateConfiguration = `
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
     `;
+
+    export const getMatchingHierarchiesQuery = () => {
+      return `
+        SELECT
+            h.id AS hierarchy_id
+        FROM hierarchies h
+        WHERE h.program_id = :program_id AND h.id IN (:hierarchy_ids)
+      `;
+    };
+    

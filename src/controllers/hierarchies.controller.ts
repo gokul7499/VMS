@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, getMatchingHierarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 
 interface HierarchyItem {
@@ -838,3 +838,58 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     });
   }
 }
+
+export const updateIsNotEditableFlag = async (
+  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
+  reply: FastifyReply
+) => {
+  const { hierarchy_ids } = request.query;
+  const { program_id } = request.params; 
+  const traceId = generateCustomUUID();
+
+  if (!hierarchy_ids) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Missing required query parameter hierarchy_ids.'
+    });
+  }
+
+  try {
+    const hierarchyIdsArray = hierarchy_ids.split(',');
+    const query = getMatchingHierarchiesQuery();
+    const matchedHierarchies: { hierarchy_id: string }[] = await sequelize.query(query, {
+      replacements: { program_id, hierarchy_ids: hierarchyIdsArray },
+      type: QueryTypes.SELECT
+    });
+    
+    if (!matchedHierarchies.length) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: 'No matching hierarchies found.',
+        data:[]
+      });
+    }
+    const matchedHierarchyIds = matchedHierarchies.map((h) => h.hierarchy_id);
+    await sequelize.query(
+      `UPDATE hierarchies SET is_not_editable = TRUE WHERE id IN (:matchedHierarchyIds)`,
+      { replacements: { matchedHierarchyIds }, type: QueryTypes.UPDATE }
+    );
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: 'Hierarchies updated successfully.',
+      updated_hierarchy_ids: matchedHierarchyIds
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Internal Server Error',
+      error: error.message
+    });
+  }
+};
+
+

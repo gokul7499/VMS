@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import {
     getHierarchiesById, createHierarchies, updateHierarchies, deleteHierarchies, advancedSearchHierarchies, searchHierarchies,
-    getHierarchiesByProgram, getHierarchies, getRateModel, getMasterDataForHeirarchies,getVendorMarkup
+    getHierarchiesByProgram, getHierarchies, getRateModel, getMasterDataForHeirarchies,getVendorMarkup,updateIsNotEditableFlag
 } from '../controllers/hierarchies.controller';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
@@ -16,5 +16,6 @@ async function hierarchiesRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/get-rate-model', getRateModel);
     fastify.get('/program/:program_id/get-hierarchy-master-data', getMasterDataForHeirarchies);
     fastify.get('/program/:program_id/get-vendor-markup', getVendorMarkup);
+    fastify.put('/program/:program_id/update-hierarchy', updateIsNotEditableFlag);
 }
 export default hierarchiesRoutes;
