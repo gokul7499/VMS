@@ -46,25 +46,22 @@ DistScheduleDetail.init({
         defaultValue: false,
     },
     created_on: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+        type: DataTypes.DOUBLE,
+        allowNull: true
     },
-    modified_on: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
     },
     created_by: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
+        allowNull: true,
     },
-    modified_by: {
+    updated_by: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
+        allowNull: true,
     },
+
 }, {
     sequelize,
     modelName: 'dist_schedule_detail',
