@@ -254,7 +254,7 @@ export async function createJobTemplate(
         ...jobTemplateData,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       },
       { transaction }
     );
@@ -446,8 +446,8 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
-    updateData.modified_on = Date.now();
-    updateData.modified_by = userId;
+    updateData.updated_on = Date.now();
+    updateData.updated_by = userId;
     await jobTemplate.update(updateData);
 
     await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);

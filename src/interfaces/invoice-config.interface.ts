@@ -37,8 +37,8 @@ export interface InvoiceConfigInterface {
     enable_cancel_consolidation: boolean;
     credit_debit: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     is_deleted: boolean;
 }

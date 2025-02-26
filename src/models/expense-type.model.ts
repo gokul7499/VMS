@@ -82,30 +82,28 @@ ExpenseTypeModel.init({
             key:"id"
         } 
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-    },
-    created_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true,
-    },
-    modified_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true,
-    },
     ref_id: {
         type: DataTypes.UUID,
     },
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
     },
 },
     {

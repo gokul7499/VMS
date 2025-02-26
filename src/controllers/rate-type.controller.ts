@@ -125,7 +125,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
       ...data,
       program_id,
       created_by: user.sub,
-      modified_by: user.sub,
+      updated_by: user.sub,
     });
 
     logger(
@@ -195,7 +195,7 @@ export async function getAllRateType(request: FastifyRequest<{
     id?: string;
     name?: string;
     is_enabled?: boolean | string;
-    modified_on?: string;
+    updated_on?: string;
     is_shift_rate?: boolean | string;
     is_base_rate?: string | boolean;
     differential_on?: string;
@@ -210,7 +210,7 @@ export async function getAllRateType(request: FastifyRequest<{
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query;
+  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -221,7 +221,7 @@ export async function getAllRateType(request: FastifyRequest<{
           ? false
           : undefined;
 
-    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
+    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
     const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
       replacements: { program_id },
@@ -261,7 +261,7 @@ export async function getAllRateType(request: FastifyRequest<{
 }
 
 function getQueryParams(query: any) {
-  const { id, name, is_enabled, modified_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = query;
+  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = query;
 
   const hasName = !!name;
   const hasId = !!id;
@@ -273,7 +273,7 @@ function getQueryParams(query: any) {
   const isShiftRateValue = parseBoolean(is_shift_rate);
   const isBaseRate = parseBoolean(is_base_rate);
 
-  const { startDate, endDate } = parseDateRange(modified_on);
+  const { startDate, endDate } = parseDateRange(updated_on);
   const hasAbbreviation = !!abbreviation;
   const pageNumber = parseInt(page, 10);
   const pageSize = parseInt(limit, 10);
@@ -456,8 +456,8 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { pro
     await rateType.update(
       {
         ...updates,
-        modified_on: Date.now(),
-        modified_by: userId,
+        updated_on: Date.now(),
+        updated_by: userId,
       },
       { where: { id, program_id } }
     );
@@ -498,8 +498,8 @@ export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id:
       await rateTypes.update({
         is_enabled: false,
         is_deleted: true,
-        modified_on: Date.now(),
-        modified_by: userId,
+        updated_on: Date.now(),
+        updated_by: userId,
       })
       reply.status(204).send({
         status_code: 204,

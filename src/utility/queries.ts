@@ -1798,7 +1798,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.updated_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
     whereConditions += ` AND rc.id IN (
@@ -1829,7 +1829,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       rc.is_enabled,
       rc.is_shift_rate,
       rc.created_on,
-      rc.modified_on,
+      rc.updated_on,
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
@@ -1866,7 +1866,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.modified_on DESC
+    ORDER BY rc.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -2156,7 +2156,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2252,7 +2252,7 @@ WITH user_data AS (
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY modified_on DESC
+ORDER BY updated_on DESC
 LIMIT :limit OFFSET :offset;
 
 `;
@@ -2267,7 +2267,7 @@ WITH user_data AS (
          u.program_id,
          u.is_activated,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2288,7 +2288,7 @@ WITH user_data AS (
 )
 SELECT *
 FROM user_data
-ORDER BY modified_on DESC;
+ORDER BY updated_on DESC;
 `;
 
 export const getPendingUserQuery = `
@@ -2296,7 +2296,7 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS modified_on,
+    invitation.updated_at AS updated_on,
     invitation.created_at AS created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
