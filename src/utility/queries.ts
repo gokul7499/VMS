@@ -2156,7 +2156,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2252,7 +2252,7 @@ WITH user_data AS (
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY modified_on DESC
+ORDER BY updated_on DESC
 LIMIT :limit OFFSET :offset;
 
 `;
@@ -2267,7 +2267,7 @@ WITH user_data AS (
          u.program_id,
          u.is_activated,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2288,7 +2288,7 @@ WITH user_data AS (
 )
 SELECT *
 FROM user_data
-ORDER BY modified_on DESC;
+ORDER BY updated_on DESC;
 `;
 
 export const getPendingUserQuery = `
@@ -2296,7 +2296,7 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS modified_on,
+    invitation.updated_at AS updated_on,
     invitation.created_at AS created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
