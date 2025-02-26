@@ -26,31 +26,39 @@ WorkLocationCurrency.init(
     },
     currency_id: {
       type: DataTypes.UUID,
-      allowNull: true,      
+      allowNull: true,
     },
     is_default: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
     },
-    name:{
-      type:DataTypes.STRING
+    name: {
+      type: DataTypes.STRING
     },
-    code:{
-      type:DataTypes.STRING
+    code: {
+      type: DataTypes.STRING
     },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
     },
-    updatedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {
     sequelize,
     modelName: 'work_locations_currencies',
-    timestamps: true,
+    timestamps: false,
   }
 );
 

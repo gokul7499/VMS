@@ -231,12 +231,10 @@ User.init(
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      defaultValue: Date.now()
     },
     updated_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      defaultValue: Date.now()
     },
     created_by: {
       type: DataTypes.UUID,
@@ -254,7 +252,10 @@ User.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
-      }
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
+      },
     }
   }
 );
