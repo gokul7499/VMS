@@ -41,14 +41,14 @@ QualificationValueMaster.init(
         created_on: {
             type: DataTypes.DOUBLE,
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
         },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },

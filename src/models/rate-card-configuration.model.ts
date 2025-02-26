@@ -61,20 +61,23 @@ RateCardModel.init(
         expenses: {
             type: DataTypes.JSON
         },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE
-        },
+
     },
     {
         sequelize,

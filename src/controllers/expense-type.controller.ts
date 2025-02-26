@@ -42,7 +42,7 @@ export async function createExpenseType(
             entity_id: request.params.program_id,
             is_deleted: false,
             created_by: user.sub,
-            modified_by: user.sub,
+            updated_by: user.sub,
         },
         ExpenseTypeModel
     );
@@ -55,7 +55,7 @@ export async function createExpenseType(
             ...expenseType,
             program_id,
             created_by: user.sub,
-            modified_by: user.sub,
+            updated_by: user.sub,
         });
 
         logger(
@@ -75,7 +75,7 @@ export async function createExpenseType(
                 entity_id: expenseTypeData?.id,
                 is_deleted: false,
                 created_by: user.sub,
-                modified_by: user.sub,
+                updated_by: user.sub,
             },
             ExpenseTypeModel
         );
@@ -104,7 +104,7 @@ export async function createExpenseType(
                 entity_id: request.params.program_id,
                 is_deleted: false,
                 created_by: user.sub,
-                modified_by: user.sub,
+                updated_by: user.sub,
             },
             ExpenseTypeModel
         );
@@ -184,13 +184,13 @@ export async function updateExpenseTypeById(
                     user_name: user.preferred_username,
                     user_id: user.sub,
                 },
-                modified_by: user.sub,
+                updated_by: user.sub,
             },
             ExpenseTypeModel
         );
 
         const [updatedCount] = await ExpenseTypeModel.update(
-            { ...updates, modified_by: user.sub, modified_on: Date.now() },
+            { ...updates, updated_by: user.sub, updated_on: Date.now() },
             {
                 where: { id, program_id },
             }
@@ -211,7 +211,7 @@ export async function updateExpenseTypeById(
                     user_name: user.preferred_username,
                     user_id: user.sub,
                 },
-                modified_by: user.sub,
+                updated_by: user.sub,
             },
             ExpenseTypeModel
         );
@@ -230,7 +230,7 @@ export async function updateExpenseTypeById(
                     user_name: user.preferred_username,
                     user_id: user.sub,
                 },
-                modified_by: user.sub,
+                updated_by: user.sub,
             },
             ExpenseTypeModel
         );
@@ -266,13 +266,13 @@ export async function deleteExpenseTypeById(
     try {
         const { id, program_id } = request.params;
 
-        // Add `modified_by` to the update
+        // Add `updated_by` to the update
         const [expenseType] = await ExpenseTypeModel.update(
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: new Date(),
-                modified_by: user.sub, // Add the user ID as the modifier
+                updated_on: new Date(),
+                updated_by: user.sub, // Add the user ID as the modifier
             },
             { where: { id, program_id } }
         );
@@ -316,7 +316,7 @@ export async function getAllExpenseType(
             max_limit?: number;
             page?: number;
             limit?: number;
-            modified_on?: string;
+            updated_on?: string;
         };
         Params: {
             program_id: string
@@ -336,7 +336,7 @@ export async function getAllExpenseType(
         max_limit,
         page,
         limit,
-        modified_on
+        updated_on
     } = request.query;
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
@@ -365,12 +365,12 @@ export async function getAllExpenseType(
     if (max_limit !== undefined) {
         whereClause["unit_based.max_limit"] = { [Op.lte]: max_limit };
     }
-    if (modified_on) {
-        const dateRange = modified_on.split(',');
+    if (updated_on) {
+        const dateRange = updated_on.split(',');
         if (dateRange.length === 2) {
             const startDate = parseFloat(dateRange[0].trim());
             const endDate = parseFloat(dateRange[1].trim());
-            whereClause.modified_on = { [Op.between]: [startDate, endDate] };
+            whereClause.updated_on = { [Op.between]: [startDate, endDate] };
         }
     }
 

@@ -56,7 +56,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
         GROUP BY
             rcc.id
         ORDER BY
@@ -115,7 +115,7 @@ export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: numb
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
     `;
 };
 
@@ -793,32 +793,96 @@ SELECT
                 'rate_model', vmc.rate_model,
                 'sliding_scale', vmc.sliding_scale,
                 'markups', vmc.markups,
-                'is_all_hierarchy', vmc.is_all_hierarchy = 1,
-                'is_all_work_locations', vmc.is_all_work_locations = 1,
-                'is_all_labor_category', vmc.is_all_labor_category = 1,
-                'work_locations', (
-                   SELECT JSON_OBJECT(
-                        'id', wl.id,
-                        'name', wl.name
-                    )
-                    FROM work_locations wl
-                    WHERE wl.id = vmc.work_locations
+                'job_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.job_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
                 ),
-                'hierarchy', (
-                    SELECT JSON_OBJECT(
-                        'id', h.id,
-                        'name', h.name
-                    )
-                    FROM hierarchies h
-                    WHERE h.id = vmc.hierarchy
+                'job_template', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', jt.id,
+                            'name', jt.template_name
+                        )
+                        FROM job_templates jt
+                        WHERE jt.id = vmc.job_template
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
-                'program_industry', (
-                     SELECT JSON_OBJECT(
-                        'id', i.id,
-                        'name', i.name
-                    )
-                    FROM labour_category i
-                    WHERE i.id = vmc.program_industry
+                'worker_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'worker_classification', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_classification
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'rate_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', rt.id,
+                            'name', rt.name
+                        )
+                        FROM rate_type rt
+                        WHERE rt.id = vmc.rate_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'work_locations', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', wl.id,
+                            'name', wl.name
+                        )
+                        FROM work_locations wl
+                        WHERE wl.id = vmc.work_locations
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'hierarchy', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', h.id,
+                            'name', h.name
+                        )
+                        FROM hierarchies h
+                        WHERE h.id = vmc.hierarchy
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'program_industry', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', i.id,
+                            'name', i.name
+                        )
+                        FROM labour_category i
+                        WHERE i.id = vmc.program_industry
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
                 'is_enabled', vmc.is_enabled
             )
@@ -832,7 +896,6 @@ FROM program_vendors pv
 WHERE pv.id = :id
   AND pv.program_id = :program_id;
 `;
-
 
 export const foundationDataQuery = `
 SELECT
@@ -1798,7 +1861,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.updated_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
     whereConditions += ` AND rc.id IN (
@@ -1829,7 +1892,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       rc.is_enabled,
       rc.is_shift_rate,
       rc.created_on,
-      rc.modified_on,
+      rc.updated_on,
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
@@ -1866,7 +1929,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.modified_on DESC
+    ORDER BY rc.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -2156,7 +2219,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2252,7 +2315,7 @@ WITH user_data AS (
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY modified_on DESC
+ORDER BY updated_on DESC
 LIMIT :limit OFFSET :offset;
 
 `;
@@ -2267,7 +2330,7 @@ WITH user_data AS (
          u.program_id,
          u.is_activated,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2288,7 +2351,7 @@ WITH user_data AS (
 )
 SELECT *
 FROM user_data
-ORDER BY modified_on DESC;
+ORDER BY updated_on DESC;
 `;
 
 export const getPendingUserQuery = `
@@ -2296,7 +2359,7 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS modified_on,
+    invitation.updated_at AS updated_on,
     invitation.created_at AS created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,

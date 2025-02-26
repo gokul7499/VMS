@@ -112,7 +112,7 @@ export const createDistScheduleDetails = async (request: FastifyRequest<{ Params
 
 export const getAllDistScheduleDetails = async (request: FastifyRequest, reply: FastifyReply) => {
     const searchFields = ["program_id", "measure_unit", "vendor_data", "is_enabled"];
-    const responseFields = ["id", "duration", "measure_unit", "vendor_data", "is_enabled", "modified_on"];
+    const responseFields = ["id", "duration", "measure_unit", "vendor_data", "is_enabled", "updated_on"];
     return baseSearch(request, reply, DistScheduleDetail, searchFields, responseFields);
 };
 

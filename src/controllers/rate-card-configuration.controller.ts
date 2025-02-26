@@ -53,8 +53,8 @@ export async function getAllRateCard(
         let startDate: number | undefined;
         let endDate: number | undefined;
 
-        if (query.modified_on) {
-            const dateRange = query.modified_on.split(",");
+        if (query.updated_on) {
+            const dateRange = query.updated_on.split(",");
             if (dateRange.length === 2) {
                 startDate = parseInt(dateRange[0], 10) || undefined;
                 endDate = parseInt(dateRange[1], 10) || undefined;
@@ -330,7 +330,7 @@ export const updateRateCardById = async (request: FastifyRequest, reply: Fastify
                 }
             );
         }
-        const UpdatedRateCardConfiguration = await data.update({RateCardConfigurationData,modified_on:Date.now(),modified_by:userId,});
+        const UpdatedRateCardConfiguration = await data.update({RateCardConfigurationData,updated_on:Date.now(),updated_by:userId,});
         const { hierarchies } = UpdatedRateCardConfiguration as any;
         if (hierarchies) {
             const existingMappings = await RateCardMapping.findAll({
@@ -465,7 +465,7 @@ export async function deleteRateCardById(
             await  rateCard.update({
                 is_enabled: false,
                 is_deleted: true,
-                modified_by:userId,
+                updated_by:userId,
             })
             reply.status(200).send({
                 status_code: 200,

@@ -36,14 +36,6 @@ JobTemplateHierarchyModel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW
-        },
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -51,6 +43,22 @@ JobTemplateHierarchyModel.init(
                 model: 'programs',
                 key: 'id',
             },
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {

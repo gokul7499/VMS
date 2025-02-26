@@ -30,10 +30,10 @@ class CustomField extends Model {
   job_type: any;
   module_name: any;
   module_id: any;
-  modified_on: any;
+  updated_on: any;
   created_on: any;
   program_id: any;
-  modified_by: any;
+  updated_by: any;
 
 }
 
@@ -113,12 +113,6 @@ CustomField.init(
       allowNull: true,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
     module_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -152,9 +146,20 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
-    modified_by: {
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
       allowNull: true,
     },
   },
