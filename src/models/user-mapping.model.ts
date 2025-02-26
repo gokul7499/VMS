@@ -57,7 +57,7 @@ UserMapping.init({
         type: DataTypes.UUID,
         allowNull: true
     },
-    user_type:{
+    user_type: {
         type: DataTypes.STRING,
         allowNull: true
     },
@@ -75,28 +75,24 @@ UserMapping.init({
     },
     created_on: {
         type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: Date.now()
+        allowNull: true
     },
     updated_on: {
         type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: Date.now()
+        allowNull: true
     },
     created_by: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true
+        allowNull: true,
     },
     updated_by: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true
+        allowNull: true,
     },
 }, {
     sequelize,
     tableName: 'user_mappings',
-    timestamps:false,
+    timestamps: false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
