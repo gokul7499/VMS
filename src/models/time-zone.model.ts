@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import { sequelize } from '../config/instance'; 
+import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 
@@ -30,16 +30,32 @@ TimeZone.init({
   utc_offset: {
     type: DataTypes.CHAR(255),
     allowNull: false,
-    defaultValue: '', 
+    defaultValue: '',
   },
   region: {
     type: DataTypes.CHAR(255),
     allowNull: false,
   },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
 }, {
   sequelize,
   tableName: 'time_zones',
-  timestamps: false, 
+  timestamps: false,
   hooks: {
     beforeValidate: (instance) => {
       convertEmptyStringsToNull(instance);
