@@ -22,13 +22,29 @@ RateConfigurationRateTypes.init(
             type: DataTypes.UUID,
             allowNull: false,
         },
-        rate_type_id : {
+        rate_type_id: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
                 model: rateType,
                 key: 'id',
             }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {
