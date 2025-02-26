@@ -11,8 +11,8 @@ import { decodeToken } from "../middlewares/verifyToken";
 
 
 export async function getALLShiftType(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'modified_on'];
-    const responseFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'modified_on', 'shift_type_time', 'time_duration'];
+    const searchFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on'];
+    const responseFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on', 'shift_type_time', 'time_duration'];
     return baseSearch(request, reply, ShiftTypeModel, searchFields, responseFields);
 }
 
@@ -81,7 +81,7 @@ export async function createShiftType(
             });
         }
         const state_data: any = await ShiftTypeModel.create({ ...shiftType ,created_by: userId,
-            modified_by: userId,});
+            updated_by: userId,});
         reply.status(201).send({
             status_code: 201,
             message: "shift type created succesfully",
@@ -137,7 +137,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
                 });
             }
             console.log("existingShiftTypeWithSameName", existingShiftTypeWithSameName)
-            await shiftType.update(shiftTypeData,{where:{modified_by: userId}});
+            await shiftType.update(shiftTypeData,{where:{updated_by: userId}});
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -182,7 +182,7 @@ export async function deleteShiftType(request: FastifyRequest, reply: FastifyRep
             },
         });
         if (shiftType) {
-            await shiftType.update({ is_deleted: true ,modified_by: userId});
+            await shiftType.update({ is_deleted: true ,updated_by: userId});
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,

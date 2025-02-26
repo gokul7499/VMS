@@ -23,7 +23,8 @@ ShiftConfigurationHierarchies.init({
   hierarchy_id: {
     type: DataTypes.UUID,
     allowNull: true
-  }
+  },
+  
 
 }, {
 
