@@ -73,15 +73,15 @@ vendorMarkupConfig.init(
             allowNull: true,
         },
         program_industry: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         hierarchy: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         work_locations: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true,
         },
         is_default: {
@@ -93,7 +93,7 @@ vendorMarkupConfig.init(
             allowNull: true
         },
         job_template: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true
         },
         worker_type: {
@@ -101,11 +101,11 @@ vendorMarkupConfig.init(
             allowNull: true
         },
         worker_classification: {
-            type: DataTypes.BOOLEAN,
+            type: DataTypes.STRING,
             allowNull: true
         },
         rate_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: true
         },
         is_enabled: {
