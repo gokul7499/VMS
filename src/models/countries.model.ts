@@ -58,11 +58,11 @@ CountryModel.init({
     allowNull:true,
   },
   created_by: {
-    type: DataTypes.UUID,
+    type: DataTypes.CHAR(39),
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.UUID,
+    type: DataTypes.CHAR(36),
     allowNull: true,
   }
 },
