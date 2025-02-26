@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, getMatchingHierarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 
 interface HierarchyItem {
@@ -696,66 +696,6 @@ function buildHierarchyTree(hierarchies: Hierarchy[]): Hierarchy[] {
   });
   return roots;
 }
-
-export const getMasterDataForHeirarchies = async (
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
-  reply: FastifyReply
-) => {
-  const { hierarchy_ids } = request.query;
-  const traceId = generateCustomUUID();
-
-  if (!hierarchy_ids) {
-    return reply.status(400).send({
-      status_code: 400,
-      message: 'Missing required query parameter hierarchy_ids is required.'
-    });
-  }
-
-  try {
-    const hierarchyIdsArray = hierarchy_ids.split(',');
-
-    const query = getMasterDataForHeirarchiesQuery();
-
-    const results: {
-      user_association_exclude: any;
-      hierarchy_name: any;
-      hierarchy_id: any; master_data: any[]
-    }[] = await sequelize.query(query, {
-      replacements: { hierarchy_ids: hierarchyIdsArray },
-      type: QueryTypes.SELECT
-    });
-
-    if (!results || results.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: 'No master data found for the provided hierarchies IDs.',
-        master_data: []
-      });
-    }
-
-    const masterDataResponse = results.map(result => ({
-      hierarchy_id: result.hierarchy_id,
-      hierarchy_name: result.hierarchy_name,
-      user_association_exclude: result.user_association_exclude,
-      master_data: result.master_data
-    }));
-
-    return reply.status(200).send({
-      status_code: 200,
-      trace_id: traceId,
-      message: 'Master data for hierarchies retrieved successfully.',
-      master_data: masterDataResponse
-    });
-  } catch (error: any) {
-    return reply.status(500).send({
-      status_code: 500,
-      trace_id: traceId,
-      message: 'Internal Server Error',
-      error: error.message
-    });
-  }
-};
 
 export async function getVendorMarkup(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();

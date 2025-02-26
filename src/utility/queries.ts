@@ -1341,35 +1341,6 @@ export const getWorkLocationTimeZoneByUserId = `
           user.user_id IN (:user_ids) AND user.program_id = :program_id
       `;
 
-export const getMasterDataForHeirarchiesQuery = () => {
-  return `
-        SELECT
-            h.id AS hierarchy_id,
-            h.name AS hierarchy_name,
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', fdt.id,
-                    'name', fdt.name,
-                    'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
-                    'value', (
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'id', fd.id,
-                                'name', fd.name
-                            )
-                        )
-                        FROM master_data fd
-                        WHERE fd.foundational_data_type_id = fdt.id AND fd.is_enabled = 1
-                    )
-                )
-            ) AS master_data
-        FROM hierarchies h
-        LEFT JOIN hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
-        LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-        WHERE h.id IN (:hierarchy_ids) AND fdt.is_enabled = 1
-        GROUP BY h.id, h.name
-    `;
-};
 export const masterDataQuery = `
     SELECT
         h.id,
@@ -1399,21 +1370,9 @@ export const masterDataQuery = `
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', fdt.id,
-                'name', fdt.name
-            )
-        ) AS foundational_data,
         ph.name AS parent_hierarchy_name
     FROM
         hierarchies h
-    LEFT JOIN
-        hierarchies_master_data hmd
-        ON h.id = hmd.hierarchy_id
-    LEFT JOIN
-        master_data_type fdt
-        ON hmd.foundation_data_type_id = fdt.id
     LEFT JOIN
         hierarchies ph
         ON h.parent_hierarchy_id = ph.id
