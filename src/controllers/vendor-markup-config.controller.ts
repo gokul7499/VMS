@@ -137,7 +137,7 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
                 vendor_markup_config: [],
             });
         }
-        await vendorData.update({ data, modified_by: userId });
+        await vendorData.update({ data, updated_by: userId });
         reply.status(201).send({
             status_code: 201,
             message: 'vendorMarkupConfig updated successfully.',
@@ -172,7 +172,7 @@ export async function deleteVendorMarkupConfig(request: FastifyRequest<{ Params:
         if (!vendorData) {
             return reply.status(200).send({ status_code: 200, message: 'vendorMarkupConfig data not found.', vendor_markup_config: [], trace_id: traceId });
         }
-        await vendorData.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
+        await vendorData.update({ is_enabled: false, is_deleted: true, updated_by: userId, });
         reply.status(204).send({
             status_code: 204,
             trace_id: traceId,

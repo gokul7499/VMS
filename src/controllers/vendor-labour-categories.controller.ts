@@ -33,8 +33,8 @@ export async function createVendorLabourCategories(
 }
 
 export async function getAllvendorLabourCategories(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['program_vendor_id','program_id','labour_category_id','labour_category_name', 'is_enabled','modified_on'];
-    const responseFields = ['program_vendor_id','program_id','labour_category_id','labour_category_name', 'is_enabled','modified_on'];
+    const searchFields = ['program_vendor_id','program_id','labour_category_id','labour_category_name', 'is_enabled','updated_on'];
+    const responseFields = ['program_vendor_id','program_id','labour_category_id','labour_category_name', 'is_enabled','updated_on'];
     return baseSearch(request, reply, vendorLabourCategoriesModel, searchFields, responseFields);
 }
 
