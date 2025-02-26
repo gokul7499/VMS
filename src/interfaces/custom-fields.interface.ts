@@ -15,8 +15,10 @@ export interface CustomFields {
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  modified_on: Date;
+  created_on:any;
+  updated_on: any;
   created_by: string;
+  updated_by:string;
   can_view: JSON;
   can_edit: JSON;
   job_type: JSON;
@@ -34,7 +36,7 @@ export interface GetQueryInterface {
   label?: string;
   field_type?: string;
   is_required?: string;
-  modified_on?: string;
+  updated_on?: string;
   slug?: string;
   program_id?: string;
 }
@@ -59,7 +61,7 @@ const getQuerySchema = {
     label: { type: "string" },
     field_type: { type: "string" },
     is_required: { type: "string" },
-    modified_on: { type: "string" },
+    updated_on: { type: "string" },
     slug: { type: "string" },
     program_id: { type: "string" },
   },
