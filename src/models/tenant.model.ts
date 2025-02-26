@@ -62,7 +62,7 @@ Tenant.init({
     type: DataTypes.JSON,
     allowNull: true,
   },
-  vendor_code:{
+  vendor_code: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -71,8 +71,6 @@ Tenant.init({
     allowNull: false,
     defaultValue: true,
   },
-
- 
   is_deleted: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -105,7 +103,7 @@ Tenant.init({
 }, {
   sequelize,
   tableName: 'tenant',
-  timestamps: false, 
+  timestamps: false,
   hooks: {
     beforeValidate: (instance) => {
       convertEmptyStringsToNull(instance);
