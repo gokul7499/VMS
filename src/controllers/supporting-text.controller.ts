@@ -29,7 +29,7 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
                     },
                 },
                 {
-                    modified_on: {
+                    updated_on: {
                         [Op.between]: [new Date(startDate), new Date(endDate)],
                     },
                 },
@@ -218,7 +218,7 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
         const newSupportingText = await supportingTextModel.create({
             ...data,
             created_by: userId,
-            modified_by: userId
+            updated_by: userId
         });
 
         reply.status(201).send({
@@ -286,9 +286,9 @@ export const updateSupportingText = async (
         is_enabled,
         is_deleted,
         created_on,
-        modified_on,
+        updated_on,
         created_by,
-        modified_by,
+        updated_by,
         program_id,
         event_id,
         module_id,
@@ -354,12 +354,12 @@ export const updateSupportingText = async (
         }
 
         await supportingText.update({
-            modified_by: userId,
+            updated_by: userId,
             performed_by: performed_by ?? supportingText.performed_by,
             is_enabled: typeof is_enabled === 'boolean' ? is_enabled : supportingText.is_enabled,
             is_deleted: typeof is_deleted === 'boolean' ? is_deleted : supportingText.is_deleted,
             created_on: created_on ?? supportingText.created_on,
-            modified_on: modified_on ?? supportingText.modified_on,
+            updated_on: updated_on ?? supportingText.updated_on,
             program_id: program_id ?? supportingText.program_id,
             event_id: event_id ?? supportingText.event_id,
             module_id: module_id ?? supportingText.module_id,
