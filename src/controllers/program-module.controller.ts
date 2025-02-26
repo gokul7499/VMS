@@ -11,7 +11,7 @@ export const getProgramModuleById = async (request: FastifyRequest, reply: Fasti
     const programData: any = await ProgramModule.findOne({
       where: { program_id: id },
       attributes: {
-        exclude: ['is_deleted', 'created_on', 'modified_on', 'created_by', 'modified_by']
+        exclude: ['is_deleted', 'created_on', 'updated_on', 'created_by', 'updated_by']
       },
     });
 
@@ -83,7 +83,7 @@ export const getProgramModuleByIdAndQuery = async (
     const programData: any = await ProgramModule.findOne({
       where: { program_id: id },
       attributes: {
-        exclude: ['is_deleted', 'created_on', 'modified_on', 'created_by', 'modified_by']
+        exclude: ['is_deleted', 'created_on', 'updated_on', 'created_by', 'updated_by']
       },
     });
 
@@ -157,7 +157,7 @@ export const getProgramModuleByProgramId = async (
     const programData: any = await ProgramModule.findOne({
       where: { program_id: program_id },
       attributes: {
-        exclude: ['is_deleted', 'created_on', 'modified_on', 'created_by', 'modified_by'],
+        exclude: ['is_deleted', 'created_on', 'updated_on', 'created_by', 'updated_by'],
       },
     });
 
@@ -218,7 +218,7 @@ export const getProgramModuleByProgramId = async (
 //     const programData: any = await ProgramModule.findOne({
 //       where: { program_id: id },
 //       attributes: {
-//         exclude: ['is_deleted', 'created_on', 'modified_on', 'created_by', 'modified_by']
+//         exclude: ['is_deleted', 'created_on', 'updated_on', 'created_by', 'updated_by']
 //       },
 //     });
 

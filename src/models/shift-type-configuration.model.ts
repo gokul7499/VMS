@@ -25,11 +25,11 @@ shiftTypeConfiguration.init(
       allowNull: true
     },
     created_on: {
-      type: DataTypes.UUID,
+      type: DataTypes.DOUBLE,
       allowNull: true,
     },
     updated_on: {
-      type: DataTypes.UUID,
+      type: DataTypes.DOUBLE,
       allowNull: true,
     },
     created_by: {

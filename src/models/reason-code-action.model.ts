@@ -31,23 +31,6 @@ ReasonCodeActionModel.init(
             type: DataTypes.INTEGER,
             defaultValue: 0,
         },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
@@ -76,7 +59,24 @@ ReasonCodeActionModel.init(
         reason_codes: {
             type: DataTypes.JSON,
             allowNull: true
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,

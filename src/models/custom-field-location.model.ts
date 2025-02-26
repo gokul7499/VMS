@@ -22,7 +22,7 @@ CustomFieldsLocation.init({
     },
     work_location_id: {
         type: DataTypes.UUID,
-        allowNull: false
+        allowNull: true
     },
     program_id: {
         type: DataTypes.UUID,

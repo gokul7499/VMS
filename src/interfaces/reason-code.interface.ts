@@ -3,18 +3,18 @@ export interface ReasonCode {
     id: string;
     name: string;
     source: string;
-    entity_ref:string;
-    category:'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
+    entity_ref: string;
+    category: 'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
     created_on: number;
-    modified_on: number;
-    modified_by:JSON;
+    updated_on: number;
+    updated_by: JSON;
     created_by: JSON;
     is_enabled: boolean;
     module_id: string;
     event_id: string;
     is_editable: boolean;
     reason_code_limit: number;
-    reason:JSON;
+    reason: JSON;
 }
 
 export interface ReasonCodeResponse {
@@ -27,4 +27,47 @@ export interface ReasonCodeResponse {
     reason_codes: ReasonCode[];
     modified_on: number;
     trace_id: string;
+}
+export const paramsSchema = {
+    type: 'object',
+    properties: {
+        program_id: { type: 'string' },
+        id: { type: 'string' }
+    },
+    required: ['program_id']
+};
+
+export const querySchema = {
+    type: 'object',
+    properties: {
+        search: { type: 'string' },
+        limit: { type: 'integer' },
+        offset: { type: 'integer' },
+        module_name:{type:"string"},
+        reasons_count:{type:'integer'},
+        event_name:{type:'string'}
+    }
+};
+
+export const createReasoncodeSchema = {
+    type: 'object',
+    required: ['reason_codes'],
+    properties: {
+        reasons_count: { type: 'number' },
+        is_deleted: { type: 'boolean' },
+        event_id: { type: 'string' },
+        module_id: { type: 'string' },
+        reason_codes: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    category: { type: 'string' },
+                    name: { type: 'string' },
+                    is_enabled: { type: 'boolean' },
+                    is_deleted: { type: ['boolean', 'null'] }
+                },
+            }
+        }
+    }
 }

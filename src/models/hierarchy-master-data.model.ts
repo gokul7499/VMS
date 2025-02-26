@@ -2,7 +2,6 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { beforeSave } from '../hooks/timeFormatHook';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
-
 class HierarchyMasterData extends Model {
     id: any;
 }
@@ -37,6 +36,5 @@ HierarchyMasterData.init(
         },
     }
 );
-
 sequelize.sync();
 export default HierarchyMasterData;

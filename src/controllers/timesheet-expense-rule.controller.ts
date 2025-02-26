@@ -46,7 +46,7 @@ export async function createTimesheetExpenseRule(
 
         const item = await TimesheetExpenseRuleModel.create({
             ...timesheetRule, program_id, created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
         reply.status(201).send({
             status_code: 201,
@@ -78,7 +78,7 @@ export const getTimesheetExpenseRule = async (
             rule_type: string;
             rule_category: string;
             is_enabled?: boolean | string;
-            modified_on?: string;
+            updated_on?: string;
             page?: string;
             limit?: string;
         };
@@ -86,7 +86,7 @@ export const getTimesheetExpenseRule = async (
     reply: FastifyReply
 ) => {
     const { program_id } = request.params;
-    const { rule_name, rule_type, rule_category, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+    const { rule_name, rule_type, rule_category, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
     const traceId = generateCustomUUID();
 
     try {
@@ -109,12 +109,12 @@ export const getTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (modified_on) {
-            const dateRange = modified_on.split(',');
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
                 const startDate = parseFloat(dateRange[0].trim());
                 const endDate = parseFloat(dateRange[1].trim());
-                whereCondition.modified_on = { [Op.between]: [startDate, endDate] };
+                whereCondition.updated_on = { [Op.between]: [startDate, endDate] };
             }
         }
         const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
@@ -128,7 +128,7 @@ export const getTimesheetExpenseRule = async (
                 'is_penalty_rule_enabled',
                 'conditions',
                 'rule_category',
-                'modified_on',
+                'updated_on',
                 'program_id',
                 'apply_rate_type',
                 'penalty_rules', 
@@ -315,8 +315,8 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
         const [affectedRows] = await TimesheetExpenseRuleModel.update(
             {
                 ...updateData,
-                modified_on: Date.now(),
-                modified_by: userId,
+                updated_on: Date.now(),
+                updated_by: userId,
             },
             {
                 where: {
@@ -371,8 +371,8 @@ export async function deleteTimesheetExpenseRule(
         const [numRowsDeleted] = await TimesheetExpenseRuleModel.update({
             is_deleted: true,
             is_enabled: false,
-            modified_on: Date.now(),
-            modified_by: userId,
+            updated_on: Date.now(),
+            updated_by: userId,
         },
             { where: { id, program_id } }
         );

@@ -9,9 +9,9 @@ export interface UserMappingAttributes {
     is_activated: boolean;
     is_deleted: boolean;
     created_on?: number;
-    modified_on?: number;
+    updated_on?: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     ref_id: string;
     tenant_id: string;
 }
