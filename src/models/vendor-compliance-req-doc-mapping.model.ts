@@ -116,7 +116,7 @@ VendorComplianceReqDocMappingModel.init({
 }, {
     sequelize,
     modelName: 'vendor_compliance_req_doc_mapping',
-
+    timestamps: false,
 });
 sequelize.sync();
 
