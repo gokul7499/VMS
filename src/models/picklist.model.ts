@@ -98,11 +98,11 @@ PicklistModel.init({
     allowNull: true
   },
   created_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: true,
   },
 }, {

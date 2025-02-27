@@ -6,9 +6,9 @@ export interface PicklistItem {
   is_enabled: boolean;
   is_deleted: boolean;
   created_on: any;
-  created_by: string | null;
+  created_by: string ;
   updated_on: any;
-  updated_by: string | null;
+  updated_by: string ;
   program_id: string;
   value?: string | null;
   disabled_program?: object | null;
