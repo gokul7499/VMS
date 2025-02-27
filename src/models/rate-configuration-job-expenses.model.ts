@@ -2,15 +2,14 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import rateType from "./rate-type.model";
+import ExpenseTypeModel from "./expense-type.model";
 
-class RateConfigurationBaseRateTypes extends Model {
-    id: any;
-    rate_type: any;
-    rates: any;
+class RateConfigurationExpenses extends Model {
+    expense_type: any;
+    rate_configuration_id: any;
 }
 
-RateConfigurationBaseRateTypes.init(
+RateConfigurationExpenses.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -22,13 +21,29 @@ RateConfigurationBaseRateTypes.init(
             type: DataTypes.UUID,
             allowNull: false,
         },
-        rate_type_id: {
+        expense_type_id: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: rateType,
+                model: ExpenseTypeModel,
                 key: 'id',
             }
+        },
+        unit_of_measure: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        unit_lable: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        rate: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+        },
+        max_limit: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
         },
         created_on: {
             type: DataTypes.DOUBLE,
@@ -49,7 +64,7 @@ RateConfigurationBaseRateTypes.init(
     },
     {
         sequelize,
-        tableName: "rate_configuration_base_rate_types",
+        tableName: "rate_configuration_expenses",
         timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
@@ -63,5 +78,5 @@ RateConfigurationBaseRateTypes.init(
 );
 
 sequelize.sync();
-RateConfigurationBaseRateTypes.belongsTo(rateType, { foreignKey: 'rate_type_id', as: 'rate_type' });
-export default RateConfigurationBaseRateTypes;
+RateConfigurationExpenses.belongsTo(ExpenseTypeModel, { foreignKey: 'expense_type_id', as: 'expense_type' });
+export default RateConfigurationExpenses;
