@@ -15,6 +15,7 @@ class RateConfigurationsModel extends Model {
     is_enabled: any;
     created_on: any;
     updated_on: any;
+    job_type: any;
 }
 
 RateConfigurationsModel.init(
@@ -31,6 +32,10 @@ RateConfigurationsModel.init(
         },
         is_shift_rate: {
             type: DataTypes.BOOLEAN,
+            allowNull: true,
+        },
+        job_type: {
+            type: DataTypes.JSON,
             allowNull: true,
         },
         is_enabled: {
