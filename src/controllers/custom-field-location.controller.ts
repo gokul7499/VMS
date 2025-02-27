@@ -42,7 +42,7 @@ export async function getCustomFieldLocationById(
         is_deleted: false,
       },
       attributes: ['id', 'program_id', 'custom_field_id', 'location_id', 'is_enabled',
-        'is_deleted', 'created_on', 'modified_on']
+        'is_deleted', 'created_on', 'updated_on']
     });
     if (custom_Field_Location) {
       reply.status(201).send({
@@ -99,7 +99,7 @@ export async function deleteCustomFieldLocationById(
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
+        updated_on: Date.now(),
       },
       { where: { id, program_id } }
     );
@@ -121,7 +121,7 @@ export async function deleteCustomFieldLocationById(
 export async function getAllCustomFieldLocation(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['custom_field_id', 'location_id'];
   const responseFields = ['id', 'program_id', 'custom_field_id', 'location_id', 'is_enabled',
-    'is_deleted', 'created_on', 'modified_on',];
+    'is_deleted', 'created_on', 'updated_on',];
   return baseSearch(request, reply, customFieldLocation, searchFields, responseFields);
 }
 
