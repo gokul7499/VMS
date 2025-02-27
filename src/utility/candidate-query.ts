@@ -20,7 +20,7 @@ class CandidateRepository {
         });
         const count = countResult[0].count;
 
-        if (replacements.candidate_id) whereClause += ` AND c.candidate_id = :candidate_id`;
+        if (replacements.candidate_id) whereClause += ` AND c.candidate_id LIKE :candidate_id`;
         if (replacements.first_name) whereClause += ` AND c.first_name LIKE :first_name`;
         if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
         if (replacements.last_name) whereClause += ` AND c.last_name LIKE :last_name`;

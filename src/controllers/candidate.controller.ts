@@ -614,7 +614,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             program_id,
             limit: limitNum,
             offset,
-            candidate_id,
+            candidate_id: candidate_id ? `%${candidate_id}%` : undefined,
             first_name: first_name ? `%${first_name}%` : undefined,
             middle_name: middle_name ? `%${middle_name}%` : undefined,
             last_name: last_name ? `%${last_name}%` : undefined,
@@ -674,7 +674,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         ...filters
     };
 
-    if (candidate_id) whereClause.candidate_id = candidate_id;
+    if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
     if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
@@ -708,7 +708,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             ],
             limit: limitNum,
             offset,
-            order: [['updated_on', 'DESC']] 
+            order: [['updated_on', 'DESC']]
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
