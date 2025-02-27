@@ -1483,7 +1483,7 @@ export const configAdvancedFilter = (
     : '';
 
   const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
+    ? `AND ec.updated_on IN (${modifiedOnArray.map((_, index) => `:updated_on${index}`).join(', ')})`
     : '';
 
   return `
