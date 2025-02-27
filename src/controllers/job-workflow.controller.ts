@@ -287,14 +287,14 @@ export const updateWorkflowStatus = async (
                                         new_status,
                                         program_id,
                                         notes: notes || "",
-                                        created_on:  Date.now(),
+                                        created_on: Date.now(),
                                         user_id: user_id,
                                     });
                                     return {
                                         ...recipient,
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
                                         impersonate_by: impersonator_id,
-                                        modified_on:  Date.now(),
+                                        modified_on: Date.now(),
                                         status_id: history.dataValues?.id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
@@ -311,14 +311,14 @@ export const updateWorkflowStatus = async (
                                                 new_status,
                                                 program_id,
                                                 notes: notes || "",
-                                                created_on:  Date.now(),
+                                                created_on: Date.now(),
                                                 user_id: user_id,
                                             });
                                             return {
                                                 ...recipient,
                                                 status: "approved",
                                                 impersonate_by: impersonator_id,
-                                                modified_on:  Date.now(),
+                                                modified_on: Date.now(),
                                                 status_id: history.dataValues?.id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
@@ -337,14 +337,14 @@ export const updateWorkflowStatus = async (
                                                 new_status,
                                                 program_id,
                                                 notes: notes || "",
-                                                created_on:  Date.now(),
+                                                created_on: Date.now(),
                                                 user_id: user_id,
                                             });
                                             return {
                                                 ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar, modified_on:  Date.now(),
+                                                actor_by_avatar: userData?.avatar, modified_on: Date.now(),
                                             };
                                         }
 
@@ -358,7 +358,7 @@ export const updateWorkflowStatus = async (
                                                     new_status,
                                                     program_id,
                                                     notes: notes || "",
-                                                    created_on:  Date.now(),
+                                                    created_on: Date.now(),
                                                     user_id: user_id,
                                                 });
                                                 return {
@@ -379,7 +379,7 @@ export const updateWorkflowStatus = async (
                                         new_status,
                                         program_id,
                                         notes: notes || "",
-                                        created_on:  Date.now(),
+                                        created_on: Date.now(),
                                         user_id: user_id,
                                     });
                                     return {
@@ -568,11 +568,11 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     });
 
     return users.map((user: any) => ({
-        user_id: user.user_id||null,
-        first_name: user.first_name||null,
-        last_name: user.last_name||null,
-        avatar: user.avatar?.url||null,
-        status: user.status||null,
+        user_id: user.user_id || null,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        avatar: user.avatar?.url || null,
+        status: user.status || null,
     }));
 }
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
@@ -766,13 +766,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
-                user_type: user.userType,
-                fullName: managerData.data?.first_name,
-                job_id: updates?.[0]?.job_id,
-                job_name: workflow?.event_title
+                user_type: user?.userType,
+                fullName: managerData?.data?.first_name,
+                job_id: workflow?.event_title,
+                status_reason: updates[0]?.reason
             };
-            const recipientEmailArray: EmailRecipient[] = [];
 
+            const recipientEmailArray: EmailRecipient[] = [];
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
 
@@ -1023,7 +1023,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
 
 
 
-        return users ||null; // Return the list of users that match the criteria.
+        return users || null; // Return the list of users that match the criteria.
     } catch (error) {
         console.error("Error fetching users:", error);
         throw new Error("Error fetching users based on hierarchy and program_id.");
@@ -1070,7 +1070,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
             return { status: 'Error', message: 'Manager not found' };
         }
 
-        return { status: 'Success', data: userResult[0]||null };
+        return { status: 'Success', data: userResult[0] || null };
     } catch (error) {
         console.error('Error fetching manager details:', error);
         return { status: 'Error', message: 'An error occurred while fetching manager details', error };
@@ -1177,12 +1177,12 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        modified_on:  Date.now(), notes: notes, reason: reason
+                        modified_on: Date.now(), notes: notes, reason: reason
                     }));
 
                     return {
                         ...level,
-                        modified_on:  Date.now(),
+                        modified_on: Date.now(),
                         status: "Not needed",
                         recipient_types: updatedRecipientTypes,
                     };
@@ -1202,7 +1202,7 @@ export const rejectLevel = async (
                 program_id,
                 reason,
                 notes: notes || "",
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user_id,
             });
         });
@@ -1217,7 +1217,7 @@ export const rejectLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, is_updated: true, modified_on:  Date.now() });
+        await workflow.update({ levels, is_updated: true, modified_on: Date.now() });
 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
@@ -1311,7 +1311,7 @@ export const updateReplaceLevel = async (
                             existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
                             replaced_by, // Update replaced_by with the new value from the payload
                             replaced_notes: notes,
-                            replaced_modified_on:  Date.now(),
+                            replaced_modified_on: Date.now(),
                         };
                     }
 
@@ -1325,7 +1325,7 @@ export const updateReplaceLevel = async (
                                 ...recipient.meta_data,
                             },
                             replaced_notes: notes,
-                            replaced_modified_on:  Date.now()
+                            replaced_modified_on: Date.now()
                         };
                     }
 
@@ -1356,13 +1356,13 @@ export const updateReplaceLevel = async (
                 status,
                 program_id,
                 notes: notes ?? "",
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user.sub,
             });
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on:  Date.now() });
+        await workflow.update({ levels, modified_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1518,7 +1518,7 @@ export const imporsonateLevel = async (
                 new_status,
                 program_id,
                 imporsonate_by,
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user_id || null,
             });
         });
@@ -1532,7 +1532,7 @@ export const imporsonateLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on:  Date.now() });
+        await workflow.update({ levels, modified_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1573,7 +1573,7 @@ export const updateJobWorkFlow = async (
             });
         }
 
-        await workflow.update({ ...updateData, modified_on:  Date.now() });
+        await workflow.update({ ...updateData, modified_on: Date.now() });
 
 
         reply.status(200).send({
@@ -1697,7 +1697,7 @@ export const updateWorkflowStatusData = async (
 
 
         let Result = await workflow.update(
-            { levels, modified_on:  Date.now() },
+            { levels, modified_on: Date.now() },
             { where: { id: workflow_id } } // Replace with the correct identifier
         );
 
@@ -2081,7 +2081,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     try {
         for (const row of rows) {
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
-           
+
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                 SELECT id ,name
