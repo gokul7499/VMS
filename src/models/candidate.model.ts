@@ -211,7 +211,7 @@ Candidate.init(
     {
         sequelize: sequelize,
         tableName: "candidates",
-        timestamps: true,
+        timestamps: false,
         hooks: {
             beforeSave: (instance) => {
                 beforeSave(instance);
