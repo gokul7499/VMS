@@ -75,11 +75,11 @@ ExpenseConfigurationModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      allowNull: false,
+      allowNull: true,
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-      allowNull: false,
+      allowNull: true,
     },
     created_by: {
       type: DataTypes.UUID,

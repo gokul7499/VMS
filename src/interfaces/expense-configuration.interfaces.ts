@@ -134,7 +134,7 @@ export const createExpenseConfigurationAdvancedFilter = {
   properties: {
     config_name: { type: 'string' },
     status: { type: 'string' },
-    modified_on: {
+    updated_on: {
       type: 'array',
     },
     is_enabled: { type: 'boolean' },
