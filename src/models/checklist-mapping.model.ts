@@ -119,20 +119,22 @@ ChecklistTaskMapping.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
         },
         created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
+            type: DataTypes.STRING(50),
+            allowNull: false,
         },
         updated_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
+            type: DataTypes.STRING(50),
+            allowNull: false,
         },
     },
     {
