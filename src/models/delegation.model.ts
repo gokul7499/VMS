@@ -52,6 +52,14 @@ Delegation.init({
         type: DataTypes.DATE,
         allowNull: false
     },
+    created_by: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    updated_by: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     is_enabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -60,6 +68,16 @@ Delegation.init({
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
+        allowNull: false
+    },
+    created_on: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        allowNull: false
+    },
+    updated_on: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: false
     },
     interview_module: {
@@ -121,23 +139,7 @@ Delegation.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true
-    },
-    updated_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true
-    },
-    created_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
-    updated_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
-
+    
 
 },
     {
