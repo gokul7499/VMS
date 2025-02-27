@@ -16,7 +16,7 @@ import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierar
 import { QueryTypes } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
 import ShiftType from '../models/shift-type.model';
-import RateConfigurationExpenses from '../models/rate-configuration-job-expenses.model';
+import RateConfigurationExpenses from '../models/rate-configuration-expenses.model';
 import ExpenseTypeModel from '../models/expense-type.model';
 
 export const createRateConfigurations = async (
