@@ -8,6 +8,7 @@ import { sequelize } from '../config/instance';
 import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { error } from 'console';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -89,7 +90,7 @@ export async function getPicklistById(
         },
       ],
       distinct: true,
-      order: [["updared_on", "DESC"]],
+      order: [["updated_on", "DESC"]],
     });
 
     let predefinedPicklists = picklists.rows.filter(
@@ -156,6 +157,7 @@ export async function getPicklistById(
       trace_id: traceId,
       picklists: paginatedPicklists,
       total_records: totalPicklists,
+      error
     });
   } catch (error) {
     console.error("Error fetching picklists:", error);
