@@ -3,10 +3,10 @@ import dotenv from "dotenv";
 import cors from "@fastify/cors";
 import { checkDatabaseConnection, initializeSequelize } from "./config/instance";
 import formBodyPlugin from "@fastify/formbody";
- import keycloak, { KeycloakOptions } from 'fastify-keycloak-adapter';
+import keycloak, { KeycloakOptions } from 'fastify-keycloak-adapter';
 import { databaseConfig } from './config/db';
 import { handleRouteSecurity } from "./utility/securityUtils";
- import LoadSwagger from "./config/swagger";
+import LoadSwagger from "./config/swagger";
 
 dotenv.config();
 
@@ -67,7 +67,7 @@ const start = async () => {
     } catch (error) {
       console.error("Failed to register Keycloak plugin:", error);
     }
-     await LoadSwagger(app);
+    await LoadSwagger(app);
 
     app.get("/config/health-check", async (request, reply) => {
       try {
