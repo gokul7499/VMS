@@ -188,26 +188,30 @@ Candidate.init(
             allowNull: true,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
+
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
+
         },
         created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
+            type: DataTypes.STRING(50),
+            allowNull: false,
+
         },
         updated_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        }
+            type: DataTypes.STRING(50),
+            allowNull: false,
+
+        },
     },
     {
         sequelize: sequelize,
         tableName: "candidates",
-        timestamps: true,
+        timestamps: false,
         hooks: {
             beforeSave: (instance) => {
                 beforeSave(instance);

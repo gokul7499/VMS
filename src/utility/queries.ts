@@ -189,7 +189,7 @@ export const complianceDocumentGetByUserId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -235,7 +235,7 @@ export const complianceDocumentGetByUserId = `
     GROUP BY
         vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
-        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
+        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
     LIMIT :limit OFFSET :offset
@@ -251,7 +251,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -302,7 +302,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -377,7 +377,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -1533,7 +1533,7 @@ export const configAdvancedFilter = (
       ec.config_name,
       ec.program_id,
       ec.is_enabled,
-      ec.modified_on,
+      ec.updated_on,
       ec.status,
       (
         SELECT JSON_ARRAYAGG(
@@ -1571,7 +1571,7 @@ export const configAdvancedFilter = (
     GROUP BY
       ec.id, ec.config_name, ec.program_id, ec.is_enabled
     ORDER BY
-      ec.modified_on DESC
+      ec.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;

@@ -93,7 +93,8 @@ ExpenseConfigurationModel.init(
   },
   {
     sequelize,
-    tableName: 'expense_configuration'
+    tableName: 'expense_configuration',
+    timestamps:false
   }
 );
 ExpenseConfigurationModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });

@@ -139,7 +139,7 @@ Delegation.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
-   
+    
 
 },
     {
