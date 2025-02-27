@@ -28,7 +28,7 @@ class ProgramVendor extends Model {
     is_deleted: any;
     job_type: any;
     created_by: any;
-    modified_by: any;
+    updated_by: any;
     markup_config: any;
     tenant_id: any;
     all_work_locations: any;
