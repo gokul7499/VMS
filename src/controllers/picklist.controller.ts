@@ -20,7 +20,7 @@ export async function getPicklistById(
     picklist_id,
     is_enabled,
     defined_by,
-    modified_on,
+    updated_on,
     picklist_items_count,
     search,
     page = 1,
@@ -30,7 +30,7 @@ export async function getPicklistById(
     picklist_id?: string;
     is_enabled?: string;
     defined_by?: string;
-    modified_on?: string;
+    updated_on?: string;
     picklist_items_count?: string;
     search?: string;
     page?: string;
@@ -48,7 +48,7 @@ export async function getPicklistById(
         "picklist_id",
         "is_enabled",
         "defined_by",
-        "modified_on",
+        "updated_on",
       ];
       const [searchField, searchValue] = search.includes(":")
         ? search.split(":")
@@ -70,16 +70,8 @@ export async function getPicklistById(
     if (is_enabled !== undefined)
       whereClause.is_enabled = is_enabled === "true";
     if (defined_by) whereClause.defined_by = defined_by;
-    if (modified_on) {
-      const modifiedOnRange = modified_on.split(",");
-      if (modifiedOnRange.length === 2) {
-        const [start, end] = modifiedOnRange.map((val) => parseInt(val, 10));
-        whereClause.modified_on = { [Op.between]: [start, end] };
-      } else {
-        whereClause.modified_on = parseInt(modified_on, 10);
-      }
-    }
-    
+    if (updated_on) whereClause.modified_on = parseInt(updated_on, 10);
+
     const pageNumber = parseInt(page as any, 10) || 1;
     const limitNumber = parseInt(limit as any, 10) || 10;
 
@@ -97,7 +89,7 @@ export async function getPicklistById(
         },
       ],
       distinct: true,
-      order: [["modified_on", "DESC"]],
+      order: [["updared_on", "DESC"]],
     });
 
     let predefinedPicklists = picklists.rows.filter(
@@ -123,9 +115,9 @@ export async function getPicklistById(
       predefinedPicklists = predefinedPicklists.filter(
         (picklist) => picklist.defined_by === defined_by
       );
-    if (modified_on)
+    if (updated_on)
       predefinedPicklists = predefinedPicklists.filter(
-        (picklist) => picklist.modified_on === parseInt(modified_on, 10)
+        (picklist) => picklist.updated_on === parseInt(updated_on, 10)
       );
     if (picklist_items_count) {
       const countFilter = parseInt(picklist_items_count, 10);
@@ -144,7 +136,7 @@ export async function getPicklistById(
       description: picklist.description,
       slug: picklist.slug,
       is_enabled: picklist.is_enabled,
-      modified_on: picklist.modified_on,
+      updated_on: picklist.updated_on,
       disabled_program: picklist.disabled_program,
       is_visible: picklist.is_visible,
       program_id: picklist.program_id,
@@ -266,7 +258,7 @@ export const createPicklist = async (
     typed_picklist_data.picklist_id = generatedPicklistId;
 
     try {
-      const picklist = await picklist_model.create({ ...typed_picklist_data, modified_by: userId, created_by: userId }, {
+      const picklist = await picklist_model.create({ ...typed_picklist_data, updated_by: userId, created_by: userId }, {
         transaction,
       });
       if (picklist_items && picklist_items.length > 0) {
@@ -275,7 +267,7 @@ export const createPicklist = async (
           picklist_id: picklist.id,
         }));
         items.created_by=userId
-        items.modified_by=userId
+        items.updated_by=userId
         await picklist_item_model.bulkCreate(items, { transaction });
       }
 
@@ -386,7 +378,7 @@ export async function deletePicklist(
     await picklist.update({
       is_enabled: false,
       is_deleted: true,
-      modified_by: userId
+      updated_by: userId
     });
 
     return reply.status(200).send({
@@ -489,7 +481,7 @@ export const updatePicklistAndItem = async (
     const transaction = await sequelize.transaction();
 
     try {
-      await picklist.update({ ...picklist_data, modified_by: userId }, { transaction });
+      await picklist.update({ ...picklist_data, updated_by: userId }, { transaction });
 
       if (picklist_items && picklist_items.length > 0) {
         for (const item of picklist_items) {
@@ -508,7 +500,7 @@ export const updatePicklistAndItem = async (
               });
             }
 
-            await existingPicklistItem.update({ ...item, modified_by: userId }, { transaction });
+            await existingPicklistItem.update({ ...item, updated_by: userId }, { transaction });
           } else {
             await picklist_item_model.create(
               {
@@ -576,7 +568,7 @@ export const getPicklistAndPicklistItem = async (
         program_id,
       },
       attributes: {
-        exclude: ["is_deleted", "created_on", "created_by", "modified_by"],
+        exclude: ["is_deleted", "created_on", "created_by", "updated_by"],
       },
       include: [
         {
@@ -588,9 +580,9 @@ export const getPicklistAndPicklistItem = async (
             exclude: [
               "is_deleted",
               "created_on",
-              "modified_on",
+              "updated_on",
               "created_by",
-              "modified_by",
+              "updated_by",
             ],
           },
         },
@@ -670,7 +662,7 @@ export async function getAllPickListByProgramId(
           },
           required: false,
           attributes: {
-            exclude: ["created_on", "modified_on", "created_by", "modified_by"],
+            exclude: ["created_on", "updeted_on", "created_by", "updated_by"],
             include: [
               "picklist_id",
               "label",
