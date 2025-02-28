@@ -32,6 +32,8 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
         "username", "name_suffix", "program_id", "status", "email",
         "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
       ],
+      order: [['updated_on', 'DESC']],
+
     });
 
     const { rows = [], count } = result;

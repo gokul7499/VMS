@@ -298,6 +298,7 @@ export async function getAllCustomFields(
         "field_type",
         "is_required",
         "label",
+        "decimal_place",
         "meta_data",
         "linked_modules",
         "is_readonly",
@@ -395,7 +396,7 @@ export const getCustomFieldById = async (
         "field_type", "is_required", "module_id", "module_name",
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
-        "supporting_text", "linked_modules", "meta_data", "job_type"
+        "supporting_text", "linked_modules", "meta_data", "job_type",
       ],
     });
 
@@ -525,7 +526,7 @@ export const updateCustomFieldById = async (
     master_data_ids?: string[];
   };
 
-  // Validate program_id
+
   if (!program_id) {
     return sendError(reply, 400, 'Program ID is required');
   }

@@ -146,6 +146,10 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
+    decimal_place: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true
