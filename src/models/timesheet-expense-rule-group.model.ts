@@ -69,6 +69,7 @@ TimesheetExpenseRuleGroup.init(
         sequelize,
         modelName: 'TimesheetExpenseRuleGroup',
         tableName: 'timesheet_expense_rule_groups',
+        timestamps:false,
         hooks: {
             beforeValidate: (instance) => {
                 convertEmptyStringsToNull(instance);

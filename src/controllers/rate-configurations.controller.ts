@@ -875,7 +875,17 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 where: { rate_configuration_id: rateConfiguration.id, hierarchy_id: hierarchyIds },
                 include: [{ model: hierarchies, as: 'hierarchy', attributes: ['id', 'name'] }],
             });
-
+            const expenseTypes = await RateConfigurationExpenses.findAll({
+                where: { rate_configuration_id: rateConfiguration.id },
+                attributes: ['id', 'unit_of_measure', 'unit_lable', 'rate', 'max_limit'],
+                include: [
+                    {
+                        model: ExpenseTypeModel,
+                        as: 'expense_type',
+                        attributes: ['id', 'name'],
+                    },
+                ],
+            })
             const extractedHierarchyIds = hierarchie.map((item) => item.hierarchy?.id).filter(Boolean);
 
             const uniqueHierarchies = Array.from(
@@ -1090,6 +1100,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                 name: rateConfiguration.name,
                 is_shift_rate: rateConfiguration.is_shift_rate,
                 hierarchies: uniqueHierarchies,
+                expense_types: expenseTypes,
                 rate_configuration: rateConfigurationDetails,
             };
         }));

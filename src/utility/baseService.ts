@@ -200,7 +200,7 @@ export async function baseSearch(
     const page = parseInt(query.page) || 1;
     const limit = parseInt(query.limit) || 10;
     const offset = (page - 1) * limit;
-    const sortField = query.sortField || "created_on";
+    const sortField = query.sortField || "updated_on";
         const finalSortDirection = "DESC";
 
     try {
