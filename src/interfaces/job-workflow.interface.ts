@@ -15,9 +15,9 @@ export interface JobWorkFlow {
   levels: any[],
   initialTrigger: any[],
   created_on: Date,
-  modified_on: Date,
+  updated_on: Date,
   created_by: string,
-  modified_by: string,
+  updated_by: string,
   is_updated?: boolean;
   program_id: string,
   is_deleted: boolean,
