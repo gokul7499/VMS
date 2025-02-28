@@ -41,12 +41,8 @@ UserMasterDataModel.init({
         allowNull: true
     },
     default_master_data: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'master_data',
-            key: 'id'
-        }
+        type: DataTypes.JSON,
+        allowNull: true
     },
     is_all_associated: {
         type: DataTypes.BOOLEAN,
