@@ -92,6 +92,7 @@ FoundationalData.init({
         allowNull: true,
     },
 }, {
+    
     sequelize,
     modelName: 'master_data',
     timestamps:false,

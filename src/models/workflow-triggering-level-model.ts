@@ -23,22 +23,6 @@ WorkflowTriggeredLevel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         placement_order: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -61,7 +45,24 @@ WorkflowTriggeredLevel.init(
         job_id: {
             type: DataTypes.STRING,
             allowNull: true,
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,
