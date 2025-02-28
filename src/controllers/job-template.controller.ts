@@ -452,9 +452,7 @@ export async function updateJobTemplate(
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
       const incomingHierarchyIds = jobTemplateData.hierarchy.filter(Boolean);
-    
-      // Fetch existing hierarchy records
-      const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
+          const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
         where: {
           job_temp_id: jobTemplate.id,
           program_id: jobTemplate.program_id,
@@ -462,9 +460,7 @@ export async function updateJobTemplate(
       });
     
       const existingHierarchyIds = existingHierarchyRecords.map((record) => record.hierarchy);
-    
-      // Insert or update records
-      for (const hierarchyId of incomingHierarchyIds) {
+          for (const hierarchyId of incomingHierarchyIds) {
         const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy === hierarchyId);
     
         if (!existingRecord) {
