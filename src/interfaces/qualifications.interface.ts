@@ -6,10 +6,10 @@ export interface QualificationData {
     code: string,
     type: string,
     is_enabled: boolean,
-    created_on: Date,
-    modified_on: Date,
+    created_on: any,
+    updated_on: any,
     created_by: string,
-    modified_by: string,
+    updated_by: string,
     program_id: string,
     is_deleted: boolean,
 }

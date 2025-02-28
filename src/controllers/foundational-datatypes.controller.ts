@@ -67,9 +67,9 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             ...foundationalDataPayload,
             program_id,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
             created_on: Date.now(),
-            modified_on: Date.now(),
+            updated_on: Date.now(),
         });
         reply.status(201).send({
             status_code: 201,
@@ -165,7 +165,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
         }
         const data = await foundationalDataTypes.findByPk(id);
         if (data) {
-            await data.update({ ...foundationalData, modified_on: Date.now(), modified_by: userId, });
+            await data.update({ ...foundationalData, updated_on: Date.now(), updated_by: userId, });
             reply.status(201).send({
                 status_code: 201,
                 foundational_datatype_id: id,
@@ -214,7 +214,7 @@ export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply
             });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true, modified_by: userId, });
+        await data.update({ is_enabled: false, is_deleted: true, updated_by: userId, });
         reply.status(204).send({
             status_code: 204,
             foundational_datatype_id: id,
@@ -240,7 +240,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'modified_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations']
         });
 
         if (foundationalDataType) {
@@ -310,7 +310,7 @@ export async function getAllFoundationalDataTypes(
         'program_id',
         'name',
         'is_enabled',
-        'modified_on',
+        'updated_on',
         'description',
         'configuration',
     ];
@@ -351,7 +351,7 @@ export async function getAllFoundationalDataTypes(
                 attributes: responseFields,
                 offset,
                 limit: Number(limit),
-                order: [['modified_on', 'DESC']],
+                order: [['updated_on', 'DESC']],
             });
 
         if (!foundationalDataItems.length) {
@@ -396,140 +396,17 @@ export async function getAllFoundationalDataTypes(
         reply.send({
             status_code: 200,
             message: 'Foundational get successfully',
-            total_records: populatedFoundationalData.length,
+            total_records: totalRecords,
             foundationalData: populatedFoundationalData,
             trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
-            trace_id: traceId,
-        });
-    }
-}
-
-export async function createFoundationalDataInBulk(request: FastifyRequest, reply: FastifyReply) {
-    const foundational_data_list = request.body as FoundationalDataInterface[];
-    const traceId = generateCustomUUID();
-    const {program_id}=request.params as {program_id:string}
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
-    const userId = user?.sub;
-    
-    logger(
-        {
-            trace_id: traceId,
-            actor: {
-                user_name: user?.preferred_username,
-                user_id: userId,
-            },
-            data: request.body,
-            eventname: "bulk creating foundational data",
-            status: "in_progress",
-            description: "Bulk creation of foundational data started",
-            level: 'info',
-            action: request.method,
-            url: request.url,
-            is_deleted: false
-        },
-        FoundationalData
-    );
-
-    try {
-        const createdEntries = [];
-        const failedEntries = [];
-
-        for (const foundational_data of foundational_data_list) {
-            const { name } = foundational_data;
-            try {
-                const existingData = await FoundationalData.findOne({
-                    where: { name, program_id },
-                });
-
-                if (existingData) {
-                    failedEntries.push({
-                        name,
-                        program_id,
-                        message: "Master Data Already Exists."
-                    });
-                    continue;
-                }
-
-                const newEntry = await FoundationalData.create({
-                    ...foundational_data,
-                    created_by: userId,
-                    modified_by: userId,
-                    program_id:program_id
-                });
-                createdEntries.push(newEntry.id);
-            } catch (error: any) {
-                failedEntries.push({
-                    name,
-                    program_id,
-                    message: error.message
-                });
-            }
-        }
-
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                data: { createdEntries, failedEntries },
-                eventname: "bulk created foundational data",
-                status: "completed",
-                description: `Bulk creation completed with ${createdEntries.length} successes and ${failedEntries.length} failures`,
-                level: 'info',
-                action: request.method,
-                url: request.url,
-                is_deleted: false
-            },
-            FoundationalData
-        );
-
-        reply.status(201).send({
-            status_code: 201,
-            trace_id: traceId,
-            message: 'Master data created successfully.',
-        });
-    } catch (error: any) {
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                eventname: "bulk creating foundational data",
-                status: "error",
-                description: "Error in bulk creating foundational data",
-                level: 'error',
-                action: request.method,
-                url: request.url,
-                is_deleted: false
-            },
-            FoundationalData
-        );
-
-        reply.status(500).send({
-            status_code: 500,
-            message: 'An error occurred while processing bulk Foundational Data.',
             trace_id: traceId,
             error: error.message
         });
     }
 }
+

@@ -43,7 +43,7 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
             ...QualificationsDataPayload,
             program_id,
             created_by: userId,
-            modified_by: userId
+            updated_by: userId
         });
         reply.status(201).send({
             status_code: 201,
@@ -147,7 +147,7 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
         if (data) {
             await data.update({
                 QualificationsData,
-                modified_by: userId,
+                updated_by: userId,
             });
             reply.status(201).send({
                 status_code: 201,
@@ -188,7 +188,7 @@ export const deleteQualification = async (request: FastifyRequest, reply: Fastif
             return reply.status(200).send({ status_code: 200, message: 'Qualification Not Found', trace_id: traceId });
         }
 
-        await data.update({ is_enabled: false, is_deleted: true,modified_by: userId, });
+        await data.update({ is_enabled: false, is_deleted: true,updated_by: userId, });
         reply.status(200).send({
             status_code: 200,
             Qualifications_id: id,
@@ -219,6 +219,7 @@ export async function getAllQualifications(
 
         if (query.type) {
             searchConditions.type = query.type;
+            searchConditions.program_id = params.program_id;
         } else {
             if (query.name) {
                 searchConditions.name = { [Op.like]: `%${query.name}%` };

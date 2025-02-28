@@ -90,7 +90,7 @@ export async function createFeesConfiguration(
       ...feesConfig,
       program_id,
       created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
     });
     reply.status(201).send({
       status_code: 201,
@@ -255,8 +255,8 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
 
     const [feesConfig] = await feesConfiguration.update({
       ...updates,
-      modified_on: Date.now(),
-      modified_by: userId,
+      updated_on: Date.now(),
+      updated_by: userId,
     }, {
       where: {
         id, program_id
@@ -298,9 +298,9 @@ export async function deleteFeesConfigurationById(
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
+        updated_on: Date.now(),
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       },
       { where: { id } }
     );
@@ -321,9 +321,9 @@ export async function deleteFeesConfigurationById(
 }
 
 export async function getAllFeesConfigByProgramId(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
-  const searchFields = ['program_id', 'is_enabled', 'title', 'source_model', 'labor_category', 'hierarchy_levels', 'vendors', 'modified_on'];
+  const searchFields = ['program_id', 'is_enabled', 'title', 'source_model', 'labor_category', 'hierarchy_levels', 'vendors', 'updated_on'];
   const responseFields = ['id', 'title', 'labor_category', 'hierarchy_levels', 'vendors', 'source_model', 'is_enabled',
-    'is_deleted', 'program_id', 'created_on', 'modified_on', 'ref_id',];
+    'is_deleted', 'program_id', 'created_on', 'updated_on', 'ref_id',];
   return baseSearch(request, reply, feesConfiguration, searchFields, responseFields);
 }
 

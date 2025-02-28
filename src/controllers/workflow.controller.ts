@@ -57,7 +57,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const userId = user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
-            where: { name: name, program_id: program_id }
+            where: { name: name, program_id: program_id,is_deleted: false }
         });
 
         if (existingWorkflow) {
@@ -104,7 +104,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             createdWorkflow = await WorkFlow.create({
                 ...workflowDataPayload,
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
                 program_id,
                 workflow_id: grouped.id,
                 type: "child"
@@ -119,7 +119,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 program_id,
                 placement_order: 0,
                 created_by: userId,
-                modified_by: userId,
+                updatedd_by: userId,
                 flow_count: 1,
                 type: "parent",
                 workflow_id: null
@@ -258,13 +258,13 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (data) {
             await data.update({
                 ...workflowData,
-                modified_on: new Date(), 
-                modified_by: userId
-            }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['modified_on', 'modified_by']) });
+                updated_on: new Date(), 
+                updated_by: userId
+            }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['updated_on', 'updated_by']) });
 
             return reply.status(200).send({
                 status_code: 200,
-                modified_by: userId,
+                updated_by: userId,
                 workflow_id: id,
                 message: 'Workflow updated successfully.',
                 trace_id: traceId,
@@ -362,14 +362,15 @@ export async function deleteWorkflow(
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) {
-    const traceId = generateCustomUUID()
+    const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
         const workFlowData = await WorkFlow.findOne({ where: { program_id, id } });
         if (workFlowData) {
             await WorkFlow.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
-            reply.status(204).send({
-                status_code: 204,
+            reply.status(200).send({
+                status_code: 200,
+                workflow: id,
                 message: 'Workflow deleted successfully.',
                 trace_id: traceId,
             });

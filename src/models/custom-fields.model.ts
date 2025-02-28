@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from './programs.model';
 import { Module } from './module.model';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 
 class CustomField extends Model {
@@ -29,10 +30,10 @@ class CustomField extends Model {
   job_type: any;
   module_name: any;
   module_id: any;
-  modified_on: any;
+  updated_on: any;
   created_on: any;
   program_id: any;
-  modified_by:any;
+  updated_by: any;
 
 }
 
@@ -77,7 +78,7 @@ CustomField.init(
     },
     is_all_work_location: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
     },
     is_all_hierarchy: {
       type: DataTypes.BOOLEAN,
@@ -112,14 +113,6 @@ CustomField.init(
       allowNull: true,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue:Date.now()
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue:Date.now()
-    },
     module_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -153,24 +146,43 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
-    modified_by: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+    decimal_place: {
+      type: DataTypes.STRING,
       allowNull: true,
-  },
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     sequelize,
     tableName: 'custom_fields',
     timestamps: false,
     hooks: {
-      beforeValidate: convertEmptyStringsToNull
+      beforeValidate: (instance) => {
+        convertEmptyStringsToNull(instance);
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
+      },
     },
   }
 );
 
 CustomField.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 CustomField.belongsTo(Module, { foreignKey: 'module_id', as: 'module' });
-
 
 export default CustomField;

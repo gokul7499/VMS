@@ -182,11 +182,11 @@ export async function getAllWorkLocations(
     if (query.is_enabled) {
       query.is_enabled = query.is_enabled !== "false";
     }
-    let order: [string, string][] = [["modified_on", "DESC"]];
+    let order: [string, string][] = [["updated_on", "DESC"]];
     if (query.sort === "1") {
-      order = [["modified_on", "ASC"]];
+      order = [["updated_on", "ASC"]];
     } else if (query.sort === "-1") {
-      order = [["modified_on", "DESC"]];
+      order = [["updated_on", "DESC"]];
     }
     const whereClause: any = {
       ...query,
@@ -208,12 +208,12 @@ export async function getAllWorkLocations(
     if(query.zipcode){
       whereClause.zipcode=query.zipcode
     }
-    if (query.modified_on) {
-      const dateRange = query.modified_on.split(',');
+    if (query.updated_on) {
+      const dateRange = query.updated_on.split(',');
       if (dateRange.length === 2) {
           const startDate = parseFloat(dateRange[0].trim());
           const endDate = parseFloat(dateRange[1].trim());
-          whereClause.modified_on = { [Op.between]: [startDate, endDate] };
+          whereClause.updated_on = { [Op.between]: [startDate, endDate] };
       }
   }
     const workLocations = await WorkLocationModel.findAll({
@@ -359,7 +359,7 @@ export async function updateWorkLocation(
     }
 
     const [numRowsUpdated] = await WorkLocationModel.update(
-      { ...updates, modified_on: Date.now() },
+      { ...updates, updated_on: Date.now() },
       { where: { id, program_id, is_deleted: false } }
     );
 
@@ -418,7 +418,7 @@ export async function deleteWorkLocationById(
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
+        updated_on: Date.now(),
       },
       { where: { id, program_id, is_deleted: false } }
     );

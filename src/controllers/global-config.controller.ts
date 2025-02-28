@@ -24,7 +24,7 @@ export async function createGlobalConfig(request: FastifyRequest, reply: Fastify
       status_code: 201,
       message: "Global config created successfully",
       created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
       data: item?.id,
       trace_id: traceId,
     });
@@ -124,7 +124,7 @@ export async function updateGlobalConfig(
   try {
     const { id } = request.params as { id: string };
     const { ...config } = request.body as GlobalConfigInterface;
-    const globalConfig = await GlobalConfigModel.update({ ...config, modified_by: userId }, { where: { id } },);
+    const globalConfig = await GlobalConfigModel.update({ ...config, updated_by: userId }, { where: { id } },);
     if (globalConfig) {
       reply.status(200).send({
         status_code: 200,
@@ -166,7 +166,7 @@ export async function updateGlobalConfigFlags(
     await GlobalConfigModel.sequelize?.transaction(async (t) => {
       await Promise.all(global_launches.map(async (launch) => {
         await GlobalConfigModel.update(
-          { is_enabled: launch.is_enabled, modified_by: userId, },
+          { is_enabled: launch.is_enabled, updated_by: userId, },
           { where: { id: launch.id }, transaction: t }
         );
       }));
@@ -207,7 +207,7 @@ export async function deleteGlobalConfig(
       await globalConfig.update({
         is_enabled: false,
         is_deleted: true,
-        modified_by: userId,
+        updated_by: userId,
       })
       reply.status(200).send({
         status_code: 200,

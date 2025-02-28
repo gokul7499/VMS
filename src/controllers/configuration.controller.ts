@@ -11,7 +11,8 @@ export const getConfigurations = async (
   reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   try {
-    const configurations = await Configuration.findAll({ order: [["sr_Number", "ASC"]] });
+    const configurations = await Configuration.findAll({  order: [["updated_on", "DESC"], ["sr_Number", "ASC"]]  });
+
     if (configurations.length === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -118,7 +119,7 @@ export const createConfiguration = async (request: FastifyRequest, reply: Fastif
       ...configData,
       key,
       created_by: userId,
-      modified_by: userId,
+      updated_by: userId,
     });
 
     reply.status(201).send({
@@ -205,7 +206,7 @@ export const updateConfiguration = async (
     if (configuration) {
       await configuration.update({
         configData,
-        modified_by: userId,
+        updated_by: userId,
       });
       reply.status(201).send({
         status_code: 201,
@@ -255,7 +256,7 @@ export const deleteConfiguration = async (
       await configuration.update({
         is_deleted: true,
         is_enabled: false,
-        modified_by: userId,
+        updated_by: userId,
       });
       reply.status(204).send({
         status_code: 204,

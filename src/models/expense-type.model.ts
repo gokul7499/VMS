@@ -100,6 +100,14 @@ ExpenseTypeModel.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
 },
     {
         sequelize,

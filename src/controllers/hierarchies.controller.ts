@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 
 interface HierarchyItem {
@@ -16,6 +16,7 @@ interface HierarchyItem {
   default_currency: any;
   default_language: any;
   is_hide_candidate_img: any;
+  is_vendor_neutral_program: any;
   default_timezone: any;
   id: string;
   parent_hierarchy_id: string | null;
@@ -24,9 +25,10 @@ interface HierarchyItem {
   preferred_date_format: string;
   rate_model: string;
   created_on: number;
-  modified_on: number;
+  updated_on: number;
   code: string;
   program_id: string;
+  
 }
 export const getHierarchiesByProgram = async (
   request: FastifyRequest<{
@@ -77,7 +79,7 @@ export const getHierarchiesByProgram = async (
             preferred_date_format: item.preferred_date_format,
             rate_model: item.rate_model,
             created_on: item.created_on,
-            modified_on: item.modified_on,
+            updated_on: item.updated_on,
             code: item.code,
             program_id: item.program_id,
             default_timezone: item.default_timezone,
@@ -86,6 +88,7 @@ export const getHierarchiesByProgram = async (
             default_currency: item.default_currency,
             default_date_format: item.default_date_format,
             support_email: item.support_email,
+            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program), 
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -114,7 +117,7 @@ export const getHierarchies = async (
     Querystring: {
       name?: string;
       is_enabled?: boolean | string;
-      modified_on?: string;
+      updated_on?: string;
       page?: number;
       limit?: number;
     };
@@ -122,7 +125,7 @@ export const getHierarchies = async (
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on, page = 1, limit = 10 } = request.query;
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -134,8 +137,8 @@ export const getHierarchies = async (
     let startDate: number | undefined;
     let endDate: number | undefined;
 
-    if (modified_on) {
-      const dateRange = modified_on.split(",");
+    if (updated_on) {
+      const dateRange = updated_on.split(",");
       if (dateRange.length === 2 || dateRange.length === 1) {
         const parsedStartDate = parseInt(dateRange[0], 10);
         const parsedEndDate =
@@ -175,7 +178,10 @@ export const getHierarchies = async (
         hierarchies: [],
       });
     }
-
+    const formattedHierarchies = hierarchies.map((hierarchy) => ({
+      ...hierarchy,
+      is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
+    }));
     const total_count = hierarchies[0]?.total_count || 0;
 
     return reply.status(200).send({
@@ -185,7 +191,7 @@ export const getHierarchies = async (
       total_records: total_count,
       page,
       limit,
-      hierarchies,
+      hierarchies:formattedHierarchies,
     });
   } catch (error: any) {
     console.error(error);
@@ -222,7 +228,7 @@ export async function getHierarchiesById(
       });
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
-
+      hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
           ? JSON.parse(masterDataResult.foundational_data)
@@ -312,7 +318,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
         ...hierarchie,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       },
       { transaction }
     );
@@ -419,9 +425,9 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
     try {
       if (hierarchy.parent_hierarchy_id === null) {
         const { is_enabled, parent_hierarchy_id, ...updatableData } = hierarchiesData;
-        await hierarchy.update({ ...updatableData, modified_by: userId, modified_on: Date.now() }, { transaction });
+        await hierarchy.update({ ...updatableData, updated_by: userId, updated_on: Date.now() }, { transaction });
       } else {
-        await hierarchy.update({ ...hierarchiesData, modified_by: userId, modified_on: Date.now() }, { transaction });
+        await hierarchy.update({ ...hierarchiesData, updated_by: userId, updated_on: Date.now() }, { transaction });
       }
 
       if (hierarchiesData.custom_fields && hierarchiesData.custom_fields.length > 0) {
@@ -503,8 +509,8 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
-        modified_by: userId
+        updated_on: Date.now(),
+        updated_by: userId
       },
       { where: { id } }
     );
@@ -536,7 +542,7 @@ export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: 
 export async function searchHierarchies(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
 
   const searchFields = ['is_enabled', 'name', 'code', 'program_id'];
-  const responseFields = ['id', 'name', 'modified_on', 'is_enabled', 'program_id'];
+  const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'program_id'];
   return baseSearch(request, reply, HierarchiesModel, searchFields, responseFields);
 }
 
@@ -544,8 +550,8 @@ export async function advancedSearchHierarchies(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const searchFields = ['name', 'modified_on', 'is_enabled', 'name', 'code', 'program_id'];
-  const responseFields = ['id', 'name', 'modified_on', 'is_enabled', 'code', 'program_id'];
+  const searchFields = ['name', 'updated_on', 'is_enabled', 'name', 'code', 'program_id'];
+  const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'code', 'program_id'];
   return advanceSearch(
     request,
     reply,
@@ -691,66 +697,6 @@ function buildHierarchyTree(hierarchies: Hierarchy[]): Hierarchy[] {
   return roots;
 }
 
-export const getMasterDataForHeirarchies = async (
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
-  reply: FastifyReply
-) => {
-  const { hierarchy_ids } = request.query;
-  const traceId = generateCustomUUID();
-
-  if (!hierarchy_ids) {
-    return reply.status(400).send({
-      status_code: 400,
-      message: 'Missing required query parameter hierarchy_ids is required.'
-    });
-  }
-
-  try {
-    const hierarchyIdsArray = hierarchy_ids.split(',');
-
-    const query = getMasterDataForHeirarchiesQuery();
-
-    const results: {
-      user_association_exclude: any;
-      hierarchy_name: any;
-      hierarchy_id: any; master_data: any[]
-    }[] = await sequelize.query(query, {
-      replacements: { hierarchy_ids: hierarchyIdsArray },
-      type: QueryTypes.SELECT
-    });
-
-    if (!results || results.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: 'No master data found for the provided hierarchies IDs.',
-        master_data: []
-      });
-    }
-
-    const masterDataResponse = results.map(result => ({
-      hierarchy_id: result.hierarchy_id,
-      hierarchy_name: result.hierarchy_name,
-      user_association_exclude: result.user_association_exclude,
-      master_data: result.master_data
-    }));
-
-    return reply.status(200).send({
-      status_code: 200,
-      trace_id: traceId,
-      message: 'Master data for hierarchies retrieved successfully.',
-      master_data: masterDataResponse
-    });
-  } catch (error: any) {
-    return reply.status(500).send({
-      status_code: 500,
-      trace_id: traceId,
-      message: 'Internal Server Error',
-      error: error.message
-    });
-  }
-};
-
 export async function getVendorMarkup(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
@@ -832,3 +778,58 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
     });
   }
 }
+
+export const updateIsNotEditableFlag = async (
+  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
+  reply: FastifyReply
+) => {
+  const { hierarchy_ids } = request.query;
+  const { program_id } = request.params; 
+  const traceId = generateCustomUUID();
+
+  if (!hierarchy_ids) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Missing required query parameter hierarchy_ids.'
+    });
+  }
+
+  try {
+    const hierarchyIdsArray = hierarchy_ids.split(',');
+    const query = getMatchingHierarchiesQuery();
+    const matchedHierarchies: { hierarchy_id: string }[] = await sequelize.query(query, {
+      replacements: { program_id, hierarchy_ids: hierarchyIdsArray },
+      type: QueryTypes.SELECT
+    });
+    
+    if (!matchedHierarchies.length) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: 'No matching hierarchies found.',
+        data:[]
+      });
+    }
+    const matchedHierarchyIds = matchedHierarchies.map((h) => h.hierarchy_id);
+    await sequelize.query(
+      `UPDATE hierarchies SET is_not_editable = TRUE WHERE id IN (:matchedHierarchyIds)`,
+      { replacements: { matchedHierarchyIds }, type: QueryTypes.UPDATE }
+    );
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: 'Hierarchies updated successfully.',
+      updated_hierarchy_ids: matchedHierarchyIds
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Internal Server Error',
+      error: error.message
+    });
+  }
+};
+
+

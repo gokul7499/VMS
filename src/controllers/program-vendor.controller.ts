@@ -16,7 +16,13 @@ import VendorComplianceDocumentModel from "../models/vendor-compliance-document.
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
+import User from "../models/user.model";
 interface VendorDetails {
+    compliance_note: any;
+    last_name: any;
+    first_name: any;
+    audited_on: any;
+    audited_by: any;
     expiry_on: any;
     url: any;
     file_name: any;
@@ -25,7 +31,7 @@ interface VendorDetails {
     regain_compliance_days: null;
     attached_doc_url: null;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
     is_enabled: any;
     is_deleted: any;
     no_of_days: any;
@@ -66,7 +72,7 @@ export async function getProgramVendors(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { vendor_name, user_id, is_enabled, status, modified_on } = request.query;
+        const { vendor_name, user_id, is_enabled, status, updated_on } = request.query;
 
         const page = parseInt(request.query.page as unknown as string, 10) || 1;
         const limit = parseInt(request.query.limit as unknown as string, 10) || 10;
@@ -82,15 +88,23 @@ export async function getProgramVendors(
         }
 
         if (user_id !== undefined) {
-            filters.user_id = user_id;
+            const userRecord = await User.findOne({ where: { user_id: user_id } });
+            if (!userRecord) {
+                return reply.status(404).send({
+                    status_code: 404,
+                    message: 'User not found.',
+                    trace_id: traceId,
+                });
+            }
+            filters.tenant_id = userRecord.tenant_id;
         }
 
         if (status) {
             filters.status = status;
         }
 
-        if (modified_on) {
-            filters.modified_on = modified_on;
+        if (updated_on) {
+            filters.updated_on = updated_on;
         }
 
         const offset = (page - 1) * limit;
@@ -99,13 +113,13 @@ export async function getProgramVendors(
             where: filters,
             limit,
             offset,
-            order: [['created_on', 'DESC']],
+            order: [['updated_on', 'DESC']],
         };
 
         if (!user_id) {
             queryOptions.attributes = [
                 'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
-                'modified_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
+                'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
 
@@ -323,7 +337,7 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
@@ -393,7 +407,6 @@ export async function saveProgramVendor(
     }
 };
 
-
 export const updateProgramVendor = async (
     request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
@@ -424,53 +437,44 @@ export const updateProgramVendor = async (
             });
         }
 
-        await existingProgramVendor.update(programVendorData);
+        await existingProgramVendor.update({ ...programVendorData, updated_by: userId, updated_on: Date.now() });
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
-            const incomingMarkupIds = programVendorData.markup_config
-                .map(markup => markup.id)
-                .filter(id => id !== null && id !== "null");
 
             await vendorMarkupConfig.destroy({
                 where: {
+                    program_id,
                     program_vendor_id: existingProgramVendor.id,
-                    id: { [Op.notIn]: incomingMarkupIds },
                 },
             });
 
             for (const markup of programVendorData.markup_config) {
-                if (markup.id && markup.id !== null && markup.id !== "null") {
-                    await vendorMarkupConfig.update(
-                        {
-                            ...(markup.rate_model && { rate_model: markup.rate_model }),
-                            ...(markup.program_industry && { program_industry: markup.program_industry }),
-                            ...(markup.hierarchy && { hierarchy: markup.hierarchy }),
-                            ...(markup.work_locations && { work_locations: markup.work_locations }),
-                            ...(markup.sliding_scale !== undefined && { sliding_scale: markup.sliding_scale }),
-                            ...(markup.markups && { markups: markup.markups }),
-                            is_all_hierarchy: markup.is_all_hierarchy ? 1 : 0,
-                            is_all_work_locations: markup.is_all_work_locations ? 1 : 0,
-                            is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
-                        },
-                        {
-                            where: {
-                                id: markup.id, program_vendor_id: existingProgramVendor.id, created_by: userId,
-                                modified_by: userId,
-                            },
-                        }
-                    );
-                } else if (markup.id === null || markup.id === "null") {
-                    const { id, ...markupData } = markup;
+                const { id, ...markupData } = markup;
+                const fieldsToCheck = ['hierarchy', 'work_locations','program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification'];
+                fieldsToCheck.forEach(field => {
+                    if (markupData[field] === 'any') {
+                        markupData[field] = null;
+                    }
+                });
+                const existingRecord = await vendorMarkupConfig.findOne({
+                    where: {
+                        program_id,
+                        program_vendor_id: existingProgramVendor.id,
+                        hierarchy: markup.hierarchy,
+                        rate_model: markup.rate_model,
+                        program_industry: markup.program_industry,
+                    },
+                });
+                if (!existingRecord) {
                     await vendorMarkupConfig.create({
                         ...markupData,
                         program_vendor_id: existingProgramVendor.id,
                         program_id: program_id,
-                        is_enabled: true,
-                        is_deleted: false,
-                        is_all_hierarchy: markup.is_all_hierarchy ? 1 : 0,
-                        is_all_work_locations: markup.is_all_work_locations ? 1 : 0,
-                        is_all_labor_category: markup.is_all_labor_category ? 1 : 0,
+                        created_by: userId,
+                        updated_by: userId
                     });
+                } else {
+                    throw new Error("A record with the same markup already exists.");
                 }
             }
         }
@@ -511,7 +515,7 @@ export async function deleteProgramVendor(
             await ProgramVendor.update({ is_deleted: true, is_enabled: false }, {
                 where: {
                     program_id, id, created_by: userId,
-                    modified_by: userId,
+                    updated_by: userId,
                 }
             });
             reply.status(204).send({
@@ -566,11 +570,12 @@ export const getProgramVendorById = async (
             trace_id: traceId,
             program_vendor: programVendor,
         });
-    } catch (error) {
+    } catch (error:any) {
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while retrieving ProgramVendor data.',
             trace_id: traceId,
+            error:error.message
         });
     }
 };
@@ -692,7 +697,7 @@ export async function updateProgramVendorByUserId(
         await existingProgramVendor.update(programVendorData, {
             where: {
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             }
         });
 
@@ -834,18 +839,21 @@ export const getVendorDocuments = async (
                 regain_compliance_days: doc.regain_compliance_days,
                 attached_doc_url: doc.attached_doc_url,
                 created_on: doc.created_on,
-                modified_on: doc.modified_on,
+                updated_on: doc.updated_on,
                 is_enabled: doc.is_enabled,
                 is_deleted: doc.is_deleted,
                 to_uploaded: doc.to_uploaded,
                 no_of_days: doc.no_of_days,
                 uploaded_document: {
                     expiry_on: doc.expiry_on,
-                    audited_by: doc.uploaded_document ? doc.uploaded_document.audited_by : "--",
+                    audited_on: doc.audited_on,
+                    compliance_note: doc.compliance_note,
                     next_expiry_on: doc.next_expiry_on,
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
+                    first_name: doc.first_name,
+                    last_name: doc.last_name
                 },
                 work_location: doc.work_location,
                 vendor_name: doc.display_name,
@@ -959,11 +967,10 @@ export async function updateComplianceDocument(
         const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
 
         const audited_by = await getAuditedBy(user, program_id);
+        const audited_on = Date.now();
 
-        if (complianceDocumentUpdate) {
-            complianceDocumentUpdate.uploaded_document.audited_by = audited_by;
-            complianceDocumentUpdate.uploaded_document.audited_on = new Date();
-        }
+        const finalAudited_by = complianceDocumentUpdate.name ? audited_by : null;
+        const finalAudited_on = complianceDocumentUpdate.name ? audited_on : null;
 
         await VendorComplianceReqDocMappingModel.destroy({
             where: { vendor_id: vendorId, program_id, required_document_id: document_id }
@@ -981,8 +988,10 @@ export async function updateComplianceDocument(
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
                 expiry_on: uploadedDocument.expiry_on,
+                audited_on: finalAudited_on,
+                audited_by: finalAudited_by,
                 created_by: user_id,
-                modified_by: user_id,
+                updated_by: user_id,
                 status: uploadedDocument.status,
                 is_enabled: true,
                 is_deleted: false,
@@ -1051,14 +1060,14 @@ function calculateNextUpdateDueDate(expiryDate: Date, upload_document_days: numb
 }
 
 async function getAuditedBy(user: any, program_id: string) {
-    const userData = await UserModel.findAll({
-        where: { program_id, id: user.sub }
+    const userData = await UserModel.findOne({
+        where: { program_id, user_id: user.sub }
     });
 
-    if (userData.length > 0 && (userData[0]?.user_type?.toLowerCase() === 'vendor')) {
+    if (userData?.user_type?.toLowerCase() === 'vendor') {
         return "--";
     }
-    return user.preferred_username;
+    return user.sub;
 }
 
 export async function getComplianceDocument(

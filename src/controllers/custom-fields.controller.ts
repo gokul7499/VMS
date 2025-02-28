@@ -18,7 +18,7 @@ import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
-  const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name, ...customFieldData } = request.body as any;
+  const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name,module_id, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -46,7 +46,34 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   logCreatingCustomField(traceId, user, request, program_id);
 
   try {
-    const customField = await createCustomField({ program_id, label, name, ...customFieldData }, user);
+    const existingField = await CustomField.findOne({
+      where: {
+        program_id,
+        [Op.and]: [{ name }, { label }, { module_id }]
+      }
+    });
+    
+    if (existingField) {
+      let errorMessage = 'Custom field already exists';
+    
+      if (existingField.name === name) {
+        errorMessage += ' with this name';
+      } 
+      if (existingField.label === label) {
+        errorMessage += ' with this label';
+      } 
+      if (existingField.module_id === module_id) {
+        errorMessage += ' with this module';
+      }
+    
+      return reply.status(400).send({
+        status_code: 400,
+        message: errorMessage,
+        trace_id: traceId,
+      });
+    }
+
+    const customField = await createCustomField({ program_id, label, name,module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -66,13 +93,14 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       trace_id: traceId,
     });
 
-  } catch (error) {
+  } catch (error:any) {
     console.error('Error processing custom field:', error);
     logError(traceId, user, request, program_id);
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       traceId,
+      error:error.message
     });
   }
 };
@@ -202,7 +230,7 @@ export const createCustomField = async (data: any, user: any) => {
   try {
     console.log("Data to be inserted:", data);
     const userId = user?.sub
-    const customFieldData = await CustomField.create({ ...data, created_by: userId, modified_by: userId });
+    const customFieldData = await CustomField.create({ ...data, created_by: userId, updated_by: userId });
     console.log("Inserted customFieldData:", customFieldData);
     return customFieldData;
   } catch (error) {
@@ -251,9 +279,9 @@ export async function getAllCustomFields(
     const isRequiredValue = request.query.is_required === 'true' ? 1 : 0;
     whereClause.is_required = { [Op.eq]: isRequiredValue };
   }
-  if (request.query.modified_on) {
-    const modifiedOnPattern = `${request.query.modified_on}`;
-    whereClause.modified_on = { [Op.like]: modifiedOnPattern };
+  if (request.query.updated_on) {
+    const modifiedOnPattern = `${request.query.updated_on}`;
+    whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
 
   try {
@@ -263,12 +291,14 @@ export async function getAllCustomFields(
         "id",
         "name",
         "is_enabled",
-        "modified_on",
+        "updated_on",
+        "created_on",
         "module_id",
         "module_name",
         "field_type",
         "is_required",
         "label",
+        "decimal_place",
         "meta_data",
         "linked_modules",
         "is_readonly",
@@ -278,7 +308,7 @@ export async function getAllCustomFields(
         "can_edit",
         "can_view"
       ],
-      order: [["modified_on", "DESC"]],
+      order: [["updated_on", "DESC"]],
       offset: (page - 1) * limit,
       limit: limit,
     });
@@ -361,12 +391,12 @@ export const getCustomFieldById = async (
     const customfiedData = await CustomField.findOne({
       where: { id, program_id },
       attributes: [
-        "id", "name", "is_enabled", "modified_on", "can_view", "can_edit",
+        "id", "name", "is_enabled", "updated_on", "can_view", "can_edit",
         "is_all_hierarchy", "is_all_work_location", "label", "placeholder",
         "field_type", "is_required", "module_id", "module_name",
         "supporting_text", "description", "is_readonly", "is_required",
-        "is_linked", "is_deleted", "created_on", "modified_on",
-        "supporting_text", "linked_modules", "meta_data", "job_type"
+        "is_linked", "is_deleted", "created_on", "updated_on",
+        "supporting_text", "linked_modules", "meta_data", "job_type",
       ],
     });
 
@@ -496,7 +526,7 @@ export const updateCustomFieldById = async (
     master_data_ids?: string[];
   };
 
-  // Validate program_id
+
   if (!program_id) {
     return sendError(reply, 400, 'Program ID is required');
   }
@@ -512,8 +542,8 @@ export const updateCustomFieldById = async (
       await CustomField.update(
         {
           ...updates,
-          modified_on: Date.now(),
-          modified_by: userId,
+          updated_on: Date.now(),
+          updated_by: userId,
         },
         {
           where: { id, program_id },
@@ -646,7 +676,7 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
       const userId = user?.sub
       if ((customFieldItem as any).is_linked === false) {
         await customFieldItem.update({
-          is_deleted: true, modified_on: Date.now(), modified_by: userId,
+          is_deleted: true, updated_on: Date.now(), updated_by: userId,
         }, { where: { id, program_id } });
         reply.status(200).send({
           status_code: 200,
@@ -734,8 +764,8 @@ export async function updateCustomFieldsIsdisable(
     await CustomField.update(
       {
         is_enabled,
-        modified_on: new Date(),
-        modified_by: userId,
+        updated_on: new Date(),
+        updated_by: userId,
       },
       {
         where: { id, program_id },

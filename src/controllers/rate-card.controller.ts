@@ -32,7 +32,7 @@ export const createRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 ...rateCardData,
                 program_id,
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             },
             { transaction }
         );
@@ -68,11 +68,11 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { page = 1, limit = 10, modified_on, is_enabled, name } = request.query as {
+        const { page = 1, limit = 10, updated_on, is_enabled, name } = request.query as {
             page?: number;
             limit?: number;
-            modified_on?: string;
-            is_enabled?: String;
+            updated_on?: string;
+            is_enabled?: string;
             name?: string;
         };
 
@@ -83,12 +83,12 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             program_id,
             is_deleted: false,
         };
-        if (modified_on) {
-            const dateRange = modified_on.split(',');
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
                 const startDate = parseFloat(dateRange[0].trim());
                 const endDate = parseFloat(dateRange[1].trim());
-                whereConditions.modified_on = { [Op.between]: [startDate, endDate] };
+                whereConditions.updated_on = { [Op.between]: [startDate, endDate] };
             }
         }
         if (is_enabled !== undefined) {
@@ -133,8 +133,8 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         });
 
         if (!rateCards.length) {
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 total_records: totalRecords,
                 total_pages: totalPages,
                 current_page: parsedPage,
@@ -203,15 +203,15 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                 decision_table: relatedDecisionTables.map((dt) => ({
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "ALL", name: "All" },
-                    job_template: dt.job_template || { id: "ALL", template_name: "All" },
-                    rate_type: dt.rate_type || { id: "ALL", name: "All" },
-                    currency: dt.currency || { id: "ALL", name: "All", label: "ALL", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "ALL",
+                    hierarchy: dt.hierarchy || { id: "any", name: "any" },
+                    job_template: dt.job_template || { id: "any", template_name: "any" },
+                    rate_type: dt.rate_type || { id: "any", name: "any" },
+                    currency: dt.currency || { id: "any", name: "any", label: "any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure || "any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
-                    modified_on: dt.modified_on,
+                    updated_on: dt.updated_on,
                 })),
             };
         });
@@ -242,8 +242,8 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
             where: { id, program_id, is_deleted: false },
         });
         if (!rateCard) {
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
@@ -290,15 +290,15 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                 return {
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "ALL", name: "All" },
-                    job_template: dt.job_template || { id: "ALL", template_name: "All" },
-                    rate_type: dt.rate_type || { id: "ALL", name: "All" },
-                    currency: currencyDetails || { id: "ALL", name: "All", label: "ALL", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "ALL",
+                    hierarchy: dt.hierarchy || { id: "any", name: "any" },
+                    job_template: dt.job_template || { id: "any", template_name: "any" },
+                    rate_type: dt.rate_type || { id: "any", name: "any" },
+                    currency: currencyDetails || { id: "any", name: "any", label: "any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure || "any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
                     created_on: dt.created_on,
-                    modified_on: dt.modified_on,
+                    updated_on: dt.updated_on,
                 }
             }),
         );
@@ -342,8 +342,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
         if (!rateCard) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
@@ -354,8 +354,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
             {
                 ...rateCardUpdates,
                 is_enabled,
-                modified_by: userId,
-                modified_on: Date.now(),
+                updated_by: userId,
+                updated_on: Date.now(),
             },
             {
                 where: { id, program_id, is_deleted: false },
@@ -364,25 +364,41 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         );
 
         if (decision_table && Array.isArray(decision_table)) {
-            await DecisionTable.destroy({
-                where: { rate_card_id: id },
-                transaction,
-            });
-
             for (const dt of decision_table) {
+                const existingEntry = await DecisionTable.findOne({
+                    where: {
+                        rate_card_id: id,
+                        hierarchy_id: dt.hierarchy_id === "any" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "any" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "any" ? null : dt.rate_type_id,
+                        currency: dt.currency === "any" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
+                    },
+                    transaction,
+                });
+
+                if (existingEntry) {
+                    await transaction.rollback();
+                    return reply.status(400).send({
+                        status_code: 400,
+                        message: "Decision table entry already exists.",
+                        trace_id: traceId,
+                    });
+                }
+
                 await DecisionTable.create(
                     {
                         id: dt.id,
                         rate_card_id: id,
-                        hierarchy_id: dt.hierarchy_id === "ALL" ? null : dt.hierarchy_id,
-                        job_template_id: dt.job_template_id === "ALL" ? null : dt.job_template_id,
-                        rate_type_id: dt.rate_type_id === "ALL" ? null : dt.rate_type_id,
-                        currency: dt.currency === "ALL" ? null : dt.currency,
-                        unit_of_measure: dt.unit_of_measure === "ALL" ? null : dt.unit_of_measure,
+                        hierarchy_id: dt.hierarchy_id === "any" ? null : dt.hierarchy_id,
+                        job_template_id: dt.job_template_id === "any" ? null : dt.job_template_id,
+                        rate_type_id: dt.rate_type_id === "any" ? null : dt.rate_type_id,
+                        currency: dt.currency === "any" ? null : dt.currency,
+                        unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
                         created_on: dt.created_on,
-                        modified_on: dt.modified_on,
+                        updated_on: dt.updated_on,
                     },
                     { transaction }
                 );
@@ -405,6 +421,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     }
 };
 
+
 export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
@@ -426,14 +443,14 @@ export const deleteRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
         if (!rateCard) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(400).send({
+                status_code: 400,
                 message: "Rate card not found.",
                 trace_id: traceId,
                 rate_cards: [],
             });
         }
-        await rateCard.update({ is_deleted: true, modified_by: userId }, { transaction });
+        await rateCard.update({ is_deleted: true, updated_by: userId }, { transaction });
         await DecisionTable.update(
             { is_deleted: true },
             { where: { rate_card_id: id }, transaction }

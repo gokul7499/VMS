@@ -254,7 +254,7 @@ export async function createJobTemplate(
         ...jobTemplateData,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       },
       { transaction }
     );
@@ -446,22 +446,44 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
-    updateData.modified_on = Date.now();
-    updateData.modified_by = userId;
+    updateData.updated_on = Date.now();
+    updateData.updated_by = userId;
     await jobTemplate.update(updateData);
 
-    await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);
-
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
-      for (const hierarchyId of jobTemplateData.hierarchy) {
-        await jobTemplateHierarchyModel.create({
+      const incomingHierarchyIds = jobTemplateData.hierarchy.filter(Boolean);
+          const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
+        where: {
           job_temp_id: jobTemplate.id,
-          hierarchy: hierarchyId,
           program_id: jobTemplate.program_id,
+        },
+      });
+    
+      const existingHierarchyIds = existingHierarchyRecords.map((record) => record.hierarchy);
+          for (const hierarchyId of incomingHierarchyIds) {
+        const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy === hierarchyId);
+    
+        if (!existingRecord) {
+          await jobTemplateHierarchyModel.create({
+            job_temp_id: jobTemplate.id,
+            hierarchy: hierarchyId,
+            program_id: jobTemplate.program_id,
+          });
+        }
+      }
+      const idsToDelete = existingHierarchyIds.filter((id) => !incomingHierarchyIds.includes(id));
+    
+      if (idsToDelete.length > 0) {
+        await jobTemplateHierarchyModel.destroy({
+          where: {
+            job_temp_id: jobTemplate.id,
+            program_id: jobTemplate.program_id,
+            hierarchy: idsToDelete,
+          },
         });
       }
     }
-
+  
     if (jobTempCustomField?.custom_fields) {
       const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean);
       for (const custom_field of jobTempCustomField.custom_fields) {

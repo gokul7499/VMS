@@ -45,9 +45,9 @@ export interface UserInterface {
   is_activated?: boolean;
   is_deleted?: boolean;
   created_on?: number;
-  modified_on?: number;
+  updated_on?: number;
   created_by?: any;
-  modified_by?: any;
+  updated_by?: any;
   foundational_data?:any[];
   user:any,
   background_logo_color?:string;

@@ -7,14 +7,15 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 class RateConfigurationsModel extends Model {
     id!: string;
     program_id!: string;
-    hierarchies:any;
+    hierarchies: any;
     job_templates: any;
     rate_configuration: any;
     is_shift_rate: any;
     name: any;
     is_enabled: any;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
+    job_type: any;
 }
 
 RateConfigurationsModel.init(
@@ -31,6 +32,10 @@ RateConfigurationsModel.init(
         },
         is_shift_rate: {
             type: DataTypes.BOOLEAN,
+            allowNull: true,
+        },
+        job_type: {
+            type: DataTypes.JSON,
             allowNull: true,
         },
         is_enabled: {
@@ -50,21 +55,21 @@ RateConfigurationsModel.init(
                 key: "id",
             },
         },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
-        },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue:DataTypes.NOW
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue:DataTypes.NOW
         },
     },
     {
@@ -74,7 +79,10 @@ RateConfigurationsModel.init(
         hooks: {
             beforeValidate: (instance) => {
                 convertEmptyStringsToNull(instance);
-            }
+            },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            },
         },
     }
 );

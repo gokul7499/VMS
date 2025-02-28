@@ -56,7 +56,7 @@ export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
         GROUP BY
             rcc.id
         ORDER BY
@@ -115,7 +115,7 @@ export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: numb
             AND (COALESCE(:is_shift_rate, rcc.is_shift_rate) = rcc.is_shift_rate OR rcc.is_shift_rate IS NULL)
             ${hierarchyIdCondition}
             ${jobTemplateIdCondition}
-            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.modified_on BETWEEN :startDate AND :endDate' : ''}
+            ${startDate !== undefined && endDate !== undefined ? 'AND rcc.updated_on BETWEEN :startDate AND :endDate' : ''}
     `;
 };
 
@@ -189,7 +189,7 @@ export const complianceDocumentGetByUserId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -199,6 +199,10 @@ export const complianceDocumentGetByUserId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -219,6 +223,8 @@ export const complianceDocumentGetByUserId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -227,10 +233,11 @@ export const complianceDocumentGetByUserId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
-        vcd.upload_document_days, vcd.attached_doc_url,
-        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.vendor_name, vcrm.next_expiry_on  -- Add next_expiry_on in GROUP BY
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
+        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
+        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
     LIMIT :limit OFFSET :offset
 `;
 
@@ -244,7 +251,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -254,6 +261,10 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -273,6 +284,8 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.user_id IS NULL OR pv.user_id = :user_id)
@@ -289,7 +302,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -299,6 +312,10 @@ export const complianceDocumentGetByVendorId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -319,6 +336,8 @@ export const complianceDocumentGetByVendorId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -327,10 +346,10 @@ export const complianceDocumentGetByVendorId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_details, vcd.document_number,
-        vcd.upload_document_days, vcd.attached_doc_url,
-        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.vendor_name, vcrm.next_expiry_on  -- Add next_expiry_on in GROUP BY
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
+        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
     LIMIT :limit OFFSET :offset
 `;
 
@@ -358,7 +377,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -368,7 +387,10 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
-        vcd.uploaded_document,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        u.first_name,
+        u.last_name,
         vcd.uploaded_document,
         (
             SELECT JSON_ARRAYAGG(
@@ -389,6 +411,8 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -453,7 +477,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -461,7 +485,8 @@ WITH RECURSIVE hierarchy_cte AS (
     h.is_hide_candidate_img,
     h.default_language,
     h.default_currency,
-    h.default_time_format
+    h.default_time_format,
+    h.is_vendor_neutral_program
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
@@ -477,7 +502,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_date_format,
     h.rate_model,
     h.created_on,
-    h.modified_on,
+    h.updated_on,
     h.code,
     h.program_id,
     h.support_email,
@@ -485,7 +510,8 @@ WITH RECURSIVE hierarchy_cte AS (
     h.is_hide_candidate_img,
     h.default_language,
     h.default_currency,
-    h.default_time_format
+    h.default_time_format,
+    h.is_vendor_neutral_program
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false AND h.is_enabled = true
@@ -507,10 +533,11 @@ WITH hierarchy_cte AS (
     h.code,
     h.parent_hierarchy_id,
     h.is_enabled,
-    h.modified_on,
+    h.updated_on,
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.is_vendor_neutral_program,
     h.is_not_editable,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
   FROM hierarchies h
@@ -521,7 +548,7 @@ WITH hierarchy_cte AS (
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.modified_on BETWEEN :startDate AND :endDate'
+    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
     : ''
   }
 ),
@@ -766,32 +793,96 @@ SELECT
                 'rate_model', vmc.rate_model,
                 'sliding_scale', vmc.sliding_scale,
                 'markups', vmc.markups,
-                'is_all_hierarchy', vmc.is_all_hierarchy = 1,
-                'is_all_work_locations', vmc.is_all_work_locations = 1,
-                'is_all_labor_category', vmc.is_all_labor_category = 1,
-                'work_locations', (
-                   SELECT JSON_OBJECT(
-                        'id', wl.id,
-                        'name', wl.name
-                    )
-                    FROM work_locations wl
-                    WHERE wl.id = vmc.work_locations
+                'job_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.job_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
                 ),
-                'hierarchy', (
-                    SELECT JSON_OBJECT(
-                        'id', h.id,
-                        'name', h.name
-                    )
-                    FROM hierarchies h
-                    WHERE h.id = vmc.hierarchy
+                'job_template', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', jt.id,
+                            'name', jt.template_name
+                        )
+                        FROM job_templates jt
+                        WHERE jt.id = vmc.job_template
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
-                'program_industry', (
-                     SELECT JSON_OBJECT(
-                        'id', i.id,
-                        'name', i.name
-                    )
-                    FROM labour_category i
-                    WHERE i.id = vmc.program_industry
+                'worker_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'worker_classification', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', pi.id,
+                            'label', pi.label,
+                            'value', pi.value
+                        )
+                        FROM picklistitems pi
+                        WHERE pi.id = vmc.worker_classification
+                    ),
+                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                ),
+                'rate_type', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', rt.id,
+                            'name', rt.name
+                        )
+                        FROM rate_type rt
+                        WHERE rt.id = vmc.rate_type
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'work_locations', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', wl.id,
+                            'name', wl.name
+                        )
+                        FROM work_locations wl
+                        WHERE wl.id = vmc.work_locations
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'hierarchy', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', h.id,
+                            'name', h.name
+                        )
+                        FROM hierarchies h
+                        WHERE h.id = vmc.hierarchy
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                ),
+                'program_industry', COALESCE(
+                    (
+                        SELECT JSON_OBJECT(
+                            'id', i.id,
+                            'name', i.name
+                        )
+                        FROM labour_category i
+                        WHERE i.id = vmc.program_industry
+                    ),
+                    JSON_OBJECT('id', 'any', 'name', 'Any')
                 ),
                 'is_enabled', vmc.is_enabled
             )
@@ -806,14 +897,13 @@ WHERE pv.id = :id
   AND pv.program_id = :program_id;
 `;
 
-
 export const foundationDataQuery = `
 SELECT
     md.id,
     md.program_id,
     md.name,
     md.is_enabled,
-    md.modified_on,
+    md.updated_on,
     md.code,
     md.foundational_data_type_id,
     md.depended_fields,
@@ -835,7 +925,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -862,7 +952,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.modified_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -1314,35 +1404,6 @@ export const getWorkLocationTimeZoneByUserId = `
           user.user_id IN (:user_ids) AND user.program_id = :program_id
       `;
 
-export const getMasterDataForHeirarchiesQuery = () => {
-  return `
-        SELECT
-            h.id AS hierarchy_id,
-            h.name AS hierarchy_name,
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', fdt.id,
-                    'name', fdt.name,
-                    'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
-                    'value', (
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'id', fd.id,
-                                'name', fd.name
-                            )
-                        )
-                        FROM master_data fd
-                        WHERE fd.foundational_data_type_id = fdt.id AND fd.is_enabled = 1
-                    )
-                )
-            ) AS master_data
-        FROM hierarchies h
-        LEFT JOIN hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
-        LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-        WHERE h.id IN (:hierarchy_ids) AND fdt.is_enabled = 1
-        GROUP BY h.id, h.name
-    `;
-};
 export const masterDataQuery = `
     SELECT
         h.id,
@@ -1351,7 +1412,7 @@ export const masterDataQuery = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
@@ -1372,21 +1433,9 @@ export const masterDataQuery = `
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', fdt.id,
-                'name', fdt.name
-            )
-        ) AS foundational_data,
         ph.name AS parent_hierarchy_name
     FROM
         hierarchies h
-    LEFT JOIN
-        hierarchies_master_data hmd
-        ON h.id = hmd.hierarchy_id
-    LEFT JOIN
-        master_data_type fdt
-        ON hmd.foundation_data_type_id = fdt.id
     LEFT JOIN
         hierarchies ph
         ON h.parent_hierarchy_id = ph.id
@@ -1434,7 +1483,7 @@ export const configAdvancedFilter = (
     : '';
 
   const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
+    ? `AND ec.updated_on IN (${modifiedOnArray.map((_, index) => `:updated_on${index}`).join(', ')})`
     : '';
 
   return `
@@ -1443,7 +1492,7 @@ export const configAdvancedFilter = (
       ec.config_name,
       ec.program_id,
       ec.is_enabled,
-      ec.modified_on,
+      ec.updated_on,
       ec.status,
       (
         SELECT JSON_ARRAYAGG(
@@ -1481,7 +1530,7 @@ export const configAdvancedFilter = (
     GROUP BY
       ec.id, ec.config_name, ec.program_id, ec.is_enabled
     ORDER BY
-      ec.modified_on DESC
+      ec.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -1648,7 +1697,7 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         COUNT(*) OVER() AS total_records,
         CASE
           WHEN shift_types.id IS NULL THEN NULL
@@ -1686,7 +1735,7 @@ export const getAllRateTypes = (
         ${hasAbbreviation ? "AND rt.abbreviation LIKE CONCAT('%', :abbreviation, '%')" : ""}
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
-    ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+    ? "AND rt.updated_on BETWEEN :startDate AND :endDate"
     : ""
   }
       GROUP BY
@@ -1698,14 +1747,14 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         picklistitems.picklist_id,
         picklistitems.label,
         picklistitems.value
     )
     SELECT *
     FROM rate_type
-    ORDER BY modified_on DESC
+    ORDER BY updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -1771,7 +1820,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     whereConditions += ` AND rc.is_shift_rate = :is_shift_rate`;
   }
   if (replacements.startDate && replacements.endDate) {
-    whereConditions += ` AND rc.modified_on BETWEEN :startDate AND :endDate`;
+    whereConditions += ` AND rc.updated_on BETWEEN :startDate AND :endDate`;
   }
   if (replacements.job_template_id) {
     whereConditions += ` AND rc.id IN (
@@ -1802,7 +1851,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       rc.is_enabled,
       rc.is_shift_rate,
       rc.created_on,
-      rc.modified_on,
+      rc.updated_on,
       h.hierarchies,
       jt.job_templates,
       rt.base_rates
@@ -1821,10 +1870,10 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcjt.rate_configuration_id
     ) AS jt ON jt.rate_configuration_id = rc.id
     LEFT JOIN (
-      SELECT rcbt.rate_configuration_id, 
+      SELECT rcbt.rate_configuration_id,
         JSON_ARRAYAGG(
           JSON_OBJECT(
-            'id', rt.id, 
+            'id', rt.id,
             'name', rt.name,
             'rate_types', (
               SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rt2.id, 'name', rt2.name))
@@ -1839,7 +1888,7 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcbt.rate_configuration_id
     ) AS rt ON rt.rate_configuration_id = rc.id
     WHERE ${whereConditions}
-    ORDER BY rc.created_on DESC
+    ORDER BY rc.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -2024,7 +2073,7 @@ export const hierarchie = `
         h.is_enabled,
         h.rate_model,
         h.created_on,
-        h.modified_on,
+        h.updated_on,
         h.code,
         h.is_deleted,
         h.program_id,
@@ -2129,7 +2178,7 @@ WITH user_data AS (
          u.program_id,
          u.email,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          u.avatar,
          u.language_id,
          u.is_enabled,
@@ -2208,14 +2257,14 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.user_id = :user_id' : ''} 
-    ${user_type ? 'AND u.user_type = :user_type' : ''} 
-    ${status ? 'AND u.status = :status' : ''} 
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''} 
-    ${role_id ? 'AND u.role_id = :role_id' : ''} 
-    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''} 
-    ${email ? 'AND u.email = :email' : ''} 
-    ${first_name ? 'AND u.first_name = :first_name' : ''} 
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
+    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${status ? 'AND u.status = :status' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${role_id ? 'AND u.role_id = :role_id' : ''}
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
+    ${email ? 'AND u.email = :email' : ''}
+    ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2225,7 +2274,7 @@ WITH user_data AS (
 )
 SELECT *, (SELECT COUNT(*) FROM user_data) AS total_count
 FROM user_data
-ORDER BY modified_on DESC
+ORDER BY updated_on DESC
 LIMIT :limit OFFSET :offset;
 
 `;
@@ -2240,7 +2289,7 @@ WITH user_data AS (
          u.program_id,
          u.is_activated,
          u.created_on,
-         u.modified_on,
+         u.updated_on as updated_on,
          (
              SELECT JSON_ARRAYAGG(
                 JSON_OBJECT('id', h.id, 'name', h.name)
@@ -2261,7 +2310,7 @@ WITH user_data AS (
 )
 SELECT *
 FROM user_data
-ORDER BY modified_on DESC;
+ORDER BY updated_on DESC;
 `;
 
 export const getPendingUserQuery = `
@@ -2269,8 +2318,8 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS created_on,
-    invitation.created_at AS created_at,
+    invitation.updated_at AS updated_on,
+    invitation.created_at AS created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
     user_group_mapping.first_name,
@@ -2607,13 +2656,11 @@ FROM
     user
 WHERE
     user.program_id = :program_id
-    AND (:user_id IS NULL OR user.user_id = :user_id)
     AND user.is_enabled = true
-    AND user.user_type = 'client'
     AND LOWER(user.status) = 'active'
-    AND (:hierarchy_id IS NULL OR
-        JSON_CONTAINS(user.associate_hierarchy_ids, :hierarchy_id)
-    )
+    AND user.user_type = 'client'
+    AND (:hierarchy_id IS NULL OR JSON_CONTAINS(:hierarchy_id, user.associate_hierarchy_ids))
+
 `;
 
 export const getUserContacts = `
@@ -2689,3 +2736,13 @@ export const sameHierarchieRateConfiguration = `
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
     `;
+
+    export const getMatchingHierarchiesQuery = () => {
+      return `
+        SELECT
+            h.id AS hierarchy_id
+        FROM hierarchies h
+        WHERE h.program_id = :program_id AND h.id IN (:hierarchy_ids)
+      `;
+    };
+    

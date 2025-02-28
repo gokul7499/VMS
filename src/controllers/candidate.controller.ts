@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
-import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
+import { fetchSubmittedCandidate, fetchUnavailableCandidates, getSubmissionCandidate } from "../utility/submission-candidate";
 import IndustriesModel from "../models/labour-category.model";
 import JobTemplateModel from "../models/job-template.model";
 import User from "../models/user.model";
@@ -93,7 +93,7 @@ export async function createCandidate(
             vendor_id: vendor_id,
             candidate_id: candidateId,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
 
         logger(
@@ -192,12 +192,12 @@ export async function getAllCandidate(
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
-        let order: [string, string][] = [["createdAt", "DESC"]];
+        let order: [string, string][] = [["updated_on", "DESC"]];
 
         if (sort === "asc") {
-            order = [["createdAt", "ASC"]];
+            order = [["updated_on", "ASC"]];
         } else if (sort === "desc") {
-            order = [["createdAt", "DESC"]];
+            order = [["updated_on", "DESC"]];
         }
 
         const whereClause: any = {
@@ -239,8 +239,8 @@ export async function getAllCandidate(
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id',
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id', "contacts",
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -277,11 +277,12 @@ export async function getAllCandidate(
                     display_name: vendor.display_name,
                     tenant_id: vendor.tenant_id
                 } : null,
-                modified_on: cand.modified_on,
+                updated_on: cand.updated_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
-                do_not_rehire: cand.do_not_rehire
+                do_not_rehire: cand.do_not_rehire,
+                phone_number: cand.contacts[0]?.number
             };
         });
 
@@ -315,6 +316,13 @@ export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
@@ -350,7 +358,9 @@ export async function getCandidateByIdAndProgramId(
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
-                message: "Candidate fetched successfully!",
+                message: "Candidate not found!",
+                candidate: []
+
             });
         }
 
@@ -388,11 +398,11 @@ export async function getCandidateByIdAndProgramId(
         const qualificationTypeIds: string[] = [];
 
         qualificationsData.forEach((item: any) => {
-            if (item.qulifications && Array.isArray(item.qulifications)) {
-                qualificationIds.push(...item.qulifications.map((q: any) => q.id));
+            if (item.qualifications && Array.isArray(item.qualifications)) {
+                qualificationIds.push(...item.qualifications.map((q: any) => q.id));
             }
-            if (item.qulification_type_id) {
-                qualificationTypeIds.push(item.qulification_type_id);
+            if (item.qualification_type_id) {
+                qualificationTypeIds.push(item.qualification_type_id);
             }
         });
 
@@ -411,31 +421,31 @@ export async function getCandidateByIdAndProgramId(
             : [];
 
         qualificationsData.forEach((item: any) => {
-            const typeMatch = qualificationTypes.find((type: any) => type.id === item.qulification_type_id);
-            item.qulification_type_name = typeMatch ? typeMatch.name : null;
+            const typeMatch = qualificationTypes.find((type: any) => type.id === item.qualification_type_id);
+            item.qualification_type_name = typeMatch ? typeMatch.name : null;
 
-            if (item.qulifications && Array.isArray(item.qulifications)) {
-                item.qulifications = item.qulifications.map((q: any) => {
+            if (item.qualifications && Array.isArray(item.qualifications)) {
+                item.qualifications = item.qualifications.map((q: any) => {
                     const match = qualifications.find((qual: any) => qual.id === q.id);
                     return { ...q, name: match ? match.name : null };
                 });
             } else {
-                item.qulifications = [];
+                item.qualifications = [];
             }
         });
-
+        // const workerClassification = await getSubmissionCandidate(program_id, id, token)
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate fetched successfully",
             candidate: {
                 ...candidateData,
                 qualifications: qualificationsData,
+                // worker_classification: workerClassification.submission_candidate.worker_classification,
             },
             trace_id: traceId,
         });
 
     } catch (error: any) {
-        console.error("Error fetching candidate:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -444,7 +454,6 @@ export async function getCandidateByIdAndProgramId(
         });
     }
 }
-
 
 export async function updateCandidateByIdAndProgramId(
     request: FastifyRequest,
@@ -465,7 +474,7 @@ export async function updateCandidateByIdAndProgramId(
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId }, {
+        const [updatedRows] = await candidateModel.update({ ...updates, updated_by: userId, updated_on: Date.now() }, {
             where: {
                 program_id,
                 id,
@@ -524,7 +533,7 @@ export async function deleteCandidateByIdAndProgramId(
         const [updatedRows] = await candidateModel.update(
             {
                 is_deleted: true,
-                modified_by: userId,
+                updated_by: userId,
             },
             {
                 where: {
@@ -600,14 +609,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
-    const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
-
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
             limit: limitNum,
             offset,
-            candidate_id,
+            candidate_id: candidate_id ? `%${candidate_id}%` : undefined,
             first_name: first_name ? `%${first_name}%` : undefined,
             middle_name: middle_name ? `%${middle_name}%` : undefined,
             last_name: last_name ? `%${last_name}%` : undefined,
@@ -667,7 +674,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         ...filters
     };
 
-    if (candidate_id) whereClause.candidate_id = candidate_id;
+    if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
     if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
@@ -696,12 +703,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         const candidates = await candidateModel.findAll({
             where: whereClause,
             attributes: [
-                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id',
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order
+            order: [['updated_on', 'DESC']]
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
@@ -735,11 +742,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                     vendor_name: vendor.vendor_name,
                     display_name: vendor.display_name
                 } : null,
-                modified_on: cand.modified_on,
+                updated_on: cand.updated_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
-                do_not_rehire: cand.do_not_rehire
+                do_not_rehire: cand.do_not_rehire,
+                phone_number: cand.contacts[0]?.number
             };
         });
 

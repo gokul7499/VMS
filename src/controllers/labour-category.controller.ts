@@ -58,12 +58,12 @@ export async function createIndustries(
     if (existingIndustryWithSameName) {
       return reply.status(400).send({
         status_code: 400,
-        message: "Invalid Name Field, Name Must Be Unique.",
+        message: " labour category already exists with this name",
         trace_id:traceId,
       });
     }
 
-    const item = await IndustriesModel.create({ ...labour_categories,created_by:userId,modified_by:userId });
+    const item = await IndustriesModel.create({ ...labour_categories,created_by:userId,updated_by:userId });
     reply.status(201).send({
       status_code: 201,
       message:"Industries create successfully",
@@ -122,12 +122,12 @@ export async function createIndustries(
 export const getIndustries = async (
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { name?: string; is_enabled?: boolean | string; modified_on?: string; page?: string; limit?: string };
+    Querystring: { name?: string; is_enabled?: boolean | string; updated_on?: string; page?: string; limit?: string };
   }>,
   reply: FastifyReply
 ) => {
   const { program_id } = request.params;
-  const { name, is_enabled, modified_on, page = '1', limit = '10' } = request.query;
+  const { name, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -143,21 +143,21 @@ export const getIndustries = async (
     if (is_enabled !== undefined) {
       whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
     }
-    if (modified_on) {
-      const dateRange = modified_on.split(',');
+    if (updated_on) {
+      const dateRange = updated_on.split(',');
       if (dateRange.length === 2) {
         const startDate = parseFloat(dateRange[0].trim());
         const endDate = parseFloat(dateRange[1].trim());
-        whereCondition.modified_on = { [Op.between]: [startDate, endDate] };
+        whereCondition.updated_on = { [Op.between]: [startDate, endDate] };
       }
     }
 
     const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll({
       where: whereCondition,
-      attributes: ['id', 'name', 'is_enabled', 'created_on', 'modified_on'],
+      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
       limit: pageSize,
       offset,
-      order:[['modified_on','DESC']]
+      order:[['updated_on','DESC']]
     });
 
     if (labour_categories.length === 0) {
@@ -197,7 +197,7 @@ export async function getIndustriesById(
     const { id, program_id } = request.params;
     const item = await IndustriesModel.findOne({
       where: { id, program_id, is_deleted: false },
-      attributes: ['id', 'name', 'is_enabled', 'created_on', 'modified_on'],
+      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
     });
     if (item) {
       reply.status(200).send({
@@ -261,7 +261,7 @@ export async function updateIndustries(
     }
 
     const [numRowsUpdated] = await IndustriesModel.update(
-      { ...labour_categories, modified_on: Date.now(),modified_by:userId },
+      { ...labour_categories, updated_on: Date.now(),updated_by:userId },
       { where: { id, program_id } }
     );
 
@@ -304,8 +304,8 @@ export async function deleteIndustries(
     const [numRowsDeleted] = await IndustriesModel.update({
       is_deleted: true,
       is_enabled: false,
-      modified_on: Date.now(),
-      modified_by:userId
+      updated_on: Date.now(),
+      updated_by:userId
     },
       { where: { id, program_id } }
     );
