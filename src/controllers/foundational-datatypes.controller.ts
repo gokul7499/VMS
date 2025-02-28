@@ -300,6 +300,7 @@ export async function getAllFoundationalDataTypes(
             user_association_exclude?: string;
             page?: string;
             limit?: string;
+            track_owner?:string
         };
     }>,
     reply: FastifyReply
@@ -323,6 +324,7 @@ export async function getAllFoundationalDataTypes(
         user_association_exclude,
         page = '1',
         limit = '10',
+        track_owner
     } = request.query;
 
     try {
@@ -341,6 +343,9 @@ export async function getAllFoundationalDataTypes(
         }
         if (user_association_exclude !== undefined) {
             filters['configuration.user_association_exclude'] = user_association_exclude === 'true';
+        }
+        if (track_owner !== undefined) {
+            filters['configuration.track_owner'] = track_owner === 'true';
         }
 
         const offset = (Number(page) - 1) * Number(limit);
