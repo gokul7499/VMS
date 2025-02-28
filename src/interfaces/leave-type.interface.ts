@@ -1,6 +1,4 @@
 
-
-
 export interface LeaveTypeInterface{
     id :string ,
     name? : string , 

@@ -1,9 +1,13 @@
 
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../config/instance";
+import generateSlug from "../plugins/slugGenerate";
 
 
-class LeaveTypeModel extends Model { }
+class LeaveTypeModel extends Model {
+    name!: string;
+    slug!: string;
+}
 
 LeaveTypeModel.init({
 
@@ -18,7 +22,7 @@ LeaveTypeModel.init({
         allowNull: true
     },
 
-    display_name: {
+    slug: {
 
         type: DataTypes.STRING,
         allowNull: true
@@ -46,6 +50,16 @@ LeaveTypeModel.init({
     sequelize,
     tableName: 'leave_types',
     timestamps: false,
+    hooks:{
+        beforeSave: async (instance) => {
+            if (instance.name) {
+              instance.slug = generateSlug(instance.name, {
+                lowercase: true,
+                removedspecial: true
+              });
+            }
+         },
+    }
 });
 
 
