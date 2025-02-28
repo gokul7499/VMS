@@ -9,7 +9,7 @@ export class VendorDistributionSchedule extends Model {
   public description!: string;
   public is_enabled!: boolean;
   public created_by!: string;
-  public modified_by!: string;
+  public updated_by!: string;
   public created_on!: Date;
   public schedules!: {
     duration: number;

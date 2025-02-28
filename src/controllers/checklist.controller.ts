@@ -37,7 +37,7 @@ export async function createCheckList(
             const createdCheckList = await Checklist.create(
                 { ...checkListData, program_id,
                     created_by: userId,
-                    modified_by: userId,
+                    updated_by: userId,
                  },
                 { transaction }
             );
@@ -209,7 +209,7 @@ export async function updateCheckList(
                 previous_version_id: existingChecklist ? existingChecklist.version_id : null,
                 latest: true,
                 created_by: userId,
-                modified_by: userId,
+                
                 updated_by: userId,
                 created_on: new Date(),
                 updated_on: new Date(),
@@ -224,8 +224,8 @@ export async function updateCheckList(
                 {
                     is_deleted: true,
                     updated_on: new Date(),
-                    updated_by,
-                    modified_by:userId,
+                    updated_by: userId,
+                    
                 },
                 {
                     where: {
@@ -314,7 +314,7 @@ export async function deleteCheckList(
         }
 
         await Checklist.update(
-            { is_deleted: true,modified_by:userId, updated_on: new Date() },
+            { is_deleted: true,updated_by:userId, updated_on: new Date() },
             { where: { entity_id } }
         );
 
