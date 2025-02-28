@@ -6,8 +6,8 @@ export interface ReasonCode {
     entity_ref: string;
     category: 'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
     created_on: number;
-    modified_on: number;
-    modified_by: JSON;
+    updated_on: number;
+    updated_by: JSON;
     created_by: JSON;
     is_enabled: boolean;
     module_id: string;
@@ -25,7 +25,7 @@ export interface ReasonCodeResponse {
     total_records: number;
     items_per_page: number;
     reason_codes: ReasonCode[];
-    modified_on: number;
+    updated_on: number;
     trace_id: string;
 }
 export const paramsSchema = {
@@ -51,7 +51,7 @@ export const querySchema = {
 
 export const createReasoncodeSchema = {
     type: 'object',
-    required: ['reasons_count', 'reason_codes'],
+    required: ['reason_codes'],
     properties: {
         reasons_count: { type: 'number' },
         is_deleted: { type: 'boolean' },

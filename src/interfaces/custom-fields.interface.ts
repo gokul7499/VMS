@@ -15,14 +15,17 @@ export interface CustomFields {
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  modified_on: Date;
+  created_on:any;
+  updated_on: any;
   created_by: string;
+  updated_by:string;
   can_view: JSON;
   can_edit: JSON;
   job_type: JSON;
   is_linked: boolean;
   work_location_ids?: string[];
   linked_module: JSON;
+  decimal_place: string;
 }
 
 export interface GetQueryInterface {
@@ -34,13 +37,10 @@ export interface GetQueryInterface {
   label?: string;
   field_type?: string;
   is_required?: string;
-  modified_on?: string;
+  updated_on?: string;
   slug?: string;
   program_id?: string;
 }
-
-
-
 
 export const paramsSchema = {
   type: 'object',
@@ -62,18 +62,17 @@ const getQuerySchema = {
     label: { type: "string" },
     field_type: { type: "string" },
     is_required: { type: "string" },
-    modified_on: { type: "string" },
+    updated_on: { type: "string" },
     slug: { type: "string" },
     program_id: { type: "string" },
   },
-
 };
 
 export const createCustomFieldsSchema = {
   type: 'object',
   properties: {
-     can_view_vendor: { type: 'array', items: { type: 'string' } },
-     can_edit_vendor: { type: 'array', items: { type: 'string' }},
+    can_view_vendor: { type: 'array', items: { type: 'string' } },
+    can_edit_vendor: { type: 'array', items: { type: 'string' } },
     program_id: { type: 'string' },
     module_name: { type: 'string' },
     module_id: { type: 'string' },
@@ -95,7 +94,8 @@ export const createCustomFieldsSchema = {
     is_required: { type: 'boolean' },
     is_readonly: { type: 'boolean' },
     is_linked: { type: 'boolean' },
-    job_type: { type: ['object', 'null'] },
+    job_type: { type: ['array', 'null'] },
+    decimal_place: { type: 'string', pattern: '^[0-9]+$' }, 
     meta_data: {
       type: 'object',
       properties: {
@@ -104,9 +104,8 @@ export const createCustomFieldsSchema = {
           type: 'object',
           properties: {
             is_multi_select: { type: 'boolean' },
-            options: { type: 'array', items: { type: 'string' } }
+            options: { type: 'array' }
           },
-
         },
         depends_on: {
           type: 'object',
@@ -114,10 +113,8 @@ export const createCustomFieldsSchema = {
             action: { type: 'string' },
             conditions: { type: 'array', items: { type: 'object' } }
           },
-
         }
       },
-
     },
     linked_modules: {
       type: 'array',
@@ -130,10 +127,8 @@ export const createCustomFieldsSchema = {
           can_view: { type: ['string', 'null'] },
           can_edit: { type: ['string', 'null'] }
         },
-
       }
     }
   },
-
 };
 

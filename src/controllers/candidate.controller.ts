@@ -93,7 +93,7 @@ export async function createCandidate(
             vendor_id: vendor_id,
             candidate_id: candidateId,
             created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
 
         logger(
@@ -192,12 +192,12 @@ export async function getAllCandidate(
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
-        let order: [string, string][] = [["createdAt", "DESC"]];
+        let order: [string, string][] = [["updated_on", "DESC"]];
 
         if (sort === "asc") {
-            order = [["createdAt", "ASC"]];
+            order = [["updated_on", "ASC"]];
         } else if (sort === "desc") {
-            order = [["createdAt", "DESC"]];
+            order = [["updated_on", "DESC"]];
         }
 
         const whereClause: any = {
@@ -240,7 +240,7 @@ export async function getAllCandidate(
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', 'vendor_id', "contacts",
-                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'candidate_id', 'preferences', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
@@ -277,7 +277,7 @@ export async function getAllCandidate(
                     display_name: vendor.display_name,
                     tenant_id: vendor.tenant_id
                 } : null,
-                modified_on: cand.modified_on,
+                updated_on: cand.updated_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
@@ -474,7 +474,7 @@ export async function updateCandidateByIdAndProgramId(
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({ ...updates, modified_by: userId, modified_on: Date.now() }, {
+        const [updatedRows] = await candidateModel.update({ ...updates, updated_by: userId, updated_on: Date.now() }, {
             where: {
                 program_id,
                 id,
@@ -533,7 +533,7 @@ export async function deleteCandidateByIdAndProgramId(
         const [updatedRows] = await candidateModel.update(
             {
                 is_deleted: true,
-                modified_by: userId,
+                updated_by: userId,
             },
             {
                 where: {
@@ -609,14 +609,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
-    const order: [string, string][] = sort === "asc" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
-
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
             limit: limitNum,
             offset,
-            candidate_id,
+            candidate_id: candidate_id ? `%${candidate_id}%` : undefined,
             first_name: first_name ? `%${first_name}%` : undefined,
             middle_name: middle_name ? `%${middle_name}%` : undefined,
             last_name: last_name ? `%${last_name}%` : undefined,
@@ -676,7 +674,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         ...filters
     };
 
-    if (candidate_id) whereClause.candidate_id = candidate_id;
+    if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
     if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
@@ -706,11 +704,11 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'modified_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
             ],
             limit: limitNum,
             offset,
-            order
+            order: [['updated_on', 'DESC']]
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
@@ -744,7 +742,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                     vendor_name: vendor.vendor_name,
                     display_name: vendor.display_name
                 } : null,
-                modified_on: cand.modified_on,
+                updated_on: cand.updated_on,
                 state_national_id: cand.state_national_id,
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,

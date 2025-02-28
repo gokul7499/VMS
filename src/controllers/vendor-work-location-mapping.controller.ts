@@ -5,8 +5,8 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { vendorWorkLocationMappingInterface } from "../interfaces/vendor-work-location-mapping.interface";
 
 export async function getVendorWorkLocationMappings(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['program_id', 'program_vendor_id', 'labour_category_id', 'vendor_work_location_name', 'is_enabled', 'modified_on'];
-    const responseFields = ["id", 'program_id', 'program_vendor_id', 'labour_category_id', 'vendor_work_location_name', 'is_enabled','modified_on'];
+    const searchFields = ['program_id', 'program_vendor_id', 'labour_category_id', 'vendor_work_location_name', 'is_enabled', 'updated_on'];
+    const responseFields = ["id", 'program_id', 'program_vendor_id', 'labour_category_id', 'vendor_work_location_name', 'is_enabled','updated_on'];
     return baseSearch(request, reply, vendorWorkLocationMappingModel, searchFields, responseFields);
 }
 

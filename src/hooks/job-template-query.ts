@@ -79,7 +79,7 @@ class JobTempletRepository {
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
       ${jobTypeCondition}
-      AND job_templates.job_submitted_count >=0
+      AND job_templates.job_submitted_count >=1
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
@@ -280,6 +280,8 @@ async getAllJobTemplateByHierarchy(
         job_templates.is_shift_rate,
         job_templates.is_checklist_enable,
         job_templates.ot_exempt,
+        job_templates.created_on,
+        job_templates.updated_on,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -306,7 +308,8 @@ async getAllJobTemplateByHierarchy(
         AND job_templates.is_deleted = false
         ${dynamicConditions}
       ORDER BY
-        job_templates.created_on DESC
+        job_templates.created_on DESC,
+        job_templates.job_id DESC
       LIMIT :limit OFFSET :offset;
     `;
 

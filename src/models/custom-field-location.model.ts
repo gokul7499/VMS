@@ -22,7 +22,7 @@ CustomFieldsLocation.init({
     },
     work_location_id: {
         type: DataTypes.UUID,
-        allowNull: false
+        allowNull: true
     },
     program_id: {
         type: DataTypes.UUID,
@@ -31,6 +31,22 @@ CustomFieldsLocation.init({
             model: 'programs',
             key: 'id',
         },
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
     },
 },
     {

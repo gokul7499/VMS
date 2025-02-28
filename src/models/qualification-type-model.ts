@@ -39,21 +39,6 @@ QualificationTypeModel.init({
     allowNull: true,
     defaultValue: false,
   },
-  created_on: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    defaultValue: DataTypes.NOW,
-  },
-  modified_on: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  created_by: {
-    type: DataTypes.DOUBLE,
-  },
-  modified_by: {
-    type: DataTypes.DOUBLE,
-  },
   program_id: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -61,6 +46,22 @@ QualificationTypeModel.init({
       model: 'programs',
       key: 'id',
     },
+  },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull:true,
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull:true,
   },
 }, {
   sequelize,

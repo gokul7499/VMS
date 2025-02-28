@@ -22,12 +22,8 @@ ExpenseConfigurationModel.init(
       allowNull: false,
       primaryKey: true,
     },
-    config_name: {
+    name: {
       type: DataTypes.STRING,
-      allowNull: true
-    },
-    status: {
-      type: DataTypes.BOOLEAN,
       allowNull: true
     },
     program_id: {
@@ -38,32 +34,37 @@ ExpenseConfigurationModel.init(
         key: "id",
       },
     },
-    week_end_day: {
+    enable_thresholds:{
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    weekending_day: {
       type: DataTypes.STRING,
       allowNull: true
     },
-    thresholds: {
+    mdt_display_headers:{
+      type:DataTypes.JSON,
+      allowNull:true
+    },
+    misc_exp_access_rules: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    remove_msp_access_general: {
+    general_exp_access_rules: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    remove_user_access_misc: {
+    revoke_worker_access: {
       type: DataTypes.JSON,
       allowNull: true
     },
-    revoke_user_access: {
+    general_exp_incurred_submission:{
       type: DataTypes.JSON,
       allowNull: true
     },
     project: {
       type: DataTypes.JSON,
       allowNull: true
-    },
-    master_data:{
-     type:DataTypes.JSON
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
@@ -75,13 +76,11 @@ ExpenseConfigurationModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: false,
+      allowNull: true,
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: false,
+      allowNull: true,
     },
     created_by: {
       type: DataTypes.UUID,
@@ -95,7 +94,8 @@ ExpenseConfigurationModel.init(
   },
   {
     sequelize,
-    tableName: 'expense_configuration'
+    tableName: 'expense_config',
+    timestamps:false,
   }
 );
 ExpenseConfigurationModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });

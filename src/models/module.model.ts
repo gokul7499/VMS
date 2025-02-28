@@ -52,12 +52,6 @@ Module.init(
             defaultValue: false,
             allowNull: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-        },
         ref_order: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -71,10 +65,26 @@ Module.init(
             allowNull: true,
             defaultValue: []
         },
-        is_custom_field:{
+        is_custom_field: {
             type: DataTypes.BOOLEAN,
             allowNull: true
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,

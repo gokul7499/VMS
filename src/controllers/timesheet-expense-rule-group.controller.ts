@@ -50,7 +50,7 @@ export const createTimesheetExpenseRuleGroup = async (
             program_id,
             rule_group_name,
             ...data,
-            modified_by: userId,
+            updated_by: userId,
             created_by: userId,
         });
 
@@ -289,7 +289,7 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
         }
 
         const [updatedCount] = await TimesheetExpenseRuleGroup.update({
-            ...updates, modified_by: userId, modified_on: Date.now()
+            ...updates, updated_by: userId, updated_on: Date.now()
         }, {
             where: { id, program_id },
         });
@@ -350,7 +350,7 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
                 trace_id: traceId,
             });
         }
-        await ruleGroup.update({ is_deleted: true, is_enabled: false, modified_by: userId });
+        await ruleGroup.update({ is_deleted: true, is_enabled: false, updated_by: userId });
         reply.status(200).send({
             status_code: 200,
             message: 'Timesheet expense rule group deleted successfully.',

@@ -47,7 +47,7 @@ export async function createVendordocumentsgroup(
 
         const item = await vendordocumentgroupModel.create({
             ...vendorDocumentsGroup, total_documents, created_by: userId,
-            modified_by: userId,
+            updated_by: userId,
         });
 
         logger(
@@ -208,7 +208,7 @@ export async function getVendordocumentsgroup(
                 ...searchConditions,
                 is_deleted: false,
             },
-            attributes: { exclude: ["ref_id", "program_id", "modified_by", "created_by"] },
+            attributes: { exclude: ["ref_id", "program_id", "updated_by", "created_by"] },
             limit: limit,
             order: [["created_on", "DESC"]],
             offset: offset,
@@ -352,7 +352,7 @@ export async function updateVendordocumentsgroup(
         await documentGroup.update({
             ...documentGroupData,
             total_documents,
-            modified_by: userId
+            updated_by: userId
         });
 
         return reply.status(200).send({
@@ -388,10 +388,10 @@ export async function deleteVendordocumentsgroup(
         const { id, program_id } = request.params;
         const [numRowsDeleted] = await vendordocumentgroupModel.update({
             is_enabled: false,
-            modified_on: Date.now(),
+            updated_on: Date.now(),
             is_deleted: true
         },
-            { where: { id, program_id, modified_by: userId } }
+            { where: { id, program_id, updated_by: userId } }
         );
 
         if (numRowsDeleted > 0) {
@@ -421,6 +421,6 @@ export async function deleteVendordocumentsgroup(
 
 export async function getAllVendorCompDocummentGroupByProgramId(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
     const searchFields = ['program_id', 'id', 'is_enabled', 'description', 'total_documents', 'name'];
-    const responseFields = ['id', 'name', 'description', 'total_documents', 'modified_on', 'is_enabled', 'program_id'];
+    const responseFields = ['id', 'name', 'description', 'total_documents', 'updated_on', 'is_enabled', 'program_id'];
     return baseSearch(request, reply, vendordocumentgroupModel, searchFields, responseFields);
 }

@@ -36,7 +36,7 @@ ShiftConfiguration.init(
       type: DataTypes.DOUBLE,
       allowNull: true,
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
       allowNull: true,
     },

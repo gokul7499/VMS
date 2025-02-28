@@ -39,7 +39,7 @@ export async function getExpenseConfigurations(
                 'project',
                 'week_end_day',
                 'created_on',
-                'modified_on',
+                'updated_on',
                 'updated_by',
             ],
             offset,
@@ -245,7 +245,7 @@ export async function createExpenseConfiguration(
                     expense_config_id: expenseConfigData.id,
                     expense_type_id: expenseTypeId,
                     created_on: new Date(),
-                    modified_on: new Date(),
+                    updated_on: new Date(),
                 });
                 logger(
                     {
@@ -386,14 +386,14 @@ export async function updateExpenseConfiguration(
                 transaction,
             });
 
-            const modifiedOn = Date.now();
+            const updatedOn = Date.now();
             const createPromises = updatedExpenseTypeIds.map(expenseTypeId =>
                 ExpenseTypeMapping.create({
                     expense_type_id: expenseTypeId,
                     expense_config_id: id,
                     program_id,
-                    modified_on: modifiedOn,
-                    created_on: modifiedOn,
+                    updated_on: updatedOn,
+                    created_on: updatedOn,
                 }, { transaction }
                 )
             );
@@ -617,7 +617,7 @@ export async function expenseConfigurationAdvancedFilter(
         Body: {
             config_name?: string;
             status?: string;
-            modified_on?: string[];
+            updated_on?: string[];
             is_enabled?: boolean;
             hierarchy?: string[];
             page?: string;
@@ -629,16 +629,16 @@ export async function expenseConfigurationAdvancedFilter(
     const trace_id = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { config_name, status, modified_on, is_enabled, hierarchy, page, limit } = request.body;
+        const { config_name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body;
 
         const hasConfigName = config_name !== undefined;
         const hasStatus = status !== undefined;
-        const hasModifiedOn = modified_on !== undefined;
+        const hasModifiedOn = updated_on !== undefined;
         const hasIsEnabled = is_enabled !== undefined;
         const hasPage = page !== undefined;
         const hasLimit = limit !== undefined;
         const hierarchyIdsArray = hierarchy || [];
-        const modifiedOnArray = modified_on || [];
+        const modifiedOnArray = updated_on || [];
         const pageNumber = hasPage ? parseInt(page, 10) : 1;
         const limitNumber = hasLimit ? parseInt(limit, 10) : 10;
         const offset = (pageNumber - 1) * limitNumber;
@@ -656,14 +656,14 @@ export async function expenseConfigurationAdvancedFilter(
             program_id,
             config_name: config_name ? `%${config_name}%` : null,
             status: hasStatus ? status : null,
-            modified_on: modifiedOnArray,
+            updated_on: modifiedOnArray,
             is_enabled: hasIsEnabled ? is_enabled : null,
             limit: limitNumber,
             offset,
         };
 
         modifiedOnArray.forEach((_, index) => {
-            replacements[`modified_on${index}`] = modifiedOnArray[index];
+            replacements[`updated_on${index}`] = modifiedOnArray[index];
         });
         hierarchyIdsArray.forEach((_, index) => {
             replacements[`hierarchy${index}`] = hierarchyIdsArray[index];

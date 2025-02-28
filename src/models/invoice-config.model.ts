@@ -183,22 +183,6 @@ InvoiceConfigModel.init(
             type: DataTypes.BOOLEAN,
             allowNull: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: Date.now(),
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
@@ -206,7 +190,23 @@ InvoiceConfigModel.init(
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
     },
     {
         sequelize,

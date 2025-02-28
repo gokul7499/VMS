@@ -61,7 +61,7 @@ export const createVendorGroup = async (
     const [createdVendorGroup, created] = await VendorGroup.findOrCreate({
 
       where: { vendor_group_name: vendorGroup.vendor_group_name, program_id },
-      defaults: { ...vendorGroup, program_id, created_by: userId, modified_by: userId, },
+      defaults: { ...vendorGroup, program_id, created_by: userId, updated_by: userId, },
     });
 
     if (!created) {
@@ -76,7 +76,7 @@ export const createVendorGroup = async (
 
     if (vendorIdsToUpdate.length > 0) {
       await ProgramVendor.update(
-        { vendor_group_id: createdVendorGroup.id, modified_by: userId, },
+        { vendor_group_id: createdVendorGroup.id, updated_by: userId, },
         { where: { id: vendorIdsToUpdate, program_id } }
       );
     }
@@ -139,7 +139,7 @@ export const createVendorGroup = async (
 
 export async function getVendorGroups(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['id', 'vendor_group_name', 'description', 'is_enabled', 'program_id'];
-  const responseFields = ['id', 'vendor_group_name', 'is_enabled', 'description', 'modified_on', 'program_id'];
+  const responseFields = ['id', 'vendor_group_name', 'is_enabled', 'description', 'updated_on', 'program_id'];
   return baseSearch(request, reply, VendorGroup, searchFields, responseFields);
 }
 
@@ -151,14 +151,7 @@ export async function getVendorGroupById(
   const traceId = generateCustomUUID();
   try {
     const vendorGroup = await VendorGroup.findOne({
-      where: { id, program_id, is_deleted: false },
-      include: [
-        {
-          model: ProgramVendor,
-          as: 'program_vendor',
-          attributes: ['id', 'vendor_name'],
-        },
-      ],
+      where: { id, program_id, is_deleted: false }
     });
 
     if (!vendorGroup) {
@@ -171,7 +164,7 @@ export async function getVendorGroupById(
     const vendorIds = vendorGroup.vendors || [];
     const detailedVendors = await ProgramVendor.findAll({
       where: { id: vendorIds },
-      attributes: ['id', 'vendor_name'],
+      attributes: ['id', 'vendor_name', 'display_name'],
     });
 
     return reply.status(200).send({
@@ -184,7 +177,6 @@ export async function getVendorGroupById(
       trace_id: traceId,
     });
   } catch (error) {
-    console.error('Server error:', error);
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
@@ -233,7 +225,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
     });
 
     if (vendorGroup) {
-      await vendorGroup.update({ ...data, modified_by: userId },);
+      await vendorGroup.update({ ...data, updated_by: userId },);
       return reply.status(200).send({
         status_code: 200,
         message: 'Vendor group updated successfully.',
@@ -276,7 +268,7 @@ export const deleteVendorGroup = async (request: FastifyRequest, reply: FastifyR
 
     if (vendorGroup) {
       vendorGroup.is_deleted = true;
-      vendorGroup.modified_by = userId
+      vendorGroup.updated_by = userId
       await vendorGroup.save();
       return reply.status(200).send({
         status_code: 200,

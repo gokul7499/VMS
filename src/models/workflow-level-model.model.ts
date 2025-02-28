@@ -24,22 +24,6 @@ WorkflowLevel.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         placement_order: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -57,7 +41,24 @@ WorkflowLevel.init(
                 model: "workflow_config",
                 key: "id",
             },
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,

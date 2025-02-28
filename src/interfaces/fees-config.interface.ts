@@ -34,13 +34,12 @@ export const querySchema = {
 };
 export const feesConfigurationSchema = {
   type: 'object',
-  required: ['title'],
   properties: {
     program_id: { type: 'string' },
     title: { type: 'string' },
     hierarchy_levels: { type: 'array' },
     source_model: { type: 'array' },
-    labor_category: { type: 'string' },
+    labor_category: { type: 'array' },
     vendors: { type: 'array' },
     effective_date: { type: 'string' },
     funding_model: { type: 'string' },

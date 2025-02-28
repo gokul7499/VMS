@@ -17,7 +17,7 @@ export async function createReasoncode(
             id: any;
             reasons_count: number;
             created_by: object;
-            modified_by: object;
+            updated_by: object;
             is_deleted: boolean;
             program_id: string;
             event_id?: string;
@@ -35,7 +35,7 @@ export async function createReasoncode(
         const reason_code_action = await ReasonCodeActionModel.create({
             reasons_count: reasoncode.reasons_count,
             created_by: reasoncode.created_by,
-            modified_by: reasoncode.modified_by,
+            updated_by: reasoncode.updated_by,
             is_deleted: reasoncode.is_deleted,
             event_id: reasoncode.event_id,
             module_id: reasoncode.module_id,
@@ -92,7 +92,7 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
                 })
             },
             attributes: {
-                exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
+                exclude: ['ref_id', 'updated_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
             },
             include: [
                 {
@@ -176,7 +176,7 @@ export async function getReasoncodeById(
         const { id } = request.params;
         const reason_code = await ReasonCodeActionModel.findOne({
             where: { id },
-            attributes: { exclude: ['ref_id', 'entity_ref', 'code', 'program_id', 'event_id', 'module_id', 'is_deleted', 'created_on', 'reasons_count', 'created_by', 'modified_by', 'reason_code_limit', 'modified_on'] },
+            attributes: { exclude: ['ref_id', 'entity_ref', 'code', 'program_id', 'event_id', 'module_id', 'is_deleted', 'created_on', 'reasons_count', 'created_by', 'updated_by', 'reason_code_limit', 'updated_on'] },
             include: [
                 {
                     model: Event,
@@ -310,7 +310,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
                     return reply.status(400).send({
                         status_code: 400,
                         trace_id: traceId,
-                        message: 'program_id, module_id, and event_id fields cannot be modified',
+                        message: 'program_id, module_id, and event_id fields cannot be updated',
                     });
                 }
 
@@ -364,7 +364,7 @@ export async function deleteReasoncode(
         const { id } = request.params;
         const [numRowsDeleted] = await ReasonCodeActionModel.update({
             is_enabled: false,
-            modified_on: Date.now(),
+            updated_on: Date.now(),
         },
             { where: { id } }
         );
@@ -452,7 +452,7 @@ export const getReasonCodeBySlug = async (
                 reason_code_id: data.map((d) => d.id),
                 program_id: program_id
             },
-            attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
+            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
         });
 
         if (!reason_codes.length) {

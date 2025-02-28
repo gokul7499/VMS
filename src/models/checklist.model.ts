@@ -95,22 +95,20 @@ Checklist.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            allowNull: true
         },
         created_by: {
-            type: DataTypes.STRING(50),
-            allowNull: false,
+            type: DataTypes.UUID,
+            allowNull: true,
         },
         updated_by: {
-            type: DataTypes.STRING(50),
-            allowNull: false,
+            type: DataTypes.UUID,
+            allowNull: true,
         },
     },
     {
@@ -125,10 +123,10 @@ sequelize.sync();
 
 Checklist.belongsTo(Checklist, { foreignKey: 'previous_version_id', as: 'previousVersion' });
 Checklist.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
-Checklist.hasMany(ChecklistTaskMapping, { 
+Checklist.hasMany(ChecklistTaskMapping, {
     foreignKey: 'checklist_version_id',
     sourceKey: 'version_id',
     as: 'checklistTasks'
-  });
+});
 
 export default Checklist;

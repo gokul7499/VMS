@@ -94,7 +94,7 @@ export const deleteVendorHierarchyMapping = async (request: FastifyRequest, repl
 
 export async function getAllVendorHierarchyMappings(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id', 'hierarchy_name'];
-    const responseFields = ['id', 'program_id', 'hierarchy_name', 'modified_on'];
+    const responseFields = ['id', 'program_id', 'hierarchy_name', 'updated_on'];
     return baseSearch(request, reply, VendorHierarchyMapping, searchFields, responseFields);
 }
 

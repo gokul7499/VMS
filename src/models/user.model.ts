@@ -160,7 +160,8 @@ User.init(
     },
     is_all_labour_category_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_labour_category: {
       type: DataTypes.JSON,
@@ -168,7 +169,8 @@ User.init(
     },
     is_all_job_type_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_job_type: {
       type: DataTypes.JSON,
@@ -224,28 +226,26 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
     created_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true,
-      defaultValue: Date.now()
+      allowNull: true
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true,
-      defaultValue: Date.now()
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    user_id: {
-      type: DataTypes.UUID,
-      allowNull: true
-    }
   },
   {
     sequelize,
@@ -254,7 +254,10 @@ User.init(
     hooks: {
       beforeValidate: (instance) => {
         convertEmptyStringsToNull(instance);
-      }
+      },
+      beforeSave: (instance) => {
+        beforeSave(instance);
+      },
     }
   }
 );

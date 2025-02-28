@@ -10,9 +10,9 @@ export interface FoundationalDataInterface {
     creation_source: string;
     manager_id: string;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     depended_fields: any,
     is_billable: boolean
 }

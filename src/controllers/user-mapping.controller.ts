@@ -129,8 +129,8 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
-        updates.modified_on = Date.now()
-        const [updatedCount] = await UserMapping.update({ ...updates, modified_by: userId, }, { where: { id: id } });
+        updates.updated_on = Date.now()
+        const [updatedCount] = await UserMapping.update({ ...updates, updated_by: userId, }, { where: { id: id } });
         if (updatedCount > 0) {
             reply.status(201).send({
                 status_code: 201,
@@ -243,10 +243,27 @@ export async function updateStatus(
 export const getUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id, id } = request.params as { program_id: string; id: string };
     const queryParams = request.query as { [key: string]: string | boolean };
+    const authHeader = request.headers.authorization;
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+        return reply.status(401).send({
+            status_code: 401,
+            message: "Unauthorized - Token not found",
+        });
+    }
+    
+    const token = authHeader.split(" ")[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({
+            status_code: 401,
+            message: "Unauthorized - Invalid token",
+        });
+    }
+    const userType = user?.userType;  
     const traceId = generateCustomUUID();
-
+    
     try {
-        // Check if user exists in the main database
         const checkUserQuery = `
         SELECT 
             LOWER(user.status) AS status
@@ -256,14 +273,13 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             AND user_mappings.program_id = user.program_id
         WHERE user_mappings.program_id = :program_id 
         AND user_mappings.id = :id;
-    `;
-
-        console.log("checkUserQuery", checkUserQuery)
+        `;
+        
         const userStatus = await sequelize.query(checkUserQuery, {
             replacements: { program_id, id },
             type: QueryTypes.SELECT,
         }) as any;
-        console.log("userStatus", userStatus)
+         console.log("userStatus",userStatus)
         if (!userStatus.length || !userStatus[0].status) {
             return await getPendingUser(
                 {
@@ -272,158 +288,148 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 reply
             );
         }
+        if ((userType === "super_user" && (userStatus[0].status === "active" || userStatus[0].status === "inactive")) || userStatus[0].status === "active") {
+            const query = `
+            SELECT 
+                um.id, 
+                um.tenant_id, 
+                um.role_id, 
+                um.user_id, 
+                um.program_id, 
+                um.is_activated, 
+                um.is_deleted, 
+                um.created_on, 
+                um.updated_on, 
+                um.created_by, 
+                um.updated_by,
+                JSON_OBJECT(
+                    'id', u.id,
+                    'user_id', u.user_id,
+                    'program_id', u.program_id,
+                    'tenant_id', u.tenant_id,
+                    'first_name', u.first_name,
+                    'last_name', u.last_name,
+                    'email', u.email,
+                    'sso_id', u.sso_id,
+                    'title', u.title,
+                    'user_mapping_id', um.id,
+                    'name_prefix', u.name_prefix,
+                    'middle_name', u.middle_name,
+                    'name_suffix', u.name_suffix,
+                    'user_type', u.user_type,
+                    'avatar', u.avatar,
+                    'status', u.status,
+                    'theme', u.theme,
+                    'country_id', u.country_id,
+                    'applications', u.applications,
+                    'credentials', u.credentials,
+                    'supervisor', u.supervisor,
+                    'time_zone_id', u.time_zone_id,
+                    'language_id', u.language_id,
+                    'role_id', u.role_id,
+                    'associate_hierarchy_ids', u.associate_hierarchy_ids,
+                    'work_location_ids', u.work_location_ids,
+                    'associate_cost_ids', u.associate_cost_ids,
+                    'spend_category_ids', u.spend_category_ids,
+                    'is_all_hierarchy_associate', u.is_all_hierarchy_associate,
+                    'is_all_work_location_associate', u.is_all_work_location_associate,
+                    'is_all_cost_center_associate', u.is_all_cost_center_associate,
+                    'default_cost_center_id', u.default_cost_center_id,
+                    'is_all_spend_category_associate', u.is_all_spend_category_associate,
+                    'default_spend_category_id', u.default_spend_category_id,
+                    'is_allow_unlimited_authority', u.is_allow_unlimited_authority,
+                    'is_all_labour_category_associate', u.is_all_labour_category_associate,
+                    'associate_labour_category', u.associate_labour_category,
+                    'min_limit', u.min_limit,
+                    'supervisor', u.supervisor,
+                    'max_limit', u.max_limit,
+                    'is_enabled', u.is_enabled,
+                    'is_activated', u.is_activated,
+                    'is_deleted', u.is_deleted,
+                    'created_on', u.created_on,
+                    'updated_on', u.updated_on,
+                    'created_by', u.created_by,
+                    'addresses', u.addresses,
+                    'associate_job_type', u.associate_job_type,
+                    'is_all_job_type_associate', u.is_all_job_type_associate,
+                    'countries', (
+                        SELECT JSON_OBJECT(
+                            'id', IFNULL(c.id, ''),
+                            'name', IFNULL(c.name, '')
+                        )
+                        FROM countries c
+                        WHERE c.id = u.country_id 
+                        OR (
+                            u.country_id IS NULL AND JSON_CONTAINS(
+                                JSON_EXTRACT(u.addresses, '$[*].country'), 
+                                JSON_QUOTE(c.id)
+                            )
+                        )
+                        LIMIT 1
+                    ),
+                    'contacts', u.contacts,
+                    'updated_by', u.updated_by,
+                    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
+                    'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
+                    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
+                    'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
+                    'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
+                    'associate_hierarchy_ids', (
+                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+                        FROM hierarchies h
+                        WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+                    ),
+                    'associate_labour_category', COALESCE((
+                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
+                        FROM labour_category l
+                        WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
+                    ), JSON_ARRAY()),
+                    'work_location_ids', (
+                        SELECT COALESCE(
+                            JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name)), 
+                            JSON_ARRAY()
+                        )
+                        FROM work_locations wl
+                        WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+                    ),
+                    'custom_fields', COALESCE((
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', custom_fields.id,
+                                'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
+                            )
+                        )
+                        FROM user_custom_fields
+                        LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
+                        WHERE user_custom_fields.user_id = u.user_id
+                    ), JSON_ARRAY())
+                ) AS user
+            FROM user_mappings um
+            LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
+            LEFT JOIN countries ct ON u.country_id = ct.id
+            LEFT JOIN tenant t ON u.tenant_id = t.id
+            LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
+            LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
+            LEFT JOIN user su ON u.supervisor = su.user_id
+            WHERE um.program_id = :program_id AND um.id = :id;
+            `;
 
-        if (userStatus[0].status !== "active") {
-            return reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "User is not active",
-                user_mappings: [],
-            });
-        }
+            const replacements = { program_id, id };
+            const userMappings = await sequelize.query(query, {
+                replacements,
+                type: QueryTypes.SELECT,
+            }) as any;
+            
+            if (!userMappings.length) {
+                return reply.status(200).send({
+                    status_code: 200,
+                    trace_id: traceId,
+                    message: "No User Mappings found for the given criteria",
+                    user_mappings: [],
+                });
+            }
 
-        // Proceed with fetching user mappings from the main database
-        const query = `
-        SELECT 
-um.id, 
-um.tenant_id, 
-um.role_id, 
-um.user_id, 
-um.program_id, 
-um.is_activated, 
-um.is_deleted, 
-um.created_on, 
-um.modified_on, 
-um.created_by, 
-um.modified_by,
-JSON_OBJECT(
-    'id', u.id,
-    'user_id', u.user_id,
-    'program_id', u.program_id,
-    'tenant_id', u.tenant_id,
-    'first_name', u.first_name,
-    'last_name', u.last_name,
-    'email', u.email,
-    'sso_id', u.sso_id,
-    'title', u.title,
-    'user_mapping_id', um.id,
-    'name_prefix', u.name_prefix,
-    'middle_name', u.middle_name,
-    'name_suffix', u.name_suffix,
-    'user_type', u.user_type,
-    'avatar', u.avatar,
-    'status', u.status,
-    'theme', u.theme,
-    'country_id', u.country_id,
-    'applications', u.applications,
-    'credentials', u.credentials,
-    'supervisor', u.supervisor,
-    'time_zone_id', u.time_zone_id,
-    'language_id', u.language_id,
-    'role_id', u.role_id,
-    'associate_hierarchy_ids', u.associate_hierarchy_ids,
-    'work_location_ids', u.work_location_ids,
-    'associate_cost_ids', u.associate_cost_ids,
-    'spend_category_ids', u.spend_category_ids,
-    'is_all_hierarchy_associate', u.is_all_hierarchy_associate,
-    'is_all_work_location_associate', u.is_all_work_location_associate,
-    'is_all_cost_center_associate', u.is_all_cost_center_associate,
-    'default_cost_center_id', u.default_cost_center_id,
-    'is_all_spend_category_associate', u.is_all_spend_category_associate,
-    'default_spend_category_id', u.default_spend_category_id,
-    'is_allow_unlimited_authority', u.is_allow_unlimited_authority,
-    'is_all_labour_category_associate',u.is_all_labour_category_associate,
-    'associate_labour_category',u.associate_labour_category,
-    'min_limit', u.min_limit,
-    'supervisor',u.supervisor,
-    'max_limit', u.max_limit,
-    'is_enabled', u.is_enabled,
-    'is_activated', u.is_activated,
-    'is_deleted', u.is_deleted,
-    'created_on', u.created_on,
-    'modified_on', u.modified_on,
-    'created_by', u.created_by,
-    'addresses', u.addresses,
-    'associate_job_type',u.associate_job_type,
-    'is_all_job_type_associate',u.is_all_job_type_associate,
-'countries', (
-    SELECT JSON_OBJECT(
-        'id', IFNULL(c.id, ''),
-        'name', IFNULL(c.name, '')
-    )
-    FROM countries c
-    WHERE c.id = u.country_id 
-    OR (
-        u.country_id IS NULL AND JSON_CONTAINS(
-            JSON_EXTRACT(u.addresses, '$[*].country'), 
-            JSON_QUOTE(c.id)
-        )
-    )
-    LIMIT 1
-),
-
-
-    'contacts', u.contacts,
-    'modified_by', u.modified_by,
-    'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
-    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
-    'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
-    'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
-    'associate_hierarchy_ids', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
-        FROM hierarchies h
-        WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
-    ),
-    'associate_labour_category', COALESCE((
-    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
-    FROM labour_category l
-    WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
-), JSON_ARRAY()),
-
-   'work_location_ids', (
-    SELECT COALESCE(
-        JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name)), 
-        JSON_ARRAY()
-    )
-    FROM work_locations wl
-    WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
-),
-    'custom_fields', COALESCE((
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', custom_fields.id,
-                'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
-            )
-        )
-        FROM user_custom_fields
-        LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
-        WHERE user_custom_fields.user_id = u.user_id
-    ), JSON_ARRAY())
-) AS user
-FROM user_mappings um
-LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
-LEFT JOIN countries ON u.country_id=countries.id
-LEFT JOIN tenant t ON u.tenant_id = t.id
-LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
-LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
-LEFT JOIN user su ON u.supervisor = su.user_id
-WHERE um.program_id = :program_id AND um.id = :id
-    `; // Your existing user mappings query
-        const replacements = { program_id, id };
-        const userMappings = await sequelize.query(query, {
-            replacements,
-            type: QueryTypes.SELECT,
-        }) as any;
-
-        if (!userMappings.length) {
-            return reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "No User Mappings found for the given criteria",
-                user_mappings: [],
-            });
-        }
-
+        
         for (const mapping of userMappings) {
             const userId = mapping.user?.user_id;
 
@@ -442,15 +448,17 @@ WHERE um.program_id = :program_id AND um.id = :id
                             FROM master_data AS md1
                             WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
                         ),
-                        'default_master_data', JSON_OBJECT(
-                            'id', md2.id,
-                            'name', md2.name
+                        'default_master_data', (
+                            SELECT JSON_ARRAYAGG(
+                                JSON_OBJECT('id', md2.id, 'name', md2.name)
+                            )
+                            FROM master_data AS md2
+                            WHERE JSON_CONTAINS(user_master_data.default_master_data, JSON_QUOTE(md2.id), '$')
                         ),
                         'is_all_associated', user_master_data.is_all_associated=1
                     ) AS foundational_data
                 FROM user_master_data
                 LEFT JOIN master_data_type ON user_master_data.master_data = master_data_type.id
-                LEFT JOIN master_data AS md2 ON user_master_data.default_master_data = md2.id
                 WHERE user_master_data.user_id = :user_id;
             `;
                 const masterDataResults = await sequelize.query(masterDataQuery, {
@@ -464,7 +472,7 @@ WHERE um.program_id = :program_id AND um.id = :id
                 mapping.user.foundational_data = uniqueFoundationalData;
             }
         }
-
+    
         reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
@@ -472,7 +480,7 @@ WHERE um.program_id = :program_id AND um.id = :id
             user_mappings: [userMappings[userMappings.length - 1]],
         });
 
-    } catch (error: any) {
+    }} catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,

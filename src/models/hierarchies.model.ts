@@ -2,10 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { hierarchiesData } from "../interfaces/hierarchies.interface";
-interface TimeSheetConfigModel extends Model<hierarchiesData> {
-  setTime_zones(time_zonesIds: string[]): Promise<void>;
-}
+
 class Hierarchies extends Model {
   parent_hierarchy_id: any;
   name: any;
@@ -36,18 +33,6 @@ Hierarchies.init(
         'pay_rate'
       ),
       allowNull: true,
-    },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-    },
-    modified_by: {
-      type: DataTypes.UUID,
     },
     code: {
       type: DataTypes.STRING,
@@ -113,15 +98,31 @@ Hierarchies.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    is_not_editable:{
+    is_not_editable: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
-      defaultValue:false
+      defaultValue: false
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {

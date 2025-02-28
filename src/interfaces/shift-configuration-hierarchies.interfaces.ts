@@ -5,9 +5,9 @@ export interface ShiftConfigurationHierarchiesAttributes {
   shift_config_id: string;
   is_deleted: boolean;
   is_enabled: boolean;
-  created_on: Date;
-  modified_on: Date;
-  created_by?: string;
-  modified_by?: string;
+  created_on: any;
+  updated_on: Date;
+  created_by?: any;
+  updated_by?: string;
 
 }

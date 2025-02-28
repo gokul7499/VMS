@@ -16,6 +16,10 @@ export interface CreateProgramData {
   decoration?: any;
   module_groups?: any;
   themes?: any;
+  updated_on?:any;
+  updated_by?:Date;
+  created_by?:Date;
+  created_on?:any;
 }
 
 export interface ProgramQuery {
