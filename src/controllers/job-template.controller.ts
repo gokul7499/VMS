@@ -471,7 +471,7 @@ export async function updateJobTemplate(
           });
         }
       }
-          const idsToDelete = existingHierarchyIds.filter((id) => !incomingHierarchyIds.includes(id));
+      const idsToDelete = existingHierarchyIds.filter((id) => !incomingHierarchyIds.includes(id));
     
       if (idsToDelete.length > 0) {
         await jobTemplateHierarchyModel.destroy({
@@ -483,8 +483,7 @@ export async function updateJobTemplate(
         });
       }
     }
-    
-
+  
     if (jobTempCustomField?.custom_fields) {
       const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean);
       for (const custom_field of jobTempCustomField.custom_fields) {
