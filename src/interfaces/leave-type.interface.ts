@@ -4,9 +4,9 @@ export interface LeaveTypeInterface{
     name? : string , 
     display_name? : string , 
     created_on :number , 
-    modified_on: number , 
+    updated_on: number , 
     created_by? : string , 
-    modified_by? : string 
+    updated_by? : string 
 
    
 }
