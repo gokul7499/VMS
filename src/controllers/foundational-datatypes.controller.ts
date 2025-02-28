@@ -295,7 +295,7 @@ export async function getAllFoundationalDataTypes(
         Querystring: {
             name?: string;
             is_enabled?: string;
-            modified_on?: string;
+            updated_on?: string;
             timesheet_master_data?: string;
             user_association_exclude?: string;
             page?: string;
@@ -319,7 +319,7 @@ export async function getAllFoundationalDataTypes(
     const {
         name,
         is_enabled,
-        modified_on,
+        updated_on,
         timesheet_master_data,
         user_association_exclude,
         page = '1',
@@ -332,10 +332,10 @@ export async function getAllFoundationalDataTypes(
 
         if (name) filters.name = { [Op.like]: `%${name}%` };
         if (is_enabled !== undefined) filters.is_enabled = is_enabled === 'true';
-        if (modified_on) {
-            const modifiedOnRange = modified_on.split(',').map(Number);
+        if (updated_on) {
+            const modifiedOnRange = updated_on.split(',').map(Number);
             if (modifiedOnRange.length === 2) {
-                filters.modified_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
+                filters.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
             }
         }
         if (timesheet_master_data !== undefined) {
@@ -392,8 +392,8 @@ export async function getAllFoundationalDataTypes(
 
         const populatedFoundationalData = foundationalDataItems.map((item) => ({
             ...item.dataValues,
-            modified_on: item.dataValues.modified_on
-                ? Number(item.dataValues.modified_on)
+            updated_on: item.dataValues.updated_on
+                ? Number(item.dataValues.updated_on)
                 : null,
             foundational_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
         }));
