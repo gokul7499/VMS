@@ -127,11 +127,11 @@ export class BaseService {
         Object.keys(filters).forEach((field) => {
             const value = filters[field];
     
-            if (field === 'modified_on' && Array.isArray(value) && value.length === 2) {
+            if (field === 'updated_on' && Array.isArray(value) && value.length === 2) {
                 const startTimestamp = value[0];
                 const endTimestamp = value[1]; 
     
-                whereCondition.modified_on = {
+                whereCondition.updated_on = {
                     [Op.between]: [startTimestamp, endTimestamp]
                 };
     
@@ -156,7 +156,7 @@ export class BaseService {
             } else if (typeof value === "number") {
                 whereCondition[field] = value;
             } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-                const timestamp = value.modified_on; 
+                const timestamp = value.updated_on; 
                 if (typeof timestamp === 'number') {
                     whereCondition[field] = {
                         [Op.eq]: timestamp
