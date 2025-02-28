@@ -486,34 +486,16 @@ export const updatePicklistAndItem = async (
       await picklist.update({ ...picklist_data, updated_by: userId }, { transaction });
 
       if (picklist_items && picklist_items.length > 0) {
-        for (const item of picklist_items) {
-          if (item.id) {
-            const existingPicklistItem = await picklist_item_model.findOne({
-              where: { picklist_id: id, id: item.id },
-              transaction,
-            });
+        await picklist_item_model.destroy({ where: { picklist_id: id }, transaction });
+        const newPicklistItems = picklist_items.map((item) => ({
+          ...item,
+          picklist_id: id,
+          program_id,
+          created_by: userId,
+          updated_by: userId,
+        }));
 
-            if (!existingPicklistItem) {
-              await transaction.rollback();
-              return reply.status(200).send({
-                status_code: 200,
-                message: `Picklist item with ID "${item.id}" not found`,
-                trace_id: traceId,
-              });
-            }
-
-            await existingPicklistItem.update({ ...item, updated_by: userId }, { transaction });
-          } else {
-            await picklist_item_model.create(
-              {
-                ...item,
-                picklist_id: id,
-                program_id: program_id,
-              },
-              { transaction }
-            );
-          }
-        }
+        await picklist_item_model.bulkCreate(newPicklistItems, { transaction });
       }
 
       await transaction.commit();
@@ -526,12 +508,9 @@ export const updatePicklistAndItem = async (
     } catch (error) {
       await transaction.rollback();
 
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-
       return reply.status(500).send({
         status_code: 500,
-        message: `Error updating picklist and items: ${errorMessage}`,
+        message: `Error updating picklist and items`,
         trace_id: traceId,
       });
     }
