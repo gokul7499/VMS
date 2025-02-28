@@ -45,7 +45,7 @@ export const createJobWorkFlow = async (
         ...workflow,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
     };
 
     logger({
@@ -294,7 +294,7 @@ export const updateWorkflowStatus = async (
                                         ...recipient,
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
                                         impersonate_by: impersonator_id,
-                                        modified_on: Date.now(),
+                                        updated_on: Date.now(),
                                         status_id: history.dataValues?.id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
@@ -318,7 +318,7 @@ export const updateWorkflowStatus = async (
                                                 ...recipient,
                                                 status: "approved",
                                                 impersonate_by: impersonator_id,
-                                                modified_on: Date.now(),
+                                                updated_on: Date.now(),
                                                 status_id: history.dataValues?.id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
@@ -344,7 +344,7 @@ export const updateWorkflowStatus = async (
                                                 ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar, modified_on: Date.now(),
+                                                actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                             };
                                         }
 
@@ -365,7 +365,7 @@ export const updateWorkflowStatus = async (
                                                     ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
-                                                    actor_by_avatar: userData?.avatar, modified_on: Date.now(),
+                                                    actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                                 };
 
                                             }
@@ -386,7 +386,7 @@ export const updateWorkflowStatus = async (
                                         ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avatar: userData?.avatar, modified_on: Date.now(),
+                                        actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                     };
 
                                 }
@@ -420,7 +420,7 @@ export const updateWorkflowStatus = async (
                                 actor_last_name: userData.last_name,
                                 actor_by_avtar: userData.avatar,
                                 imporsonate_by: impersonator_id,
-                                modified_on: Date.now(),
+                                updated_on: Date.now(),
                             }));
                             level.status = "completed";
                         });
@@ -465,7 +465,7 @@ export const updateWorkflowStatus = async (
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
 
-            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: Date.now(), modified_by: userId });
+            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, updated_on: Date.now(), updated_by: userId });
 
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
@@ -1148,7 +1148,7 @@ export const rejectLevel = async (
                                 return {
                                     ...recipient,
                                     status: "rejected",
-                                    modified_on: Date.now(),
+                                    updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
                                 };
@@ -1160,16 +1160,16 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: Date.now(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason };
 
                             }
 
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: Date.now(), notes: notes, reason: reason };
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason };
 
                         });
                         return {
                             ...level,
-                            modified_on: Date.now(),
+                            updated_on: Date.now(),
                             status: "Rejected",
                             recipient_types: updatedRecipientTypes,
                         };
@@ -1177,12 +1177,12 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        modified_on: Date.now(), notes: notes, reason: reason
+                        updated_on: Date.now(), notes: notes, reason: reason
                     }));
 
                     return {
                         ...level,
-                        modified_on: Date.now(),
+                        updated_on: Date.now(),
                         status: "Not needed",
                         recipient_types: updatedRecipientTypes,
                     };
@@ -1217,7 +1217,7 @@ export const rejectLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, is_updated: true, modified_on: Date.now() });
+        await workflow.update({ levels, is_updated: true, updated_on: Date.now() });
 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
@@ -1362,7 +1362,7 @@ export const updateReplaceLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on: Date.now() });
+        await workflow.update({ levels, updated_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1532,7 +1532,7 @@ export const imporsonateLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on: Date.now() });
+        await workflow.update({ levels, updated_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1573,7 +1573,7 @@ export const updateJobWorkFlow = async (
             });
         }
 
-        await workflow.update({ ...updateData, modified_on: Date.now() });
+        await workflow.update({ ...updateData, updated_on: Date.now() });
 
 
         reply.status(200).send({
@@ -1697,7 +1697,7 @@ export const updateWorkflowStatusData = async (
 
 
         let Result = await workflow.update(
-            { levels, modified_on: Date.now() },
+            { levels, updated_on: Date.now() },
             { where: { id: workflow_id } } // Replace with the correct identifier
         );
 
@@ -1889,7 +1889,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 (
     SELECT JSON_OBJECT(
         'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-        'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
+        'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
         'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
          'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
@@ -2148,7 +2148,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0]?.avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             notes: recipient_details?.notes,
                             reason: recipient_details?.reason,
                             replaced_notes: recipient_details?.replaced_notes
@@ -2173,7 +2173,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2226,7 +2226,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0]?.avatar,
                             role_id: userResult[0]?.role_id,
                             email: userResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_notes: recipient_details.replaced_notes
@@ -2250,7 +2250,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2329,7 +2329,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor?.email,
                                     avatar: supervisor?.avatar || null,
-                                    modified_on: recipient_details?.modified_on,
+                                    updated_on: recipient_details?.updated_on,
                                     notes: recipient_details?.notes,
                                     reason: recipient_details?.reason,
                                     replaced_notes: recipient_details?.replaced_notes
@@ -2356,7 +2356,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2418,7 +2418,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
                                             replaced_notes: recipient_details.replaced_notes
@@ -2442,7 +2442,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         avatar: imporsonateUserResult?.[0]?.avatar,
                                         role_id: imporsonateUserResult?.[0]?.role_id,
                                         email: imporsonateUserResult?.[0]?.email,
-                                        modified_on: recipient_details?.modified_on,
+                                        updated_on: recipient_details?.updated_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2489,12 +2489,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     role_id: user.role_id,
                                     email: user.email,
                                     receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.modified_on,
+                                    modifiedOn: recipient.updated_on,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient.modified_on,
+                                    updated_on: recipient.updated_on,
                                     notes: recipient.notes,
                                     reason: recipient.reason,
                                     actor_first_name: recipient.actor_first_name,
@@ -2539,7 +2539,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
@@ -2576,7 +2576,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             actor_by_avatar: user.actor_by_avatar,
                             is_admin_override: user.is_admin_override,
                             reason: user.reason,
-                            modified_on: user.modified_on,
+                            updated_on: user.updated_on,
                             notes: user.notes
                         };
                     });
@@ -2595,7 +2595,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 actor_by_avatar: user.actor_by_avatar,
                                 is_admin_override: user.is_admin_override,
                                 status: user.receipentStatus,
-                                modified_on: user.modified_on,
+                                updated_on: user.updated_on,
                                 notes: user.notes,
                                 reason: user.reason,
                                 level_behaviour: user.level_behaviour,
@@ -2619,7 +2619,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
@@ -3198,7 +3198,7 @@ JSON_UNQUOTE(
 (
 SELECT JSON_OBJECT(
     'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-   'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
+   'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
@@ -3384,7 +3384,7 @@ l.placement_order ASC;`;
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_notes: recipient_details.replaced_notes
@@ -3408,7 +3408,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3484,7 +3484,7 @@ l.placement_order ASC;`;
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
                                     avatar: supervisor.avatar || null,
-                                    modified_on: recipient_details.modified_on,
+                                    updated_on: recipient_details.updated_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
                                     replaced_notes: recipient_details.replaced_notes
@@ -3511,7 +3511,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3574,7 +3574,7 @@ l.placement_order ASC;`;
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
                                             replaced_notes: recipient_details.replaced_notes
@@ -3598,7 +3598,7 @@ l.placement_order ASC;`;
                                         avatar: imporsonateUserResult?.[0]?.avatar,
                                         role_id: imporsonateUserResult?.[0]?.role_id,
                                         email: imporsonateUserResult?.[0]?.email,
-                                        modified_on: recipient_details.modified_on,
+                                        updated_on: recipient_details.updated_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3645,12 +3645,12 @@ l.placement_order ASC;`;
                                     role_id: user.role_id,
                                     email: user.email,
                                     receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.modified_on,
+                                    modifiedOn: recipient.updated_on,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient.modified_on,
+                                    updated_on: recipient.updated_on,
                                     notes: recipient.notes,
                                     reason: recipient.reason,
                                     actor_first_name: recipient.actor_first_name,
@@ -3695,7 +3695,7 @@ l.placement_order ASC;`;
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
@@ -3732,7 +3732,7 @@ l.placement_order ASC;`;
                             actor_by_avatar: user.actor_by_avatar,
                             is_admin_override: user.is_admin_override,
                             reason: user.reason,
-                            modified_on: user.modified_on,
+                            updated_on: user.updated_on,
                             notes: user.notes
                         };
                     });
@@ -3750,7 +3750,7 @@ l.placement_order ASC;`;
                                 actor_last_name: user.actor_last_name,
                                 actor_by_avatar: user.actor_by_avatar,
                                 is_admin_override: user.is_admin_override,
-                                modified_on: user.modified_on,
+                                updated_on: user.updated_on,
                                 level_id,
                                 status: user.receipentStatus,
                                 // modified_on: user.modified_on,
@@ -3776,7 +3776,7 @@ l.placement_order ASC;`;
                             last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
