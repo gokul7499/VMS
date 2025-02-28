@@ -59,7 +59,7 @@ export const createConfiguration = async (
   }
   const userId = user?.sub;
   configData.created_by = userId;
-  configData.modified_by = userId;
+  configData.updated_by = userId;
 
 
   reply.status(200).send({
@@ -102,7 +102,7 @@ export const updateConfiguration = async (
       });
 
       if (configuration) {
-        await configuration.update({ value, child_config, modified_by: userId, });
+        await configuration.update({ value, child_config, updated_by: userId, });
         updatedConfigurations.push(configuration);
       } else {
         return reply.status(200).send({ status_code: 200, message: `Configuration With ID ${id} Not Found` });
