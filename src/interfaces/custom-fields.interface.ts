@@ -25,6 +25,7 @@ export interface CustomFields {
   is_linked: boolean;
   work_location_ids?: string[];
   linked_module: JSON;
+  decimal_place: string;
 }
 
 export interface GetQueryInterface {
@@ -94,6 +95,7 @@ export const createCustomFieldsSchema = {
     is_readonly: { type: 'boolean' },
     is_linked: { type: 'boolean' },
     job_type: { type: ['array', 'null'] },
+    decimal_place: { type: 'string', pattern: '^[0-9]+$' }, 
     meta_data: {
       type: 'object',
       properties: {
