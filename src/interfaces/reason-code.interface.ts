@@ -6,8 +6,8 @@ export interface ReasonCode {
     entity_ref: string;
     category: 'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
     created_on: number;
-    modified_on: number;
-    modified_by: JSON;
+    updated_on: number;
+    updated_by: JSON;
     created_by: JSON;
     is_enabled: boolean;
     module_id: string;

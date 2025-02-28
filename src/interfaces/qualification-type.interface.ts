@@ -5,10 +5,10 @@ interface qualificationType {
   description: Text;
   is_enabled: boolean;
   is_deleted:boolean;
-  created_on:number;
-  modified_on:number;
+  created_on:any;
+  updated_on:any;
   created_by:string | null;
-  modified_by:string |null;
+  updated_by:string |null;
   program_id: string;
   page?: string;
   limit?: string;

@@ -4,7 +4,10 @@ interface EventInterface {
   module_id: string;
   is_enabled: boolean | string;
   is_deleted: boolean;
-  created_on: string;
+  created_on: any;
+  updated_on:any;
+  created_by:string;
+  updated_by:string;
   type: string;
 }
 export default EventInterface;

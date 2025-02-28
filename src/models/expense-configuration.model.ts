@@ -75,13 +75,11 @@ ExpenseConfigurationModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: false,
+      allowNull: true,
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: false,
+      allowNull: true,
     },
     created_by: {
       type: DataTypes.UUID,
@@ -95,7 +93,8 @@ ExpenseConfigurationModel.init(
   },
   {
     sequelize,
-    tableName: 'expense_configuration'
+    tableName: 'expense_configuration',
+    timestamps:false
   }
 );
 ExpenseConfigurationModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });

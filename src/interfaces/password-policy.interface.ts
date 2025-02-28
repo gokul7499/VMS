@@ -9,10 +9,10 @@ export interface passwordPolicyData {
     max_log_attempt: number;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on: number;
-    modified_on: number;
+    created_on: any;
+    updated_on: any;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     mfa_data: any;
     program_id: string;
 }

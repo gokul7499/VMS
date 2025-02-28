@@ -13,7 +13,7 @@ export interface ExpenseConfigurationAttributes {
   is_enabled: boolean;
   is_deleted: boolean;
   created_on: number;
-  modified_on: number;
+  updated_on: number;
   created_by?: string;
   updated_by?: string;
   hierarchy?: any;
@@ -134,7 +134,7 @@ export const createExpenseConfigurationAdvancedFilter = {
   properties: {
     config_name: { type: 'string' },
     status: { type: 'string' },
-    modified_on: {
+    updated_on: {
       type: 'array',
     },
     is_enabled: { type: 'boolean' },

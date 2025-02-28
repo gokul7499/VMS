@@ -21,16 +21,6 @@ StateModel.init({
         type: DataTypes.STRING,
         allowNull: true
     },
-    created_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true,
-    },
-    modified_by: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: true,
-    },
     ref_id: {
         type: DataTypes.UUID,
     },
@@ -43,14 +33,6 @@ StateModel.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-    },
     country_id: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -59,6 +41,22 @@ StateModel.init({
             key: 'id',
         },
     },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull : true
+      },
+      updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull:true
+      },
+      created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },  
 },
     {
         sequelize,

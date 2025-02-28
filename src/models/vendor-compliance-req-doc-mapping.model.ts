@@ -81,31 +81,13 @@ VendorComplianceReqDocMappingModel.init({
         type: DataTypes.DOUBLE,
         allowNull: true,
     },
-    audited_by:{
-        type:DataTypes.UUID,
-        allowNull:true
-    },
-    audited_on:{
-        type:DataTypes.DOUBLE,
-        allowNull:true
-    },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: Date.now(),
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: Date.now(),
-    },
-    created_by: {
+    audited_by: {
         type: DataTypes.UUID,
-        allowNull: true,
+        allowNull: true
     },
-    modified_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
+    audited_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
     },
     program_id: {
         type: DataTypes.UUID,
@@ -115,9 +97,26 @@ VendorComplianceReqDocMappingModel.init({
             key: 'id',
         },
     },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
 }, {
     sequelize,
     modelName: 'vendor_compliance_req_doc_mapping',
+    timestamps: false,
 });
 sequelize.sync();
 

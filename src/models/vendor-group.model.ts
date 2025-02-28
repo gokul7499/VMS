@@ -16,9 +16,9 @@ class VendorGroup extends Model implements vendorGroupInterface {
   is_enabled!: boolean;
   program_id!: string;
   created_on?: number;
-  modified_on?: number;
+  updated_on?: number;
   created_by?: string;
-  modified_by?: string;
+  updated_by?: string;
   is_deleted!: boolean;
   vendor_id?: string;
   program_vendor?: any;
@@ -44,7 +44,6 @@ VendorGroup.init(
     vendors: {
       type: DataTypes.JSON,
       allowNull: false,
-
     },
     hierarchy_levels: {
       type: DataTypes.JSON,
@@ -62,24 +61,26 @@ VendorGroup.init(
         key: 'id',
       },
     },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
     created_on: {
       type: DataTypes.DOUBLE,
+      allowNull: true
     },
-    modified_on: {
+    updated_on: {
       type: DataTypes.DOUBLE,
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
-    },
-    is_deleted: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: false,
     },
   },
   {

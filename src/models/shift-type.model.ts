@@ -42,24 +42,8 @@ ShiftType.init(
       allowNull: true,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-    },
     time_duration: {
       type: DataTypes.STRING,
-      allowNull: true,
-    },
-    created_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-    },
-    modified_by: {
-      type: DataTypes.UUID,
       allowNull: true,
     },
     program_id: {
@@ -69,6 +53,22 @@ ShiftType.init(
         model: "programs",
         key: "id",
       },
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {

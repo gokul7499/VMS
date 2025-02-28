@@ -282,7 +282,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     if (userType === "client" || userType === "msp") {
-      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
       if (!program_id) {
@@ -314,18 +314,18 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         candidate_id: candidateId,
         user_type: userType,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
       }, { transaction });
     }else if (userType === "vendor") {
       if (user.program_id) {
-        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, modified_by: userId, }, { transaction });
+        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, updated_by: userId, }, { transaction });
       } else {
-        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
       }
     } else {
-      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     }
     if (user.foundational_data && Array.isArray(user.foundational_data)) {
       for (const foundationalEntry of user.foundational_data) {
@@ -371,10 +371,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     if (Array.isArray(user_group_mapping)) {
       for (const mapping of user_group_mapping) {
-        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+        await UserMapping.create({ ...mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
       }
     } else {
-      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, modified_by: userId, }, { transaction });
+      await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     }
 
     await transaction.commit();
@@ -445,7 +445,9 @@ export async function updateUser(
         user: [],
       });
     }
-    updates.modified_by = userId;
+    updates.updated_on = Date.now();
+    updates.updated_by = userId;
+    updates.updated_by = userId;
     await user.update(updates);
     if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
       await UserMasterDataModel.destroy({ where: { user_id: user.user_id } });
@@ -485,7 +487,7 @@ export async function updateUser(
         program_id: mapping.program_id,
         is_activated: mapping.is_activated,
         status: mapping.status,
-        modified_on: Date.now(),
+        updated_on: Date.now(),
       }));
 
       await UserMapping.bulkCreate(groupMappingData);
@@ -656,7 +658,7 @@ export async function getAllUserIDAndUserId(
 
 export async function searchUser(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'program_id', 'first_name'];
-  const responseFields = ['id', 'program_id', 'country_id', 'title', 'name_prefix', 'middle_name', 'is_enabled', 'addresses', 'contacts', 'name_suffix', 'email', 'created_on', 'modified_on', 'created_by', 'modified_by', 'is_deleted', 'ref_id'];
+  const responseFields = ['id', 'program_id', 'country_id', 'title', 'name_prefix', 'middle_name', 'is_enabled', 'addresses', 'contacts', 'name_suffix', 'email', 'created_on', 'updated_on', 'created_by', 'updated_by', 'is_deleted', 'ref_id'];
   return baseSearch(request, reply, User, searchFields, responseFields);
 }
 

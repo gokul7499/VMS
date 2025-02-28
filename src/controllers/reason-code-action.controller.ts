@@ -30,7 +30,7 @@ export async function createReasoncode(
             id: any;
             reasons_count: number;
             created_by: object;
-            modified_by: object;
+            updated_by: object;
             is_deleted: boolean;
             program_id: string;
             event_id?: string;
@@ -48,7 +48,7 @@ export async function createReasoncode(
         const reason_code_action = await ReasonCodeActionModel.create({
             reasons_count: reasoncode.reasons_count,
             created_by: reasoncode.created_by,
-            modified_by: reasoncode.modified_by,
+            updated_by: reasoncode.updated_by,
             is_deleted: reasoncode.is_deleted,
             event_id: reasoncode.event_id,
             module_id: reasoncode.module_id,
@@ -63,7 +63,7 @@ export async function createReasoncode(
                 is_enabled: reason.is_enabled,
                 program_id: reasoncode.program_id,
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
             }))
         );
 
@@ -115,7 +115,7 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
         const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
             where: whereClause,
             attributes: {
-                exclude: ['ref_id', 'modified_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
+                exclude: ['ref_id', 'updated_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
             },
             include: [
                 {
@@ -448,7 +448,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
                     ...reasonCodeData,
                     reason_code_id: id,
                     program_id,
-                    modified_by: userId,
+                    updated_by: userId,
                 },
                 { transaction }
             );
@@ -500,7 +500,7 @@ export async function deleteReasoncode(
         const [numRowsDeleted] = await ReasonCodeActionModel.update({
             is_enabled: false,
             is_deleted: true,
-            modified_on: Date.now(),
+            updated_on: Date.now(),
         },
             { where: { id } }
         );
@@ -588,7 +588,7 @@ export const getReasonCodeBySlug = async (
                 reason_code_id: data.map((d) => d.id),
                 program_id: program_id
             },
-            attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
+            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
         });
 
         if (!reason_codes.length) {
@@ -596,7 +596,7 @@ export const getReasonCodeBySlug = async (
                 where: {
                     reason_code_id: data.map((d) => d.id),
                 },
-                attributes: ['id', 'name', 'category', 'created_on', 'modified_on', 'reason_code_id', 'program_id']
+                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
             });
             return reply.status(200).send({
                 status_code: 200,

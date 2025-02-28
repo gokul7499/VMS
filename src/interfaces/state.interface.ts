@@ -9,7 +9,7 @@ export interface stateInterface {
     is_enabled: boolean;
     is_deleted: boolean;
     created_on: any;
-    modified_on: any;
+    updated_on: any;
     program_id: string;
     country_id: string;
     programs?: string;

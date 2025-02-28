@@ -6,9 +6,9 @@ import { Programs } from "./programs.model";
 import IndustriesModel from './labour-category.model';
 
 class RateCard extends Model {
-    id: any;
-    decision_table: never[] | undefined;
-    labor_category_id: any;
+  id: any;
+  decision_table: never[] | undefined;
+  labor_category_id: any;
 }
 
 RateCard.init(
@@ -36,25 +36,26 @@ RateCard.init(
       defaultValue: true,
     },
     is_deleted: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
-    },
+
   },
   {
     sequelize,

@@ -7,9 +7,9 @@ export interface ShiftConfigurationAttributes {
   shift_type_ids: any;
   is_enabled: boolean;
   is_deleted: boolean;
-  created_on: Date;
-  modified_on: Date;
+  created_on: any;
+  updated_on: any;
   created_by?: string;
-  modified_by?: string;
+  updated_by?: string;
   program_id: string;
 }

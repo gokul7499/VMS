@@ -32,16 +32,21 @@ JobCategoryModel.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,
+            allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
+            allowNull: true,
         },
+
     },
     {
         sequelize,
@@ -76,16 +81,21 @@ JobCategoryModel.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,
+            allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
+            allowNull: true,
         },
+
     },
     {
         sequelize,

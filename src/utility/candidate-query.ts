@@ -20,7 +20,7 @@ class CandidateRepository {
         });
         const count = countResult[0].count;
 
-        if (replacements.candidate_id) whereClause += ` AND c.candidate_id = :candidate_id`;
+        if (replacements.candidate_id) whereClause += ` AND c.candidate_id LIKE :candidate_id`;
         if (replacements.first_name) whereClause += ` AND c.first_name LIKE :first_name`;
         if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
         if (replacements.last_name) whereClause += ` AND c.last_name LIKE :last_name`;
@@ -43,7 +43,7 @@ class CandidateRepository {
         c.worker_type_id, 
         c.title, 
         c.birth_date, 
-        c.modified_on, 
+        c.updated_on, 
         c.state_national_id, 
         c.do_not_rehire_notes, 
         c.do_not_rehire_reason, 
@@ -66,7 +66,7 @@ class CandidateRepository {
         ) v 
         ON c.vendor_id = v.tenant_id  
         ${whereClause}
-        ORDER BY c.modified_on DESC
+        ORDER BY c.updated_on DESC
         LIMIT :limit OFFSET :offset;
         `;
 

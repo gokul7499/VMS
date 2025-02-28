@@ -16,6 +16,8 @@ import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierar
 import { QueryTypes } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
 import ShiftType from '../models/shift-type.model';
+import RateConfigurationExpenses from '../models/rate-configuration-expenses.model';
+import ExpenseTypeModel from '../models/expense-type.model';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -60,8 +62,9 @@ export const createRateConfigurations = async (
             program_id,
             name: rateConfigurationsPayload.name,
             is_shift_rate: rateConfigurationsPayload.is_shift_rate,
+            job_type: rateConfigurationsPayload.job_type,
             created_by: userId,
-            modified_by: userId
+            updated_by: userId
         }, { transaction });
 
         if (rateConfigurationsPayload.hierarchies) {
@@ -70,6 +73,8 @@ export const createRateConfigurations = async (
                     await RateConfigurationHierarchies.create({
                         rate_configuration_id: rateData.id,
                         hierarchy_id: hierarchyId,
+                        created_by: userId,
+                        updated_by: userId
                     }, { transaction });
                 }
             }
@@ -81,6 +86,25 @@ export const createRateConfigurations = async (
                     await RateConfigurationJobTemplates.create({
                         rate_configuration_id: rateData.id,
                         job_template_id: jobTemplateId,
+                        created_by: userId,
+                        updated_by: userId
+                    }, { transaction });
+                }
+            }
+        }
+
+        if (rateConfigurationsPayload.expenses) {
+            for (const expense of rateConfigurationsPayload.expenses) {
+                if (expense.expense_type_id) {
+                    await RateConfigurationExpenses.create({
+                        rate_configuration_id: rateData.id,
+                        expense_type_id: expense.expense_type_id,
+                        unit_of_measure: expense.unit_of_measure,
+                        unit_lable: expense.unit_lable,
+                        rate: expense.rate,
+                        max_limit: expense.max_limit,
+                        created_by: userId,
+                        updated_by: userId
                     }, { transaction });
                 }
             }
@@ -93,6 +117,8 @@ export const createRateConfigurations = async (
                 const baseRateResult = await RateConfigurationBaseRateTypes.create({
                     rate_configuration_id: rateData.id,
                     rate_type_id: baseRate.rate_type_id,
+                    created_by: userId,
+                    updated_by: userId
                 }, { transaction });
 
                 const rates = baseRatePayload.rate || [];
@@ -101,6 +127,8 @@ export const createRateConfigurations = async (
                         const rateTypeRecord = await RateConfigurationRateTypes.create({
                             base_rate_type_id: baseRateResult.id,
                             rate_type_id: rate.rate_type_id,
+                            created_by: userId,
+                            updated_by: userId
                         }, { transaction });
 
                         if (Array.isArray(rate.bill_rate)) {
@@ -113,6 +141,8 @@ export const createRateConfigurations = async (
                                     unit_of_measure: billRate.unit_of_measure,
                                     currency: billRate.currency,
                                     type: 'BILL_RATE',
+                                    created_by: userId,
+                                    updated_by: userId
                                 }, { transaction });
                             }
                         }
@@ -126,6 +156,8 @@ export const createRateConfigurations = async (
                                     unit_of_measure: payRate.unit_of_measure,
                                     currency: payRate.currency,
                                     type: 'PAY_RATE',
+                                    created_by: userId,
+                                    updated_by: userId
                                 }, { transaction });
                             }
                         }
@@ -208,9 +240,10 @@ export const updateRateConfigurations = async (
             {
                 name: rateConfigurationsPayload.name,
                 is_shift_rate: rateConfigurationsPayload.is_shift_rate,
-                modified_on: Date.now(),
+                updated_on: Date.now(),
                 is_enabled: rateConfigurationsPayload.is_enabled,
-                modified_by: userId
+                updated_by: userId,
+                job_type: rateConfigurationsPayload.job_type
             },
             { transaction }
         );
@@ -245,6 +278,27 @@ export const updateRateConfigurations = async (
                     )
                 )
             );
+        }
+        if (rateConfigurationsPayload.expenses) {
+            await RateConfigurationExpenses.destroy({
+                where: { rate_configuration_id: id },
+                transaction,
+            });
+
+            for (const expense of rateConfigurationsPayload.expenses) {
+                if (expense.expense_type_id) {
+                    await RateConfigurationExpenses.create({
+                        rate_configuration_id: id,
+                        expense_type_id: expense.expense_type_id,
+                        unit_of_measure: expense.unit_of_measure,
+                        unit_lable: expense.unit_lable,
+                        rate: expense.rate,
+                        max_limit: expense.max_limit,
+                        created_by: userId,
+                        updated_by: userId
+                    }, { transaction });
+                }
+            }
         }
 
         if (rateConfigurationsPayload.rate_configuration) {
@@ -381,7 +435,7 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; modified_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; updated_on?: string; page?: string; limit?: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -395,7 +449,7 @@ export async function getAllRateConfigurations(
 
         const isEnabled = parseBoolean(query.is_enabled);
         const isShiftRate = parseBoolean(query.is_shift_rate);
-        const { startDate, endDate } = parseDateRange(query.modified_on);
+        const { startDate, endDate } = parseDateRange(query.updated_on);
 
         const replacements: any = {
             program_id,
@@ -493,7 +547,7 @@ export async function getRateConfigurationById(
 
         const rateConfiguration = await RateConfigurationsModel.findOne({
             where: { program_id, id },
-            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'modified_on'],
+            attributes: ['id', 'program_id', 'name', 'is_shift_rate', 'is_enabled', 'created_on', 'updated_on', 'job_type'],
         });
 
         if (!rateConfiguration) {
@@ -531,6 +585,18 @@ export async function getRateConfigurationById(
                 name: item.job_template?.template_name,
             }))
         );
+
+        const expenseTypes = await RateConfigurationExpenses.findAll({
+            where: { rate_configuration_id: id },
+            attributes: ['id', 'unit_of_measure', 'unit_lable', 'rate', 'max_limit'],
+            include: [
+                {
+                    model: ExpenseTypeModel,
+                    as: 'expense_type',
+                    attributes: ['id', 'name'],
+                },
+            ],
+        })
 
         const baseRates = await RateConfigurationBaseRateTypes.findAll({
             where: { rate_configuration_id: id },
@@ -610,12 +676,14 @@ export async function getRateConfigurationById(
         const response = {
             program_id: rateConfiguration.program_id,
             name: rateConfiguration.name,
+            job_type: rateConfiguration.job_type,
             is_enabled: rateConfiguration.is_enabled,
             is_shift_rate: rateConfiguration.is_shift_rate,
             created_on: rateConfiguration.created_on,
-            modified_on: rateConfiguration.modified_on,
+            updated_on: rateConfiguration.updated_on,
             hierarchie,
             job_templates: jobTemplates,
+            expenses: expenseTypes,
             rate_configuration: rateConfigurationDetails,
         };
 

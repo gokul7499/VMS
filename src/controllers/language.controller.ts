@@ -28,15 +28,16 @@ export async function getLanguages(request: FastifyRequest<{ Querystring: Langua
       status_code: 200,
       message: "Languages gwt successfully",
       items_per_page: languages.length,
-      total_records: languages.length, // Total records after filtering
+      total_records: languages.length, 
       trace_id: traceId,
       data: languages,
     });
-  } catch (error) {
+  } catch (error:any) {
     console.error(error);
     reply.status(500).send({
       status_code: 500,
-      message: 'Internal Server Error'
+      message: 'Internal Server Error',
+      error:error.message
     });
   }
 }
@@ -145,7 +146,7 @@ export async function deleteLanguage(
     const { id } = request.params;
     const [numRowsDeleted] = await Language.update({
       is_deleted: true,
-      modified_on: Date.now(),
+      updated_on: Date.now(),
     },
       { where: { id } }
     );

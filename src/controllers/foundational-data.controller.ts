@@ -18,7 +18,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             id?: string;
             name?: string;
             is_enabled?: string;
-            modified_on?: string;
+            updated_on?: string;
             manager_id?: string;
             code?: string;
             foundational_data_type_id?: string;
@@ -35,8 +35,8 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
         let modified_on_start = null;
         let modified_on_end = null;
 
-        if (query.modified_on) {
-            const modifiedOnRange = query.modified_on.split(',');
+        if (query.updated_on) {
+            const modifiedOnRange = query.updated_on.split(',');
             if (modifiedOnRange.length === 2) {
                 modified_on_start = modifiedOnRange[0];
                 modified_on_end = modifiedOnRange[1];
@@ -111,11 +111,12 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             foundational_data: foundationalDataArray,
             trace_id:traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
             trace_id:traceId,
+            error: error.message
         });
     }
 }
@@ -215,9 +216,9 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
             created_by: userId,
-            modified_by: userId,
+           updated_by: userId,
             created_on: Date.now(),
-            modified_on: Date.now(),
+            updated_on: Date.now(),
         });
 
         logger(
@@ -318,8 +319,8 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
         const [updatedCount] = await foundationalData.update(
             {
                 ...request.body as FoundationalDataInterface,
-                modified_on: Date.now(),
-                modified_by:userId,
+                updated_on: Date.now(),
+                updated_by:userId,
             },
             { where: { program_id, id } }
         );
@@ -363,7 +364,7 @@ export async function deleteFoundationalData(request: FastifyRequest, reply: Fas
         const { program_id, id } = request.params as { program_id: string, id: string };
         const foundational_data = await foundationalData.findOne({ where: { program_id, id } });
         if (foundational_data) {
-            await foundationalData.update({ is_deleted: true, is_enabled: false ,modified_by:userId}, { where: { program_id, id } });
+            await foundationalData.update({ is_deleted: true, is_enabled: false ,updated_by:userId}, { where: { program_id, id } });
             reply.status(204).send({
                 status_code: 204,
                 message: 'FoundationalData deleted successfully.',

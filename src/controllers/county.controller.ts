@@ -24,7 +24,7 @@ export async function createCounty(
         }
         const userId = user?.sub;
 
-        const county_data: any = await countyModel.create({ ...county, created_by: userId, modified_by: userId });
+        const county_data: any = await countyModel.create({ ...county, created_by: userId, updatedby: userId });
         reply.status(201).send({
             status_code: 201,
             message: "county created succesfully",
@@ -128,8 +128,8 @@ export async function deleteCountyById(
             {
                 is_deleted: true,
                 is_enabled: false,
-                modified_on: Date.now(),
-                modified_by: userId
+                updated_on: Date.now(),
+                updated_by: userId
             },
             { where: { id } }
         );
