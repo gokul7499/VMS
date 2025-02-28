@@ -22,8 +22,8 @@ export interface ProgramConfigAttributes {
   ui_component_type: string;
   created_by: string;
   created_on: number;
-  modified_by: string;
-  modified_on: number;
+  updated_by: string;
+  updated_on: number;
   sr_Number: number;
   options: Json;
   is_default: boolean;
