@@ -44,7 +44,7 @@ ShiftConfiguration.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
-    modified_by: {
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },

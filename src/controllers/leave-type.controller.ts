@@ -33,7 +33,7 @@ export async function createLeaveType(request: FastifyRequest, reply: FastifyRep
                 message: "Name already exist"
             });
         }
-        const item: any = await LeaveTypeModel.create({ ...leaveType, created_by: userId, modified_by: userId });
+        const item: any = await LeaveTypeModel.create({ ...leaveType, created_by: userId, updated_by: userId });
         reply.status(201).send({
             status_code: 201,
             id: item.id,
