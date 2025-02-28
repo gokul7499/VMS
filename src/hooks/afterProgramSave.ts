@@ -81,7 +81,7 @@ export const createQualificationTypes = async (record: Model,transaction: any) =
             is_enabled: true,
             is_deleted: false,
             created_by: (record as any).created_by,
-            modified_by: (record as any).modified_by,
+            updated_by: (record as any).updated_by,
         },{transaction});
     }
 };
@@ -108,6 +108,6 @@ export const createRateTypes = async (record: Model,transaction: any) => {
         is_shift_rate: false,
         is_base_rate: true,
         created_by: (record as any).created_by,
-        modified_by: (record as any).modified_by,
+        updated_by: (record as any).updated_by,
     },{transaction});
 } 
