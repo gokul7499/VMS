@@ -4,6 +4,8 @@ import { LeaveTypeInterface } from "../interfaces/leave-type.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { decodeToken } from "../middlewares/verifyToken";
 import { Op } from "sequelize";
+
+
 export async function createLeaveType(request: FastifyRequest, reply: FastifyReply) {
     const { ...leaveType } = request.body as LeaveTypeInterface;
 
@@ -50,12 +52,12 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
     const traceId = generateCustomUUID();
 
     try {
-        // Extract and validate query parameters
+    
         const query = request.query as any;
         const pageNumber = query.page ? parseInt(query.page, 10) : 1;
         const pageSize = query.limit ? parseInt(query.limit, 10) : 10;
 
-        // Ensure valid values
+        
         if (isNaN(pageNumber) || pageNumber < 1) {
             return reply.status(400).send({
                 status_code: 400,
@@ -71,7 +73,6 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
                 trace_id: traceId
             });
         }
-
 
         const offset = (pageNumber - 1) * pageSize;
         const { count, rows: leaveTypes } = await LeaveTypeModel.findAndCountAll({

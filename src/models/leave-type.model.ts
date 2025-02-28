@@ -27,7 +27,7 @@ LeaveTypeModel.init({
         type: DataTypes.STRING,
         allowNull: true
     },
-    modified_on: {
+    updated_on: {
         type: DataTypes.DOUBLE,
         defaultValue: Date.now(),
         allowNull: false
@@ -42,7 +42,7 @@ LeaveTypeModel.init({
         allowNull: true  
     },
 
-    modified_by: {
+    updated_by: {
         type: DataTypes.UUID,
         allowNull: true
     }
