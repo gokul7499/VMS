@@ -160,7 +160,8 @@ User.init(
     },
     is_all_labour_category_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_labour_category: {
       type: DataTypes.JSON,
@@ -168,7 +169,8 @@ User.init(
     },
     is_all_job_type_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_job_type: {
       type: DataTypes.JSON,

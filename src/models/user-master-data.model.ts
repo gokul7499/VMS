@@ -71,6 +71,7 @@ UserMasterDataModel.init({
 }, {
     sequelize,
     tableName: 'user_master_data',
+    timestamps:false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
