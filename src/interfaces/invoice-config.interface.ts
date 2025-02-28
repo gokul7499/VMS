@@ -13,7 +13,7 @@ export interface InvoiceConfigInterface {
     consolidation_billing_period: 'daily' | 'weekly' | 'monthly';
     consolidate_till_date: boolean;
     consolidation_generation_time: string;
-    rollup_group: 'hierarchy' | 'vendor' | 'program';
+    rollup_group: 'hierarchy' | 'vendor' | 'program' | 'hierarchy_vendor';
     consolidated_start_number: number;
     batch_start_number: number;
     template_name: string;
