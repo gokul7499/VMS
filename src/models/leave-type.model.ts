@@ -29,13 +29,11 @@ LeaveTypeModel.init({
     },
     updated_on: {
         type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-        allowNull: false
+        allowNull: true
     },
     created_on: {
         type: DataTypes.DOUBLE,
-        defaultValue: Date.now(),
-        allowNull: false
+        allowNull: true
     },
     created_by: {
         type: DataTypes.UUID,
