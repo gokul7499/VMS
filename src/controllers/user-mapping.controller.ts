@@ -260,12 +260,10 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             message: "Unauthorized - Invalid token",
         });
     }
-     console.log("user",user)
     const userType = user?.userType;  
     const traceId = generateCustomUUID();
     
     try {
-        // Check if user exists in the main database
         const checkUserQuery = `
         SELECT 
             LOWER(user.status) AS status
@@ -290,7 +288,6 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 reply
             );
         }
-        
         if ((userType === "super_user" && (userStatus[0].status === "active" || userStatus[0].status === "inactive")) || userStatus[0].status === "active") {
             const query = `
             SELECT 
