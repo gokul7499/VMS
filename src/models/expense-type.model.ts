@@ -1,4 +1,4 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, FLOAT, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
@@ -34,19 +34,11 @@ ExpenseTypeModel.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
-    is_mandatory_attachment: {
+    is_attachment_mandatory: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
-    is_optional_attachment: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-    },
-    is_manadatory_notes: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true,
-    },
-    is_optional_notes: {
+    is_notes_mandatory: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
     },
@@ -55,24 +47,20 @@ ExpenseTypeModel.init({
         defaultValue: true,
     },
     appply_tax: {
-        type: DataTypes.STRING,
-        allowNull: true
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
-    allow_negative_expense: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    allow_unit_based: {
-        type: DataTypes.STRING,
-        allowNull: true
+    is_negative_expense_allow: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
     unit_based: {
-        type: DataTypes.JSON,
-        allowNull: true
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
-    expense_icon: {
-        type: DataTypes.JSON,
-        allowNull: true
+    unit_label:{
+        type:DataTypes.STRING,
+        allowNull:true
     },
     program_id:{
         type: DataTypes.UUID,
@@ -82,24 +70,30 @@ ExpenseTypeModel.init({
             key:"id"
         } 
     },
-    ref_id: {
-        type: DataTypes.UUID,
+    rate_per_unit :{
+        type:FLOAT,
+        allowNull:true
     },
+    max_unit_limit :{
+        type:FLOAT,
+        allowNull:true
+    },
+   
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
     created_on: {
         type: DataTypes.DOUBLE,
-        allowNull: true
-    },
-    updated_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true
+        allowNull: true,
     },
     created_by: {
         type: DataTypes.UUID,
         allowNull: true,
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        allowNull: true
     },
     updated_by: {
         type: DataTypes.UUID,

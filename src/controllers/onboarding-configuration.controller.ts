@@ -41,7 +41,7 @@ export async function createOnboardingConfiguration(
       });
     }
 
-    const item = await OnboardingConfigurationModel.create({ ...configuration,program_id,created_by:userId,modified_by:userId });
+    const item = await OnboardingConfigurationModel.create({ ...configuration,program_id,created_by:userId,updated_by:userId });
     reply.status(201).send({
       status_code: 201,
       onboarding_configuration: item.id,
@@ -136,12 +136,12 @@ export const getOnboardingConfiguration = async (
     if (query.is_all_checklist !== undefined) {
       whereCondition.is_all_checklist = query.is_all_checklist === 'true' || query.is_all_checklist === true;
     }
-    if (query.modified_on) {
-      const dateRange = query.modified_on.split(',');
+    if (query.updated_on) {
+      const dateRange = query.updated_on.split(',');
       if (dateRange.length === 2) {
         const startDate = parseFloat(dateRange[0].trim());
         const endDate = parseFloat(dateRange[1].trim());
-        whereCondition.modified_on = { [Op.between]: [startDate, endDate] };
+        whereCondition.updated_on = { [Op.between]: [startDate, endDate] };
       }
     }
     const { rows: onboarding_configuration, count } =
@@ -149,7 +149,7 @@ export const getOnboardingConfiguration = async (
         where: whereCondition,
         limit,
         offset,
-        order: [['modified_on', 'DESC']],
+        order: [['updated_on', 'DESC']],
       });
     
     if (onboarding_configuration.length === 0) {
@@ -254,7 +254,7 @@ export async function updateOnboardingConfiguration(
     }
 
     const [numRowsUpdated] = await OnboardingConfigurationModel.update(
-      { ...labour_categories, modified_on: Date.now(),modified_by:userId },
+      { ...labour_categories, updated_on: Date.now(),updated_by:userId },
       { where: { id, program_id } }
     );
 
@@ -296,8 +296,8 @@ export async function deleteOnboardingConfiguration(
     const [numRowsDeleted] = await OnboardingConfigurationModel.update({
       is_deleted: true,
       is_enabled: false,
-      modified_on: Date.now(),
-      modified_by:userId
+      updated_on: Date.now(),
+      updated_by:userId
     },
       { where: { id, program_id } }
     );

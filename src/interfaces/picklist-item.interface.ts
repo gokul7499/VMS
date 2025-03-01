@@ -22,8 +22,8 @@ export interface picklistItemUpdateData {
     value?: string;
     is_enabled?: boolean;
     is_deleted?: boolean;
-    modified_on?: number;
-    modified_by?: string;
+    updated_on?: number;
+    updated_by?: string;
     program_id?: string;
     disabled_program?: any;
     label_program?: any;
