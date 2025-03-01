@@ -150,6 +150,10 @@ CustomField.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    is_range_required:{
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true

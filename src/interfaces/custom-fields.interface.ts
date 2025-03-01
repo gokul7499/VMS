@@ -11,6 +11,7 @@ export interface CustomFields {
   is_all_work_location: boolean;
   is_all_hierarchy: boolean;
   supporting_text: string;
+  is_range_required: boolean;
   description: string | null;
   is_required: boolean;
   is_readonly: boolean;
@@ -96,6 +97,7 @@ export const createCustomFieldsSchema = {
     is_linked: { type: 'boolean' },
     job_type: { type: ['array', 'null'] },
     decimal_place: { type: 'string', pattern: '^[0-9]+$' }, 
+    is_range_required: { type: 'boolean' },
     meta_data: {
       type: 'object',
       properties: {
