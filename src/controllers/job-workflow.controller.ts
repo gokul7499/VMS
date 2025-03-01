@@ -678,7 +678,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 status: "REJECTED",
             };
 
-            await axios.post(apiUrl, payload, {
+            await axios.put(apiUrl, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     authorization: authHeader
