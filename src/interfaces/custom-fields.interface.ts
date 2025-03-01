@@ -1,3 +1,5 @@
+import { Json } from "sequelize/types/utils";
+
 export interface CustomFields {
   hierarchy_ids: never[];
   id: string;
@@ -11,7 +13,7 @@ export interface CustomFields {
   is_all_work_location: boolean;
   is_all_hierarchy: boolean;
   supporting_text: string;
-  is_range_required: boolean;
+  range_applicable: Json;
   description: string | null;
   is_required: boolean;
   is_readonly: boolean;
@@ -129,6 +131,17 @@ export const createCustomFieldsSchema = {
           can_view: { type: ['string', 'null'] },
           can_edit: { type: ['string', 'null'] }
         },
+      }
+    },
+    range_applicable:{
+      type:'object',
+      properties:{
+        is_range_required: {
+          type: "boolean",
+          default: false
+        },
+        min_range: { "type": ["number", "null"] },
+        max_range: { "type": ["number", "null"] }
       }
     }
   },
