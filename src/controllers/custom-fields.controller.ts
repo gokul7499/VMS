@@ -396,7 +396,7 @@ export const getCustomFieldById = async (
         "field_type", "is_required", "module_id", "module_name",
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
-        "supporting_text", "linked_modules", "meta_data", "job_type","range_applicable",
+        "supporting_text", "linked_modules", "meta_data", "job_type","range_applicable"
       ],
     });
 
