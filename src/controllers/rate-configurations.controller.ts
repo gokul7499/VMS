@@ -865,7 +865,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                     name: null,
                     is_shift_rate: is_shift_rate,
                     hierarchies: hierarchyDetails,
-                    rate_configurations: rateConfigurations
+                    rate_configuration: rateConfigurations
                 }],
             });
         }
