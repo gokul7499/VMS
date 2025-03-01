@@ -16,6 +16,7 @@ import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
 import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
+import JobCategoryModel from "../models/job-category.model";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(
@@ -23,6 +24,7 @@ export async function createCandidate(
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
+    console.log("candidate",request.body)
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
     const vendor = await ProgramVendor.findOne({
@@ -337,9 +339,9 @@ export async function getCandidateByIdAndProgramId(
             },
             include: [
                 {
-                    model: IndustriesModel,
+                    model: JobCategoryModel,
                     as: 'job_category',
-                    attributes: ['id', 'name'],
+                    attributes: ['id', 'title'],
                 },
                 {
                     model: JobTemplateModel,
@@ -372,9 +374,13 @@ export async function getCandidateByIdAndProgramId(
         }
 
         if (candidateData.job_category) {
-            candidateData.job_category_id = candidateData.job_category;
+            candidateData.job_category_id = {
+                id: candidateData.job_category.id,
+                name: candidateData.job_category.title 
+            };
             delete candidateData.job_category;
         }
+        
 
         const vendor = await ProgramVendor.findOne({
             where: { tenant_id: candidateData.vendor_id, program_id: program_id },

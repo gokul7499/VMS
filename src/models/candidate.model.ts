@@ -7,6 +7,7 @@ import { ProgramVendor } from "./program-vendor.model";
 import Tenant from "./tenant.model";
 import IndustriesModel from "./labour-category.model";
 import JobTemplateModel from "./job-template.model";
+import JobCategoryModel from "./job-category.model";
 class Candidate extends Model {
     id: any;
     qualifications: any;
@@ -218,7 +219,7 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category_id', as: 'job_category' });
+Candidate.belongsTo(JobCategoryModel, { foreignKey: 'job_category_id', as: 'job_category' });
 Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;
