@@ -12,7 +12,7 @@ export const updateJob = async (
   try {
     const response = await axios.put(
       `${sourcing_url}/v1/api/program/${program_id}/job/${id}`,
-      { status: status, modified_on: Date.now() },
+      { status: status, updated_on: Date.now() },
       {
         headers: {
           'Content-Type': 'application/json',

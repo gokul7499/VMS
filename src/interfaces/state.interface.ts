@@ -4,7 +4,7 @@ export interface stateInterface {
     name?: string;
     code?: string;
     created_by?: any;
-    modified_by?: any;
+    updated_by?: any;
     ref_id?: string;
     is_enabled: boolean;
     is_deleted: boolean;

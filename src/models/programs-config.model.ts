@@ -85,20 +85,6 @@ ProgramsConfig.init(
       type: DataTypes.STRING(255),
       allowNull: false,
     },
-    created_by: {
-      type: DataTypes.CHAR(36),
-      allowNull: false,
-    },
-    created_on: {
-      type: DataTypes.DOUBLE,
-    },
-    modified_by: {
-      type: DataTypes.CHAR(36),
-      allowNull: false,
-    },
-    modified_on: {
-      type: DataTypes.DOUBLE,
-    },
     sr_Number: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -117,7 +103,23 @@ ProgramsConfig.init(
     configuration_id: {
       type: DataTypes.UUID,
       allowNull: true
-    }
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+	  allowNull : true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+	  allowNull:true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     sequelize,

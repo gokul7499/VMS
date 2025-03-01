@@ -16,10 +16,10 @@ export interface CustomFields {
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  created_on:any;
-  updated_on: any;
+  created_on: number;
+  updated_on: number;
   created_by: string;
-  updated_by:string;
+  updated_by: string;
   can_view: JSON;
   can_edit: JSON;
   job_type: JSON;
@@ -95,8 +95,8 @@ export const createCustomFieldsSchema = {
     is_required: { type: 'boolean' },
     is_readonly: { type: 'boolean' },
     is_linked: { type: 'boolean' },
-    job_type: { type: ['array', 'null'] },
-    decimal_place: { type: 'string', pattern: '^[0-9]+$' }, 
+    job_type: { type: 'array', items: { type: 'string' } },
+    decimal_place: { type: 'string', pattern: '^[0-9]+$' },
     is_range_required: { type: 'boolean' },
     meta_data: {
       type: 'object',

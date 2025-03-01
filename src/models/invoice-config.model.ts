@@ -92,7 +92,7 @@ InvoiceConfigModel.init(
             allowNull: true,
         },
         rollup_group: {
-            type: DataTypes.ENUM('hierarchy', 'vendor', 'program'),
+            type: DataTypes.ENUM('hierarchy', 'vendor', 'program', 'hierarchy_vendor'),
             allowNull: true,
         },
         consolidated_start_number: {
