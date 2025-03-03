@@ -335,9 +335,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-
     const userId = user?.sub;
-
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const { decision_table, is_enabled, ...rateCardUpdates } = request.body as any;
@@ -356,8 +354,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-
-        // Update the Rate Card
         await RateCard.update(
             {
                 ...rateCardUpdates,
@@ -373,7 +369,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 where: { rate_card_id: id },
                 transaction,
             });
-
             for (const dt of decision_table) {
                 const existingEntry = await DecisionTable.findOne({
                     where: {
@@ -386,7 +381,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                     },
                     transaction,
                 });
-
                 if (existingEntry) {
                     await transaction.rollback();
                     return reply.status(400).send({
@@ -395,7 +389,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         trace_id: traceId,
                     });
                 }
-
                 await DecisionTable.create(
                     {
                         id: dt.id,
