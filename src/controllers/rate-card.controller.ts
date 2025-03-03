@@ -325,21 +325,28 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
+
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
+    
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
+
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const { decision_table, is_enabled, ...rateCardUpdates } = request.body as any;
+
         const rateCard = await RateCard.findOne({
             where: { id, program_id, is_deleted: false },
+            transaction,
         });
+
         if (!rateCard) {
             await transaction.rollback();
             return reply.status(400).send({
@@ -350,6 +357,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
             });
         }
 
+        // Update the Rate Card
         await RateCard.update(
             {
                 ...rateCardUpdates,
@@ -357,13 +365,15 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 updated_by: userId,
                 updated_on: Date.now(),
             },
-            {
-                where: { id, program_id, is_deleted: false },
-                transaction,
-            }
+            { where: { id, program_id, is_deleted: false }, transaction }
         );
 
         if (decision_table && Array.isArray(decision_table)) {
+            await DecisionTable.destroy({
+                where: { rate_card_id: id },
+                transaction,
+            });
+
             for (const dt of decision_table) {
                 const existingEntry = await DecisionTable.findOne({
                     where: {
@@ -397,8 +407,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
-                        created_on: dt.created_on,
-                        updated_on: dt.updated_on,
                     },
                     { transaction }
                 );
@@ -420,6 +428,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
+
 
 
 export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
