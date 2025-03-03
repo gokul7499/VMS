@@ -2375,29 +2375,38 @@ export const getPendingUserQuery = `
       FROM work_locations
       WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids,
-    COALESCE((
+COALESCE((
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
           'master_data', JSON_OBJECT(
             'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
-            'name', mdt.name,
-            'configuration', mdt.configuration
+            'name', mdt.name
           ),
-  'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')) = 'true',
-
-          'default_master_data', JSON_OBJECT(
-            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')),
-            'name', default_mdt.name
-          ),
-          'associated_master_data', (
-            SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'id', associated_mdt.id,
-                'name', associated_mdt.name
+          'default_master_data', COALESCE(
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'id', dmdt.id,
+                  'name', dmdt.name
+                )
               )
-            )
-            FROM master_data AS associated_mdt
-            WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.associated_master_data')), JSON_QUOTE(associated_mdt.id))
+              FROM master_data AS dmdt
+              WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')), JSON_QUOTE(dmdt.id))
+            ),
+            JSON_ARRAY()
+        ),
+          'associated_master_data', COALESCE(
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'id', associated_mdt.id,
+                  'name', associated_mdt.name
+                )
+              )
+              FROM master_data AS associated_mdt
+              WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.associated_master_data')), JSON_QUOTE(associated_mdt.id))
+            ),
+            JSON_ARRAY()
           )
         )
       )
@@ -2407,11 +2416,11 @@ export const getPendingUserQuery = `
         SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
         UNION ALL
         SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
-        -- Add more UNION ALL statements if you expect more entries
       ) AS fd
       JOIN master_data_type AS mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
-      JOIN master_data AS default_mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')) = default_mdt.id
+      LEFT JOIN master_data AS default_mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')) = default_mdt.id
     ), JSON_ARRAY()) AS foundational_data
+
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id

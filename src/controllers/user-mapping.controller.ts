@@ -367,7 +367,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                         )
                         LIMIT 1
                     ),
-                    'contacts', u.contacts,
+                    'contacts', COALESCE(u.contacts, JSON_ARRAY()),
                     'updated_by', u.updated_by,
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
                     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name),
