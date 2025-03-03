@@ -282,6 +282,7 @@ async getAllJobTemplateByHierarchy(
         job_templates.ot_exempt,
         job_templates.created_on,
         job_templates.updated_on,
+        job_templates.checklist_entity_id,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
