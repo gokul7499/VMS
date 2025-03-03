@@ -614,7 +614,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         });
 
         if (search) {
-            vendorFilterQuery += ` AND vendor_name LIKE :search`;
+            vendorFilterQuery += ` AND display_name LIKE :search`;
             vendorReplacements['search'] = `%${search}%`;
         }
 
