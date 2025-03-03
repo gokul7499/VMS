@@ -337,9 +337,12 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
         const { decision_table, is_enabled, ...rateCardUpdates } = request.body as any;
+
         const rateCard = await RateCard.findOne({
             where: { id, program_id, is_deleted: false },
+            transaction,
         });
+
         if (!rateCard) {
             await transaction.rollback();
             return reply.status(400).send({
@@ -349,7 +352,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 rate_cards: [],
             });
         }
-
         await RateCard.update(
             {
                 ...rateCardUpdates,
@@ -357,13 +359,14 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                 updated_by: userId,
                 updated_on: Date.now(),
             },
-            {
-                where: { id, program_id, is_deleted: false },
-                transaction,
-            }
+            { where: { id, program_id, is_deleted: false }, transaction }
         );
 
         if (decision_table && Array.isArray(decision_table)) {
+            await DecisionTable.destroy({
+                where: { rate_card_id: id },
+                transaction,
+            });
             for (const dt of decision_table) {
                 const existingEntry = await DecisionTable.findOne({
                     where: {
@@ -376,7 +379,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                     },
                     transaction,
                 });
-
                 if (existingEntry) {
                     await transaction.rollback();
                     return reply.status(400).send({
@@ -385,7 +387,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         trace_id: traceId,
                     });
                 }
-
                 await DecisionTable.create(
                     {
                         id: dt.id,
@@ -420,6 +421,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
+
 
 
 export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
