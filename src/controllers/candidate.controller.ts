@@ -335,18 +335,13 @@ export async function getCandidateByIdAndProgramId(
                 is_deleted: false
             },
             attributes: {
-                exclude: ['country_id', 'job_category_id', 'title']
+                exclude: ['country_id', 'job_category_id']
             },
             include: [
                 {
                     model: JobCategoryModel,
                     as: 'job_category',
                     attributes: ['id', 'title'],
-                },
-                {
-                    model: JobTemplateModel,
-                    as: 'job_templates',
-                    attributes: ['id', 'template_name'],
                 },
                 {
                     model: countriesModel,
@@ -367,11 +362,6 @@ export async function getCandidateByIdAndProgramId(
         }
 
         const candidateData = candidate.toJSON();
-
-        if (candidateData.job_templates) {
-            candidateData.title = candidateData.job_templates;
-            delete candidateData.job_templates;
-        }
 
         if (candidateData.job_category) {
             candidateData.job_category_id = {

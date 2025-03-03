@@ -129,11 +129,7 @@ Candidate.init(
         },
         title: {
             type: DataTypes.STRING,
-            allowNull: true,
-            references: {
-                model: "job_templates",
-                key: "id",
-            },
+            allowNull: true
         },
         is_active: {
             type: DataTypes.BOOLEAN,
@@ -220,6 +216,5 @@ Candidate.init(
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
 Candidate.belongsTo(JobCategoryModel, { foreignKey: 'job_category_id', as: 'job_category' });
-Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;
