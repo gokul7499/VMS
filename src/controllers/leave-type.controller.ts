@@ -33,7 +33,7 @@ export async function createLeaveType(request: FastifyRequest, reply: FastifyRep
                 message: "Name already exist"
             });
         }
-        const item: any = await LeaveTypeModel.create({ ...leaveType, created_by: userId, modified_by: userId });
+        const item: any = await LeaveTypeModel.create({ ...leaveType, created_by: userId, updated_by: userId });
         reply.status(201).send({
             status_code: 201,
             id: item.id,
@@ -54,8 +54,8 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
     try {
     
         const query = request.query as any;
-        const pageNumber = query.page ? parseInt(query.page, 10) : 1;
-        const pageSize = query.limit ? parseInt(query.limit, 10) : 10;
+        const pageNumber = query.page ? parseInt(query.page, 50) : 1;
+        const pageSize = query.limit ? parseInt(query.limit, 50) : 50;
 
         
         if (isNaN(pageNumber) || pageNumber < 1) {
