@@ -293,7 +293,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                     hierarchy: dt.hierarchy || { id: "any", name: "any" },
                     job_template: dt.job_template || { id: "any", template_name: "any" },
                     rate_type: dt.rate_type || { id: "any", name: "any" },
-                    currency: currencyDetails || { id: "any", name: "any", label: "any", symbol: "$" },
+                    currency: currencyDetails || { id: "any", name: "Any", label: "Any", symbol: "$" },
                     unit_of_measure: dt.unit_of_measure || "any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
