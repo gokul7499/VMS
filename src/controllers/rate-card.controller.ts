@@ -325,11 +325,9 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
-    
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
@@ -400,6 +398,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
+                        created_on: dt.created_on,
+                        updated_on: dt.updated_on,
                     },
                     { transaction }
                 );
