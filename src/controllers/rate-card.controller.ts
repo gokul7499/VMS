@@ -133,8 +133,8 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         });
 
         if (!rateCards.length) {
-            return reply.status(400).send({
-                status_code: 400,
+            return reply.status(200).send({
+                status_code: 200,
                 total_records: totalRecords,
                 total_pages: totalPages,
                 current_page: parsedPage,
