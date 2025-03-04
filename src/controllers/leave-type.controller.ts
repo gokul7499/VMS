@@ -54,8 +54,8 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
     try {
     
         const query = request.query as any;
-        const pageNumber = query.page ? parseInt(query.page, 10) : 1;
-        const pageSize = query.limit ? parseInt(query.limit, 10) : 10;
+        const pageNumber = query.page ? parseInt(query.page, 50) : 1;
+        const pageSize = query.limit ? parseInt(query.limit, 50) : 50;
 
         
         if (isNaN(pageNumber) || pageNumber < 1) {
