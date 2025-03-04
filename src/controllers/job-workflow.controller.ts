@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getWorkflowDetails } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -787,7 +787,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 console.log("Manager data is missing or email not found.");
             }
             let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
-
+            const vendorExistence = await isVendorRequired(eventCode.eventCode);
+            if (vendorExistence === true) {
+                program_id ? mspUserData.push(...(await getProgramVendorsEmail(program_id))) : null;
+            }
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
                 for (const user of mspUserData) {
