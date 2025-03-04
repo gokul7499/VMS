@@ -285,16 +285,22 @@ JobTemplateModel.init(
         hooks: {
             beforeValidate: async (instance) => {
                 convertEmptyStringsToNull(instance);
-                if (!instance.job_id && instance.program_id) {
+                if (!instance.job_id && instance.program_id) {  
                     const program = await Programs.findByPk(instance.program_id);
-
                     if (program?.display_name) {
                         const programPrefix = program.display_name.substring(0, 3).toUpperCase();
-                        const count = await JobTemplateModel.count({
+                                    const lastJob = await JobTemplateModel.findOne({
                             where: { program_id: instance.program_id },
+                            order: [['created_on', 'DESC']],
+                            attributes: ['job_id'],
                         });
-                        const sequence = (count + 1).toString().padStart(3, '0');
-                        instance.job_id = `${programPrefix}-JT-${sequence}`;
+                        let nextSequence = '001';
+                        if (lastJob?.job_id) {
+                            const lastSequence = parseInt(lastJob.job_id.split('-JT-')[1], 10);
+                            nextSequence = (lastSequence + 1).toString().padStart(3, '0');
+                        }
+            
+                        instance.job_id = `${programPrefix}-JT-${nextSequence}`;
                     }
                 }
             },

@@ -3,7 +3,7 @@ import ReasonCodeActionModel from '../models/reason-code-action.model';
 import { ReasonCode } from '../interfaces/reason-code.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Module } from '../models/module.model';
-import { Op, where } from 'sequelize';
+import { Op, Sequelize, where } from 'sequelize';
 import Event from '../models/event.model';
 import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
@@ -131,10 +131,15 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
                     required: false,
                 },
             ],
-            order: [['created_on', 'DESC']],
+            order: [
+                [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'], // Place NULL modules last
+                [{ model: Module, as: 'module' }, 'name', 'ASC'],
+                ['updated_on', 'DESC'], 
+            ],
             limit: limitNumber,
             offset,
         });
+        
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
             const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
