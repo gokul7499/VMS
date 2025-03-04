@@ -7,6 +7,7 @@ import generateSlug from "../plugins/slugGenerate";
 class LeaveTypeModel extends Model {
     name!: string;
     slug!: string;
+    id! : any 
 }
 
 LeaveTypeModel.init({
