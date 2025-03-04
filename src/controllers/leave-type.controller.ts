@@ -55,11 +55,9 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
     try {
         const query = request.query as any;
         
-        // Fix: Correct parameter names
         const pageNumber = query.page ? parseInt(query.page, 10) : 1; 
         const pageSize = query.limit ? parseInt(query.limit, 10) : 10; 
 
-        // Validate page and limit
         if (isNaN(pageNumber) || pageNumber < 1) {
             return reply.status(400).send({
                 status_code: 400,
@@ -76,12 +74,11 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
             });
         }
 
-        // Fix: Pagination calculation
         const offset = (pageNumber - 1) * pageSize;
         const { count, rows: leaveTypes } = await LeaveTypeModel.findAndCountAll({
             order: [["name", "ASC"]],
             limit: pageSize,
-            offset: offset, // Ensure offset is correctly calculated
+            offset: offset, 
         });
 
         return reply.status(200).send({
