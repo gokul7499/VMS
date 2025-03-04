@@ -227,7 +227,7 @@ export const complianceDocumentGetByUserId = `
         user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         -- Added name filter condition
         AND (:name IS NULL OR vcd.name LIKE :name)
         -- Added is_enabled filter condition
@@ -288,7 +288,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
