@@ -185,6 +185,8 @@ async getAllJobTemplateByHierarchy(
       MIN(job_templates.program_id) AS program_id,
       MIN(job_templates.job_type) AS job_type,
       MIN(job_templates.description) AS description,
+      MIN(job_templates.checklist_version) AS checklist_version,
+      MIN(job_templates.checklist_entity_id) AS checklist_entity_id,
       MIN(job_templates.template_code) AS template_code,
       MIN(job_category.title) AS job_category,
       MIN(labour_category.name) AS labour_category_name,
@@ -282,6 +284,7 @@ async getAllJobTemplateByHierarchy(
         job_templates.ot_exempt,
         job_templates.created_on,
         job_templates.updated_on,
+        job_templates.checklist_entity_id,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title

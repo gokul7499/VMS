@@ -1,3 +1,5 @@
+import { Json } from "sequelize/types/utils";
+
 export interface CustomFields {
   hierarchy_ids: never[];
   id: string;
@@ -11,14 +13,15 @@ export interface CustomFields {
   is_all_work_location: boolean;
   is_all_hierarchy: boolean;
   supporting_text: string;
+  range_applicable: Json;
   description: string | null;
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  created_on:any;
-  updated_on: any;
+  created_on: number;
+  updated_on: number;
   created_by: string;
-  updated_by:string;
+  updated_by: string;
   can_view: JSON;
   can_edit: JSON;
   job_type: JSON;
@@ -94,8 +97,9 @@ export const createCustomFieldsSchema = {
     is_required: { type: 'boolean' },
     is_readonly: { type: 'boolean' },
     is_linked: { type: 'boolean' },
-    job_type: { type: ['array', 'null'] },
-    decimal_place: { type: 'string', pattern: '^[0-9]+$' }, 
+    job_type: { type: 'array', items: { type: 'string' } },
+    decimal_place: { type: 'string', pattern: '^[0-9]+$' },
+    is_range_required: { type: 'boolean' },
     meta_data: {
       type: 'object',
       properties: {
@@ -127,6 +131,17 @@ export const createCustomFieldsSchema = {
           can_view: { type: ['string', 'null'] },
           can_edit: { type: ['string', 'null'] }
         },
+      }
+    },
+    range_applicable:{
+      type:'object',
+      properties:{
+        is_range_required: {
+          type: "boolean",
+          default: false
+        },
+        min_range: { "type": ["number", "null"] },
+        max_range: { "type": ["number", "null"] }
       }
     }
   },

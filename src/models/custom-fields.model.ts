@@ -150,6 +150,10 @@ CustomField.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    range_applicable:{
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     created_on: {
       type: DataTypes.DOUBLE,
       allowNull: true
