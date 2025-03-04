@@ -8,13 +8,14 @@ import SowTemplateMasterDataModel from '../models/sow_temp_master_data.model';
 import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model';
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
+import { SowTemplate } from '../interfaces/sow_template.interface';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) {
     const program_id = request.params.program_id;
-    const sowTemplate = request.body as SowTemplateModel;
+    const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
