@@ -1,8 +1,9 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import SowTempleteModel from './sow_templete.model';
+import SowTempleteModel from './sow_template.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import CustomField from './custom-fields.model';
 
 class SowTemplateCustomFieldsModel extends Model {
     id: any;
@@ -31,6 +32,10 @@ SowTemplateCustomFieldsModel.init(
         custom_field_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            references:{
+                model:CustomField,
+                key:'id'
+            }
         },
         value: {
             type: DataTypes.STRING,

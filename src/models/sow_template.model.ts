@@ -1,7 +1,8 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
+import { Programs } from './programs.model';
 
-class SowTempleteModel extends Model {
+class SowTemplateModel extends Model {
     id: any;
     created_on!: string;
     updated_on!: Date;
@@ -11,7 +12,7 @@ class SowTempleteModel extends Model {
     masterData: any;
 }
 
-SowTempleteModel.init(
+SowTemplateModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -22,6 +23,10 @@ SowTempleteModel.init(
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            references:{
+                model:Programs,
+                key:'id'
+            }
         },
         type: {
             type: DataTypes.STRING,
@@ -104,4 +109,4 @@ SowTempleteModel.init(
     });
 
 sequelize.sync();
-export default SowTempleteModel;
+export default SowTemplateModel;

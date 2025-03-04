@@ -1,18 +1,20 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import SowTempleteModel from './sow_templete.model';
+import SowTemplateModel from './sow_template.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import { hierarchie } from '../utility/queries';
+import Hierarchies from './hierarchies.model';
 
 
-class SowTempleteHierarchyModel extends Model {
+class SowTemplateHierarchyModel extends Model {
     id: any;
     created_on!: string;
     updated_on!: string;
     hierarchy_id: any;
 }
 
-SowTempleteHierarchyModel.init(
+SowTemplateHierarchyModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -24,13 +26,17 @@ SowTempleteHierarchyModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: SowTempleteModel,
+                model: SowTemplateModel,
                 key: "id",
             },
         },
         hierarchy_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            references:{
+                model:Hierarchies,
+                key:'id'
+            }
         },
         created_on: {
             type: DataTypes.DATE,
@@ -56,5 +62,5 @@ SowTempleteHierarchyModel.init(
     });
 
 sequelize.sync();
-SowTempleteHierarchyModel.belongsTo(SowTempleteModel, { foreignKey: 'sow_template_id', as: 'sow_templates' });
-export default SowTempleteHierarchyModel;
+SowTemplateHierarchyModel.belongsTo(SowTemplateModel, { foreignKey: 'sow_template_id', as: 'sow_templates' });
+export default SowTemplateHierarchyModel;

@@ -1,18 +1,19 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance'
-import SowTempleteModel from './sow_templete.model';
+import SowTemplateModel from './sow_template.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import FoundationalDataTypes from './foundational-datatypes.model';
 
 
-class SowTempleteMasterDataModel extends Model {
+class SowTemplateMasterDataModel extends Model {
     id: any;
     created_on!: string;
     updated_on!: string;
     master_data_type_id: any;
     master_data: any;
 }
-SowTempleteMasterDataModel.init(
+SowTemplateMasterDataModel.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -24,13 +25,17 @@ SowTempleteMasterDataModel.init(
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: SowTempleteModel,
+                model: SowTemplateModel,
                 key: "id",
             },
         },
         master_data_type_id: {
             type: DataTypes.UUID,
             allowNull: true,
+            references:{
+                model:FoundationalDataTypes,
+                key:'id'
+            }
         },
         master_data: {
             type: DataTypes.JSON,
@@ -60,5 +65,5 @@ SowTempleteMasterDataModel.init(
     });
 
 sequelize.sync();
-SowTempleteMasterDataModel.belongsTo(SowTempleteModel, { foreignKey: 'sow_template_id', as: 'sow_templates' });
-export default SowTempleteMasterDataModel;
+SowTemplateMasterDataModel.belongsTo(SowTemplateModel, { foreignKey: 'sow_template_id', as: 'sow_templates' });
+export default SowTemplateMasterDataModel;

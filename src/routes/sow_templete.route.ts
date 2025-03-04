@@ -5,7 +5,7 @@ import {
     getSowTemplate,
     updateSowTemplate,
     deleteSowTemplate
-} from '../controllers/sow_templete.controller';
+} from '../controllers/sow_template.controller';
 
 export default async function sowTemplateRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/sow-template',  createSowTemplate);

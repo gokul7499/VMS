@@ -2,9 +2,9 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from 'sequelize';
-import SowTempleteModel from '../models/sow_templete.model';
-import SowTempleteHierarchyModel from '../models/sow_template_hierarchy.model';
-import SowTempleteMasterDataModel from '../models/sow_temp_master_data.model';
+import SowTemplateModel from '../models/sow_template.model';
+import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
+import SowTemplateMasterDataModel from '../models/sow_temp_master_data.model';
 import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model';
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
@@ -14,7 +14,7 @@ export async function createSowTemplate(
     reply: FastifyReply
 ) {
     const program_id = request.params.program_id;
-    const sowTemplate = request.body as SowTempleteModel;
+    const sowTemplate = request.body as SowTemplateModel;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -28,13 +28,13 @@ export async function createSowTemplate(
     }
     const userId = user?.sub;
     try {
-        const item = await SowTempleteModel.create({
+        const item = await SowTemplateModel.create({
             ...sowTemplate, program_id, created_by: userId,
             updated_by: userId,
         });
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
-                await SowTempleteHierarchyModel.create({
+                await SowTemplateHierarchyModel.create({
                     sow_template_id: item.id,
                     hierarchy_id: hierarchyId,
                     created_by: userId,
@@ -44,7 +44,7 @@ export async function createSowTemplate(
         }
         if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
             for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTempleteMasterDataModel.create({
+                await SowTemplateMasterDataModel.create({
                     sow_template_id: item.id,
                     master_data_type_id: masterDataId,
                     master_data: JSON.stringify({}),
@@ -218,7 +218,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
     const userId = request.headers['user_id'];
 
     try {
-        const template = await SowTempleteModel.findOne({ where: { id, program_id, is_deleted: false } });
+        const template = await SowTemplateModel.findOne({ where: { id, program_id, is_deleted: false } });
 
         if (!template) {
             return reply.status(200).send({
@@ -228,13 +228,13 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             });
         }
         await template.update(sowTemplate);
-        await SowTempleteHierarchyModel.destroy({ where: { sow_template_id: id } });
-        await SowTempleteMasterDataModel.destroy({ where: { sow_template_id: id } });
+        await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
+        await SowTemplateMasterDataModel.destroy({ where: { sow_template_id: id } });
         await SowTemplateCustomFieldsModel.destroy({ where: { sow_template_id: id } });
 
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
-                await SowTempleteHierarchyModel.create({
+                await SowTemplateHierarchyModel.create({
                     sow_template_id: id,
                     hierarchy_id: hierarchyId,
                     created_by: userId,
@@ -245,7 +245,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
             for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTempleteMasterDataModel.create({
+                await SowTemplateMasterDataModel.create({
                     sow_template_id: id,
                     master_data_type_id: masterDataId,
                     master_data: JSON.stringify({}),
@@ -287,7 +287,7 @@ export const deleteSowTemplate = async (request: FastifyRequest, reply: FastifyR
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string; program_id: string };
     try {
-        const template = await SowTempleteModel.findOne({ where: { id, program_id, is_deleted: false } });
+        const template = await SowTemplateModel.findOne({ where: { id, program_id, is_deleted: false } });
 
         if (!template) {
             return reply.status(200).send({ status_code: 200, message: 'SOW Template not found.', trace_id: traceId });
