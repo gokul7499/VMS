@@ -26,7 +26,25 @@ export const getSowTemplatesCountQuery = (whereClause: string) => `
 
 export const getSowTemplateByIdQuery = `
     SELECT 
-        t.*, 
+        t.id,
+        t.type,
+        t.template_title,
+        t.description,
+        t.is_sow_assinment,
+        t.is_sow_expense,
+        t.is_sow_milestones,
+        t.is_sow_payment_req,
+        t.is_sow_schedule_payments,
+        t.is_sow_desc_mandatory,
+        t.upload_description,
+        t.is_update_sow_desc,
+        t.is_req_doc_mandatory,
+        t.is_deleted,
+        t.program_id,
+        t.created_by,
+        t.updated_by,
+        DATE_FORMAT(t.created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
+        DATE_FORMAT(t.updated_on, '%Y-%m-%d %H:%i:%s') AS updated_on,
         COALESCE((
             SELECT JSON_ARRAYAGG(JSON_OBJECT(
                 'id', h.hierarchy_id,
