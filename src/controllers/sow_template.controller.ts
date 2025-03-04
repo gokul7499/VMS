@@ -136,6 +136,15 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
 
+        const filteredTemplates = templates.map(template => ({
+            id: template.id,
+            program_id: template.program_id,
+            type: template.type,
+            template_title: template.template_title,
+            description: template.description,
+            hierarchy: template.hierarchy
+        }));
+
         reply.status(200).send({
             status_code: 200,
             message: 'SOW Templates retrieved successfully.',
@@ -143,7 +152,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             total_records: totalRecords,
             page: pageNumber,
             limit: limitNumber,
-            data: templates,
+            data: filteredTemplates,
             trace_id: traceId,
         });
     } catch (error: any) {
@@ -155,7 +164,6 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
-
 
 
 export const getSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
