@@ -48,16 +48,18 @@ export async function createLeaveType(request: FastifyRequest, reply: FastifyRep
     }
 }
 
+
 export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
 
     try {
-    
         const query = request.query as any;
-        const pageNumber = query.page ? parseInt(query.page, 50) : 1;
-        const pageSize = query.limit ? parseInt(query.limit, 50) : 50;
-
         
+        // Fix: Correct parameter names
+        const pageNumber = query.page ? parseInt(query.page, 10) : 1; 
+        const pageSize = query.limit ? parseInt(query.limit, 10) : 10; 
+
+        // Validate page and limit
         if (isNaN(pageNumber) || pageNumber < 1) {
             return reply.status(400).send({
                 status_code: 400,
@@ -74,18 +76,17 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
             });
         }
 
+        // Fix: Pagination calculation
         const offset = (pageNumber - 1) * pageSize;
         const { count, rows: leaveTypes } = await LeaveTypeModel.findAndCountAll({
             order: [["name", "ASC"]],
             limit: pageSize,
-            offset: offset,
+            offset: offset, // Ensure offset is correctly calculated
         });
 
-        reply.status(200).send({
+        return reply.status(200).send({
             status_code: 200,
-            message: leaveTypes.length === 0
-                ? "No Leave types found"
-                : "Leave types fetched successfully..!",
+            message: leaveTypes.length === 0 ? "No Leave types found" : "Leave types fetched successfully..!",
             leave_types: leaveTypes,
             trace_id: traceId,
             pagination: {
@@ -97,7 +98,6 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
         });
 
     } catch (error) {
-
         const err = error as Error;
         return reply.status(500).send({
             status_code: 500,
@@ -107,4 +107,5 @@ export const getLeaveTypes = async (request: FastifyRequest, reply: FastifyReply
         });
     }
 };
+
 
