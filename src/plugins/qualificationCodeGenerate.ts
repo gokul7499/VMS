@@ -13,16 +13,12 @@ export const generateQualificationCode = async (qualification_type_id: string, t
 
     const qualificationTypePrefix = qualificationType.name.substring(0, 2).toUpperCase();
 
-    // Function to generate title prefix based on title input
     const generateTitlePrefix = (title: string) => {
-        if (title.includes(' ') || title.includes('_')) {
-            return title
-                .split(/[\s_]+/) // Split by space or underscore
-                .map(word => word.charAt(0).toUpperCase()) // Take the first character of each word
-                .join(''); // Join them together
-        } else {
-            return title.substring(0, 2).toUpperCase(); // Take the first two characters if no space or underscore
-        }
+        const words = title.trim().split(/[\s_]+/); // Split by space or underscore
+        return words
+            .slice(0, 2) // Take the first two words
+            .map(word => word.charAt(0).toUpperCase()) // Take the first letter of each word
+            .join(''); // Join them together
     };
 
     const titlePrefix = generateTitlePrefix(title);

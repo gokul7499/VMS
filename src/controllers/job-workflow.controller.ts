@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getWorkflowDetails } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -2988,17 +2988,31 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 
         // 4. Create event code
         const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
+        const workflowDetails = await getWorkflowDetails(sequelize, workflow.job_workflow_id);
 
+        let payload;
+        if (workflowDetails) {
+            const { job_id, first_name, last_name, email, unique_key } = workflowDetails;
+            payload = {
+                job_id: workflowDetails?.job_id,
+                user_type: user?.userType,
+                candidate_first_name: workflowDetails?.first_name,
+                candidate_last_name: workflowDetails?.last_name,
+                submission_id: workflowDetails?.unique_key,
+                offer_id: workflowDetails?.offer_code
+            }
+
+        } else {
+            console.error('workflowDetails is undefined or missing required properties');
+        }
         // 5. Create the notification payload
+
         const notificationPayloads: NotificationDataPayload = {
             program_id,
             traceId,
             eventCode,
             recipientEmail: recipientEmails,
-            payload: {
-                job_id: workflow.event_title,
-                user_type: user?.userType,
-            },
+            payload,
             token,
             userId: user?.sub ?? "",
         };
@@ -3006,6 +3020,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         // 6. Send notifications
         await sendNotification(notificationPayloads);
         console.log("notificationPayloads", notificationPayloads);
+
 
         // 7. Log the notification
         await sendNotificationModel.create({
