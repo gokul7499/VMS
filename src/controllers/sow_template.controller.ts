@@ -115,11 +115,12 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             replacements.template_title = `%${template_title}%`;
         }
         if (hierarchy_id) {
+            const hierarchyIdsArray = hierarchy_id.split(',');
             whereClause += ` AND EXISTS (
                 SELECT 1 FROM sow_template_hierarchy h 
-                WHERE h.sow_template_id = t.id AND h.hierarchy_id = :hierarchy_id
+                WHERE h.sow_template_id = t.id AND h.hierarchy_id IN (:hierarchyIds)
             )`;
-            replacements.hierarchy_id = hierarchy_id;
+            replacements.hierarchyIds = hierarchyIdsArray;
         }
 
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
