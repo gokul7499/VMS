@@ -10,6 +10,7 @@ import { Op, QueryTypes } from 'sequelize';
 import { timesheetConfigAdvancedFilter } from '../utility/queries';
 import hierarchies from '../models/hierarchies.model';
 import { decodeToken } from '../middlewares/verifyToken';
+import generateSlug from '../plugins/slugGenerate';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -22,47 +23,60 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
+        const user: any = await decodeToken(token);
         if (!user) {
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
+
         const userId = user?.sub;
-        console.log("uuu", userId)
+
         if (data.allow_timesheet_to_be_submitted) {
             data.allow_timesheet_to_be_submitted = data.allow_timesheet_to_be_submitted
                 .toLowerCase()
-                .replace(/\s+/g, '_'); 
+                .replace(/\s+/g, '_');
         }
-        const existingConfig = await TimesheetTypeConfig.findOne({
-            where: {
-                program_id,
-                title: data.title,
-            },
+
+        const slug = generateSlug(data.title ?? '', { lowercase: true, removedspecial: true });
+
+        const existingConfigConditions = [
+            { title: data.title },
+            { slug },
+        ];
+
+        for (const condition of existingConfigConditions) {
+            const existingConfig = await TimesheetTypeConfig.findOne({
+                where: {
+                    program_id,
+                    ...condition,
+                },
+            });
+            if (existingConfig) {
+                return reply.status(409).send({
+                    status_code: 409,
+                    trace_id: traceId,
+                    message: `Timesheet type config with the same ${Object.keys(condition)[0]} already exists.`,
+                });
+            }
+        }
+
+        const newConfig = await TimesheetTypeConfig.create({
+            program_id,
+            slug,
+            created_by: userId,
+            updated_by: userId,
+            ...data,
         });
 
-        if (existingConfig) {
-            return reply.status(409).send({
-                status_code: 409,
-                trace_id: traceId,
-                message: "Timesheet type config with the same name already exists."
-            });
-        }
-        const newConfig = await TimesheetTypeConfig.create(
-            {
-                program_id, ...data, created_by: userId,
-                updated_by: userId,
-            },
-        );
-        reply.status(201).send({
+        return reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
             message: 'Timesheet type config created successfully.',
             id: newConfig.id,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            traceId: traceId,
+            trace_id: traceId,
             message: 'Error while creating timesheet type config.',
             error: error.message,
         });
