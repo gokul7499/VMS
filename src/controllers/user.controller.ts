@@ -888,13 +888,12 @@ export async function getActiveUser(
       arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
       replacements.hierarchy_id = JSON.stringify(arrayOfHierarchy);
     }
-    else if (userType === "super_admin" || userType === "super_user") {
+    else if (userType === "super_user") {
       replacements.hierarchy_id = null;
       const users = await sequelize.query(getActiveUsers, {
         replacements,
         type: QueryTypes.SELECT,
       });
-
       return reply.code(200).send({
         status_code: 200,
         message: users.length > 0 ? "Get active user data" : "No matching records found.",
