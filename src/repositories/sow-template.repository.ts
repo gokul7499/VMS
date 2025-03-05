@@ -45,7 +45,7 @@ export const getSowTemplateByIdQuery = `
     t.type,
     t.template_title,
     t.description,
-    t.is_sow_assinment,
+    t.is_sow_assignment,
     t.is_sow_expense,
     t.is_sow_milestones,
     t.is_sow_payment_req,
