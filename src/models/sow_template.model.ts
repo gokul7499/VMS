@@ -40,7 +40,7 @@ SowTemplateModel.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
-        is_sow_assinment: {
+        is_sow_assignment: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
