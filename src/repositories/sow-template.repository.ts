@@ -5,8 +5,8 @@ SELECT
     t.type,
     t.template_title,
     t.description,
-    DATE_FORMAT(t.created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
-    DATE_FORMAT(t.updated_on, '%Y-%m-%d %H:%i:%s') AS updated_on,
+    t.created_on,
+    t.updated_on,
     COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
             'id', h.hierarchy_id,
@@ -58,8 +58,8 @@ export const getSowTemplateByIdQuery = `
     t.program_id,
     t.created_by,
     t.updated_by,
-    DATE_FORMAT(t.created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
-    DATE_FORMAT(t.updated_on, '%Y-%m-%d %H:%i:%s') AS updated_on,
+    t.created_on,
+    t.updated_on
 
     -- Existing hierarchy, custom_fields, and master_data
     COALESCE((
