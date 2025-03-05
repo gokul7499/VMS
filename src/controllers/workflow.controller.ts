@@ -377,22 +377,44 @@ export async function deleteWorkflow(
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
+
         const workFlowData = await WorkFlow.findOne({ where: { program_id, id } });
-        if (workFlowData) {
-            await WorkFlow.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
-            reply.status(200).send({
-                status_code: 200,
-                workflow: id,
-                message: 'Workflow deleted successfully.',
-                trace_id: traceId,
-            });
-        } else {
-            reply.status(404).send({
+
+        if (!workFlowData) {
+            return reply.status(404).send({
                 status_code: 404,
                 message: 'Workflow not found.',
                 trace_id: traceId
             });
         }
+
+        const { module, event_id, method_id } = workFlowData;
+
+        await WorkFlow.update(
+            { is_deleted: true, is_enabled: false },
+            { where: { program_id, id } }
+        );
+
+        await WorkFlow.decrement(
+            { flow_count: 1 },
+            {
+                where: {
+                    program_id,
+                    module,
+                    event_id,
+                    method_id,
+                    is_deleted: false
+                }
+            }
+        );
+
+        reply.status(200).send({
+            status_code: 200,
+            workflow: id,
+            message: 'Workflow deleted successfully',
+            trace_id: traceId,
+        });
+
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
