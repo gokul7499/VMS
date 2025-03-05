@@ -59,8 +59,7 @@ export const getSowTemplateByIdQuery = `
     t.created_by,
     t.updated_by,
     t.created_on,
-    t.updated_on
-
+    t.updated_on,
     -- Existing hierarchy, custom_fields, and master_data
     COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
