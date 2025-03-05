@@ -226,6 +226,10 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
+    date_format:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
     user_id: {
       type: DataTypes.UUID,
       allowNull: true
