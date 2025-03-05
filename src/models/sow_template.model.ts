@@ -119,7 +119,7 @@ SowTemplateModel.init(
                             attributes: ['code'],
                         });
         
-                        let nextSequence = '001'; // Default sequence if no previous code exists
+                        let nextSequence = '001'; 
         
                         if (lastSowTemplate?.code && lastSowTemplate.code.includes('-SOW-')) {
                             const codeParts = lastSowTemplate.code.split('-SOW-');
