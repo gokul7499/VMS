@@ -142,7 +142,9 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: template.type,
             template_title: template.template_title,
             description: template.description,
-            hierarchy: template.hierarchy
+            hierarchy: template.hierarchy,
+            created_on:template.created_on,
+            updated_on:template.updated_on
         }));
 
         reply.status(200).send({
