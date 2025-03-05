@@ -5,6 +5,7 @@ SELECT
     t.type,
     t.template_title,
     t.description,
+    t.code,
     t.created_on,
     t.updated_on,
     COALESCE((
@@ -27,7 +28,7 @@ SELECT
     ), NULL) AS picklist_items
 FROM sow_templates t
 WHERE ${whereClause}
-ORDER BY t.created_on DESC
+ORDER BY t.updated_on DESC
 LIMIT :limit OFFSET :offset;
 `;
 
@@ -42,6 +43,7 @@ export const getSowTemplatesCountQuery = (whereClause: string) => `
 export const getSowTemplateByIdQuery = `
    SELECT 
     t.id,
+    t.code,
     t.type,
     t.template_title,
     t.description,

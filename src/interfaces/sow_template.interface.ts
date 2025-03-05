@@ -1,6 +1,7 @@
 export interface SowTemplate {
     master_date_type: any;
     id: string;
+    code:string;
     program_id: string;
     type: string;
     template_title: string;
