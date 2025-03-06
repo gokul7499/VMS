@@ -10,6 +10,8 @@ class SowTemplateModel extends Model {
     master_date_type: any;
     hierarchy: any;
     masterData: any;
+    code: any;
+    program_id: any;
 }
 
 SowTemplateModel.init(
@@ -27,6 +29,11 @@ SowTemplateModel.init(
                 model:Programs,
                 key:'id'
             }
+        },
+        code: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique:true
         },
         type: {
             type: DataTypes.STRING,
@@ -102,10 +109,37 @@ SowTemplateModel.init(
         tableName: 'sow_templates',
         timestamps: false,
         hooks: {
+            beforeValidate: async (instance) => {
+                if (!instance.code && instance.program_id) {
+                    const program = await Programs.findByPk(instance.program_id);
+                    if (program?.display_name) {
+                        const programPrefix = program.display_name.substring(0, 3).toUpperCase();
+                        const lastSowTemplate = await SowTemplateModel.findOne({
+                            where: { program_id: instance.program_id },
+                            order: [['created_on', 'DESC']],
+                            attributes: ['code'],
+                        });
+        
+                        let nextSequence = '001'; 
+        
+                        if (lastSowTemplate?.code && lastSowTemplate.code.includes('-SOW-')) {
+                            const codeParts = lastSowTemplate.code.split('-SOW-');
+                            const lastSequence = parseInt(codeParts[1], 10);
+        
+                            if (!isNaN(lastSequence)) {
+                                nextSequence = (lastSequence + 1).toString().padStart(3, '0');
+                            }
+                        }
+        
+                        instance.code = `${programPrefix}-SOW-${nextSequence}`;
+                    }
+                }
+            },
             beforeUpdate: (instance) => {
                 instance.updated_on = new Date();
             },
-        },
+        }
+        
     });
 
 sequelize.sync();

@@ -197,12 +197,6 @@ TimesheetTypeConfig.init(
       },
       beforeSave: async (instance) => {
         beforeSave(instance);
-        if (instance.title) {
-          instance.slug = generateSlug(instance.title, {
-            lowercase: true,
-            removedspecial: true
-          });
-        }
       },
     },
   }
