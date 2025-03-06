@@ -2034,10 +2034,10 @@ ORDER BY
         await getLevelData(request, reply, rows, workflow, manager);
 
 
-        (async () => {
-            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        // (async () => {
+        //     let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
-        })();
+        // })();
         return reply.status(200).send({
             statusCode: 200,
             flowTypes: flowTypes,
