@@ -2034,10 +2034,10 @@ ORDER BY
         await getLevelData(request, reply, rows, workflow, manager);
 
 
-        // (async () => {
-        //     let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        (async () => {
+            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
-        // })();
+        })();
         return reply.status(200).send({
             statusCode: 200,
             flowTypes: flowTypes,
@@ -3012,15 +3012,15 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
             payload = {
                 job_id: jobDatas?.job_id,
                 job_url: jobDatas?.job_id
-                ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.id}/${jobDatas?.job_template_id}?detail=job-details`
-                : '',
+                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.id}/${jobDatas?.job_template_id}?detail=job-details`
+                    : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
                 submission_id: workflowDetails?.unique_key,
                 offer_id: offerData?.offer_code ?? "",
                 offer_url: offerData?.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.candidate_id}/job/${offerData?.id}?offerId=${offerData?.id}&detail=offer`
-                : '', 
+                    : '',
             }
 
         } else {
