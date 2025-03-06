@@ -697,7 +697,6 @@ export async function expenseConfigurationAdvancedFilter(
     }
 }
 
-
 export async function getExpenseTypesByProgramId(
     request: FastifyRequest,
     reply: FastifyReply
