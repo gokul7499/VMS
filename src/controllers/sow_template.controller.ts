@@ -139,6 +139,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         const filteredTemplates = templates.map(template => ({
             id: template.id,
+            code: template.code,
             program_id: template.program_id,
             type: template.type,
             template_title: template.template_title,
@@ -227,7 +228,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string; program_id: string };
-    const sowTemplate = request.body as any;
+    const sowTemplate = request.body as SowTemplate;
     const userId = request.headers['user_id'];
 
     try {

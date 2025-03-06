@@ -338,8 +338,8 @@ export async function listChecklists(
         Querystring: {
             name?: string;
         };
-        Params: { 
-            program_id: string 
+        Params: {
+            program_id: string
         };
     }>,
     reply: FastifyReply
@@ -347,32 +347,26 @@ export async function listChecklists(
     const { name } = request.query;
     const program_id = request.params.program_id;
     const traceId = generateCustomUUID();
-    try {
 
+    try {
         const whereConditions: any = {
             latest: true,
             is_enabled: true,
             program_id,
-            ...(!name ? {} : {name: { [Op.like]: `%${name}%` }})
+            ...(!name ? {} : { name: { [Op.like]: `%${name}%` } })
         };
 
         const checklists = await Checklist.findAll({
             where: whereConditions,
             order: [['name', 'ASC']],
-            attributes: [
-                'name', 'entity_id', 'version', 'version_id'
-            ],
+            attributes: ['name', 'entity_id', 'version', 'version_id'],
         });
-        if (!checklists.length) {
-            return reply.status(404).send({
-                status_code: 404,
-                message: 'No checklists found for the given filters.',
-                traceId: traceId,
-            });
-        }
+
         return reply.status(200).send({
             status_code: 200,
-            message: "Successfully fetched checklists for the program",
+            message: checklists.length
+                ? "Successfully fetched checklists for the program"
+                : "No checklists found for the given filters.",
             data: checklists,
             traceId: traceId,
         });
