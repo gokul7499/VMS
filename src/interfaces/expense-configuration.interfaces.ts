@@ -39,95 +39,43 @@ export const querySchema = {
 };
 
 export const createExpenseConfigurationSchema = {
-  type: 'object',
-  required: ['name'],
+  type: "object",
+  required: [ "name"],
   properties: {
-    name: { type: 'string' },
-    is_enabled: { type: 'boolean' },
+    program_id: { type: "string" },
+    id: { type: "string" },
+    name: { type: "string" },
     hierarchy: {
-      type: 'array',
+      type: "array",
     },
-    week_end_day: { type: 'string' },
-    master_data: {
-      type: 'object',
-      properties: {
-        is_enabled: { type: 'boolean' },
-        value: {
-          type: 'array',
-        }
+    is_enabled: { type: "boolean" },
+    weekending_day: {
+      type: "string",
+    },
+    mdt_display_headers: {
+      type: "object",
+    },
+    projects: {
+      type: "object",
+     
+    },
+    enable_thresholds: { type: "boolean" },
+    general_exp_incurred_submission: {
+      type: "object",
+    },
+    revoke_worker_access: {
+      type: "array",
+    },
+    general_exp_access_rules: {
+      type: "array",
+      items: {
+        type: "object",
       }
     },
-    project: {
-      type: 'object',
-      properties: {
-        is_enabled: { type: 'boolean' },
-        value: {
-          type: 'array',
-        }
-      }
-    },
-    thresholds: {
-      type: 'object',
-      properties: {
-        is_enable: { type: 'boolean' },
-        genaral_expense_sub: {
-          type: 'object',
-          required: ['type', 'value'],
-          properties: {
-            type: { type: 'string' },
-            value: { type: 'string' }
-          }
-        },
-        remove_msp_access_general: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' },
-            value: { type: 'string' }
-          }
-        },
-        remove_user_access_misc: {
-          type: 'object',
-          properties: {
-            msp: {
-              type: 'object',
-              properties: {
-                unit: { type: 'string' },
-                value: { type: ['string', 'null'] }
-              }
-            },
-            vendor: {
-              type: 'object',
-              properties: {
-                unit: { type: 'string' },
-                value: { type: ['string', 'null'] }
-              }
-            }
-          }
-        },
-        revoke_user_access: {
-          type: 'object',
-          properties: {
-            msp: {
-              type: 'object',
-              properties: {
-                unit: { type: 'string' },
-                value: { type: ['string', 'null'] }
-              }
-            },
-            vendor: {
-              type: 'object',
-              properties: {
-                unit: { type: 'string' },
-                value: { type: ['string', 'null'] }
-              }
-            }
-          }
-        }
-      }
-    }
+    misc_exp_access_rules: {
+      type: "object",
   }
-};
-
+}}
 
 export const createExpenseConfigurationAdvancedFilter = {
   type: 'object',
