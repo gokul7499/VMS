@@ -9,6 +9,7 @@ import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
+import Hierarchies from '../models/hierarchies.model';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -91,13 +92,17 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             limit = 10,
             type,
             template_title,
-            hierarchy_id
+            hierarchy_id,
+            code,
+            created_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
             type?: string;
             template_title?: string;
             hierarchy_id?: string;
+            code?: string;
+            created_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -106,22 +111,46 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         let whereClause = `t.program_id = :program_id AND t.is_deleted = false`;
         const replacements: any = { program_id, limit: limitNumber, offset };
+
         if (type) {
-            whereClause += ` AND t.type = :type`;
+            whereClause += ` AND EXISTS (
+                SELECT 1 
+                FROM dev_vms_configurator.picklistitems p
+                WHERE p.id = t.type 
+                AND p.label = :type
+            )`;
             replacements.type = type;
         }
+
         if (template_title) {
             whereClause += ` AND t.template_title LIKE :template_title`;
             replacements.template_title = `%${template_title}%`;
         }
-        if (hierarchy_id) {
-            whereClause += ` AND EXISTS (
-                SELECT 1 FROM sow_template_hierarchy h 
-                WHERE h.sow_template_id = t.id AND h.hierarchy_id = :hierarchy_id
-            )`;
-            replacements.hierarchy_id = hierarchy_id;
+
+        if (code) {
+            whereClause += ` AND t.code = :code`;
+            replacements.code = code;
         }
 
+        if (hierarchy_id) {
+            const hierarchyIdsArray = hierarchy_id.split(',');
+            whereClause += ` AND EXISTS (
+                SELECT 1 FROM sow_template_hierarchy h 
+                WHERE h.sow_template_id = t.id AND h.hierarchy_id IN (:hierarchyIds)
+            )`;
+            replacements.hierarchyIds = hierarchyIdsArray;
+        }
+        if (created_on) {
+            const dateRange = created_on.split(',');
+            if (dateRange.length === 2) {
+                let startDate = new Date(dateRange[0].trim()).toISOString();
+                let endDate = new Date(dateRange[1].trim()).toISOString();
+                whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
+                replacements.startDate = startDate;
+                replacements.endDate = endDate;
+            }
+        }
+        
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -132,9 +161,23 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: QueryTypes.SELECT,
         });
         const totalRecords = totalResult[0]?.total || 0;
+        
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
+
+        const filteredTemplates = templates.map(template => ({
+            id: template.id,
+            code: template.code,
+            program_id: template.program_id,
+            type: template.type,
+            template_title: template.template_title,
+            description: template.description,
+            hierarchy: template.hierarchy,
+            picklist_items: template.picklist_items,
+            created_on: template.created_on,
+            updated_on: template.updated_on
+        }));
 
         reply.status(200).send({
             status_code: 200,
@@ -143,7 +186,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             total_records: totalRecords,
             page: pageNumber,
             limit: limitNumber,
-            data: templates,
+            data: filteredTemplates,
             trace_id: traceId,
         });
     } catch (error: any) {
@@ -155,6 +198,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
+
 
 
 
@@ -215,7 +259,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string; program_id: string };
-    const sowTemplate = request.body as any;
+    const sowTemplate = request.body as SowTemplate;
     const userId = request.headers['user_id'];
 
     try {
@@ -298,5 +342,64 @@ export const deleteSowTemplate = async (request: FastifyRequest, reply: FastifyR
         reply.status(200).send({ status_code: 200, message: 'SOW Template deleted successfully.', trace_id: traceId });
     } catch (error) {
         reply.status(500).send({ status_code: 500, message: 'Error deleting SOW template.', error, trace_id: traceId });
+    }
+};
+
+
+
+export const getSowTemplateHierarchiesByProgram = async (
+    request: FastifyRequest<{ Params: { program_id: string } }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const sowTemplates = await SowTemplateModel.findAll({
+            where: { program_id, is_deleted: false },
+            attributes: ['id'], 
+        });
+
+        const sowTemplateIds = sowTemplates.map(template => template.id);
+
+        if (!sowTemplateIds.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: "No hierarchies found for the given program.",
+                trace_id: traceId,
+                data: [],
+            });
+        }
+        const query = `
+    SELECT COALESCE(
+        (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', unique_hierarchies.hierarchy_id,
+            'hierarchy_name', unique_hierarchies.name
+        ))
+        FROM (
+            SELECT DISTINCT h.hierarchy_id, hier.name
+            FROM sow_template_hierarchy h
+            LEFT JOIN hierarchies hier ON h.hierarchy_id = hier.id
+            WHERE h.sow_template_id IN (:sowTemplateIds)
+        ) AS unique_hierarchies), '[]') AS hierarchy;
+`;
+
+        const result = await sequelize.query(query, {
+            replacements: { sowTemplateIds },
+            type: QueryTypes.SELECT,
+        });
+        const hierarchiesData = JSON.parse((result[0] as { hierarchy: string }).hierarchy || '[]');
+        reply.status(200).send({
+            status_code: 200,
+            message: "SOW Template Hierarchies fetched successfully",
+            trace_id: traceId,
+            data: { hierarchy: hierarchiesData },
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: 'Error while fetching SOW Template Hierarchies.',
+            error: error.message,
+        });
     }
 };

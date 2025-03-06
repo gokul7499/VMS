@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getJobDetails, getOfferDetails, getWorkflowDetails } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -673,7 +673,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
         const moduleType = workflow.module_type.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
-            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
             const payload = {
                 status: "REJECTED",
             };
@@ -787,7 +787,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 console.log("Manager data is missing or email not found.");
             }
             let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
-
+            const vendorExistence = await isVendorRequired(eventCode.eventCode);
+            if (vendorExistence === true) {
+                program_id ? mspUserData.push(...(await getProgramVendorsEmail(program_id))) : null;
+            }
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
                 for (const user of mspUserData) {
@@ -2031,10 +2034,10 @@ ORDER BY
         await getLevelData(request, reply, rows, workflow, manager);
 
 
-        (async () => {
-            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        // (async () => {
+        //     let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
-        })();
+        // })();
         return reply.status(200).send({
             statusCode: 200,
             flowTypes: flowTypes,

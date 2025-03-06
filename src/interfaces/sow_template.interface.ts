@@ -1,11 +1,12 @@
 export interface SowTemplate {
     master_date_type: any;
     id: string;
+    code:string;
     program_id: string;
     type: string;
     template_title: string;
     description: string;
-    is_sow_assinment: boolean; 
+    is_sow_assignment: boolean; 
     is_sow_expense: boolean;
     is_sow_milestones: boolean;
     is_sow_payment_req: boolean;

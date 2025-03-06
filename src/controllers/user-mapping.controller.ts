@@ -326,6 +326,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'supervisor', u.supervisor,
                     'time_zone_id', u.time_zone_id,
                     'language_id', u.language_id,
+                    'date_format', u.date_format,
                     'role_id', u.role_id,
                     'associate_hierarchy_ids', u.associate_hierarchy_ids,
                     'work_location_ids', u.work_location_ids,

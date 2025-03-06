@@ -227,7 +227,7 @@ export const complianceDocumentGetByUserId = `
         user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         -- Added name filter condition
         AND (:name IS NULL OR vcd.name LIKE :name)
         -- Added is_enabled filter condition
@@ -288,7 +288,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
@@ -2376,51 +2376,65 @@ export const getPendingUserQuery = `
       WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids,
 COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'master_data', JSON_OBJECT(
-            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
-            'name', mdt.name
-          ),
-          'default_master_data', COALESCE(
-            (
-              SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  'id', dmdt.id,
-                  'name', dmdt.name
-                )
-              )
-              FROM master_data AS dmdt
-              WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')), JSON_QUOTE(dmdt.id))
-            ),
-            JSON_ARRAY()
-        ),
-          'associated_master_data', COALESCE(
-            (
-              SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  'id', associated_mdt.id,
-                  'name', associated_mdt.name
-                )
-              )
-              FROM master_data AS associated_mdt
-              WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.associated_master_data')), JSON_QUOTE(associated_mdt.id))
-            ),
-            JSON_ARRAY()
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'master_data', JSON_OBJECT(
+        'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
+        'name', mdt.name
+      ),
+      'default_master_data', COALESCE(
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', dmdt.id,
+              'name', dmdt.name
+            )
           )
-        )
+          FROM master_data AS dmdt
+          WHERE JSON_CONTAINS(
+            -- Normalize to array if not already an array
+            CASE 
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY' 
+              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
+              ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
+            END,
+            JSON_QUOTE(dmdt.id) -- Ensure ID is treated as JSON string
+          )
+        ),
+        JSON_ARRAY()
+      ),
+      'associated_master_data', COALESCE(
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', associated_mdt.id,
+              'name', associated_mdt.name
+            )
+          )
+          FROM master_data AS associated_mdt
+          WHERE JSON_CONTAINS(
+            CASE 
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY' 
+              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
+              ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
+            END,
+            JSON_QUOTE(associated_mdt.id)
+          )
+        ),
+        JSON_ARRAY()
       )
-      FROM (
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
-        UNION ALL
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
-        UNION ALL
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
-      ) AS fd
-      JOIN master_data_type AS mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
-      LEFT JOIN master_data AS default_mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')) = default_mdt.id
-    ), JSON_ARRAY()) AS foundational_data
-
+    )
+  )
+  FROM (
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
+    UNION ALL
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
+    UNION ALL
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
+  ) AS fd
+  JOIN master_data_type AS mdt 
+    ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
+), JSON_ARRAY()) AS foundational_data
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
@@ -2665,7 +2679,6 @@ FROM
     user
 WHERE
     user.program_id = :program_id
-    AND user.is_enabled = true
     AND LOWER(user.status) = 'active'
     AND user.user_type = 'client'
     AND (:hierarchy_id IS NULL OR JSON_CONTAINS(:hierarchy_id, user.associate_hierarchy_ids))

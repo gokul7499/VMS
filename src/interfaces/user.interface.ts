@@ -57,4 +57,5 @@ export interface UserInterface {
   associate_labour_category?:any;
   is_all_job_type_associate?:boolean;
   associate_job_type?:any;
+  date_format?:string
 }

@@ -3,6 +3,7 @@ import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
 import axios from 'axios';
+import { sequelize } from '../config/instance';
 const config_db = databaseConfig.config.database;
 const sourcing_url = databaseConfig.config.sourcing_url;
 
@@ -259,6 +260,49 @@ export async function getWorkflowDetails(
     }
 }
 
+export async function isVendorRequired(eventCode: string): Promise<boolean> {
+    const requiredEvents = new Set([        
+        "CANDIDATE_SHORTLIST_REJECTED",
+        "REHIRE_REVIEW_REJECT",
+        "REHIRE_APPROVAL_REJECT",
+        "ASSIGNMENT_APPROVAL_REJECTED",
+        "ASSIGNMENT_MODIFIED_REJECTED"
+    ]);
+
+    return requiredEvents.has(eventCode);
+}
+
+export async function getProgramVendorsEmail(programId: string): Promise<EmailRecipient[]> {
+    try {
+        const contacts = await sequelize.query(
+            `SELECT 
+                ct.email AS email,
+                ct.first_name AS first_name,
+                ct.last_name AS last_name
+            FROM program_vendors
+            CROSS JOIN JSON_TABLE(
+                contact, '$[*]' 
+                COLUMNS (
+                    email VARCHAR(255) PATH '$.email',
+                    first_name VARCHAR(255) PATH '$.first_name',
+                    last_name VARCHAR(255) PATH '$.last_name'
+                )
+            ) AS ct
+            WHERE program_id = :program_id
+            AND JSON_VALID(contact);`,  
+            {
+                replacements: { program_id: programId },
+                type: QueryTypes.SELECT
+            }
+        ) as { email: string, first_name: string, last_name: string }[];
+
+        return contacts;
+    } catch (error) {
+        console.error('Error fetching program vendor contact details:', error);
+        throw error;
+    }
+}
+
 export const getJobDetails = async (
     id: string,
     program_id: string,
@@ -307,3 +351,4 @@ export const getOfferDetails = async (
         throw error;
     }
 };
+

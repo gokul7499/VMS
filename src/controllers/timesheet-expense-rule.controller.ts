@@ -125,6 +125,7 @@ export const getTimesheetExpenseRule = async (
                 'is_enabled',
                 'rule_type',
                 'rule_duration',
+                'is_paid_break',
                 'is_penalty_rule_enabled',
                 'conditions',
                 'rule_category',
