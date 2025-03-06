@@ -1314,7 +1314,7 @@ export const updateReplaceLevel = async (
                             existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
                             replaced_by, // Update replaced_by with the new value from the payload
                             replaced_notes: notes,
-                            replaced_updated_on: Date.now(),
+                            replaced_modified_on: Date.now(),
                         };
                     }
 
@@ -1328,7 +1328,7 @@ export const updateReplaceLevel = async (
                                 ...recipient.meta_data,
                             },
                             replaced_notes: notes,
-                            replaced_updated_on: Date.now()
+                            replaced_modified_on: Date.now()
                         };
                     }
 
@@ -1900,7 +1900,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
            'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-         'replaced_updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_updated_on')) AS UNSIGNED), NULL)
+         'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
     )
     FROM JSON_TABLE(
         JSON_EXTRACT(
@@ -2167,7 +2167,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
-                            replaced_date_time: recipient_details.replaced_updated_on
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult?.[0]?.user_id,
@@ -2244,7 +2244,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0]?.email,
                             recipient_type: recipientType?.name || '',
                             behaviour,
-                            replaced_date_time: recipient_details.replaced_updated_on
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult?.[0]?.user_id,
@@ -2350,7 +2350,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
-                            replaced_date_time: recipient_details.replaced_updated_on
+                            replaced_date_time: recipient_details.replaced_modified_on
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult?.[0]?.user_id,
@@ -2436,7 +2436,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
-                                        replaced_date_time: recipient_details.replaced_updated_on
+                                        replaced_date_time: recipient_details.replaced_modified_on
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
                                         id: imporsonateUserResult?.[0]?.user_id,
@@ -2520,7 +2520,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             avatar: replacedByUser.avatar,
                                             role_id: replacedByUser.role_id,
                                             replaced_notes: recipient.replaced_notes,
-                                            replaced_date_time: recipient.replaced_updated_on,
+                                            replaced_date_time: recipient.replaced_modified_on,
                                             actor_first_name: recipient.actor_first_name,
                                             actor_last_name: recipient.actor_last_name,
                                             actor_by_avatar: recipient.actor_by_avatar,
@@ -2544,7 +2544,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             role_id: impersonatedUser.role_id,
                                             updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
-                                            impersonate_date_time: recipient.impersonate_updated_on,
+                                            impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
                                             actor_last_name: recipient.actor_last_name,
                                             actor_by_avatar: recipient.actor_by_avatar,
@@ -2625,7 +2625,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
-                            replaced_date_time: recipient_details.replaced_updated_on,
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
                             actor_first_name: recipient_details.actor_first_name,
                             actor_last_name: recipient_details.actor_last_name,
@@ -3225,7 +3225,7 @@ SELECT JSON_OBJECT(
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
        
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-     'replaced_updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_updated_on')) AS UNSIGNED), NULL)
+     'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
 )
 FROM JSON_TABLE(
     JSON_EXTRACT(
@@ -3416,7 +3416,7 @@ l.placement_order ASC;`;
                             role_id: replacedUserResult[0].role_id,
                             email: replacedUserResult[0].email,
                             recipient_type: recipientType?.name || '',
-                            replaced_date_time: recipient_details.replaced_updated_on,
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3519,7 +3519,7 @@ l.placement_order ASC;`;
                             avatar: replacedUserResult[0]?.avatar || null,
                             email: replacedUserResult[0]?.email || null,
                             recipient_type: recipientType?.name || "",
-                            replaced_date_time: recipient_details.replaced_updated_on,
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             behaviour,
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
@@ -3605,7 +3605,7 @@ l.placement_order ASC;`;
                                         avatar: replacedUserResult[0]?.avatar,
                                         role_id: replacedUserResult[0]?.role_id,
                                         email: replacedUserResult[0]?.email,
-                                        replaced_date_time: recipient_details.replaced_updated_on,
+                                        replaced_date_time: recipient_details.replaced_modified_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3691,7 +3691,7 @@ l.placement_order ASC;`;
                                             avatar: replacedByUser.avatar,
                                             role_id: replacedByUser.role_id,
                                             replaced_notes: recipient.replaced_notes,
-                                            replaced_date_time: recipient.replaced_updated_on,
+                                            replaced_date_time: recipient.replaced_modified_on,
                                             actor_first_name: recipient.actor_first_name,
                                             actor_last_name: recipient.actor_last_name,
                                             actor_by_avatar: recipient.actor_by_avatar,
@@ -3715,7 +3715,7 @@ l.placement_order ASC;`;
                                             role_id: impersonatedUser.role_id,
                                             updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
-                                            impersonate_date_time: recipient.impersonate_updated_on,
+                                            impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
                                             actor_last_name: recipient.actor_last_name,
                                             actor_by_avatar: recipient.actor_by_avatar,
@@ -3771,7 +3771,7 @@ l.placement_order ASC;`;
                                 updated_on: user.updated_on,
                                 level_id,
                                 status: user.receipentStatus,
-                                // updated_on: user.updated_on,
+                                // modified_on: user.modified_on,
                                 notes: user.notes,
                                 reason: user.reason,
                                 level_behaviour: user.level_behaviour,
@@ -3797,7 +3797,7 @@ l.placement_order ASC;`;
                             updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
-                            replaced_date_time: recipient_details.replaced_updated_on,
+                            replaced_date_time: recipient_details.replaced_modified_on,
                             replaced_notes: recipient_details.replaced_notes,
                             user_id: input_value.id,
                             actor_first_name: recipient_details.actor_first_name,
