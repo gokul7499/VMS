@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getWorkflowDetails } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getJobDetails, getOfferDetails, getWorkflowDetails } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -2989,17 +2989,35 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         // 4. Create event code
         const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
         const workflowDetails = await getWorkflowDetails(sequelize, workflow.job_workflow_id);
+        const events = workflowDetails?.events;
+        const workflowTriggerId = workflowDetails?.workflow_trigger_id;
+        const jobUUID = workflowDetails?.job_id;
+        let jobDatas: any = null;
+        let offerData: any = null;
+        const isJobEvent = events?.includes('job');
+        const isOfferEvent = events?.includes('offer');
+        if (jobUUID && isJobEvent) {
+            jobDatas = await getJobDetails(jobUUID, program_id, token);
+        }
+        if (isOfferEvent && workflowTriggerId) {
+            //fetch candidate details
+            offerData = await getOfferDetails(workflowTriggerId, program_id, token);
+        }
 
         let payload;
         if (workflowDetails) {
-            const { job_id, first_name, last_name, email, unique_key } = workflowDetails;
             payload = {
-                job_id: workflowDetails?.job_id,
+                job_id: jobDatas?.job_id,
+                job_url: jobDatas?.job_id
+                ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.id}/${jobDatas?.job_template_id}?detail=job-details`
+                : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
                 submission_id: workflowDetails?.unique_key,
-                offer_id: workflowDetails?.offer_code
+                offer_id: offerData?.offer_code ?? "",
+                offer_url: offerData?.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.candidate_id}/job/${offerData?.id}?offerId=${offerData?.id}&detail=offer`
+                : '', 
             }
 
         } else {

@@ -2,9 +2,9 @@ import { NotificationDataPayload } from '../interfaces/noifications-data-payload
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
-import { sequelize } from '../config/instance';
+import axios from 'axios';
 const config_db = databaseConfig.config.database;
-const sourcing_db = databaseConfig.config.db_sourcing;
+const sourcing_url = databaseConfig.config.sourcing_url;
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -218,7 +218,9 @@ interface WorkflowDetails {
     email: string;
     unique_key: string;
     offer_code?: string;
-
+    candidate_id?: string;
+    events?: string;
+    workflow_trigger_id?: string;
 }
 
 export async function getWorkflowDetails(
@@ -231,16 +233,16 @@ export async function getWorkflowDetails(
         const result = await sequelize.query(
             `SELECT 
                 w.id AS workflow_id,
-                j.job_id, 
+                w.job_id, 
                 c.first_name, 
                 c.last_name, 
                 c.email, 
                 w.unique_key,
-                o.offer_code
+                w.candidate_id,
+                w.events,
+                w.workflow_trigger_id
              FROM workflow w
-             LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
              LEFT JOIN candidates c ON w.candidate_id = c.id
-             LEFT JOIN ${sourcing_db}.offers o ON w.candidate_id = o.candidate_id
              WHERE w.id = :workflow_id;`,
             {
                 replacements: { workflow_id: workflowId },
@@ -256,3 +258,52 @@ export async function getWorkflowDetails(
         throw error;
     }
 }
+
+export const getJobDetails = async (
+    id: string,
+    program_id: string,
+    token: string
+): Promise<any> => {
+    try {
+        const response = await axios.get(
+            `${sourcing_url}/v1/api/program/${program_id}/job/${id}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            }
+        );
+        console.log('Job details fetched successfully', response);
+        return response.data;
+    } catch (error: any) {
+        console.error("Error fetching job details:", error.message);
+        // Re-throw the error so the caller can handle it
+        throw error;
+    }
+};
+
+
+export const getOfferDetails = async (
+    id: string,
+    program_id: string,
+    token: string
+): Promise<any> => {
+    try {
+        const response = await axios.get(
+            `${sourcing_url}/v1/api/offer/program/${program_id}/offer/${id}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            }
+        );
+        console.log('Job details fetched successfully', response);
+        return response.data;
+    } catch (error: any) {
+        console.error("Error fetching job details:", error.message);
+        // Re-throw the error so the caller can handle it
+        throw error;
+    }
+};
