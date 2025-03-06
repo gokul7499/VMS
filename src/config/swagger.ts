@@ -14,24 +14,21 @@ const configSwagger = {
       url: 'https://swagger.io',
       description: 'Find more info here',
     },
-    servers: [
-      {
-        url: 'http://localhost:8000',
-        description: 'Local server',
-      },
-    ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http' as const,
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description:
-            'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
-        },
+            type: 'apiKey' as 'apiKey',
+            name: 'Authorization',
+            in: 'header',
+            description:
+              'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
+          },
       },
     },
     security: [{ bearerAuth: [] }],
+    schemes: ['http', 'https'],
+    consumes: ['application/json'],
+    produces: ['application/json'],
   },
 };
 
