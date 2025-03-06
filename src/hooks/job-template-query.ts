@@ -166,7 +166,8 @@ async getAllJobTemplateByHierarchy(
   offset?: number,
   job_type?: string,
   name?: string,
-  labour_category_id?: string
+  labour_category_id?: string,
+  is_enabled?: boolean
 ) {
   const hierarchyCondition = hierarchyIdsArray.length > 0
   ? `job_templates.id IN (
@@ -184,6 +185,8 @@ async getAllJobTemplateByHierarchy(
     job_type && `job_templates.job_type = ?`,
     name && `job_templates.template_name LIKE ?`,
     labour_category_id && `labour_category.id = ?`, 
+    is_enabled !== undefined && `job_templates.is_enabled
+    ${is_enabled ? '=1' : '=0'}`,
   ].filter(Boolean).join(' AND ');
 
   const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
@@ -249,6 +252,9 @@ async getAllJobTemplateByHierarchy(
   if (job_type) replacements.push(job_type);
   if (name) replacements.push(`%${name}%`);
   if (labour_category_id) replacements.push(labour_category_id);
+  if (is_enabled !== undefined) {
+    replacements.push(is_enabled ? 1 : 0); 
+  }
   if (limit && offset) replacements.push(limit, offset);
 
   const data = await sequelize.query(query, {

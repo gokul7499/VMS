@@ -842,6 +842,7 @@ export async function getAllJobTempletsByHierarchies(
       limit?: number;
       offset?: number;
       labour_category_id?: string;
+      is_enabled?:string
     };
   }>,
   reply: FastifyReply
@@ -858,12 +859,13 @@ export async function getAllJobTempletsByHierarchies(
       limit,
       offset,
       labour_category_id,
+      is_enabled
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
     const laborCategoryIdsArray = labour_category?.split(",") || [];
     const qualificationIdsArray = qualification?.split(",") || [];
-
+    const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
       program_id,
       hierarchyIdsArray,
@@ -873,7 +875,8 @@ export async function getAllJobTempletsByHierarchies(
       offset,
       job_type,
       name,
-      labour_category_id
+      labour_category_id,
+      isEnabledBool
     );
 
     const uniqueJobTemplates = data.map((jobTemplate: any) => {
