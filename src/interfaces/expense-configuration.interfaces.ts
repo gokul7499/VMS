@@ -40,9 +40,9 @@ export const querySchema = {
 
 export const createExpenseConfigurationSchema = {
   type: 'object',
-  required: ['config_name'],
+  required: ['name'],
   properties: {
-    config_name: { type: 'string' },
+    name: { type: 'string' },
     is_enabled: { type: 'boolean' },
     hierarchy: {
       type: 'array',
@@ -132,7 +132,7 @@ export const createExpenseConfigurationSchema = {
 export const createExpenseConfigurationAdvancedFilter = {
   type: 'object',
   properties: {
-    config_name: { type: 'string' },
+    name: { type: 'string' },
     status: { type: 'string' },
     updated_on: {
       type: 'array',

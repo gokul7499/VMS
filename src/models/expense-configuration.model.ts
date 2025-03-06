@@ -94,7 +94,7 @@ ExpenseConfigurationModel.init(
   },
   {
     sequelize,
-    tableName: 'expense_config',
+    tableName: 'expense_configuration',
     timestamps:false,
   }
 );

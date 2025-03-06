@@ -1489,7 +1489,7 @@ export const configAdvancedFilter = (
   return `
     SELECT
       ec.id AS expense_config_id,
-      ec.config_name,
+      ec.name,
       ec.program_id,
       ec.is_enabled,
       ec.updated_on,
@@ -1522,13 +1522,13 @@ export const configAdvancedFilter = (
     WHERE
       ec.is_deleted = false
       AND ec.program_id = :program_id
-      ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
+      ${hasConfigName ? 'AND ec.name LIKE :name' : ''}
       ${hasStatus ? 'AND ec.status = :status' : ''}
       ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
       ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
       ${hierarchyIdsClause}
     GROUP BY
-      ec.id, ec.config_name, ec.program_id, ec.is_enabled
+      ec.id, ec.name, ec.program_id, ec.is_enabled
     ORDER BY
       ec.updated_on DESC
     LIMIT :limit
@@ -1766,7 +1766,7 @@ export const rateTypeTotalCount = `
 
 export const getExpenseType = `
    SELECT
-    ec.config_name,
+    ec.name,
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
