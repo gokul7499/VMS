@@ -92,13 +92,15 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             limit = 10,
             type,
             template_title,
-            hierarchy_id
+            hierarchy_id,
+            code 
         } = request.query as {
             page?: string | number;
             limit?: string | number;
             type?: string;
             template_title?: string;
             hierarchy_id?: string;
+            code?: string; 
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -114,6 +116,10 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         if (template_title) {
             whereClause += ` AND t.template_title LIKE :template_title`;
             replacements.template_title = `%${template_title}%`;
+        }
+        if (code) {
+            whereClause += ` AND t.code = :code`; 
+            replacements.code = code;
         }
         if (hierarchy_id) {
             const hierarchyIdsArray = hierarchy_id.split(',');
