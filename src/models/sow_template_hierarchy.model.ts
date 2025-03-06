@@ -63,4 +63,5 @@ SowTemplateHierarchyModel.init(
 
 sequelize.sync();
 SowTemplateHierarchyModel.belongsTo(SowTemplateModel, { foreignKey: 'sow_template_id', as: 'sow_templates' });
+SowTemplateHierarchyModel.belongsTo(Hierarchies, { foreignKey: 'hierarchy_id', as: 'hierarchy' });
 export default SowTemplateHierarchyModel;
