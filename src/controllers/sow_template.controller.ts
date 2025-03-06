@@ -92,13 +92,17 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             limit = 10,
             type,
             template_title,
-            hierarchy_id
+            hierarchy_id,
+            code,
+            created_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
             type?: string;
             template_title?: string;
             hierarchy_id?: string;
+            code?: string;
+            created_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -107,14 +111,27 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         let whereClause = `t.program_id = :program_id AND t.is_deleted = false`;
         const replacements: any = { program_id, limit: limitNumber, offset };
+
         if (type) {
-            whereClause += ` AND t.type = :type`;
+            whereClause += ` AND EXISTS (
+                SELECT 1 
+                FROM dev_vms_configurator.picklistitems p
+                WHERE p.id = t.type 
+                AND p.label = :type
+            )`;
             replacements.type = type;
         }
+
         if (template_title) {
             whereClause += ` AND t.template_title LIKE :template_title`;
             replacements.template_title = `%${template_title}%`;
         }
+
+        if (code) {
+            whereClause += ` AND t.code = :code`;
+            replacements.code = code;
+        }
+
         if (hierarchy_id) {
             const hierarchyIdsArray = hierarchy_id.split(',');
             whereClause += ` AND EXISTS (
@@ -123,7 +140,17 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             )`;
             replacements.hierarchyIds = hierarchyIdsArray;
         }
-
+        if (created_on) {
+            const dateRange = created_on.split(',');
+            if (dateRange.length === 2) {
+                let startDate = new Date(dateRange[0].trim()).toISOString();
+                let endDate = new Date(dateRange[1].trim()).toISOString();
+                whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
+                replacements.startDate = startDate;
+                replacements.endDate = endDate;
+            }
+        }
+        
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -134,6 +161,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: QueryTypes.SELECT,
         });
         const totalRecords = totalResult[0]?.total || 0;
+        
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
@@ -146,9 +174,9 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title: template.template_title,
             description: template.description,
             hierarchy: template.hierarchy,
-            picklist_items:template.picklist_items,
-            created_on:template.created_on,
-            updated_on:template.updated_on
+            picklist_items: template.picklist_items,
+            created_on: template.created_on,
+            updated_on: template.updated_on
         }));
 
         reply.status(200).send({
@@ -170,6 +198,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
+
+
 
 
 export const getSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
