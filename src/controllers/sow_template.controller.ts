@@ -145,7 +145,6 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             if (dateRange.length === 2) {
                 let startDate = new Date(dateRange[0].trim()).toISOString();
                 let endDate = new Date(dateRange[1].trim()).toISOString();
-                
                 whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
                 replacements.startDate = startDate;
                 replacements.endDate = endDate;
