@@ -37,6 +37,7 @@ import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
+
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
     const { name, levels, module, hierarchies, method_id } = request.body as WorkflowData;
@@ -60,31 +61,13 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         });
 
         if (existingWorkflow) {
-            logger(
-                {
-                    trace_id: traceId,
-                    actor: {
-                        user_name: user?.preferred_username,
-                        user_id: user?.sub,
-                    },
-                    data: request.body,
-                    eventname: "creating workflow",
-                    status: "error",
-                    description: "A workflow with the same name already exists",
-                    level: 'error',
-                    action: request.method,
-                    url: request.url,
-                    entity_id: program_id,
-                    is_deleted: false
-                },
-                WorkFlow
-            );
             return reply.status(409).send({
                 status_code: 409,
                 message: "A workflow with the same name already exists",
                 trace_id: traceId,
             });
         }
+        
         const existingWorkflowWithConditions = await WorkFlow.findOne({
             where: {
                 module,
@@ -97,32 +80,11 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (existingWorkflowWithConditions) {
             const existingHierarchies = existingWorkflowWithConditions.hierarchies || [];
             
-            // Ensure both arrays contain the same elements
             const isHierarchyMatch =
                 existingHierarchies.length === hierarchies.length &&
                 existingHierarchies.every((id: string) => hierarchies.includes(id));
         
             if (isHierarchyMatch) {
-                logger(
-                    {
-                        trace_id: traceId,
-                        actor: {
-                            user_name: user?.preferred_username,
-                            user_id: user?.sub,
-                        },
-                        data: request.body,
-                        eventname: "creating workflow",
-                        status: "error",
-                        description: "A workflow with the same module, hierarchies, and method_id already exists",
-                        level: 'error',
-                        action: request.method,
-                        url: request.url,
-                        entity_id: program_id,
-                        is_deleted: false
-                    },
-                    WorkFlow
-                );
-        
                 return reply.status(409).send({
                     status_code: 409,
                     message: "A workflow with the same module, hierarchies, and method_id already exists",
@@ -131,7 +93,37 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             }
         }
         
-        // Proceed with workflow creation
+        const recipientTypeMap = new Map();
+        let allowCreation = true;
+        
+        for (const level of levels) {
+            if (level.recipient_types) {
+                for (const recipient of level.recipient_types) {
+                    const { recipient_type_id, behaviour } = recipient;
+                    
+                    if (recipientTypeMap.has(recipient_type_id)) {
+                        if (recipientTypeMap.get(recipient_type_id) === 'ANY' && behaviour === 'ALL') {
+                            allowCreation = true;
+                        } else {
+                            allowCreation = false;
+                            break;
+                        }
+                    } else {
+                        recipientTypeMap.set(recipient_type_id, behaviour);
+                    }
+                }
+            }
+            if (!allowCreation) break;
+        }
+        
+        if (!allowCreation) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: "A workflow with duplicate recipient_type and invalid behaviour conditions cannot be created",
+                trace_id: traceId,
+            });
+        }
+        
         const workflowDataPayload = request.body as Omit<WorkflowData, '_id'>;
         let createdWorkflow: any;
         let grouped = await WorkFlow.findOne({
@@ -170,26 +162,6 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             });
         }
 
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "creating workflow",
-                status: "success",
-                description: `Creating workflow for ${program_id} successfully: ${createdWorkflow?.id}`,
-                level: 'success',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            WorkFlow
-        );
-
         reply.status(201).send({
             status_code: 201,
             workflow: {
@@ -199,25 +171,6 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             trace_id: traceId,
         });
     } catch (error: any) {
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "creating workflow",
-                status: "error",
-                description: `Error while creating workflow for ${program_id}`,
-                level: 'error',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            WorkFlow
-        );
         console.log(error);
         reply.status(500).send({
             status_code: 500,
@@ -227,7 +180,6 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
-
 
 export const updateWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
