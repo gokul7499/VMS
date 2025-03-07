@@ -707,7 +707,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
-
         const vendors = await ProgramVendor.findAll({
             where: {
                 id: { [Op.in]: vendorIds },
@@ -718,7 +717,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
