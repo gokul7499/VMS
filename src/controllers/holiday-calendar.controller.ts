@@ -6,6 +6,7 @@ import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
+import HolidayCalendar from "../models/holiday-calendar.model";
 
 export async function getHolidayCalendar(
   request: FastifyRequest<{ Params: { program_id: string }, Querystring: { name?: string, year?: number, is_enabled?: string, updated_on?: string, page?: string, limit?: string } }>,
@@ -305,7 +306,7 @@ export const updateHolidayCalendar = async (
   const userId = user?.sub
 
   try {
-    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId }, { where: { program_id, id } });
+    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId,updated_on: Date.now() }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,

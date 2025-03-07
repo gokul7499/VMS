@@ -618,7 +618,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
             worker_type_id
         };
-
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
         if (count === 0) {
             return reply.status(200).send({
@@ -670,7 +669,29 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     };
 
     if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
-    if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
+    if (first_name) {
+        const nameParts = first_name.trim().split(/\s+/); 
+    
+        let nameFilter: any[] = [
+            { first_name: { [Op.like]: `%${first_name}%` } },
+            { last_name: { [Op.like]: `%${first_name}%` } }
+        ];
+    
+        if (nameParts.length > 1) {
+            nameFilter.push({
+                [Op.and]: [
+                    { first_name: { [Op.like]: `%${nameParts[0]}%` } },
+                    { last_name: { [Op.like]: `%${nameParts.slice(1).join(' ')}%` } }
+                ]
+            });
+        }
+    
+        if (!whereClause[Op.or]) {
+            whereClause[Op.or] = nameFilter;
+        } else {
+            whereClause[Op.or] = [...whereClause[Op.or], ...nameFilter];
+        }
+    }
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
     if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
