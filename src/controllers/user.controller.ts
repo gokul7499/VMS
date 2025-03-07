@@ -292,18 +292,18 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
-      const vendor = await ProgramVendor.findOne({
-        where: {
-          program_id: program_id,
-          tenant_id: user.tenant_id
-        },
-      });
-      const vendor_id = vendor?.id || null;
+      // const vendor = await ProgramVendor.findOne({
+      //   where: {
+      //     program_id: program_id,
+      //     tenant_id: user.tenant_id
+      //   },
+      // });
+      // const vendor_id = vendor?.id || null;
 
       const existingCandidate = await candidateModel.findOne({
         where: {
           email: user.email,
-          vendor_id: vendor_id,
+          vendor_id: user.vendor_id,
           is_deleted: false,
         },
         transaction,
@@ -324,7 +324,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         ...userWithoutId,
         user_id: user.id,
         candidate_id: candidateId,
-        vendor_id: vendor_id,
+        vendor_id: user.vendor_id,
         user_type: userType,
         created_by: userId,
         updated_by: userId,
