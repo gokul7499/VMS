@@ -373,7 +373,7 @@ export async function getCandidateByIdAndProgramId(
 
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.vendor_id, program_id: program_id },
+            where: { id: candidateData.vendor_id, program_id: program_id },
             attributes: [['display_name', 'vendor_name',], "id", "tenant_id"]
         });
 
@@ -710,7 +710,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
         const vendors = await ProgramVendor.findAll({
             where: {
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
