@@ -48,7 +48,7 @@ VendorComplianceDocumentModel.init({
     type: DataTypes.STRING
   },
   next_update_due: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.DATE,
     allowNull: true
   },
   last_updated: {

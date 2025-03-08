@@ -69,7 +69,7 @@ Programs.init(
       },
     },
     start_date: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
       allowNull: false,
     },
     industry: {
