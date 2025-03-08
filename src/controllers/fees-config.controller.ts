@@ -74,7 +74,8 @@ export async function createFeesConfiguration(
       replacements: {
         program_id,
         hierarchies: JSON.stringify(feesConfig.hierarchy_levels),
-        labor_category: JSON.stringify(feesConfig.labor_category)
+        labor_category: JSON.stringify(feesConfig.labor_category),
+        vendors: JSON.stringify(feesConfig.vendors),
       },
       type: QueryTypes.SELECT,
     });
@@ -192,7 +193,7 @@ export async function getFeesConfigurationById(
         where: {
           id: vendorIds
         },
-        attributes: ['id', 'vendor_name','display_name'],
+        attributes: ['id', 'vendor_name', 'display_name'],
       });
 
       reply.status(200).send({

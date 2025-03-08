@@ -2738,14 +2738,13 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
   }
 }
 
-
-
 export const sameFeesConfig = `
     SELECT fees.id
     FROM fees
     WHERE fees.program_id = :program_id
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
+    AND JSON_CONTAINS(fees.vendors, :vendors)
 `;
 
 export const sameHierarchieRateConfiguration = `
