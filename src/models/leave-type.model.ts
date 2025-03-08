@@ -7,7 +7,7 @@ import generateSlug from "../plugins/slugGenerate";
 class LeaveTypeModel extends Model {
     name!: string;
     slug!: string;
-    id! : any
+    id!: any
 }
 
 LeaveTypeModel.init({
@@ -29,16 +29,18 @@ LeaveTypeModel.init({
         allowNull: true
     },
     updated_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     created_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     created_by: {
         type: DataTypes.UUID,
-        allowNull: true  
+        allowNull: true
     },
 
     updated_by: {
@@ -49,17 +51,17 @@ LeaveTypeModel.init({
     sequelize,
     tableName: 'leave_types',
     timestamps: false,
-    hooks:{
+    hooks: {
         beforeSave: async (instance) => {
             if (instance.name) {
-              instance.slug = generateSlug(instance.name, {
-                lowercase: true,
-                removedspecial: true
-              });
+                instance.slug = generateSlug(instance.name, {
+                    lowercase: true,
+                    removedspecial: true
+                });
             }
-         },
+        },
     }
 });
 
 
-export default LeaveTypeModel ; 
+export default LeaveTypeModel; 

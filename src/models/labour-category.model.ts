@@ -7,9 +7,9 @@ import { industriesHooks } from '../hooks/afterRateCard';
 
 class IndustriesModel extends Model {
   id: any;
-    program_id: unknown;
-    is_enabled: unknown;
-    name: any;
+  program_id: unknown;
+  is_enabled: unknown;
+  name: any;
 }
 
 IndustriesModel.init(
@@ -44,20 +44,22 @@ IndustriesModel.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
-      allowNull:true,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: true,
     },
-    created_by:{
+    created_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
-    updated_by:{
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
-      allowNull:true,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: true,
     }
   },
   {
@@ -72,7 +74,7 @@ IndustriesModel.init(
       beforeSave: (instance) => {
         beforeSave(instance);
       },
-      afterCreate:industriesHooks.afterCreate
+      afterCreate: industriesHooks.afterCreate
     },
   }
 );

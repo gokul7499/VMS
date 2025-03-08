@@ -10,7 +10,7 @@ class Programs extends Model {
   unique_id: any;
   name: any;
   id: any;
-  display_name:any;
+  display_name: any;
 }
 
 Programs.init(
@@ -74,7 +74,7 @@ Programs.init(
     },
     industry: {
       type: DataTypes.STRING,
-      allowNull:true,
+      allowNull: true,
     },
     is_activated: {
       type: DataTypes.BOOLEAN,
@@ -98,21 +98,23 @@ Programs.init(
       allowNull: false,
     },
     created_on: {
-      type: DataTypes.DOUBLE,
-      allowNull : true
-      },
-      updated_on: {
-      type: DataTypes.DOUBLE,
-      allowNull:true
-      },
-      created_by: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: true
+    },
+    created_by: {
       type: DataTypes.UUID,
       allowNull: true,
-      },
-      updated_by: {
+    },
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
-      },
+    },
   },
   {
     sequelize,
@@ -127,8 +129,8 @@ Programs.init(
 
       },
       afterSave: async (instance, options) => {
-        const transaction = options.transaction; 
-      
+        const transaction = options.transaction;
+
         await createProgramModule(instance, transaction);
         await createHierarchy(instance, transaction);
         await createQualificationTypes(instance, transaction);
