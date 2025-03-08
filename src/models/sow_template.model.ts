@@ -25,15 +25,15 @@ SowTemplateModel.init(
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
-            references:{
-                model:Programs,
-                key:'id'
+            references: {
+                model: Programs,
+                key: 'id'
             }
         },
         code: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique:true
+            unique: true
         },
         type: {
             type: DataTypes.STRING,
@@ -88,12 +88,14 @@ SowTemplateModel.init(
             defaultValue: false,
         },
         created_on: {
+
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         },
         updated_on: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
+           
         },
         created_by: {
             type: DataTypes.UUID,
@@ -119,18 +121,18 @@ SowTemplateModel.init(
                             order: [['created_on', 'DESC']],
                             attributes: ['code'],
                         });
-        
-                        let nextSequence = '001'; 
-        
+
+                        let nextSequence = '001';
+
                         if (lastSowTemplate?.code && lastSowTemplate.code.includes('-SOW-')) {
                             const codeParts = lastSowTemplate.code.split('-SOW-');
                             const lastSequence = parseInt(codeParts[1], 10);
-        
+
                             if (!isNaN(lastSequence)) {
                                 nextSequence = (lastSequence + 1).toString().padStart(3, '0');
                             }
                         }
-        
+
                         instance.code = `${programPrefix}-SOW-${nextSequence}`;
                     }
                 }
@@ -139,7 +141,7 @@ SowTemplateModel.init(
                 instance.updated_on = new Date();
             },
         }
-        
+
     });
 
 sequelize.sync();
