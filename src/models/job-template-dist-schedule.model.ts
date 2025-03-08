@@ -34,7 +34,7 @@ JobTemplateDistScheduleModel.init(
       },
     },
     schedule_value: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
       allowNull: false,
     },
     schedule_unit: {

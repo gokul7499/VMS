@@ -82,11 +82,11 @@ JobCategoryModel.init(
             defaultValue: true,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
             allowNull: true
         },
         created_by: {
