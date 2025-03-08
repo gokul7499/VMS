@@ -373,7 +373,7 @@ export async function getCandidateByIdAndProgramId(
 
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.vendor_id, program_id: program_id },
+            where: { id: candidateData.vendor_id, program_id: program_id },
             attributes: [['display_name', 'vendor_name',], "id", "tenant_id"]
         });
 
@@ -663,7 +663,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     }
 
     const whereClause: any = {
-        vendor_id: vendorId,
+        vendor_id: vendor_id,
         is_deleted: false,
         ...filters
     };
@@ -730,7 +730,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
         const vendors = await ProgramVendor.findAll({
             where: {
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
@@ -738,7 +738,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
