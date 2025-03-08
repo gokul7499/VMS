@@ -49,11 +49,13 @@ UserMasterDataModel.init({
         allowNull: true
     },
     created_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     updated_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     created_by: {
@@ -67,7 +69,7 @@ UserMasterDataModel.init({
 }, {
     sequelize,
     tableName: 'user_master_data',
-    timestamps:false,
+    timestamps: false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
