@@ -293,6 +293,7 @@ export const updateHolidayCalendar = async (
 ) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
+  const holiday_calendar = request.body as holidayCalendarData;
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -306,6 +307,21 @@ export const updateHolidayCalendar = async (
   const userId = user?.sub
 
   try {
+    const existingHolidayCalendar = await holidayCalendar.findOne({
+      where: {
+        program_id: holiday_calendar.program_id,
+        name:holiday_calendar.name,
+        is_deleted:false
+      }
+    });
+  
+    if (existingHolidayCalendar) {
+      reply.status(409).send({
+        status_code: 409,
+        trace_id: traceId,
+        message: 'Holiday calendar name already exists.',
+      });
+    }
     const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId,updated_on: Date.now() }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
