@@ -185,12 +185,12 @@ Candidate.init(
             allowNull: true,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW
         },
         created_by: {
             type: DataTypes.STRING(50),
