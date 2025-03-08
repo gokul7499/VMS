@@ -78,7 +78,7 @@ Event.init(
           instance.slug = generateSlug(instance.name, {
             lowercase: true,
             removedspecial: true,
-            replacewithhyphens: true
+            replacewithhyphens: false
           });
         }
       },
