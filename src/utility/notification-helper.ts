@@ -6,6 +6,7 @@ import axios from 'axios';
 import { sequelize } from '../config/instance';
 const config_db = databaseConfig.config.database;
 const sourcing_url = databaseConfig.config.sourcing_url;
+const teai_url= databaseConfig.config.teai_url
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -302,53 +303,84 @@ export async function getProgramVendorsEmail(programId: string): Promise<EmailRe
         throw error;
     }
 }
-
-export const getJobDetails = async (
-    id: string,
-    program_id: string,
-    token: string
-): Promise<any> => {
+export const getJobDetails = async (id: string, program_id: string, token: string) => {
     try {
-        const response = await axios.get(
-            `${sourcing_url}/v1/api/program/${program_id}/job/${id}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            }
-        );
-        console.log('Job details fetched successfully', response);
-        return response.data;
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/job/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Job details not found.");
+            return { status: 404, message: "Job details not found", data: null };
+        }
+
+        console.log('Job details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
-        console.error("Error fetching job details:", error.message);
-        // Re-throw the error so the caller can handle it
-        throw error;
+        return handleErrorProperly(error, "Job details");
     }
 };
 
-
-export const getOfferDetails = async (
-    id: string,
-    program_id: string,
-    token: string
-): Promise<any> => {
+export const getOfferDetails = async (id: string, program_id: string, token: string) => {
     try {
-        const response = await axios.get(
-            `${sourcing_url}/v1/api/offer/program/${program_id}/offer/${id}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            }
-        );
-        console.log('Job details fetched successfully', response);
-        return response.data;
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/offer/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Offer details not found.");
+            return { status: 404, message: "Offer details not found", data: null };
+        }
+
+        console.log('Offer details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
-        console.error("Error fetching job details:", error.message);
-        // Re-throw the error so the caller can handle it
-        throw error;
+        return handleErrorProperly(error, "Offer details");
     }
+};
+
+export const getAssignmentDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${teai_url}/assignment/v1/program/${program_id}/assignments/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Assignment details not found.");
+            return { status: 404, message: "Assignment details not found", data: null };
+        }
+
+        console.log('Assignment details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Assignment details");
+    }
+};
+
+const handleErrorProperly = (error: any, entity: string) => {
+    if (axios.isAxiosError(error)) {
+        if (error.response) {
+            if (error.response.status === 404) {
+                console.warn(`${entity} not found:`, error.response.data);
+                return { status: 404, message: `${entity} not found`, data: null };
+            }
+            console.error(`Error fetching ${entity}:`, error.response.data);
+            return { status: error.response.status, message: `Error fetching ${entity}`, data: null };
+        } else if (error.request) {
+            console.error(`No response received while fetching ${entity}`);
+            return { status: 500, message: `No response received while fetching ${entity}`, data: null };
+        }
+    }
+    console.error(`Unexpected error while fetching ${entity}:`, error.message);
+    return { status: 500, message: `Unexpected error while fetching ${entity}`, data: null };
 };
 

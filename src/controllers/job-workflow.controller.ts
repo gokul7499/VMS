@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -2997,30 +2997,40 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         const jobUUID = workflowDetails?.job_id;
         let jobDatas: any = null;
         let offerData: any = null;
+        let assignmentData: any = null;
         const isJobEvent = events?.includes('job');
         const isOfferEvent = events?.includes('offer');
-        if (jobUUID && isJobEvent) {
+        const isAssignmentEvent = events?.includes('assignment')
+        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
             jobDatas = await getJobDetails(jobUUID, program_id, token);
         }
         if (isOfferEvent && workflowTriggerId) {
             //fetch candidate details
             offerData = await getOfferDetails(workflowTriggerId, program_id, token);
         }
-
+        if (workflowTriggerId && isAssignmentEvent) {
+            assignmentData = await getAssignmentDetails(workflowTriggerId, program_id, token)
+        }
         let payload;
         if (workflowDetails) {
             payload = {
-                job_id: jobDatas?.job_id,
-                job_url: jobDatas?.job_id
-                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.id}/${jobDatas?.job_template_id}?detail=job-details`
+                job_id: jobDatas?.data?.job?.job_id,
+                job_url: jobDatas?.data?.job?.job_id
+                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
                 submission_id: workflowDetails?.unique_key,
-                offer_id: offerData?.offer_code ?? "",
-                offer_url: offerData?.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.candidate_id}/job/${offerData?.id}?offerId=${offerData?.id}&detail=offer`
+                offer_id: offerData?.data?.offer?.offer_code ?? "",
+                offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
                     : '',
+                assignment_title_name: assignmentData?.data?.assignment?.title,
+                id: assignmentData?.data?.assignment?.code,
+                duration: assignmentData?.data?.finance?.working_duration,
+                //remaining_budget_amount 
+                //budget_amount
+                //worked_as
             }
 
         } else {
