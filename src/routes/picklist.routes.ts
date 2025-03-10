@@ -50,9 +50,6 @@ async function picklistRoutes(fastify: FastifyInstance) {
     }
   }, getAllPickListByProgramId)
   fastify.put('/delete-picklist/:id', {
-    schema: {
-      params: paramsSchema,
-    }
   }, deletePredefinedPicklist);
 }		
 
