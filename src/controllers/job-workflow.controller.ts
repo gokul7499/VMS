@@ -4045,7 +4045,7 @@ export const getModuleEvent = async (
 //     }
 // };
 
-export async function getTriggeredEventsCode(flow_type: string, event: string): Promise<string> {
+async function getTriggeredEventsCode(flow_type: any, event: any) {
     if (flow_type === "Approval" && event === "create_job") {
         return NotificationEventCode.JOB_APPROVAL_FIRST;
     } else if (flow_type === "Review" && event === "create_job") {
