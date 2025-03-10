@@ -12,7 +12,7 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
@@ -2034,10 +2034,10 @@ ORDER BY
         await getLevelData(request, reply, rows, workflow, manager);
 
 
-        // (async () => {
-        //     let notifyUser = await sendNotificationSequencially(request, reply, workflow)
+        (async () => {
+            let notifyUser = await sendNotificationSequencially(request, reply, workflow)
 
-        // })();
+        })();
         return reply.status(200).send({
             statusCode: 200,
             flowTypes: flowTypes,
@@ -2992,17 +2992,45 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         // 4. Create event code
         const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
         const workflowDetails = await getWorkflowDetails(sequelize, workflow.job_workflow_id);
-
+        const events = workflowDetails?.events;
+        const workflowTriggerId = workflowDetails?.workflow_trigger_id;
+        const jobUUID = workflowDetails?.job_id;
+        let jobDatas: any = null;
+        let offerData: any = null;
+        let assignmentData: any = null;
+        const isJobEvent = events?.includes('job');
+        const isOfferEvent = events?.includes('offer');
+        const isAssignmentEvent = events?.includes('assignment')
+        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
+            jobDatas = await getJobDetails(jobUUID, program_id, token);
+        }
+        if (isOfferEvent && workflowTriggerId) {
+            //fetch candidate details
+            offerData = await getOfferDetails(workflowTriggerId, program_id, token);
+        }
+        if (workflowTriggerId && isAssignmentEvent) {
+            assignmentData = await getAssignmentDetails(workflowTriggerId, program_id, token)
+        }
         let payload;
         if (workflowDetails) {
-            const { job_id, first_name, last_name, email, unique_key } = workflowDetails;
             payload = {
-                job_id: workflowDetails?.job_id,
+                job_id: jobDatas?.data?.job?.job_id,
+                job_url: jobDatas?.data?.job?.job_id
+                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
                 submission_id: workflowDetails?.unique_key,
-                offer_id: workflowDetails?.offer_code
+                offer_id: offerData?.data?.offer?.offer_code ?? "",
+                offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
+                    : '',
+                assignment_title_name: assignmentData?.data?.assignment?.title,
+                id: assignmentData?.data?.assignment?.code,
+                duration: assignmentData?.data?.finance?.working_duration,
+                //remaining_budget_amount 
+                //budget_amount
+                //worked_as
             }
 
         } else {
