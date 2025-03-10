@@ -6,7 +6,7 @@ import {
 } from "../interfaces/programs.interface";
 import Tenant from "../models/tenant.model";
 import { baseSearch } from "../utility/baseService";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";
 import ProgramConfig from "../models/programs-config.model";
 import Configuration from "../models/configuration.model";
@@ -283,19 +283,49 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         "unique_id",
       ],
     });
+
+    const [customFieldsResult] = await sequelize.query(
+      `SELECT 
+    programs.id,
+    programs.display_name,
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', program_custom_field.custom_field_id,
+                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$'))
+            )
+        )
+        FROM program_custom_field
+        WHERE program_custom_field.program_id = programs.id
+    ), JSON_ARRAY()) AS custom_fields
+FROM programs
+WHERE programs.id = :id;
+`,
+      {
+        replacements: { id },
+        type: QueryTypes.SELECT,
+      }
+    )as any;
+
+    const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
       reply.status(200).send({
         status_code: 200,
         message: "Data fetch successfully",
-        data: programs,
+        data: {
+          ...programs.toJSON(),
+          custom_fields: customFields,
+        },
         trace_id: traceId,
-        program: [],
       });
+
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Programs not found",
         trace_id: traceId,
+        program: [],
+
       });
     }
   } catch (error) {
