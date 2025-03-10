@@ -365,37 +365,33 @@ export async function deletePicklist(
   }
   const userId = user?.sub;
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params as {
-    id: string;
-    program_id: string;
-  };
+  const { id, program_id } = request.params as { id: string; program_id: string };
 
-  // Find the picklist using a combination of id and program_id
   const picklist = await picklist_model.findOne({
     where: { id, program_id },
   });
 
-  if (picklist) {
-    // Update the picklist to mark it as deleted and disabled
-    await picklist.update({
-      is_enabled: false,
-      is_deleted: true,
-      updated_by: userId
-    });
-
+  if (!picklist) {
     return reply.status(200).send({
       status_code: 200,
-      message: "Picklist successfully deleted",
-      trace_id: traceId,
-    });
-  } else {
-    return reply.status(200).send({
-      status_code: 200,
-      message: `Picklist not found`,
+      message: "Picklist not found",
       trace_id: traceId,
     });
   }
+
+  await picklist.update({
+    is_enabled: false,
+    is_deleted: true,
+    updated_by: userId
+  });
+
+  return reply.status(200).send({
+    status_code: 200,
+    message: "Picklist successfully deleted",
+    trace_id: traceId,
+  });
 }
+
 
 export const updatePicklistAndItem = async (
   request: FastifyRequest<{
