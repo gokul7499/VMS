@@ -14,6 +14,7 @@ import ProgramModule from "../models/program-module.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
+import ProgramCustomField from "../models/program_custom_field_model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -350,18 +351,36 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
     const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
     });
+
+     if (updates.custom_fields && updates.custom_fields.length > 0) {
+           await ProgramCustomField.destroy({
+              where: { program_id: id }
+              
+            });    
+          }
+
+          
+          if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
+            const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
+              program_id:updates.id,
+              custom_field_id: field.id,
+              value: field.value,
+            }));
+            await ProgramCustomField.bulkCreate(customFields);
+          }
+  
     reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
       message: "Program configuration updated successfully",
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error:any) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error,
+      error:error.message,
     });
   }
 };
