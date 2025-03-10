@@ -61,12 +61,14 @@ WorkflowTriggeredRecipientType.init(
             allowNull: true,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true
+            type: DataTypes.DATE,
+            allowNull: true ,
+            defaultValue: DataTypes.NOW
         },
         created_by: {
             type: DataTypes.UUID,

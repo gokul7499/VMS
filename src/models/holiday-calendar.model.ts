@@ -1,6 +1,8 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import ProgramModule from './program-module.model';
+import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 class HolidayCalendar extends Model {
     hierarchy_units_ids: any;
@@ -58,11 +60,13 @@ HolidayCalendar.init({
         },
     },
     created_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     updated_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
         allowNull: true
     },
     created_by: {
@@ -77,7 +81,15 @@ HolidayCalendar.init({
     sequelize,
     modelName: 'holiday_calendar',
     tableName: 'holiday_calendar',
-    timestamps:false
+    timestamps: false,
+    hooks: {
+        beforeValidate: (instance) => {
+            convertEmptyStringsToNull(instance);
+        },
+        beforeSave: (instance) => {
+            beforeSave(instance);
+        },
+    },
 });
 sequelize.sync();
 HolidayCalendar.belongsTo(ProgramModule, { foreignKey: 'program_id', as: 'programs' });

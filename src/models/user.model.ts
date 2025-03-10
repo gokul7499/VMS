@@ -210,11 +210,11 @@ User.init(
       defaultValue: false
     },
     min_limit: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
       allowNull: true,
     },
     max_limit: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
       allowNull: true,
     },
     is_enabled: {
@@ -235,11 +235,13 @@ User.init(
       allowNull: true
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
       allowNull: true
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
       allowNull: true
     },
     created_by: {

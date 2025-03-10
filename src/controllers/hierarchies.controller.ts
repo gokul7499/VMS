@@ -355,7 +355,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     return reply.status(201).send({
       status_code: 201,
       message: 'hierarchies Created Successfully',
-      data: newItem,
       trace_id: traceId,
     });
   } catch (error) {

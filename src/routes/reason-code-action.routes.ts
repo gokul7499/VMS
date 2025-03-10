@@ -37,11 +37,7 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
             querystring: querySchema,
         }
     }, updateReasoncode);
-    fastify.delete('/reason-code/:id',{
-        schema: {
-            params: paramsSchema,
-        }
-    }, deleteReasoncode);
+    fastify.delete('/reason-code/:id', deleteReasoncode);
     fastify.get('/reason_codes/:slug',{
         schema: {
             querystring: querySchema,

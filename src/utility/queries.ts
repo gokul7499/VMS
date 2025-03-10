@@ -547,10 +547,11 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-    : ''
-  }
+    ${
+      startDate !== undefined && endDate !== undefined
+        ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
+        : ''
+    }
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -561,14 +562,15 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
+  h.created_on DESC, -- Sort by created_on in descending order (newest first)
   CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
-  END, -- Sort parent hierarchies first
-  h.created_on ASC, -- Sort by created_on in ascending order
+  END, -- Keep parent hierarchies first
   h.id
 LIMIT :limit OFFSET :offset;
 `;
+
 
 // export const vendorDataQuery = `
 // SELECT
@@ -2738,14 +2740,13 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
   }
 }
 
-
-
 export const sameFeesConfig = `
     SELECT fees.id
     FROM fees
     WHERE fees.program_id = :program_id
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
+    AND JSON_CONTAINS(fees.vendors, :vendors)
 `;
 
 export const sameHierarchieRateConfiguration = `

@@ -5,7 +5,8 @@ import {
   deletePicklist,
   getPicklistById,
   getPicklistAndPicklistItem,
-  getAllPickListByProgramId
+  getAllPickListByProgramId,
+  createPicklistData
 } from '../controllers/picklist.controller';
 import { createPicklistSchema, paramsSchema, querySchema } from '../interfaces/picklist.interface';
 
@@ -26,6 +27,11 @@ async function picklistRoutes(fastify: FastifyInstance) {
       params: paramsSchema,
     }
   }, updatePicklistAndItem);
+  fastify.post('/predefined-picklist', {
+    schema: {
+      body: createPicklistSchema,
+    }
+  }, createPicklistData);
   fastify.delete('/program/:program_id/picklist/:id', {
     schema: {
       params: paramsSchema

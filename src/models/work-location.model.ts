@@ -115,11 +115,13 @@ WorkLocationModel.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
       allowNull: true,
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
       allowNull: true,
     },
     created_by: {
@@ -130,7 +132,7 @@ WorkLocationModel.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
- 
+
   },
   {
     sequelize,

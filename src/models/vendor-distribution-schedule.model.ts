@@ -44,12 +44,14 @@ VendorDistributionSchedule.init({
     defaultValue: false,
   },
   created_on: {
-    type: DataTypes.DOUBLE,
-  allowNull : true
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    allowNull: true
   },
   updated_on: {
-    type: DataTypes.DOUBLE,
-  allowNull:true
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    allowNull: true
   },
   created_by: {
     type: DataTypes.UUID,

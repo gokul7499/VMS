@@ -24,7 +24,7 @@ export async function createCandidate(
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    console.log("candidate",request.body)
+    console.log("candidate", request.body)
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
     const vendor = await ProgramVendor.findOne({
@@ -366,14 +366,14 @@ export async function getCandidateByIdAndProgramId(
         if (candidateData.job_category) {
             candidateData.job_category_id = {
                 id: candidateData.job_category.id,
-                name: candidateData.job_category.title 
+                name: candidateData.job_category.title
             };
             delete candidateData.job_category;
         }
-        
+
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.vendor_id, program_id: program_id },
+            where: { id: candidateData.vendor_id, program_id: program_id },
             attributes: [['display_name', 'vendor_name',], "id", "tenant_id"]
         });
 
@@ -618,7 +618,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
             worker_type_id
         };
-
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
         if (count === 0) {
             return reply.status(200).send({
@@ -654,7 +653,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     const vendor_id = vendor?.id || null;
 
-
     if (vendorId === undefined) {
         return reply.status(200).send({
             status_code: 200,
@@ -665,13 +663,35 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     }
 
     const whereClause: any = {
-        vendor_id: vendorId,
+        vendor_id: vendor_id,
         is_deleted: false,
         ...filters
     };
 
     if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
-    if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
+    if (first_name) {
+        const nameParts = first_name.trim().split(/\s+/); 
+    
+        let nameFilter: any[] = [
+            { first_name: { [Op.like]: `%${first_name}%` } },
+            { last_name: { [Op.like]: `%${first_name}%` } }
+        ];
+    
+        if (nameParts.length > 1) {
+            nameFilter.push({
+                [Op.and]: [
+                    { first_name: { [Op.like]: `%${nameParts[0]}%` } },
+                    { last_name: { [Op.like]: `%${nameParts.slice(1).join(' ')}%` } }
+                ]
+            });
+        }
+    
+        if (!whereClause[Op.or]) {
+            whereClause[Op.or] = nameFilter;
+        } else {
+            whereClause[Op.or] = [...whereClause[Op.or], ...nameFilter];
+        }
+    }
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
     if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
@@ -708,10 +728,9 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
-
         const vendors = await ProgramVendor.findAll({
             where: {
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
@@ -719,7 +738,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,

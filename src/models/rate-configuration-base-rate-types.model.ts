@@ -31,11 +31,13 @@ RateConfigurationBaseRateTypes.init(
             }
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
             allowNull: true
         },
         created_by: {
