@@ -16,6 +16,7 @@ import { FetchUsersBasedOnHierarchy, getProgramVendorsEmail, getWorkflowDetails,
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
+import { NotificationEventCode } from '../utility/notification-event-code';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -1976,8 +1977,8 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);       
-        
+        console.log(rows);
+
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -4044,43 +4045,42 @@ export const getModuleEvent = async (
 //     }
 // };
 
-async function getTriggeredEventsCode(flow_type: any, event: any) {
-    if (flow_type == "Approval" && event === "create_job") {
-        return "JOB_APPROVAL_FIRST";
-    } else if (flow_type == "Review" && event === "create_job") {
-        return "JOB_REVIEW_FIRST";
-    } else if (flow_type == "Review" && event === "update_job") {
-        return "JOB_UPDATE_REVIEW";
-    } else if (flow_type == "Approval" && event === "update_job") {
-        return "JOB_UPDATE_APPROVAL";
-    } else if (flow_type == "Review" && event === "create_offer") {
-        return "OFFER_REVIEW_FIRST";
-    } else if (flow_type == "Approval" && event === "create_offer") {
-        return "OFFER_APPROVAL_FIRST";
-    } else if (flow_type == "Review" && event === "counter_offer") {
-        return "COUNTER_OFFER_REVIEW_FIRST";
-    } else if (flow_type == "Approval" && event === "counter_offer") {
-        return "COOUTER_OFFER_APPROVAL_FIRST";
-    } else if (flow_type == "Approval" && event === "create_assignment") {
-        return "ASSIGNMENT_APPROVAL_REQUEST";
-    } else if (flow_type == "Approval" && event === "update_assignment") {
-        return "ASSIGNMENT_MODIFIED_APPROVAL";
-    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
-        return "REHIRE_REVIEW";
-    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
-        return "DO_NOT_REHIRE_REVIEW";
-    } else if (flow_type == "Review" && event === "submit_candidate_shortlist") {
-        return "CANDIDATE_SHORTLIST_REQUEST_FIRST";
-    } else if (flow_type == "Approval" && event === "submit_candidate_rehire_check") {
-        return "RE_HIRE_APPROVAL";
-    } else if (flow_type == "Approval" && event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment") {
-        return "BUDGET_INCREASED_APPROVAL";
-    } else if (flow_type == "Approval" && event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment") {
-        return "BUDGET_REDUCED_APPROVAL";
+export async function getTriggeredEventsCode(flow_type: string, event: string): Promise<string> {
+    if (flow_type === "Approval" && event === "create_job") {
+        return NotificationEventCode.JOB_APPROVAL_FIRST;
+    } else if (flow_type === "Review" && event === "create_job") {
+        return NotificationEventCode.JOB_REVIEW_FIRST;
+    } else if (flow_type === "Review" && event === "update_job") {
+        return NotificationEventCode.JOB_UPDATE_REVIEW;
+    } else if (flow_type === "Approval" && event === "update_job") {
+        return NotificationEventCode.JOB_UPDATE_APPROVAL;
+    } else if (flow_type === "Review" && event === "create_offer") {
+        return NotificationEventCode.OFFER_REVIEW_FIRST;
+    } else if (flow_type === "Approval" && event === "create_offer") {
+        return NotificationEventCode.OFFER_APPROVAL_FIRST;
+    } else if (flow_type === "Review" && event === "counter_offer") {
+        return NotificationEventCode.COUNTER_OFFER_REVIEW_FIRST;
+    } else if (flow_type === "Approval" && event === "counter_offer") {
+        return NotificationEventCode.COUNTER_OFFER_APPROVAL_FIRST;
+    } else if (flow_type === "Approval" && event === "create_assignment") {
+        return NotificationEventCode.ASSIGNMENT_APPROVAL_REQUEST;
+    } else if (flow_type === "Approval" && event === "update_assignment") {
+        return NotificationEventCode.ASSIGNMENT_MODIFIED_APPROVAL;
+    } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.REHIRE_REVIEW;
+    } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.DO_NOT_REHIRE_REVIEW;
+    } else if (flow_type === "Review" && event === "submit_candidate_shortlist") {
+        return NotificationEventCode.CANDIDATE_SHORTLIST_REQUEST_FIRST;
+    } else if (flow_type === "Approval" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.RE_HIRE_APPROVAL;
+    } else if (flow_type === "Approval" && (event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment")) {
+        return NotificationEventCode.BUDGET_INCREASED_APPROVAL;
+    } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
+        return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
         throw new Error(`Event code not found for event: ${event}`);
     }
-
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
     if (!userIds || userIds.length === 0) {
