@@ -298,7 +298,7 @@ export const updateWorkflowStatus = async (
                                         status_id: history.dataValues?.id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avtar: userData?.avatar,
+                                        actor_by_avatar: userData?.avatar,
                                     };
                                 } else
                                     if (isSuperUser) {
@@ -322,7 +322,7 @@ export const updateWorkflowStatus = async (
                                                 status_id: history.dataValues?.id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avtar: userData?.avatar,
+                                                actor_by_avatar: userData?.avatar
                                             };
                                         }
                                     }
@@ -418,7 +418,7 @@ export const updateWorkflowStatus = async (
                                 is_admin_override: is_admin_override,
                                 actor_first_name: userData.first_name,
                                 actor_last_name: userData.last_name,
-                                actor_by_avtar: userData.avatar,
+                                actor_by_avatar: userData?.avatar,
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
                             }));
@@ -1133,7 +1133,7 @@ export const rejectLevel = async (
 
 
             if (new_status !== "rejected") {
-                throw new Error("Only 'rejected' status is allowed for this operation.");
+                return reply.status(400).send({ message: "Only 'rejected' status is allowed for this operation." });
             }
 
             let levelFound = false;
@@ -1154,6 +1154,9 @@ export const rejectLevel = async (
                                     updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
+                                    actor_first_name: user.first_name,
+                                    actor_last_name: user.last_name,
+                                    actor_by_avatar: user.avatar,
                                 };
                             }
                             if (
@@ -1163,11 +1166,15 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason, actor_first_name: user.first_name,
+                                    actor_last_name: user.last_name,
+                                    actor_by_avatar: user.avatar, };
 
                             }
 
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason };
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason, actor_first_name: user.first_name,
+                                actor_last_name: user.last_name,
+                                actor_by_avatar: user.avatar,};
 
                         });
                         return {
@@ -1180,7 +1187,10 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason
+                        updated_on: Date.now(), notes: notes, reason: reason,
+                        actor_first_name: user.first_name,
+                        actor_last_name: user.last_name,
+                        actor_by_avatar: user.avatar,
                     }));
 
                     return {
@@ -1195,8 +1205,7 @@ export const rejectLevel = async (
             });
 
             if (!levelFound) {
-                throw new Error(`Placement order ${placement_order} not found in levels.`);
-            }
+                return reply.status(400).send({ message: `Placement order ${placement_order} not found.` });             }
 
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1207,6 +1216,9 @@ export const rejectLevel = async (
                 notes: notes || "",
                 created_on: Date.now(),
                 user_id: user_id,
+                actor_first_name: user.first_name,
+                actor_last_name: user.last_name,
+                actor_by_avatar: user.avatar,
             });
         });
 
@@ -1243,6 +1255,7 @@ export const rejectLevel = async (
             status_code: 500,
             message: "Failed to update job workflow.",
             trace_id: traceId,
+            error:(error as Error).message
         });
     }
 };
