@@ -32,7 +32,7 @@ async function picklistRoutes(fastify: FastifyInstance) {
       body: createPicklistSchema,
     }
   }, createPicklistData);
-  fastify.put('/program/:program_id/picklists/:id', {
+  fastify.put('/program/:program_id/delete-picklist/:id', {
     schema: {
       params: paramsSchema
     }
