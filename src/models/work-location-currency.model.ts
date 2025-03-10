@@ -37,25 +37,7 @@ WorkLocationCurrency.init(
     },
     code: {
       type: DataTypes.STRING
-    },
-    created_on: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      allowNull: true
-    },
-    updated_on: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      allowNull: true
-    },
-    created_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-    },
-    updated_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-    },
+    }
   },
   {
     sequelize,
