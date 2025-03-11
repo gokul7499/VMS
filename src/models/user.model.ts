@@ -210,11 +210,11 @@ User.init(
       defaultValue: false
     },
     min_limit: {
-      type: DataTypes.DATE,
+      type: DataTypes.DOUBLE,
       allowNull: true,
     },
     max_limit: {
-      type: DataTypes.DATE,
+      type: DataTypes.DOUBLE,
       allowNull: true,
     },
     is_enabled: {
