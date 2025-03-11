@@ -547,11 +547,10 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${
-      startDate !== undefined && endDate !== undefined
-        ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-        : ''
-    }
+    ${startDate !== undefined && endDate !== undefined
+    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
+    : ''
+  }
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -2760,48 +2759,53 @@ export const sameHierarchieRateConfiguration = `
     AND rjt.job_template_id IN (:job_templates)
     `;
 
-    export const getMatchingHierarchiesQuery = () => {
-      return `
+export const getMatchingHierarchiesQuery = () => {
+  return `
         SELECT
             h.id AS hierarchy_id
         FROM hierarchies h
         WHERE h.program_id = :program_id AND h.id IN (:hierarchy_ids)
       `;
-    };
-    
-export const getUserHierarchiesBasedOnUserType=`
-      WITH user_data AS (
-        SELECT
-          u.associate_hierarchy_ids,
-          u.user_type,
-          u.tenant_id
-        FROM users u
-        WHERE u.user_id = :userId
-          AND u.program_id = :program_id
-      )
+};
+
+export const getUserHierarchiesBasedOnUserType = `
+    WITH user_data AS (
       SELECT
-        h.id,
-        h.name,
-        h.parent_hierarchy_id,
-        h.is_enabled
-      FROM hierarchies h
-      WHERE h.program_id = :program_id
-        AND h.is_deleted = false
-        AND (
-          -- For super_user
-          (EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user'))
-          OR
-          -- For client or msp
-          (EXISTS (SELECT 1 FROM user_data WHERE user_type IN ('client', 'msp') AND h.id = ANY(user_data.associate_hierarchy_ids)))
-          OR
-          -- For vendor
-          (EXISTS (
-            SELECT 1
-            FROM user_data
-            JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
-            WHERE user_data.user_type = 'vendor'
-              AND pv.program_id = :program_id
-              AND h.id = ANY(pv.hierarchies)
-          )
-        );
+        u.associate_hierarchy_ids,
+        u.user_type,
+        u.tenant_id
+      FROM user u
+      WHERE u.user_id = :userId
+        AND u.program_id = :program_id
+    )
+    SELECT
+      h.id,
+      h.name,
+      h.parent_hierarchy_id,
+      h.is_enabled
+    FROM hierarchies h
+    WHERE h.program_id = :program_id
+      AND h.is_deleted = false
+      AND (
+        -- For super_user: Fetch all hierarchies
+        EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
+        OR
+        -- For client or msp: Match associate_hierarchy_ids JSON
+        EXISTS (
+          SELECT 1
+          FROM user_data
+          WHERE user_type IN ('client', 'msp')
+            AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+        )
+        OR
+        -- For vendor: Match hierarchies in program_vendors
+        EXISTS (
+          SELECT 1
+          FROM user_data
+          JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
+          WHERE user_data.user_type = 'vendor'
+            AND pv.program_id = :program_id
+            AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
+        )
+      )
     `;
