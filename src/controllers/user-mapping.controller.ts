@@ -376,23 +376,40 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
                     'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
                     'associate_hierarchy_ids', (
-                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
-                        FROM hierarchies h
-                        WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
-                    ),
+                    CASE 
+                     WHEN u.is_all_hierarchy_associate = TRUE THEN (
+                     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+                     FROM hierarchies h
+                    WHERE h.program_id = u.program_id
+                    )
+                   ELSE (
+                    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+                    FROM hierarchies h
+                    WHERE JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(h.id))
+                   )
+                 END
+                ),
+
                     'associate_labour_category', COALESCE((
                         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
                         FROM labour_category l
                         WHERE JSON_CONTAINS(u.associate_labour_category, JSON_QUOTE(l.id))
                     ), JSON_ARRAY()),
                     'work_location_ids', (
-                        SELECT COALESCE(
-                            JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name)), 
-                            JSON_ARRAY()
-                        )
-                        FROM work_locations wl
-                        WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+                   CASE 
+                     WHEN u.is_all_work_location_associate = TRUE THEN (
+                     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+                     FROM work_locations wl
+                      WHERE wl.program_id = u.program_id
+                     )
+                    ELSE (
+                     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+                     FROM work_locations wl
+                     WHERE JSON_CONTAINS(u.work_location_ids, JSON_QUOTE(wl.id))
+                     )
+                    END
                     ),
+
                     'custom_fields', COALESCE((
                         SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
