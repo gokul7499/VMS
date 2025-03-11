@@ -60,12 +60,12 @@ WorkflowStatusHistory.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW,
+            defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
             type: DataTypes.DOUBLE,
-            defaultValue: DataTypes.NOW,
+            defaultValue: Date.now(),
             allowNull: true
         },
         created_by: {
