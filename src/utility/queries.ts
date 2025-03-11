@@ -523,8 +523,8 @@ FROM hierarchy_cte;
 export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
-  startDate?: number,
-  endDate?: number
+  startDate?: string,
+  endDate?: string
 ) => `
 WITH hierarchy_cte AS (
   SELECT
