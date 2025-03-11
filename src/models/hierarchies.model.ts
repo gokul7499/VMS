@@ -109,12 +109,12 @@ Hierarchies.init(
       defaultValue: true,
     },
     created_on: {
-      type: DataTypes.DATE,
+      type: DataTypes.DOUBLE,
       allowNull: true,
       defaultValue: DataTypes.NOW
     },
     updated_on: {
-      type: DataTypes.DATE,
+      type: DataTypes.DOUBLE,
       allowNull: true,
       defaultValue: DataTypes.NOW
     },

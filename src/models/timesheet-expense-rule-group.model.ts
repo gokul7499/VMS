@@ -49,12 +49,12 @@ TimesheetExpenseRuleGroup.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW,
             allowNull: true,
         },
         updated_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW,
             allowNull: true,
         },

@@ -122,13 +122,13 @@ Delegation.init({
         allowNull: true,
     },
     created_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         defaultValue: DataTypes.NOW,
         allowNull: false
     },
     updated_on: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        defaultValue: DataTypes.DOUBLE,
         allowNull: false
     },
     created_by: {
