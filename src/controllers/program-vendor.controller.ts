@@ -635,7 +635,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         const vendorGroups = await VendorGroup.findAll(vendorGroupQuery);
 
         const responseVendors = filteredVendors.map(vendor => ({
-            id: vendor.tenant_id,
+            id: vendor.id,
             vendor: vendor.display_name,
         }));
 
