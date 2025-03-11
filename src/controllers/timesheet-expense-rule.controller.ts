@@ -400,3 +400,138 @@ export async function deleteTimesheetExpenseRule(
         });
     }
 }
+
+export const filterTimesheetExpenseRule = async (
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            rule_name?: string;
+            rule_type?: string;
+            rule_category?: string;
+            is_enabled?: boolean | string;
+            updated_on?: string;
+            fields?: string[];  
+            page?: number;
+            limit?: number;
+        };
+    }>,
+    reply: FastifyReply
+) => {
+    const { program_id } = request.params;
+    const { rule_name, rule_type, rule_category, is_enabled, updated_on, fields, page = 1, limit = 10 } = request.body;
+    const traceId = generateCustomUUID();
+
+    try {
+        const offset = (page - 1) * limit;
+        const whereCondition: any = { is_deleted: false, program_id };
+
+        if (rule_name) {
+            whereCondition.rule_name = { [Op.like]: `%${rule_name}%` };
+        }
+        if (rule_category) {
+            whereCondition.rule_category = { [Op.like]: `%${rule_category}%` };
+        }
+        if (rule_type) {
+            whereCondition.rule_type = { [Op.in]: rule_type.split(',').map((type) => type.trim()) };
+        }
+        if (is_enabled !== undefined) {
+            whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
+        }
+        if (updated_on) {
+            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
+                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+            } 
+        }
+
+        const defaultFields = [
+            'id',
+            'rule_name',
+            'is_enabled',
+            'rule_type',
+            'rule_duration',
+            'is_paid_break',
+            'is_penalty_rule_enabled',
+            'conditions',
+            'rule_category',
+            'updated_on',
+            'program_id',
+            'apply_rate_type',
+            'penalty_rules', 
+            'expense_line_item'
+        ];
+        
+        const selectedFields = fields && fields.length > 0 ? fields : defaultFields;
+
+        const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
+            where: whereCondition,
+            attributes: selectedFields,
+            limit,
+            offset,
+            order: [['created_on', 'DESC']],
+        });
+
+        if (timesheetRuleData.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                message: 'No timesheet expense rule found.',
+                timesheet_expense_rule: [],
+            });
+        }
+
+        const timesheetExpenseRules: TimesheetExpenseRuleData[] = await sequelize.query(getExpenseTypeAndRateType, {
+            replacements: { program_id },
+            type: QueryTypes.SELECT,
+        });
+
+        const mergedRules = await Promise.all(
+            timesheetRuleData.map(async (rule) => {
+                const matchingExpenseData = timesheetExpenseRules.find(
+                    (expenseRule) => expenseRule.id === rule.id
+                );
+                const updatedRule = rule.toJSON();
+                if (updatedRule.penalty_rules) {
+                    const allKeysNull = Object.values(updatedRule.penalty_rules).every(
+                        (value) => value === null || value === undefined
+                    );
+                    if (allKeysNull) {
+                        updatedRule.penalty_rules = null;
+                    } else if (updatedRule.penalty_rules.apply_rate_type) {
+                        const penaltyRateType = await RateType.findOne({
+                            where: { id: updatedRule.penalty_rules.apply_rate_type },
+                            attributes: ['id', 'name', 'abbreviation'],
+                        });
+                        if (penaltyRateType) {
+                            updatedRule.penalty_rules.apply_rate_type = penaltyRateType;
+                        }
+                    }
+                } else {
+                    updatedRule.penalty_rules = null;
+                }
+                return {
+                    ...updatedRule,
+                    expense_line_item: matchingExpenseData?.expense_line_item || [],
+                    apply_rate_type: matchingExpenseData?.expense_rate_type || [],
+                };
+            })
+        );
+
+        reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Timesheet expense rule retrieved successfully.',
+            items_per_page: limit,
+            current_page: page,
+            total_records: timesheetRuleData.length,
+            timesheet_expense_rule: mergedRules,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+};
