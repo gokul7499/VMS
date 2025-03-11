@@ -2769,3 +2769,39 @@ export const sameHierarchieRateConfiguration = `
       `;
     };
     
+export const getUserHierarchiesBasedOnUserType=`
+      WITH user_data AS (
+        SELECT
+          u.associate_hierarchy_ids,
+          u.user_type,
+          u.tenant_id
+        FROM users u
+        WHERE u.user_id = :userId
+          AND u.program_id = :program_id
+      )
+      SELECT
+        h.id,
+        h.name,
+        h.parent_hierarchy_id,
+        h.is_enabled
+      FROM hierarchies h
+      WHERE h.program_id = :program_id
+        AND h.is_deleted = false
+        AND (
+          -- For super_user
+          (EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user'))
+          OR
+          -- For client or msp
+          (EXISTS (SELECT 1 FROM user_data WHERE user_type IN ('client', 'msp') AND h.id = ANY(user_data.associate_hierarchy_ids)))
+          OR
+          -- For vendor
+          (EXISTS (
+            SELECT 1
+            FROM user_data
+            JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
+            WHERE user_data.user_type = 'vendor'
+              AND pv.program_id = :program_id
+              AND h.id = ANY(pv.hierarchies)
+          )
+        );
+    `;
