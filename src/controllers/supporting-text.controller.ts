@@ -451,3 +451,127 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
         reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id: traceId });
     }
 };
+
+export const getAllSupportingTextsAdvancedFilter = async (
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            performed_by?: string;
+            event_slug?: string;
+            date_range?: string;
+            module_name?: string;
+            event_name?: string;
+            pagination?: { page?: number; limit?: number };
+        };
+    }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const {
+            performed_by,
+            event_slug,
+            date_range,
+            event_name,
+            module_name,
+            pagination = { page: 1, limit: 10 },
+        } = request.body;
+        const { page = 1, limit = 10 } = pagination;
+
+        const whereConditions: any = { program_id, is_deleted: false };
+
+        if (performed_by) {
+            whereConditions.performed_by = performed_by;
+        }
+
+        if (date_range) {
+            const [startDate, endDate] = date_range.split(',').map((ts) => parseInt(ts, 10));
+            whereConditions[Op.or] = [
+                {
+                    created_on: {
+                        [Op.between]: [new Date(startDate), new Date(endDate)],
+                    },
+                },
+                {
+                    updated_on: {
+                        [Op.between]: [new Date(startDate), new Date(endDate)],
+                    },
+                },
+            ];
+        }
+
+        const includeConditions: any[] = [
+            {
+                model: Event,
+                as: 'event',
+                attributes: ['id', 'name', 'slug'],
+                where: {
+                    ...(event_name ? { name: event_name } : {}),
+                    ...(event_slug ? { slug: event_slug } : {}),
+                },
+            },
+            {
+                model: Module,
+                as: 'module',
+                attributes: ['id', 'name'],
+                where: module_name ? { name: module_name } : undefined,
+            },
+        ];
+
+        const offset = (page - 1) * limit;
+
+        const { rows: supportingText, count } = await supportingTextModel.findAndCountAll({
+            where: whereConditions,
+            include: includeConditions,
+            limit,
+            offset,
+        });
+
+        if (!supportingText || supportingText.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Supporting Text not found.',
+                supportingText: [],
+                trace_id: traceId,
+            });
+        }
+
+        const responseData = supportingText.map((text) => ({
+            id: text.id,
+            performed_by: text.performed_by,
+            is_enabled: text.is_enabled,
+            is_deleted: text.is_deleted,
+            created_on: text.created_on,
+            event_id: {
+                id: text.event?.id,
+                name: text.event?.name,
+                slug: text.event?.slug,
+            },
+            module_id: {
+                id: text.module?.id,
+                name: text.module?.name,
+            },
+            support_text_action: text.support_text_action,
+        }));
+
+        reply.status(200).send({
+            status_code: 200,
+            message: 'Supporting Texts retrieved successfully.',
+            total_records: count,
+            total_pages: Math.ceil(count / limit),
+            current_page: page,
+            trace_id: traceId,
+            support_text_data: responseData,
+        });
+    } catch (error: any) {
+        console.error(`Error fetching supporting texts: ${error.message}`, { traceId, error });
+
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+};
