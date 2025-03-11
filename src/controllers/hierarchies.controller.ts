@@ -857,7 +857,7 @@ export async function getUserHierarchies(
 
   try {
     let hierarchies: any[] = [];
-    
+
     if (userType === "super_user") {
       hierarchies = await HierarchiesModel.findAll({
         where: { program_id, is_deleted: false },
@@ -902,110 +902,3 @@ export async function getUserHierarchies(
     });
   }
 }
-
-// export async function getUserHierarchies(
-//   request: FastifyRequest<{ Params: { program_id: string } }>,
-//   reply: FastifyReply
-// ) {
-//   const traceId = generateCustomUUID();
-//   const authHeader = request.headers.authorization;
-
-//   if (!authHeader?.startsWith("Bearer ")) {
-//     return reply.status(401).send({ message: "Unauthorized - Token not found" });
-//   }
-
-//   const token = authHeader.split(" ")[1];
-//   const user = await decodeToken(token);
-
-//   if (!user) {
-//     return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-//   }
-
-//   const userId = user.sub;
-//   const userType = user.userType;
-//   const { program_id } = request.params;
-
-//   try {
-//     let hierarchies: any[] = [];
-
-//     if (userType === "super_user") {
-//       hierarchies = await HierarchiesModel.findAll({
-//         where: { program_id, is_deleted: false },
-//         attributes: ["id", "name", "parent_hierarchy_id", "is_enabled"],
-//       });
-//     } else {
-//       const userData = await User.findOne({
-//         where: { user_id: userId, program_id },
-//         attributes: ["associate_hierarchy_ids", "user_type", "tenant_id"],
-//       });
-
-//       if (!userData) {
-//         return reply.status(404).send({
-//           status_code: 404,
-//           trace_id: traceId,
-//           message: "User not found or no associated hierarchies",
-//           hierarchies: [],
-//         });
-//       }
-
-//       const { associate_hierarchy_ids, tenant_id } = userData;
-//       const user_type = userData.user_type ?? "";
-
-//       if (user_type.toUpperCase() === "CLIENT" || user_type.toUpperCase() === "MSP") {
-//         if (associate_hierarchy_ids?.length > 0) {
-//           hierarchies = await HierarchiesModel.findAll({
-//             where: { id: associate_hierarchy_ids, program_id, is_deleted: false },
-//             attributes: ["id", "name", "parent_hierarchy_id", "is_enabled"],
-//           });
-//         }
-//       } else if (user_type.toUpperCase() === "VENDOR") {
-//         const programVendor = await ProgramVendor.findOne({
-//           where: { tenant_id, program_id },
-//           attributes: ["hierarchies"],
-//         });
-
-//         if (programVendor && programVendor.hierarchies?.length > 0) {
-//           const vendorHierarchyIds = Array.isArray(programVendor.hierarchies)
-//             ? programVendor.hierarchies
-//             : JSON.parse(programVendor.hierarchies);
-
-//           hierarchies = await HierarchiesModel.findAll({
-//             where: { id: vendorHierarchyIds, program_id, is_deleted: false },
-//             attributes: ["id", "name", "parent_hierarchy_id", "is_enabled"],
-//           });
-//         }
-//       }
-//     }
-
-//     const buildHierarchy = (data: any, parentId: string | null = null) => {
-//       return data
-//         .filter((item: any) => item.parent_hierarchy_id === parentId)
-//         .map((item: any) => {
-//           const children = buildHierarchy(data, item.id);
-//           return {
-//             id: item.id,
-//             parent_hierarchy_id: item.parent_hierarchy_id,
-//             name: item.name,
-//             is_enabled: item.is_enabled,
-//             hierarchies: children,
-//           };
-//         });
-//     };
-
-//     const nestedHierarchy = buildHierarchy(hierarchies);
-
-//     return reply.status(200).send({
-//       status_code: 200,
-//       trace_id: traceId,
-//       message: "Hierarchies fetched successfully.",
-//       hierarchies: nestedHierarchy,
-//     });
-//   } catch (error: any) {
-//     return reply.status(500).send({
-//       status_code: 500,
-//       trace_id: traceId,
-//       message: "Internal Server Error",
-//       error: error.message
-//     });
-//   }
-// }
