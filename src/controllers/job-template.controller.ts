@@ -865,6 +865,7 @@ export async function getAllJobTempletsByHierarchies(
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
+    const JobType = job_type?.split(",") || [];
     const laborCategoryIdsArray = labour_category?.split(",") || [];
     const qualificationIdsArray = qualification?.split(",") || [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined
@@ -876,7 +877,7 @@ export async function getAllJobTempletsByHierarchies(
       qualificationIdsArray,
       limit,
       offset,
-      job_type,
+      JobType,
       name,
       labour_category_id,
       isEnabledBool,
