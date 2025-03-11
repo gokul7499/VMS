@@ -6,6 +6,7 @@ import { QueryTypes } from "sequelize";
 import { sendNotification } from "../utility/notificationService";
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
+import { NotificationEventCode } from "../utility/notification-event-code";
 export async function createContactUs(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
@@ -50,11 +51,14 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
             recipientEmailArray.push(recipientEmail);
 
             if (emailArray.length > 0) {
+
+                const eventCode = NotificationEventCode.CUSTOMER_SUPPORT1;
+
                 const notificationPayload: NotificationDataPayload = {
                     program_id: program_id ?? "",
                     token,
                     traceId,
-                    eventCode: "CUSTOMER_SUPPORT1",
+                    eventCode,
                     recipientEmail: recipientEmailArray,
                     payload: {
                         program_id,

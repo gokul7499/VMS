@@ -4,7 +4,7 @@ import { Programs } from './programs.model';
 
 class PicklistItemModel extends Model {
   id: any;
-  value:any;
+  value: any;
 }
 
 PicklistItemModel.init({
@@ -64,11 +64,13 @@ PicklistItemModel.init({
     allowNull: true,
   },
   created_on: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
     allowNull: true,
   },
   updated_on: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
     allowNull: true,
   },
   created_by: {
