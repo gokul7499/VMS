@@ -42,11 +42,11 @@ SowTemplateCustomFieldsModel.init(
             allowNull: false,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW,
         },
         updated_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             defaultValue: DataTypes.NOW,
         },
         created_by: {
