@@ -136,27 +136,28 @@ export const getHierarchies = async (
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
-    let startDate: number | undefined;
-    let endDate: number | undefined;
-
-    if (updated_on) {
-      const dateRange = updated_on.split(",");
-      if (dateRange.length === 2 || dateRange.length === 1) {
-        const parsedStartDate = parseInt(dateRange[0], 10);
-        const parsedEndDate =
-          dateRange.length === 2 ? parseInt(dateRange[1], 10) : parsedStartDate;
-        if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
-        if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (updated_on) {
+        const dateRange = updated_on.split(",");
+        if (dateRange.length > 0) {
+          const parsedStartDate = new Date(dateRange[0]).toISOString(); // Converts to 'YYYY-MM-DDTHH:MM:SS.SSSZ'
+          startDate = parsedStartDate;
+        }
+        if (dateRange.length === 2) {
+          const parsedEndDate = new Date(dateRange[1]).toISOString();
+          endDate = parsedEndDate;
+        }
       }
-    }
     const offset = (page - 1) * limit;
 
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-      ...(startDate !== undefined && { startDate }),
-      ...(endDate !== undefined && { endDate }),
+      ...(startDate && { startDate: startDate.toString() }),
+      ...(endDate && { endDate: endDate.toString() }),
       limit: Number(limit),
       offset: Number(offset),
     };
