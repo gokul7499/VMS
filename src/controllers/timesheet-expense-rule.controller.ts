@@ -110,12 +110,11 @@ export const getTimesheetExpenseRule = async (
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
         if (updated_on) {
-            const dateRange = updated_on.split(',');
-            if (dateRange.length === 2) {
-                const startDate = parseFloat(dateRange[0].trim());
-                const endDate = parseFloat(dateRange[1].trim());
-                whereCondition.updated_on = { [Op.between]: [startDate, endDate] };
-            }
+            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+
+            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
+                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+            } 
         }
         const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
             where: whereCondition,
