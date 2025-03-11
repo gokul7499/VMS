@@ -49,6 +49,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
     const existingField = await CustomField.findOne({
       where: {
         program_id,
+        is_deleted: false,
         [Op.and]: [{ name }, { label }, { module_id }]
       }
     });

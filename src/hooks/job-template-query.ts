@@ -167,7 +167,8 @@ async getAllJobTemplateByHierarchy(
   job_type?: string,
   name?: string,
   labour_category_id?: string,
-  is_enabled?: boolean
+  is_enabled?: boolean,
+  is_shift_rate?: boolean
 ) {
   const hierarchyCondition = hierarchyIdsArray.length > 0
   ? `job_templates.id IN (
@@ -187,6 +188,8 @@ async getAllJobTemplateByHierarchy(
     labour_category_id && `labour_category.id = ?`, 
     is_enabled !== undefined && `job_templates.is_enabled
     ${is_enabled ? '=1' : '=0'}`,
+    is_shift_rate !== undefined && `job_templates.is_shift_rate
+    ${is_shift_rate ? '=1' : '=0'}`
   ].filter(Boolean).join(' AND ');
 
   const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
@@ -254,6 +257,9 @@ async getAllJobTemplateByHierarchy(
   if (labour_category_id) replacements.push(labour_category_id);
   if (is_enabled !== undefined) {
     replacements.push(is_enabled ? 1 : 0); 
+  }
+  if(is_shift_rate !== undefined) {
+    replacements.push(is_shift_rate ? 1 : 0);
   }
   if (limit && offset) replacements.push(limit, offset);
 
