@@ -391,6 +391,48 @@ export async function deletePicklist(
     trace_id: traceId,
   });
 }
+export async function deletePredefinedPicklist(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
+  const traceId = generateCustomUUID();
+  const { id } = request.params as { id: string };
+
+  const picklist = await picklist_model.findOne({
+    where: { id },
+  });
+
+  if (!picklist) {
+    return reply.status(200).send({
+      status_code: 200,
+      message: "Picklist not found",
+      trace_id: traceId,
+    });
+  }
+
+  await picklist.update({
+    is_enabled: false,
+    is_deleted: true,
+    updated_by: userId
+  });
+
+  return reply.status(200).send({
+    status_code: 200,
+    message: "Picklist successfully deleted",
+    trace_id: traceId,
+  });
+}
+
 
 
 export const updatePicklistAndItem = async (
