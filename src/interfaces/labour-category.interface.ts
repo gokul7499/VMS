@@ -7,8 +7,8 @@ interface IndustriesInterface {
   page?: string;
   limit?: string;
   created_by?:string;
-  created_on?:any;
-  updated_on?:any;
+  created_on?:number;
+  updated_on?:number;
   updated_by?:string;
 }
 
