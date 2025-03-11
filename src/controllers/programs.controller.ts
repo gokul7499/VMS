@@ -382,7 +382,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       where: { id: id },
     });
 
-     if (updates.custom_field && updates.custom_field.length > 0) {
+     if (updates.custom_fields && updates.custom_fields.length > 0) {
            await ProgramCustomField.destroy({
               where: { program_id: id }
               
@@ -390,8 +390,8 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
           }
 
           
-          if (Array.isArray(updates.custom_field) && updates.custom_field.length > 0) {
-            const customFields = updates.custom_field.map((field: { id: any; value: any; }) => ({
+          if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
+            const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
               program_id:updates.id,
               id: field.id,
               value: field.value,

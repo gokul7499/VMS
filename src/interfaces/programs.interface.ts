@@ -20,7 +20,7 @@ export interface CreateProgramData {
   updated_by?:Date;
   created_by?:Date;
   created_on?:any;
-  custom_field?:any[]
+  custom_fields?:any[]
 }
 
 export interface ProgramQuery {
