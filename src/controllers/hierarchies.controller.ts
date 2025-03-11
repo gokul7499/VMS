@@ -833,3 +833,92 @@ export const updateIsNotEditableFlag = async (
 };
 
 
+export const getHierarchiesAdvancedFilter = async (
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      name?: string;
+      is_enabled?: boolean | string;
+      updated_on?: string;
+      page?: number;
+      limit?: number;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  const { program_id } = request.params;
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body;
+  const traceId = generateCustomUUID();
+
+  try {
+    const hasName = !!name;
+    const isEnabledValue =
+      is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (updated_on) {
+        const dateRange = updated_on.split(",").map(date => date.trim()); // Trim spaces
+      
+        if (dateRange.length > 0 && !isNaN(new Date(dateRange[0]).getTime())) {
+          startDate = new Date(dateRange[0]).toISOString();
+        }
+        if (dateRange.length === 2 && !isNaN(new Date(dateRange[1]).getTime())) {
+          endDate = new Date(dateRange[1]).toISOString();
+        }
+      }
+      const offset = (page - 1) * limit;
+      
+      const replacements: any = {
+        program_id,
+        ...(hasName && { name: `%${name}%` }),
+        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
+        limit: Number(limit),
+        offset: Number(offset),
+      };
+    const hierarchies: any[] = await sequelize.query(
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
+      {
+        replacements,
+        type: QueryTypes.SELECT,
+      }
+    );
+    if (hierarchies.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "No hierarchies found for the given program",
+        total_records: 0,
+        page,
+        limit,
+        hierarchies: [],
+      });
+    }
+    const formattedHierarchies = hierarchies.map((hierarchy) => ({
+      ...hierarchy,
+      is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
+    }));
+    const total_count = hierarchies[0]?.total_count || 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: "Hierarchies fetched successfully.",
+      total_records: total_count,
+      page,
+      limit,
+      hierarchies: formattedHierarchies,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "An error occurred while fetching hierarchies",
+      error: error.message,
+    });
+  }
+};
