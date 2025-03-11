@@ -45,7 +45,7 @@ IndustriesModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
+      defaultValue: Date.now(),
       allowNull: true,
     },
     created_by: {
@@ -58,7 +58,7 @@ IndustriesModel.init(
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-      defaultValue: DataTypes.NOW,
+      defaultValue: Date.now(),
       allowNull: true,
     }
   },
