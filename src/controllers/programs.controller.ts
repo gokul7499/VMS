@@ -6,7 +6,7 @@ import {
 } from "../interfaces/programs.interface";
 import Tenant from "../models/tenant.model";
 import { baseSearch } from "../utility/baseService";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import generateCustomUUID from "../utility/genrateTraceId";
 import ProgramConfig from "../models/programs-config.model";
 import Configuration from "../models/configuration.model";
@@ -14,6 +14,7 @@ import ProgramModule from "../models/program-module.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
+import ProgramCustomField from "../models/program_custom_field_model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -282,19 +283,49 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         "unique_id",
       ],
     });
+
+    const [customFieldsResult] = await sequelize.query(
+      `SELECT 
+    programs.id,
+    programs.display_name,
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', program_custom_field.custom_field_id,
+                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$'))
+            )
+        )
+        FROM program_custom_field
+        WHERE program_custom_field.program_id = programs.id
+    ), JSON_ARRAY()) AS custom_fields
+FROM programs
+WHERE programs.id = :id;
+`,
+      {
+        replacements: { id },
+        type: QueryTypes.SELECT,
+      }
+    )as any;
+
+    const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
       reply.status(200).send({
         status_code: 200,
         message: "Data fetch successfully",
-        data: programs,
+        data: {
+          ...programs.toJSON(),
+          custom_fields: customFields,
+        },
         trace_id: traceId,
-        program: [],
       });
+
     } else {
       reply.status(200).send({
         status_code: 200,
         message: "Programs not found",
         trace_id: traceId,
+        program: [],
+
       });
     }
   } catch (error) {
@@ -350,18 +381,36 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
     const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
     });
+
+     if (updates.custom_fields && updates.custom_fields.length > 0) {
+           await ProgramCustomField.destroy({
+              where: { program_id: id }
+              
+            });    
+          }
+
+          
+          if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
+            const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
+              program_id:updates.id,
+              id: field.id,
+              value: field.value,
+            }));
+            await ProgramCustomField.bulkCreate(customFields);
+          }
+  
     reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
       message: "Program configuration updated successfully",
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error:any) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error,
+      error:error.message,
     });
   }
 };
