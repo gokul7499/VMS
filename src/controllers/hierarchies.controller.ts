@@ -9,6 +9,8 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
+import User from '../models/user.model';
+import { ProgramVendor } from '../models/program-vendor.model';
 
 interface HierarchyItem {
   support_email: any;
@@ -850,13 +852,23 @@ export async function getUserHierarchies(
   }
 
   const userId = user.sub;
+  const userType = user.userType;
   const { program_id } = request.params;
 
   try {
-    const hierarchies = await sequelize.query(getUserHierarchiesBasedOnUserType, {
-      replacements: { userId, program_id },
-      type: QueryTypes.SELECT,
-    });
+    let hierarchies: any[] = [];
+
+    if (userType === "super_user") {
+      hierarchies = await HierarchiesModel.findAll({
+        where: { program_id, is_deleted: false },
+        attributes: ["id", "name", "parent_hierarchy_id", "is_enabled"],
+      });
+    } else {
+      hierarchies = await sequelize.query(getUserHierarchiesBasedOnUserType, {
+        replacements: { userId, program_id },
+        type: QueryTypes.SELECT,
+      });
+    }
 
     const buildHierarchy = (data: any, parentId: string | null = null) => {
       return data
