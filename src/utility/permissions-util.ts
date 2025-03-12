@@ -14,7 +14,17 @@ async function connectToRedis() {
     port: redis_port,
     password: redis_auth
   });
-  console.log('Connected to Redis');
+
+  redis.on("connect", () => {
+    console.log("✅ Connected to Redis successfully!");
+  });
+
+  redis.on("error", (err) => {
+    console.error("❌ Redis connection error:", err);
+  });
+
+  console.log(`Connected to Redis at ${redis}`);
+
   return redis;
 }
 
