@@ -413,7 +413,7 @@ export async function advancefilter(
             max_limit?: number;
             page?: number;
             limit?: number;
-            updated_on?: string[];
+            updated_on?: string;
         };
     }>,
     reply: FastifyReply
@@ -456,10 +456,12 @@ export async function advancefilter(
             Sequelize.literal(`JSON_EXTRACT(unit_based, '$.max_limit') <= ${max_limit}`)
         ];
     }
-    if (updated_on && updated_on.length === 1) {
-        const dateRange = updated_on[0].split(',').map(date => Number(date.trim()));
+    if (updated_on) {
+        const dateRange = updated_on.split(",");
         if (dateRange.length === 2) {
-            whereClause.updated_on = { [Op.between]: dateRange };
+            const startTimestamp = parseInt(dateRange[0].trim(), 10);
+            const endTimestamp = parseInt(dateRange[1].trim(), 10);
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
     }
     const pageNumber = parseInt(page as unknown as string, 10);

@@ -487,7 +487,7 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
         } = request.body as {
             page?: number;
             limit?: number;
-            updated_on?: string[];
+            updated_on?: string;
             is_enabled?: boolean | string;
             name?: string;
         };
@@ -501,10 +501,12 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
             is_deleted: false,
         };
 
-        if (updated_on && updated_on.length === 1) {
-            const dateRange = updated_on[0].split(',').map(date => Number(date.trim()));
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
-                whereConditions.updated_on = { [Op.between]: dateRange };
+                const startDate = parseFloat(dateRange[0].trim());
+                const endDate = parseFloat(dateRange[1].trim());
+                whereConditions.updated_on = { [Op.between]: [startDate, endDate] };
             }
         }
         if (is_enabled !== undefined) {
