@@ -3984,7 +3984,6 @@ export const getModuleEvent = async (
             order: [['created_on', 'DESC']],
         });
 
-        // Grouping workflows by module name
         const groupedData: Record<string, any[]> = {};
 
         workflows.forEach((workflow) => {
@@ -3995,8 +3994,8 @@ export const getModuleEvent = async (
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
+
             const workflowTriggerId = (workflow as any).workflow_trigger_id;
-            // Check if the event is already added to avoid duplicates
             const isDuplicate = groupedData[moduleName].some(
                 (event) => event.event === eventName && event.event_slug === eventSlug
             );
@@ -4010,9 +4009,12 @@ export const getModuleEvent = async (
             }
         });
 
-        // Transforming grouped data into the required format
         const data = Object.entries(groupedData).map(([moduleName, events]) => ({
-            [moduleName]: events,
+            [moduleName]: events.sort((a, b) => {
+                if (a.event_slug === 'submit_candidate_rehire_check') return -1;
+                if (b.event_slug === 'submit_candidate_rehire_check') return 1;
+                return 0;
+            }),
         }));
 
         reply.status(200).send({
@@ -4029,7 +4031,6 @@ export const getModuleEvent = async (
         });
     }
 };
-
 // export const sendSequencialNotification = async (
 //     request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
 //     reply: FastifyReply
