@@ -4,6 +4,7 @@ import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-
 import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendor-compliance-req-doc-mapping.interface';
 import { baseSearch } from "../utility/baseService";
 import { decodeToken } from "../middlewares/verifyToken";
+import { logger } from '../utility/loggerService';
 
 export async function createVendorComplianceReqDoc(
     request: FastifyRequest,
@@ -20,13 +21,50 @@ export async function createVendorComplianceReqDoc(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId=user?.sub;
+    logger(
+        {
+          trace_id:traceId,
+          actor: {
+            user_name: user?.preferred_username,
+            user_id: userId,
+          },
+          data: request.body,
+          eventname: "create Vendor compliance req doc mapping",
+          status: "success",
+          description: `Creating  Vendor compliance req doc mapping `,
+          level: 'info',
+          action: request.method,
+          url: request.url,
+          is_deleted: false
+        },
+        VendorComplianceReqDocMappingModel
+      );
+    
     try {
         const vendorComplianceMappingData: any = await VendorComplianceReqDocMappingModel.create({
             ...vendorComplianceMapping,
             created_by: userId,
             updated_by: userId,
         });
+        logger(
+            {
+              traceId,
+              actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+              },
+              data: request.body,
+              eventname: "creating Vendor compliance req doc mapping",
+              status: "success",
+              description: `Vendor compliance req doc mapping created successfully`,
+              level: "success",
+              action: request.method,
+              url: request.url,
+              is_deleted: false,
+            },
+            VendorComplianceReqDocMappingModel
+          );
  
         return reply.status(201).send({
             status_code: 201,
@@ -34,11 +72,30 @@ export async function createVendorComplianceReqDoc(
             vendor_compliance_mapping: vendorComplianceMappingData.id,
             trace_id:traceId
         });
-    } catch (error) {
+    } catch (error:any) {
+        logger(
+            {
+              traceId,
+              actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+              },
+              data: request.body,
+              eventname: "create Vendor compliance req doc mapping",
+              status: "error",
+              description: `Error creating Vendor compliance req doc mapping`,
+              level: "error",
+              action: request.method,
+              url: request.url,
+              is_deleted: false,
+            },
+            VendorComplianceReqDocMappingModel
+          );
         return reply.status(500).send({
             status_code: 500,
             trace_id:traceId,
-            message: 'Failed To Create Vendor Labour Categories'
+            message: 'Failed To Create Vendor Labour Categories',
+            error:error.message
         });
     }
 }
@@ -98,7 +155,26 @@ export async function updateVendorComplianceReqDoc(
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId=user?.sub;
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "updating Vendor compliance req doc mapping",
+            status: "info",
+            description: `Updating Vendor compliance req doc mapping with ID ${id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+            is_deleted: false
+        },
+        VendorComplianceReqDocMappingModel
+    );
     try {
         const [updatedCount] = await VendorComplianceReqDocMappingModel.update(request.body as VendorComplianceReqDocMappingInterface, {
             where: { program_id, id, is_deleted: false,updated_by:userId },
@@ -109,6 +185,25 @@ export async function updateVendorComplianceReqDoc(
                 message: 'Vendor compliance req doc mapping updated successfully.',
                 trace_id:traceId,
             });
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: userId,
+                    },
+                    data: request.body,
+                    eventname: "update Vendor compliance req doc mapping",
+                    status: "success",
+                    description: `Successfully updated Vendor compliance req doc mapping with ID ${id}`,
+                    level: 'success',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: program_id,
+                    is_deleted: false
+                },
+                VendorComplianceReqDocMappingModel
+            );
         } else {
             reply.status(200).send({
                 status_code: 200,
@@ -116,8 +211,46 @@ export async function updateVendorComplianceReqDoc(
                 message: 'Vendor compliance req doc mapping not found',
                 vendor_compliance_mapping : [],
             });
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: userId,
+                    },
+                    data: request.body,
+                    eventname: "update Vendor compliance req doc mapping",
+                    status: "warning",
+                    description: `Vendor compliance req doc mapping with ID ${id} not found`,
+                    level: 'warning',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: program_id,
+                    is_deleted: false
+                },
+                VendorComplianceReqDocMappingModel
+            );
         }
     } catch (error) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                data: request.body,
+                eventname: "update Vendor compliance req doc mapping",
+                status: "error",
+                description: `Error updating Vendor compliance req doc mapping with ID ${id}`,
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                entity_id: program_id,
+                is_deleted: false
+            },
+            VendorComplianceReqDocMappingModel
+        );
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server error',
