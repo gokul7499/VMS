@@ -27,7 +27,7 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
         // },
       }, updateHolidayCalendar);
     fastify.delete('/program/:program_id/holiday-calendar/:id',{
-        preHandler: validatePermissions,
+        // preHandler: validatePermissions,
         // config: {
         //   permissions: [Permissions.HOLIDAY_CALANDER],
         //   action: Actions.DELETE,
