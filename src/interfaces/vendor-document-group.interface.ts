@@ -4,8 +4,8 @@ export interface VendorDocumentGroup {
     name: string;
     description: string;
     required_documents: JSON;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     updated_by:JSON;
     created_by: JSON;
     is_enabled: boolean;

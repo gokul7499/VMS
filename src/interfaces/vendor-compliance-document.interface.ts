@@ -21,5 +21,7 @@ export interface VendorComplianceDocumentInterface {
   to_uploaded: string;
   document_details: string;
   status: string;
+  created_on?: bigint;
+  updated_on?: bigint;
 
 }
