@@ -228,43 +228,6 @@ export async function updateCurrencies(
 }
 
 
-// export async function updateCurrencies(
-//   request: FastifyRequest<{ Params: { id: string } }>,
-//   reply: FastifyReply
-// ) {
-//   const traceId = generateCustomUUID();
-//   try {
-//     const { id } = request.params;
-//     const { name, label, code, symbol } = request.body as currenciesData;
-
-//     const [numRowsUpdated] = await Currencies.update(
-//       { name, label, code, symbol },
-//       { where: { id } }
-//     );
-
-//     if (numRowsUpdated > 0) {
-//       reply.status(200).send({
-//         status_code: 200,
-//         message: 'Currencies updated successfully',
-//         trace_id: traceId,
-//       });
-
-//     } else {
-//       reply.status(200).send({
-//         status_code: 200,
-//         trace_id: traceId,
-//         message: 'Currencies not found',
-//       });
-//     }
-//   } catch (error) {
-//     reply.status(500).send({
-//       status_code: 500,
-//       trace_id: traceId,
-//       message: "Internal Server Error",
-//       error
-//     });
-//   }
-// }
 
 export async function deleteCurrencies(
   request: FastifyRequest<{ Params: { id: string } }>,
