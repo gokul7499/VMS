@@ -24,7 +24,6 @@ export async function createCandidate(
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    console.log("candidate", request.body)
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
     const vendor = await ProgramVendor.findOne({
@@ -253,13 +252,13 @@ export async function getAllCandidate(
         const vendors = await ProgramVendor.findAll({
             where: {
                 program_id,
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
             attributes: ['id', 'vendor_name', 'display_name', 'tenant_id']
         });
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
@@ -273,6 +272,7 @@ export async function getAllCandidate(
                 worker_type_id: cand.worker_type_id,
                 title: cand.title,
                 email: cand.email,
+                vendor_id:cand.vendor_id,
                 vendor: vendor ? {
                     id: vendor.id,
                     vendor_name: vendor.vendor_name,

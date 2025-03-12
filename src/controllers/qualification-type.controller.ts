@@ -559,3 +559,95 @@ export const updateQualificationById = async (request: FastifyRequest, reply: Fa
     });
   }
 };
+
+
+export const  advancedSearchQualification = async (
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      page?: number;
+      limit?: number;
+      name?: string;
+      type?: string;
+      is_enabled?: boolean;
+      created_by?: string;
+      updated_by?: string;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const body = request.body;
+
+    const page = body.page ?? 1;
+    const limit = body.limit ?? 10;
+    const offset = (page - 1) * limit;
+
+    const searchConditions: any = { program_id, is_deleted: false };
+
+    if (body.name) searchConditions.name = { [Op.like]: `%${body.name}%` };
+    if (body.type) searchConditions.type = { [Op.like]: `%${body.type}%` };
+    if (body.is_enabled !== undefined) searchConditions.is_enabled = body.is_enabled;
+    if (body.created_by) searchConditions.created_by = body.created_by;
+    if (body.updated_by) searchConditions.updated_by = body.updated_by;
+
+    const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
+      where: searchConditions,
+      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'created_on', 'created_by', 'type', 'program_id'],
+      order: [['created_on', 'DESC']],
+      limit,
+      offset,
+    });
+
+    if (qualificationTypes.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "Qualification type not found",
+        qualificationTypes: [],
+      });
+    }
+
+    const qualificationCounts = await Promise.all(
+      qualificationTypes.map(async (type) => {
+        const count = await Qualifications.count({
+          where: {
+            qualification_type_id: type.id,
+            is_deleted: false,
+          },
+        });
+        return { qualification_type_id: type.id, count };
+      })
+    );
+
+    const qualificationType = qualificationTypes.map((type) => {
+      const countData = qualificationCounts.find((count) => count.qualification_type_id === type.id);
+      return {
+        ...type.toJSON(),
+        qualifications_count: countData ? countData.count : 0,
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: "Qualification type get successfully",
+      items_per_page: limit,
+      total_records: count,
+      qualification_type: qualificationType,
+      trace_id: traceId,
+    });
+  } catch (error:any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error:error.message
+    });
+  }
+}
+
+
+
+

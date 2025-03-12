@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { createSupportingText, getAllSupportingTexts, getSupportingText, updateSupportingText, deleteSupportingText } from '../controllers/supporting-text.controller';
+import { createSupportingText, getAllSupportingTexts, getSupportingText, updateSupportingText, deleteSupportingText,getAllSupportingTextsAdvancedFilter } from '../controllers/supporting-text.controller';
 import { createsupportingTextSchema, paramsSchema, querySchema } from '../interfaces/supporting-text.interface';
 
 async function supportingTextRoutes(fastify: FastifyInstance) {
@@ -31,6 +31,13 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
       params: paramsSchema,
   }
   }, deleteSupportingText);
+
+  fastify.post('/program/:program_id/supporting-text-advanced-filter',{
+    schema: {
+      params: paramsSchema,
+  }
+  }, getAllSupportingTextsAdvancedFilter);
 }
+
 
 export default supportingTextRoutes;

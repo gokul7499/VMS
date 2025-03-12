@@ -35,6 +35,7 @@ export const databaseConfig = {
       keycloak_subdomain: config.keycloak_subdomain,
       client_id: config.client_id,
       client_secret: config.client_secret,
+      keycloak_realm: config.keycloak_realm,
       reconnect: {
         max: 10,
         delay: 1000,

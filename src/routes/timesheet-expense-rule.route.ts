@@ -4,7 +4,8 @@ import {
     getTimesheetExpenseRule,
     getTimesheetExpenseRuleById,
     updateTimesheetExpenseRule,
-    deleteTimesheetExpenseRule
+    deleteTimesheetExpenseRule,
+    filterTimesheetExpenseRule
 } from '../controllers/timesheet-expense-rule.controller';
 import { createTimesheetExpenseRuleSchema, paramsSchema, QuerySchema } from '../interfaces/timesheet-expense-rule.interface';
 
@@ -39,5 +40,11 @@ async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
                 params:paramsSchema
             }
         },deleteTimesheetExpenseRule);
+        fastify.post('/program/:program_id/timesheet-expense-rule/advance-filter', 
+            {
+                schema:{
+                    params:paramsSchema
+                }
+            },filterTimesheetExpenseRule);
 }
 export default TimesheetExpenseRuleRoutes;

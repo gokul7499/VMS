@@ -366,12 +366,11 @@ export async function getAllExpenseType(
         whereClause["unit_based.max_limit"] = { [Op.lte]: max_limit };
     }
     if (updated_on) {
-        const dateRange = updated_on.split(',');
-        if (dateRange.length === 2) {
-            const startDate = parseFloat(dateRange[0].trim());
-            const endDate = parseFloat(dateRange[1].trim());
-            whereClause.updated_on = { [Op.between]: [startDate, endDate] };
-        }
+        const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+
+        if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
+            whereClause.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+        } 
     }
 
     const pageNumber = parseInt(page as unknown as string) || 1;

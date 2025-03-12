@@ -292,3 +292,71 @@ export async function getShiftCategories(request: FastifyRequest, reply: Fastify
         });
     }
 }
+
+export const  getShiftTypeFilter = async (
+    request: FastifyRequest<{
+      Body: {
+        program_id?: string;
+        id?: string;
+        shift_type_name?: string;
+        is_enabled?: boolean;
+        shift_type_category?: string;
+        updated_on?: string;
+        page?: number;
+        limit?: number;
+      };
+    }>,
+    reply: FastifyReply
+  ) =>{
+    const traceId = generateCustomUUID();
+    const body = request.body;
+  
+    const page = body.page ?? 1;
+    const limit = body.limit ?? 10;
+  
+    const whereClause: any = {};
+  
+    if (body.program_id) whereClause.program_id = body.program_id;
+    if (body.id) whereClause.id = body.id;
+    if (body.shift_type_name) whereClause.shift_type_name = { [Op.like]: `%${body.shift_type_name}%` };
+    if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
+    if (body.shift_type_category) whereClause.shift_type_category = { [Op.like]: `%${body.shift_type_category}%` };
+    if (body.updated_on) whereClause.updated_on = { [Op.like]: `%${body.updated_on}%` };
+  
+    try {
+      const { rows: shiftTypes, count } = await ShiftTypeModel.findAndCountAll({
+        where: whereClause,
+        attributes: [
+          "program_id",
+          "id",
+          "shift_type_name",
+          "is_enabled",
+          "shift_type_category",
+          "updated_on",
+          "shift_type_time",
+          "time_duration",
+        ],
+        order: [["updated_on", "DESC"]],
+        offset: (page - 1) * limit,
+        limit: limit,
+      });
+  
+      return reply.status(200).send({
+        status_code: 200,
+        shift_types: shiftTypes,
+        total_records: count,
+        page: page,
+        limit: limit,
+        message: "Shift Types fetched successfully",
+        trace_id: traceId,
+      });
+    } catch (error) {
+      return reply.status(500).send({
+        status_code: 500,
+        message: "An error occurred while fetching shift types",
+        error: error,
+        trace_id: traceId,
+      });
+    }
+  }
+  
