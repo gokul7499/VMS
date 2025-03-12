@@ -2188,6 +2188,7 @@ WITH user_data AS (
          u.user_type,
          u.is_associated,
          u.supervisor,
+         u.date_format,
          MAX(CASE
              WHEN JSON_LENGTH(u.contacts) > 0 THEN u.contacts
              ELSE JSON_ARRAY(
@@ -2496,7 +2497,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ruleCategory?: string,
   ruleGroupName?: string,
   ruleType?: string,
-  isEnabled?: string,
+  isEnabled?:  boolean | string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'

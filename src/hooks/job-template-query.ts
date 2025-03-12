@@ -164,7 +164,7 @@ async getAllJobTemplateByHierarchy(
   qualificationIdsArray: string[],
   limit?: number,
   offset?: number,
-  job_type?: string,
+  jobTypeArray?: string[],
   name?: string,
   labour_category_id?: string,
   is_enabled?: boolean,
@@ -183,7 +183,7 @@ async getAllJobTemplateByHierarchy(
     hierarchyCondition,
     laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
     qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
-    job_type && `job_templates.job_type = ?`,
+    jobTypeArray && jobTypeArray.length > 0 && `job_templates.job_type IN (${jobTypeArray.map(() => '?').join(',')})`,
     name && `job_templates.template_name LIKE ?`,
     labour_category_id && `labour_category.id = ?`, 
     is_enabled !== undefined && `job_templates.is_enabled
@@ -250,9 +250,10 @@ async getAllJobTemplateByHierarchy(
   `;
 
   const replacements: (string | number)[] = [program_id];
-  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);  if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
+  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length); 
+   if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
   if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
-  if (job_type) replacements.push(job_type);
+  if (jobTypeArray && jobTypeArray.length > 0) replacements.push(...jobTypeArray);
   if (name) replacements.push(`%${name}%`);
   if (labour_category_id) replacements.push(labour_category_id);
   if (is_enabled !== undefined) {

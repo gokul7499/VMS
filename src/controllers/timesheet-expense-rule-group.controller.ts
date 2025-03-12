@@ -368,3 +368,65 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
 };
 
 
+export const filterTimesheetExpenseRuleGroups = async (
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            rule_category?: string;
+            rule_group_name?: string;
+            rule_type?: string;
+            is_enabled?: boolean | string;
+            order?: string;
+            page?: number;
+            limit?: number;
+        };
+    }>,
+    reply: FastifyReply
+) => {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id } = request.params;
+        let { rule_category, rule_group_name, rule_type, is_enabled, order = 'created_on DESC', page = 1, limit = 10 } = request.body;
+
+        if (typeof is_enabled === "boolean") {
+            is_enabled = is_enabled ? "1" : "0";
+        }
+
+        const pageNumber = parseInt(page as unknown as string, 10);
+        const limitNumber = parseInt(limit as unknown as string, 10);
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const { ruleGroups, totalRecords } = await fetchTimesheetExpenseRuleGroups(
+            program_id,
+            rule_category,
+            rule_group_name,
+            rule_type,
+            is_enabled,
+            limitNumber,
+            offset,
+            order
+        );
+
+        reply.status(200).send({
+            status_code: 200,
+            message: "Rule groups retrieved successfully.",
+            items_per_page: limitNumber,
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            timesheet_expense_rule_group: ruleGroups,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            message: "Error fetching timesheet expense rule groups.",
+            error: error.message,
+            trace_id: traceId,
+        });
+    }
+};
+
+
+
+
