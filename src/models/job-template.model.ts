@@ -33,7 +33,7 @@ JobTemplateModel.init(
             allowNull: false
         },
         job_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.JSON,
             allowNull: true
         },
         category: {
