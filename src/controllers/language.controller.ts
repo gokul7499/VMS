@@ -7,7 +7,7 @@ import generateCustomUUID from '../utility/genrateTraceId'
 import { beforeSave } from '../hooks/timeFormatHook';
 
 export async function getLanguages(request: FastifyRequest<{ Querystring: LanguageData }>, reply: FastifyReply) {
-  const { name, created_on } = request.query as { name: string, created_on: number };
+  const { name, created_on } = request.query as unknown as { name: string, created_on: number };
   const traceId = generateCustomUUID();
   try {
     const languages = await Language.findAll({
