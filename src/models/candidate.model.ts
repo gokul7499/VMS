@@ -13,6 +13,7 @@ class Candidate extends Model {
     qualifications: any;
     tenant_id: any;
     vendor_id: any;
+    candidate_id!: string;
 }
 
 Candidate.init(
@@ -185,12 +186,12 @@ Candidate.init(
             allowNull: true,
         },
         created_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
         },
         updated_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now()
         },
         created_by: {
             type: DataTypes.STRING(50),

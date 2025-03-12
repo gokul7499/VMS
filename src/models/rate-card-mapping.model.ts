@@ -35,13 +35,13 @@ RateCardMapping.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
             allowNull: true
         },
         created_by: {

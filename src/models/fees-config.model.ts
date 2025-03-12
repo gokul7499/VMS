@@ -9,6 +9,7 @@ class FeesConfigurationModel extends Model {
   labor_category: never[] | undefined;
   vendors: never[] | undefined;
 }
+
 FeesConfigurationModel.init({
   id: {
     type: DataTypes.UUID,
@@ -34,7 +35,7 @@ FeesConfigurationModel.init({
   },
   effective_date: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    defaultValue: Date.now(),
   },
   funding_model: {
     type: DataTypes.STRING,
@@ -44,7 +45,6 @@ FeesConfigurationModel.init({
     type: DataTypes.JSON,
     allowNull: false,
   },
-
   ref_id: {
     type: DataTypes.UUID,
   },
@@ -64,7 +64,6 @@ FeesConfigurationModel.init({
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-
   program_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -74,13 +73,13 @@ FeesConfigurationModel.init({
     },
   },
   created_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   updated_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   created_by: {
@@ -91,7 +90,6 @@ FeesConfigurationModel.init({
     type: DataTypes.UUID,
     allowNull: true,
   },
-
 },
   {
     sequelize,

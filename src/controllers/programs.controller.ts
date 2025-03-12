@@ -393,7 +393,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
           if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
             const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
               program_id:updates.id,
-              id: field.id,
+              custom_field_id: field.id,
               value: field.value,
             }));
             await ProgramCustomField.bulkCreate(customFields);

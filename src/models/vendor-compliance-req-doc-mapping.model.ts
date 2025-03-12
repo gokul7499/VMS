@@ -62,11 +62,11 @@ VendorComplianceReqDocMappingModel.init({
         allowNull: true,
     },
     next_expiry_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         allowNull: true,
     },
     expiry_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         allowNull: true,
     },
     compliance_note: {
@@ -98,13 +98,13 @@ VendorComplianceReqDocMappingModel.init({
         },
     },
     created_on: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
         allowNull: true
     },
     updated_on: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
         allowNull: true
     },
     created_by: {

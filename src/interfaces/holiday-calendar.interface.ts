@@ -9,8 +9,8 @@ export interface holidayCalendarData {
     work_locations_ids: any;
     holidays: any;
     is_deleted: boolean;
-    created_on: Date;
-    updated_on: Date;
+    created_on: number;
+    updated_on: number;
     created_by: string;
     updated_by: string;
     program_id: string;

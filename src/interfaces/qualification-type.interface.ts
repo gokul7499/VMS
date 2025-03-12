@@ -5,8 +5,8 @@ interface qualificationType {
   description: Text;
   is_enabled: boolean;
   is_deleted:boolean;
-  created_on:any;
-  updated_on:any;
+  created_on:number;
+  updated_on:number;
   created_by:string | null;
   updated_by:string |null;
   program_id: string;
