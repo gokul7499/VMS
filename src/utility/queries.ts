@@ -3,6 +3,7 @@ import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
 const auth_db = databaseConfig.config.database_auth;
+
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -90,6 +91,7 @@ LIMIT 0, 1000;
 
 
 `;
+
 export const getCountQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -523,8 +525,8 @@ FROM hierarchy_cte;
 export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
-  startDate?: string,
-  endDate?: string
+  startDate?: number,
+  endDate?: number
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -2395,8 +2397,8 @@ COALESCE((
           FROM master_data AS dmdt
           WHERE JSON_CONTAINS(
             -- Normalize to array if not already an array
-            CASE 
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY' 
+            CASE
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY'
               THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
               ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
             END,
@@ -2415,8 +2417,8 @@ COALESCE((
           )
           FROM master_data AS associated_mdt
           WHERE JSON_CONTAINS(
-            CASE 
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY' 
+            CASE
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY'
               THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
               ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
             END,
@@ -2434,7 +2436,7 @@ COALESCE((
     UNION ALL
     SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
   ) AS fd
-  JOIN master_data_type AS mdt 
+  JOIN master_data_type AS mdt
     ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
 ), JSON_ARRAY()) AS foundational_data
 FROM ${auth_db}.invitation
@@ -2744,6 +2746,7 @@ export const sameFeesConfig = `
     SELECT fees.id
     FROM fees
     WHERE fees.program_id = :program_id
+    AND fees.title = :title
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
     AND JSON_CONTAINS(fees.vendors, :vendors)

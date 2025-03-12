@@ -5,94 +5,41 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch, BaseService } from '../utility/baseService';
 import generateCustomUUID from '../utility/genrateTraceId';
 import Hierarchy from '../models/hierarchies.model';
-import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op, QueryTypes, Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import IndustriesModel from '../models/labour-category.model';
 import { ProgramVendor } from '../models/program-vendor.model';
-import { sequelize } from '../config/instance';
-import { sameFeesConfig } from '../utility/queries';
+import FeesConfigRepository from '../repositories/fees-config.repository';
+
+
 const baseService = new BaseService(feesConfiguration);
 
-export async function createFeesConfiguration(
-  request: FastifyRequest<{ Params: { program_id: string } }>,
-  reply: FastifyReply,
-) {
+export async function createFeesConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const feesConfig = request.body as FeesConfigurationInterface;
   const traceId = generateCustomUUID()
-  const { program_id } = request.params;
+  const { program_id } = request.params as { program_id: string };
 
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user = request.user;
 
   if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    return reply.status(400).send({ status_code: 400, message: 'user is requried.' });
   }
-  const userId = user?.sub;
-  logger(
-    {
-      trace_id: traceId,
-      actor: {
-        user_name: user?.preferred_username,
-        user_id: userId
-      },
-      data: request.body,
-      eventname: "creating fees configuration",
-      status: "success",
-      description: `Creating fees configuration`,
-      level: 'info',
-      action: request.method,
-      url: request.url,
-      entity_id: program_id,
-      is_deleted: false
-    },
-    feesConfiguration
-  );
+  const userId = user?.user_id;
 
   try {
-    const existingConfig = await feesConfiguration.findOne({
-      where: {
-        program_id: program_id,
-        title: feesConfig.title
-      }
-    });
 
-    if (existingConfig) {
-      return reply.status(409).send({
-        status_code: 409,
-        message: 'Fees configuration with this name already exists.'
-      });
-    }
-
-    const existingConfigurations = await sequelize.query(sameFeesConfig, {
-      replacements: {
-        program_id,
-        hierarchies: JSON.stringify(feesConfig.hierarchy_levels),
-        labor_category: JSON.stringify(feesConfig.labor_category),
-        vendors: JSON.stringify(feesConfig.vendors),
-      },
-      type: QueryTypes.SELECT,
-    });
+    const existingConfigurations = await FeesConfigRepository.getFeesConfig(program_id, feesConfig.hierarchy_levels, feesConfig.labor_category, feesConfig.vendors);
 
     if (existingConfigurations.length > 0) {
       return reply.status(409).send({
         status_code: 409,
-        message: 'Fees configurations with the same hierarchy and labor category already exist.',
+        message: 'Fees configurations already exist.',
         trace_id: traceId,
       });
     }
-    const fees: any = await feesConfiguration.create({
-      ...feesConfig,
-      program_id,
-      created_by: userId,
-      updated_by: userId,
-    });
+
+    const fees: any = await feesConfiguration.create({ ...feesConfig, program_id, created_by: userId });
+
     reply.status(201).send({
       status_code: 201,
       message: "fess configration created succesfully",
@@ -100,46 +47,7 @@ export async function createFeesConfiguration(
       trace_id: traceId
     });
 
-    logger(
-      {
-        trace_id: traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: userId
-        },
-        data: request.body,
-        eventname: "created fees configuration",
-        status: "success",
-        description: `Created fees configuration successfully`,
-        level: 'success',
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false
-      },
-      feesConfiguration
-    );
   } catch (error) {
-    logger(
-      {
-        trace_id: traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: userId
-        },
-        data: request.body,
-        eventname: "created fees configuration",
-        status: "error",
-        description: `Error creating fees configuration`,
-        level: 'error',
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false
-      },
-      feesConfiguration
-    );
-
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while creating fees configuration',
