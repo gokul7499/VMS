@@ -451,10 +451,11 @@ export async function advancefilter(
     if (is_enabled !== undefined) {
         whereClause.is_enabled = is_enabled === "true";
     }
-    if (max_limit !== undefined) {
-        whereClause[Op.and] = [
-            Sequelize.literal(`JSON_EXTRACT(unit_based, '$.max_limit') <= ${max_limit}`)
-        ];
+    if (max_limit !== undefined && !isNaN(Number(max_limit))) {
+        whereClause = {
+            ...whereClause,
+            [Op.and]: [Sequelize.literal(`JSON_EXTRACT(unit_based, '$.max_limit') <= ${Number(max_limit)}`)]
+        };
     }
     if (updated_on) {
         const dateRange = updated_on.split(",");
