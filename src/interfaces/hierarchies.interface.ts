@@ -4,8 +4,8 @@ export interface hierarchiesData {
   program_id: string;
   name: string;
   rate_model?: string;
-  created_on?: number; 
-  updated_on?: number; 
+  created_on?: bigint;
+  updated_on?: bigint;
   created_by?: string; 
   updated_by?: string; 
   code?: string; 

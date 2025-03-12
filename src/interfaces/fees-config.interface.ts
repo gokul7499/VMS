@@ -11,8 +11,10 @@ export interface FeesConfigurationInterface {
   funding_model: string;
   ref_id?: string;
   categorical_fees: Json;
-  is_enabled: boolean,
-  is_deleted: boolean
+  is_enabled: boolean;
+  created_on?: bigint;
+  updated_on?: bigint;
+  is_deleted: boolean;
 }
 
 export const paramsSchema = {

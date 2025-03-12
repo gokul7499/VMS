@@ -31,12 +31,12 @@ JobCategoryModel.init(
             defaultValue: true,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
             allowNull: true
         },

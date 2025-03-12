@@ -4,8 +4,8 @@ export interface ChecklistInterface {
     entity_id: string;
     created_by: string;
     updated_by: string;
-    created_on?: number;
-    updated_on?: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     is_enabled: boolean;
     is_deleted: boolean;
 
@@ -38,8 +38,8 @@ export interface ChecklistMappingInterface {
     due_date?: Record<string, any>;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on?: number;
-    updated_on?: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string;
     updated_by: string;
 }
