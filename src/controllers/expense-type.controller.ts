@@ -460,9 +460,9 @@ export async function advancefilter(
     if (updated_on) {
         const dateRange = updated_on.split(",");
         if (dateRange.length === 2) {
-            const startDate = new Date(dateRange[0].trim());
-            const endDate = new Date(dateRange[1].trim());
-            whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+            const startTimestamp = parseInt(dateRange[0].trim(), 10);
+            const endTimestamp = parseInt(dateRange[1].trim(), 10);
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
     }
     const pageNumber = parseInt(page as unknown as string, 10);
