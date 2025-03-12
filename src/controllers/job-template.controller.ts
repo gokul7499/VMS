@@ -1008,3 +1008,98 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
     });
   }
 }
+
+export const advanceFilterJobTemplates = async (
+  request: FastifyRequest<{ Body: GetJobTemplatesQuery, Params: { program_id: string } }>,
+  reply: FastifyReply
+) => {
+  const { program_id } = request.params;
+  const traceId = generateCustomUUID();
+
+  try {
+    const {
+      id,
+      job_id,
+      is_enabled,
+      template_name,
+      labour_category,
+      is_shift_rate,
+      primary_hierarchy,
+      category,
+      page = 1,
+      limit = 10,
+    } = request.body; 
+
+    const pageNumber = Number(page) > 0 ? Number(page) : 1;
+    const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const dynamicConditions: string[] = [];
+    const replacements: any = { program_id, limit: limitNumber, offset };
+
+    if (id) {
+      dynamicConditions.push(`job_templates.id = :id`);
+      replacements.id = id;
+    }
+    if (job_id) {
+      dynamicConditions.push(`job_templates.job_id = :job_id`);
+      replacements.job_id = job_id;
+    }
+    if (is_enabled !== undefined) {
+      dynamicConditions.push(`job_templates.is_enabled = :is_enabled`);
+      replacements.is_enabled = is_enabled.toString() !== "false";
+    }
+    if (template_name) {
+      dynamicConditions.push(`job_templates.template_name LIKE :template_name`);
+      replacements.template_name = `%${template_name}%`;
+    }
+    if (category) {
+      dynamicConditions.push(`job_category.title LIKE :category`);
+      replacements.category = `%${category}%`;
+    }
+    if (labour_category) {
+      dynamicConditions.push(`labour_category.id LIKE :labour_category`);
+      replacements.labour_category = `%${labour_category}%`;
+    }
+    if (primary_hierarchy) {
+      dynamicConditions.push(`job_templates.primary_hierarchy = :primary_hierarchy`);
+      replacements.primary_hierarchy = primary_hierarchy;
+    }
+    if (is_shift_rate !== undefined) {
+      dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
+      replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
+
+    const dynamicConditionsString =
+      dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
+
+    const jobTemplates = await jobTempletRepositories.getAllJobTemplets(
+      program_id,
+      dynamicConditionsString,
+      replacements,
+      limitNumber,
+      offset
+    ) as any[];
+
+    const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
+    const totalPages = Math.ceil(totalCount / limitNumber);
+
+    reply.status(200).send({
+      statusCode: 200,
+      trace_id: traceId,
+      job_templates: jobTemplates,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        total_pages: totalPages,
+        total_count: totalCount,
+      },
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      message: "An error occurred while fetching job templates.",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+};
