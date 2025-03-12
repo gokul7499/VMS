@@ -9,11 +9,8 @@ import {
   GetJobTemplatesQuery,
 } from "../interfaces/job-template.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import jobTempRateTypeModel from "../models/job-temp-rate-type.model";
 import jobTemplateQualificationModel from "../models/job-template-qualification.model";
 import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
-import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
-import jobMasterDataModel from "../models/job-master-data.model";
 import { Op, QueryTypes, Transaction } from "sequelize";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
@@ -288,77 +285,6 @@ export async function createJobTemplate(
       await Promise.all(customFieldPromises);
     }
 
-    if (Array.isArray(jobRateType.rates)) {
-      const rateTypePromises = jobRateType.rates.map(
-        (rateType: {
-          rate_type_id: any;
-          bill_rate: any;
-          pay_rate: any;
-          abbreviation: any;
-          billable: any;
-          name: any;
-        }) =>
-          jobTempRateTypeModel.create(
-            {
-              rate_type_id: rateType.rate_type_id,
-              bill_rate: rateType.bill_rate,
-              pay_rate: rateType.pay_rate,
-              abbreviation: rateType.abbreviation,
-              billable: rateType.billable,
-              name: rateType.name,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(rateTypePromises);
-    }
-
-    if (Array.isArray(jobMasterData.foundational_data)) {
-      const masterDataPromises = jobMasterData.foundational_data.map(
-        (masterData: {
-          foundation_data_type_id: any;
-          foundation_data_id: any;
-          is_read_only: any;
-        }) =>
-          jobMasterDataModel.create(
-            {
-              foundation_data_type_id: masterData.foundation_data_type_id,
-              foundation_data_id: masterData.foundation_data_id,
-              is_read_only: masterData.is_read_only,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(masterDataPromises);
-    }
-
-    if (Array.isArray(jobDistSchedule.distribute_schedule_data)) {
-      const distSchedulePromises = jobDistSchedule.distribute_schedule_data.map(
-        (distSchedule: {
-          dist_shedule_id: any;
-          schedule_value: any;
-          schedule_unit: any;
-          vendors: any;
-        }) =>
-          JobTemplateDistScheduleModel.create(
-            {
-              dist_shedule_id: distSchedule.dist_shedule_id,
-              schedule_value: distSchedule.schedule_value,
-              schedule_unit: distSchedule.schedule_unit,
-              vendors: distSchedule.vendors,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(distSchedulePromises);
-    }
-
     if (Array.isArray(jobQualification.qualification_types)) {
       const qualificationPromises = jobQualification.qualification_types.map(
         (qualification: {
@@ -524,98 +450,7 @@ export async function updateJobTemplate(
           },
         });
       }
-    }
-    if (jobRateType?.rates) {
-      for (const rate_type_id of jobRateType.rates) {
-        const existingRecord = await jobTempRateTypeModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            rate_type_id: rate_type_id.rate_type_id,
-          },
-        });
-        if (existingRecord) {
-          await existingRecord.update(rate_type_id);
-          existingRecord.bill_rate = rate_type_id.bill_rate;
-          existingRecord.pay_rate = rate_type_id.pay_rate;
-          await existingRecord.save();
-        } else {
-          await jobTempRateTypeModel.create({
-            ...rate_type_id,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-    }
-
-    if (jobMasterData?.foundational_data) {
-      const incomingIds = jobMasterData.foundational_data
-        .map((data: { foundation_data_type_id: any; }) => data.foundation_data_type_id)
-        .filter(Boolean);
-    
-      for (const data of jobMasterData.foundational_data) {
-        const { foundation_data_type_id, ...foundationData } = data;
-    
-        const existingRecord = await jobMasterDataModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            foundation_data_type_id,
-          },
-        });
-    
-        if (existingRecord) {
-          await existingRecord.update(foundationData);
-        } else {
-          await jobMasterDataModel.create({
-            foundation_data_type_id,
-            ...foundationData,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-          const existingRecords = await jobMasterDataModel.findAll({
-        where: {
-          program_id,
-          job_temp_id: id,
-        },
-      });
-      const existingIds = existingRecords.map((record) => record.foundation_data_type_id);
-      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
-    
-      if (idsToDelete.length > 0) {
-        await jobMasterDataModel.destroy({
-          where: {
-            program_id,
-            job_temp_id: id,
-            foundation_data_type_id: idsToDelete,
-          },
-        });
-      }
     }  
-
-    if (jobDistSchedule?.distribute_schedule_data) {
-      for (const schedule of jobDistSchedule.distribute_schedule_data) {
-        const existingRecord = await JobTemplateDistScheduleModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            dist_shedule_id: schedule.dist_shedule_id,
-          },
-        });
-        if (existingRecord) {
-          await existingRecord.update(schedule);
-        } else {
-          await JobTemplateDistScheduleModel.create({
-            ...schedule,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-    }
 
     if (jobQualification?.qualification_types) {
       const incomingIds = jobQualification.qualification_types
