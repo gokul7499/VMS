@@ -250,7 +250,7 @@ export async function getAllCustomFields(
   const traceId = generateCustomUUID();
   const programId = request.params.program_id;
   const page = parseInt(request.query.page ?? '1', 10);
-  const limit = parseInt(request.query.limit ?? '10', 10);
+  const limit = parseInt(request.query.limit ?? '100', 10);
 
   const whereClause: any = {
     program_id: programId,
