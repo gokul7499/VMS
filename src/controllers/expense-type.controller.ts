@@ -3,7 +3,7 @@ import ExpenseTypeModel from "../models/expense-type.model";
 import { ExpenseTypeInterface } from "../interfaces/expense-type.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 
@@ -399,3 +399,100 @@ export async function getAllExpenseType(
         reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
     }
 }
+
+export async function advancefilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            name?: string;
+            code?: string;
+            category?: string;
+            apply_msp_fee?: string;
+            appply_tax?: string;
+            allow_unit_based?: string;
+            is_enabled?: string;
+            max_limit?: number;
+            page?: number;
+            limit?: number;
+            updated_on?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const { program_id } = request.params;
+    const {
+        name,
+        code,
+        category,
+        apply_msp_fee,
+        appply_tax,
+        allow_unit_based,
+        is_enabled,
+        max_limit,
+        page = 1,
+        limit = 10,
+        updated_on
+    } = request.body;
+
+    const traceId = generateCustomUUID();
+    let whereClause: any = { program_id };
+
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (code) whereClause.code = code;
+    if (category) whereClause.category = { [Op.like]: `%${category}%` };
+    if (apply_msp_fee !== undefined) {
+        whereClause.apply_msp_fee = apply_msp_fee === "true";
+    }
+    if (appply_tax !== undefined) {
+        whereClause.appply_tax = appply_tax === "true";
+    }
+    if (allow_unit_based !== undefined) {
+        whereClause.allow_unit_based = allow_unit_based === "true";
+    }
+    if (is_enabled !== undefined) {
+        whereClause.is_enabled = is_enabled === "true";
+    }
+    if (max_limit !== undefined) {
+        whereClause[Op.and] = [
+            Sequelize.literal(`JSON_EXTRACT(unit_based, '$.max_limit') <= ${max_limit}`)
+        ];
+    }
+    if (updated_on) {
+        const dateRange = updated_on.split(",");
+        if (dateRange.length === 2) {
+            const startTimestamp = parseInt(dateRange[0].trim(), 10);
+            const endTimestamp = parseInt(dateRange[1].trim(), 10);
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+        }
+    }
+    const pageNumber = parseInt(page as unknown as string, 10);
+    const pageSize = parseInt(limit as unknown as string, 10);
+    const offset = (pageNumber - 1) * pageSize;
+    try {
+        const { rows: expenseType, count: total_records } = await ExpenseTypeModel.findAndCountAll({
+            where: whereClause,
+            offset,
+            limit: pageSize,
+            order: [["created_on", "DESC"]],
+        });
+
+        reply.status(200).send({
+            status_code: 200,
+            message: expenseType.length > 0 ? "Expense types retrieved successfully" : "No expense types found",
+            expense_type: expenseType,
+            total_records,
+            page: pageNumber,
+            limit: pageSize,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        console.error(error);
+        reply.status(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            error: error.message,
+            trace_id: traceId
+        });
+    }
+}
+
