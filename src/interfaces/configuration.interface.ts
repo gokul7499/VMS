@@ -18,9 +18,9 @@ export interface ConfigurationAttributes {
   parent_value: boolean;
   ui_component_type: string;
   created_by: string;
-  created_on: number;
+  created_on?: bigint;
+  updated_on?: bigint;
   updated_by: string;
-  updated_on: number;
   sr_Number: number;
   options: Json;
   is_default: boolean;

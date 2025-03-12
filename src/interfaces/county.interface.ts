@@ -3,8 +3,8 @@ export interface CountyInterface {
     name?: string;
     region?: string;
     is_enabled: boolean;
-    created_on: any;
-    updated_on: any;
+    created_on?: bigint;
+    updated_on?: bigint;
     state_id: string;
     created_by?: any;
     updated_by?: any;

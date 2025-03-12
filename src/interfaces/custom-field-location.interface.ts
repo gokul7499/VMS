@@ -5,4 +5,6 @@ export interface CustomFieldLocationInterface {
     location_id: string;
     is_enabled: boolean;
     is_deleted?: boolean;
+    created_on?: bigint;
+    updated_on?: bigint;
 }

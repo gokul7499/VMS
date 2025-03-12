@@ -4,8 +4,8 @@ interface EventInterface {
   module_id: string;
   is_enabled: boolean | string;
   is_deleted: boolean;
-  created_on: any;
-  updated_on:any;
+  created_on?: bigint;
+  updated_on?: bigint;
   created_by:string;
   updated_by:string;
   type: string;
