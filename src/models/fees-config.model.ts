@@ -9,6 +9,7 @@ class FeesConfigurationModel extends Model {
   labor_category: never[] | undefined;
   vendors: never[] | undefined;
 }
+
 FeesConfigurationModel.init({
   id: {
     type: DataTypes.UUID,
@@ -44,7 +45,6 @@ FeesConfigurationModel.init({
     type: DataTypes.JSON,
     allowNull: false,
   },
-
   ref_id: {
     type: DataTypes.UUID,
   },
@@ -64,7 +64,6 @@ FeesConfigurationModel.init({
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-
   program_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -91,7 +90,6 @@ FeesConfigurationModel.init({
     type: DataTypes.UUID,
     allowNull: true,
   },
-
 },
   {
     sequelize,
