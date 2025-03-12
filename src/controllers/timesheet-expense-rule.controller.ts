@@ -438,12 +438,16 @@ export const filterTimesheetExpenseRule = async (
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
         if (updated_on) {
-            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
-            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
-                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
-            } 
+            const dateRange = updated_on.split(',').map(date => {
+                const parsedDate = !isNaN(Number(date)) ? new Date(Number(date)) : new Date(date.trim());
+                return isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
+            }).filter(Boolean);
+        
+            if (dateRange.length === 2) {
+                whereCondition.updated_on = { [Op.between]: dateRange };
+            }
         }
-
+        
         const defaultFields = [
             'id',
             'rule_name',
