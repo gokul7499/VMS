@@ -12,7 +12,7 @@ class PicklistModel extends Model<picklistAttributes, PicklistCreationAttributes
   public id!: string;
   public picklist_id!: string | null;
   public name!: string;
-  public program_id!: string;  
+  public program_id!: string;
   public description!: string | null;
   public is_enabled!: boolean;
   public is_deleted!: boolean;
@@ -91,10 +91,12 @@ PicklistModel.init({
   },
   created_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   updated_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   created_by: {

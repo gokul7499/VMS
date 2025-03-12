@@ -49,19 +49,21 @@ QualificationTypeModel.init({
   },
   created_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true,
   },
   updated_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true,
   },
   created_by: {
     type: DataTypes.UUID,
-    allowNull:true,
+    allowNull: true,
   },
   updated_by: {
     type: DataTypes.UUID,
-    allowNull:true,
+    allowNull: true,
   },
 }, {
   sequelize,

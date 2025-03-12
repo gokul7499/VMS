@@ -4,7 +4,8 @@ import {
     updateFoundationalDataTypes,
     deleteFoundationalDataTypes,
     getAllFoundationalDataTypes,
-    getFoundationalDataTypeById
+    getFoundationalDataTypeById,
+    getAllFoundationalDataTypesAdvancedFilter
 } from '../controllers/foundational-datatypes.controller';
 import { createFoundationalDataTypeSchema, paramsSchema, querySchema } from '../interfaces/foundational-datatypes.interface';
 
@@ -42,6 +43,12 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
 
         }
     }, getFoundationalDataTypeById);
+
+    fastify.post('/program/:program_id/foundational-datatypes-advanced-filter', {
+        schema: {
+            params: paramsSchema,
+        }
+    }, getAllFoundationalDataTypesAdvancedFilter);
 }
 
 export default foundationalDataTypeRoutes;

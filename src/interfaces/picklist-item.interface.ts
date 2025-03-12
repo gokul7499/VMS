@@ -6,8 +6,8 @@ export interface picklist_item_data {
     value: string;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on: any;
-    updated_on: any;
+    created_on: number;
+    updated_on: number;
     created_by: string;
     updated_by: string;
     picklist_id: string;

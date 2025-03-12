@@ -2,24 +2,42 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import CountryModel from '../models/countries.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
+import { logger } from '../utility/loggerService';
 
 export const createCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
 
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-   
+
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating country",
+            status: "success",
+            description: "Creating a new country record",
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            is_deleted: false
+        },
+        CountryModel
+    );
+
     try {
         const payload = request.body as {
             name: string,
@@ -27,19 +45,75 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
             iso_code_3: string,
             isd_code: string,
             min_phone_length: number,
-            max_phone_length: number, 
+            max_phone_length: number,
         };
 
-        const newCountry: any = await CountryModel.create(payload);
+        const existingCountry = await CountryModel.findOne({
+            where: { name: payload.name }
+        });
+
+        if (existingCountry) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "Country already exists with this name",
+                trace_id: traceId,
+            });
+        }
+
+        const newCountry: any = await CountryModel.create({
+            ...payload,
+            created_by: userId,
+            updated_by: userId
+        });
+
         reply.status(201).send({
             status_code: 201,
             data: newCountry?.id,
             message: 'Country Created successfully',
             trace_id: traceId,
             created_by: userId,
-            updated_by:userId 
+            updated_by: userId
         });
-    } catch (error) {
+
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "create country",
+                status: "success",
+                description: `Created country successfully: ${newCountry.id}`,
+                level: 'success',
+                action: request.method,
+                url: request.url,
+                is_deleted: false
+            },
+            CountryModel
+        );
+
+    } catch (error: any) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "create country",
+                status: "error",
+                description: "Error creating country",
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                is_deleted: false
+            },
+            CountryModel
+        );
+
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to create Country',
@@ -48,6 +122,7 @@ export const createCountry = async (request: FastifyRequest, reply: FastifyReply
         });
     }
 };
+
 
 export const bulkUploadCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -148,66 +223,139 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
     }
 };
 
+
 export const updateCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
+
     if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
+
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-        return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
 
-    try {
-        const { id } = request.params as { id: string };
-        const {
-            name,
-            iso_code_2,
-            iso_code_3,
-            isd_code,
-            min_phone_length,
-            max_phone_length,
-        } = request.body as {
-            name: string,
-            iso_code_2: string,
-            iso_code_3: string,
-            isd_code: string,
-            min_phone_length: number,
-            max_phone_length: number,
-        };
+    const { id } = request.params as { id: string };
+    const payload = request.body as {
+        name: string,
+        iso_code_2: string,
+        iso_code_3: string,
+        isd_code: string,
+        min_phone_length: number,
+        max_phone_length: number,
+    };
 
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "updating country",
+            status: "info",
+            description: `Updating country with ID ${id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: id,
+            is_deleted: false
+        },
+        CountryModel
+    );
+
+    try {
         const [updatedRows] = await CountryModel.update(
             {
-                name,
-                iso_code_2,
-                iso_code_3,
-                isd_code,
-                min_phone_length,
-                max_phone_length,
-                created_by: userId,
-                updated_by:userId
+                ...payload,
+                updated_by: userId
             },
             {
                 where: { id },
             }
         );
+
         if (updatedRows > 0) {
             reply.status(200).send({
                 status_code: 200,
                 message: 'Country updated successfully',
                 trace_id: traceId,
             });
+
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: request.body,
+                    eventname: "update country",
+                    status: "success",
+                    description: `Successfully updated country with ID ${id}`,
+                    level: 'success',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: id,
+                    is_deleted: false
+                },
+                CountryModel
+            );
+
         } else {
-            reply.status(200).send({
-                status_code: 200,
+            reply.status(404).send({
+                status_code: 404,
                 message: 'Country not found',
                 trace_id: traceId,
             });
+
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: request.body,
+                    eventname: "update country",
+                    status: "warning",
+                    description: `Country with ID ${id} not found`,
+                    level: 'warning',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: id,
+                    is_deleted: false
+                },
+                CountryModel
+            );
         }
-    } catch (error) {
+    } catch (error: any) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "update country",
+                status: "error",
+                description: `Error updating country with ID ${id}`,
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false
+            },
+            CountryModel
+        );
+
         reply.status(500).send({
             status_code: 500,
             message: 'Failed to update Country',
@@ -223,12 +371,12 @@ export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply
     try {
         const { id } = request.params as { id: string };
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
@@ -236,7 +384,7 @@ export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply
             {
                 is_enabled: false,
                 is_deleted: true,
-                updated_by:userId,
+                updated_by: userId,
             },
             {
                 where: { id },

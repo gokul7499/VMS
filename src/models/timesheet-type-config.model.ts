@@ -14,8 +14,8 @@ class TimesheetTypeConfig extends Model {
   allocations: any;
   title!: string;
   slug!: string
-    timesheet_rule_group: never[] | undefined;
-    break_rule_group:never [] | undefined;
+  timesheet_rule_group: never[] | undefined;
+  break_rule_group: never[] | undefined;
 }
 
 TimesheetTypeConfig.init(
@@ -65,11 +65,11 @@ TimesheetTypeConfig.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    timesheet_rule_group:{
+    timesheet_rule_group: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    break_rule_group:{
+    break_rule_group: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -125,7 +125,7 @@ TimesheetTypeConfig.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    is_modification_rule:{
+    is_modification_rule: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
@@ -149,7 +149,7 @@ TimesheetTypeConfig.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-   
+
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -172,10 +172,12 @@ TimesheetTypeConfig.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true,
     },
     updated_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true,
     },
     created_by: {

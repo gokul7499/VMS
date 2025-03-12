@@ -415,3 +415,131 @@ export async function getAllFoundationalDataTypes(
     }
 }
 
+export async function getAllFoundationalDataTypesAdvancedFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            name?: string;
+            is_enabled?: boolean;
+            updated_on?: string;
+            timesheet_master_data?: boolean;
+            user_association_exclude?: boolean;
+            page?: string;
+            limit?: string;
+            track_owner?: boolean;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    const responseFields = [
+        'id',
+        'program_id',
+        'name',
+        'is_enabled',
+        'updated_on',
+        'description',
+        'configuration',
+    ];
+    const { program_id } = request.params;
+    const {
+        name,
+        is_enabled,
+        updated_on,
+        timesheet_master_data,
+        user_association_exclude,
+        page = '1',
+        limit = '10',
+        track_owner,
+    } = request.body;
+
+    try {
+        const filters: any = { program_id, is_deleted: false };
+
+        if (name) filters.name = { [Op.like]: `%${name}%` };
+        if (is_enabled !== undefined) filters.is_enabled = is_enabled;
+        if (updated_on) {
+            const modifiedOnRange = updated_on.split(',').map(Number);
+            if (modifiedOnRange.length === 2) {
+                filters.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
+            }
+        }
+        if (timesheet_master_data !== undefined) {
+            filters['configuration.timesheet_master_data'] = timesheet_master_data;
+        }
+        if (user_association_exclude !== undefined) {
+            filters['configuration.user_association_exclude'] = user_association_exclude;
+        }
+        if (track_owner !== undefined) {
+            filters['configuration.track_owner'] = track_owner;
+        }
+
+        const offset = (Number(page) - 1) * Number(limit);
+
+        const { rows: foundationalDataItems, count: totalRecords } =
+            await foundationalDataTypes.findAndCountAll({
+                where: filters,
+                attributes: responseFields,
+                offset,
+                limit: Number(limit),
+                order: [['updated_on', 'DESC']],
+            });
+
+        if (!foundationalDataItems.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Foundational data not found',
+                foundationalData: [],
+                trace_id: traceId,
+            });
+        }
+
+        const foundationalDataTypeIds = foundationalDataItems.map((item) => item.dataValues.id);
+
+        const foundationalDataCounts = await foundationalDataModel.findAll({
+            where: {
+                foundational_data_type_id: { [Op.in]: foundationalDataTypeIds },
+                is_deleted: false,
+            },
+            attributes: [
+                'foundational_data_type_id',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+            ],
+            group: ['foundational_data_type_id'],
+        });
+
+        const foundationalDataCountMap = foundationalDataCounts.reduce(
+            (map: Map<string, number>, item: any) => {
+                map.set(item.dataValues.foundational_data_type_id, item.dataValues.count);
+                return map;
+            },
+            new Map<string, number>()
+        );
+
+        const populatedFoundationalData = foundationalDataItems.map((item) => ({
+            ...item.dataValues,
+            updated_on: item.dataValues.updated_on
+                ? Number(item.dataValues.updated_on)
+                : null,
+            foundational_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
+        }));
+
+        reply.send({
+            status_code: 200,
+            message: 'Foundational data retrieved successfully',
+            total_records: totalRecords,
+            foundationalData: populatedFoundationalData,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        console.error(`Error fetching foundational data: ${error.message}`, { traceId, error });
+
+        reply.status(500).send({
+            statusCode: 500,
+            message: 'Internal server error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+}
+
