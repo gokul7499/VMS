@@ -13,6 +13,7 @@ class Candidate extends Model {
     qualifications: any;
     tenant_id: any;
     vendor_id: any;
+    candidate_id!: string;
 }
 
 Candidate.init(
