@@ -539,6 +539,7 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
