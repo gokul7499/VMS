@@ -372,7 +372,7 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
-    updateData.updated_on = Date.now();
+    updateData.updated_on = BigInt(Date.now());
     updateData.updated_by = userId;
     await jobTemplate.update(updateData);
 

@@ -458,7 +458,7 @@ export async function updateUser(
         user: [],
       });
     }
-    updates.updated_on = Date.now();
+    updates.updated_on = BigInt(Date.now());
     updates.updated_by = userId;
     updates.updated_by = userId;
     await user.update(updates);

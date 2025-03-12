@@ -118,7 +118,7 @@ export async function getPicklistById(
       );
     if (updated_on)
       predefinedPicklists = predefinedPicklists.filter(
-        (picklist) => picklist.updated_on === parseInt(updated_on, 10)
+        (picklist) => Number(picklist.updated_on) === parseInt(updated_on, 10)
       );
     if (picklist_items_count) {
       const countFilter = parseInt(picklist_items_count, 10);
