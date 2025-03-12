@@ -4,24 +4,22 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-interface CustomRequest extends FastifyRequest {
-  user?: JwtPayload | string;
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: any;
+  }
+
 }
 
-export const verifyToken = async (request: CustomRequest, reply: FastifyReply) => {
+export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) => {
   const authHeader = request.headers?.authorization;
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
 
     try {
-      const API_SECRET = process.env.API_SECRET;
-
-      const decodedUser = jwt.verify(token, API_SECRET as jwt.Secret, {
-        algorithms: ["HS256"],
-      });
-
-      request.user = decodedUser;
+      const decodedToken = jwt.decode(token) as JwtPayload;
+      request.user = decodedToken;
     } catch (error) {
       return reply.status(401).send({
         status: "Failed",
