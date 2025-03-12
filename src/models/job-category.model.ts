@@ -32,12 +32,12 @@ JobCategoryModel.init(
         },
         created_on: {
             type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
             type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            defaultValue: Date.now(),
             allowNull: true
         },
         created_by: {
@@ -82,11 +82,11 @@ JobCategoryModel.init(
             defaultValue: true,
         },
         created_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
+            type: DataTypes.DOUBLE,
             allowNull: true
         },
         created_by: {
