@@ -2,9 +2,11 @@ import { NotificationDataPayload } from '../interfaces/noifications-data-payload
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
+import axios from 'axios';
 import { sequelize } from '../config/instance';
 const config_db = databaseConfig.config.database;
-const sourcing_db = databaseConfig.config.db_sourcing;
+const sourcing_url = databaseConfig.config.sourcing_url;
+const teai_url= databaseConfig.config.teai_url
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -217,31 +219,168 @@ interface WorkflowDetails {
     last_name: string;
     email: string;
     unique_key: string;
+    offer_code?: string;
+    candidate_id?: string;
+    events?: string;
+    workflow_trigger_id?: string;
 }
 
-// export async function getWorkflowDetails(
-//     sequelize: Sequelize,
-//     workflowId: string
-// ): Promise<WorkflowDetails | null> {
-//     try {
-//         console.log(`Executing query to fetch workflow details for workflow ID: ${workflowId}`);
+export async function getWorkflowDetails(
+    sequelize: Sequelize,
+    workflowId: string
+): Promise<WorkflowDetails | null> {
+    try {
+        console.log(`Executing query to fetch complete workflow details for workflow ID: ${workflowId}`);
 
-//         const result = await sequelize.query(
-//             `SELECT j.job_id, c.first_name, c.last_name, c.email, w.unique_key
-//              FROM workflow w
-//              LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
-//              LEFT JOIN candidates c ON w.candidate_id = c.id
-//              WHERE w.id = :workflow_id;`,
-//             {
-//                 replacements: { workflow_id: workflowId },
-//                 type: QueryTypes.SELECT,
-//             }
-//         ) as WorkflowDetails[];
-//         console.log("Query Result:", result);
+        const result = await sequelize.query(
+            `SELECT 
+                w.id AS workflow_id,
+                w.job_id, 
+                c.first_name, 
+                c.last_name, 
+                c.email, 
+                w.unique_key,
+                w.candidate_id,
+                w.events,
+                w.workflow_trigger_id
+             FROM workflow w
+             LEFT JOIN candidates c ON w.candidate_id = c.id
+             WHERE w.id = :workflow_id;`,
+            {
+                replacements: { workflow_id: workflowId },
+                type: QueryTypes.SELECT,
+            }
+        ) as WorkflowDetails[];
 
-//         return result.length > 0 ? result[0] : null;
-//     } catch (error) {
-//         console.error("Error fetching workflow details:", error);
-//         throw error;
-//     }
-// }
+        console.log("Query Result:", result);
+
+        return result.length > 0 ? result[0] : null;
+    } catch (error) {
+        console.error("Error fetching workflow details:", error);
+        throw error;
+    }
+}
+
+export async function isVendorRequired(eventCode: string): Promise<boolean> {
+    const requiredEvents = new Set([        
+        "CANDIDATE_SHORTLIST_REJECTED",
+        "REHIRE_REVIEW_REJECT",
+        "REHIRE_APPROVAL_REJECT",
+        "ASSIGNMENT_APPROVAL_REJECTED",
+        "ASSIGNMENT_MODIFIED_REJECTED"
+    ]);
+
+    return requiredEvents.has(eventCode);
+}
+
+export async function getProgramVendorsEmail(programId: string): Promise<EmailRecipient[]> {
+    try {
+        const contacts = await sequelize.query(
+            `SELECT 
+                ct.email AS email,
+                ct.first_name AS first_name,
+                ct.last_name AS last_name
+            FROM program_vendors
+            CROSS JOIN JSON_TABLE(
+                contact, '$[*]' 
+                COLUMNS (
+                    email VARCHAR(255) PATH '$.email',
+                    first_name VARCHAR(255) PATH '$.first_name',
+                    last_name VARCHAR(255) PATH '$.last_name'
+                )
+            ) AS ct
+            WHERE program_id = :program_id
+            AND JSON_VALID(contact);`,  
+            {
+                replacements: { program_id: programId },
+                type: QueryTypes.SELECT
+            }
+        ) as { email: string, first_name: string, last_name: string }[];
+
+        return contacts;
+    } catch (error) {
+        console.error('Error fetching program vendor contact details:', error);
+        throw error;
+    }
+}
+export const getJobDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/job/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Job details not found.");
+            return { status: 404, message: "Job details not found", data: null };
+        }
+
+        console.log('Job details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Job details");
+    }
+};
+
+export const getOfferDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/offer/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Offer details not found.");
+            return { status: 404, message: "Offer details not found", data: null };
+        }
+
+        console.log('Offer details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Offer details");
+    }
+};
+
+export const getAssignmentDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${teai_url}/assignment/v1/program/${program_id}/assignments/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Assignment details not found.");
+            return { status: 404, message: "Assignment details not found", data: null };
+        }
+
+        console.log('Assignment details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Assignment details");
+    }
+};
+
+const handleErrorProperly = (error: any, entity: string) => {
+    if (axios.isAxiosError(error)) {
+        if (error.response) {
+            if (error.response.status === 404) {
+                console.warn(`${entity} not found:`, error.response.data);
+                return { status: 404, message: `${entity} not found`, data: null };
+            }
+            console.error(`Error fetching ${entity}:`, error.response.data);
+            return { status: error.response.status, message: `Error fetching ${entity}`, data: null };
+        } else if (error.request) {
+            console.error(`No response received while fetching ${entity}`);
+            return { status: 500, message: `No response received while fetching ${entity}`, data: null };
+        }
+    }
+    console.error(`Unexpected error while fetching ${entity}:`, error.message);
+    return { status: 500, message: `Unexpected error while fetching ${entity}`, data: null };
+};
+

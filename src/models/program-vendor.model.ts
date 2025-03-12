@@ -27,7 +27,7 @@ class ProgramVendor extends Model {
     is_deleted: any;
     job_type: any;
     created_by: any;
-    modified_by: any;
+    updated_by: any;
     markup_config: any;
     tenant_id: any;
     all_work_locations: any;
@@ -38,8 +38,8 @@ class ProgramVendor extends Model {
     establish_year: any;
     social_media: any;
     status: any;
-    vendor_code!:string;
-    display_name:any;
+    vendor_code!: string;
+    display_name: any;
     compliance_status!: { status: string; is_audited: any; is_compliant: any; };
     diversity_details: any;
     vendor_id: any;
@@ -71,9 +71,9 @@ ProgramVendor.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
-        vendor_code:{
+        vendor_code: {
             type: DataTypes.STRING,
-            allowNull: true, 
+            allowNull: true,
         },
         hierarchies: {
             type: DataTypes.JSON,
@@ -117,10 +117,10 @@ ProgramVendor.init(
             allowNull: true,
             defaultValue: false
         },
-         display_name: {
-                type: DataTypes.STRING,
-                allowNull: true,
-                defaultValue: false
+        display_name: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: false
         },
         program_id: {
             type: DataTypes.UUID,
@@ -146,27 +146,9 @@ ProgramVendor.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
         status: {
             type: DataTypes.ENUM("Active", "Inactive", "Pending Setup"),
             defaultValue: "Pending Setup",
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            allowNull: true,
-        },
-        modified_by:  {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
             allowNull: true,
         },
         description: {
@@ -236,6 +218,25 @@ ProgramVendor.init(
             type: DataTypes.BOOLEAN,
             allowNull: true,
         },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(), 
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,

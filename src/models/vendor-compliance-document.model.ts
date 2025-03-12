@@ -48,12 +48,12 @@ VendorComplianceDocumentModel.init({
     type: DataTypes.STRING
   },
   next_update_due: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.DATE,
     allowNull: true
   },
   last_updated: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
+    defaultValue: Date.now()
   },
   ref_id: {
     type: DataTypes.UUID,
@@ -89,10 +89,12 @@ VendorComplianceDocumentModel.init({
   },
   created_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   updated_on: {
     type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   created_by: {

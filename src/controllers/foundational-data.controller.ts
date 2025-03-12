@@ -32,14 +32,14 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
         const limit = parseInt(query.limit ?? '10');
         const offset = (page - 1) * limit;
 
-        let modified_on_start = null;
-        let modified_on_end = null;
+        let updated_on_start = null;
+        let updated_on_end = null;
 
         if (query.updated_on) {
             const modifiedOnRange = query.updated_on.split(',');
             if (modifiedOnRange.length === 2) {
-                modified_on_start = modifiedOnRange[0];
-                modified_on_end = modifiedOnRange[1];
+                updated_on_start = modifiedOnRange[0];
+                updated_on_end = modifiedOnRange[1];
             }
         }
 
@@ -48,8 +48,8 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             id: query.id ?? null,
             name: query.name ? `%${query.name}%` : null,
             is_enabled: query.is_enabled !== undefined ? query.is_enabled === 'true' : null,
-            modified_on_start,
-            modified_on_end,
+            updated_on_start,
+            updated_on_end,
             manager_id: query.manager_id ?? null,
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,

@@ -25,7 +25,7 @@ export interface ReasonCodeResponse {
     total_records: number;
     items_per_page: number;
     reason_codes: ReasonCode[];
-    modified_on: number;
+    updated_on: number;
     trace_id: string;
 }
 export const paramsSchema = {

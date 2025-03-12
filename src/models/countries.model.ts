@@ -5,7 +5,7 @@ import { beforeSave } from "../hooks/timeFormatHook";
 class CountryModel extends Model {
   id: any;
   name: any;
-    user_id: any;
+  user_id: any;
 }
 
 CountryModel.init({
@@ -51,20 +51,22 @@ CountryModel.init({
   },
   created_on: {
     type: DataTypes.DOUBLE,
-    allowNull:true,
+    defaultValue: Date.now(),
+    allowNull: true
   },
   updated_on: {
     type: DataTypes.DOUBLE,
-    allowNull:true,
+    defaultValue: Date.now(),
+    allowNull: true
   },
   created_by: {
-    type: DataTypes.CHAR(39),
+    type: DataTypes.UUID,
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: true,
-  }
+  },
 },
   {
     sequelize,

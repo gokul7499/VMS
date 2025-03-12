@@ -34,10 +34,12 @@ ProgramModule.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull:true,
     },
     updated_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull:true,
     },
     created_by: {

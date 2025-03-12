@@ -6,6 +6,7 @@ import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
+import HolidayCalendar from "../models/holiday-calendar.model";
 
 export async function getHolidayCalendar(
   request: FastifyRequest<{ Params: { program_id: string }, Querystring: { name?: string, year?: number, is_enabled?: string, updated_on?: string, page?: string, limit?: string } }>,
@@ -292,6 +293,7 @@ export const updateHolidayCalendar = async (
 ) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
+  const holiday_calendar = request.body as holidayCalendarData;
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -305,7 +307,22 @@ export const updateHolidayCalendar = async (
   const userId = user?.sub
 
   try {
-    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId }, { where: { program_id, id } });
+    const existingHolidayCalendar = await holidayCalendar.findOne({
+      where: {
+        program_id: holiday_calendar.program_id,
+        name:holiday_calendar.name,
+        is_deleted:false
+      }
+    });
+  
+    if (existingHolidayCalendar) {
+      reply.status(409).send({
+        status_code: 409,
+        trace_id: traceId,
+        message: 'Holiday calendar name already exists.',
+      });
+    }
+    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId,updated_on: Date.now() }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,

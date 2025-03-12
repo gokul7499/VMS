@@ -33,11 +33,13 @@ GlobalConfigModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-	  allowNull : true
+      defaultValue: Date.now(),
+      allowNull: true
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-	  allowNull:true
+      defaultValue: Date.now(),
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,

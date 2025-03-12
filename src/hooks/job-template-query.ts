@@ -47,7 +47,8 @@ class JobTempletRepository {
     hierarchy_ids: string[],
     job_type?: string,
     limit?: number,
-    offset?: number
+    offset?: number,
+    is_enabled?:boolean
   ) {
     const hierarchyCondition = hierarchy_ids.length > 0
       ? `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
@@ -56,6 +57,7 @@ class JobTempletRepository {
     const paginationCondition = limit !== undefined && offset !== undefined
       ? `LIMIT ? OFFSET ?`
       : '';
+      const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
 
     const query = `
       SELECT
@@ -79,6 +81,7 @@ class JobTempletRepository {
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
       ${jobTypeCondition}
+      ${isEnabledCondition}
       AND job_templates.job_submitted_count >=1
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
@@ -92,6 +95,10 @@ class JobTempletRepository {
       replacements.push(limit, offset);
     }
 
+    if (is_enabled !== undefined) {
+      replacements.push(is_enabled ? 1 : 0); 
+    }
+
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
@@ -100,13 +107,14 @@ class JobTempletRepository {
     return data;
   }
 
-  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string) {
+  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string,is_enabled?: boolean|undefined) {
     let hierarchyCondition = '';
 
     if (hierarchy_ids.length > 0) {
       hierarchyCondition = `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`;
     }
     const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
+    const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
     const query = `
       SELECT
         job_templates.template_name,
@@ -129,12 +137,16 @@ class JobTempletRepository {
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
       ${jobTypeCondition}
+      ${isEnabledCondition}
       GROUP BY job_templates.template_name
       ORDER BY created_on DESC;
     `;
-    const replacements = [program_id, ...hierarchy_ids];
+    const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
     if (job_type) {
       replacements.push(job_type);
+    }
+    if (is_enabled !== undefined) {
+      replacements.push(is_enabled ? 1 : 0); 
     }
 
     const data = await sequelize.query(query, {
@@ -154,7 +166,9 @@ async getAllJobTemplateByHierarchy(
   offset?: number,
   job_type?: string,
   name?: string,
-  labour_category_id?: string
+  labour_category_id?: string,
+  is_enabled?: boolean,
+  is_shift_rate?: boolean
 ) {
   const hierarchyCondition = hierarchyIdsArray.length > 0
   ? `job_templates.id IN (
@@ -172,6 +186,10 @@ async getAllJobTemplateByHierarchy(
     job_type && `job_templates.job_type = ?`,
     name && `job_templates.template_name LIKE ?`,
     labour_category_id && `labour_category.id = ?`, 
+    is_enabled !== undefined && `job_templates.is_enabled
+    ${is_enabled ? '=1' : '=0'}`,
+    is_shift_rate !== undefined && `job_templates.is_shift_rate
+    ${is_shift_rate ? '=1' : '=0'}`
   ].filter(Boolean).join(' AND ');
 
   const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
@@ -185,6 +203,8 @@ async getAllJobTemplateByHierarchy(
       MIN(job_templates.program_id) AS program_id,
       MIN(job_templates.job_type) AS job_type,
       MIN(job_templates.description) AS description,
+      MIN(job_templates.checklist_version) AS checklist_version,
+      MIN(job_templates.checklist_entity_id) AS checklist_entity_id,
       MIN(job_templates.template_code) AS template_code,
       MIN(job_category.title) AS job_category,
       MIN(labour_category.name) AS labour_category_name,
@@ -235,6 +255,12 @@ async getAllJobTemplateByHierarchy(
   if (job_type) replacements.push(job_type);
   if (name) replacements.push(`%${name}%`);
   if (labour_category_id) replacements.push(labour_category_id);
+  if (is_enabled !== undefined) {
+    replacements.push(is_enabled ? 1 : 0); 
+  }
+  if(is_shift_rate !== undefined) {
+    replacements.push(is_shift_rate ? 1 : 0);
+  }
   if (limit && offset) replacements.push(limit, offset);
 
   const data = await sequelize.query(query, {
@@ -282,6 +308,7 @@ async getAllJobTemplateByHierarchy(
         job_templates.ot_exempt,
         job_templates.created_on,
         job_templates.updated_on,
+        job_templates.checklist_entity_id,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title

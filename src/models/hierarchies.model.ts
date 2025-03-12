@@ -2,10 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { hierarchiesData } from "../interfaces/hierarchies.interface";
-interface TimeSheetConfigModel extends Model<hierarchiesData> {
-  setTime_zones(time_zonesIds: string[]): Promise<void>;
-}
+
 class Hierarchies extends Model {
   parent_hierarchy_id: any;
   name: any;
@@ -113,11 +110,13 @@ Hierarchies.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      allowNull: true,
+      defaultValue: Date.now()
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      allowNull: true,
+      defaultValue: Date.now()
     },
     created_by: {
       type: DataTypes.UUID,

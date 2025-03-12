@@ -15,7 +15,9 @@ import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
+import { ProgramVendor } from "../models/program-vendor.model";
 const jobTempletRepositories = new JobTempletRepository();
+
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { is_enabled } = request.query as { is_enabled?: string };
@@ -32,6 +34,8 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
         "username", "name_suffix", "program_id", "status", "email",
         "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
       ],
+      order: [['updated_on', 'DESC']],
+
     });
 
     const { rows = [], count } = result;
@@ -288,15 +292,23 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
+      const vendor = await ProgramVendor.findOne({
+        where: {
+          program_id: program_id,
+          tenant_id: user.tenant_id
+        },
+      });
+      const vendor_id = vendor?.id || null;
+
       const existingCandidate = await candidateModel.findOne({
         where: {
           email: user.email,
-          vendor_id: user.vendor_id, 
+          vendor_id: vendor_id,
           is_deleted: false,
         },
         transaction,
       });
-    
+
       if (existingCandidate) {
         await transaction.rollback();
         return reply.status(400).send({
@@ -305,18 +317,19 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
           trace_id: traceId,
         });
       }
-    
+
       const candidateId = await CandidateCodeGenerate(user.tenant_id, program_id);
-    
+
       await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
         candidate_id: candidateId,
+        vendor_id: vendor_id,
         user_type: userType,
         created_by: userId,
         updated_by: userId,
       }, { transaction });
-    }else if (userType === "vendor") {
+    } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
         // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
@@ -886,13 +899,12 @@ export async function getActiveUser(
       arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
       replacements.hierarchy_id = JSON.stringify(arrayOfHierarchy);
     }
-    else if (userType === "super_admin" || userType === "super_user") {
+    else if (userType === "super_user") {
       replacements.hierarchy_id = null;
       const users = await sequelize.query(getActiveUsers, {
         replacements,
         type: QueryTypes.SELECT,
       });
-
       return reply.code(200).send({
         status_code: 200,
         message: users.length > 0 ? "Get active user data" : "No matching records found.",

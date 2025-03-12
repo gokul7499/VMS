@@ -189,7 +189,7 @@ export const complianceDocumentGetByUserId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -224,10 +224,10 @@ export const complianceDocumentGetByUserId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         -- Added name filter condition
         AND (:name IS NULL OR vcd.name LIKE :name)
         -- Added is_enabled filter condition
@@ -235,7 +235,7 @@ export const complianceDocumentGetByUserId = `
     GROUP BY
         vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
-        vcd.created_on, vcd.modified_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
+        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
     LIMIT :limit OFFSET :offset
@@ -251,7 +251,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -285,10 +285,10 @@ export const complianceDocumentGetByUserAndDocumentId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
-        AND (pv.user_id IS NULL OR pv.user_id = :user_id)
+        AND (pv.id IS NULL OR pv.id = :vendor_id)
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
@@ -302,7 +302,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -337,7 +337,7 @@ export const complianceDocumentGetByVendorId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -377,7 +377,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.upload_document_days,
         vcd.attached_doc_url,
         vcd.created_on,
-        vcd.modified_on,
+        vcd.updated_on,
         vcd.is_enabled,
         vcd.is_deleted,
         vcd.to_uploaded,
@@ -387,7 +387,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.file_name,
         vcrm.expiry_on,
         vcrm.url,
-        vcrm.audited_on, 
+        vcrm.audited_on,
         vcrm.compliance_note,
         u.first_name,
         u.last_name,
@@ -412,7 +412,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by 
+        user u ON u.user_id = vcrm.audited_by
     WHERE
         pv.program_id = :program_id
         AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -523,8 +523,8 @@ FROM hierarchy_cte;
 export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
-  startDate?: number,
-  endDate?: number
+  startDate?: string,
+  endDate?: string
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -561,14 +561,15 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
+  h.created_on DESC, -- Sort by created_on in descending order (newest first)
   CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
-  END, -- Sort parent hierarchies first
-  h.created_on ASC, -- Sort by created_on in ascending order
+  END, -- Keep parent hierarchies first
   h.id
 LIMIT :limit OFFSET :offset;
 `;
+
 
 // export const vendorDataQuery = `
 // SELECT
@@ -925,7 +926,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -952,7 +953,7 @@ WHERE
     AND (:id IS NULL OR md.id = :id)
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
-    AND (:modified_on_start IS NULL OR :modified_on_end IS NULL OR md.updated_on BETWEEN :modified_on_start AND :modified_on_end)
+    AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
     AND (:manager_id IS NULL OR md.manager_id = :manager_id)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
@@ -1404,35 +1405,6 @@ export const getWorkLocationTimeZoneByUserId = `
           user.user_id IN (:user_ids) AND user.program_id = :program_id
       `;
 
-export const getMasterDataForHeirarchiesQuery = () => {
-  return `
-        SELECT
-            h.id AS hierarchy_id,
-            h.name AS hierarchy_name,
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', fdt.id,
-                    'name', fdt.name,
-                    'user_association_exclude', JSON_EXTRACT(fdt.configuration, '$.user_association_exclude'),
-                    'value', (
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'id', fd.id,
-                                'name', fd.name
-                            )
-                        )
-                        FROM master_data fd
-                        WHERE fd.foundational_data_type_id = fdt.id AND fd.is_enabled = 1
-                    )
-                )
-            ) AS master_data
-        FROM hierarchies h
-        LEFT JOIN hierarchies_master_data hmd ON h.id = hmd.hierarchy_id
-        LEFT JOIN master_data_type fdt ON hmd.foundation_data_type_id = fdt.id
-        WHERE h.id IN (:hierarchy_ids) AND fdt.is_enabled = 1
-        GROUP BY h.id, h.name
-    `;
-};
 export const masterDataQuery = `
     SELECT
         h.id,
@@ -1462,21 +1434,9 @@ export const masterDataQuery = `
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', fdt.id,
-                'name', fdt.name
-            )
-        ) AS foundational_data,
         ph.name AS parent_hierarchy_name
     FROM
         hierarchies h
-    LEFT JOIN
-        hierarchies_master_data hmd
-        ON h.id = hmd.hierarchy_id
-    LEFT JOIN
-        master_data_type fdt
-        ON hmd.foundation_data_type_id = fdt.id
     LEFT JOIN
         hierarchies ph
         ON h.parent_hierarchy_id = ph.id
@@ -1524,7 +1484,7 @@ export const configAdvancedFilter = (
     : '';
 
   const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.modified_on IN (${modifiedOnArray.map((_, index) => `:modified_on${index}`).join(', ')})`
+    ? `AND ec.updated_on IN (${modifiedOnArray.map((_, index) => `:updated_on${index}`).join(', ')})`
     : '';
 
   return `
@@ -1533,7 +1493,7 @@ export const configAdvancedFilter = (
       ec.config_name,
       ec.program_id,
       ec.is_enabled,
-      ec.modified_on,
+      ec.updated_on,
       ec.status,
       (
         SELECT JSON_ARRAYAGG(
@@ -1571,7 +1531,7 @@ export const configAdvancedFilter = (
     GROUP BY
       ec.id, ec.config_name, ec.program_id, ec.is_enabled
     ORDER BY
-      ec.modified_on DESC
+      ec.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -1738,7 +1698,7 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         COUNT(*) OVER() AS total_records,
         CASE
           WHEN shift_types.id IS NULL THEN NULL
@@ -1776,7 +1736,7 @@ export const getAllRateTypes = (
         ${hasAbbreviation ? "AND rt.abbreviation LIKE CONCAT('%', :abbreviation, '%')" : ""}
         ${hasShiftType ? "AND rt.shift_type = :shift_type" : ""}
         ${startDate !== undefined && endDate !== undefined
-    ? "AND rt.modified_on BETWEEN :startDate AND :endDate"
+    ? "AND rt.updated_on BETWEEN :startDate AND :endDate"
     : ""
   }
       GROUP BY
@@ -1788,14 +1748,14 @@ export const getAllRateTypes = (
         rt.abbreviation,
         rt.is_base_rate,
         rt.rate,
-        rt.modified_on,
+        rt.updated_on,
         picklistitems.picklist_id,
         picklistitems.label,
         picklistitems.value
     )
     SELECT *
     FROM rate_type
-    ORDER BY modified_on DESC
+    ORDER BY updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
 
@@ -1911,10 +1871,10 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
       GROUP BY rcjt.rate_configuration_id
     ) AS jt ON jt.rate_configuration_id = rc.id
     LEFT JOIN (
-      SELECT rcbt.rate_configuration_id, 
+      SELECT rcbt.rate_configuration_id,
         JSON_ARRAYAGG(
           JSON_OBJECT(
-            'id', rt.id, 
+            'id', rt.id,
             'name', rt.name,
             'rate_types', (
               SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rt2.id, 'name', rt2.name))
@@ -2298,14 +2258,14 @@ WITH user_data AS (
   LEFT JOIN tenant t ON u.tenant_id = t.id
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
-    ${user_id ? 'AND u.user_id = :user_id' : ''} 
-    ${user_type ? 'AND u.user_type = :user_type' : ''} 
-    ${status ? 'AND u.status = :status' : ''} 
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''} 
-    ${role_id ? 'AND u.role_id = :role_id' : ''} 
-    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''} 
-    ${email ? 'AND u.email = :email' : ''} 
-    ${first_name ? 'AND u.first_name = :first_name' : ''} 
+    ${user_id ? 'AND u.user_id = :user_id' : ''}
+    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${status ? 'AND u.status = :status' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${role_id ? 'AND u.role_id = :role_id' : ''}
+    ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
+    ${email ? 'AND u.email = :email' : ''}
+    ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
@@ -2416,43 +2376,66 @@ export const getPendingUserQuery = `
       FROM work_locations
       WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids,
-    COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'master_data', JSON_OBJECT(
-            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
-            'name', mdt.name,
-            'configuration', mdt.configuration
-          ),
-  'is_all_associated', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.is_all_associated')) = 'true',
-
-          'default_master_data', JSON_OBJECT(
-            'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')),
-            'name', default_mdt.name
-          ),
-          'associated_master_data', (
-            SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'id', associated_mdt.id,
-                'name', associated_mdt.name
-              )
+COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'master_data', JSON_OBJECT(
+        'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
+        'name', mdt.name
+      ),
+      'default_master_data', COALESCE(
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', dmdt.id,
+              'name', dmdt.name
             )
-            FROM master_data AS associated_mdt
-            WHERE JSON_CONTAINS(JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.associated_master_data')), JSON_QUOTE(associated_mdt.id))
           )
-        )
+          FROM master_data AS dmdt
+          WHERE JSON_CONTAINS(
+            -- Normalize to array if not already an array
+            CASE 
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY' 
+              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
+              ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
+            END,
+            JSON_QUOTE(dmdt.id) -- Ensure ID is treated as JSON string
+          )
+        ),
+        JSON_ARRAY()
+      ),
+      'associated_master_data', COALESCE(
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', associated_mdt.id,
+              'name', associated_mdt.name
+            )
+          )
+          FROM master_data AS associated_mdt
+          WHERE JSON_CONTAINS(
+            CASE 
+              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY' 
+              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
+              ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
+            END,
+            JSON_QUOTE(associated_mdt.id)
+          )
+        ),
+        JSON_ARRAY()
       )
-      FROM (
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
-        UNION ALL
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
-        UNION ALL
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
-        -- Add more UNION ALL statements if you expect more entries
-      ) AS fd
-      JOIN master_data_type AS mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
-      JOIN master_data AS default_mdt ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.default_master_data')) = default_mdt.id
-    ), JSON_ARRAY()) AS foundational_data
+    )
+  )
+  FROM (
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
+    UNION ALL
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
+    UNION ALL
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
+  ) AS fd
+  JOIN master_data_type AS mdt 
+    ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
+), JSON_ARRAY()) AS foundational_data
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
@@ -2697,7 +2680,6 @@ FROM
     user
 WHERE
     user.program_id = :program_id
-    AND user.is_enabled = true
     AND LOWER(user.status) = 'active'
     AND user.user_type = 'client'
     AND (:hierarchy_id IS NULL OR JSON_CONTAINS(:hierarchy_id, user.associate_hierarchy_ids))
@@ -2757,14 +2739,13 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
   }
 }
 
-
-
 export const sameFeesConfig = `
     SELECT fees.id
     FROM fees
     WHERE fees.program_id = :program_id
     AND JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)
     AND JSON_CONTAINS(fees.labor_category, :labor_category)
+    AND JSON_CONTAINS(fees.vendors, :vendors)
 `;
 
 export const sameHierarchieRateConfiguration = `
@@ -2776,4 +2757,55 @@ export const sameHierarchieRateConfiguration = `
     AND rc.id <> :id
     AND rh.hierarchy_id IN (:hierarchies)
     AND rjt.job_template_id IN (:job_templates)
+    `;
+
+export const getMatchingHierarchiesQuery = () => {
+  return `
+        SELECT
+            h.id AS hierarchy_id
+        FROM hierarchies h
+        WHERE h.program_id = :program_id AND h.id IN (:hierarchy_ids)
+      `;
+};
+
+export const getUserHierarchiesBasedOnUserType = `
+    WITH user_data AS (
+      SELECT
+        u.associate_hierarchy_ids,
+        u.user_type,
+        u.tenant_id
+      FROM user u
+      WHERE u.user_id = :userId
+        AND u.program_id = :program_id
+    )
+    SELECT
+      h.id,
+      h.name,
+      h.parent_hierarchy_id,
+      h.is_enabled
+    FROM hierarchies h
+    WHERE h.program_id = :program_id
+      AND h.is_deleted = false
+      AND (
+        -- For super_user: Fetch all hierarchies
+        EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
+        OR
+        -- For client or msp: Match associate_hierarchy_ids JSON
+        EXISTS (
+          SELECT 1
+          FROM user_data
+          WHERE user_type IN ('client', 'msp')
+            AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+        )
+        OR
+        -- For vendor: Match hierarchies in program_vendors
+        EXISTS (
+          SELECT 1
+          FROM user_data
+          JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
+          WHERE user_data.user_type = 'vendor'
+            AND pv.program_id = :program_id
+            AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
+        )
+      )
     `;

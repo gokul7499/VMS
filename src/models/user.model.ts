@@ -160,7 +160,8 @@ User.init(
     },
     is_all_labour_category_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_labour_category: {
       type: DataTypes.JSON,
@@ -168,7 +169,8 @@ User.init(
     },
     is_all_job_type_associate: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue:false
     },
     associate_job_type: {
       type: DataTypes.JSON,
@@ -224,16 +226,22 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
+    date_format:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
     user_id: {
       type: DataTypes.UUID,
       allowNull: true
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true
     },
     updated_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true
     },
     created_by: {

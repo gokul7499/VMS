@@ -34,7 +34,7 @@ FeesConfigurationModel.init({
   },
   effective_date: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    defaultValue: Date.now(),
   },
   funding_model: {
     type: DataTypes.STRING,
@@ -44,14 +44,7 @@ FeesConfigurationModel.init({
     type: DataTypes.JSON,
     allowNull: false,
   },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  modified_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
+
   ref_id: {
     type: DataTypes.UUID,
   },
@@ -71,12 +64,7 @@ FeesConfigurationModel.init({
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-  created_on: {
-    type: DataTypes.DOUBLE,
-  },
-  modified_on: {
-    type: DataTypes.DOUBLE,
-  },
+
   program_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -85,6 +73,25 @@ FeesConfigurationModel.init({
       key: 'id',
     },
   },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+
 },
   {
     sequelize,

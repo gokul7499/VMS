@@ -29,7 +29,7 @@ ImporsonateLevel.init(
                 key: "id",
             },
         },
-        resone:{
+        resone: {
             type: DataTypes.STRING,
             allowNull: true,
         },
@@ -49,29 +49,33 @@ ImporsonateLevel.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-      
+
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
+        is_deleted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
         created_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
-        modified_on: {
+        updated_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        modified_by: {
+        updated_by: {
             type: DataTypes.UUID,
             allowNull: true,
         },
-        is_deleted: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        }
     },
     {
         sequelize,

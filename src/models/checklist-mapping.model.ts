@@ -120,11 +120,13 @@ ChecklistTaskMapping.init(
         },
         created_on: {
             type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            allowNull: false,
+            defaultValue: Date.now(),
         },
         updated_on: {
             type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            allowNull: false,
+            defaultValue: Date.now(),
         },
         created_by: {
             type: DataTypes.STRING(50),

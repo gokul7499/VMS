@@ -49,24 +49,6 @@ passwordPolicyModel.init({
         defaultValue: false,
         allowNull: false,
     },
-    created_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: DataTypes.NOW,
-    },
-    modified_on: {
-        type: DataTypes.DOUBLE,
-        allowNull: true,
-        defaultValue: DataTypes.NOW,
-    },
-    created_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
-    modified_by: {
-        type: DataTypes.UUID,
-        allowNull: true,
-    },
     mfa_data: {
         type: DataTypes.JSON,
         allowNull: true,
@@ -78,6 +60,24 @@ passwordPolicyModel.init({
             model: 'programs',
             key: 'id',
         },
+    },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
+    updated_by: {
+        type: DataTypes.UUID,
+        allowNull: true,
     },
 }, {
     sequelize,

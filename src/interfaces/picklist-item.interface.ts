@@ -7,9 +7,9 @@ export interface picklist_item_data {
     is_enabled: boolean;
     is_deleted: boolean;
     created_on: number;
-    modified_on: number;
+    updated_on: number;
     created_by: string;
-    modified_by: string;
+    updated_by: string;
     picklist_id: string;
     program_id: string;
     disabled_program: any;
@@ -22,8 +22,8 @@ export interface picklistItemUpdateData {
     value?: string;
     is_enabled?: boolean;
     is_deleted?: boolean;
-    modified_on?: number;
-    modified_by?: string;
+    updated_on?: number;
+    updated_by?: string;
     program_id?: string;
     disabled_program?: any;
     label_program?: any;

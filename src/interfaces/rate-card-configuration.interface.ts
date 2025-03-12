@@ -14,8 +14,8 @@ export interface RateCardInterface {
     rate_definitions?: any
     created_by: string,
     updated_by: string,
-    created_on: Date
-    updated_on: Date
+    created_on: number
+    updated_on: number
 }
 
 export interface MinMaxRateResult {

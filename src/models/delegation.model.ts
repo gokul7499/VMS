@@ -3,7 +3,7 @@ import { Programs } from './programs.model';
 import { sequelize } from "../config/instance";
 import User from "./user.model";
 
-class Delegation extends Model {}
+class Delegation extends Model { }
 
 Delegation.init({
     id: {
@@ -52,14 +52,6 @@ Delegation.init({
         type: DataTypes.DATE,
         allowNull: false
     },
-    created_by: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    updated_by: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
     is_enabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -68,16 +60,6 @@ Delegation.init({
     is_deleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-        allowNull: false
-    },
-    created_on: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-        allowNull: false
-    },
-    updated_on: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
         allowNull: false
     },
     interview_module: {
@@ -139,12 +121,31 @@ Delegation.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
+    created_on: {
+        type: DataTypes.DOUBLE,
+        defaultValue: Date.now(),
+        allowNull: false
+    },
+    updated_on: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.DOUBLE,
+        allowNull: false
+    },
+    created_by: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    updated_by: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+
 },
-{
-    sequelize,
-    tableName: 'delegation',
-    timestamps: false,
-});
+    {
+        sequelize,
+        tableName: 'delegation',
+        timestamps: false,
+    });
 
 Delegation.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 

@@ -29,20 +29,6 @@ WorkflowMethod.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         module_id: {
             type: DataTypes.UUID,
             allowNull: true,
@@ -63,6 +49,25 @@ WorkflowMethod.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,

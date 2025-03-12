@@ -37,20 +37,22 @@ CustomFieldHierarchie.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true
-  },
-  updated_on: {
+    },
+    updated_on: {
       type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
       allowNull: true
-  },
-  created_by: {
+    },
+    created_by: {
       type: DataTypes.UUID,
       allowNull: true,
-  },
-  updated_by: {
+    },
+    updated_by: {
       type: DataTypes.UUID,
       allowNull: true,
-  },
+    },
   },
   {
     sequelize,

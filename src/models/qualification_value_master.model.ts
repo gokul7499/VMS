@@ -4,7 +4,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { beforeSave } from "../hooks/timeFormatHook";
 
 class QualificationValueMaster extends Model {
-  
+
 }
 
 QualificationValueMaster.init(
@@ -40,9 +40,13 @@ QualificationValueMaster.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

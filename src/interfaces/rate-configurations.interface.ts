@@ -14,6 +14,8 @@ export interface RateConfigurationsInterface {
     hierarchies: any;
     job_templates: any;
     rate_configuration: any;
+    job_type?: any;
+    expenses:any;
 }
 export interface RateConfigurationsBudget {
     program_id: string;

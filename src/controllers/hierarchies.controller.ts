@@ -7,8 +7,10 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMasterDataForHeirarchiesQuery, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
+import User from '../models/user.model';
+import { ProgramVendor } from '../models/program-vendor.model';
 
 interface HierarchyItem {
   support_email: any;
@@ -28,7 +30,7 @@ interface HierarchyItem {
   updated_on: number;
   code: string;
   program_id: string;
-  
+
 }
 export const getHierarchiesByProgram = async (
   request: FastifyRequest<{
@@ -88,7 +90,7 @@ export const getHierarchiesByProgram = async (
             default_currency: item.default_currency,
             default_date_format: item.default_date_format,
             support_email: item.support_email,
-            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program), 
+            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
             hierarchies: buildHierarchy(data, item.id),
           };
         });
@@ -134,27 +136,28 @@ export const getHierarchies = async (
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
-    let startDate: number | undefined;
-    let endDate: number | undefined;
-
-    if (updated_on) {
-      const dateRange = updated_on.split(",");
-      if (dateRange.length === 2 || dateRange.length === 1) {
-        const parsedStartDate = parseInt(dateRange[0], 10);
-        const parsedEndDate =
-          dateRange.length === 2 ? parseInt(dateRange[1], 10) : parsedStartDate;
-        if (!isNaN(parsedStartDate)) startDate = parsedStartDate;
-        if (!isNaN(parsedEndDate)) endDate = parsedEndDate;
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (updated_on) {
+        const dateRange = updated_on.split(",");
+        if (dateRange.length > 0) {
+          const parsedStartDate = new Date(dateRange[0]).toISOString(); // Converts to 'YYYY-MM-DDTHH:MM:SS.SSSZ'
+          startDate = parsedStartDate;
+        }
+        if (dateRange.length === 2) {
+          const parsedEndDate = new Date(dateRange[1]).toISOString();
+          endDate = parsedEndDate;
+        }
       }
-    }
     const offset = (page - 1) * limit;
 
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-      ...(startDate !== undefined && { startDate }),
-      ...(endDate !== undefined && { endDate }),
+      ...(startDate && { startDate: startDate.toString() }),
+      ...(endDate && { endDate: endDate.toString() }),
       limit: Number(limit),
       offset: Number(offset),
     };
@@ -191,7 +194,7 @@ export const getHierarchies = async (
       total_records: total_count,
       page,
       limit,
-      hierarchies:formattedHierarchies,
+      hierarchies: formattedHierarchies,
     });
   } catch (error: any) {
     console.error(error);
@@ -355,7 +358,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
     return reply.status(201).send({
       status_code: 201,
       message: 'hierarchies Created Successfully',
-      data: newItem,
       trace_id: traceId,
     });
   } catch (error) {
@@ -697,66 +699,6 @@ function buildHierarchyTree(hierarchies: Hierarchy[]): Hierarchy[] {
   return roots;
 }
 
-export const getMasterDataForHeirarchies = async (
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
-  reply: FastifyReply
-) => {
-  const { hierarchy_ids } = request.query;
-  const traceId = generateCustomUUID();
-
-  if (!hierarchy_ids) {
-    return reply.status(400).send({
-      status_code: 400,
-      message: 'Missing required query parameter hierarchy_ids is required.'
-    });
-  }
-
-  try {
-    const hierarchyIdsArray = hierarchy_ids.split(',');
-
-    const query = getMasterDataForHeirarchiesQuery();
-
-    const results: {
-      user_association_exclude: any;
-      hierarchy_name: any;
-      hierarchy_id: any; master_data: any[]
-    }[] = await sequelize.query(query, {
-      replacements: { hierarchy_ids: hierarchyIdsArray },
-      type: QueryTypes.SELECT
-    });
-
-    if (!results || results.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: 'No master data found for the provided hierarchies IDs.',
-        master_data: []
-      });
-    }
-
-    const masterDataResponse = results.map(result => ({
-      hierarchy_id: result.hierarchy_id,
-      hierarchy_name: result.hierarchy_name,
-      user_association_exclude: result.user_association_exclude,
-      master_data: result.master_data
-    }));
-
-    return reply.status(200).send({
-      status_code: 200,
-      trace_id: traceId,
-      message: 'Master data for hierarchies retrieved successfully.',
-      master_data: masterDataResponse
-    });
-  } catch (error: any) {
-    return reply.status(500).send({
-      status_code: 500,
-      trace_id: traceId,
-      message: 'Internal Server Error',
-      error: error.message
-    });
-  }
-};
-
 export async function getVendorMarkup(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
@@ -834,6 +776,129 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
       status_code: 500,
       message: "Failed to retrieve vendor markup",
       trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+
+export const updateIsNotEditableFlag = async (
+  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
+  reply: FastifyReply
+) => {
+  const { hierarchy_ids } = request.query;
+  const { program_id } = request.params;
+  const traceId = generateCustomUUID();
+
+  if (!hierarchy_ids) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Missing required query parameter hierarchy_ids.'
+    });
+  }
+
+  try {
+    const hierarchyIdsArray = hierarchy_ids.split(',');
+    const query = getMatchingHierarchiesQuery();
+    const matchedHierarchies: { hierarchy_id: string }[] = await sequelize.query(query, {
+      replacements: { program_id, hierarchy_ids: hierarchyIdsArray },
+      type: QueryTypes.SELECT
+    });
+
+    if (!matchedHierarchies.length) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: 'No matching hierarchies found.',
+        data: []
+      });
+    }
+    const matchedHierarchyIds = matchedHierarchies.map((h) => h.hierarchy_id);
+    await sequelize.query(
+      `UPDATE hierarchies SET is_not_editable = TRUE WHERE id IN (:matchedHierarchyIds)`,
+      { replacements: { matchedHierarchyIds }, type: QueryTypes.UPDATE }
+    );
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: 'Hierarchies updated successfully.',
+      updated_hierarchy_ids: matchedHierarchyIds
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Internal Server Error',
+      error: error.message
+    });
+  }
+};
+
+export async function getUserHierarchies(
+  request: FastifyRequest<{ Params: { program_id: string } }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.status(401).send({ message: "Unauthorized - Token not found" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  const user = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+
+  const userId = user.sub;
+  const userType = user.userType;
+  const { program_id } = request.params;
+
+  try {
+    let hierarchies: any[] = [];
+
+    if (userType === "super_user") {
+      hierarchies = await HierarchiesModel.findAll({
+        where: { program_id, is_deleted: false },
+        attributes: ["id", "name", "parent_hierarchy_id", "is_enabled"],
+      });
+    } else {
+      hierarchies = await sequelize.query(getUserHierarchiesBasedOnUserType, {
+        replacements: { userId, program_id },
+        type: QueryTypes.SELECT,
+      });
+    }
+
+    const buildHierarchy = (data: any, parentId: string | null = null) => {
+      return data
+        .filter((item: any) => item.parent_hierarchy_id === parentId)
+        .map((item: any) => {
+          const children = buildHierarchy(data, item.id);
+          return {
+            id: item.id,
+            parent_hierarchy_id: item.parent_hierarchy_id,
+            name: item.name,
+            is_enabled: item.is_enabled,
+            hierarchies: children,
+          };
+        });
+    };
+
+    const nestedHierarchy = buildHierarchy(hierarchies);
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: "Hierarchies fetched successfully.",
+      hierarchies: nestedHierarchy,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "Internal Server Error",
       error: error.message,
     });
   }

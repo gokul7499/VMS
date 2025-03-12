@@ -12,10 +12,11 @@ import { logger } from '../utility/loggerService';
 import { NotificationDataPayload } from "../interfaces/noifications-data-payload.interface";
 import { EmailRecipient } from "../interfaces/email-recipient";
 import { sendNotification } from '../utility/notificationService';
-import { FetchUsersBasedOnHierarchy } from "../utility/notification-helper";
+import { FetchUsersBasedOnHierarchy, getAssignmentDetails, getJobDetails, getOfferDetails, getProgramVendorsEmail, getWorkflowDetails, isVendorRequired } from "../utility/notification-helper";
 import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
+import { NotificationEventCode } from '../utility/notification-event-code';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -45,7 +46,7 @@ export const createJobWorkFlow = async (
         ...workflow,
         program_id,
         created_by: userId,
-        modified_by: userId,
+        updated_by: userId,
     };
 
     logger({
@@ -287,18 +288,18 @@ export const updateWorkflowStatus = async (
                                         new_status,
                                         program_id,
                                         notes: notes || "",
-                                        created_on:  Date.now(),
+                                        created_on: Date.now(),
                                         user_id: user_id,
                                     });
                                     return {
                                         ...recipient,
                                         status: matchesUser ? "approved" : "Not needed", // Set status based on the match
                                         impersonate_by: impersonator_id,
-                                        modified_on:  Date.now(),
+                                        updated_on: Date.now(),
                                         status_id: history.dataValues?.id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avtar: userData?.avatar,
+                                        actor_by_avatar: userData?.avatar,
                                     };
                                 } else
                                     if (isSuperUser) {
@@ -311,18 +312,18 @@ export const updateWorkflowStatus = async (
                                                 new_status,
                                                 program_id,
                                                 notes: notes || "",
-                                                created_on:  Date.now(),
+                                                created_on: Date.now(),
                                                 user_id: user_id,
                                             });
                                             return {
                                                 ...recipient,
                                                 status: "approved",
                                                 impersonate_by: impersonator_id,
-                                                modified_on:  Date.now(),
+                                                updated_on: Date.now(),
                                                 status_id: history.dataValues?.id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avtar: userData?.avatar,
+                                                actor_by_avatar: userData?.avatar
                                             };
                                         }
                                     }
@@ -337,14 +338,14 @@ export const updateWorkflowStatus = async (
                                                 new_status,
                                                 program_id,
                                                 notes: notes || "",
-                                                created_on:  Date.now(),
+                                                created_on: Date.now(),
                                                 user_id: user_id,
                                             });
                                             return {
                                                 ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar, modified_on:  Date.now(),
+                                                actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                             };
                                         }
 
@@ -358,14 +359,14 @@ export const updateWorkflowStatus = async (
                                                     new_status,
                                                     program_id,
                                                     notes: notes || "",
-                                                    created_on:  Date.now(),
+                                                    created_on: Date.now(),
                                                     user_id: user_id,
                                                 });
                                                 return {
                                                     ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
-                                                    actor_by_avatar: userData?.avatar, modified_on: Date.now(),
+                                                    actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                                 };
 
                                             }
@@ -379,14 +380,14 @@ export const updateWorkflowStatus = async (
                                         new_status,
                                         program_id,
                                         notes: notes || "",
-                                        created_on:  Date.now(),
+                                        created_on: Date.now(),
                                         user_id: user_id,
                                     });
                                     return {
                                         ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avatar: userData?.avatar, modified_on: Date.now(),
+                                        actor_by_avatar: userData?.avatar, updated_on: Date.now(),
                                     };
 
                                 }
@@ -418,9 +419,9 @@ export const updateWorkflowStatus = async (
                                 is_admin_override: is_admin_override,
                                 actor_first_name: userData.first_name,
                                 actor_last_name: userData.last_name,
-                                actor_by_avtar: userData.avatar,
+                                actor_by_avatar: userData?.avatar,
                                 imporsonate_by: impersonator_id,
-                                modified_on: Date.now(),
+                                updated_on: Date.now(),
                             }));
                             level.status = "completed";
                         });
@@ -465,7 +466,7 @@ export const updateWorkflowStatus = async (
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
 
-            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, modified_on: Date.now(), modified_by: userId });
+            await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, updated_on: Date.now(), updated_by: userId });
 
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
@@ -568,11 +569,11 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     });
 
     return users.map((user: any) => ({
-        user_id: user.user_id||null,
-        first_name: user.first_name||null,
-        last_name: user.last_name||null,
-        avatar: user.avatar?.url||null,
-        status: user.status||null,
+        user_id: user.user_id || null,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        avatar: user.avatar?.url || null,
+        status: user.status || null,
     }));
 }
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
@@ -673,12 +674,12 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
         const moduleType = workflow.module_type.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
-            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
             const payload = {
                 status: "REJECTED",
             };
 
-            await axios.post(apiUrl, payload, {
+            await axios.put(apiUrl, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     authorization: authHeader
@@ -766,13 +767,13 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
-                user_type: user.userType,
-                fullName: managerData.data?.first_name,
-                job_id: updates?.[0]?.job_id,
-                job_name: workflow?.event_title
+                user_type: user?.userType,
+                fullName: managerData?.data?.first_name,
+                job_id: workflow?.event_title,
+                status_reason: updates[0]?.reason
             };
-            const recipientEmailArray: EmailRecipient[] = [];
 
+            const recipientEmailArray: EmailRecipient[] = [];
             // Prepare and send notification for manager data
             if (managerData && managerData.data && managerData.data.email) {
 
@@ -787,7 +788,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 console.log("Manager data is missing or email not found.");
             }
             let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
-
+            const vendorExistence = await isVendorRequired(eventCode.eventCode);
+            if (vendorExistence === true) {
+                program_id ? mspUserData.push(...(await getProgramVendorsEmail(program_id))) : null;
+            }
             // Check if mspUserData is an array and send emails to each user
             if (Array.isArray(mspUserData) && mspUserData.length > 0) {
                 for (const user of mspUserData) {
@@ -827,57 +831,75 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 
     if (flow_type == "Approval" && events === "create_job") {
         let response = {
-            eventCode: "JOB_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.JOB_APPROVAL_COMPLETE,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_job") {
         let response = {
-            eventCode: "JOB_UPDATE_APPROVAL",
+
+            eventCode: NotificationEventCode.JOB_UPDATE_APPROVAL,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
         let response = {
-            eventCode: "OFFER_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.OFFER_APPROVAL_COMPLETE,
+
             user_type: ['msp']
         }
         return response;
 
     } else if (flow_type == "Approval" && events === "counter_offer") {
         let response = {
-            eventCode: "COUNTER_OFFER_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.COUNTER_OFFER_APPROVAL_COMPLETE,
+
             user_type: ['msp', 'vendor']
         }
         return response;
 
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
         let response = {
-            eventCode: "REHIRE_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.REHIRE_APPROVAL_COMPLETE,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_assignment") {
         let response = {
-            eventCode: "ASSIGNMENT_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.ASSIGNMENT_APPROVAL_COMPLETE,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_assignment") {
         let response = {
-            eventCode: "ASSIGNMENT_MODIFIED_APPROVAL_COMPLETE",
+
+            eventCode: NotificationEventCode.ASSIGNMENT_MODIFIED_APPROVAL_COMPLETE,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
         let response = {
-            eventCode: "BUDGET_INCREASE_APPROVED",
+
+            eventCode: NotificationEventCode.BUDGET_INCREASE_APPROVED,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events == "BUDGET_REDUCED" || events === "assignment_budget_adjustment") {
         let response = {
-            eventCode: "BUDGET_REDUCED_APPROVAL",
+
+            eventCode: NotificationEventCode.BUDGET_REDUCED_APPROVAL,
+
             user_type: ['msp']
         }
         return response;
@@ -890,94 +912,124 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     let { flow_type, events } = workflow
     if (flow_type == "Approval" && events === "create_job") {
         let response = {
-            eventCode: "JOB_APPROVAL_REJECT",
+
+            eventCode: NotificationEventCode.JOB_APPROVAL_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } if (flow_type == "Review" && events === "create_job") {
         let response = {
-            eventCode: "JOB_REVIEW_REJECT",
+
+            eventCode: NotificationEventCode.JOB_REVIEW_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_job") {
         let response = {
-            eventCode: "JOB_UPDATE_APPROVAL_REJECTED",
+
+            eventCode: NotificationEventCode.JOB_UPDATE_APPROVAL_REJECTED,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "update_job") {
         let response = {
-            eventCode: "JOB_UPDATE_REVIEW_REJECT",
+
+            eventCode: NotificationEventCode.JOB_UPDATE_REVIEW_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "create_offer") {
         let response = {
-            eventCode: "OFFER_REVIEW_REJECT",
+
+            eventCode: NotificationEventCode.OFFER_REVIEW_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_offer") {
         let response = {
-            eventCode: "OFFER_APPROVAL_REJECT",
+
+            eventCode: NotificationEventCode.OFFER_APPROVAL_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "counter_offer") {
         let response = {
-            eventCode: "COUNTER_OFFER_REVIEW_REJECT",
+
+            eventCode: NotificationEventCode.COUNTER_OFFER_REVIEW_REJECT,
+
             user_type: ['msp']
         }
         return response;
 
     } else if (flow_type == "Approval" && events === "counter_offer") {
         let response = {
-            eventCode: "COUNTER_OFFER_APPROVAL_REJECT",
+
+            eventCode: NotificationEventCode.COUNTER_OFFER_APPROVAL_REJECT,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Review" && events === "submit_candidate_shortlist") {
         let response = {
-            eventCode: "CANDIDATE_SHORTLIST_REJECTED",
+
+            eventCode: NotificationEventCode.CANDIDATE_SHORTLIST_REJECTED,
+
             user_type: ['msp']
         }
         return response;
 
     } else if (flow_type == "Review" && events === "submit_candidate_rehire_check") {
         let response = {
-            eventCode: "REHIRE_REVIEW_REJECT",
+
+            eventCode: NotificationEventCode.REHIRE_REVIEW_REJECT,
+
             user_type: ['msp', 'vendor']
         }
         return response;
 
     } else if (flow_type == "Approval" && events === "submit_candidate_rehire_check") {
         let response = {
-            eventCode: "REHIRE_APPROVAL_REJECT",
+
+            eventCode: NotificationEventCode.REHIRE_APPROVAL_REJECT,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events === "create_assignment") {
         let response = {
-            eventCode: "ASSIGNMENT_APPROVAL_REJECTED",
+
+            eventCode: NotificationEventCode.ASSIGNMENT_APPROVAL_REJECTED,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events === "update_assignment") {
         let response = {
-            eventCode: "ASSIGNMENT_MODIFIED_REJECTED",
+
+            eventCode: NotificationEventCode.ASSIGNMENT_MODIFIED_REJECTED,
+
             user_type: ['msp', 'vendor']
         }
         return response;
     } else if (flow_type == "Approval" && events === "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
         let response = {
-            eventCode: "BUDGET_INCREASE_REJECTED",
+
+            eventCode: NotificationEventCode.BUDGET_INCREASE_REJECTED,
+
             user_type: ['msp']
         }
         return response;
     } else if (flow_type == "Approval" && events === "BUDGET_REDUCED" || events === "assignment_budget_adjustment") {
         let response = {
-            eventCode: "BUDGET_REDUCED_REJECTED",
+
+            eventCode: NotificationEventCode.BUDGET_REDUCED_REJECTED,
+
             user_type: ['msp']
         }
         return response;
@@ -1023,7 +1075,7 @@ export async function fetchUsersBasedOnHierarchy(allPayload: { hierarchy_ids: an
 
 
 
-        return users ||null; // Return the list of users that match the criteria.
+        return users || null; // Return the list of users that match the criteria.
     } catch (error) {
         console.error("Error fetching users:", error);
         throw new Error("Error fetching users based on hierarchy and program_id.");
@@ -1070,7 +1122,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
             return { status: 'Error', message: 'Manager not found' };
         }
 
-        return { status: 'Success', data: userResult[0]||null };
+        return { status: 'Success', data: userResult[0] || null };
     } catch (error) {
         console.error('Error fetching manager details:', error);
         return { status: 'Error', message: 'An error occurred while fetching manager details', error };
@@ -1130,8 +1182,7 @@ export const rejectLevel = async (
 
 
             if (new_status !== "rejected") {
-                throw new Error("Only 'rejected' status is allowed for this operation.");
-            }
+                throw new Error("Only 'rejected' status is allowed for this operation.");           }
 
             let levelFound = false;
 
@@ -1148,9 +1199,12 @@ export const rejectLevel = async (
                                 return {
                                     ...recipient,
                                     status: "rejected",
-                                    modified_on: Date.now(),
+                                    updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
+                                    actor_first_name: user?.first_name,
+                                    actor_last_name: user?.last_name,
+                                    actor_by_avatar: user?.avatar,
                                 };
                             }
                             if (
@@ -1160,16 +1214,22 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, modified_on: Date.now(), notes: notes, reason: reason };
+                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                     actor_first_name: user?.first_name,
+                                    actor_last_name: user?.last_name,
+                                    actor_by_avatar: user?.avatar, };
 
                             }
 
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, modified_on: Date.now(), notes: notes, reason: reason };
+                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                 actor_first_name: user?.first_name,
+                                actor_last_name: user?.last_name,
+                                actor_by_avatar: user?.avatar,};
 
                         });
                         return {
                             ...level,
-                            modified_on: Date.now(),
+                            updated_on: Date.now(),
                             status: "Rejected",
                             recipient_types: updatedRecipientTypes,
                         };
@@ -1177,12 +1237,15 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        modified_on:  Date.now(), notes: notes, reason: reason
+                        updated_on: Date.now(), notes: notes, reason: reason,
+                        actor_first_name: user?.first_name,
+                        actor_last_name: user?.last_name,
+                        actor_by_avatar: user?.avatar,
                     }));
 
                     return {
                         ...level,
-                        modified_on:  Date.now(),
+                        updated_on: Date.now(),
                         status: "Not needed",
                         recipient_types: updatedRecipientTypes,
                     };
@@ -1192,8 +1255,7 @@ export const rejectLevel = async (
             });
 
             if (!levelFound) {
-                throw new Error(`Placement order ${placement_order} not found in levels.`);
-            }
+                throw new Error(`Placement order ${placement_order} not found in levels.`);             }
 
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1202,8 +1264,11 @@ export const rejectLevel = async (
                 program_id,
                 reason,
                 notes: notes || "",
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user_id,
+                actor_first_name: user?.first_name,
+                actor_last_name: user?.last_name,
+                actor_by_avatar: user?.avatar,
             });
         });
 
@@ -1217,7 +1282,7 @@ export const rejectLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, is_updated: true, modified_on:  Date.now() });
+        await workflow.update({ levels, is_updated: true, updated_on: Date.now(), status: "completed" });
 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
@@ -1226,7 +1291,7 @@ export const rejectLevel = async (
             program_id: program_id,
             user_type: eventCode.user_type
         }
-        let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
         return reply.status(200).send({
             status_code: 200,
@@ -1240,6 +1305,7 @@ export const rejectLevel = async (
             status_code: 500,
             message: "Failed to update job workflow.",
             trace_id: traceId,
+            error:(error as Error).message
         });
     }
 };
@@ -1311,7 +1377,7 @@ export const updateReplaceLevel = async (
                             existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
                             replaced_by, // Update replaced_by with the new value from the payload
                             replaced_notes: notes,
-                            replaced_modified_on:  Date.now(),
+                            replaced_modified_on: Date.now(),
                         };
                     }
 
@@ -1325,7 +1391,7 @@ export const updateReplaceLevel = async (
                                 ...recipient.meta_data,
                             },
                             replaced_notes: notes,
-                            replaced_modified_on:  Date.now()
+                            replaced_modified_on: Date.now()
                         };
                     }
 
@@ -1356,13 +1422,13 @@ export const updateReplaceLevel = async (
                 status,
                 program_id,
                 notes: notes ?? "",
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user.sub,
             });
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on:  Date.now() });
+        await workflow.update({ levels, updated_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1518,7 +1584,7 @@ export const imporsonateLevel = async (
                 new_status,
                 program_id,
                 imporsonate_by,
-                created_on:  Date.now(),
+                created_on: Date.now(),
                 user_id: user_id || null,
             });
         });
@@ -1532,7 +1598,7 @@ export const imporsonateLevel = async (
         }
 
         // Update the workflow with the modified levels array
-        await workflow.update({ levels, modified_on:  Date.now() });
+        await workflow.update({ levels, updated_on: Date.now() });
 
         return reply.status(200).send({
             status_code: 200,
@@ -1573,7 +1639,7 @@ export const updateJobWorkFlow = async (
             });
         }
 
-        await workflow.update({ ...updateData, modified_on:  Date.now() });
+        await workflow.update({ ...updateData, updated_on: Date.now() });
 
 
         reply.status(200).send({
@@ -1697,7 +1763,7 @@ export const updateWorkflowStatusData = async (
 
 
         let Result = await workflow.update(
-            { levels, modified_on:  Date.now() },
+            { levels, updated_on: Date.now() },
             { where: { id: workflow_id } } // Replace with the correct identifier
         );
 
@@ -1889,13 +1955,13 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
 (
     SELECT JSON_OBJECT(
         'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-        'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
+        'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
         'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
          'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
-            'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
+         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),            
+         'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
          'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
     )
@@ -2081,7 +2147,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     try {
         for (const row of rows) {
             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
-           
+
             if (meta_data && Object.keys(meta_data).length > 0) {
                 const recipientTypeQuery = `
                 SELECT id ,name
@@ -2148,7 +2214,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0]?.avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             notes: recipient_details?.notes,
                             reason: recipient_details?.reason,
                             replaced_notes: recipient_details?.replaced_notes
@@ -2173,7 +2239,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
 
@@ -2226,7 +2292,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: userResult[0]?.avatar,
                             role_id: userResult[0]?.role_id,
                             email: userResult[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_notes: recipient_details.replaced_notes
@@ -2250,7 +2316,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2329,7 +2395,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor?.email,
                                     avatar: supervisor?.avatar || null,
-                                    modified_on: recipient_details?.modified_on,
+                                    updated_on: recipient_details?.updated_on,
                                     notes: recipient_details?.notes,
                                     reason: recipient_details?.reason,
                                     replaced_notes: recipient_details?.replaced_notes
@@ -2356,7 +2422,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -2418,7 +2484,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
                                             replaced_notes: recipient_details.replaced_notes
@@ -2442,7 +2508,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         avatar: imporsonateUserResult?.[0]?.avatar,
                                         role_id: imporsonateUserResult?.[0]?.role_id,
                                         email: imporsonateUserResult?.[0]?.email,
-                                        modified_on: recipient_details?.modified_on,
+                                        updated_on: recipient_details?.updated_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -2489,12 +2555,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     role_id: user.role_id,
                                     email: user.email,
                                     receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.modified_on,
+                                    modifiedOn: recipient.updated_on,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient.modified_on,
+                                    updated_on: recipient.updated_on,
                                     notes: recipient.notes,
                                     reason: recipient.reason,
                                     actor_first_name: recipient.actor_first_name,
@@ -2539,7 +2605,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
@@ -2576,7 +2642,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             actor_by_avatar: user.actor_by_avatar,
                             is_admin_override: user.is_admin_override,
                             reason: user.reason,
-                            modified_on: user.modified_on,
+                            updated_on: user.updated_on,
                             notes: user.notes
                         };
                     });
@@ -2595,7 +2661,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 actor_by_avatar: user.actor_by_avatar,
                                 is_admin_override: user.is_admin_override,
                                 status: user.receipentStatus,
-                                modified_on: user.modified_on,
+                                updated_on: user.updated_on,
                                 notes: user.notes,
                                 reason: user.reason,
                                 level_behaviour: user.level_behaviour,
@@ -2619,7 +2685,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
@@ -2988,17 +3054,59 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 
         // 4. Create event code
         const eventCode = await getTriggeredEventsCode(workflow.workflow_type, workflow.event_slug);
+        const workflowDetails = await getWorkflowDetails(sequelize, workflow.job_workflow_id);
+        const events = workflowDetails?.events;
+        const workflowTriggerId = workflowDetails?.workflow_trigger_id;
+        const jobUUID = workflowDetails?.job_id;
+        let jobDatas: any = null;
+        let offerData: any = null;
+        let assignmentData: any = null;
+        const isJobEvent = events?.includes('job');
+        const isOfferEvent = events?.includes('offer');
+        const isAssignmentEvent = events?.includes('assignment')
+        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
+            jobDatas = await getJobDetails(jobUUID, program_id, token);
+        }
+        if (isOfferEvent && workflowTriggerId) {
+            //fetch candidate details
+            offerData = await getOfferDetails(workflowTriggerId, program_id, token);
+        }
+        if (workflowTriggerId && isAssignmentEvent) {
+            assignmentData = await getAssignmentDetails(workflowTriggerId, program_id, token)
+        }
+        let payload;
+        if (workflowDetails) {
+            payload = {
+                job_id: jobDatas?.data?.job?.job_id,
+                job_url: jobDatas?.data?.job?.job_id
+                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    : '',
+                user_type: user?.userType,
+                candidate_first_name: workflowDetails?.first_name,
+                candidate_last_name: workflowDetails?.last_name,
+                submission_id: workflowDetails?.unique_key,
+                offer_id: offerData?.data?.offer?.offer_code ?? "",
+                offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
+                    : '',
+                assignment_title_name: assignmentData?.data?.assignment?.title,
+                id: assignmentData?.data?.assignment?.code,
+                duration: assignmentData?.data?.finance?.working_duration,
+                //remaining_budget_amount 
+                //budget_amount
+                //worked_as
+            }
 
+        } else {
+            console.error('workflowDetails is undefined or missing required properties');
+        }
         // 5. Create the notification payload
+
         const notificationPayloads: NotificationDataPayload = {
             program_id,
             traceId,
             eventCode,
             recipientEmail: recipientEmails,
-            payload: {
-                job_id: workflow.event_title,
-                user_type: user?.userType,
-            },
+            payload,
             token,
             userId: user?.sub ?? "",
         };
@@ -3006,6 +3114,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         // 6. Send notifications
         await sendNotification(notificationPayloads);
         console.log("notificationPayloads", notificationPayloads);
+
 
         // 7. Log the notification
         await sendNotificationModel.create({
@@ -3198,7 +3307,7 @@ JSON_UNQUOTE(
 (
 SELECT JSON_OBJECT(
     'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-   'modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.modified_on')) AS UNSIGNED), NULL),
+   'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
@@ -3384,7 +3493,7 @@ l.placement_order ASC;`;
                             avatar: userResult[0].avatar,
                             role_id: userResult[0].role_id,
                             email: userResult[0].email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_notes: recipient_details.replaced_notes
@@ -3408,7 +3517,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details?.modified_on,
+                            updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3484,7 +3593,7 @@ l.placement_order ASC;`;
                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
                                     email: supervisor.email,
                                     avatar: supervisor.avatar || null,
-                                    modified_on: recipient_details.modified_on,
+                                    updated_on: recipient_details.updated_on,
                                     notes: recipient_details.notes,
                                     reason: recipient_details.reason,
                                     replaced_notes: recipient_details.replaced_notes
@@ -3511,7 +3620,7 @@ l.placement_order ASC;`;
                             avatar: imporsonateUserResult?.[0]?.avatar,
                             role_id: imporsonateUserResult?.[0]?.role_id,
                             email: imporsonateUserResult?.[0]?.email,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             recipient_type: recipientType?.name || '',
                             behaviour,
                         } : undefined;
@@ -3574,7 +3683,7 @@ l.placement_order ASC;`;
                                             name: userData[0].first_name,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             notes: recipient_details.notes,
                                             reason: recipient_details.reason,
                                             replaced_notes: recipient_details.replaced_notes
@@ -3598,7 +3707,7 @@ l.placement_order ASC;`;
                                         avatar: imporsonateUserResult?.[0]?.avatar,
                                         role_id: imporsonateUserResult?.[0]?.role_id,
                                         email: imporsonateUserResult?.[0]?.email,
-                                        modified_on: recipient_details.modified_on,
+                                        updated_on: recipient_details.updated_on,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
                                     } : undefined;
@@ -3645,12 +3754,12 @@ l.placement_order ASC;`;
                                     role_id: user.role_id,
                                     email: user.email,
                                     receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.modified_on,
+                                    modifiedOn: recipient.updated_on,
                                     level_behaviour: level_behaviour,
                                     replaced_by: null, // Default value
                                     impersonate_by: null, // Default value
                                     // existing_replaced_user: null, // Default value
-                                    modified_on: recipient.modified_on,
+                                    updated_on: recipient.updated_on,
                                     notes: recipient.notes,
                                     reason: recipient.reason,
                                     actor_first_name: recipient.actor_first_name,
@@ -3695,7 +3804,7 @@ l.placement_order ASC;`;
                                             email: impersonatedUser.email,
                                             avatar: impersonatedUser.avatar,
                                             role_id: impersonatedUser.role_id,
-                                            modified_on: recipient_details.modified_on,
+                                            updated_on: recipient_details.updated_on,
                                             impersonate_notes: recipient.impersonate_notes,
                                             impersonate_date_time: recipient.impersonate_modified_on,
                                             actor_first_name: recipient.actor_first_name,
@@ -3732,7 +3841,7 @@ l.placement_order ASC;`;
                             actor_by_avatar: user.actor_by_avatar,
                             is_admin_override: user.is_admin_override,
                             reason: user.reason,
-                            modified_on: user.modified_on,
+                            updated_on: user.updated_on,
                             notes: user.notes
                         };
                     });
@@ -3750,7 +3859,7 @@ l.placement_order ASC;`;
                                 actor_last_name: user.actor_last_name,
                                 actor_by_avatar: user.actor_by_avatar,
                                 is_admin_override: user.is_admin_override,
-                                modified_on: user.modified_on,
+                                updated_on: user.updated_on,
                                 level_id,
                                 status: user.receipentStatus,
                                 // modified_on: user.modified_on,
@@ -3776,7 +3885,7 @@ l.placement_order ASC;`;
                             last_name: input_value.last_name,
                             level_id,
                             status: recipient_status,
-                            modified_on: recipient_details.modified_on,
+                            updated_on: recipient_details.updated_on,
                             notes: recipient_details.notes,
                             reason: recipient_details.reason,
                             replaced_date_time: recipient_details.replaced_modified_on,
@@ -4027,42 +4136,41 @@ export const getModuleEvent = async (
 // };
 
 async function getTriggeredEventsCode(flow_type: any, event: any) {
-    if (flow_type == "Approval" && event === "create_job") {
-        return "JOB_APPROVAL_FIRST";
-    } else if (flow_type == "Review" && event === "create_job") {
-        return "JOB_REVIEW_FIRST";
-    } else if (flow_type == "Review" && event === "update_job") {
-        return "JOB_UPDATE_REVIEW";
-    } else if (flow_type == "Approval" && event === "update_job") {
-        return "JOB_UPDATE_APPROVAL";
-    } else if (flow_type == "Review" && event === "create_offer") {
-        return "OFFER_REVIEW_FIRST";
-    } else if (flow_type == "Approval" && event === "create_offer") {
-        return "OFFER_APPROVAL_FIRST";
-    } else if (flow_type == "Review" && event === "counter_offer") {
-        return "COUNTER_OFFER_REVIEW_FIRST";
-    } else if (flow_type == "Approval" && event === "counter_offer") {
-        return "COOUTER_OFFER_APPROVAL_FIRST";
-    } else if (flow_type == "Approval" && event === "create_assignment") {
-        return "ASSIGNMENT_APPROVAL_REQUEST";
-    } else if (flow_type == "Approval" && event === "update_assignment") {
-        return "ASSIGNMENT_MODIFIED_APPROVAL";
-    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
-        return "REHIRE_REVIEW";
-    } else if (flow_type == "Review" && event === "submit_candidate_rehire_check") {
-        return "DO_NOT_REHIRE_REVIEW";
-    } else if (flow_type == "Review" && event === "submit_candidate_shortlist") {
-        return "CANDIDATE_SHORTLIST_REQUEST_FIRST";
-    } else if (flow_type == "Approval" && event === "submit_candidate_rehire_check") {
-        return "RE_HIRE_APPROVAL";
-    } else if (flow_type == "Approval" && event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment") {
-        return "BUDGET_INCREASED_APPROVAL";
-    } else if (flow_type == "Approval" && event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment") {
-        return "BUDGET_REDUCED_APPROVAL";
+    if (flow_type === "Approval" && event === "create_job") {
+        return NotificationEventCode.JOB_APPROVAL_FIRST;
+    } else if (flow_type === "Review" && event === "create_job") {
+        return NotificationEventCode.JOB_REVIEW_FIRST;
+    } else if (flow_type === "Review" && event === "update_job") {
+        return NotificationEventCode.JOB_UPDATE_REVIEW;
+    } else if (flow_type === "Approval" && event === "update_job") {
+        return NotificationEventCode.JOB_UPDATE_APPROVAL;
+    } else if (flow_type === "Review" && event === "create_offer") {
+        return NotificationEventCode.OFFER_REVIEW_FIRST;
+    } else if (flow_type === "Approval" && event === "create_offer") {
+        return NotificationEventCode.OFFER_APPROVAL_FIRST;
+    } else if (flow_type === "Review" && event === "counter_offer") {
+        return NotificationEventCode.COUNTER_OFFER_REVIEW_FIRST;
+    } else if (flow_type === "Approval" && event === "counter_offer") {
+        return NotificationEventCode.COUNTER_OFFER_APPROVAL_FIRST;
+    } else if (flow_type === "Approval" && event === "create_assignment") {
+        return NotificationEventCode.ASSIGNMENT_APPROVAL_REQUEST;
+    } else if (flow_type === "Approval" && event === "update_assignment") {
+        return NotificationEventCode.ASSIGNMENT_MODIFIED_APPROVAL;
+    } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.REHIRE_REVIEW;
+    } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.DO_NOT_REHIRE_REVIEW;
+    } else if (flow_type === "Review" && event === "submit_candidate_shortlist") {
+        return NotificationEventCode.CANDIDATE_SHORTLIST_REQUEST_FIRST;
+    } else if (flow_type === "Approval" && event === "submit_candidate_rehire_check") {
+        return NotificationEventCode.RE_HIRE_APPROVAL;
+    } else if (flow_type === "Approval" && (event === "BUDGET_INCREASED" || event === "assignment_budget_adjustment")) {
+        return NotificationEventCode.BUDGET_INCREASED_APPROVAL;
+    } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
+        return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
         throw new Error(`Event code not found for event: ${event}`);
     }
-
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
     if (!userIds || userIds.length === 0) {

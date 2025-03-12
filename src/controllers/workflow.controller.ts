@@ -40,7 +40,7 @@ const AUTH_BASE_URL = databaseConfig.config.auth_url;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
-    const { name, levels } = request.body as WorkflowData;
+    const { name, levels, module, hierarchies, method_id } = request.body as WorkflowData;
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -57,39 +57,74 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const userId = user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
-            where: { name: name, program_id: program_id,is_deleted: false }
+            where: { name, program_id, is_deleted: false }
         });
 
         if (existingWorkflow) {
-            logger(
-                {
-                    trace_id: traceId,
-                    actor: {
-                        user_name: user?.preferred_username,
-                        user_id: user?.sub,
-                    },
-                    data: request.body,
-                    eventname: "creating workflow",
-                    status: "error",
-                    description: `A workflow with the same name already exists for ${program_id}`,
-                    level: 'error',
-                    action: request.method,
-                    url: request.url,
-                    entity_id: program_id,
-                    is_deleted: false
-                },
-                WorkFlow
-            );
-
             return reply.status(409).send({
                 status_code: 409,
                 message: "A workflow with the same name already exists",
                 trace_id: traceId,
             });
         }
-
+        
+        const existingWorkflowWithConditions = await WorkFlow.findOne({
+            where: {
+                module,
+                method_id,
+                program_id,
+                is_deleted: false
+            }
+        });
+        
+        if (existingWorkflowWithConditions) {
+            const existingHierarchies = existingWorkflowWithConditions.hierarchies || [];
+            
+            const isHierarchyMatch =
+                existingHierarchies.length === hierarchies.length &&
+                existingHierarchies.every((id: string) => hierarchies.includes(id));
+        
+            if (isHierarchyMatch) {
+                return reply.status(409).send({
+                    status_code: 409,
+                    message: "A workflow with the same module, hierarchies, and method_id already exists",
+                    trace_id: traceId,
+                });
+            }
+        }
+        
+        const recipientTypeMap = new Map();
+        let allowCreation = true;
+        
+        for (const level of levels) {
+            if (level.recipient_types) {
+                for (const recipient of level.recipient_types) {
+                    const { recipient_type_id, behaviour } = recipient;
+                    
+                    if (recipientTypeMap.has(recipient_type_id)) {
+                        if (recipientTypeMap.get(recipient_type_id) === 'ANY' && behaviour === 'ALL') {
+                            allowCreation = true;
+                        } else {
+                            allowCreation = false;
+                            break;
+                        }
+                    } else {
+                        recipientTypeMap.set(recipient_type_id, behaviour);
+                    }
+                }
+            }
+            if (!allowCreation) break;
+        }
+        
+        if (!allowCreation) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: "A workflow with duplicate recipient_type and invalid behaviour conditions cannot be created",
+                trace_id: traceId,
+            });
+        }
+        
         const workflowDataPayload = request.body as Omit<WorkflowData, '_id'>;
-        let workflowData: any;
         let createdWorkflow: any;
         let grouped = await WorkFlow.findOne({
             where: {
@@ -100,11 +135,12 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 workflow_id: null
             }
         });
+
         if (grouped) {
             createdWorkflow = await WorkFlow.create({
                 ...workflowDataPayload,
                 created_by: userId,
-                modified_by: userId,
+                updated_by: userId,
                 program_id,
                 workflow_id: grouped.id,
                 type: "child"
@@ -119,65 +155,12 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 program_id,
                 placement_order: 0,
                 created_by: userId,
-                modified_by: userId,
+                updatedd_by: userId,
                 flow_count: 1,
                 type: "parent",
                 workflow_id: null
             });
         }
-        for (const level of levels) {
-            const createdLevel = await WorkflowLevel.create({
-                workflow_id: createdWorkflow?.id,
-                placement_order: level.placement_order,
-                program_id: program_id,
-            });
-
-
-            if (Array.isArray(level.conditions)) {
-                for (const condition of level.conditions) {
-                    await WorkflowLevelCondition.create({
-                        program_id: program_id,
-                        level_id: createdLevel.id,
-                        placement_order: condition.placement_order,
-                        indent: condition.indent,
-                        operator_id: condition.field_operator_id,
-                        field_config_id: condition.field_config,
-                        target_field_value: condition.target_field_value,
-                    });
-                }
-            }
-
-            for (const recipient of level.recipient_types || []) {
-
-
-                await WorkflowRecepientType.create({
-                    level_id: createdLevel.id,
-                    program_id: program_id,
-                    recipient_type_id: recipient.recipient_type_id,
-                    meta_data: recipient.meta_data,
-                    behaviour: recipient.behaviour,
-                });
-            }
-        }
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "creating workflow",
-                status: "success",
-                description: `Creating workflow for ${program_id} successfully: ${workflowData?.id}`,
-                level: 'success',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            WorkFlow
-        );
 
         reply.status(201).send({
             status_code: 201,
@@ -188,30 +171,11 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             trace_id: traceId,
         });
     } catch (error: any) {
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                data: request.body,
-                eventname: "creating workflow",
-                status: "error",
-                description: `Error while creating workflow for ${program_id}`,
-                level: 'error',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            WorkFlow
-        );
-        console.log(error)
+        console.log(error);
         reply.status(500).send({
             status_code: 500,
             message: 'Error while creating workflow',
-            error: (error).message,
+            error: error.message,
             trace_id: traceId
         });
     }
@@ -258,13 +222,13 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (data) {
             await data.update({
                 ...workflowData,
-                modified_on: new Date(), 
-                modified_by: userId
-            }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['modified_on', 'modified_by']) });
+                updated_on: new Date(), 
+                updated_by: userId
+            }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['updated_on', 'updated_by']) });
 
             return reply.status(200).send({
                 status_code: 200,
-                modified_by: userId,
+                updated_by: userId,
                 workflow_id: id,
                 message: 'Workflow updated successfully.',
                 trace_id: traceId,
@@ -365,22 +329,44 @@ export async function deleteWorkflow(
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params;
+
         const workFlowData = await WorkFlow.findOne({ where: { program_id, id } });
-        if (workFlowData) {
-            await WorkFlow.update({ is_deleted: true, is_enabled: false }, { where: { program_id, id } });
-            reply.status(200).send({
-                status_code: 200,
-                workflow: id,
-                message: 'Workflow deleted successfully.',
-                trace_id: traceId,
-            });
-        } else {
-            reply.status(404).send({
+
+        if (!workFlowData) {
+            return reply.status(404).send({
                 status_code: 404,
                 message: 'Workflow not found.',
                 trace_id: traceId
             });
         }
+
+        const { module, event_id, method_id } = workFlowData;
+
+        await WorkFlow.update(
+            { is_deleted: true, is_enabled: false },
+            { where: { program_id, id } }
+        );
+
+        await WorkFlow.decrement(
+            { flow_count: 1 },
+            {
+                where: {
+                    program_id,
+                    module,
+                    event_id,
+                    method_id,
+                    is_deleted: false
+                }
+            }
+        );
+
+        reply.status(200).send({
+            status_code: 200,
+            workflow: id,
+            message: 'Workflow deleted successfully',
+            trace_id: traceId,
+        });
+
     } catch (error) {
         reply.status(500).send({
             status_code: 500,

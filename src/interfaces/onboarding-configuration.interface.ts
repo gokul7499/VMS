@@ -12,7 +12,9 @@ export interface OnboardingConfigurationInterface {
     checklist_id?: string;
     is_enabled?: boolean;
     is_deleted?: boolean;
-    modified_on?: number;
     created_on?: number;
+    updated_on?: number;
+    created_by:string;
+    updated_by?: string;
   }
   

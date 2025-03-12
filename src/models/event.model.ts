@@ -49,11 +49,13 @@ Event.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-	  allowNull : true
+      defaultValue: Date.now(),
+      allowNull: true
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-	  allowNull:true
+      defaultValue: Date.now(),
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,
@@ -78,12 +80,13 @@ Event.init(
           instance.slug = generateSlug(instance.name, {
             lowercase: true,
             removedspecial: true,
-            replacewithhyphens: true
+            replacewithhyphens: false
           });
-      }
+        }
+      },
     },
-  },}
-); 
+  }
+);
 
 Event.belongsTo(Module, { foreignKey: "module_id", as: "module" });
 

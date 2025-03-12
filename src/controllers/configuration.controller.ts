@@ -11,7 +11,8 @@ export const getConfigurations = async (
   reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   try {
-    const configurations = await Configuration.findAll({ order: [["sr_Number", "ASC"]] });
+    const configurations = await Configuration.findAll({  order: [["updated_on", "DESC"], ["sr_Number", "ASC"]]  });
+
     if (configurations.length === 0) {
       return reply.status(200).send({
         status_code: 200,

@@ -6,9 +6,9 @@ export interface PicklistItem {
   is_enabled: boolean;
   is_deleted: boolean;
   created_on: number;
-  created_by: string | null;
-  modified_on: number;
-  modified_by: string | null;
+  created_by: string ;
+  updated_on: number;
+  updated_by: string ;
   program_id: string;
   value?: string | null;
   disabled_program?: object | null;
@@ -26,8 +26,8 @@ export interface picklist {
   is_deleted: boolean;
   created_on: number;
   created_by: string | null;
-  modified_on: number;
-  modified_by: string | null;
+  updated_on: number;
+  updated_by: string | null;
   defined_by: string;
   multiselect: boolean;
   slug?: string | null;
@@ -45,9 +45,9 @@ export interface picklistAttributes {
   is_enabled: boolean;
   is_deleted: boolean;
   created_on: number;
-  modified_on: number;
+  updated_on: number;
   created_by: string | null;
-  modified_by: string | null;
+  updated_by: string | null;
   defined_by: string;
   multiselect: boolean;
   slug?: string | null;

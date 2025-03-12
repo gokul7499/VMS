@@ -7,6 +7,7 @@ import { ProgramVendor } from "./program-vendor.model";
 import Tenant from "./tenant.model";
 import IndustriesModel from "./labour-category.model";
 import JobTemplateModel from "./job-template.model";
+import JobCategoryModel from "./job-category.model";
 class Candidate extends Model {
     id: any;
     qualifications: any;
@@ -128,11 +129,7 @@ Candidate.init(
         },
         title: {
             type: DataTypes.STRING,
-            allowNull: true,
-            references: {
-                model: "job_templates",
-                key: "id",
-            },
+            allowNull: true
         },
         is_active: {
             type: DataTypes.BOOLEAN,
@@ -189,25 +186,25 @@ Candidate.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
-            allowNull: true,
+            defaultValue: Date.now(),
         },
         updated_on: {
             type: DataTypes.DOUBLE,
-            allowNull: true,
+            defaultValue: Date.now()
         },
         created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
+            type: DataTypes.STRING(50),
+            allowNull: false,
         },
         updated_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        }
+            type: DataTypes.STRING(50),
+            allowNull: false,
+        },
     },
     {
         sequelize: sequelize,
         tableName: "candidates",
-        timestamps: true,
+        timestamps: false,
         hooks: {
             beforeSave: (instance) => {
                 beforeSave(instance);
@@ -218,7 +215,6 @@ Candidate.init(
 
 Candidate.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
 Candidate.belongsTo(countriesModel, { foreignKey: 'country_id', as: 'country' });
-Candidate.belongsTo(IndustriesModel, { foreignKey: 'job_category_id', as: 'job_category' });
-Candidate.belongsTo(JobTemplateModel, { foreignKey: 'title', as: 'job_templates' });
+Candidate.belongsTo(JobCategoryModel, { foreignKey: 'job_category_id', as: 'job_category' });
 Candidate.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 export default Candidate;

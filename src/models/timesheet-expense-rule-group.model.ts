@@ -50,10 +50,12 @@ TimesheetExpenseRuleGroup.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
             allowNull: true,
         },
         updated_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
             allowNull: true,
         },
         created_by: {
@@ -69,6 +71,7 @@ TimesheetExpenseRuleGroup.init(
         sequelize,
         modelName: 'TimesheetExpenseRuleGroup',
         tableName: 'timesheet_expense_rule_groups',
+        timestamps: false,
         hooks: {
             beforeValidate: (instance) => {
                 convertEmptyStringsToNull(instance);

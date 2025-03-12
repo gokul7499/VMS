@@ -44,28 +44,30 @@ CityModel.init({
     allowNull: false,
     defaultValue: true,
   },
-  created_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
-  modified_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  modified_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
   is_deleted: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
   },
   ref_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true,
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true,
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  updated_by: {
     type: DataTypes.UUID,
     allowNull: true,
   },

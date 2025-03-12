@@ -7,7 +7,7 @@ import qualificationTypeModel from "./qualification-type-model";
 
 class Qualifications extends Model {
     code: any;
-    id!:string;
+    id!: string;
     qualification_type_id: any;
     name: any;
 }
@@ -36,7 +36,7 @@ Qualifications.init(
                 'imported',
                 'program',
                 'predefined'
-              ),
+            ),
             allowNull: true,
         },
         is_enabled: {
@@ -65,9 +65,13 @@ Qualifications.init(
         },
         created_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
             type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

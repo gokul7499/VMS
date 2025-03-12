@@ -12,14 +12,14 @@ class PicklistModel extends Model<picklistAttributes, PicklistCreationAttributes
   public id!: string;
   public picklist_id!: string | null;
   public name!: string;
-  public program_id!: string;  
+  public program_id!: string;
   public description!: string | null;
   public is_enabled!: boolean;
   public is_deleted!: boolean;
   public created_on!: number;
-  public modified_on!: number;
+  public updated_on!: number;
   public created_by!: string | null;
-  public modified_by!: string | null;
+  public updated_by!: string | null;
   public defined_by!: string;
   public multiselect!: boolean;
   public slug?: string | null;
@@ -68,22 +68,6 @@ PicklistModel.init({
     defaultValue: false,
     allowNull: false,
   },
-  created_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true
-  },
-  modified_on: {
-    type: DataTypes.DOUBLE,
-    allowNull: true
-  },
-  created_by: {
-    type: DataTypes.CHAR(36),
-    allowNull: true,
-  },
-  modified_by: {
-    type: DataTypes.CHAR(36),
-    allowNull: true,
-  },
   defined_by: {
     type: DataTypes.STRING(255),
     allowNull: false,
@@ -104,6 +88,24 @@ PicklistModel.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true,
+  },
+  created_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true
+  },
+  updated_on: {
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
+    allowNull: true
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
   },
 }, {
   sequelize,

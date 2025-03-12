@@ -20,22 +20,6 @@ WorkflowTriggeredRecipientType.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         meta_data: {
             type: DataTypes.JSON,
             allowNull: true,
@@ -75,7 +59,26 @@ WorkflowTriggeredRecipientType.init(
         job_id: {
             type: DataTypes.STRING,
             allowNull: true,
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            allowNull: true ,
+            defaultValue: Date.now()
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,

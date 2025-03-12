@@ -4,12 +4,12 @@ export interface stateInterface {
     name?: string;
     code?: string;
     created_by?: any;
-    modified_by?: any;
+    updated_by?: any;
     ref_id?: string;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on: any;
-    updated_on: any;
+    created_on: number;
+    updated_on: number;
     program_id: string;
     country_id: string;
     programs?: string;

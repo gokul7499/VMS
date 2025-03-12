@@ -27,61 +27,63 @@ OnboardingConfigurationModel.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    created_on: {
-      type: DataTypes.DOUBLE,
+    description: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
-    modified_on: {
-      type: DataTypes.DOUBLE,
+    is_all_job_type: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    job_type: {
+      type: DataTypes.JSON,
       allowNull: true,
     },
-    description  :{
-        type: DataTypes.STRING,
-        allowNull: true, 
+    is_all_job_template: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
-    is_all_job_type  :{
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
+    job_template_id: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
-    job_type:{
-        type: DataTypes.JSON,
-        allowNull: true,  
+    is_all_hierarchy: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
-    is_all_job_template:{
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
+    hierarchy_id: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
-    job_template_id:{
-        type: DataTypes.JSON,
-        allowNull: true, 
+    is_all_checklist: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
-    is_all_hierarchy:{
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-    },
-    hierarchy_id:{
-        type: DataTypes.JSON,
-        allowNull: true,
-    },
-    is_all_checklist:{
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-    },
-    checklist_id:{
-        type: DataTypes.UUID,
-        allowNull: true,  
-    },
-    modified_by:{
+    checklist_id: {
       type: DataTypes.UUID,
-      allowNull: true,  
-    },
-    created_by:{
-    type: DataTypes.UUID,
-    allowNull: true,  
+      allowNull: true,
     },
     program_id: {
       type: DataTypes.UUID,
       allowNull: false
+    },
+    created_on: {
+      type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
+      allowNull: true
+    },
+    updated_on: {
+      type: DataTypes.DOUBLE,
+      defaultValue: Date.now(),
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {

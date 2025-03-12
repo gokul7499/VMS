@@ -376,18 +376,40 @@ export async function updateJobTemplate(
     updateData.updated_by = userId;
     await jobTemplate.update(updateData);
 
-    await jobTempletRepositories.deleteJobTemplateHierarchy(program_id, id);
-
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
-      for (const hierarchyId of jobTemplateData.hierarchy) {
-        await jobTemplateHierarchyModel.create({
+      const incomingHierarchyIds = jobTemplateData.hierarchy.filter(Boolean);
+          const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
+        where: {
           job_temp_id: jobTemplate.id,
-          hierarchy: hierarchyId,
           program_id: jobTemplate.program_id,
+        },
+      });
+    
+      const existingHierarchyIds = existingHierarchyRecords.map((record) => record.hierarchy);
+          for (const hierarchyId of incomingHierarchyIds) {
+        const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy === hierarchyId);
+    
+        if (!existingRecord) {
+          await jobTemplateHierarchyModel.create({
+            job_temp_id: jobTemplate.id,
+            hierarchy: hierarchyId,
+            program_id: jobTemplate.program_id,
+          });
+        }
+      }
+      const idsToDelete = existingHierarchyIds.filter((id) => !incomingHierarchyIds.includes(id));
+    
+      if (idsToDelete.length > 0) {
+        await jobTemplateHierarchyModel.destroy({
+          where: {
+            job_temp_id: jobTemplate.id,
+            program_id: jobTemplate.program_id,
+            hierarchy: idsToDelete,
+          },
         });
       }
     }
-
+  
     if (jobTempCustomField?.custom_fields) {
       const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean);
       for (const custom_field of jobTempCustomField.custom_fields) {
@@ -568,22 +590,24 @@ export async function getJobTemplatesByHierarchies(
 export async function getAllJobTemplateHierarchyById(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { hierarchy_ids?: string; job_type?: string };
+    Querystring: { hierarchy_ids?: string; job_type?: string;is_enabled?:string };
   }>,
   reply: FastifyReply
 ) {
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { hierarchy_ids, job_type } = request.query;
+    const { hierarchy_ids, job_type,is_enabled } = request.query;
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
+    const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
 
     const data = await jobTempletRepositories.getJobTempletByHierarchies(
       program_id,
       hierarchyIdsArray,
-      job_type
+      job_type,
+      isEnabledBool
     );
-
+    console.log("datat",data)
     reply.status(200).send({
       status_code: 200,
       job_templates: data,
@@ -606,6 +630,7 @@ export async function getMostUsedJobTemplates(
       limit?: number;
       offset?: number;
       job_type?: string;
+      is_enabled?: string
     };
   }>,
   reply: FastifyReply
@@ -613,15 +638,17 @@ export async function getMostUsedJobTemplates(
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { hierarchy_ids, job_type, limit, offset } = request.query;
+    const { hierarchy_ids, job_type, limit, offset, is_enabled } = request.query;
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
-
+    const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const data = await jobTempletRepositories.getMostUsedJobTemplatesByProgram(
       program_id,
       hierarchyIdsArray,
       job_type,
       limit,
-      offset
+      offset,
+      isEnabledBool
+
     );
 
     reply.status(200).send({
@@ -650,6 +677,8 @@ export async function getAllJobTempletsByHierarchies(
       limit?: number;
       offset?: number;
       labour_category_id?: string;
+      is_enabled?:string;
+      is_shift_rate?:string
     };
   }>,
   reply: FastifyReply
@@ -666,12 +695,15 @@ export async function getAllJobTempletsByHierarchies(
       limit,
       offset,
       labour_category_id,
+      is_enabled,
+      is_shift_rate
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
     const laborCategoryIdsArray = labour_category?.split(",") || [];
     const qualificationIdsArray = qualification?.split(",") || [];
-
+    const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined
+    const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
       program_id,
       hierarchyIdsArray,
@@ -681,7 +713,9 @@ export async function getAllJobTempletsByHierarchies(
       offset,
       job_type,
       name,
-      labour_category_id
+      labour_category_id,
+      isEnabledBool,
+      isShiftRate
     );
 
     const uniqueJobTemplates = data.map((jobTemplate: any) => {

@@ -14,10 +14,10 @@ export interface JobWorkFlow {
   is_enabled: boolean,
   levels: any[],
   initialTrigger: any[],
-  created_on: Date,
-  modified_on: Date,
+  created_on: number,
+  updated_on: number,
   created_by: string,
-  modified_by: string,
+  updated_by: string,
   is_updated?: boolean;
   program_id: string,
   is_deleted: boolean,

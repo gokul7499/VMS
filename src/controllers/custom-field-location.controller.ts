@@ -4,15 +4,46 @@ import { CustomFieldLocationInterface } from '../interfaces/custom-field-locatio
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { baseSearch } from '../utility/baseService'
 import generateCustomUUID from '../utility/genrateTraceId';
+import { logger } from '../utility/loggerService';
+import CustomFieldsLocation from '../models/custom-field-location.model';
+import { decodeToken } from '../middlewares/verifyToken';
 
 export async function createCustomFieldLocation(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
   const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
+  const { program_id } = request.body as { program_id: string };
+
+ 
   try {
     const custom_Field_Location = request.body as CustomFieldLocationInterface;
     const custom_field_loc: any = await customFieldLocation.create({ ...custom_Field_Location });
+
+    logger({
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "created location",
+      status: "success",
+      description: `Created location for ${program_id} successfully`,
+      level: "success",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    }, CustomFieldsLocation);
+
     reply.status(201).send({
       status_code: 201,
       message: "custom field location created succesfully",
@@ -20,8 +51,21 @@ export async function createCustomFieldLocation(
       trace_id: traceId,
     });
   } catch (error) {
+    logger({
+      trace_id: traceId,
+      actor: { user_name: user?.preferred_username, user_id: userId },
+      data: request.body,
+      eventname: "created location",
+      status: "error",
+      description: `Failed to fetch location data for ${program_id}.`,
+      level: "error",
+      action: request.method,
+      url: request.url,
+      entity_id: program_id,
+      is_deleted: false,
+    }, CustomFieldsLocation);
     reply.status(500).send({
-      status_code:500,
+      status_code: 500,
       message: 'An error occurred while creating custom field location',
       error
     });
@@ -42,7 +86,7 @@ export async function getCustomFieldLocationById(
         is_deleted: false,
       },
       attributes: ['id', 'program_id', 'custom_field_id', 'location_id', 'is_enabled',
-        'is_deleted', 'created_on', 'modified_on']
+        'is_deleted', 'created_on', 'updated_on']
     });
     if (custom_Field_Location) {
       reply.status(201).send({
@@ -60,7 +104,7 @@ export async function getCustomFieldLocationById(
       });
     }
   } catch (error) {
-    reply.status(500).send({status_code:500, message: 'An error occurred while fetching custom field location', error });
+    reply.status(500).send({ status_code: 500, message: 'An error occurred while fetching custom field location', error });
   }
 }
 
@@ -70,12 +114,17 @@ export async function updateCustomFieldLocationById(request: FastifyRequest, rep
   const updates = request.body as Partial<CustomFieldLocationInterface>;
   try {
     const [custom_field_loc] = await customFieldLocation.update(updates, {
+
+
+      
       where: { id, program_id }
     });
 
     if (custom_field_loc === 0) {
-      return reply.status(200).send({status_code:200, message: 'custom field location not found', custom_field_loc: [] });
+      return reply.status(200).send({ status_code: 200, message: 'custom field location not found', custom_field_loc: [] });
     }
+
+
 
     return reply.status(201).send({
       status_code: 201,
@@ -84,7 +133,7 @@ export async function updateCustomFieldLocationById(request: FastifyRequest, rep
       trace_id: traceId,
     });
   } catch (error) {
-    return reply.status(500).send({ status_code:500,message: 'Internal Server Error', trace_id: generateCustomUUID(), error });
+    return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id: generateCustomUUID(), error });
   }
 }
 
@@ -99,7 +148,7 @@ export async function deleteCustomFieldLocationById(
       {
         is_deleted: true,
         is_enabled: false,
-        modified_on: Date.now(),
+        updated_on: Date.now(),
       },
       { where: { id, program_id } }
     );
@@ -111,17 +160,17 @@ export async function deleteCustomFieldLocationById(
         trace_id: traceId,
       });
     } else {
-      reply.status(200).send({ status_code:200,message: 'custom field location not found', trace_id: generateCustomUUID(), custom_Field_Location: [] });
+      reply.status(200).send({ status_code: 200, message: 'custom field location not found', trace_id: generateCustomUUID(), custom_Field_Location: [] });
     }
   } catch (error) {
-    reply.status(500).send({ status_code:500,message: 'Internal Serever Error' });
+    reply.status(500).send({ status_code: 500, message: 'Internal Serever Error' });
   }
 }
 
 export async function getAllCustomFieldLocation(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['custom_field_id', 'location_id'];
   const responseFields = ['id', 'program_id', 'custom_field_id', 'location_id', 'is_enabled',
-    'is_deleted', 'created_on', 'modified_on',];
+    'is_deleted', 'created_on', 'updated_on',];
   return baseSearch(request, reply, customFieldLocation, searchFields, responseFields);
 }
 

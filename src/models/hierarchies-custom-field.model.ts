@@ -46,19 +46,19 @@ HierarchyCustomFieldModel.init(
     },
     created_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      defaultValue: Date.now()     
     },
     updated_on: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      defaultValue: Date.now()
     },
     created_by: {
       type: DataTypes.UUID,
-      allowNull: true,
+ 
     },
     updated_by: {
       type: DataTypes.UUID,
-      allowNull: true,
+  
     },
   },
   {

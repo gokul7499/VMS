@@ -22,22 +22,6 @@ WorkflowLevelCondition.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        modified_on: {
-            type: DataTypes.DOUBLE,
-            allowNull: true,
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        modified_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
         placement_order: {
             type: DataTypes.INTEGER,
             allowNull: true,
@@ -75,7 +59,26 @@ WorkflowLevelCondition.init(
         field_config_id: {
             type: DataTypes.UUID,
             allowNull: true,
-        }
+        },
+        created_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        updated_on: {
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
+            allowNull: true
+        },
+        created_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        updated_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+
     },
     {
         sequelize,
