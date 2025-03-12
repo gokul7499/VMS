@@ -9,8 +9,8 @@ export interface RateConfigurationsInterface {
     limit?: string;
     created_by: string;
     updated_by: string;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     hierarchies: any;
     job_templates: any;
     rate_configuration: any;

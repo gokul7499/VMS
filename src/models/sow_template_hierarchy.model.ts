@@ -9,8 +9,8 @@ import Hierarchies from './hierarchies.model';
 
 class SowTemplateHierarchyModel extends Model {
     id: any;
-    created_on!: string;
-    updated_on!: string;
+    created_on!: bigint;
+    updated_on!: bigint;
     hierarchy_id: any;
 }
 
@@ -39,12 +39,14 @@ SowTemplateHierarchyModel.init(
             }
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

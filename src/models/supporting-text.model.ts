@@ -16,8 +16,8 @@ class SupportingTextModel
   public performed_by!: string;
   public is_enabled!: boolean;
   public is_deleted!: boolean;
-  public created_on?: number;
-  public updated_on?: number;
+  public created_on?: bigint;
+  public updated_on?: bigint;
   public program_id!: string;
   public event_id!: string;
   public module_id!: string;
@@ -87,12 +87,12 @@ SupportingTextModel.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),
       allowNull: true,
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),
       allowNull: true,
     },

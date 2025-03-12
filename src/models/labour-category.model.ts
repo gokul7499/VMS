@@ -44,9 +44,14 @@ IndustriesModel.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: true,
+     type: DataTypes.BIGINT.UNSIGNED,
+    defaultValue: Date.now(),
+    allowNull: true,
+    },
+    updated_on: {
+    type: DataTypes.BIGINT.UNSIGNED,
+    defaultValue: Date.now(),
+    allowNull: true,
     },
     created_by: {
       type: DataTypes.UUID,
@@ -56,11 +61,6 @@ IndustriesModel.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
-    updated_on: {
-      type: DataTypes.DOUBLE,
-      defaultValue: Date.now(),
-      allowNull: true,
-    }
   },
   {
     sequelize,
