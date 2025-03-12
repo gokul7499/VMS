@@ -24,13 +24,13 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
   }
 
   let groupPolicies = null;
+  let redisKey;
 
-  const redisKey = getRedisKeyForAuth(token, programId, null);
-
-  console.log("Fetching redis key for auth", redisKey);
-
-  // Commenting out Redis-related code
   try {
+
+    redisKey = getRedisKeyForAuth(token, programId, null);
+
+    console.log("Fetching redis key for auth", redisKey);
     const cachedPolicies = await redis.get(redisKey);
     console.log(`Log of fetch policies from cache`, cachedPolicies);
     if (cachedPolicies) {
@@ -66,8 +66,12 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
       // Commenting out Redis-related code
 
       console.log(`Attempting to cache policies in Redis`);
-      await redis.set(redisKey, JSON.stringify(groupPolicies));
-      console.log(`Successfully cached policies in Redis`);
+      if (redisKey) {
+        await redis.set(redisKey, JSON.stringify(groupPolicies));
+        console.log(`Successfully cached policies in Redis`);
+      } else {
+        console.log(`Unable to cache policies: redisKey is undefined`);
+      }
 
       if (fastify.log) {
         fastify.log.info(`Fetched policies from API`);
