@@ -971,10 +971,10 @@ export const getPicklistFilter = async (
             ...(picklist_id && { picklist_id }),
           },
           required: false,
-          attributes: {
-            exclude: ["created_on", "updated_on", "created_by", "updated_by"],
-            include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
-          },
+          // attributes: {
+          //   exclude: ["created_on", "updated_on", "created_by", "updated_by"],
+          //   include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
+          // },
         },
       ],
       order: [["name", "ASC"]],

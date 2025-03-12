@@ -5,40 +5,86 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op } from "sequelize";
 import { decodeToken } from "../middlewares/verifyToken";
+import { logger } from "../utility/loggerService";
 
-export async function createCounty(
-    request: FastifyRequest,
-    reply: FastifyReply,
-) {
+export async function createCounty(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     try {
         const county = request.body as CountyInterface;
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating county",
+            status: "info",
+            description: "Attempting to create a new county record",
+            level: "info",
+            action: request.method,
+            url: request.url,
+            is_deleted: false,
+        }, countyModel);
+
         const county_data: any = await countyModel.create({ ...county, created_by: userId, updatedby: userId });
+
         reply.status(201).send({
             status_code: 201,
-            message: "county created succesfully",
+            message: "County created successfully",
             county_data: county_data?.id,
-            trace_id:traceId,
+            trace_id: traceId,
         });
+
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "create county",
+            status: "success",
+            description: `County created successfully: ${county_data?.id}`,
+            level: "success",
+            action: request.method,
+            url: request.url,
+            is_deleted: false,
+        }, countyModel);
     } catch (error) {
+        logger({
+            trace_id: traceId,
+
+            data: request.body,
+            eventname: "create county",
+            status: "error",
+            description: "Error creating county",
+            level: "error",
+            action: request.method,
+            url: request.url,
+            is_deleted: false,
+        }, countyModel);
+
         reply.status(500).send({
-            status_code:500,
-            message: 'An error occurred while creating county',
-            error
+            status_code: 500,
+            message: "An error occurred while creating county",
+            trace_id: traceId,
+            error,
         });
     }
 }
+
 export async function getCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
@@ -59,7 +105,7 @@ export async function getCountyById(
                 status_code: 201,
                 message: "county get succesfully",
                 county: county,
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
@@ -69,7 +115,7 @@ export async function getCountyById(
             });
         }
     } catch (error) {
-        reply.status(500).send({status_code:500, message: "An error occurred while fetching county", error });
+        reply.status(500).send({ status_code: 500, message: "An error occurred while fetching county", error });
     }
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
@@ -77,34 +123,82 @@ export async function updateCountyById(request: FastifyRequest, reply: FastifyRe
     const authHeader = request.headers.authorization;
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<CountyInterface>;
+
     try {
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
+
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
+
         const userId = user?.sub;
 
-        const [county] = await countyModel.update(updates, {
-           
-            where: { id }
-        });
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: updates,
+            eventname: "update county",
+            status: "info",
+            description: `Updating county with ID: ${id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            is_deleted: false
+        }, countyModel);
+
+        const [county] = await countyModel.update(updates, { where: { id } });
+
         if (county === 0) {
             return reply.status(200).send({ message: "county data not found", trace_id: generateCustomUUID(), county: [] });
         }
-        return reply.status(201).send({
+
+        reply.status(201).send({
             status_code: 201,
             message: "county updated successfully",
             county: id,
-            trace_id:traceId,
+            trace_id: traceId,
         });
+
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: updates,
+            eventname: "update county",
+            status: "success",
+            description: `County updated successfully: ${id}`,
+            level: 'success',
+            action: request.method,
+            url: request.url,
+            is_deleted: false
+        }, countyModel);
     } catch (error) {
-        return reply.status(500).send({ status_code:500,message: "Internal Server Error", trace_id: traceId, error });
+        logger({
+            trace_id: traceId,
+
+            data: updates,
+            eventname: "update county",
+            status: "error",
+            description: `Error updating county: ${id}`,
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            is_deleted: false
+        }, countyModel);
+
+        return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId, error });
     }
 }
+
 
 export async function deleteCountyById(
     request: FastifyRequest<{ Params: { id: string } }>,
@@ -115,12 +209,12 @@ export async function deleteCountyById(
     try {
         const { id } = request.params;
         if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
         if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
 
@@ -138,13 +232,13 @@ export async function deleteCountyById(
                 status_code: 200,
                 message: "county deleted successfully",
                 county: id,
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ status_code:200,message: "county not found", trace_id: traceId, county: [] });
+            reply.status(200).send({ status_code: 200, message: "county not found", trace_id: traceId, county: [] });
         }
     } catch (error) {
-        reply.status(500).send({ status_code:500,message: "An error occurred while deleting county", error });
+        reply.status(500).send({ status_code: 500, message: "An error occurred while deleting county", error });
     }
 }
 export async function getAllCounty(request: FastifyRequest<{ Querystring: { name?: string; state_id?: string[] } }>, reply: FastifyReply) {
@@ -170,7 +264,7 @@ export async function getAllCounty(request: FastifyRequest<{ Querystring: { name
                 status_code: 201,
                 message: "Counties retrieved successfully",
                 data: counties,
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({ status_code: 200, message: "No counties found for the given state_id(s)", counties: [], trace_id: generateCustomUUID(), });
