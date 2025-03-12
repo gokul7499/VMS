@@ -588,3 +588,130 @@ export async function getAllCountry(
     });
   }
 }
+
+export const getWorkLocationsAdvancedFilter = async (
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      name?: string;
+      country_id?: string;
+      state_name?: string;
+      code?: string;
+      zipcode?: string;
+      is_enabled?: boolean | string;
+      updated_on?: string;
+      page?: number;
+      limit?: number;
+      sort?: string;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const {
+      name, country_id, state_name, code, zipcode, is_enabled, updated_on, page = 1, limit = 10, sort
+    } = request.body;
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    const country_ids = country_id ? country_id.split(",").map((id: string) => id.trim()) : [];
+    let order: [string, string][] = [["updated_on", "DESC"]];
+    if (sort === "1") {
+      order = [["updated_on", "ASC"]];
+    } else if (sort === "-1") {
+      order = [["updated_on", "DESC"]];
+    }
+
+    const filters: any = { program_id, is_deleted: false };
+
+    if (name) {
+      filters.name = { [Op.like]: `%${name}%` };
+    }
+    if (country_ids.length > 0) {
+      filters.country_id = { [Op.in]: country_ids };
+    }
+    if (state_name) {
+      filters.state_name = { [Op.like]: `%${state_name}%` };
+    }
+    if (code) {
+      filters.code = code;
+    }
+    if (zipcode) {
+      filters.zipcode = zipcode;
+    }
+    if (is_enabled !== undefined) {
+      filters.is_enabled = is_enabled === 'true' || is_enabled === true;
+    }
+    if (updated_on) {
+      const dateRange = updated_on.split(',');
+      if (dateRange.length === 2) {
+        const startDate = parseFloat(dateRange[0].trim());
+        const endDate = parseFloat(dateRange[1].trim());
+        filters.updated_on = { [Op.between]: [startDate, endDate] };
+      }
+    }
+
+    const workLocations = await WorkLocationModel.findAll({
+      where: filters,
+      limit: limitNum,
+      offset,
+      order,
+      include: [
+        {
+          model: CountryModel,
+          as: 'countries',
+          attributes: ['id', 'name'],
+        }
+      ]
+    });
+
+    for (const location of workLocations) {
+      const currencyIds = location.currency_id as string[] || [];
+      if (currencyIds.length > 0) {
+        const currencies = await Currencies.findAll({
+          where: { id: currencyIds },
+          attributes: ['id', 'name']
+        });
+        location.dataValues.currencies = currencies;
+      } else {
+        location.dataValues.currencies = [];
+      }
+    }
+
+    const count = await WorkLocationModel.count({
+      where: filters,
+    });
+
+    if (workLocations.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        items_per_page: limitNum,
+        total_records: count,
+        trace_id: generateCustomUUID(),
+        message: "Worklocation not found.",
+        work_locations: [],
+      });
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: generateCustomUUID(),
+      items_per_page: limitNum,
+      total_records: count,
+      message: "Worklocation fetched successfully.",
+      work_locations: workLocations
+    });
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: generateCustomUUID(),
+      message: "Internal Server Error",
+      error,
+    });
+  }
+};
