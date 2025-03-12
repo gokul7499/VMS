@@ -89,12 +89,12 @@ SowTemplateModel.init(
         },
         created_on: {
 
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
         },
         updated_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.DOUBLE,
+            defaultValue: Date.now(),
            
         },
         created_by: {

@@ -34,7 +34,7 @@ FeesConfigurationModel.init({
   },
   effective_date: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    defaultValue: Date.now(),
   },
   funding_model: {
     type: DataTypes.STRING,
@@ -74,13 +74,13 @@ FeesConfigurationModel.init({
     },
   },
   created_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   updated_on: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+    type: DataTypes.DOUBLE,
+    defaultValue: Date.now(),
     allowNull: true
   },
   created_by: {
