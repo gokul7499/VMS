@@ -15,13 +15,19 @@ async function connectToRedis() {
   const redis = new Redis({
     host: redis_host,
     port: redis_port,
-    password: redis_auth
+    password: redis_auth,
+    connectTimeout: 60000, // 60s connection timeout
+    commandTimeout: 10000, // 10s command timeout
+    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
   });
 
   const getRedisData = new Redis({
     host: redis_replica_host,
     port: redis_port,
-    password: redis_auth
+    password: redis_auth,
+    connectTimeout: 60000, // 60s connection timeout
+    commandTimeout: 10000, // 10s command timeout
+    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
   });
 
   redis.on("connect", () => {
