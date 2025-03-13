@@ -18,7 +18,7 @@ async function rateTypeRoutes(fastify: FastifyInstance) {
     fastify.delete('/program/:program_id/rate_type/:id', deleteRateTypeById);
     fastify.get('/program/:program_id/differential_on', getDifferentialOnForRateType);
     fastify.get('/program/:program_id/get-all/shift', getShiftAndRateType);
-    fastify.post('/program/:program_id/rate_type/filter',rateTypeFilter );
+    fastify.post('/program/:program_id/rate_type/advance-filter',rateTypeFilter );
 
 }
 

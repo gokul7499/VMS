@@ -226,9 +226,9 @@ export async function getAllRateType(request: FastifyRequest<{
     const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
       replacements: { program_id },
       type: QueryTypes.SELECT,
-  });
-  
-  const totalRecords = totalCount[0]?.total_records;
+    });
+
+    const totalRecords = totalCount[0]?.total_records;
     if (rateType.length === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -627,7 +627,6 @@ export async function getShiftAndRateType(request: FastifyRequest, reply: Fastif
   }
 }
 
-
 export async function rateTypeFilter(
   request: FastifyRequest<{
     Params: { program_id: string };
@@ -638,9 +637,7 @@ export async function rateTypeFilter(
       abbreviation?: string;
       is_enabled?: boolean | string;
       is_base_rate?: boolean | string;
-      created_by?: string;
-      updated_by?: string;
-      updated_on?: [string, string];
+      updated_on?: any;
       page?: string;
       limit?: string;
     };
@@ -650,7 +647,7 @@ export async function rateTypeFilter(
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { id, rate_type_category, name, abbreviation, is_enabled, is_base_rate, created_by, updated_by, updated_on, page, limit } = request.body;
+    const { id, rate_type_category, name, abbreviation, is_enabled, is_base_rate, updated_on, page, limit } = request.body;
 
     const isEnabledFilter =
       typeof is_enabled === 'string'
@@ -673,8 +670,6 @@ export async function rateTypeFilter(
       Boolean(rate_type_category),
       Boolean(name),
       Boolean(abbreviation),
-      Boolean(created_by),
-      Boolean(updated_by),
       isBaseRateFilter !== undefined,
       isEnabledFilter !== undefined,
       hasUpdatedOnFilter
@@ -686,8 +681,6 @@ export async function rateTypeFilter(
       rate_type_category,
       name: name ? `%${name}%` : undefined,
       abbreviation: abbreviation ? `%${abbreviation}%` : undefined,
-      created_by,
-      updated_by,
       limit: limitNumber,
       offset,
       is_enabled: isEnabledFilter,

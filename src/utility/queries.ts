@@ -1579,14 +1579,11 @@ AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
 
-
 export const rateTypeAdvanceFilter = (
   hasId: boolean,
   hasRateTypeCategory: boolean,
   hasName: boolean,
   hasAbbreviation: boolean,
-  hasCreatedBy: boolean,
-  hasUpdatedBy: boolean,
   hasIsBaseRate: boolean,
   hasIsEnabled: boolean,
   hasUpdatedOn: boolean
@@ -1604,8 +1601,6 @@ export const rateTypeAdvanceFilter = (
           ${hasRateTypeCategory ? 'AND rate_type.rate_type_category = :rate_type_category' : ''}
           ${hasName ? 'AND rate_type.name LIKE :name' : ''}
           ${hasAbbreviation ? 'AND rate_type.abbreviation LIKE :abbreviation' : ''}
-          ${hasCreatedBy ? 'AND rate_type.created_by = :created_by' : ''}
-          ${hasUpdatedBy ? 'AND rate_type.updated_by = :updated_by' : ''}
           ${hasIsBaseRate ? 'AND rate_type.is_base_rate = :is_base_rate' : ''}
           ${hasIsEnabled ? 'AND rate_type.is_enabled = :is_enabled' : ''}
           ${hasUpdatedOn ? 'AND rate_type.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
@@ -1615,11 +1610,6 @@ export const rateTypeAdvanceFilter = (
       OFFSET :offset;
   `;
 };
-
-
-
-
-
 
 export const timesheetConfigAdvancedFilter = (
   hasId: boolean,
@@ -2542,7 +2532,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ruleCategory?: string,
   ruleGroupName?: string,
   ruleType?: string,
-  isEnabled?:  boolean | string,
+  isEnabled?: boolean | string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
