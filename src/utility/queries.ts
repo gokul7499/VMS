@@ -1583,6 +1583,38 @@ AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
 
+export const rateTypeAdvanceFilter = (
+  hasId: boolean,
+  hasRateTypeCategory: boolean,
+  hasName: boolean,
+  hasAbbreviation: boolean,
+  hasIsBaseRate: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+      SELECT
+          rate_type.*,
+          COUNT(rate_type.id) OVER () AS total_count
+      FROM
+          rate_type
+      WHERE
+          rate_type.is_deleted = false
+          AND rate_type.program_id = :program_id
+          ${hasId ? 'AND rate_type.id = :id' : ''}
+          ${hasRateTypeCategory ? 'AND rate_type.rate_type_category = :rate_type_category' : ''}
+          ${hasName ? 'AND rate_type.name LIKE :name' : ''}
+          ${hasAbbreviation ? 'AND rate_type.abbreviation LIKE :abbreviation' : ''}
+          ${hasIsBaseRate ? 'AND rate_type.is_base_rate = :is_base_rate' : ''}
+          ${hasIsEnabled ? 'AND rate_type.is_enabled = :is_enabled' : ''}
+          ${hasUpdatedOn ? 'AND rate_type.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+      ORDER BY
+          rate_type.created_on DESC
+      LIMIT :limit
+      OFFSET :offset;
+  `;
+};
+
 export const timesheetConfigAdvancedFilter = (
   hasId: boolean,
   hasTitle: boolean,

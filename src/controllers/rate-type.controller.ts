@@ -6,7 +6,7 @@ import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import { getAllRateTypes, rateTypeShiftAndRate, rateTypeTotalCount } from "../utility/queries";
+import { getAllRateTypes, rateTypeAdvanceFilter, rateTypeShiftAndRate, rateTypeTotalCount } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
@@ -226,9 +226,9 @@ export async function getAllRateType(request: FastifyRequest<{
     const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
       replacements: { program_id },
       type: QueryTypes.SELECT,
-  });
-  
-  const totalRecords = totalCount[0]?.total_records;
+    });
+
+    const totalRecords = totalCount[0]?.total_records;
     if (rateType.length === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -622,6 +622,94 @@ export async function getShiftAndRateType(request: FastifyRequest, reply: Fastif
       status_code: 500,
       trace_id: traceId,
       message: 'Failed to retrieve shift and rate type data',
+      error: error.message,
+    });
+  }
+}
+
+export async function rateTypeFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      rate_type_category?: string;
+      name?: string;
+      abbreviation?: string;
+      is_enabled?: boolean | string;
+      is_base_rate?: boolean | string;
+      updated_on?: any;
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const { id, rate_type_category, name, abbreviation, is_enabled, is_base_rate, updated_on, page, limit } = request.body;
+
+    const isEnabledFilter =
+      typeof is_enabled === 'string'
+        ? is_enabled === 'true' ? 1 : 0
+        : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
+
+    const isBaseRateFilter =
+      typeof is_base_rate === 'string'
+        ? is_base_rate === 'true' ? 1 : 0
+        : is_base_rate === true ? 1 : is_base_rate === false ? 0 : undefined;
+
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+    const query = rateTypeAdvanceFilter(
+      Boolean(id),
+      Boolean(rate_type_category),
+      Boolean(name),
+      Boolean(abbreviation),
+      isBaseRateFilter !== undefined,
+      isEnabledFilter !== undefined,
+      hasUpdatedOnFilter
+    );
+
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      rate_type_category,
+      name: name ? `%${name}%` : undefined,
+      abbreviation: abbreviation ? `%${abbreviation}%` : undefined,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+      is_base_rate: isBaseRateFilter,
+      updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+      updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+    };
+
+    const data = await sequelize.query<{ total_count: any }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Rate Types fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      rate_type: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
       error: error.message,
     });
   }
