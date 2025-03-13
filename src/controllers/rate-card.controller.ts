@@ -217,13 +217,13 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         });
 
         reply.status(200).send({
-            status_code: 200,
+            message: 'Rate cards fetched successfully.',
+            trace_id: traceId,
+            rate_cards: rateCardsWithDetails,
             total_records: totalRecords,
             total_pages: totalPages,
             current_page: parsedPage,
             items_per_page: parsedLimit,
-            rate_cards: rateCardsWithDetails,
-            trace_id: traceId,
         });
     } catch (error: any) {
         reply.status(500).send({
