@@ -273,21 +273,24 @@ async getAllJobTemplateByHierarchy(
 }
 
 
-  async programQuery(program_id: string): Promise<{ name: string }[]> {
-    const query = `
+async programQuery(program_id: string): Promise<{
+  unique_id: string; name: string
+}[]> {
+  const query = `
             SELECT
-                programs.name
-            FROM programs
+                programs.name,
+                programs.unique_id
+            FROM ${config_db}.programs
             WHERE programs.id = :program_id;
         `;
 
-    const data = await sequelize.query<{ name: string }>(query, {
-      replacements: { program_id },
-      type: QueryTypes.SELECT,
-    });
+  const data = await sequelize.query<{ name: string, unique_id: string }>(query, {
+    replacements: { program_id },
+    type: QueryTypes.SELECT,
+  });
 
-    return data;
-  }
+  return data;
+}
 
   async getAllJobTemplets(
     program_id: string,
@@ -537,6 +540,7 @@ async getAllJobTemplateByHierarchy(
 
     return hierarchyDetails;
   }
+
 }
 
 export default JobTempletRepository;
