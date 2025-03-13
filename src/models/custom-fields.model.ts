@@ -146,6 +146,11 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
+    is_sensitive_data:{
+      type:DataTypes.BOOLEAN,
+      allowNull:true,
+      defaultValue:false
+    },
     decimal_place: {
       type: DataTypes.STRING,
       allowNull: true,
