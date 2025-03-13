@@ -1,6 +1,8 @@
 import { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { checkPermission } from '../utility/check-permissions';
 import generateCustomUUID from '../utility/genrateTraceId';
+import logger from '../plugins/logger-plugin';
+
 
 export function validatePermissions(action: string, permissions: string[]) {
   return function (request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply, done: HookHandlerDoneFunction): void {
@@ -25,7 +27,7 @@ export function validatePermissions(action: string, permissions: string[]) {
       return done();
     }
 
-    console.log('Validating permissions', permissions, action);
+    logger.info('Validating permissions', permissions, action);
 
     checkPermission(token, program_id, { permissions }, action)
       .then(() => done())

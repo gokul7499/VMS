@@ -3,57 +3,70 @@ import Redis from "ioredis";
 import { getRedisKeyForAuth } from "./get-redis-key";
 import { databaseConfig } from "../config/db";
 import dotenv from "dotenv";
+import logger from '../plugins/logger-plugin';
 
 dotenv.config();
 
 async function connectToRedis() {
-  const { redis_host, redis_port, redis_auth } = databaseConfig.config;
+  const { redis_host, redis_port, redis_auth, redis_replica_host } = databaseConfig.config;
 
-  console.log(`Connecting to Redis at ${redis_host}:${redis_port}`);
+  logger.info(`Connecting to Redis at ${redis_host}:${redis_port}`);
 
   const redis = new Redis({
     host: redis_host,
     port: redis_port,
-    password: redis_auth,
-    connectTimeout: 30000, // 30s connection timeout
-    commandTimeout: 10000, // 10s command timeout
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
+    password: redis_auth
+  });
+
+  const getRedisData = new Redis({
+    host: redis_replica_host,
+    port: redis_port,
+    password: redis_auth
   });
 
   redis.on("connect", () => {
-    console.log("✅ Connected to Redis successfully!");
+    logger.info("✅ Connected to Redis successfully!");
   });
 
   redis.on("error", (err) => {
-    console.error("❌ Redis connection error:", err);
+    logger.error("❌ Redis connection error:", err);
+  });
+
+  getRedisData.on("connect", () => {
+    logger.info("✅ Connected to Redis replica successfully!");
+  });
+
+  getRedisData.on("error", (err) => {
+    logger.error("❌ Redis replica connection error:", err);
   });
 
   try {
     const pingResponse = await redis.ping();
-    console.log(`Redis Ping Response: ${pingResponse}`);
+    logger.info(`Redis Ping Response: ${pingResponse}`);
   } catch (error) {
-    console.error("❌ Redis Ping Failed:", error);
+    logger.error("❌ Redis Ping Failed:", error);
   }
 
-  return redis;
+  return { redis, getRedisData };
 }
 
-async function getPolicies(redis: Redis, fastify: any, programId: string, token: string) {
+async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, fastify: any, programId: string, token: string) {
   if (!programId || !token) {
     throw new Error("Missing programId or token");
   }
 
+  const { redis, getRedisData } = redisClients;
   let groupPolicies = null;
   let redisKey;
 
   try {
     redisKey = getRedisKeyForAuth(token, programId, null);
-    console.log("Fetching Redis key for auth:", redisKey);
+    logger.info("Fetching Redis key for auth:", redisKey);
 
-    const exists = await redis.exists(redisKey);
+    const exists = await getRedisData.exists(redisKey);
     if (exists) {
-      const cachedPolicies = await redis.get(redisKey);
-      console.log("Fetched policies from cache:", cachedPolicies);
+      const cachedPolicies = await getRedisData.get(redisKey);
+      logger.info("Fetched policies from cache:", cachedPolicies);
 
       if (cachedPolicies) {
         groupPolicies = JSON.parse(cachedPolicies);
@@ -62,7 +75,7 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
         }
       }
     } else {
-      console.log("Key does not exist in Redis, fetching from API...");
+      logger.info("Key does not exist in Redis, fetching from API...");
     }
   } catch (err) {
     console.error("❌ Error fetching from Redis:", err);
@@ -84,17 +97,17 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
         }
       );
       groupPolicies = apiResponse.data.response;
-      console.log("Fetched policies from API:", groupPolicies);
+      logger.info("Fetched policies from API:", groupPolicies);
 
       if (redisKey) {
         try {
           await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 3600); // Cache for 1 hour
-          console.log("Successfully cached policies in Redis");
+          logger.info("Successfully cached policies in Redis");
         } catch (cacheError) {
           console.error("❌ Error caching policies in Redis:", cacheError);
         }
       } else {
-        console.log("Unable to cache policies: redisKey is undefined");
+        logger.info("Unable to cache policies: redisKey is undefined");
       }
 
       if (fastify.log) {
@@ -113,10 +126,10 @@ async function getPolicies(redis: Redis, fastify: any, programId: string, token:
 }
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
-  const redis = await connectToRedis();
+  const redisClients = await connectToRedis();
   return {
     getPolicies: (programId: string, token: string) =>
-      getPolicies(redis, fastify, programId, token),
+      getPolicies(redisClients, fastify, programId, token),
   };
 }
 
