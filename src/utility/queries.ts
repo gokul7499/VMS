@@ -2442,6 +2442,11 @@ export const getPendingUserQuery = `
       FROM work_locations
       WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids,
+   COALESCE((
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
+    FROM labour_category l
+    WHERE JSON_CONTAINS(invitation.associate_labour_category, JSON_QUOTE(l.id), '$')
+), JSON_ARRAY()) AS associate_labour_category,
 COALESCE((
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
