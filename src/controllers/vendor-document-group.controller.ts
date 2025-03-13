@@ -1,12 +1,14 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { VendorDocumentGroup } from "../interfaces/vendor-document-group.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { baseSearch } from "../utility/baseService";
 import vendordocumentgroupModel from "../models/vendor-document-group.model";
 import vendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
+import { sequelize } from "../config/instance";
+import { vendorDocumentGroupFilterQuery } from "../utility/queries";
 
 export async function createVendordocumentsgroup(
     request: FastifyRequest,
@@ -423,4 +425,77 @@ export async function getAllVendorCompDocummentGroupByProgramId(request: Fastify
     const searchFields = ['program_id', 'id', 'is_enabled', 'description', 'total_documents', 'name'];
     const responseFields = ['id', 'name', 'description', 'total_documents', 'updated_on', 'is_enabled', 'program_id'];
     return baseSearch(request, reply, vendordocumentgroupModel, searchFields, responseFields);
+}
+
+export async function vendorDocumentGroupFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            name?: string;
+            description?: string;
+            is_enabled?: boolean | string;
+            updated_on?: any;
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const { id, name, description, is_enabled, updated_on, page, limit } = request.body;
+
+        const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
+        const pageNumber = parseInt(page ?? '1', 10);
+        const limitNumber = parseInt(limit ?? '10', 10);
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+        const query = vendorDocumentGroupFilterQuery(
+            Boolean(id),
+            Boolean(name),
+            Boolean(description),
+            isEnabledFilter !== undefined,
+            hasUpdatedOnFilter
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            name: name ? `%${name}%` : undefined,
+            description: description ? `%${description}%` : undefined,
+            limit: limitNumber,
+            offset,
+            is_enabled: isEnabledFilter,
+            updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+            updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+        };
+
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Vendor document droups fetched successfully.' : 'No records found.',
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            vendor_documents_group: data,
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
 }

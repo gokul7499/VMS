@@ -14,8 +14,8 @@ export interface ExpenseTypeInterface {
     rate_per_unit?: number;
     max_unit_limit?: number;
     program_id: string;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by?: string;
     updated_by?: string;
     is_deleted: boolean;

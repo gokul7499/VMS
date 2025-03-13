@@ -4,7 +4,7 @@ import { Programs } from './programs.model';
 
 class SowTemplateModel extends Model {
     id: any;
-    created_on!: string;
+    created_on!: bigint;
     updated_on!: Date;
     custom_fields: any;
     master_date_type: any;
@@ -88,14 +88,14 @@ SowTemplateModel.init(
             defaultValue: false,
         },
         created_on: {
-
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
-           
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

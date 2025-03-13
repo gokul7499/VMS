@@ -5,6 +5,8 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
 import { Sequelize } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
+import { logger } from '../utility/loggerService';
+import { databaseConfig } from '../config/db';
 
 export async function getAllVendorMarkupConfig(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['tenant_id', 'is_enabled', 'rate_model', 'sourced_markup', 'program_id'];
@@ -53,6 +55,7 @@ export async function createVendorMarkupConfig(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    const { program_id } = request.params;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
@@ -63,6 +66,26 @@ export async function createVendorMarkupConfig(
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub
+    
+    logger(
+        {
+            trace_id:traceId,
+            actor:{
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "creating vendor markup config",
+            status: "success",
+            description: `Creating vendor markup config for ${program_id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+             entity_id: program_id,
+            is_deleted: false
+        },
+        vendorMarkupConfig
+    )
     try {
         const { program_id } = request.params;
         const vendor = request.body as vendorMarkupConfigInterface;
@@ -91,15 +114,57 @@ export async function createVendorMarkupConfig(
                 vendor: existingVendor
             });
         } else {
-            const newVendor = await vendorMarkupConfig.create({ ...vendor, program_id, created_by: userId, });
+            const newVendor = await vendorMarkupConfig.create({ ...vendor, program_id, created_by: userId });
+            logger(
+                {
+                    trace_id:traceId,
+                    actor:{
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: request.body,
+                    eventname: "creating vendor markup config",
+                    status: "success",
+                    description: `Creating vendor markup config for ${program_id} successfully: ${newVendor}`,
+                    level: 'success',
+                    action: request.method,
+                    url: request.url,
+                     entity_id: program_id,
+                    is_deleted: false
+                },
+                vendorMarkupConfig
+            )
+            
             return reply.status(201).send({
                 status_code: 201,
                 trace_id: traceId,
                 message: 'VendorMarkupConfig created successfully.',
                 vendor: newVendor
             });
+        
         }
-    } catch (error) {
+      
+    } catch (error:any) {
+        logger(
+            {
+              trace_id:traceId,
+              actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+              },
+              data: request.body,
+              eventname: "create vendor markup config",
+              status: "error",
+              description: `error to create vendor markup config for ${program_id}`,
+              level: 'error',
+              action: request.method,
+              url: request.url,
+              entity_id: program_id,
+              is_deleted: false
+            },
+            vendorMarkupConfig
+          );
+      
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -121,6 +186,27 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub
+    const { id } = request.params as { id: string };
+
+    logger(
+        {
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            data: request.body,
+            eventname: "updating vendor markup config",
+            status: "info",
+            description: `Updating vendor markup config with ID ${id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: id,
+            is_deleted: false
+        },
+        vendorMarkupConfig
+    );
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const data = request.body as vendorMarkupConfigInterface;
@@ -130,6 +216,26 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
         });
 
         if (!vendorData) {
+            logger(
+                {
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: request.body,
+                    eventname: "update vendor markup config",
+                    status: "success",
+                    description: `Successfully updated vendor markup config with ID ${id}`,
+                    level: 'success',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: id,
+                    is_deleted: false
+                },
+                vendorMarkupConfig
+            );
+
             return reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -143,7 +249,26 @@ export async function updateVendorMarkupConfig(request: FastifyRequest, reply: F
             message: 'vendorMarkupConfig updated successfully.',
             trace_id: traceId,
         });
-    } catch (error) {
+    } catch (error:any) {
+        logger(
+            {
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: request.body,
+                eventname: "update vendor markup config",
+                status: "error",
+                description: `Error updating vendor markup config with ID ${id}`,
+                level: 'error',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false
+            },
+            vendorMarkupConfig
+        );
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',

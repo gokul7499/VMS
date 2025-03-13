@@ -6,8 +6,8 @@ export interface QualificationData {
     code: string,
     type: string,
     is_enabled: boolean,
-    created_on: number,
-    updated_on: number,
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string,
     updated_by: string,
     program_id: string,

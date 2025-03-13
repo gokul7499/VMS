@@ -32,8 +32,8 @@ export default interface CandidateInterface {
     birth_date?: number;
     candidate_source?: string;
     tenant?:any;
-    created_on?:any;
-    updated_on?:any;
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by?:string;
     updated_by?:string;
 }

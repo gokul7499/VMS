@@ -214,11 +214,11 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     const existingHolidayCalendar = await holidayCalendar.findOne({
       where: {
         program_id: holiday_calendar.program_id,
-        name:holiday_calendar.name,
-        is_deleted:false
+        name: holiday_calendar.name,
+        is_deleted: false
       }
     });
-  
+
     if (existingHolidayCalendar) {
       reply.status(409).send({
         status_code: 409,
@@ -255,9 +255,9 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       status_code: 201,
       trace_id: traceId,
       message: 'HolidayCalendar created successfully.',
-      
+
     });
-  }catch (error) {
+  } catch (error) {
     logger(
       {
         trace_id: traceId,
@@ -310,11 +310,11 @@ export const updateHolidayCalendar = async (
     const existingHolidayCalendar = await holidayCalendar.findOne({
       where: {
         program_id: holiday_calendar.program_id,
-        name:holiday_calendar.name,
-        is_deleted:false
+        name: holiday_calendar.name,
+        is_deleted: false
       }
     });
-  
+
     if (existingHolidayCalendar) {
       reply.status(409).send({
         status_code: 409,
@@ -322,7 +322,7 @@ export const updateHolidayCalendar = async (
         message: 'Holiday calendar name already exists.',
       });
     }
-    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId,updated_on: Date.now() }, { where: { program_id, id } });
+    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId, updated_on: Date.now() }, { where: { program_id, id } });
     if (updatedCount > 0) {
       reply.status(201).send({
         status_code: 201,
@@ -352,20 +352,20 @@ export async function deleteHolidayCalendar(
 ) {
   const traceId = generateCustomUUID()
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
-    const userId = user?.sub;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
   try {
     const { program_id, id } = request.params;
     const holidayCalendarData = await holidayCalendar.findOne({ where: { program_id, id } });
     if (holidayCalendarData) {
-      await holidayCalendar.update({ is_deleted: true, is_enabled: false ,updated_by:userId}, { where: { program_id, id } });
+      await holidayCalendar.update({ is_deleted: true, is_enabled: false, updated_by: userId }, { where: { program_id, id } });
       reply.status(204).send({
         status_code: 204,
         message: 'HolidayCalendar deleted successfully.',
@@ -383,5 +383,84 @@ export async function deleteHolidayCalendar(
       trace_id: traceId,
       error: error,
     });
+  }
+}
+
+export async function getHolidayCalendarAdvancedFilter(
+  request: FastifyRequest<{ 
+    Params: { program_id: string },
+     Body: { name?: string,
+      year?: number,
+      is_enabled?: string,
+      updated_on?: string, 
+      page?: string, 
+      limit?: string } }>, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+      const { program_id } = request.params;
+      const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body;
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+
+      if (!program_id) {
+          return reply.status(400).send({
+              status_code: 400,
+              message: 'Program ID is required.',
+              trace_id: traceId,
+          });
+      }
+
+      const filterConditions: any = { program_id, is_deleted: false };
+      if (name) {
+          filterConditions.name = { [Op.like]: `%${name}%` };
+      }
+      if (year) {
+          filterConditions.year = year;
+      }
+      if (is_enabled !== undefined) {
+          filterConditions.is_enabled = is_enabled === 'true';
+      }
+      if (updated_on) {
+          const modifiedOnRange = updated_on.split(',').map(Number);
+          if (modifiedOnRange.length === 2) {
+              filterConditions.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
+          } else {
+              return reply.status(400).send({
+                  status_code: 400,
+                  message: 'Invalid updated_on range. Provide two comma-separated timestamps.',
+                  trace_id: traceId,
+              });
+          }
+      }
+
+      const offset = (pageNum - 1) * limitNum;
+      const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
+          where: filterConditions,
+          attributes: ['id', 'name', 'year', 'is_enabled', 'updated_on', 'program_id'],
+          offset,
+          limit: limitNum,
+          order: [['updated_on', 'DESC']]
+      });
+
+      reply.status(200).send({
+          status_code: 200,
+          message: holiday_calendars.length > 0 ? 'HolidayCalendars fetched successfully.' : 'No holidayCalendars found.',
+          trace_id: traceId,
+          holiday_calendars,
+          pagination: {
+              totalRecords,
+              totalPages: Math.ceil(totalRecords / limitNum),
+              currentPage: pageNum
+          }
+      });
+  } catch (error: any) {
+      console.error(`Error fetching holidayCalendars: ${error.message}`, { traceId, error });
+
+      reply.status(500).send({
+          status_code: 500,
+          message: 'An error occurred while fetching holidayCalendars.',
+          trace_id: traceId,
+          error: error.message,
+      });
   }
 }

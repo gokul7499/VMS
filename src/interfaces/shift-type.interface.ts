@@ -15,8 +15,8 @@ export interface ShiftTypeAttributes {
     shift_format:ShiftFormat;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string;
     updated_by: string;
     hierarchy_ids:string;

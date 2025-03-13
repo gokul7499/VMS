@@ -16,8 +16,8 @@ class PicklistModel extends Model<picklistAttributes, PicklistCreationAttributes
   public description!: string | null;
   public is_enabled!: boolean;
   public is_deleted!: boolean;
-  public created_on!: number;
-  public updated_on!: number;
+  public created_on!: bigint;  
+  public updated_on!: bigint;
   public created_by!: string | null;
   public updated_by!: string | null;
   public defined_by!: string;
@@ -90,12 +90,12 @@ PicklistModel.init({
     defaultValue: true,
   },
   created_on: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.BIGINT.UNSIGNED,
     defaultValue: Date.now(),
     allowNull: true
   },
   updated_on: {
-    type: DataTypes.DOUBLE,
+    type: DataTypes.BIGINT.UNSIGNED,
     defaultValue: Date.now(),
     allowNull: true
   },

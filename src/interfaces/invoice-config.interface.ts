@@ -36,8 +36,8 @@ export interface InvoiceConfigInterface {
     enable_misc_expense_consolidation: boolean;
     enable_cancel_consolidation: boolean;
     credit_debit: boolean;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string;
     updated_by: string;
     is_deleted: boolean;

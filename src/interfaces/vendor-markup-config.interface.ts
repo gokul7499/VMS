@@ -14,7 +14,8 @@ interface vendorMarkupConfigInterface {
     is_default?: boolean;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on:string;
+    created_on?: bigint;
+    updated_on?: bigint;
   }
   export default vendorMarkupConfigInterface;
   

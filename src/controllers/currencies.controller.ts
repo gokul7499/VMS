@@ -3,6 +3,7 @@ import Currencies from '../models/currencies.model';
 import currenciesData from '../interfaces/currencies.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { baseSearch } from '../utility/baseService';
+import { logger } from '../utility/loggerService';
 
 export async function getCurrencies(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['name', 'symbol'];
@@ -21,7 +22,7 @@ export async function getCurrenciesById(
     if (currencies) {
       reply.status(200).send({
         status_code: 200,
-        message:"Currencies get successfully",
+        message: "Currencies get successfully",
         trace_id: traceId,
         data: currencies
       });
@@ -43,6 +44,8 @@ export async function getCurrenciesById(
   }
 }
 
+
+
 export async function createCurrencies(
   request: FastifyRequest,
   reply: FastifyReply
@@ -50,22 +53,78 @@ export async function createCurrencies(
   const traceId = generateCustomUUID();
   try {
     const { name, label, code, symbol } = request.body as currenciesData;
+
+    logger({
+      trace_id: traceId,
+      actor: {
+        user_name: request?.user?.preferred_username,
+        user_id: request?.user?.sub,
+      },
+      data: request.body,
+      eventname: "create currencies",
+      status: "info",
+      description: "Creating a new currency record",
+      level: "info",
+      action: request.method,
+      url: request.url,
+      is_deleted: false,
+    }, Currencies);
+
     const newItem = await Currencies.create({
       name,
       label,
       code,
       symbol,
     });
+
     reply.status(200).send({
       status_code: 200,
-      message: 'Currencies create succesfully',
+      message: "Currencies created successfully",
       trace_id: traceId,
-      data: newItem
+      data: newItem,
     });
+
+    logger({
+      trace_id: traceId,
+      actor: {
+        user_name: request?.user?.preferred_username,
+        user_id: request?.user?.sub,
+      },
+      data: newItem,
+      eventname: "create currencies",
+      status: "success",
+      description: `Currency created successfully: ${newItem.id}`,
+      level: "success",
+      action: request.method,
+      url: request.url,
+      is_deleted: false,
+    }, Currencies);
+
   } catch (error) {
-    reply.status(500).send({ status_code:500,message: 'An error occurred while creating currencies', error });
+    logger({
+      trace_id: traceId,
+      actor: {
+        user_name: request?.user?.preferred_username,
+        user_id: request?.user?.sub,
+      },
+      data: request.body,
+      eventname: "create currencies",
+      status: "error",
+      description: "Error occurred while creating currencies",
+      level: "error",
+      action: request.method,
+      url: request.url,
+      is_deleted: false,
+    }, Currencies);
+
+    reply.status(500).send({
+      status_code: 500,
+      message: "An error occurred while creating currencies",
+      error,
+    });
   }
 }
+
 
 export async function updateCurrencies(
   request: FastifyRequest<{ Params: { id: string } }>,
@@ -76,6 +135,22 @@ export async function updateCurrencies(
     const { id } = request.params;
     const { name, label, code, symbol } = request.body as currenciesData;
 
+    logger({
+      trace_id: traceId,
+      actor: {
+        user_name: request?.user?.preferred_username,
+        user_id: request?.user?.sub,
+      },
+      data: request.body,
+      eventname: "update currencies",
+      status: "info",
+      description: `Updating currency with ID: ${id}`,
+      level: "info",
+      action: request.method,
+      url: request.url,
+      is_deleted: false,
+    }, Currencies);
+
     const [numRowsUpdated] = await Currencies.update(
       { name, label, code, symbol },
       { where: { id } }
@@ -84,26 +159,75 @@ export async function updateCurrencies(
     if (numRowsUpdated > 0) {
       reply.status(200).send({
         status_code: 200,
-        message: 'Currencies updated successfully',
+        message: "Currencies updated successfully",
         trace_id: traceId,
       });
 
+      logger({
+        trace_id: traceId,
+        actor: {
+          user_name: request?.user?.preferred_username,
+          user_id: request?.user?.sub,
+        },
+        data: request.body,
+        eventname: "update currencies",
+        status: "success",
+        description: `Currency updated successfully: ${id}`,
+        level: "success",
+        action: request.method,
+        url: request.url,
+        is_deleted: false,
+      }, Currencies);
     } else {
       reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
-        message: 'Currencies not found',
+        message: "Currencies not found",
       });
+
+      logger({
+        trace_id: traceId,
+        actor: {
+          user_name: request?.user?.preferred_username,
+          user_id: request?.user?.sub,
+        },
+        data: request.body,
+        eventname: "update currencies",
+        status: "warning",
+        description: `Currency not found: ${id}`,
+        level: "warning",
+        action: request.method,
+        url: request.url,
+        is_deleted: false,
+      }, Currencies);
     }
   } catch (error) {
+    logger({
+      trace_id: traceId,
+      actor: {
+        user_name: request?.user?.preferred_username,
+        user_id: request?.user?.sub,
+      },
+      data: request.body,
+      eventname: "update currencies",
+      status: "error",
+      description: `Error updating currency`,
+      level: "error",
+      action: request.method,
+      url: request.url,
+      is_deleted: false,
+    }, Currencies);
+
     reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "Internal Server Error",
-      error
+      error,
     });
   }
 }
+
+
 
 export async function deleteCurrencies(
   request: FastifyRequest<{ Params: { id: string } }>,

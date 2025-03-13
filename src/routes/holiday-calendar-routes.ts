@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { getHolidayCalendar, getHolidayCalendarById, createHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar } from "../controllers/holiday-calendar.controller"
+import { getHolidayCalendar, getHolidayCalendarById, createHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar,getHolidayCalendarAdvancedFilter } from "../controllers/holiday-calendar.controller"
 // import { Permissions,Actions } from "../constants/permissions";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 
@@ -27,12 +27,19 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
         // },
       }, updateHolidayCalendar);
     fastify.delete('/program/:program_id/holiday-calendar/:id',{
-        preHandler: validatePermissions,
+        // preHandler: validatePermissions,
         // config: {
         //   permissions: [Permissions.HOLIDAY_CALANDER],
         //   action: Actions.DELETE,
         // },
       }, deleteHolidayCalendar);
+      fastify.post('/program/:program_id/holiday-calendar-advanced-filter',{
+        // preHandler: validatePermissions,
+        // config: {
+        //   permissions: [Permissions.HOLIDAY_CALANDER],
+        //   action: Actions.DELETE,
+        // },
+      }, getHolidayCalendarAdvancedFilter);
 }
 
 

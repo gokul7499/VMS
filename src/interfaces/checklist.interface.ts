@@ -25,6 +25,8 @@ export default interface ChecklistInterface {
         due_date: string;
         created_by: string;
         updated_by: string;
+        created_on?: bigint;
+        updated_on?: bigint;
         is_enabled: boolean;
         is_deleted: boolean;
         category_id: string;
@@ -40,6 +42,8 @@ export default interface ChecklistInterface {
     }[];
     created_by: string;
     updated_by?: string;
+    created_on?: bigint;
+    updated_on?: bigint;
 }
 
 export interface FilterQuery {

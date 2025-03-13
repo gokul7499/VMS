@@ -13,6 +13,7 @@ import {
   findJobTemplatesByLabourCategories,
   getCommonHierarchies,
   uploadFile,
+  advanceFilterJobTemplates
 } from "../controllers/job-template.controller";
 import fastifyMultipart from "@fastify/multipart";
 async function jobTemplate(fastify: FastifyInstance) {
@@ -42,5 +43,6 @@ async function jobTemplate(fastify: FastifyInstance) {
     getCommonHierarchies
   );
   fastify.post("/upload-file", uploadFile);
+  fastify.post("/program/:program_id/job-template/advance-filter", advanceFilterJobTemplates);
 }
 export default jobTemplate;

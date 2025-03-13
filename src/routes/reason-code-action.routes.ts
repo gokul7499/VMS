@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getAllReasoncode, getReasoncodeById, getReasoncodeByEventName, updateReasoncode, createReasoncode, deleteReasoncode, getReasonCodeBySlug, getReasonCodeByProgramIdAndSlug } from '../controllers/reason-code-action.controller';
+import { getAllReasoncode, getReasoncodeById, getReasoncodeByEventName, updateReasoncode, createReasoncode, deleteReasoncode, getReasonCodeBySlug, getReasonCodeByProgramIdAndSlug,advancedFilterReasoncode } from '../controllers/reason-code-action.controller';
 import { createReasoncodeSchema ,querySchema ,paramsSchema } from '../interfaces/reason-code.interface';
 async function reasoncodeRoute(fastify: FastifyInstance) {
     fastify.post('/reason-code',{
@@ -43,6 +43,11 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
             querystring: querySchema,
         }
     }, getReasonCodeByProgramIdAndSlug);
+    fastify.post('/reason_codes-advanced-filter',{
+        schema: {
+            querystring: querySchema,
+        }
+    }, advancedFilterReasoncode);
 
 }
 

@@ -122,12 +122,12 @@ Delegation.init({
         allowNull: true,
     },
     created_on: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.BIGINT.UNSIGNED,
         defaultValue: Date.now(),
         allowNull: false
     },
     updated_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.BIGINT.UNSIGNED,
         defaultValue: DataTypes.DOUBLE,
         allowNull: false
     },

@@ -5,8 +5,8 @@ export interface VendorDistributionSchedule {
     is_deleted:boolean;
     created_by: string;
     updated_by: string;
-    created_on: number;
-    updated_on:number;
+    created_on?: bigint;
+    updated_on?: bigint;
     schedules: {
         duration: number;
         measure_unit: string;

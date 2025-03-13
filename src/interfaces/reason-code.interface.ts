@@ -5,8 +5,8 @@ export interface ReasonCode {
     source: string;
     entity_ref: string;
     category: 'NEUTRAL' | 'NEGATIVE' | 'POSITIVE';
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     updated_by: JSON;
     created_by: JSON;
     is_enabled: boolean;

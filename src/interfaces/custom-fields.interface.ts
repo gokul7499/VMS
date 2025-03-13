@@ -18,8 +18,8 @@ export interface CustomFields {
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  created_on: number;
-  updated_on: number;
+  created_on?: bigint;
+  updated_on?: bigint;
   created_by: string;
   updated_by: string;
   can_view: JSON;
