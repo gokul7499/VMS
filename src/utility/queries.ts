@@ -2500,7 +2500,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ruleCategory?: string,
   ruleGroupName?: string,
   ruleType?: string,
-  isEnabled?:  boolean | string,
+  isEnabled?: boolean | string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
@@ -2815,18 +2815,15 @@ export const getUserHierarchiesBasedOnUserType = `
       )
     `;
 
-
-    export const vendorComplianceDocumentFilterQuery = (
-      hasId: boolean,
-      hasName: boolean,
-      hasAct: boolean,
-      hasDocumentNumber: boolean,
-      hasCreatedBy: boolean,
-      hasUpdatedBy: boolean,
-      hasIsEnabled: boolean,
-      hasUpdatedOn: boolean
-    ) => {
-      return `
+export const vendorComplianceDocumentFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasAct: boolean,
+  hasDocumentNumber: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
           SELECT
               vendor_compliance_documents.*,
               COUNT(vendor_compliance_documents.id) OVER () AS total_count
@@ -2839,8 +2836,6 @@ export const getUserHierarchiesBasedOnUserType = `
               ${hasName ? 'AND vendor_compliance_documents.name LIKE :name' : ''}
               ${hasAct ? 'AND vendor_compliance_documents.act = :act' : ''}
               ${hasDocumentNumber ? 'AND vendor_compliance_documents.document_number = :document_number' : ''}
-              ${hasCreatedBy ? 'AND vendor_compliance_documents.created_by = :created_by' : ''}
-              ${hasUpdatedBy ? 'AND vendor_compliance_documents.updated_by = :updated_by' : ''}
               ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
               ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
@@ -2848,17 +2843,15 @@ export const getUserHierarchiesBasedOnUserType = `
           LIMIT :limit
           OFFSET :offset;
       `;
-    };
+};
 
-    export const vendorDistributionScheduleFilterQuery = (
-      hasId: boolean,
-      hasName: boolean,
-      hasCreatedBy: boolean,
-      hasUpdatedBy: boolean,
-      hasIsEnabled: boolean,
-      hasUpdatedOn: boolean
-    ) => {
-      return `
+export const vendorDistributionScheduleFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
           SELECT
             vendor_distribution_schedules.*,
             COUNT(vendor_distribution_schedules.id) OVER () AS total_count
@@ -2869,8 +2862,6 @@ export const getUserHierarchiesBasedOnUserType = `
             AND vendor_distribution_schedules.program_id = :program_id
             ${hasId ? 'AND vendor_distribution_schedules.id = :id' : ''}
             ${hasName ? 'AND vendor_distribution_schedules.name LIKE :name' : ''}
-            ${hasCreatedBy ? 'AND vendor_distribution_schedules.created_by = :created_by' : ''}
-            ${hasUpdatedBy ? 'AND vendor_distribution_schedules.updated_by = :updated_by' : ''}
             ${hasIsEnabled ? 'AND vendor_distribution_schedules.is_enabled = :is_enabled' : ''}
             ${hasUpdatedOn ? 'AND vendor_distribution_schedules.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
@@ -2878,18 +2869,16 @@ export const getUserHierarchiesBasedOnUserType = `
           LIMIT :limit
           OFFSET :offset;
       `;
-    };
+};
 
-    export const vendorDocumentGroupFilterQuery = (
-      hasId: boolean,
-      hasName: boolean,
-      hasDescription: boolean,
-      hasCreatedBy: boolean,
-      hasUpdatedBy: boolean,
-      hasIsEnabled: boolean,
-      hasUpdatedOn: boolean
-    ) => {
-      return `
+export const vendorDocumentGroupFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasDescription: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
           SELECT
             vendor_document_groups.*,
             COUNT(vendor_document_groups.id) OVER () AS total_count
@@ -2901,8 +2890,6 @@ export const getUserHierarchiesBasedOnUserType = `
             ${hasId ? 'AND vendor_document_groups.id = :id' : ''}
             ${hasName ? 'AND vendor_document_groups.name LIKE :name' : ''}
             ${hasDescription ? 'AND vendor_document_groups.description LIKE :description' : ''}
-            ${hasCreatedBy ? 'AND vendor_document_groups.created_by = :created_by' : ''}
-            ${hasUpdatedBy ? 'AND vendor_document_groups.updated_by = :updated_by' : ''}
             ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
             ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
@@ -2910,17 +2897,15 @@ export const getUserHierarchiesBasedOnUserType = `
           LIMIT :limit
           OFFSET :offset;
       `;
-    };
-    
-    export const vendorGroupFilterQuery = (
-      hasId: boolean,
-      hasVendorGroupName: boolean,
-      hasCreatedBy: boolean,
-      hasUpdatedBy: boolean,
-      hasIsEnabled: boolean,
-      hasUpdatedOn: boolean
-    ) => {
-      return `
+};
+
+export const vendorGroupFilterQuery = (
+  hasId: boolean,
+  hasVendorGroupName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
           SELECT
               vendor_groups.*,
               COUNT(vendor_groups.id) OVER () AS total_count
@@ -2931,8 +2916,6 @@ export const getUserHierarchiesBasedOnUserType = `
               AND vendor_groups.program_id = :program_id
               ${hasId ? 'AND vendor_groups.id = :id' : ''}
               ${hasVendorGroupName ? 'AND vendor_groups.vendor_group_name LIKE :vendor_group_name' : ''}
-              ${hasCreatedBy ? 'AND vendor_groups.created_by = :created_by' : ''}
-              ${hasUpdatedBy ? 'AND vendor_groups.updated_by = :updated_by' : ''}
               ${hasIsEnabled ? 'AND vendor_groups.is_enabled = :is_enabled' : ''}
               ${hasUpdatedOn ? 'AND vendor_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
@@ -2940,4 +2923,4 @@ export const getUserHierarchiesBasedOnUserType = `
           LIMIT :limit
           OFFSET :offset;
       `;
-    };
+};

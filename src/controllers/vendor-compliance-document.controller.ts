@@ -27,7 +27,7 @@ export async function createVendorComplianceDocument(
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return reply
       .status(401)
-      .send({status_code:401, message: "Unauthorized - Token not found", trace_id: traceId });
+      .send({ status_code: 401, message: "Unauthorized - Token not found", trace_id: traceId });
   }
 
   const token = authHeader.split(" ")[1];
@@ -35,9 +35,9 @@ export async function createVendorComplianceDocument(
 
 
   if (!user) {
-    return reply.status(401).send({status_code:401, message: "Unauthorized - Invalid token", trace_id: traceId });
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token", trace_id: traceId });
   }
-  const userId=user?.sub
+  const userId = user?.sub
   logger(
     {
       traceId,
@@ -209,15 +209,15 @@ export async function updateVendorComplianceDocumentById(
   const vendorDocuments = request.body as Partial<VendorComplianceDocumentInterface>;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
 
   try {
     const existingDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
@@ -234,7 +234,7 @@ export async function updateVendorComplianceDocumentById(
       });
     }
 
-    await vendorComplianceDocumentService.updateById(request, { program_id, id,updated_by:userId, });
+    await vendorComplianceDocumentService.updateById(request, { program_id, id, updated_by: userId, });
 
     if (vendorDocuments.uploaded_document && Array.isArray(vendorDocuments.uploaded_document)) {
       for (const doc of vendorDocuments.uploaded_document) {
@@ -269,19 +269,19 @@ export async function deleteVendorComplianceDocumentById(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const { program_id, id } = request.params;
 
-    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id ,updated_by:userId,});
+    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id, updated_by: userId, });
 
     if (deletedCount > 0) {
       reply.status(200).send({
@@ -348,14 +348,14 @@ export async function getAllVendorCompDocummentByProgramId(
         page: Number(page),
         limit: Number(limit),
         compliance_documents: result.rows,
-        message:" Vendor Compliance Documents Retrieved Successfully",
+        message: " Vendor Compliance Documents Retrieved Successfully",
         trace_id: traceId
       });
     } else {
-      return reply.status(200).send({ status_code: 200, message: "No records found",trace_id:traceId  });
+      return reply.status(200).send({ status_code: 200, message: "No records found", trace_id: traceId });
     }
   } catch (error) {
-    return reply.status(500).send({ status_code: 500, message: "Internal Server Error",trace_id:traceId  });
+    return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
   }
 }
 
@@ -368,9 +368,7 @@ export async function vendorComplianceDocumentFilter(
       act?: string;
       document_number?: string;
       is_enabled?: boolean | string;
-      created_by?: string;
-      updated_by?: string;
-      updated_on?: [string, string];
+      updated_on?: any;
       page?: string;
       limit?: string;
     };
@@ -380,12 +378,9 @@ export async function vendorComplianceDocumentFilter(
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { id, name, act, document_number, is_enabled, created_by, updated_by, updated_on, page, limit } = request.body;
+    const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body;
 
-    const isEnabledFilter =
-      typeof is_enabled === 'string'
-        ? is_enabled === 'true' ? 1 : 0
-        : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
+    const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
 
     const pageNumber = parseInt(page ?? '1', 10);
     const limitNumber = parseInt(limit ?? '10', 10);
@@ -398,8 +393,6 @@ export async function vendorComplianceDocumentFilter(
       Boolean(name),
       Boolean(act),
       Boolean(document_number),
-      Boolean(created_by),
-      Boolean(updated_by),
       isEnabledFilter !== undefined,
       hasUpdatedOnFilter
     );
@@ -410,8 +403,6 @@ export async function vendorComplianceDocumentFilter(
       name: name ? `%${name}%` : undefined,
       act,
       document_number,
-      created_by,
-      updated_by,
       limit: limitNumber,
       offset,
       is_enabled: isEnabledFilter,
