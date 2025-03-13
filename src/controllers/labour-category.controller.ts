@@ -4,7 +4,9 @@ import { IndustriesInterface, } from '../interfaces/labour-category.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { labourCategoryAdvanceFilter } from '../utility/queries';
+import { sequelize } from '../config/instance';
 
 export async function createIndustries(
   request: FastifyRequest,
@@ -349,3 +351,99 @@ export const bulkUploadIndustries = async (request: FastifyRequest, reply: Fasti
     });
   }
 };
+
+export async function labourCategoryFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      name?: string | string[];
+      updated_on?: string;
+      is_enabled?: boolean | string;
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+
+    const {
+      id,
+      name,
+      updated_on,
+      is_enabled,
+      page,
+      limit,
+    } = request.body;
+
+    const isEnabledFilter =
+      is_enabled === 'true' || is_enabled === true ? true :
+      is_enabled === 'false' || is_enabled === false ? false :
+      undefined;
+
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+    };
+
+
+    if (name) {
+      replacements['name'] = `%${name}%`; 
+    }
+
+    let updatedOnCondition = '';
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startDate, endDate] = updated_on;
+      if (!isNaN(startDate) && !isNaN(endDate)) {
+        replacements['updated_on_start'] = startDate;
+        replacements['updated_on_end'] = endDate;
+        updatedOnCondition = 'AND labour_category.updated_on BETWEEN :updated_on_start AND :updated_on_end';
+      } else {
+        console.warn(`Invalid timestamps in updated_on: ${updated_on}`);
+      }
+    } else if (updated_on) {
+      console.warn(`Invalid format for updated_on: ${updated_on}`);
+    }
+ 
+    const query = labourCategoryAdvanceFilter(
+      Boolean(id),
+      Boolean(name),
+      updatedOnCondition, 
+      isEnabledFilter !== undefined
+    );
+   
+    const data = await sequelize.query<{ total_count: number }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Labour categories fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      items: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}

@@ -5,7 +5,8 @@ import {
     getIndustriesById,
     updateIndustries,
     deleteIndustries,
-    bulkUploadIndustries
+    bulkUploadIndustries,
+    labourCategoryFilter
 } from '../controllers/labour-category.controller';
 import { bulkUploadIndustriesSchema, createIndustriesSchema, paramsSchema, querySchema } from '../interfaces/labour-category.interface';
 
@@ -42,5 +43,10 @@ async function industriesRoutes(fastify: FastifyInstance) {
             params: paramsSchema
         }
     }, deleteIndustries);
+    fastify.post('/program/:program_id/labour-category/advanced-filter',{
+        schema: {
+            params: paramsSchema,
+        }
+    }, labourCategoryFilter);
 }
 export default industriesRoutes;
