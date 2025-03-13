@@ -1645,6 +1645,32 @@ export const timesheetConfigAdvancedFilter = (
   `;
 };
 
+export const labourCategoryAdvanceFilter = (
+  hasId: boolean,
+  name: boolean,
+  updatedOnCondition: string,
+  hasIsEnabled: boolean
+) => {
+  return `
+    SELECT
+      labour_category.*,
+      COUNT(*) OVER () AS total_count
+    FROM
+      labour_category
+    WHERE
+      labour_category.program_id = :program_id
+      AND labour_category.is_deleted = false
+      ${hasId ? 'AND labour_category.id = :id' : ''}
+      ${hasIsEnabled ? 'AND labour_category.is_enabled = :is_enabled' : ''}
+      ${name ? 'AND labour_category.name LIKE :name' : ''}
+      ${updatedOnCondition}
+    ORDER BY
+      labour_category.id ASC
+    LIMIT :limit
+    OFFSET :offset;
+  `;
+};
+
 export const getMasterData = `
 SELECT
     JSON_OBJECT(
