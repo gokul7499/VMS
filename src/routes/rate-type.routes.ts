@@ -6,7 +6,8 @@ import {
     updateRateTypeById,
     deleteRateTypeById,
     getDifferentialOnForRateType,
-    getShiftAndRateType
+    getShiftAndRateType,
+    rateTypeFilter
 } from '../controllers/rate-type.controller';
 
 async function rateTypeRoutes(fastify: FastifyInstance) {
@@ -17,6 +18,8 @@ async function rateTypeRoutes(fastify: FastifyInstance) {
     fastify.delete('/program/:program_id/rate_type/:id', deleteRateTypeById);
     fastify.get('/program/:program_id/differential_on', getDifferentialOnForRateType);
     fastify.get('/program/:program_id/get-all/shift', getShiftAndRateType);
+    fastify.post('/program/:program_id/rate_type/filter',rateTypeFilter );
+
 }
 
 export default rateTypeRoutes;
