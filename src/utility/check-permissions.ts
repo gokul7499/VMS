@@ -1,5 +1,6 @@
 import fastify from "fastify";
 import permissionsUtilAuth from "./permissions-util";
+import logger from '../plugins/logger-plugin';
 
 function validateInputs(token: string, programId: string): void {
   if (!programId) {
@@ -19,10 +20,10 @@ export async function checkPermission(
   try {
     validateInputs(token, programId);
     const tokenValue = token.split(' ')[1];
-    console.log('log of before permissionsUtilAuth', fastify);
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
-    console.log('Getting policies', getPolicies);
     const policies = await getPolicies(programId, tokenValue);
+
+    logger.info(`Fetched policies for programId: ${programId}`, policies);
 
     if (!Array.isArray(policies)) {
       throw new Error('Invalid policies returned');
@@ -34,7 +35,7 @@ export async function checkPermission(
       validatePermissions(policies, [permission], action);
     }
   } catch (error: any) {
-    console.error(error.stack);
+    logger.error(error.stack);
     throw new Error(`Unauthorized: You do not have permission to access this resource`);
   }
 }
@@ -44,7 +45,7 @@ function matchesResource(resource: string, permissionResource: string): boolean 
 
   // Full wildcard match
   if (permissionResource === "*" || permissionResource === "srn:*") {
-      return true;
+    return true;
   }
 
   // Split for segment comparison
@@ -53,8 +54,8 @@ function matchesResource(resource: string, permissionResource: string): boolean 
 
   // Check each segment for a match or wildcard
   for (let i = 0; i < permissionParts.length; i++) {
-      if (permissionParts[i] === '*') return true; // Wildcard match
-      if (permissionParts[i] !== resourceParts[i]) return false;
+    if (permissionParts[i] === '*') return true; // Wildcard match
+    if (permissionParts[i] !== resourceParts[i]) return false;
   }
 
   // Ensure no extra segments in resource
@@ -65,35 +66,35 @@ function validatePermissions(policies: any[], requiredPermissions: string[], act
   let hasValidPermission = false;
 
   for (const requiredPermission of requiredPermissions) {
-      const matchingPolicies = policies.filter(policy =>
-          matchesResource(requiredPermission, policy.permissions.srn)
-      );
+    const matchingPolicies = policies.filter(policy =>
+      matchesResource(requiredPermission, policy.permissions.srn)
+    );
 
-      if (matchingPolicies.length === 0) {
-          console.log(`No matching policies for permission: ${requiredPermission}`);
-          continue;
-      }
+    if (matchingPolicies.length === 0) {
+      logger.info(`No matching policies for permission: ${requiredPermission}`);
+      continue;
+    }
 
-      const allowed = matchingPolicies.some(policy =>
-          policy.permissions.policy === "ALLOW" &&
-          (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
-      );
+    const allowed = matchingPolicies.some(policy =>
+      policy.permissions.policy === "ALLOW" &&
+      (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
+    );
 
-      const denied = matchingPolicies.some(policy =>
-          policy.permissions.policy === "DENY" &&
-          (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
-      );
+    const denied = matchingPolicies.some(policy =>
+      policy.permissions.policy === "DENY" &&
+      (policy.permissions.actions.includes("*") || policy.permissions.actions.includes(action))
+    );
 
-      if (denied) {
-          throw new Error(`Unauthorized: Action explicitly denied for ${requiredPermission}`);
-      }
+    if (denied) {
+      throw new Error(`Unauthorized: Action explicitly denied for ${requiredPermission}`);
+    }
 
-      if (allowed) {
-          hasValidPermission = true;
-      }
+    if (allowed) {
+      hasValidPermission = true;
+    }
   }
 
   if (!hasValidPermission) {
-      throw new Error('Unauthorized: No valid permissions found.');
+    throw new Error('Unauthorized: No valid permissions found.');
   }
 }
