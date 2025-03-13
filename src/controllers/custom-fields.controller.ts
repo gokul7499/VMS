@@ -850,4 +850,131 @@ export async function searchCustomFields(
 
 
 
+export const advanceFilterCustomFiled = async(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      page?: number;
+      limit?: number;
+      is_enabled?: boolean;
+      slug?: string;
+      name?: string;
+      module_name?: string;
+      label?: string;
+      field_type?: string;
+      is_required?: boolean;
+      updated_on?: string;
+    };
+  }>,
+  reply: FastifyReply
+)=> {
+  const traceId = generateCustomUUID();
+  const programId = request.params.program_id;
+  const body = request.body;
+
+  const page = body.page ?? 1;
+  const limit = body.limit ?? 10;
+
+  const whereClause: any = {
+    program_id: programId,
+    is_deleted: false,
+  };
+
+  if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
+  if (body.slug) whereClause.slug = { [Op.like]: `%${body.slug}%` };
+  if (body.name) whereClause.name = { [Op.like]: `%${body.name}%` };
+  if (body.module_name) whereClause.module_name = { [Op.like]: `%${body.module_name}%` };
+  if (body.label) whereClause.label = { [Op.like]: `%${body.label}%` };
+  if (body.field_type) whereClause.field_type = { [Op.like]: `%${body.field_type}%` };
+  if (body.is_required !== undefined) whereClause.is_required = body.is_required;
+  if (body.updated_on) whereClause.updated_on = { [Op.like]: `%${body.updated_on}%` };
+
+  try {
+    const result = await CustomField.findAndCountAll({
+      where: whereClause,
+      attributes: [
+        "id",
+        "name",
+        "is_enabled",
+        "updated_on",
+        "created_on",
+        "module_id",
+        "module_name",
+        "field_type",
+        "is_required",
+        "label",
+        "decimal_place",
+        "meta_data",
+        "linked_modules",
+        "is_readonly",
+        "supporting_text",
+        "placeholder",
+        "description",
+        "can_edit",
+        "can_view"
+      ],
+      order: [["updated_on", "DESC"]],
+      offset: (page - 1) * limit,
+      limit: limit,
+    });
+
+    const customFieldsWithPicklistData = await Promise.all(
+      result.rows.map(async (customField) => {
+        let picklistData: { picklist_name: string, picklist_values: { id: string, value: string }[] } | null = null;
+
+        if (customField.meta_data?.picklist_id) {
+          const picklistId = customField.meta_data.picklist_id;
+
+          const picklist = await PicklistModel.findOne({
+            where: { id: picklistId },
+            attributes: ["name"],
+          });
+
+          if (picklist) {
+            const picklistItems = await PicklistItemModel.findAll({
+              where: { picklist_id: picklistId },
+              attributes: ["id", "value"],
+            });
+
+            picklistData = {
+              picklist_name: picklist.name,
+              picklist_values: picklistItems.map(item => ({
+                id: item.id,
+                value: item.value,
+              })),
+            };
+          }
+        }
+
+        return {
+          ...customField.toJSON(),
+          meta_data: {
+            ...customField.meta_data,
+            ...(picklistData ? picklistData : {}),
+          },
+        };
+      })
+    );
+
+    return reply.status(200).send({
+      status_code: 200,
+      custom_fields: customFieldsWithPicklistData,
+      total_records: result.count,
+      page: page,
+      limit: limit,
+      message: "Custom Fields Get Successfully",
+      trace_id: traceId,
+    });
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "An error occurred while fetching custom fields",
+      error: error,
+      trace_id: traceId,
+    });
+  }
+}
+
+
+
 

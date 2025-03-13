@@ -6,7 +6,8 @@ import {
   updateCustomFieldById,
   deleteCustomField,
   searchCustomFields,
-  updateCustomFieldsIsdisable
+  updateCustomFieldsIsdisable,
+  advanceFilterCustomFiled
 } from '../controllers/custom-fields.controller';
 import { createCustomFieldsSchema, paramsSchema } from '../interfaces/custom-fields.interface';
 
@@ -44,7 +45,8 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
     },
      deleteCustomField);
   fastify.get('/program/:program_id/custom-fields/search', searchCustomFields);
-  fastify.put('/program/:program_id/custom-fields/:id/enable-disable', updateCustomFieldsIsdisable); 
+  fastify.put('/program/:program_id/custom-fields/:id/enable-disable', updateCustomFieldsIsdisable);
+  fastify.post('/program/:program_id/custom-fields/advance-filter', advanceFilterCustomFiled); 
 }
 
 export default customFieldsRoutes;
