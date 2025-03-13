@@ -2504,7 +2504,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ruleCategory?: string,
   ruleGroupName?: string,
   ruleType?: string,
-  isEnabled?:  boolean | string,
+  isEnabled?: boolean | string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
@@ -2818,3 +2818,113 @@ export const getUserHierarchiesBasedOnUserType = `
         )
       )
     `;
+
+export const vendorComplianceDocumentFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasAct: boolean,
+  hasDocumentNumber: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+              vendor_compliance_documents.*,
+              COUNT(vendor_compliance_documents.id) OVER () AS total_count
+          FROM
+              vendor_compliance_documents
+          WHERE
+              vendor_compliance_documents.is_deleted = false
+              AND vendor_compliance_documents.program_id = :program_id
+              ${hasId ? 'AND vendor_compliance_documents.id = :id' : ''}
+              ${hasName ? 'AND vendor_compliance_documents.name LIKE :name' : ''}
+              ${hasAct ? 'AND vendor_compliance_documents.act = :act' : ''}
+              ${hasDocumentNumber ? 'AND vendor_compliance_documents.document_number = :document_number' : ''}
+              ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
+              ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+              vendor_compliance_documents.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorDistributionScheduleFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+            vendor_distribution_schedules.*,
+            COUNT(vendor_distribution_schedules.id) OVER () AS total_count
+          FROM
+            vendor_distribution_schedules
+          WHERE
+            vendor_distribution_schedules.is_deleted = false
+            AND vendor_distribution_schedules.program_id = :program_id
+            ${hasId ? 'AND vendor_distribution_schedules.id = :id' : ''}
+            ${hasName ? 'AND vendor_distribution_schedules.name LIKE :name' : ''}
+            ${hasIsEnabled ? 'AND vendor_distribution_schedules.is_enabled = :is_enabled' : ''}
+            ${hasUpdatedOn ? 'AND vendor_distribution_schedules.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+            vendor_distribution_schedules.created_on DESCk
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorDocumentGroupFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasDescription: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+            vendor_document_groups.*,
+            COUNT(vendor_document_groups.id) OVER () AS total_count
+          FROM
+            vendor_document_groups
+          WHERE
+            vendor_document_groups.is_deleted = false
+            AND vendor_document_groups.program_id = :program_id
+            ${hasId ? 'AND vendor_document_groups.id = :id' : ''}
+            ${hasName ? 'AND vendor_document_groups.name LIKE :name' : ''}
+            ${hasDescription ? 'AND vendor_document_groups.description LIKE :description' : ''}
+            ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
+            ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+            vendor_document_groups.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorGroupFilterQuery = (
+  hasId: boolean,
+  hasVendorGroupName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+              vendor_groups.*,
+              COUNT(vendor_groups.id) OVER () AS total_count
+          FROM
+              vendor_groups
+          WHERE
+              vendor_groups.is_deleted = false
+              AND vendor_groups.program_id = :program_id
+              ${hasId ? 'AND vendor_groups.id = :id' : ''}
+              ${hasVendorGroupName ? 'AND vendor_groups.vendor_group_name LIKE :vendor_group_name' : ''}
+              ${hasIsEnabled ? 'AND vendor_groups.is_enabled = :is_enabled' : ''}
+              ${hasUpdatedOn ? 'AND vendor_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+              vendor_groups.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
