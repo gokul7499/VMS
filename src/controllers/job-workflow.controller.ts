@@ -1151,6 +1151,7 @@ export const rejectLevel = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    const userId = user?.sub
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
@@ -1163,6 +1164,8 @@ export const rejectLevel = async (
         });
     }
     try {
+        const userResult = await getUsersStatus(sequelize, userId, program_id);
+        let userData = userResult[0] as any;
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         let impersonator_id: any
         if (user.impersonator) {
@@ -1192,7 +1195,6 @@ export const rejectLevel = async (
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
-
                         const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
                             if (isSuperUser) {
                                 // Superuser logic: Skip user_id matching
@@ -1202,9 +1204,9 @@ export const rejectLevel = async (
                                     updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
-                                    actor_first_name: user?.first_name,
-                                    actor_last_name: user?.last_name,
-                                    actor_by_avatar: user?.avatar,
+                                    actor_first_name: userData?.first_name,
+                                    actor_last_name: userData?.last_name,
+                                    actor_by_avatar: userData?.avatar,
                                 };
                             }
                             if (
@@ -1215,16 +1217,16 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                     actor_first_name: user?.first_name,
-                                    actor_last_name: user?.last_name,
-                                    actor_by_avatar: user?.avatar, };
+                                     actor_first_name: userData?.first_name,
+                                    actor_last_name: userData?.last_name,
+                                    actor_by_avatar: userData?.avatar, };
 
                             }
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                 actor_first_name: user?.first_name,
-                                actor_last_name: user?.last_name,
-                                actor_by_avatar: user?.avatar,};
+                                 actor_first_name: userData?.first_name,
+                                actor_last_name: userData?.last_name,
+                                actor_by_avatar: userData?.avatar,};
 
                         });
                         return {
@@ -1238,9 +1240,9 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                        actor_first_name: user?.first_name,
-                        actor_last_name: user?.last_name,
-                        actor_by_avatar: user?.avatar,
+                        actor_first_name: userData?.first_name,
+                        actor_last_name: userData?.last_name,
+                        actor_by_avatar: userData?.avatar,
                     }));
 
                     return {
@@ -1266,9 +1268,9 @@ export const rejectLevel = async (
                 notes: notes || "",
                 created_on: Date.now(),
                 user_id: user_id,
-                actor_first_name: user?.first_name,
-                actor_last_name: user?.last_name,
-                actor_by_avatar: user?.avatar,
+                actor_first_name: userData?.first_name,
+                actor_last_name: userData?.last_name,
+                actor_by_avatar: userData?.avatar,
             });
         });
 
@@ -3312,7 +3314,7 @@ SELECT JSON_OBJECT(
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
+         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),            
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
        
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
