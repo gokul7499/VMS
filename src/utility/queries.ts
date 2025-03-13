@@ -2991,3 +2991,22 @@ export const vendorGroupFilterQuery = (
           OFFSET :offset;
       `;
 };
+
+export const rateConfigurationsFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsShiftRate: boolean,
+  hasJobType: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => `
+  SELECT * FROM rate_configurations
+  WHERE program_id = :program_id
+  ${hasId ? 'AND id = :id' : ''}
+  ${hasName ? 'AND name LIKE :name' : ''}
+  ${hasIsShiftRate ? 'AND is_shift_rate = :is_shift_rate' : ''}
+  ${hasJobType ? 'AND job_type = :job_type' : ''}
+  ${hasIsEnabled ? 'AND is_enabled = :is_enabled' : ''}
+  ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+  ORDER BY created_on DESC
+  LIMIT :limit OFFSET :offset;`;
