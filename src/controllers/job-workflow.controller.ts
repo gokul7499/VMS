@@ -2483,7 +2483,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].user_id,
-                                            name: userData[0].first_name,
+                                            name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             updated_on: recipient_details.updated_on,
@@ -3682,7 +3682,7 @@ l.placement_order ASC;`;
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].user_id,
-                                            name: userData[0].first_name,
+                                            name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             updated_on: recipient_details.updated_on,
