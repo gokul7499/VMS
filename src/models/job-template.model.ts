@@ -1,10 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from '../config/instance';
 import jobCategoryModel from "./job-category.model";
-import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
-import { Programs } from "./programs.model";
-
+import JobTempletRepository from "../hooks/job-template-query";
+const jobTempletRepositories = new JobTempletRepository();
 class JobTemplateModel extends Model {
     id: any;
     job_id: any;
@@ -33,7 +32,7 @@ JobTemplateModel.init(
             allowNull: false
         },
         job_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.JSON,
             allowNull: true
         },
         category: {
@@ -287,22 +286,17 @@ JobTemplateModel.init(
         hooks: {
             beforeValidate: async (instance) => {
                 convertEmptyStringsToNull(instance);
-                if (!instance.job_id && instance.program_id) {  
-                    const program = await Programs.findByPk(instance.program_id);
-                    if (program?.display_name) {
-                        const programPrefix = program.display_name.substring(0, 3).toUpperCase();
-                                    const lastJob = await JobTemplateModel.findOne({
-                            where: { program_id: instance.program_id },
-                            order: [['created_on', 'DESC']],
-                            attributes: ['job_id'],
-                        });
-                        let nextSequence = '001';
-                        if (lastJob?.job_id) {
-                            const lastSequence = parseInt(lastJob.job_id.split('-JT-')[1], 10);
-                            nextSequence = (lastSequence + 1).toString().padStart(3, '0');
-                        }
-            
-                        instance.job_id = `${programPrefix}-JT-${nextSequence}`;
+                if (!instance.job_id && instance.program_id) {
+                    const programData = await jobTempletRepositories.programQuery(
+                        instance.program_id
+                    );
+                    if (programData.length > 0 && programData[0].unique_id) {
+                        const programPrefix = programData[0].unique_id
+                            .substring(0, 3)
+                            .toUpperCase();
+                        const count = await JobTemplateModel.count({ where: { program_id: instance.program_id } });
+                        const sequence = (count + 1).toString().padStart(3, "0");
+                        instance.job_id = `${programPrefix}-JT-${sequence}`;
                     }
                 }
             },
