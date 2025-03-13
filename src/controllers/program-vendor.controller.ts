@@ -965,7 +965,7 @@ export async function updateComplianceDocument(
         const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
         if (!expiryDate) return;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
+        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
 
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
