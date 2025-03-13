@@ -7,6 +7,9 @@ import WorkLocationModel from "../models/work-location.model";
 import { logger } from "../utility/loggerService";
 import { decodeToken } from "../middlewares/verifyToken";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
+import { vendorComplianceDocumentFilterQuery } from "../utility/queries";
+import { QueryTypes } from "sequelize";
+import { sequelize } from "../config/instance";
 const baseService = new BaseService(VendorComplianceDocumentModel);
 
 const vendorComplianceDocumentService = new BaseService(VendorComplianceDocumentModel);
@@ -356,3 +359,88 @@ export async function getAllVendorCompDocummentByProgramId(
   }
 }
 
+export async function vendorComplianceDocumentFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      name?: string;
+      act?: string;
+      document_number?: string;
+      is_enabled?: boolean | string;
+      created_by?: string;
+      updated_by?: string;
+      updated_on?: [string, string];
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const { id, name, act, document_number, is_enabled, created_by, updated_by, updated_on, page, limit } = request.body;
+
+    const isEnabledFilter =
+      typeof is_enabled === 'string'
+        ? is_enabled === 'true' ? 1 : 0
+        : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
+
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+    const query = vendorComplianceDocumentFilterQuery(
+      Boolean(id),
+      Boolean(name),
+      Boolean(act),
+      Boolean(document_number),
+      Boolean(created_by),
+      Boolean(updated_by),
+      isEnabledFilter !== undefined,
+      hasUpdatedOnFilter
+    );
+
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      name: name ? `%${name}%` : undefined,
+      act,
+      document_number,
+      created_by,
+      updated_by,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+      updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+      updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+    };
+
+    const data = await sequelize.query<{ total_count: any }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Vendor Compliance Documents fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      items: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}

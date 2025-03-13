@@ -6,12 +6,14 @@ import {
     deleteVendorComplianceDocumentById,
     updateVendorComplianceDocumentById,
     getAllVendorCompDocummentByProgramId,
+    vendorComplianceDocumentFilter,
 } from '../controllers/vendor-compliance-document.controller';
 async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/vendor-comp-doc/:id', vendorComplianceDocumentById);
     fastify.post('/program/:program_id/vendor-comp-doc', createVendorComplianceDocument);
     fastify.delete('/program/:program_id/vendor-comp-doc/:id', deleteVendorComplianceDocumentById);
     fastify.put('/program/:program_id/vendor-comp-doc/:id', updateVendorComplianceDocumentById);
-    fastify.get('/program/:program_id/vendor-comp-doc', getAllVendorCompDocummentByProgramId)
+    fastify.get('/program/:program_id/vendor-comp-doc', getAllVendorCompDocummentByProgramId);
+    fastify.post('/program/:program_id/vendor-comp-doc/advance-filter', vendorComplianceDocumentFilter);
 }
 export default vendorComplianceDocumentRoutes;

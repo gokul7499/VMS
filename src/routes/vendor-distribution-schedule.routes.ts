@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify"
-import { createVendorDistributionSchedule, deleteVendorDistributionSchedule, getAllvendorDistributionSchedules, getVendorDistributionScheduleById, updateVendorDistributionSchedule,getVendorDistributionScheduleByIds } from "../controllers/vendor-distribution-schedule.controller";
+import { createVendorDistributionSchedule, deleteVendorDistributionSchedule, getAllvendorDistributionSchedules, getVendorDistributionScheduleById, updateVendorDistributionSchedule,getVendorDistributionScheduleByIds, vendorDistributionScheduleFilter} from "../controllers/vendor-distribution-schedule.controller";
 async function vendorDistributionScheduleRoutes(fastify: FastifyInstance) {
     fastify.get("/program/:program_id/vendor-distribution-schedules", getAllvendorDistributionSchedules);
     fastify.get("/program/:program_id/vendor-distribution-schedules/:id", getVendorDistributionScheduleById);
@@ -7,6 +7,6 @@ async function vendorDistributionScheduleRoutes(fastify: FastifyInstance) {
     fastify.put("/program/:program_id/vendor-distribution-schedules/:id", updateVendorDistributionSchedule);
     fastify.delete("/program/:program_id/vendor-distribution-schedules/:id", deleteVendorDistributionSchedule);
     fastify.get("/program/:program_id/vendor-distribution/:id", getVendorDistributionScheduleByIds);
-
+    fastify.post('/program/:program_id/vendor-distribution/advance-filter', vendorDistributionScheduleFilter);
 }
 export default vendorDistributionScheduleRoutes;

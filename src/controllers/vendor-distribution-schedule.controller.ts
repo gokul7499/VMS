@@ -7,6 +7,9 @@ import DistScheduleDetail from "../models/dist-schedule-detail.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
+import { sequelize } from "../config/instance";
+import { QueryTypes } from "sequelize";
+import { vendorDistributionScheduleFilterQuery } from "../utility/queries";
 
 export const createVendorDistributionSchedule = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -571,6 +574,89 @@ export const getVendorDistributionScheduleByIds = async (
 //     }
 // };
 
+export async function vendorDistributionScheduleFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            name?: string;
+            is_enabled?: boolean | string;
+            created_by?: string;
+            updated_by?: string;
+            updated_on?: [string, string];
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const { id, name, is_enabled, created_by, updated_by, updated_on, page, limit } = request.body;
 
+        const isEnabledFilter =
+            typeof is_enabled === 'string'
+                ? is_enabled === 'true'
+                    ? 1
+                    : 0
+                : is_enabled === true
+                    ? 1
+                    : is_enabled === false
+                        ? 0
+                        : undefined;
+
+        const pageNumber = parseInt(page ?? '1', 10);
+        const limitNumber = parseInt(limit ?? '10', 10);
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+        const query = vendorDistributionScheduleFilterQuery(
+            Boolean(id),
+            Boolean(name),
+            Boolean(created_by),
+            Boolean(updated_by),
+            isEnabledFilter !== undefined,
+            hasUpdatedOnFilter
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            name: name ? `%${name}%` : undefined,
+            created_by,
+            updated_by,
+            limit: limitNumber,
+            offset,
+            is_enabled: isEnabledFilter,
+            updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+            updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+        };
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Vendor Distribution Schedules fetched successfully.' : 'No records found.',
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            items: data,
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+}
 
 
