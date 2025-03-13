@@ -852,6 +852,7 @@ export const getVendorDocuments = async (
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
+                    updated_on:doc.updated_on,
                     first_name: doc.first_name,
                     last_name: doc.last_name
                 },
@@ -983,7 +984,7 @@ export async function updateComplianceDocument(
                 user_id: user_id,
                 vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
-                uploaded_on: Date.now(),
+                uploaded_on: Date.now(),    
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
