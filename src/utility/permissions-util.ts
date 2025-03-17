@@ -6,28 +6,27 @@ import dotenv from "dotenv";
 import logger from '../plugins/logger-plugin';
 
 dotenv.config();
+const { redis_host, redis_port, redis_auth, redis_replica_host, auth_url } = databaseConfig.config;
 
 async function connectToRedis() {
-  const { redis_host, redis_port, redis_auth, redis_replica_host } = databaseConfig.config;
-
   logger.info(`Connecting to Redis at ${redis_host}:${redis_port}`);
 
   const redis = new Redis({
     host: redis_host,
     port: redis_port,
     password: redis_auth,
-    connectTimeout: 60000, // 60s connection timeout
-    commandTimeout: 10000, // 10s command timeout
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
+    connectTimeout: 60000,
+    commandTimeout: 10000,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
   const getRedisData = new Redis({
     host: redis_replica_host,
     port: redis_port,
     password: redis_auth,
-    connectTimeout: 60000, // 60s connection timeout
-    commandTimeout: 10000, // 10s command timeout
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
+    connectTimeout: 60000,
+    commandTimeout: 10000,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
   redis.on("connect", () => {
@@ -63,69 +62,35 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
 
   const { redis, getRedisData } = redisClients;
   let groupPolicies = null;
-  let redisKey;
+  const redisKey = getRedisKeyForAuth(token, programId, null);
+  logger.info("Fetching Redis key:", redisKey);
 
   try {
-    redisKey = getRedisKeyForAuth(token, programId, null);
-    logger.info("Fetching Redis key for auth:", redisKey);
-
-    const exists = await getRedisData.exists(redisKey);
-    if (exists) {
-      const cachedPolicies = await getRedisData.get(redisKey);
-      logger.info("Fetched policies from cache:", cachedPolicies);
-
-      if (cachedPolicies) {
-        groupPolicies = JSON.parse(cachedPolicies);
-        if (fastify.log) {
-          fastify.log.info("Fetched policies from cache");
-        }
-      }
-    } else {
-      logger.info("Key does not exist in Redis, fetching from API...");
+    const cachedPolicies = await getRedisData.get(redisKey);
+    if (cachedPolicies) {
+      groupPolicies = JSON.parse(cachedPolicies);
+      logger.info("✅ Policies fetched from Redis cache.");
+      return groupPolicies;
     }
   } catch (err) {
-    console.error("❌ Error fetching from Redis:", err);
-    if (fastify.log) {
-      fastify.log.error(`Error fetching from Redis: ${err}`);
-    }
+    logger.error("❌ Error fetching from Redis:", err);
   }
 
-  if (!groupPolicies) {
-    try {
-      const apiResponse = await axios.get(
-        `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: { programId },
-          timeout: 90000, // 90s timeout to avoid API delays
-        }
-      );
-      groupPolicies = apiResponse.data.response;
-      logger.info("Fetched policies from API:", groupPolicies);
+  try {
+    const { data } = await axios.get(
+      `${auth_url}/auth/v1/api/policy/user/tenant/${programId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
 
-      if (redisKey) {
-        try {
-          await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 3600); // Cache for 1 hour
-          logger.info("Successfully cached policies in Redis");
-        } catch (cacheError) {
-          console.error("❌ Error caching policies in Redis:", cacheError);
-        }
-      } else {
-        logger.info("Unable to cache policies: redisKey is undefined");
-      }
+    groupPolicies = data.response;
 
-      if (fastify.log) {
-        fastify.log.info("Fetched policies from API");
-      }
-    } catch (err: any) {
-      console.error("❌ Error fetching policies from API:", err);
-      if (fastify.log) {
-        fastify.log.error(`Error fetching policies from API: ${err}`);
-      }
-      throw new Error("Unable to fetch policies");
-    }
+    await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 3600);
+    logger.info("✅ Policies cached in Redis.");
+  } catch (err) {
+    logger.error("❌ Error fetching policies from API:", err);
+    throw new Error("Unable to fetch policies");
   }
 
   return groupPolicies;
