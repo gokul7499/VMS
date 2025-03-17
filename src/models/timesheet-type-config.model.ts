@@ -16,6 +16,7 @@ class TimesheetTypeConfig extends Model {
   slug!: string
   timesheet_rule_group: never[] | undefined;
   break_rule_group: never[] | undefined;
+  project: any;
 }
 
 TimesheetTypeConfig.init(

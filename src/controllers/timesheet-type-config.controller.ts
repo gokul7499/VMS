@@ -175,11 +175,20 @@ export const getTimesheetTypeConfigById = async (
 
         const hierarchyIds = config.hierarchies || [];
         const laborCategoryIds = config.labor_category || [];
-        const ruleGroupId = config.timesheet_rule_group || null;  // Handle single value
+        const ruleGroupId = config.timesheet_rule_group || null;
         const masterDataTypeIds = config.allocations?.master_data_types?.value || [];
-        const breakRuleGroupId = config.break_rule_group || null;  // Handle single value
+        const breakRuleGroupId = config.break_rule_group || null;
 
-        const [hierarchiesData, laborCategories, ruleGroups, masterDataTypes, breakRuleGroup] = await Promise.all([
+        const projectOptionsIds = config.project?.config?.options || [];
+
+        const [
+            hierarchiesData, 
+            laborCategories, 
+            ruleGroups, 
+            masterDataTypes, 
+            breakRuleGroup, 
+            projectOptions
+        ] = await Promise.all([
             hierarchyIds.length > 0
                 ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] })
                 : [],
@@ -195,10 +204,13 @@ export const getTimesheetTypeConfigById = async (
             breakRuleGroupId
                 ? TimesheetExpenseRuleGroup.findOne({ where: { id: breakRuleGroupId }, attributes: ['id', 'rule_group_name'] })
                 : null,
+            projectOptionsIds.length > 0
+                ? FoundationalDataTypes.findAll({ where: { id: projectOptionsIds }, attributes: ['id', 'name'] })
+                : []
         ]);
 
-        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null; 
-        const breakRuleGroupData = breakRuleGroup ? breakRuleGroup.toJSON() : null; 
+        const ruleGroupData = ruleGroups ? ruleGroups.toJSON() : null;
+        const breakRuleGroupData = breakRuleGroup ? breakRuleGroup.toJSON() : null;
 
         const data = {
             ...config.toJSON(),
@@ -219,6 +231,13 @@ export const getTimesheetTypeConfigById = async (
                     is_allow: config.allocations?.master_data_types?.is_allow || false,
                 },
             },
+            project: {
+                ...config.project,
+                config: {
+                    ...config.project?.config,
+                    options: projectOptions.map((option) => option.toJSON())
+                }
+            }
         };
 
         reply.status(200).send({
