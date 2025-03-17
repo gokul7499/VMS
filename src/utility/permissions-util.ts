@@ -6,10 +6,9 @@ import dotenv from "dotenv";
 import logger from '../plugins/logger-plugin';
 
 dotenv.config();
+const { redis_host, redis_port, redis_auth, redis_replica_host, auth_url } = databaseConfig.config;
 
 async function connectToRedis() {
-  const { redis_host, redis_port, redis_auth, redis_replica_host } = databaseConfig.config;
-
   logger.info(`Connecting to Redis at ${redis_host}:${redis_port}`);
 
   const redis = new Redis({
@@ -79,7 +78,7 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
 
   try {
     const { data } = await axios.get(
-      `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
+      `${auth_url}/auth/v1/api/policy/user/tenant/${programId}`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }
