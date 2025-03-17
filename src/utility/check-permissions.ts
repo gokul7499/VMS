@@ -2,6 +2,13 @@ import fastify from "fastify";
 import permissionsUtilAuth from "./permissions-util";
 import logger from '../plugins/logger-plugin';
 
+interface RequiredPermissions {
+  token: any;
+  programId: string;
+  requiredPermissions: { permissions: string[] };
+  action: string;
+}
+
 function validateInputs(token: string, programId: string): void {
   if (!programId) {
     throw new Error('Missing program-id parameter');
@@ -11,19 +18,16 @@ function validateInputs(token: string, programId: string): void {
   }
 }
 
-export async function checkPermission(
-  token: any,
-  programId: string,
-  requiredPermissions: { permissions: string[] },
-  action: string,
-): Promise<void> {
+export async function checkPermission(params: RequiredPermissions): Promise<void> {
   try {
+    const { token, programId, requiredPermissions, action } = params;
     validateInputs(token, programId);
     const tokenValue = token.split(' ')[1];
+
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
     const policies = await getPolicies(programId, tokenValue);
 
-    logger.info(`Fetched policies for programId: ${programId}`, policies);
+    logger.info(`✅ Fetched ${policies.length} policies for programId: ${programId}`);
 
     if (!Array.isArray(policies)) {
       throw new Error('Invalid policies returned');
@@ -43,22 +47,18 @@ export async function checkPermission(
 function matchesResource(resource: string, permissionResource: string): boolean {
   if (!resource || !permissionResource) return false;
 
-  // Full wildcard match
   if (permissionResource === "*" || permissionResource === "srn:*") {
     return true;
   }
 
-  // Split for segment comparison
   const resourceParts = resource.split(':');
   const permissionParts = permissionResource.split(':');
 
-  // Check each segment for a match or wildcard
   for (let i = 0; i < permissionParts.length; i++) {
-    if (permissionParts[i] === '*') return true; // Wildcard match
+    if (permissionParts[i] === '*') return true;
     if (permissionParts[i] !== resourceParts[i]) return false;
   }
 
-  // Ensure no extra segments in resource
   return permissionParts.length <= resourceParts.length;
 }
 

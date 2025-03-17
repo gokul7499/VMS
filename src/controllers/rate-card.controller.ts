@@ -216,7 +216,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             };
         });
 
-        reply.status(200).send({
+        return reply.status(200).send({
             message: 'Rate cards fetched successfully.',
             trace_id: traceId,
             rate_cards: rateCardsWithDetails,
@@ -226,7 +226,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
             items_per_page: parsedLimit,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             message: 'Internal Server Error',
             error: error.message || error,
             trace_id: traceId,
