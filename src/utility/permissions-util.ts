@@ -87,7 +87,7 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
 
     groupPolicies = data.response;
 
-    await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 86400);
+    await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 3600);
     logger.info("✅ Policies cached in Redis.");
   } catch (err) {
     logger.error("❌ Error fetching policies from API:", err);
