@@ -1964,6 +1964,44 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
   });
 };
 
+
+
+export const workflowAdvanceFilter = (
+  hasId: boolean,
+  eventIdsArray: string[],
+  moduleArray: string[],
+  hierarchyIdsArray: string[]
+) => {
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(workflow.hierarchy_ids, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
+  const eventIdClause = eventIdsArray.length
+    ? `AND workflow.event_id IN (${eventIdsArray.map((_, index) => `:event_id${index}`).join(', ')})`
+    : '';
+  const moduleClause = moduleArray.length
+    ? `AND workflow.module IN (${moduleArray.map((_, index) => `:module${index}`).join(', ')})`
+    : '';
+  return `
+      SELECT
+        workflow.*,
+        COUNT(workflow.id) OVER () AS total_count
+      FROM
+        workflow
+      ${hierarchyIdsClause}
+      WHERE
+        workflow.is_deleted = false
+        AND workflow.program_id = :program_id
+        ${hasId ? 'AND workflow.id = :id' : ''}
+        ${eventIdClause}
+        ${moduleClause}
+      ORDER BY
+        workflow.created_on DESC
+      LIMIT :limit
+      OFFSET :offset;
+  `;
+};
+
 export const sameRateConfiguration = `
     SELECT rc.id
     FROM rate_configurations rc
