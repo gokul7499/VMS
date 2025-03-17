@@ -1200,7 +1200,7 @@ export const rejectLevel = async (
                                 // Superuser logic: Skip user_id matching
                                 return {
                                     ...recipient,
-                                    status: "rejected",
+                                    status: "Rejected",
                                     updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
@@ -1224,15 +1224,13 @@ export const rejectLevel = async (
                             }
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                 actor_first_name: userData?.first_name,
-                                actor_last_name: userData?.last_name,
-                                actor_by_avatar: userData?.avatar,};
+                                };
 
                         });
                         return {
                             ...level,
                             updated_on: Date.now(),
-                            status: "Rejected",
+                            status: "Completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
@@ -1240,9 +1238,7 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                        actor_first_name: userData?.first_name,
-                        actor_last_name: userData?.last_name,
-                        actor_by_avatar: userData?.avatar,
+                      
                     }));
 
                     return {
@@ -2326,6 +2322,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
 
                 if (recipientType?.name === "Manager of") {
+
                     const jobManagerQuery = `
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
@@ -2415,7 +2412,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
-                            replaced_date_time: recipient_details.replaced_modified_on
+                            replaced_date_time: recipient_details.replaced_modified_on,
+                            replaced_notes: recipient_details?.replaced_notes,
+
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult?.[0]?.user_id,
@@ -2426,14 +2425,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: imporsonateUserResult?.[0]?.email,
                             updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
+                            replaced_notes: recipient_details?.replaced_notes,
+
                             behaviour,
                         } : undefined;
                     }
                 }
                 let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
-                    // Loop through each placement order
-                    for (const level of levels) {
+                    console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
+                    for (const level of levels) { 
                         let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
 
@@ -2501,7 +2502,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
-                                        replaced_date_time: recipient_details.replaced_modified_on
+                                        replaced_date_time: recipient_details.replaced_modified_on,
+                                        replaced_notes: recipient_details?.replaced_notes,
+
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
                                         id: imporsonateUserResult?.[0]?.user_id,
@@ -2512,6 +2515,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: imporsonateUserResult?.[0]?.email,
                                         updated_on: recipient_details?.updated_on,
                                         recipient_type: recipientType?.name || '',
+                                        replaced_notes: recipient_details?.replaced_notes,
+
                                         behaviour,
                                     } : undefined;
 
@@ -3526,6 +3531,7 @@ l.placement_order ASC;`;
                     }
                 }
                 if (recipientType?.name === "Manager of") {
+                    
                     const jobManagerQuery = `
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
