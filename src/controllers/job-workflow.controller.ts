@@ -1200,7 +1200,7 @@ export const rejectLevel = async (
                                 // Superuser logic: Skip user_id matching
                                 return {
                                     ...recipient,
-                                    status: "rejected",
+                                    status: "Rejected",
                                     updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
@@ -1230,7 +1230,7 @@ export const rejectLevel = async (
                         return {
                             ...level,
                             updated_on: Date.now(),
-                            status: "Rejected",
+                            status: "Completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
