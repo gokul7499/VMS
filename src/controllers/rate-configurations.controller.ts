@@ -12,7 +12,7 @@ import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklist-item.model';
-import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
+import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, rateConfigurationsFilterQuery, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
 import { QueryTypes } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
 import ShiftType from '../models/shift-type.model';
@@ -1248,6 +1248,79 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+}
+
+export async function rateConfigurationsFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            name?: string;
+            is_shift_rate?: boolean;
+            job_type?: string;
+            is_enabled?: boolean | string;
+            updated_on?: any;
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const { id, name, is_shift_rate, job_type, is_enabled, updated_on, page, limit } = request.body;
+
+        const query = rateConfigurationsFilterQuery(
+            Boolean(id),
+            Boolean(name),
+            Boolean(is_shift_rate),
+            Boolean(job_type),
+            Boolean(is_enabled),
+            Boolean(updated_on)
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            name: name ? `%${name}%` : undefined,
+            is_shift_rate,
+            job_type,
+            is_enabled,
+            updated_on_start: updated_on ? updated_on[0] : undefined,
+            updated_on_end: updated_on ? updated_on[1] : undefined,
+            limit: parseInt(limit ?? '10', 10),
+            offset: (parseInt(page ?? '1', 10) - 1) * parseInt(limit ?? '10', 10),
+        };
+
+        const data = await sequelize.query(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        if (!data.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Rate configurations not found.",
+                trace_id: traceId,
+                rate_configurations: [],
+            });
+        }
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Rate configurations fetched successfully.',
+            rate_configurations: data,
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
             error: error.message,
         });
     }

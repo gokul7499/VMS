@@ -2879,7 +2879,7 @@ export const getMatchingHierarchiesQuery = () => {
 };
 
 export const getUserHierarchiesBasedOnUserType = `
-    WITH user_data AS (
+    WITH RECURSIVE user_data AS (
       SELECT
         u.associate_hierarchy_ids,
         u.user_type,
@@ -2887,38 +2887,59 @@ export const getUserHierarchiesBasedOnUserType = `
       FROM user u
       WHERE u.user_id = :userId
         AND u.program_id = :program_id
+    ),
+    matched_hierarchies AS (
+      SELECT
+        h.id,
+        h.name,
+        h.parent_hierarchy_id,
+        h.is_enabled
+      FROM hierarchies h
+      WHERE h.program_id = :program_id
+        AND h.is_deleted = false
+        AND (
+          -- For super_user: Fetch all hierarchies
+          EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
+          OR
+          -- For client or msp: Match associate_hierarchy_ids JSON
+          EXISTS (
+            SELECT 1
+            FROM user_data
+            WHERE user_type IN ('client', 'msp')
+              AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+          )
+          OR
+          -- For vendor: Match hierarchies in program_vendors
+          EXISTS (
+            SELECT 1
+            FROM user_data
+            JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
+            WHERE user_data.user_type = 'vendor'
+              AND pv.program_id = :program_id
+              AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
+          )
+        )
+    ),
+    parent_hierarchies AS (
+      SELECT
+        h.id,
+        h.name,
+        h.parent_hierarchy_id,
+        h.is_enabled
+      FROM matched_hierarchies h
+      UNION ALL
+      SELECT
+        p.id,
+        p.name,
+        p.parent_hierarchy_id,
+        p.is_enabled
+      FROM hierarchies p
+      JOIN parent_hierarchies ph ON p.id = ph.parent_hierarchy_id
+      WHERE p.program_id = :program_id
+        AND p.is_deleted = false
     )
-    SELECT
-      h.id,
-      h.name,
-      h.parent_hierarchy_id,
-      h.is_enabled
-    FROM hierarchies h
-    WHERE h.program_id = :program_id
-      AND h.is_deleted = false
-      AND (
-        -- For super_user: Fetch all hierarchies
-        EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
-        OR
-        -- For client or msp: Match associate_hierarchy_ids JSON
-        EXISTS (
-          SELECT 1
-          FROM user_data
-          WHERE user_type IN ('client', 'msp')
-            AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
-        )
-        OR
-        -- For vendor: Match hierarchies in program_vendors
-        EXISTS (
-          SELECT 1
-          FROM user_data
-          JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
-          WHERE user_data.user_type = 'vendor'
-            AND pv.program_id = :program_id
-            AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
-        )
-      )
-    `;
+    SELECT DISTINCT * FROM parent_hierarchies;
+  `;
 
 export const vendorComplianceDocumentFilterQuery = (
   hasId: boolean,
@@ -3029,3 +3050,22 @@ export const vendorGroupFilterQuery = (
           OFFSET :offset;
       `;
 };
+
+export const rateConfigurationsFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsShiftRate: boolean,
+  hasJobType: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => `
+  SELECT * FROM rate_configurations
+  WHERE program_id = :program_id
+  ${hasId ? 'AND id = :id' : ''}
+  ${hasName ? 'AND name LIKE :name' : ''}
+  ${hasIsShiftRate ? 'AND is_shift_rate = :is_shift_rate' : ''}
+  ${hasJobType ? 'AND job_type = :job_type' : ''}
+  ${hasIsEnabled ? 'AND is_enabled = :is_enabled' : ''}
+  ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+  ORDER BY created_on DESC
+  LIMIT :limit OFFSET :offset;`;
