@@ -24,7 +24,6 @@ export async function checkPermission(params: RequiredPermissions): Promise<void
     validateInputs(token, programId);
     const tokenValue = token.split(' ')[1];
 
-    // 🔥 Fetch policies once and reuse
     const { getPolicies } = await permissionsUtilAuth(fastify, {});
     const policies = await getPolicies(programId, tokenValue);
 
@@ -48,22 +47,18 @@ export async function checkPermission(params: RequiredPermissions): Promise<void
 function matchesResource(resource: string, permissionResource: string): boolean {
   if (!resource || !permissionResource) return false;
 
-  // Full wildcard match
   if (permissionResource === "*" || permissionResource === "srn:*") {
     return true;
   }
 
-  // Split for segment comparison
   const resourceParts = resource.split(':');
   const permissionParts = permissionResource.split(':');
 
-  // Check each segment for a match or wildcard
   for (let i = 0; i < permissionParts.length; i++) {
-    if (permissionParts[i] === '*') return true; // Wildcard match
+    if (permissionParts[i] === '*') return true;
     if (permissionParts[i] !== resourceParts[i]) return false;
   }
 
-  // Ensure no extra segments in resource
   return permissionParts.length <= resourceParts.length;
 }
 

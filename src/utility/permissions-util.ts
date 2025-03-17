@@ -16,18 +16,18 @@ async function connectToRedis() {
     host: redis_host,
     port: redis_port,
     password: redis_auth,
-    connectTimeout: 60000, // 60s connection timeout
-    commandTimeout: 10000, // 10s command timeout
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
+    connectTimeout: 60000,
+    commandTimeout: 10000,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
   const getRedisData = new Redis({
     host: redis_replica_host,
     port: redis_port,
     password: redis_auth,
-    connectTimeout: 60000, // 60s connection timeout
-    commandTimeout: 10000, // 10s command timeout
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Retry with delay
+    connectTimeout: 60000,
+    commandTimeout: 10000,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
   redis.on("connect", () => {
@@ -67,7 +67,6 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
   logger.info("Fetching Redis key:", redisKey);
 
   try {
-    // 🔥 Directly attempt to get the data, instead of exists -> get
     const cachedPolicies = await getRedisData.get(redisKey);
     if (cachedPolicies) {
       groupPolicies = JSON.parse(cachedPolicies);
@@ -78,7 +77,6 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
     logger.error("❌ Error fetching from Redis:", err);
   }
 
-  // 🔥 Fetch only if not in cache
   try {
     const { data } = await axios.get(
       `http://v4-devnlb.simplifysandbox.net:8006/auth/v1/api/policy/user/tenant/${programId}`,
@@ -89,7 +87,6 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
 
     groupPolicies = data.response;
 
-    // 🔥 Store in cache for 24 hours if it doesn’t change often
     await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 86400);
     logger.info("✅ Policies cached in Redis.");
   } catch (err) {
