@@ -18,6 +18,7 @@ export const getSecretsManager = async () => {
             database: process.env.DATABASE_NAME,
             redis_port: process.env.REDIS_PORT,
             redis_host: process.env.REDIS_HOST,
+            redis_replica_host: process.env.REDIS_REPLICA_HOST,
             notification_url: process.env.NOTIFICATION_URL,
             database_auth: process.env.DATABASE_AUTH,
             sourcing_url: process.env.SOURCING_URL,
