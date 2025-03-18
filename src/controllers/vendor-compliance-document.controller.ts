@@ -7,6 +7,9 @@ import WorkLocationModel from "../models/work-location.model";
 import { logger } from "../utility/loggerService";
 import { decodeToken } from "../middlewares/verifyToken";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
+import { vendorComplianceDocumentFilterQuery } from "../utility/queries";
+import { QueryTypes } from "sequelize";
+import { sequelize } from "../config/instance";
 const baseService = new BaseService(VendorComplianceDocumentModel);
 
 const vendorComplianceDocumentService = new BaseService(VendorComplianceDocumentModel);
@@ -24,7 +27,7 @@ export async function createVendorComplianceDocument(
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return reply
       .status(401)
-      .send({status_code:401, message: "Unauthorized - Token not found", trace_id: traceId });
+      .send({ status_code: 401, message: "Unauthorized - Token not found", trace_id: traceId });
   }
 
   const token = authHeader.split(" ")[1];
@@ -32,9 +35,9 @@ export async function createVendorComplianceDocument(
 
 
   if (!user) {
-    return reply.status(401).send({status_code:401, message: "Unauthorized - Invalid token", trace_id: traceId });
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token", trace_id: traceId });
   }
-  const userId=user?.sub
+  const userId = user?.sub
   logger(
     {
       traceId,
@@ -206,15 +209,15 @@ export async function updateVendorComplianceDocumentById(
   const vendorDocuments = request.body as Partial<VendorComplianceDocumentInterface>;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
 
   try {
     const existingDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
@@ -231,7 +234,7 @@ export async function updateVendorComplianceDocumentById(
       });
     }
 
-    await vendorComplianceDocumentService.updateById(request, { program_id, id,updated_by:userId, });
+    await vendorComplianceDocumentService.updateById(request, { program_id, id, updated_by: userId, });
 
     if (vendorDocuments.uploaded_document && Array.isArray(vendorDocuments.uploaded_document)) {
       for (const doc of vendorDocuments.uploaded_document) {
@@ -266,19 +269,19 @@ export async function deleteVendorComplianceDocumentById(
 ) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId=user?.sub
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  let user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+  const userId = user?.sub
   try {
     const { program_id, id } = request.params;
 
-    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id ,updated_by:userId,});
+    const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id, updated_by: userId, });
 
     if (deletedCount > 0) {
       reply.status(200).send({
@@ -345,14 +348,90 @@ export async function getAllVendorCompDocummentByProgramId(
         page: Number(page),
         limit: Number(limit),
         compliance_documents: result.rows,
-        message:" Vendor Compliance Documents Retrieved Successfully",
+        message: " Vendor Compliance Documents Retrieved Successfully",
         trace_id: traceId
       });
     } else {
-      return reply.status(200).send({ status_code: 200, message: "No records found",trace_id:traceId  });
+      return reply.status(200).send({ status_code: 200, message: "No records found", trace_id: traceId });
     }
   } catch (error) {
-    return reply.status(500).send({ status_code: 500, message: "Internal Server Error",trace_id:traceId  });
+    return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
   }
 }
 
+export async function vendorComplianceDocumentFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      name?: string;
+      act?: string;
+      document_number?: string;
+      is_enabled?: boolean | string;
+      updated_on?: any;
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body;
+
+    const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
+
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+    const query = vendorComplianceDocumentFilterQuery(
+      Boolean(id),
+      Boolean(name),
+      Boolean(act),
+      Boolean(document_number),
+      isEnabledFilter !== undefined,
+      hasUpdatedOnFilter
+    );
+
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      name: name ? `%${name}%` : undefined,
+      act,
+      document_number,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+      updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+      updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+    };
+
+    const data = await sequelize.query<{ total_count: any }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Vendor Compliance Documents fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      items: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}

@@ -203,6 +203,7 @@ export const complianceDocumentGetByUserId = `
         vcrm.url,
         vcrm.audited_on,
         vcrm.compliance_note,
+        vcrm.updated_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -265,6 +266,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.url,
         vcrm.audited_on,
         vcrm.compliance_note,
+        vcrm.updated_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -316,6 +318,7 @@ export const complianceDocumentGetByVendorId = `
         vcrm.url,
         vcrm.audited_on,
         vcrm.compliance_note,
+        vcrm.updated_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -391,6 +394,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.url,
         vcrm.audited_on,
         vcrm.compliance_note,
+        vcrm.updated_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -539,6 +543,7 @@ WITH hierarchy_cte AS (
     h.created_on, -- Include created_on
     h.program_id,
     h.is_deleted,
+    h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
     ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
@@ -1578,6 +1583,38 @@ AND (:module_name IS NULL OR module.name LIKE :module_name)
 AND (:event_name IS NULL OR event.name LIKE :event_name);
 `;
 
+export const rateTypeAdvanceFilter = (
+  hasId: boolean,
+  hasRateTypeCategory: boolean,
+  hasName: boolean,
+  hasAbbreviation: boolean,
+  hasIsBaseRate: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+      SELECT
+          rate_type.*,
+          COUNT(rate_type.id) OVER () AS total_count
+      FROM
+          rate_type
+      WHERE
+          rate_type.is_deleted = false
+          AND rate_type.program_id = :program_id
+          ${hasId ? 'AND rate_type.id = :id' : ''}
+          ${hasRateTypeCategory ? 'AND rate_type.rate_type_category = :rate_type_category' : ''}
+          ${hasName ? 'AND rate_type.name LIKE :name' : ''}
+          ${hasAbbreviation ? 'AND rate_type.abbreviation LIKE :abbreviation' : ''}
+          ${hasIsBaseRate ? 'AND rate_type.is_base_rate = :is_base_rate' : ''}
+          ${hasIsEnabled ? 'AND rate_type.is_enabled = :is_enabled' : ''}
+          ${hasUpdatedOn ? 'AND rate_type.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+      ORDER BY
+          rate_type.created_on DESC
+      LIMIT :limit
+      OFFSET :offset;
+  `;
+};
+
 export const timesheetConfigAdvancedFilter = (
   hasId: boolean,
   hasTitle: boolean,
@@ -1637,6 +1674,32 @@ export const timesheetConfigAdvancedFilter = (
         timesheet_type_config.id ASC
       LIMIT :limit
       OFFSET :offset;
+  `;
+};
+
+export const labourCategoryAdvanceFilter = (
+  hasId: boolean,
+  name: boolean,
+  updatedOnCondition: string,
+  hasIsEnabled: boolean
+) => {
+  return `
+    SELECT
+      labour_category.*,
+      COUNT(*) OVER () AS total_count
+    FROM
+      labour_category
+    WHERE
+      labour_category.program_id = :program_id
+      AND labour_category.is_deleted = false
+      ${hasId ? 'AND labour_category.id = :id' : ''}
+      ${hasIsEnabled ? 'AND labour_category.is_enabled = :is_enabled' : ''}
+      ${name ? 'AND labour_category.name LIKE :name' : ''}
+      ${updatedOnCondition}
+    ORDER BY
+      labour_category.id ASC
+    LIMIT :limit
+    OFFSET :offset;
   `;
 };
 
@@ -1899,6 +1962,44 @@ export const getAllRateConfigurationsQuery = async (replacements: any) => {
     replacements,
     type: QueryTypes.SELECT,
   });
+};
+
+
+
+export const workflowAdvanceFilter = (
+  hasId: boolean,
+  eventIdsArray: string[],
+  moduleArray: string[],
+  hierarchyIdsArray: string[]
+) => {
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(workflow.hierarchy_ids, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
+  const eventIdClause = eventIdsArray.length
+    ? `AND workflow.event_id IN (${eventIdsArray.map((_, index) => `:event_id${index}`).join(', ')})`
+    : '';
+  const moduleClause = moduleArray.length
+    ? `AND workflow.module IN (${moduleArray.map((_, index) => `:module${index}`).join(', ')})`
+    : '';
+  return `
+      SELECT
+        workflow.*,
+        COUNT(workflow.id) OVER () AS total_count
+      FROM
+        workflow
+      ${hierarchyIdsClause}
+      WHERE
+        workflow.is_deleted = false
+        AND workflow.program_id = :program_id
+        ${hasId ? 'AND workflow.id = :id' : ''}
+        ${eventIdClause}
+        ${moduleClause}
+      ORDER BY
+        workflow.created_on DESC
+      LIMIT :limit
+      OFFSET :offset;
+  `;
 };
 
 export const sameRateConfiguration = `
@@ -2379,6 +2480,11 @@ export const getPendingUserQuery = `
       FROM work_locations
       WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
     ), JSON_ARRAY()) AS work_location_ids,
+   COALESCE((
+    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
+    FROM labour_category l
+    WHERE JSON_CONTAINS(invitation.associate_labour_category, JSON_QUOTE(l.id), '$')
+), JSON_ARRAY()) AS associate_labour_category,
 COALESCE((
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
@@ -2499,7 +2605,7 @@ export const fetchTimesheetExpenseRuleGroups = async (
   ruleCategory?: string,
   ruleGroupName?: string,
   ruleType?: string,
-  isEnabled?:  boolean | string,
+  isEnabled?: boolean | string,
   limit: number = 10,
   offset: number = 0,
   order: string = 'created_on DESC'
@@ -2773,7 +2879,7 @@ export const getMatchingHierarchiesQuery = () => {
 };
 
 export const getUserHierarchiesBasedOnUserType = `
-    WITH user_data AS (
+    WITH RECURSIVE user_data AS (
       SELECT
         u.associate_hierarchy_ids,
         u.user_type,
@@ -2781,35 +2887,185 @@ export const getUserHierarchiesBasedOnUserType = `
       FROM user u
       WHERE u.user_id = :userId
         AND u.program_id = :program_id
+    ),
+    matched_hierarchies AS (
+      SELECT
+        h.id,
+        h.name,
+        h.parent_hierarchy_id,
+        h.is_enabled
+      FROM hierarchies h
+      WHERE h.program_id = :program_id
+        AND h.is_deleted = false
+        AND (
+          -- For super_user: Fetch all hierarchies
+          EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
+          OR
+          -- For client or msp: Match associate_hierarchy_ids JSON
+          EXISTS (
+            SELECT 1
+            FROM user_data
+            WHERE user_type IN ('client', 'msp')
+              AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+          )
+          OR
+          -- For vendor: Match hierarchies in program_vendors
+          EXISTS (
+            SELECT 1
+            FROM user_data
+            JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
+            WHERE user_data.user_type = 'vendor'
+              AND pv.program_id = :program_id
+              AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
+          )
+        )
+    ),
+    parent_hierarchies AS (
+      SELECT
+        h.id,
+        h.name,
+        h.parent_hierarchy_id,
+        h.is_enabled
+      FROM matched_hierarchies h
+      UNION ALL
+      SELECT
+        p.id,
+        p.name,
+        p.parent_hierarchy_id,
+        p.is_enabled
+      FROM hierarchies p
+      JOIN parent_hierarchies ph ON p.id = ph.parent_hierarchy_id
+      WHERE p.program_id = :program_id
+        AND p.is_deleted = false
     )
-    SELECT
-      h.id,
-      h.name,
-      h.parent_hierarchy_id,
-      h.is_enabled
-    FROM hierarchies h
-    WHERE h.program_id = :program_id
-      AND h.is_deleted = false
-      AND (
-        -- For super_user: Fetch all hierarchies
-        EXISTS (SELECT 1 FROM user_data WHERE user_type = 'super_user')
-        OR
-        -- For client or msp: Match associate_hierarchy_ids JSON
-        EXISTS (
-          SELECT 1
-          FROM user_data
-          WHERE user_type IN ('client', 'msp')
-            AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
-        )
-        OR
-        -- For vendor: Match hierarchies in program_vendors
-        EXISTS (
-          SELECT 1
-          FROM user_data
-          JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
-          WHERE user_data.user_type = 'vendor'
-            AND pv.program_id = :program_id
-            AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
-        )
-      )
-    `;
+    SELECT DISTINCT * FROM parent_hierarchies;
+  `;
+
+export const vendorComplianceDocumentFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasAct: boolean,
+  hasDocumentNumber: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+              vendor_compliance_documents.*,
+              COUNT(vendor_compliance_documents.id) OVER () AS total_count
+          FROM
+              vendor_compliance_documents
+          WHERE
+              vendor_compliance_documents.is_deleted = false
+              AND vendor_compliance_documents.program_id = :program_id
+              ${hasId ? 'AND vendor_compliance_documents.id = :id' : ''}
+              ${hasName ? 'AND vendor_compliance_documents.name LIKE :name' : ''}
+              ${hasAct ? 'AND vendor_compliance_documents.act = :act' : ''}
+              ${hasDocumentNumber ? 'AND vendor_compliance_documents.document_number = :document_number' : ''}
+              ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
+              ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+              vendor_compliance_documents.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorDistributionScheduleFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+            vendor_distribution_schedules.*,
+            COUNT(vendor_distribution_schedules.id) OVER () AS total_count
+          FROM
+            vendor_distribution_schedules
+          WHERE
+            vendor_distribution_schedules.is_deleted = false
+            AND vendor_distribution_schedules.program_id = :program_id
+            ${hasId ? 'AND vendor_distribution_schedules.id = :id' : ''}
+            ${hasName ? 'AND vendor_distribution_schedules.name LIKE :name' : ''}
+            ${hasIsEnabled ? 'AND vendor_distribution_schedules.is_enabled = :is_enabled' : ''}
+            ${hasUpdatedOn ? 'AND vendor_distribution_schedules.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+            vendor_distribution_schedules.created_on DESCk
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorDocumentGroupFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasDescription: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+            vendor_document_groups.*,
+            COUNT(vendor_document_groups.id) OVER () AS total_count
+          FROM
+            vendor_document_groups
+          WHERE
+            vendor_document_groups.is_deleted = false
+            AND vendor_document_groups.program_id = :program_id
+            ${hasId ? 'AND vendor_document_groups.id = :id' : ''}
+            ${hasName ? 'AND vendor_document_groups.name LIKE :name' : ''}
+            ${hasDescription ? 'AND vendor_document_groups.description LIKE :description' : ''}
+            ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
+            ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+            vendor_document_groups.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const vendorGroupFilterQuery = (
+  hasId: boolean,
+  hasVendorGroupName: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => {
+  return `
+          SELECT
+              vendor_groups.*,
+              COUNT(vendor_groups.id) OVER () AS total_count
+          FROM
+              vendor_groups
+          WHERE
+              vendor_groups.is_deleted = false
+              AND vendor_groups.program_id = :program_id
+              ${hasId ? 'AND vendor_groups.id = :id' : ''}
+              ${hasVendorGroupName ? 'AND vendor_groups.vendor_group_name LIKE :vendor_group_name' : ''}
+              ${hasIsEnabled ? 'AND vendor_groups.is_enabled = :is_enabled' : ''}
+              ${hasUpdatedOn ? 'AND vendor_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+          ORDER BY
+              vendor_groups.created_on DESC
+          LIMIT :limit
+          OFFSET :offset;
+      `;
+};
+
+export const rateConfigurationsFilterQuery = (
+  hasId: boolean,
+  hasName: boolean,
+  hasIsShiftRate: boolean,
+  hasJobType: boolean,
+  hasIsEnabled: boolean,
+  hasUpdatedOn: boolean
+) => `
+  SELECT * FROM rate_configurations
+  WHERE program_id = :program_id
+  ${hasId ? 'AND id = :id' : ''}
+  ${hasName ? 'AND name LIKE :name' : ''}
+  ${hasIsShiftRate ? 'AND is_shift_rate = :is_shift_rate' : ''}
+  ${hasJobType ? 'AND job_type = :job_type' : ''}
+  ${hasIsEnabled ? 'AND is_enabled = :is_enabled' : ''}
+  ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+  ORDER BY created_on DESC
+  LIMIT :limit OFFSET :offset;`;

@@ -4,7 +4,9 @@ import { IndustriesInterface, } from '../interfaces/labour-category.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { labourCategoryAdvanceFilter } from '../utility/queries';
+import { sequelize } from '../config/instance';
 
 export async function createIndustries(
   request: FastifyRequest,
@@ -16,7 +18,7 @@ export async function createIndustries(
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
@@ -24,12 +26,12 @@ export async function createIndustries(
   const userId = user?.sub;
 
   if (!user) {
-    return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
 
   logger(
     {
-      trace_id:traceId,
+      trace_id: traceId,
       actor: {
         user_name: user?.preferred_username,
         user_id: user?.sub,
@@ -59,21 +61,21 @@ export async function createIndustries(
       return reply.status(400).send({
         status_code: 400,
         message: " labour category already exists with this name",
-        trace_id:traceId,
+        trace_id: traceId,
       });
     }
 
-    const item = await IndustriesModel.create({ ...labour_categories,created_by:userId,updated_by:userId });
+    const item = await IndustriesModel.create({ ...labour_categories, created_by: userId, updated_by: userId });
     reply.status(201).send({
       status_code: 201,
-      message:"Industries create successfully",
+      message: "Industries create successfully",
       data: item.id,
-      trace_id:traceId,
+      trace_id: traceId,
     });
 
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -93,7 +95,7 @@ export async function createIndustries(
   } catch (error: any) {
     logger(
       {
-        trace_id:traceId,
+        trace_id: traceId,
         actor: {
           user_name: user?.preferred_username,
           user_id: user?.sub,
@@ -114,7 +116,7 @@ export async function createIndustries(
     reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
-      trace_id:traceId,
+      trace_id: traceId,
     });
   }
 }
@@ -157,7 +159,7 @@ export const getIndustries = async (
       attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
       limit: pageSize,
       offset,
-      order:[['updated_on','DESC']]
+      order: [['updated_on', 'DESC']]
     });
 
     if (labour_categories.length === 0) {
@@ -202,23 +204,23 @@ export async function getIndustriesById(
     if (item) {
       reply.status(200).send({
         status_code: 200,
-        message:"Industries get sueccssfully",
+        message: "Industries get sueccssfully",
         labour_category_data: item,
-        trace_id:traceId
+        trace_id: traceId
       });
     } else {
       reply.status(200).send({
-        status_code:200,
+        status_code: 200,
         message: 'labour category not found',
         labour_category: [],
-        trace_id:traceId
+        trace_id: traceId
       });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while fetching',
-      trace_id:traceId
+      trace_id: traceId
     });
   }
 }
@@ -235,15 +237,15 @@ export async function updateIndustries(
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
-    
+
     const existingIndustryWithSameName = await IndustriesModel.findOne({
       where: {
         name,
@@ -256,30 +258,30 @@ export async function updateIndustries(
       return reply.status(400).send({
         status_code: 400,
         message: "Invalid Name Field, Name Must Be Unique.",
-        trace_id:traceId,
+        trace_id: traceId,
       });
     }
 
     const [numRowsUpdated] = await IndustriesModel.update(
-      { ...labour_categories, updated_on: Date.now(),updated_by:userId },
+      { ...labour_categories, updated_on: Date.now(), updated_by: userId },
       { where: { id, program_id } }
     );
 
     if (numRowsUpdated > 0) {
       reply.status(200).send({
         status_code: 200,
-        message:"Industries get successfully",
+        message: "Industries get successfully",
         labour_category_id: id,
-        trace_id:traceId,
+        trace_id: traceId,
       });
     } else {
-      reply.status(404).send({ status_code:401,message: 'labour categories not found' });
+      reply.status(404).send({ status_code: 401, message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while updating',
-      trace_id:traceId
+      trace_id: traceId
     });
   }
 }
@@ -293,19 +295,19 @@ export async function deleteIndustries(
     const { id, program_id } = request.params;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
+      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
     const [numRowsDeleted] = await IndustriesModel.update({
       is_deleted: true,
       is_enabled: false,
       updated_on: Date.now(),
-      updated_by:userId
+      updated_by: userId
     },
       { where: { id, program_id } }
     );
@@ -313,18 +315,18 @@ export async function deleteIndustries(
     if (numRowsDeleted > 0) {
       reply.status(200).send({
         statusCode: 200,
-        message:"Industries delete successfully",
+        message: "Industries delete successfully",
         labour_category_id: id,
-        trace_id:traceId,
+        trace_id: traceId,
       });
     } else {
-      reply.status(404).send({ status_code:404,message: 'labour categories not found' });
+      reply.status(404).send({ status_code: 404, message: 'labour categories not found' });
     }
   } catch (error) {
     reply.status(500).send({
       statusCode: 500,
       message: 'An error occurred while deleting',
-      trace_id:traceId
+      trace_id: traceId
     });
   }
 }
@@ -338,14 +340,107 @@ export const bulkUploadIndustries = async (request: FastifyRequest, reply: Fasti
       status_code: 201,
       data: createdLabourCategories,
       message: 'labour categories Created successfully',
-      trace_id:traceId,
+      trace_id: traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Failed to create labour categories',
-      trace_id:traceId,
+      trace_id: traceId,
       error: error,
     });
   }
 };
+
+export async function labourCategoryFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      name?: string;
+      updated_on?: any;
+      is_enabled?: boolean | string;
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+
+    const {
+      id,
+      name,
+      updated_on,
+      is_enabled,
+      page,
+      limit,
+    } = request.body;
+
+    const isEnabledFilter =
+      is_enabled === 'true' || is_enabled === true ? true :
+        is_enabled === 'false' || is_enabled === false ? false :
+          undefined;
+
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+    };
+
+    if (name) {
+      replacements['name'] = `%${name}%`;
+    }
+
+    let updatedOnCondition = '';
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startDate, endDate] = updated_on;
+      if (!isNaN(startDate) && !isNaN(endDate)) {
+        replacements['updated_on_start'] = startDate;
+        replacements['updated_on_end'] = endDate;
+        updatedOnCondition = 'AND labour_category.updated_on BETWEEN :updated_on_start AND :updated_on_end';
+      }
+    } else if (updated_on) {
+      console.warn(`Invalid format for updated_on`);
+    }
+
+    const query = labourCategoryAdvanceFilter(
+      Boolean(id),
+      Boolean(name),
+      updatedOnCondition,
+      isEnabledFilter !== undefined
+    );
+
+    const data = await sequelize.query<{ total_count: number }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Labour categories fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      labour_categories: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}

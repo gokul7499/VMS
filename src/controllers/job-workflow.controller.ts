@@ -207,14 +207,14 @@ export const updateWorkflowStatus = async (
         Body:
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids?: any[], is_admin_override?: boolean }
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids?: any[], is_admin_override?: boolean }[];
-
+ 
     }>,
     reply: FastifyReply
 ) => {
-
+ 
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-
+ 
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
@@ -226,12 +226,12 @@ export const updateWorkflowStatus = async (
     const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body;
-
+ 
     // Convert to array if not already
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
-
+ 
     // Validate input parameters
     if (!program_id || !id || updates.length === 0) {
         return reply.status(400).send({
@@ -240,7 +240,7 @@ export const updateWorkflowStatus = async (
             trace_id: traceId,
         });
     }
-
+ 
     try {
         const userResult = await getUsersStatus(sequelize, userId, program_id);
         let userData = userResult[0] as any
@@ -249,7 +249,7 @@ export const updateWorkflowStatus = async (
             impersonator_id = user.impersonator.id || null
         }
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
+ 
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -257,77 +257,93 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
+ 
         // let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
-
-
+ 
+ 
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
-
+ 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
-
-
+ 
+ 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
-
+ 
                         const updatedRecipientTypes = await Promise.all(
                             level.recipient_types.map(async (recipient: any) => {
-                                // Check user type
-                                const isSuperUser = user.userType = "super_user"
-
+                                // Check user type - Fixed comparison operator
+                                const isSuperUser = user.userType === "super_user";
+ 
                                 if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
-                                    const history = await WorkflowStatusHistory.create({
-                                        job_workflow_id: id,
-                                        placement_order,
-                                        new_status,
-                                        program_id,
-                                        notes: notes || "",
-                                        created_on: Date.now(),
-                                        user_id: user_id,
-                                    });
-                                    return {
-                                        ...recipient,
-                                        status: matchesUser ? "approved" : "Not needed", // Set status based on the match
-                                        impersonate_by: impersonator_id,
-                                        updated_on: Date.now(),
-                                        status_id: history.dataValues?.id,
-                                        actor_first_name: userData?.first_name,
-                                        actor_last_name: userData?.last_name,
-                                        actor_by_avatar: userData?.avatar,
-                                    };
-                                } else
-                                    if (isSuperUser) {
-                                        if (behavior?.toLowerCase() === "any" && level.placement_order === placement_order) {
-                                            // Check if the recipient's user_id matches any value in meta_data
-                                            const matchesUser = Object.values(recipient.meta_data).includes(user_id);
-                                            const history = await WorkflowStatusHistory.create({
-                                                job_workflow_id: id,
-                                                placement_order,
-                                                new_status,
-                                                program_id,
-                                                notes: notes || "",
-                                                created_on: Date.now(),
-                                                user_id: user_id,
-                                            });
-                                            return {
-                                                ...recipient,
-                                                status: "approved",
-                                                impersonate_by: impersonator_id,
-                                                updated_on: Date.now(),
-                                                status_id: history.dataValues?.id,
-                                                actor_first_name: userData?.first_name,
-                                                actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar
-                                            };
-                                        }
+                                    if (matchesUser) {
+                                        const history = await WorkflowStatusHistory.create({
+                                            job_workflow_id: id,
+                                            placement_order,
+                                            new_status: "approved", // Force "approved" for the matching user
+                                            program_id,
+                                            notes: notes || "",
+                                            created_on: Date.now(),
+                                            user_id: userId, // Store the current user who is making the decision
+                                        });
+                                        
+                                        return {
+                                            ...recipient,
+                                            status: "approved",
+                                            status_by: userId,
+                                            impersonate_by: impersonator_id,
+                                            updated_on: Date.now(),
+                                            status_id: history.dataValues?.id,
+                                            actor_first_name: userData?.first_name,
+                                            actor_last_name: userData?.last_name,
+                                            actor_by_avatar: userData?.avatar,
+                                            by: `${userData?.first_name} ${userData?.last_name}`
+                                        };
+                                    } else {
+                                        // For non-matching users, mark as "Not needed" without creating history
+                                        return {
+                                            ...recipient,
+                                            status: "Not needed",
+                                            status_by: userId, // Track who triggered this change
+                                            impersonate_by: impersonator_id,
+                                            updated_on: Date.now(),
+                                           
+                                         
+                                        };
                                     }
-                                // Check if user is not a "super_user" and proceed with matchinj
+                                } else if (isSuperUser) {
+                                    if (behavior?.toLowerCase() === "any" && level.placement_order === placement_order) {
+                                        // Check if the recipient's user_id matches any value in meta_data
+                                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                        const history = await WorkflowStatusHistory.create({
+                                            job_workflow_id: id,
+                                            placement_order,
+                                            new_status,
+                                            program_id,
+                                            notes: notes || "",
+                                            created_on: Date.now(),
+                                            user_id: user_id,
+                                        });
+                                        return {
+                                            ...recipient,
+                                            status: "approved",
+                                            impersonate_by: impersonator_id,
+                                            updated_on: Date.now(),
+                                            status_id: history.dataValues?.id,
+                                            actor_first_name: userData?.first_name,
+                                            actor_last_name: userData?.last_name,
+                                            actor_by_avatar: userData?.avatar
+                                        };
+                                    }
+                                }
+                                
+                                // Check if user is not a "super_user" and proceed with matching
                                 if (!isSuperUser) {
                                     if (user_id) {
                                         // If the recipient has a `replaced_by` field, match `user_id` directly
@@ -342,13 +358,17 @@ export const updateWorkflowStatus = async (
                                                 user_id: user_id,
                                             });
                                             return {
-                                                ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
+                                                ...recipient, 
+                                                status: new_status, 
+                                                status_id: history.dataValues.id, 
+                                                imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar, updated_on: Date.now(),
+                                                actor_by_avatar: userData?.avatar, 
+                                                updated_on: Date.now(),
                                             };
                                         }
-
+ 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
                                         if (!recipient.replaced_by && recipient.meta_data) {
                                             const matchesUser = Object.values(recipient.meta_data).includes(user_id);
@@ -363,12 +383,15 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return {
-                                                    ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
+                                                    ...recipient, 
+                                                    status: new_status, 
+                                                    status_id: history.dataValues.id, 
+                                                    imporsonate_by: impersonator_id,
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
-                                                    actor_by_avatar: userData?.avatar, updated_on: Date.now(),
+                                                    actor_by_avatar: userData?.avatar, 
+                                                    updated_on: Date.now(),
                                                 };
-
                                             }
                                         }
                                     }
@@ -384,19 +407,22 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return {
-                                        ...recipient, status: new_status, status_id: history.dataValues.id, imporsonate_by: impersonator_id,
+                                        ...recipient, 
+                                        status: new_status, 
+                                        status_id: history.dataValues.id, 
+                                        imporsonate_by: impersonator_id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avatar: userData?.avatar, updated_on: Date.now(),
+                                        actor_by_avatar: userData?.avatar, 
+                                        updated_on: Date.now(),
                                     };
-
                                 }
-
+ 
                                 // If no match, return original recipient
                                 return recipient;
                             })
                         );
-
+ 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
                             (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
@@ -410,7 +436,7 @@ export const updateWorkflowStatus = async (
                     if (is_admin_override) {
                         // Slice levels from index 1 onwards
                         const slicedLevels = levels.slice(1);
-
+ 
                         // Update only recipient_types in levels from index 1 onwards
                         slicedLevels.forEach((level: any) => {
                             level.recipient_types = level.recipient_types.map((recipient: any) => ({
@@ -425,23 +451,21 @@ export const updateWorkflowStatus = async (
                             }));
                             level.status = "completed";
                         });
-
-
                     }
                     return level;
                 })
             );
-
+ 
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
             let allLevelsAfterFirstCompleted = true;
             let workflowStatus = "completed";
-
+ 
             // Loop through levels and process
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
-
+ 
                 // Skip this level if recipient_types is empty or any recipient has meta_data with null values
                 const isValidLevel = level.recipient_types &&
                     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
@@ -449,7 +473,7 @@ export const updateWorkflowStatus = async (
                         return recipient.meta_data !== null &&
                             Object.values(recipient.meta_data).every(value => value !== null);
                     });
-
+ 
                 if (!isValidLevel) {
                     continue;
                 }
@@ -461,19 +485,18 @@ export const updateWorkflowStatus = async (
             // Set final workflow status based on valid levels
             workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
-
+ 
             // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
-
+ 
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, updated_on: Date.now(), updated_by: userId });
-
+ 
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id,
-
             };
-
+ 
             if (workflowStatus === "completed") {
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
                 let eventCode = await getEventsCode(workflow);
@@ -481,13 +504,12 @@ export const updateWorkflowStatus = async (
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
                     user_type: eventCode.user_type
-
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
             }
         }
-
+ 
         if (!updatedLevels) {
             return reply.status(400).send({
                 status_code: 400,
@@ -495,19 +517,18 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
-
+ 
         return reply.status(200).send({
             status_code: 200,
             message: "Approved done successfully.",
             trace_id: traceId,
         });
     } catch (error) {
-        console.error("Error updating  workflow:", error);
-
+        console.error("Error updating workflow:", error);
+ 
         return reply.status(500).send({
             status_code: 500,
-            message: "Failed to update  workflow.",
+            message: "Failed to update workflow.",
             trace_id: traceId,
         });
     }
@@ -1151,6 +1172,7 @@ export const rejectLevel = async (
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    const userId = user?.sub
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
@@ -1163,6 +1185,8 @@ export const rejectLevel = async (
         });
     }
     try {
+        const userResult = await getUsersStatus(sequelize, userId, program_id);
+        let userData = userResult[0] as any;
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         let impersonator_id: any
         if (user.impersonator) {
@@ -1192,19 +1216,18 @@ export const rejectLevel = async (
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
-
                         const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
                             if (isSuperUser) {
                                 // Superuser logic: Skip user_id matching
                                 return {
                                     ...recipient,
-                                    status: "rejected",
+                                    status: "Rejected",
                                     updated_on: Date.now(),
                                     notes: notes,
                                     reason: reason,
-                                    actor_first_name: user?.first_name,
-                                    actor_last_name: user?.last_name,
-                                    actor_by_avatar: user?.avatar,
+                                    actor_first_name: userData?.first_name,
+                                    actor_last_name: userData?.last_name,
+                                    actor_by_avatar: userData?.avatar,
                                 };
                             }
                             if (
@@ -1215,22 +1238,20 @@ export const rejectLevel = async (
                             ) {
 
                                 return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                     actor_first_name: user?.first_name,
-                                    actor_last_name: user?.last_name,
-                                    actor_by_avatar: user?.avatar, };
+                                     actor_first_name: userData?.first_name,
+                                    actor_last_name: userData?.last_name,
+                                    actor_by_avatar: userData?.avatar, };
 
                             }
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                 actor_first_name: user?.first_name,
-                                actor_last_name: user?.last_name,
-                                actor_by_avatar: user?.avatar,};
+                                };
 
                         });
                         return {
                             ...level,
                             updated_on: Date.now(),
-                            status: "Rejected",
+                            status: "Completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
@@ -1238,9 +1259,7 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                        actor_first_name: user?.first_name,
-                        actor_last_name: user?.last_name,
-                        actor_by_avatar: user?.avatar,
+                      
                     }));
 
                     return {
@@ -1266,9 +1285,9 @@ export const rejectLevel = async (
                 notes: notes || "",
                 created_on: Date.now(),
                 user_id: user_id,
-                actor_first_name: user?.first_name,
-                actor_last_name: user?.last_name,
-                actor_by_avatar: user?.avatar,
+                actor_first_name: userData?.first_name,
+                actor_last_name: userData?.last_name,
+                actor_by_avatar: userData?.avatar,
             });
         });
 
@@ -2324,6 +2343,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 }
 
                 if (recipientType?.name === "Manager of") {
+
                     const jobManagerQuery = `
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
@@ -2413,7 +2433,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: replacedUserResult[0].email || null,
                             recipient_type: recipientType?.name || "",
                             behaviour,
-                            replaced_date_time: recipient_details.replaced_modified_on
+                            replaced_date_time: recipient_details.replaced_modified_on,
+                            replaced_notes: recipient_details?.replaced_notes,
+
                         } : undefined;
                         imposonate_user_data = imporsonateUserResult ? {
                             id: imporsonateUserResult?.[0]?.user_id,
@@ -2424,14 +2446,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             email: imporsonateUserResult?.[0]?.email,
                             updated_on: recipient_details?.updated_on,
                             recipient_type: recipientType?.name || '',
+                            replaced_notes: recipient_details?.replaced_notes,
+
                             behaviour,
                         } : undefined;
                     }
                 }
                 let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
-                    // Loop through each placement order
-                    for (const level of levels) {
+                    console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
+                    for (const level of levels) { 
                         let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
 
@@ -2481,7 +2505,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].user_id,
-                                            name: userData[0].first_name,
+                                            name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             updated_on: recipient_details.updated_on,
@@ -2499,7 +2523,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: replacedUserResult[0].email,
                                         recipient_type: recipientType?.name || '',
                                         behaviour,
-                                        replaced_date_time: recipient_details.replaced_modified_on
+                                        replaced_date_time: recipient_details.replaced_modified_on,
+                                        replaced_notes: recipient_details?.replaced_notes,
+
                                     } : undefined;
                                     imposonate_user_data = imporsonateUserResult ? {
                                         id: imporsonateUserResult?.[0]?.user_id,
@@ -2510,6 +2536,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         email: imporsonateUserResult?.[0]?.email,
                                         updated_on: recipient_details?.updated_on,
                                         recipient_type: recipientType?.name || '',
+                                        replaced_notes: recipient_details?.replaced_notes,
+
                                         behaviour,
                                     } : undefined;
 
@@ -3312,7 +3340,7 @@ SELECT JSON_OBJECT(
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-           'actor_by_avatar', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), NULL),
+         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),            
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
        
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
@@ -3524,6 +3552,7 @@ l.placement_order ASC;`;
                     }
                 }
                 if (recipientType?.name === "Manager of") {
+                    
                     const jobManagerQuery = `
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
@@ -3680,7 +3709,7 @@ l.placement_order ASC;`;
                                     if (userData.length > 0) {
                                         input_value = {
                                             id: userData[0].user_id,
-                                            name: userData[0].first_name,
+                                            name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
                                             email: userData[0].email,
                                             avatar: userData[0].avatar,
                                             updated_on: recipient_details.updated_on,
@@ -3984,7 +4013,6 @@ export const getModuleEvent = async (
             order: [['created_on', 'DESC']],
         });
 
-        // Grouping workflows by module name
         const groupedData: Record<string, any[]> = {};
 
         workflows.forEach((workflow) => {
@@ -3995,8 +4023,8 @@ export const getModuleEvent = async (
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
+
             const workflowTriggerId = (workflow as any).workflow_trigger_id;
-            // Check if the event is already added to avoid duplicates
             const isDuplicate = groupedData[moduleName].some(
                 (event) => event.event === eventName && event.event_slug === eventSlug
             );
@@ -4010,9 +4038,12 @@ export const getModuleEvent = async (
             }
         });
 
-        // Transforming grouped data into the required format
         const data = Object.entries(groupedData).map(([moduleName, events]) => ({
-            [moduleName]: events,
+            [moduleName]: events.sort((a, b) => {
+                if (a.event_slug === 'submit_candidate_rehire_check') return -1;
+                if (b.event_slug === 'submit_candidate_rehire_check') return 1;
+                return 0;
+            }),
         }));
 
         reply.status(200).send({
@@ -4029,7 +4060,6 @@ export const getModuleEvent = async (
         });
     }
 };
-
 // export const sendSequencialNotification = async (
 //     request: FastifyRequest<{ Params: { program_id: string, job_workflow_id: string } }>,
 //     reply: FastifyReply

@@ -42,8 +42,7 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
       schema:{
         params:paramsSchema
       }
-    },
-    customFieldController.deleteCustomField);
+    },customFieldController.deleteCustomField);
 
   fastify.get('/program/:program_id/custom-fields/search',{
     preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),

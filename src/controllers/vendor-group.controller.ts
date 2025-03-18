@@ -2,12 +2,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { vendorGroupInterface } from '../interfaces/vendor-group.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { baseSearch } from '../utility/baseService';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import VendorGroup from '../models/vendor-group.model';
 import { ProgramVendor } from '../models/program-vendor.model';
+import { sequelize } from '../config/instance';
+import { vendorGroupFilterQuery } from '../utility/queries';
 
 export const createVendorGroup = async (
   request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -294,10 +296,76 @@ export const deleteVendorGroup = async (request: FastifyRequest, reply: FastifyR
   }
 }
 
+export async function vendorGroupFilter(
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      id?: string;
+      vendor_group_name?: string;
+      is_enabled?: boolean | string;
+      updated_on?: any;
+      page?: string;
+      limit?: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params;
+    const { id, vendor_group_name, is_enabled, updated_on, page, limit } = request.body;
 
+    const isEnabledFilter =
+      typeof is_enabled === 'string'
+        ? is_enabled === 'true' ? 1 : 0
+        : is_enabled === true ? 1 : is_enabled === false ? 0 : undefined;
 
+    const pageNumber = parseInt(page ?? '1', 10);
+    const limitNumber = parseInt(limit ?? '10', 10);
+    const offset = (pageNumber - 1) * limitNumber;
 
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
 
+    const query = vendorGroupFilterQuery(
+      Boolean(id),
+      Boolean(vendor_group_name),
+      isEnabledFilter !== undefined,
+      hasUpdatedOnFilter
+    );
 
+    const replacements: Record<string, any> = {
+      program_id,
+      id,
+      vendor_group_name: vendor_group_name ? `%${vendor_group_name}%` : undefined,
+      limit: limitNumber,
+      offset,
+      is_enabled: isEnabledFilter,
+      updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+      updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+    };
 
+    const data = await sequelize.query<{ total_count: any }>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
 
+    const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: data.length > 0 ? 'Vendor Groups fetched successfully.' : 'No records found.',
+      total_records: totalRecords,
+      page: pageNumber,
+      limit: limitNumber,
+      items: data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}

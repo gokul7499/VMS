@@ -53,7 +53,7 @@ class JobTempletRepository {
     const hierarchyCondition = hierarchy_ids.length > 0
       ? `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
       : '';
-    const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
+      const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const paginationCondition = limit !== undefined && offset !== undefined
       ? `LIMIT ? OFFSET ?`
       : '';
@@ -89,7 +89,7 @@ class JobTempletRepository {
     `;
     const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
     if (job_type) {
-      replacements.push(job_type);
+      replacements.push(`"${job_type}"`); 
     }
     if (limit !== undefined && offset !== undefined) {
       replacements.push(limit, offset);
@@ -113,7 +113,7 @@ class JobTempletRepository {
     if (hierarchy_ids.length > 0) {
       hierarchyCondition = `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`;
     }
-    const jobTypeCondition = job_type ? `AND job_templates.job_type = ?` : '';
+    const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
     const query = `
       SELECT
@@ -143,7 +143,7 @@ class JobTempletRepository {
     `;
     const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
     if (job_type) {
-      replacements.push(job_type);
+      replacements.push(`"${job_type}"`); 
     }
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0); 
@@ -183,7 +183,7 @@ async getAllJobTemplateByHierarchy(
     hierarchyCondition,
     laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
     qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
-    jobTypeArray && jobTypeArray.length > 0 && `job_templates.job_type IN (${jobTypeArray.map(() => '?').join(',')})`,
+    jobTypeArray && jobTypeArray.length > 0 && `(${jobTypeArray.map(() => `JSON_CONTAINS(job_templates.job_type, JSON_QUOTE(?))`).join(' OR ')})`,
     name && `job_templates.template_name LIKE ?`,
     labour_category_id && `labour_category.id = ?`, 
     is_enabled !== undefined && `job_templates.is_enabled
@@ -273,21 +273,24 @@ async getAllJobTemplateByHierarchy(
 }
 
 
-  async programQuery(program_id: string): Promise<{ name: string }[]> {
-    const query = `
+async programQuery(program_id: string): Promise<{
+  unique_id: string; name: string
+}[]> {
+  const query = `
             SELECT
-                programs.name
-            FROM programs
+                programs.name,
+                programs.unique_id
+            FROM ${config_db}.programs
             WHERE programs.id = :program_id;
         `;
 
-    const data = await sequelize.query<{ name: string }>(query, {
-      replacements: { program_id },
-      type: QueryTypes.SELECT,
-    });
+  const data = await sequelize.query<{ name: string, unique_id: string }>(query, {
+    replacements: { program_id },
+    type: QueryTypes.SELECT,
+  });
 
-    return data;
-  }
+  return data;
+}
 
   async getAllJobTemplets(
     program_id: string,
@@ -537,6 +540,7 @@ async getAllJobTemplateByHierarchy(
 
     return hierarchyDetails;
   }
+
 }
 
 export default JobTempletRepository;

@@ -409,7 +409,7 @@ export const filterTimesheetExpenseRule = async (
             rule_type?: string;
             rule_category?: string;
             is_enabled?: boolean | string;
-            updated_on?: string;
+            updated_on?: string[];
             fields?: string[];  
             page?: number;
             limit?: number;
@@ -437,12 +437,8 @@ export const filterTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (updated_on) {
-            const dateRange = updated_on.split(',').map(date => {
-                const parsedDate = !isNaN(Number(date)) ? new Date(Number(date)) : new Date(date.trim());
-                return isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
-            }).filter(Boolean);
-        
+        if (updated_on && updated_on.length === 1) {
+            const dateRange = updated_on[0].split(',').map(date => Number(date.trim()));
             if (dateRange.length === 2) {
                 whereCondition.updated_on = { [Op.between]: dateRange };
             }

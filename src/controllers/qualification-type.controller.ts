@@ -570,7 +570,7 @@ export const  advancedSearchQualification = async (
       name?: string;
       type?: string;
       is_enabled?: boolean;
-      created_by?: string;
+     
       updated_by?: string;
     };
   }>,
@@ -590,12 +590,12 @@ export const  advancedSearchQualification = async (
     if (body.name) searchConditions.name = { [Op.like]: `%${body.name}%` };
     if (body.type) searchConditions.type = { [Op.like]: `%${body.type}%` };
     if (body.is_enabled !== undefined) searchConditions.is_enabled = body.is_enabled;
-    if (body.created_by) searchConditions.created_by = body.created_by;
+   
     if (body.updated_by) searchConditions.updated_by = body.updated_by;
 
     const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
       where: searchConditions,
-      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'created_on', 'created_by', 'type', 'program_id'],
+      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'type', 'program_id'],
       order: [['created_on', 'DESC']],
       limit,
       offset,
@@ -606,7 +606,7 @@ export const  advancedSearchQualification = async (
         status_code: 200,
         trace_id: traceId,
         message: "Qualification type not found",
-        qualificationTypes: [],
+        
       });
     }
 

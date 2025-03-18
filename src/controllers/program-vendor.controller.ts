@@ -852,6 +852,7 @@ export const getVendorDocuments = async (
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
+                    updated_on:doc.updated_on,
                     first_name: doc.first_name,
                     last_name: doc.last_name
                 },
@@ -964,7 +965,7 @@ export async function updateComplianceDocument(
         const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
         if (!expiryDate) return;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
+        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
 
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
@@ -983,7 +984,7 @@ export async function updateComplianceDocument(
                 user_id: user_id,
                 vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
-                uploaded_on: Date.now(),
+                uploaded_on: Date.now(),    
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
