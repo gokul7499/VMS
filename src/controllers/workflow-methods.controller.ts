@@ -326,8 +326,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         
             const eventId1 = eventId1Value?.dataValues?.id || null;
             const eventId2 = eventId2Value?.dataValues?.id || null;
-            console.log('Event Id 1', eventId1)
-            console.log('Event Id 2', eventId2)
         
             let item = await WorkflowMethod.findAll({
                 where: {
@@ -338,7 +336,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     ]
                 }
             });
-            console.log('item workflow details : ',item);
                   
             const createReviewMethod = item.find(
                 i => i.dataValues.event_id === eventId1 &&
@@ -356,12 +353,8 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 i => i.dataValues.event_id === eventId2 &&
                     i.dataValues.name?.trim().toLowerCase() == "approval"
             );
-            console.log(createReviewMethod);
-            console.log(updateReviewMethod);
-            console.log(createApprovalMethod);
-            console.log(updateApprovalMethod);
+
             if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
-                console.log('-------------- inside the if condition --------');
                 const response = [
                     {
                         ...createApprovalMethod.dataValues,
@@ -385,7 +378,6 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     is_enabled: true
                 }
             });
-            console.log('workflow details : ',workflows);
         
             if (!workflows.length) {
                 return reply.status(400).send({
