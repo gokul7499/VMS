@@ -103,20 +103,45 @@ class GlobalRepository {
             Array.isArray(group.fields) ? group.fields : []
         );
 
-        let maxValues: number[] = [];
-        if (allFields.length > 1 && allFields[1]?.value !== undefined) {
-            maxValues = [allFields[1].value];
-        } else {
-            maxValues = allFields
-                .filter((field: { value?: number }) => field.value !== undefined)
-                .map((field: { value: number }) => field.value);
+        const scaleLimit = parseInt(allFields[1].value, 10);
+        const threshold = parseInt(allFields[2].value, 10);
+        const scalingType = allFields[0].value;
+
+        const factor = Math.pow(10, scaleLimit);
+        switch (scalingType) {
+            case 'Round Up':
+                return GlobalRepository.roundUp(amount, threshold, scaleLimit, factor).toString();
+            case 'Round Down':
+                return GlobalRepository.roundDown(amount, threshold, scaleLimit, factor).toString();
+            case 'Truncate':
+                return GlobalRepository.truncate(amount, scaleLimit, factor).toString();
+            default:
+                return amount.toString();
         }
+    }
 
-        const maxAccuracy = maxValues.length > 0 ? Math.max(...maxValues) : 0;
-
-        const formattedAmount = amount.toFixed(maxAccuracy);
-
-        return formattedAmount;
+    private static roundUp(value: number, threshold: number, scaleLimit: number, factor: number): number {
+        let roundedValue = Math.ceil(value * factor) / factor;
+ 
+        if (threshold && value * factor - Math.floor(value * factor) >= threshold / 10) {
+            roundedValue = (Math.ceil(value * factor) + 1) / factor;
+        }
+        return roundedValue;
+       
+    }
+ 
+    private static roundDown(value: number, threshold: number, scaleLimit: number, factor: number): number {
+        let roundedValue = Math.floor(value * factor) / factor;
+ 
+        if (threshold && value * factor - Math.floor(value * factor) <= threshold / 10) {
+            roundedValue = (Math.floor(value * factor) - 1) / factor;
+        }
+ 
+        return roundedValue;
+    }
+ 
+    private static truncate(value: number, scaleLimit: number, factor: number): number {
+        return Math.floor(value * factor) / factor;
     }
 }
 
