@@ -1,17 +1,28 @@
 
 import { FastifyInstance } from 'fastify';
-import {
-    vendorComplianceDocumentById,
-    createVendorComplianceDocument,
-    deleteVendorComplianceDocumentById,
-    updateVendorComplianceDocumentById,
-    getAllVendorCompDocummentByProgramId,
-} from '../controllers/vendor-compliance-document.controller';
+import * as VendorDocumentController from '../controllers/vendor-compliance-document.controller';
+import { validatePermissions } from '../middlewares/vaildate-permissions';
+import { Actions, Permissions } from '../constants/permissions';
+
 async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
-    fastify.get('/program/:program_id/vendor-comp-doc/:id', vendorComplianceDocumentById);
-    fastify.post('/program/:program_id/vendor-comp-doc', createVendorComplianceDocument);
-    fastify.delete('/program/:program_id/vendor-comp-doc/:id', deleteVendorComplianceDocumentById);
-    fastify.put('/program/:program_id/vendor-comp-doc/:id', updateVendorComplianceDocumentById);
-    fastify.get('/program/:program_id/vendor-comp-doc', getAllVendorCompDocummentByProgramId)
+    fastify.get('/program/:program_id/vendor-comp-doc/:id', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.vendorComplianceDocumentById);
+
+    fastify.post('/program/:program_id/vendor-comp-doc', {
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.createVendorComplianceDocument);
+
+    fastify.delete('/program/:program_id/vendor-comp-doc/:id', {
+        preHandler: validatePermissions(Actions.DELETE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.deleteVendorComplianceDocumentById);
+
+    fastify.put('/program/:program_id/vendor-comp-doc/:id', {
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.updateVendorComplianceDocumentById);
+
+    fastify.get('/program/:program_id/vendor-comp-doc', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.getAllVendorCompDocummentByProgramId)
 }
 export default vendorComplianceDocumentRoutes;

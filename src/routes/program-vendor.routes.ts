@@ -1,56 +1,56 @@
 import { FastifyInstance } from "fastify";
-import * as ProgramVendor from "../controllers/program-vendor.controller";
+import * as ProgramVendorController from "../controllers/program-vendor.controller";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
 
 export default async function programVendorRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/program-vendor', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getProgramVendors);
+    }, ProgramVendorController.getProgramVendors);
 
     fastify.post('/program/:program_id/program-vendor/advance-filter', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.advanceFilter);
+    }, ProgramVendorController.advanceFilter);
 
     fastify.get('/program/:program_id/program-vendor/:id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getProgramVendorById);
+    }, ProgramVendorController.getProgramVendorById);
 
     fastify.get('/program/:program_id/program-vendor/user', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getProgramVendorByUserId);
+    }, ProgramVendorController.getProgramVendorByUserId);
 
     fastify.put('/program/:program_id/program-vendor/:id', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR])
-    }, ProgramVendor.updateProgramVendor);
+    }, ProgramVendorController.updateProgramVendor);
 
     fastify.put('/program/:program_id/program-vendor/user_id/:user_id', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR])
-    }, ProgramVendor.updateProgramVendorByUserId);
+    }, ProgramVendorController.updateProgramVendorByUserId);
 
     fastify.delete('/program/:program_id/program-vendor/:id', {
         preHandler: validatePermissions(Actions.DELETE, [Permissions.VENDOR])
-    }, ProgramVendor.deleteProgramVendor);
+    }, ProgramVendorController.deleteProgramVendor);
 
     fastify.post('/program/:program_id/program-vendor', {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR])
-    }, ProgramVendor.saveProgramVendor);
+    }, ProgramVendorController.saveProgramVendor);
 
     fastify.get('/program/:program_id/program-vendor/vendor-group', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getVendorAndVendorGroup);
+    }, ProgramVendorController.getVendorAndVendorGroup);
 
     fastify.get('/program/:program_id/program-vendor/required-document', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getVendorDocuments);
+    }, ProgramVendorController.getVendorDocuments);
 
     fastify.put('/program/:program_id/program-vendor/user', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR])
-    }, ProgramVendor.updateComplianceDocument);
+    }, ProgramVendorController.updateComplianceDocument);
 
     fastify.get('/program/:program_id/program-vendor/user/:user_id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
-    }, ProgramVendor.getComplianceDocument);
+    }, ProgramVendorController.getComplianceDocument);
 }
 
 
