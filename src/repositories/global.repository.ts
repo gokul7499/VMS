@@ -40,6 +40,84 @@ class GlobalRepository {
 
         return markupData;
     }
+
+    static async accuracyConfiguration(program_id: string, config_model: string): Promise<any[]> {
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    program_id,
+                    config_model,
+                    title,
+                    description,
+                    \`key\`,
+                    data_type,
+                    \`value\`,
+                    configuration_id
+                FROM programs_config
+                WHERE program_id = :program_id AND config_model = :config_model
+            `;
+
+            const replacements = { program_id, config_model };
+
+            const result = await sequelize.query(query, {
+                replacements,
+                type: QueryTypes.SELECT
+            });
+
+            if (!result.length) {
+                return [];
+            }
+
+            return result as any[];
+        } catch (error) {
+            console.error("Error fetching configuration:", error);
+            throw new Error("Failed to fetch accuracy configuration");
+        }
+    }
+
+    static findAndCalculate(configData: any[], title: string, amount: number): string {
+        if (!Array.isArray(configData)) {
+            console.error("Error: configData is not an array or is undefined");
+            return amount.toString();
+        }
+        if (amount === null || amount === undefined || isNaN(amount)) {
+            console.log("Invalid amount provided (null, undefined, or NaN):", amount);
+            return "0";
+        }
+        amount = Number(amount);
+        if (!Number.isFinite(amount)) {
+            console.log("Invalid amount provided (Not Finite):", amount);
+            return amount.toString();
+        }
+        const amountObject = configData
+            .find((item) => item.title === "Accuracy Configuration")
+            ?.value.find((val: { title: string }) => val.title === title);
+
+        if (!amountObject || !Array.isArray(amountObject.fields)) {
+            console.warn("Warning: 'Amount' configuration not found or has no fields");
+            return amount.toString();
+        }
+
+        const allFields = amountObject.fields.flatMap((group: { fields: any[] }) =>
+            Array.isArray(group.fields) ? group.fields : []
+        );
+
+        let maxValues: number[] = [];
+        if (allFields.length > 1 && allFields[1]?.value !== undefined) {
+            maxValues = [allFields[1].value];
+        } else {
+            maxValues = allFields
+                .filter((field: { value?: number }) => field.value !== undefined)
+                .map((field: { value: number }) => field.value);
+        }
+
+        const maxAccuracy = maxValues.length > 0 ? Math.max(...maxValues) : 0;
+
+        const formattedAmount = amount.toFixed(maxAccuracy);
+
+        return formattedAmount;
+    }
 }
 
 export default GlobalRepository;
