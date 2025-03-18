@@ -18,7 +18,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import ShiftType from '../models/shift-type.model';
 import RateConfigurationExpenses from '../models/rate-configuration-expenses.model';
 import ExpenseTypeModel from '../models/expense-type.model';
-import GlobalRepository from '../repositories/global.repository';
+import AccuracyConfiguration from '../utility/accuracy_configuration';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -1200,9 +1200,9 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
     const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
-        const configData = await GlobalRepository.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
+        const configData = await AccuracyConfiguration.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
         const formatWithAccuracy = (value: any, title: string): string => {
-            return GlobalRepository.findAndCalculate(configData, title, value);
+            return AccuracyConfiguration.findAndCalculate(configData, title, value);
         };
 
         const response = request.body.map((config) => {
