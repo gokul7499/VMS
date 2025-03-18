@@ -102,3 +102,15 @@ export interface RateConfigurationsBudget {
         }>;
     }>;
 }
+
+export enum accuracyType {
+    CONFIG_MODEL = "accuracy_configuration",
+    RATE = "Rate",
+    AMOUNT = "Amount",
+    HOUR = "hour",
+    MARKUP = "Markup",
+    FEE = "Fee",
+    TAX = "Tax",
+    ADJUSTMENT = "Adjustment",
+    UNIT_OF_MEASURE = "Unit of Measure"
+}
