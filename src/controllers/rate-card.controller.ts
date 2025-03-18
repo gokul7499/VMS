@@ -500,15 +500,15 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
             program_id,
             is_deleted: false,
         };
-
-        if (updated_on) {
-            const dateRange = updated_on.split(',');
-            if (dateRange.length === 2) {
-                const startDate = parseFloat(dateRange[0].trim());
-                const endDate = parseFloat(dateRange[1].trim());
-                whereConditions.updated_on = { [Op.between]: [startDate, endDate] };
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const dateRange = updated_on.map(timestamp => Number(timestamp));
+        
+            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
+                whereConditions.updated_on = { [Op.between]: dateRange };
             }
         }
+        
+        
         if (is_enabled !== undefined) {
             whereConditions.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
