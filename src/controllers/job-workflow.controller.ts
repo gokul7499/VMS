@@ -782,6 +782,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             type: QueryTypes.SELECT,
             replacements: { user_id: user.sub },
         });
+        let jobDatas: any;
+        if (workflow?.job_id) {
+            jobDatas = await getJobDetails(workflow?.job_id, program_id, token);
+        }
         let userType = userData[0]
         if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
 
@@ -791,6 +795,9 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 user_type: user?.userType,
                 fullName: managerData?.data?.first_name,
                 job_id: workflow?.event_title,
+                job_url: jobDatas
+                    ? `${SOURCE_BASE_URL}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    : '', 
                 status_reason: updates[0]?.reason
             };
 
