@@ -1,51 +1,28 @@
-
 import { FastifyInstance } from "fastify";
-import {
-    getInvoiceConfigById,
-    createInvoiceConfig,
-    deleteInvoiceConfigById,
-    updateInvoiceConfigById,
-    getAllInvoiceConfig
-
-} from "../controllers/invoice-config.controller";
+import * as InvoiceController from "../controllers/invoice-config.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
 
 async function invoiceConfigRoute(fastify: FastifyInstance) {
+
     fastify.post("/program/:program_id/invoice-config", {
-        // preHandler: validatePermissions,
-        // config: {
-        //     permissions: [Permissions.INVOICE_CONFIGURATION],
-        //     action: Actions.CREATE,
-        // },
-    }, createInvoiceConfig);
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.INVOICE_CONFIGURATION])
+    }, InvoiceController.createInvoiceConfig);
+
     fastify.get("/program/:program_id/invoice-configs", {
-        // preHandler: validatePermissions,
-        // config: {
-        //     permissions: [Permissions.INVOICE_CONFIGURATION],
-        //     action: Actions.READ,
-        // },
-    }, getAllInvoiceConfig);
+        preHandler: validatePermissions(Actions.READ, [Permissions.INVOICE_CONFIGURATION])
+    }, InvoiceController.getAllInvoiceConfig);
+
     fastify.get("/program/:program_id/invoice-config/:id", {
-        // preHandler: validatePermissions,
-        // config: {
-        //     permissions: [Permissions.INVOICE_CONFIGURATION],
-        //     action: Actions.READ,
-        // },
-    }, getInvoiceConfigById);
+        preHandler: validatePermissions(Actions.READ, [Permissions.INVOICE_CONFIGURATION])
+    }, InvoiceController.getInvoiceConfigById);
+
     fastify.put("/program/:program_id/invoice-config/:id", {
-        // preHandler: validatePermissions,
-        // config: {
-        //     permissions: [Permissions.INVOICE_CONFIGURATION],
-        //     action: Actions.UPDATE,
-        // },
-    }, updateInvoiceConfigById);
-    fastify.delete("/program/:program_id/invoice-config/:id", {
-        // preHandler: validatePermissions,
-        // config: {
-        //     permissions: [Permissions.INVOICE_CONFIGURATION],
-        //     action: Actions.DELETE,
-        // },
-    }, deleteInvoiceConfigById);
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.INVOICE_CONFIGURATION])
+    }, InvoiceController.updateInvoiceConfigById);
+
+    fastify.delete("/program/:program_id/invoice-config/:id", InvoiceController.deleteInvoiceConfigById);
+
 }
+
 export default invoiceConfigRoute;

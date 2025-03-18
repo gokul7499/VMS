@@ -49,3 +49,20 @@ interface Rate{
     differential_type?:string;
     differential_value:number;
 }
+
+export interface RateTypeQueryParams {
+    id?: string;
+    name?: string;
+    is_enabled?: boolean | string;
+    updated_on?: string;
+    is_shift_rate?: boolean | string;
+    is_base_rate?: boolean | string;
+    differential_on?: string;
+    rate_type_category?: string;
+    shift_type?: string;
+    rate_type_category_label?: string;
+    abbreviation?: string;
+    page?: string;
+    limit?: string;
+  }
+  
