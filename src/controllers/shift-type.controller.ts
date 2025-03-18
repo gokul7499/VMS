@@ -17,7 +17,7 @@ export async function getALLShiftType(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function getShiftTypeById(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
         const item = await ShiftTypeModel.findOne({
@@ -57,15 +57,15 @@ export async function createShiftType(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
     try {
@@ -80,20 +80,22 @@ export async function createShiftType(
                 trace_id: traceId,
             });
         }
-        const state_data: any = await ShiftTypeModel.create({ ...shiftType ,created_by: userId,
-            updated_by: userId,});
+        const state_data: any = await ShiftTypeModel.create({
+            ...shiftType, created_by: userId,
+            updated_by: userId,
+        });
         reply.status(201).send({
             status_code: 201,
             message: "shift type created succesfully",
             id: state_data.id,
             trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
-            trace_id:traceId,
-            error:error.message
+            trace_id: traceId,
+            error: error.message
         });
     }
 }
@@ -101,15 +103,15 @@ export async function createShiftType(
 export async function updateShiftType(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const shiftTypeData = request.body as ShiftTypeAttributes;
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
     try {
@@ -137,7 +139,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
                 });
             }
             console.log("existingShiftTypeWithSameName", existingShiftTypeWithSameName)
-            await shiftType.update(shiftTypeData,{where:{updated_by: userId}});
+            await shiftType.update(shiftTypeData, { where: { updated_by: userId } });
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -162,15 +164,15 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
 }
 export async function deleteShiftType(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
     try {
@@ -182,7 +184,7 @@ export async function deleteShiftType(request: FastifyRequest, reply: FastifyRep
             },
         });
         if (shiftType) {
-            await shiftType.update({ is_deleted: true ,updated_by: userId});
+            await shiftType.update({ is_deleted: true, updated_by: userId });
             reply.status(200).send({
                 status_code: 200,
                 trace_id: traceId,
@@ -216,7 +218,7 @@ export async function getShiftTypesByHierarchies(
         const searchFields: any = { is_deleted: false };
         let hierarchyArray;
         if (hierarchy_ids) {
-             hierarchyArray = hierarchy_ids.split(","); 
+            hierarchyArray = hierarchy_ids.split(",");
             searchFields.hierarchies = { [Op.in]: hierarchyArray };
         }
         if (shift_type_category) {
@@ -232,31 +234,31 @@ export async function getShiftTypesByHierarchies(
 
         const result = await sequelize.query(getShiftTypesByHierarchiesQuery, {
             replacements: {
-                program_id,                   
+                program_id,
                 hierarchy_ids: hierarchy_ids.split(','),
             },
             type: QueryTypes.SELECT,
         });
 
         if (result.length === 0) {
-            reply.status(200).send({status_code:200, trace_id: traceId, message: "Shift types not found", shift_types: [] });
+            reply.status(200).send({ status_code: 200, trace_id: traceId, message: "Shift types not found", shift_types: [] });
             return;
         }
 
         reply.status(200).send({
             status_code: 200,
-            message:" Shift types found",
+            message: " Shift types found",
             trace_id: traceId,
             total_records: result.length,
             shift_types: result,
         });
     } catch (error: any) {
-        reply.status(500).send({status_code:500, trace_id: traceId, error: "Internal Server Error" });
+        reply.status(500).send({ status_code: 500, trace_id: traceId, error: "Internal Server Error" });
     }
 }
 
 export async function getShiftCategories(request: FastifyRequest, reply: FastifyReply) {
-    const traceId=generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const categories = await ShiftTypeModel.findAll({
@@ -266,7 +268,7 @@ export async function getShiftCategories(request: FastifyRequest, reply: Fastify
             },
             attributes: [[sequelize.fn('DISTINCT', sequelize.col('shift_type_category')), 'shift_type_category']]
         });
-    
+
         if (categories) {
             const categoryValues = categories.map((category: any) => category.shift_type_category);
             reply.status(200).send({
@@ -293,9 +295,9 @@ export async function getShiftCategories(request: FastifyRequest, reply: Fastify
     }
 }
 
-export const  getShiftTypeFilter = async (
-    request: FastifyRequest<{
-      Body: {
+export const getShiftTypeFilter = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId = generateCustomUUID();
+    const body = request.body as {
         program_id?: string;
         id?: string;
         shift_type_name?: string;
@@ -304,59 +306,53 @@ export const  getShiftTypeFilter = async (
         updated_on?: string;
         page?: number;
         limit?: number;
-      };
-    }>,
-    reply: FastifyReply
-  ) =>{
-    const traceId = generateCustomUUID();
-    const body = request.body;
-  
+    };
+
     const page = body.page ?? 1;
     const limit = body.limit ?? 10;
-  
+
     const whereClause: any = {};
-  
+
     if (body.program_id) whereClause.program_id = body.program_id;
     if (body.id) whereClause.id = body.id;
     if (body.shift_type_name) whereClause.shift_type_name = { [Op.like]: `%${body.shift_type_name}%` };
     if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
     if (body.shift_type_category) whereClause.shift_type_category = { [Op.like]: `%${body.shift_type_category}%` };
     if (body.updated_on) whereClause.updated_on = { [Op.like]: `%${body.updated_on}%` };
-  
+
     try {
-      const { rows: shiftTypes, count } = await ShiftTypeModel.findAndCountAll({
-        where: whereClause,
-        attributes: [
-          "program_id",
-          "id",
-          "shift_type_name",
-          "is_enabled",
-          "shift_type_category",
-          "updated_on",
-          "shift_type_time",
-          "time_duration",
-        ],
-        order: [["updated_on", "DESC"]],
-        offset: (page - 1) * limit,
-        limit: limit,
-      });
-  
-      return reply.status(200).send({
-        status_code: 200,
-        shift_types: shiftTypes,
-        total_records: count,
-        page: page,
-        limit: limit,
-        message: "Shift Types fetched successfully",
-        trace_id: traceId,
-      });
+        const { rows: shiftTypes, count } = await ShiftTypeModel.findAndCountAll({
+            where: whereClause,
+            attributes: [
+                "program_id",
+                "id",
+                "shift_type_name",
+                "is_enabled",
+                "shift_type_category",
+                "updated_on",
+                "shift_type_time",
+                "time_duration",
+            ],
+            order: [["updated_on", "DESC"]],
+            offset: (page - 1) * limit,
+            limit: limit,
+        });
+
+        return reply.status(200).send({
+            status_code: 200,
+            shift_types: shiftTypes,
+            total_records: count,
+            page: page,
+            limit: limit,
+            message: "Shift Types fetched successfully",
+            trace_id: traceId,
+        });
     } catch (error) {
-      return reply.status(500).send({
-        status_code: 500,
-        message: "An error occurred while fetching shift types",
-        error: error,
-        trace_id: traceId,
-      });
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while fetching shift types",
+            error: error,
+            trace_id: traceId,
+        });
     }
-  }
-  
+}

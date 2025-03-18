@@ -1,91 +1,57 @@
 
 import { FastifyInstance } from "fastify";
-import {
-    createExpenseType,
-    getExpenseTypeById,
-    updateExpenseTypeById,
-    deleteExpenseTypeById,
-    getAllExpenseType,
-    advancefilter
-} from "../controllers/expense-type.controller";
+import * as ExpenseTypeController from "../controllers/expense-type.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 import { createExpenseTypeSchema, paramsSchema, querySchema } from "../interfaces/expense-type.interface";
 
 async function expenseTypeRoute(fastify: FastifyInstance) {
-    fastify.get("/program/:program_id/expense-type/:id",
-        {
-    //     // preHandler:validatePermissions,
-    //     // config:{
-    //     //     Permissions:[Permissions.EXPENSE_TYPE],
-    //     //     action:Actions.READ
-    //     // }
-    
+
+    fastify.get("/program/:program_id/expense-type/:id", {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        }
-    }
-    ,getExpenseTypeById);
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+    }, ExpenseTypeController.getExpenseTypeById);
 
-    
-    fastify.post("/program/:program_id/expense-type",{
-        // preHandler:validatePermissions,
-        // config:{
-        //     Permissions:[Permissions.EXPENSE_TYPE],
-        //     action:Actions.CREATE
-        // }
+    fastify.post("/program/:program_id/expense-type", {
         schema: {
             params: paramsSchema,
             body: createExpenseTypeSchema,
-        }
-    }, createExpenseType);
+        },
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.EXPENSE_TYPE])
+    }, ExpenseTypeController.createExpenseType);
 
-    fastify.delete("/program/:program_id/expense-type/:id",{
-        // preHandler:validatePermissions,
-        // config:{
-        //     Permissions:[Permissions.EXPENSE_TYPE],
-        //     action:Actions.DELETE
-        // }
+    fastify.delete("/program/:program_id/expense-type/:id", {
         schema: {
             params: paramsSchema,
         }
+    }, ExpenseTypeController.deleteExpenseTypeById);
 
-    }, deleteExpenseTypeById);
-
-    fastify.put("/program/:program_id/expense-type/:id",{
-        // preHandler:validatePermissions,
-        // config:{
-        //     Permissions:[Permissions.EXPENSE_TYPE],
-        //     action:Actions.UPDATE
-        // }
+    fastify.put("/program/:program_id/expense-type/:id", {
         schema: {
             body: createExpenseTypeSchema,
             params: paramsSchema,
-        }
-    }, updateExpenseTypeById);
-    
-    fastify.get("/program/:program_id/expense-type",{
-        // preHandler:validatePermissions,
-        // config:{
-        //     Permissions:[Permissions.EXPENSE_TYPE],
-        //     action:Actions.READ
-        // },
+        },
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_TYPE])
+    }, ExpenseTypeController.updateExpenseTypeById);
+
+    fastify.get("/program/:program_id/expense-type", {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        }
-    }, getAllExpenseType);
-    fastify.post("/program/:program_id/expense-type/advancefilter",{
-        // preHandler:validatePermissions,
-        // config:{
-        //     Permissions:[Permissions.EXPENSE_TYPE],
-        //     action:Actions.READ
-        // },
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+    }, ExpenseTypeController.getAllExpenseType);
+
+    fastify.post("/program/:program_id/expense-type/advancefilter", {
         schema: {
             params: paramsSchema,
-            // querystring: querySchema,
-        }
-    }, advancefilter);
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+    }, ExpenseTypeController.advancefilter);
+
 }
+
 export default expenseTypeRoute;

@@ -1,54 +1,64 @@
 import { FastifyInstance } from 'fastify';
-import {
-    createTimesheetTypeConfig,
-    getAllTimesheetTypeConfigs,
-    getTimesheetTypeConfigById,
-    updateTimesheetTypeConfig,
-    deleteTimesheetTypeConfig,
-    timesheetTypeConfigFilter,
-    getAllRelatedDataByProgram
-} from '../controllers/timesheet-type-config.controller';
+import * as TimesheetTypeConfigController from '../controllers/timesheet-type-config.controller';
 import { createTimesheetTypeConfigSchema, paramsSchema, querySchema, timesheetTypeConfigFilterSchema } from '../interfaces/timesheet-config.interface';
+import { validatePermissions } from '../middlewares/vaildate-permissions';
+import { Actions, Permissions } from '../constants/permissions';
 
-export default async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
-    fastify.post('/timesheet-type-config',{
+async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
+
+    fastify.post('/timesheet-type-config', {
         schema: {
             params: paramsSchema,
-           body:createTimesheetTypeConfigSchema
-        }
-    }, createTimesheetTypeConfig);
-    fastify.get('/timesheet-type-config/get-all',{
+            body: createTimesheetTypeConfigSchema
+        },
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.createTimesheetTypeConfig);
+
+    fastify.get('/timesheet-type-config/get-all', {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        }
-    }, getAllTimesheetTypeConfigs);
-    fastify.get('/timesheet-type-config/get',{
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.getAllTimesheetTypeConfigs);
+
+    fastify.get('/timesheet-type-config/get', {
         schema: {
             params: paramsSchema,
-        }
-    }, getAllRelatedDataByProgram);
-    fastify.get('/timesheet-type-config/:id',{
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.getAllRelatedDataByProgram);
+
+    fastify.get('/timesheet-type-config/:id', {
         schema: {
             params: paramsSchema,
-        }
-    }, getTimesheetTypeConfigById);
-    fastify.put('/timesheet-type-config/:id',{
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.getTimesheetTypeConfigById);
+
+    fastify.put('/timesheet-type-config/:id', {
         schema: {
             params: paramsSchema,
-            body:createTimesheetTypeConfigSchema
-        }
-    }, updateTimesheetTypeConfig);
+            body: createTimesheetTypeConfigSchema
+        },
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.updateTimesheetTypeConfig);
+
     fastify.delete('/timesheet-type-config/:id', {
         schema: {
             params: paramsSchema,
-            body:createTimesheetTypeConfigSchema
+            body: createTimesheetTypeConfigSchema
         }
-    },deleteTimesheetTypeConfig);
-    fastify.post('/timesheet-type-config/advanced-filter',{
+    }, TimesheetTypeConfigController.deleteTimesheetTypeConfig);
+
+    fastify.post('/timesheet-type-config/advanced-filter', {
         schema: {
             params: paramsSchema,
-            body:timesheetTypeConfigFilterSchema
-        }
-    }, timesheetTypeConfigFilter);
+            body: timesheetTypeConfigFilterSchema
+        },
+        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+    }, TimesheetTypeConfigController.timesheetTypeConfigFilter);
+
 }
+
+export default timesheetTypeConfigRoutes;

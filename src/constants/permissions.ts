@@ -1,6 +1,7 @@
 export const Permissions = {
   PROGRAM: "srn:vms:config:program",
   HIERARCHY: "srn:vms:config:program:hierarchy",
+  MASTER_DATA: "srn:vms:config:dm:md",
   WORK_LOCATION: "srn:vms:config:program:wl",
   WORKFLOW: "srn:vms:config:program:workflow",
   SUPPORTING_TEXT: "srn:vms:config:program:st",
@@ -24,7 +25,7 @@ export const Permissions = {
   RATE_CARD: "srn:vms:config:rate:rcd",
   SHIFT_TYPE: "srn:vms:config:shift:st",
   SHIFT_CONFIGURATION: "srn:vms:config:shift:sc",
-  QUALIFICATION: "srn:vms:config:job:qualification:q",
+  QUALIFICATION: "srn:vms:config:job:qualifications",
   JOB_TEMPLATE: "srn:vms:config:job:jt",
   CUSTOM_FIELD: "srn:vms:config:dm:cf",
   RESON_CODE: "srn:vms:config:dm:rc",
@@ -53,5 +54,12 @@ export const Actions = {
   VIEW_DNR_FLAG: 'V_DNR',
   EDIT_DNR_FLAG: 'E_DNR',
   VIEW_CREDENTIAL_STATUS: 'V_CRD_ST',
-  VIEW_CANDIDATE: 'V_CAN'
+  VIEW_CANDIDATE: 'V_CAN',
+  VIEW_VENDOR_DETAILS: 'V_VDR_DTLS',
+  EDIT_VENDOR_DETAILS: 'E_VDR_DTLS',
+  VIEW_COMPLIANCE_DOCUMNET: 'V_CMPL_DOC',
+  UPLOAD_COMPLIANCE_DOCUMNET: 'UPLD_CMPL_DOC',
+  VIEW_VENDOR_USER: 'V_USR',
+  CREATE_VENDOR_USER: 'C_USR',
+  EDIT_VENDOR_USER: 'E_USR',
 };
