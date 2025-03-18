@@ -1,42 +1,54 @@
 import { FastifyInstance } from 'fastify';
-import { createSupportingText, getAllSupportingTexts, getSupportingText, updateSupportingText, deleteSupportingText,getAllSupportingTextsAdvancedFilter } from '../controllers/supporting-text.controller';
+import * as SupportingTextController from '../controllers/supporting-text.controller';
 import { createsupportingTextSchema, paramsSchema, querySchema } from '../interfaces/supporting-text.interface';
+import { validatePermissions } from '../middlewares/vaildate-permissions';
+import { Actions, Permissions } from '../constants/permissions';
 
 async function supportingTextRoutes(fastify: FastifyInstance) {
+
   fastify.post('/supporting-text', {
     schema: {
-      body:createsupportingTextSchema,
-  }
-  },createSupportingText);
+      body: createsupportingTextSchema,
+    },
+    preHandler: validatePermissions(Actions.CREATE, [Permissions.SUPPORTING_TEXT])
+  }, SupportingTextController.createSupportingText);
+
   fastify.get('/program/:program_id/supporting-text',
     {
       schema: {
         params: paramsSchema,
         querystring: querySchema,
-    }
-    }, getAllSupportingTexts);
-  fastify.get('/program/:program_id/supporting-text/:id',{
+      },
+      preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+    }, SupportingTextController.getAllSupportingTexts);
+
+  fastify.get('/program/:program_id/supporting-text/:id', {
     schema: {
       params: paramsSchema,
       querystring: querySchema,
-  }
-  } ,getSupportingText);
+    },
+    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+  }, SupportingTextController.getSupportingText);
+
   fastify.put('/supporting-text/:id', {
     schema: {
-      body:createsupportingTextSchema,
-  }
-  },updateSupportingText);
-  fastify.delete('/program/:program_id/supporting-text/:id',{
-    schema: {
-      params: paramsSchema,
-  }
-  }, deleteSupportingText);
+      body: createsupportingTextSchema,
+    },
+    preHandler: validatePermissions(Actions.UPDATE, [Permissions.SUPPORTING_TEXT])
+  }, SupportingTextController.updateSupportingText);
 
-  fastify.post('/program/:program_id/supporting-text-advanced-filter',{
+  fastify.delete('/program/:program_id/supporting-text/:id', {
     schema: {
       params: paramsSchema,
-  }
-  }, getAllSupportingTextsAdvancedFilter);
+    }
+  }, SupportingTextController.deleteSupportingText);
+
+  fastify.post('/program/:program_id/supporting-text-advanced-filter', {
+    schema: {
+      params: paramsSchema,
+    },
+    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+  }, SupportingTextController.getAllSupportingTextsAdvancedFilter);
 }
 
 

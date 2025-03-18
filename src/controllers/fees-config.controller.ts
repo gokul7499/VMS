@@ -186,10 +186,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
 }
 
 
-export async function deleteFeesConfigurationById(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-) {
+export async function deleteFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -202,7 +199,7 @@ export async function deleteFeesConfigurationById(
   }
   const userId = user?.sub
   try {
-    const { id } = request.params;
+    const { id } = request.params as { id: string };
     const [feesConfig] = await feesConfiguration.update(
       {
         is_deleted: true,
