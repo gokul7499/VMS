@@ -84,8 +84,12 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
     await Promise.all([
       ...(work_location_ids?.map((work_location_id: string) => createCustomFieldLocations(custom_field_id, work_location_id, program_id)) || []),
       ...(hierarchy_ids?.map((hierarchy_id: string) => saveCustomFieldsHierarchies(custom_field_id, hierarchy_id, program_id)) || []),
-      ...(master_data_id?.map((master_data_id: string) => saveCustomFieldsMasterData(master_data_id, custom_field_id)) || []),
-    ]);
+      ...(Array.isArray(master_data_id)
+      ? master_data_id.map((m_id: string) => saveCustomFieldsMasterData(custom_field_id, m_id))
+      : master_data_id
+        ? [saveCustomFieldsMasterData(custom_field_id, master_data_id)]
+        : []
+    )    ]);
 
     logSuccess(traceId, user, request, program_id);
     return reply.status(201).send({
