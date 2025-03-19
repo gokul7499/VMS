@@ -932,12 +932,12 @@ export const getPicklistFilter = async (
       defined_by?: string;
       is_deleted?: boolean;
       is_enabled?: boolean;
-      created_on?: { from?: string; to?: string };
+      updated_on?: string[];
     };
   }>,
   reply: FastifyReply
 ) => {
-  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, created_on } =
+  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, updated_on } =
     request.body;
 
   let picklistData;
@@ -952,12 +952,11 @@ export const getPicklistFilter = async (
     if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled;
 
 
-    if (created_on?.from || created_on?.to) {
-      whereCondition.created_on = {};
-      if (created_on.from) whereCondition.created_on["$gte"] = created_on.from;
-      if (created_on.to) whereCondition.created_on["$lte"] = created_on.to;
-    }
-
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      whereCondition.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+  }
+  
     picklistData = await picklist_model.findAll({
       where: whereCondition,
       include: [
@@ -972,7 +971,7 @@ export const getPicklistFilter = async (
           },
           required: false,
           attributes: {
-            exclude: ["created_on", "updated_on", "created_by", "updated_by"],
+            exclude: ["created_on", "created_by", "updated_by"],
             include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
           },
         },
@@ -1017,6 +1016,7 @@ export const getPicklistFilter = async (
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        updated_on:picklist.updated_on,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({
             id: item.id,
