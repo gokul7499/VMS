@@ -392,7 +392,7 @@ export async function getHolidayCalendarAdvancedFilter(
      Body: { name?: string,
       year?: number,
       is_enabled?: string,
-      updated_on?: string, 
+      updated_on?: string[], 
       page?: string, 
       limit?: string } }>, reply: FastifyReply) {
   const traceId = generateCustomUUID();
@@ -420,19 +420,10 @@ export async function getHolidayCalendarAdvancedFilter(
       if (is_enabled !== undefined) {
           filterConditions.is_enabled = is_enabled === 'true';
       }
-      if (updated_on) {
-          const modifiedOnRange = updated_on.split(',').map(Number);
-          if (modifiedOnRange.length === 2) {
-              filterConditions.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
-          } else {
-              return reply.status(400).send({
-                  status_code: 400,
-                  message: 'Invalid updated_on range. Provide two comma-separated timestamps.',
-                  trace_id: traceId,
-              });
-          }
-      }
-
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+        filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+    }
       const offset = (pageNum - 1) * limitNum;
       const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
           where: filterConditions,

@@ -458,7 +458,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
         Body: {
             performed_by?: string;
             event_slug?: string;
-            date_range?: string;
+            updated_on?: string[];
             module_name?: string;
             event_name?: string;
             pagination?: { page?: number; limit?: number };
@@ -472,7 +472,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
         const {
             performed_by,
             event_slug,
-            date_range,
+            updated_on,
             event_name,
             module_name,
             pagination = { page: 1, limit: 10 },
@@ -484,23 +484,10 @@ export const getAllSupportingTextsAdvancedFilter = async (
         if (performed_by) {
             whereConditions.performed_by = performed_by;
         }
-
-        if (date_range) {
-            const [startDate, endDate] = date_range.split(',').map((ts) => parseInt(ts, 10));
-            whereConditions[Op.or] = [
-                {
-                    created_on: {
-                        [Op.between]: [new Date(startDate), new Date(endDate)],
-                    },
-                },
-                {
-                    updated_on: {
-                        [Op.between]: [new Date(startDate), new Date(endDate)],
-                    },
-                },
-            ];
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+            whereConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
-
         const includeConditions: any[] = [
             {
                 model: Event,
@@ -543,6 +530,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
             is_enabled: text.is_enabled,
             is_deleted: text.is_deleted,
             created_on: text.created_on,
+            updated_on: text.updated_on,
             event_id: {
                 id: text.event?.id,
                 name: text.event?.name,

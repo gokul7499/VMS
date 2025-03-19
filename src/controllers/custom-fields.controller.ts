@@ -887,7 +887,13 @@ export const advanceFilterCustomFiled = async(
   if (body.label) whereClause.label = { [Op.like]: `%${body.label}%` };
   if (body.field_type) whereClause.field_type = { [Op.like]: `%${body.field_type}%` };
   if (body.is_required !== undefined) whereClause.is_required = body.is_required;
-  if (body.updated_on) whereClause.updated_on = { [Op.like]: `%${body.updated_on}%` };
+  if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
+    const [startDate, endDate] = body.updated_on.map(date => new Date(date).getTime());
+  
+    if (!isNaN(startDate) && !isNaN(endDate)) {
+      whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+    }
+  }
 
   try {
     const result = await CustomField.findAndCountAll({
