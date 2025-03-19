@@ -290,7 +290,21 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
     }
 }
 
-export async function getAllFoundationalDataTypes(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllFoundationalDataTypes(
+    request: FastifyRequest<{
+        Querystring: {
+            name?: string;
+            is_enabled?: string;
+            updated_on?: string;
+            timesheet_master_data?: string;
+            user_association_exclude?: string;
+            page?: string;
+            limit?: string;
+            track_owner?:string
+        };
+    }>,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
     const responseFields = [
         'id',
@@ -311,16 +325,7 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
         page = '1',
         limit = '10',
         track_owner
-    } = request.query as {
-        name?: string;
-        is_enabled?: string;
-        updated_on?: string;
-        timesheet_master_data?: string;
-        user_association_exclude?: string;
-        page?: string;
-        limit?: string;
-        track_owner?: string;
-    };
+    } = request.query;
 
     try {
         const filters: any = { program_id, is_deleted: false };
@@ -400,7 +405,7 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
             foundationalData: populatedFoundationalData,
             trace_id: traceId,
         });
-    } catch (error: any) {
+    } catch (error:any) {
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
@@ -536,3 +541,4 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         });
     }
 }
+

@@ -1,39 +1,26 @@
 import { FastifyInstance } from 'fastify';
-import * as WorklocationController from '../controllers/work-location.controller';
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
+import {
+    getWorkLocationById,
+    createWorkLocation,
+    updateWorkLocation,
+    deleteWorkLocationById,
+    getAllWorkLocations,
+    getAllWorkLocationsCountry,
+    getAllCountry,
+    getWorkLocationsAdvancedFilter
+} from '../controllers/work-location.controller';
 
 async function workLocationRoutes(fastify: FastifyInstance) {
+    fastify.post('/work-location', createWorkLocation);
+    fastify.get('/program/:program_id/work-location', getAllWorkLocations)
+    fastify.get('/program/:program_id/work-location/:id', getWorkLocationById);
+    fastify.put('/work-location/:id', updateWorkLocation);
+    fastify.delete('/program/:program_id/work-location/:id', deleteWorkLocationById);
+    fastify.get('/program/:program_id/work-location-country', getAllWorkLocationsCountry);
+    fastify.get('/program/:program_id/work-location-countries', getAllCountry);
+    fastify.post('/program/:program_id/work-location-advanced-filter', getWorkLocationsAdvancedFilter)
 
-    fastify.post('/work-location', {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.WORK_LOCATION])
-    }, WorklocationController.createWorkLocation);
 
-    fastify.get('/program/:program_id/work-location', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.WORK_LOCATION])
-    }, WorklocationController.getAllWorkLocations);
-
-    fastify.get('/program/:program_id/work-location/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.WORK_LOCATION])
-    }, WorklocationController.getWorkLocationById);
-
-    fastify.put('/work-location/:id', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.WORK_LOCATION])
-    }, WorklocationController.updateWorkLocation);
-
-    fastify.delete('/program/:program_id/work-location/:id', WorklocationController.deleteWorkLocationById);
-
-    fastify.get('/program/:program_id/work-location-country', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.WORK_LOCATION])
-    }, WorklocationController.getAllWorkLocationsCountry);
-
-    fastify.get('/program/:program_id/work-location-countries', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.WORK_LOCATION])
-    }, WorklocationController.getAllCountry);
-
-    fastify.post('/program/:program_id/work-location-advanced-filter', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.WORK_LOCATION])
-    }, WorklocationController.getWorkLocationsAdvancedFilter);
 }
 
 export default workLocationRoutes;

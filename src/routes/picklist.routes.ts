@@ -1,69 +1,58 @@
 import { FastifyInstance } from 'fastify';
-import * as pickListController from '../controllers/picklist.controller';
+import {
+  createPicklist,
+  updatePicklistAndItem,
+  deletePicklist,
+  getPicklistById,
+  getPicklistAndPicklistItem,
+  getAllPickListByProgramId,
+  createPicklistData,
+  deletePredefinedPicklist,
+   getPicklistFilter
+} from '../controllers/picklist.controller';
 import { createPicklistSchema, paramsSchema, querySchema } from '../interfaces/picklist.interface';
-import { validatePermissions } from "../middlewares/vaildate-permissions";
-import { Actions, Permissions } from "../constants/permissions";
-
 
 async function picklistRoutes(fastify: FastifyInstance) {
-
   fastify.get('/program/:program_id/picklist', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
       querystring: querySchema,
     }
-  }, pickListController.getPicklistById);
-
+  }, getPicklistById);
   fastify.post('/program/:program_id/picklist', {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.PICKLIST]),
     schema: {
       body: createPicklistSchema,
     }
-  }, pickListController.createPicklist);
-
+  }, createPicklist);
   fastify.put('/program/:program_id/picklist/:id', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
     schema: {
       body: createPicklistSchema,
       params: paramsSchema,
     }
-  }, pickListController.updatePicklistAndItem);
-
+  }, updatePicklistAndItem);
   fastify.post('/predefined-picklist', {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.PICKLIST]),
     schema: {
       body: createPicklistSchema,
     }
-  }, pickListController.createPicklistData);
-
+  }, createPicklistData);
   fastify.put('/program/:program_id/delete-picklist/:id', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
     schema: {
       params: paramsSchema
     }
-  }, pickListController.deletePicklist);
-
+  }, deletePicklist);
   fastify.get('/program/:program_id/picklist/:picklist_id', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
       params: paramsSchema,
       querystring: querySchema,
     }
-  }, pickListController.getPicklistAndPicklistItem);
-
+  }, getPicklistAndPicklistItem);
   fastify.get('/get-all/pickList', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
       querystring: querySchema,
     }
-  }, pickListController.getAllPickListByProgramId);
-
+  }, getAllPickListByProgramId)
   fastify.put('/delete-picklist/:id', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
-  }, pickListController.deletePredefinedPicklist);
-
-  fastify.post('/program/:program_id/picklist/advance-filter', pickListController.getPicklistFilter);
-
+  }, deletePredefinedPicklist);
+  fastify.post('/program/:program_id/picklist/advance-filter', getPicklistFilter);
 }
 
 

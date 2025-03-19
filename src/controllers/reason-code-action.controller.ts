@@ -39,7 +39,9 @@ export async function createReasoncode(
             reason_codes: Array<{
                 name: string;
                 category: string;
-                is_enabled: boolean
+                is_enabled: Boolean
+
+
             }>;
         };
 
@@ -53,7 +55,7 @@ export async function createReasoncode(
             slug: reasoncode.slug,
         });
 
-        await ReasonCodeModel.bulkCreate(
+        const reasonCodes = await ReasonCodeModel.bulkCreate(
             reasoncode.reason_codes.map((reason) => ({
                 name: reason.name,
                 category: reason.category,
@@ -132,12 +134,12 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
             order: [
                 [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'], // Place NULL modules last
                 [{ model: Module, as: 'module' }, 'name', 'ASC'],
-                ['updated_on', 'DESC'],
+                ['updated_on', 'DESC'], 
             ],
             limit: limitNumber,
             offset,
         });
-
+        
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
             const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
@@ -173,12 +175,15 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
     }
 }
 
-export async function getReasoncodeById(request: FastifyRequest, reply: FastifyReply) {
+export async function getReasoncodeById(
+    request: FastifyRequest<{ Params: { program_id?: string; id: string } }>,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
     let transaction = await sequelize.transaction();
 
     try {
-        const { program_id, id } = request.params as { program_id?: string; id: string };
+        const { program_id, id } = request.params;
 
         let reasonCodeResponse = null;
 
@@ -353,12 +358,19 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
             error: error.message || error,
         });
     }
-};
+}
+;
 
-export async function getReasoncodeByEventName(request: FastifyRequest, reply: FastifyReply) {
+
+export async function getReasoncodeByEventName(
+    request: FastifyRequest<{ Params: { event_slug: string } }>,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
     try {
-        const { event_slug } = request.query as { event_slug?: string };
+        const { event_slug } = request.query as {
+            event_slug?: string
+        };
         const event = await Event.findOne({ where: { slug: event_slug } });
         const eventId = event?.dataValues?.id;
         const reason_code = await ReasonCodeActionModel.findOne({
@@ -668,7 +680,7 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
 
 export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-
+    
     try {
         const {
             page = 1,
@@ -731,11 +743,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             limit: limitNumber,
             offset,
         });
-
+        
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
             const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
             const enabledReasonsCount = reasoncode.reasons_count || 0;
-
+            
             return {
                 ...reasoncodeWithoutReason,
                 reasons_count: enabledReasonsCount,

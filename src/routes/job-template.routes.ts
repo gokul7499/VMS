@@ -1,61 +1,48 @@
 import { FastifyInstance } from "fastify";
-import * as JobTemplateController from "../controllers/job-template.controller";
+import {
+  getAllJobTemplates,
+  getJobTemplateById,
+  createJobTemplate,
+  updateJobTemplate,
+  deleteJobTemplate,
+  getJobTemplatesByHierarchies,
+  getAllJobTemplateHierarchyById,
+  getMostUsedJobTemplates,
+  getAllJobTempletsByHierarchies,
+  findJobTemplatesByHierarchyIds,
+  findJobTemplatesByLabourCategories,
+  getCommonHierarchies,
+  uploadFile,
+  advanceFilterJobTemplates
+} from "../controllers/job-template.controller";
 import fastifyMultipart from "@fastify/multipart";
-import { validatePermissions } from "../middlewares/vaildate-permissions";
-import { Permissions, Actions } from "../constants/permissions";
-
 async function jobTemplate(fastify: FastifyInstance) {
   fastify.register(fastifyMultipart);
-
-  fastify.get("/program/:program_id/job-template", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getAllJobTemplates);
-
-  fastify.get("/program/:program_id/job-template/:id", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getJobTemplateById);
-
-  fastify.post("/program/:program_id/job-template", {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.createJobTemplate);
-
-  fastify.put("/program/:program_id/job-template/:id", {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.updateJobTemplate);
-
-  fastify.delete("/program/:program_id/job-template/:id", JobTemplateController.deleteJobTemplate);
-
-  fastify.post("/program/:program_id/get-job-templates", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getJobTemplatesByHierarchies);
-
-  fastify.get("/program/:program_id/recent-job-templates", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getAllJobTemplateHierarchyById);
-
-  fastify.get("/program/:program_id/popular-job-templates", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getMostUsedJobTemplates);
-
+  fastify.get("/program/:program_id/job-template", getAllJobTemplates);
+  fastify.get("/program/:program_id/job-template/:id", getJobTemplateById);
+  fastify.post("/program/:program_id/job-template", createJobTemplate);
+  fastify.put("/program/:program_id/job-template/:id", updateJobTemplate);
+  fastify.delete("/program/:program_id/job-template/:id", deleteJobTemplate);
+  fastify.post("/program/:program_id/get-job-templates", getJobTemplatesByHierarchies);
+  fastify.get("/program/:program_id/recent-job-templates", getAllJobTemplateHierarchyById);
+  fastify.get("/program/:program_id/popular-job-templates", getMostUsedJobTemplates);
   fastify.get(
-    "/program/:program_id/job-templates", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getAllJobTempletsByHierarchies);
-
-  fastify.get("/program_id/:program_id/job-templates/labour-categories", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.findJobTemplatesByLabourCategories);
-
-  fastify.post("/program/:program_id/job-templates-by-hierarchy", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.findJobTemplatesByHierarchyIds);
-
-  fastify.get("/program/:program_id/common-hierarchies", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.getCommonHierarchies);
-
-  fastify.post("/upload-file", JobTemplateController.uploadFile);
-
+    "/program/:program_id/job-templates",
+    getAllJobTempletsByHierarchies
+  );
+  fastify.get(
+    "/program_id/:program_id/job-templates/labour-categories",
+    findJobTemplatesByLabourCategories
+  );
+  fastify.post(
+    "/program/:program_id/job-templates-by-hierarchy",
+    findJobTemplatesByHierarchyIds
+  );
+  fastify.get(
+    "/program/:program_id/common-hierarchies",
+    getCommonHierarchies
+  );
+  fastify.post("/upload-file", uploadFile);
+  fastify.post("/program/:program_id/job-template/advance-filter", advanceFilterJobTemplates);
 }
-
 export default jobTemplate;

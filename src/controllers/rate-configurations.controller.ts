@@ -1196,7 +1196,7 @@ function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, 
     });
 }
 
-export async function getAllRateConfigurationBudget(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
@@ -1205,7 +1205,7 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
             return AccuracyConfiguration.findAndCalculate(configData, title, value);
         };
 
-        const response = (request.body as any[]).map((config) => {
+        const response = request.body.map((config) => {
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {

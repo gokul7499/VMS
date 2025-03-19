@@ -21,21 +21,21 @@ export const getAllshiftConfiguration = async (
       shift_type_name?: string;
       page?: string;
       limit?: string;
-      start_date?: number;
-      end_date?: number
+      start_date?:number;
+      end_date?:number
     };
   }>,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
   const { program_id } = request.params;
-  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query;
+  const { name, is_enabled, start_date,end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query;
 
   if (!program_id) {
     reply.status(400).send({
       status_code: 400,
       message: 'Program ID is required',
-      trace_id: traceId,
+      trace_id:traceId,
     });
     return;
   }
@@ -47,7 +47,7 @@ export const getAllshiftConfiguration = async (
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid page number',
-      trace_id: traceId,
+      trace_id:traceId,
     });
     return;
   }
@@ -56,7 +56,7 @@ export const getAllshiftConfiguration = async (
     reply.status(400).send({
       status_code: 400,
       message: 'Invalid limit',
-      trace_id: traceId,
+      trace_id:traceId,
     });
     return;
   }
@@ -76,15 +76,15 @@ export const getAllshiftConfiguration = async (
 
     if (start_date && end_date) {
       searchFilters.updated_on = {
-        [Op.between]: [start_date, end_date],
+        [Op.between]: [start_date,end_date],
       };
     } else if (start_date) {
       searchFilters.updated_on = {
-        [Op.gte]: start_date,
+        [Op.gte]:start_date,
       };
     } else if (end_date) {
       searchFilters.updated_on = {
-        [Op.lte]: end_date,
+        [Op.lte]:end_date,
       };
     }
 
@@ -125,7 +125,7 @@ export const getAllshiftConfiguration = async (
       where: searchFilters,
       limit: pageSize,
       offset,
-      order: [["updated_on", "DESC"]]
+      order:[["updated_on","DESC"]]
     });
 
     if (shiftConfigData.length > 0) {
@@ -177,21 +177,21 @@ export const getAllshiftConfiguration = async (
         total_records: count,
         shiftConfigurations: shiftConfigsWithDetails,
         message: 'Shift configurations retrieved successfully',
-        trace_id: traceId,
+        trace_id:traceId,
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         shiftConfigurations: [],
         message: 'Shift configurations not found',
-        trace_id: traceId,
+        trace_id:traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal server error',
-      trace_id: traceId,
+      trace_id:traceId,
     });
   }
 };
@@ -216,7 +216,7 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
         status_code: 200,
         shiftConfiguration: {},
         message: 'Shift Configuration not found.',
-        trace_id: traceId,
+        trace_id:traceId,
       });
     }
 
@@ -245,14 +245,14 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
     if (shiftTypeIds.length > 0) {
       shiftTypesList = await ShiftType.findAll({
         where: { id: shiftTypeIds },
-        attributes: ['id', 'shift_type_name', 'created_on', 'shift_type_time', 'time_duration'],
+        attributes: ['id', 'shift_type_name', 'created_on','shift_type_time','time_duration'],
       });
     }
 
     return reply.status(200).send({
       status_code: 200,
-      message: " Shift Configuration found.",
-      trace_id: traceId,
+      message:" Shift Configuration found.",
+      trace_id:traceId,
       shiftConfiguration: {
         ...item.toJSON(),
         hierarchies: hierarchiesList,
@@ -262,7 +262,7 @@ export async function getShiftConfigurationById(request: FastifyRequest<{ Params
   } catch (error) {
     return reply.status(500).send({
       status_code: 500,
-      trace_id: traceId,
+      trace_id:traceId,
       message: 'Internal server error',
     });
   }
@@ -292,14 +292,12 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
       await transaction.rollback();
       return reply.status(400).send({
         status_code: 400,
-        trace_id: traceId,
+        trace_id:traceId,
         message: `Shift configuration with the name ${name} already exists`,
       });
     }
-    const shiftType = await ShiftConfiguration.create({
-      name, ...rest, created_by: userId,
-      updated_by: userId,
-    }, { transaction });
+    const shiftType = await ShiftConfiguration.create({ name, ...rest ,created_by: userId,
+      updated_by: userId,}, { transaction });
 
     if (Array.isArray(hierarchy_ids)) {
       const hierarchyPromises = hierarchy_ids.map((hierarchy_id: any) => {
@@ -326,14 +324,14 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
       status_code: 201,
       id: shiftType.id,
       message: 'Shift configuration created successfully',
-      trace_id: traceId,
+      trace_id:traceId,
     });
 
   } catch (error) {
     await transaction.rollback();
     reply.status(500).send({
       status_code: 500,
-      trace_id: traceId,
+      trace_id:traceId,
       message: (error instanceof Error) ? error.message : 'An unknown error occurred'
     });
   }
@@ -367,7 +365,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       return reply.status(404).send({
         status_code: 404,
         message: 'Shift configuration not found.',
-        trace_id: traceId,
+        trace_id:traceId,
       });
     }
 
@@ -384,7 +382,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
       return reply.status(400).send({
         status_code: 400,
         message: `Shift configuration with the name ${shiftTypeData.name} already exists.`,
-        trace_id: traceId,
+        trace_id:traceId,
       });
     }
 
@@ -452,13 +450,13 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
     reply.status(200).send({
       status_code: 200,
       message: 'Shift configuration updated successfully.',
-      trace_id: traceId,
+      trace_id:traceId,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'Internal server error',
-      trace_id: traceId,
+      trace_id:traceId,
     });
   }
 }
@@ -487,23 +485,23 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
       },
     });
     if (shiftConfiguration) {
-      await shiftConfiguration.update({ is_deleted: true, is_enabled: false, updated_by: userId });
+      await shiftConfiguration.update({ is_deleted: true, is_enabled: false ,updated_by: userId});
       reply.status(200).send({
         status_code: 200,
-        trace_id: traceId,
+        trace_id:traceId,
         message: 'Shift configuration deleted successfully.',
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'Shift configuration not found.',
-        trace_id: traceId,
+        trace_id:traceId,
       });
     }
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
-      trace_id: traceId,
+      trace_id:traceId,
       message: "Internal server error"
     });
   }
@@ -572,7 +570,7 @@ export const getFilteredShiftConfiguration = async (
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       searchFilters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
   }
-
+  
     let shiftConfigIds: string[] = [];
     if (hierarchy_names) {
       const hierarchyRecords = await hierarchies.findAll({
@@ -680,3 +678,5 @@ export const getFilteredShiftConfiguration = async (
     });
   }
 };
+
+
