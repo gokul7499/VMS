@@ -3,12 +3,13 @@ import qualificationTypeModel from '../models/qualification-type-model';
 import Qualifications from '../models/qualifications.model';
 import qualificationType from '../interfaces/qualification-type.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 import QualificationValueMaster from '../models/qualification_value_master.model';
 import { QualificationData } from '../interfaces/qualifications.interface';
 import { logger } from '../utility/loggerService';
+
 
 export async function getQualificationTypes(
   request: FastifyRequest<{ Params: qualificationType, Querystring: qualificationType }>,
@@ -561,42 +562,41 @@ export const updateQualificationById = async (request: FastifyRequest, reply: Fa
 };
 
 
-export const  advancedSearchQualification = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      page?: number;
-      limit?: number;
-      name?: string;
-      type?: string;
-      is_enabled?: boolean;
-     
-      updated_by?: string;
-    };
-  }>,
+export async function advancedSearchQualification(
+  request: FastifyRequest<{ Params: qualificationType; Body: qualificationType }>,
   reply: FastifyReply
-) => {
+) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const body = request.body;
+    const params = request.params as Partial<qualificationType>;
+    const body = request.body as any;
 
-    const page = body.page ?? 1;
-    const limit = body.limit ?? 10;
+    const page = parseInt(body.page ?? "1");
+    const limit = parseInt(body.limit ?? "10");
     const offset = (page - 1) * limit;
 
-    const searchConditions: any = { program_id, is_deleted: false };
+    const searchConditions: any = { program_id: params.program_id, is_deleted: false };
 
-    if (body.name) searchConditions.name = { [Op.like]: `%${body.name}%` };
-    if (body.type) searchConditions.type = { [Op.like]: `%${body.type}%` };
-    if (body.is_enabled !== undefined) searchConditions.is_enabled = body.is_enabled;
-   
-    if (body.updated_by) searchConditions.updated_by = body.updated_by;
+    if (body.name) {
+      searchConditions.name = { [Op.like]: `%${body.name}%` };
+    }
+    if (body.type) {
+      searchConditions.type = { [Op.like]: `%${body.type}%` };
+    }
+    if (body.is_enabled !== undefined) {
+      searchConditions.is_enabled = body.is_enabled === "true" || body.is_enabled === true;
+    }
+    if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
+      const [startDate, endDate] = body.updated_on.map((date: string | number | Date) => new Date(date).getTime());
+      if (!isNaN(startDate) && !isNaN(endDate)) {
+        searchConditions.updated_on = { [Op.between]: [startDate, endDate] };
+      }
+    }
 
     const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
       where: searchConditions,
-      attributes: ['id', 'name', 'code', 'description', 'is_enabled', 'type', 'program_id'],
-      order: [['created_on', 'DESC']],
+      attributes: ["id", "name", "code", "description", "is_enabled", "updated_on", "created_by", "type", "program_id"],
+      order: [["created_on", "DESC"]],
       limit,
       offset,
     });
@@ -606,36 +606,34 @@ export const  advancedSearchQualification = async (
         status_code: 200,
         trace_id: traceId,
         message: "Qualification type not found",
-        
+        qualificationTypes: [],
       });
     }
 
-    const qualificationCounts = await Promise.all(
-      qualificationTypes.map(async (type) => {
-        const count = await Qualifications.count({
-          where: {
-            qualification_type_id: type.id,
-            is_deleted: false,
-          },
-        });
-        return { qualification_type_id: type.id, count };
-      })
-    );
-
-    const qualificationType = qualificationTypes.map((type) => {
-      const countData = qualificationCounts.find((count) => count.qualification_type_id === type.id);
-      return {
-        ...type.toJSON(),
-        qualifications_count: countData ? countData.count : 0,
-      };
+    const qualificationCounts = await Qualifications.findAll({
+      where: {
+        qualification_type_id: {
+          [Op.in]: qualificationTypes.map(q => q.id),
+        },
+        is_deleted: false,
+      },
+      attributes: ["qualification_type_id", [Sequelize.fn("COUNT", Sequelize.col("id")), "count"]],
+      group: ["qualification_type_id"],
+      raw: true,
     });
+
+    const qualificationTypeData = qualificationTypes.map(type => ({
+      ...type.toJSON(),
+      qualifications_count:
+        (qualificationCounts.find(count => count.qualification_type_id === type.id) as any)?.count || 0,
+    }));
 
     reply.status(200).send({
       status_code: 200,
-      message: "Qualification type get successfully",
+      message: "Qualification type fetched successfully",
       items_per_page: limit,
       total_records: count,
-      qualification_type: qualificationType,
+      qualification_type:qualificationTypeData,
       trace_id: traceId,
     });
   } catch (error:any) {
@@ -643,10 +641,12 @@ export const  advancedSearchQualification = async (
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error:error.message
+      error: error.message,
     });
   }
 }
+
+
 
 
 

@@ -318,8 +318,13 @@ export const getShiftTypeFilter = async (request: FastifyRequest, reply: Fastify
     if (body.shift_type_name) whereClause.shift_type_name = { [Op.like]: `%${body.shift_type_name}%` };
     if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
     if (body.shift_type_category) whereClause.shift_type_category = { [Op.like]: `%${body.shift_type_category}%` };
-    if (body.updated_on) whereClause.updated_on = { [Op.like]: `%${body.updated_on}%` };
+    if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
+        const [startDate, endDate] = body.updated_on.map(date => new Date(date).getTime());
 
+        if (!isNaN(startDate) && !isNaN(endDate)) {
+          whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+        }
+      }
     try {
         const { rows: shiftTypes, count } = await ShiftTypeModel.findAndCountAll({
             where: whereClause,

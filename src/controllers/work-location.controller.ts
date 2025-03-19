@@ -637,15 +637,11 @@ export const getWorkLocationsAdvancedFilter = async (
     if (is_enabled !== undefined) {
       filters.is_enabled = is_enabled === 'true' || is_enabled === true;
     }
-    if (updated_on) {
-      const dateRange = updated_on.split(',');
-      if (dateRange.length === 2) {
-        const startDate = parseFloat(dateRange[0].trim());
-        const endDate = parseFloat(dateRange[1].trim());
-        filters.updated_on = { [Op.between]: [startDate, endDate] };
-      }
-    }
-
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+  }
+  
     const workLocations = await WorkLocationModel.findAll({
       where: filters,
       limit: limitNum,

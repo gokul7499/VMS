@@ -453,12 +453,11 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
 
         if (name) filters.name = { [Op.like]: `%${name}%` };
         if (is_enabled !== undefined) filters.is_enabled = is_enabled;
-        if (updated_on) {
-            const modifiedOnRange = updated_on.split(',').map(Number);
-            if (modifiedOnRange.length === 2) {
-                filters.updated_on = { [Op.between]: [modifiedOnRange[0], modifiedOnRange[1]] };
-            }
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+            filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
+        
         if (timesheet_master_data !== undefined) {
             filters['configuration.timesheet_master_data'] = timesheet_master_data;
         }

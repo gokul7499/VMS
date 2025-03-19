@@ -108,6 +108,10 @@ Hierarchies.init(
       allowNull: false,
       defaultValue: true,
     },
+    address:{
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),

@@ -109,13 +109,8 @@ export const getTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (updated_on) {
-            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+   
 
-            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
-                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
-            } 
-        }
         const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
             where: whereCondition,
             attributes: [
@@ -437,13 +432,13 @@ export const filterTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (updated_on && updated_on.length === 1) {
-            const dateRange = updated_on[0].split(',').map(date => Number(date.trim()));
-            if (dateRange.length === 2) {
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const dateRange = updated_on.map(timestamp => Number(timestamp));
+        
+            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
                 whereCondition.updated_on = { [Op.between]: dateRange };
             }
         }
-        
         const defaultFields = [
             'id',
             'rule_name',

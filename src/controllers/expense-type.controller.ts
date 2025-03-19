@@ -457,14 +457,11 @@ export async function advancefilter(
             [Op.and]: [Sequelize.literal(`JSON_EXTRACT(unit_based, '$.max_limit') <= ${Number(max_limit)}`)]
         };
     }
-    if (updated_on) {
-        const dateRange = updated_on.split(",");
-        if (dateRange.length === 2) {
-            const startTimestamp = parseInt(dateRange[0].trim(), 10);
-            const endTimestamp = parseInt(dateRange[1].trim(), 10);
-            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-        }
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+        whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
     }
+    
     const pageNumber = parseInt(page as unknown as string, 10);
     const pageSize = parseInt(limit as unknown as string, 10);
     const offset = (pageNumber - 1) * pageSize;

@@ -8,7 +8,7 @@ import { logger } from "../utility/loggerService";
 import { decodeToken } from "../middlewares/verifyToken";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import { vendorComplianceDocumentFilterQuery } from "../utility/queries";
-import { QueryTypes } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 const baseService = new BaseService(VendorComplianceDocumentModel);
 
@@ -368,7 +368,7 @@ export async function vendorComplianceDocumentFilter(
       act?: string;
       document_number?: string;
       is_enabled?: boolean | string;
-      updated_on?: any;
+      updated_on?: string[];
       page?: string;
       limit?: string;
     };
@@ -380,13 +380,17 @@ export async function vendorComplianceDocumentFilter(
     const { program_id } = request.params;
     const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body;
 
-    const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
+    const isEnabledFilter =
+      typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
 
     const pageNumber = parseInt(page ?? '1', 10);
     const limitNumber = parseInt(limit ?? '10', 10);
     const offset = (pageNumber - 1) * limitNumber;
 
-    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+    const hasUpdatedOnFilter =
+      Array.isArray(updated_on) && updated_on.length === 2
+        ? { updated_on: { [Op.between]: updated_on.map(ts => parseInt(ts, 10)) } }
+        : null;
 
     const query = vendorComplianceDocumentFilterQuery(
       Boolean(id),
@@ -394,7 +398,7 @@ export async function vendorComplianceDocumentFilter(
       Boolean(act),
       Boolean(document_number),
       isEnabledFilter !== undefined,
-      hasUpdatedOnFilter
+      Boolean(hasUpdatedOnFilter)
     );
 
     const replacements: Record<string, any> = {
@@ -406,8 +410,8 @@ export async function vendorComplianceDocumentFilter(
       limit: limitNumber,
       offset,
       is_enabled: isEnabledFilter,
-      updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
-      updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+      updated_on_start: hasUpdatedOnFilter && updated_on ? updated_on[0] : undefined,
+      updated_on_end: hasUpdatedOnFilter && updated_on ? updated_on[1] : undefined,
     };
 
     const data = await sequelize.query<{ total_count: any }>(query, {
