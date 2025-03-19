@@ -4,19 +4,19 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 
 export default async function (app: FastifyInstance) {
-    app.get('/program/:program_id/password-policy',{
+    app.get('/program/:program_id/password-policy', {
         preHandler: validatePermissions(Actions.READ, [Permissions.SECURITY_SETTING])
     }, PasswordPolicyController.getPasswordPolicy);
-    
-    app.get('/program/:program_id/password-policy/:id',{
+
+    app.get('/program/:program_id/password-policy/:id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.SECURITY_SETTING])
     }, PasswordPolicyController.getPasswordPolicyById);
 
-    app.post('/password-policy',{
+    app.post('/password-policy', {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.SECURITY_SETTING])
-     }, PasswordPolicyController.createPasswordPolicy);
+    }, PasswordPolicyController.createPasswordPolicy);
 
-    app.put('/password-policy/:id',{
+    app.put('/password-policy/:id', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.SECURITY_SETTING])
     }, PasswordPolicyController.updatePasswordPolicy);
 
