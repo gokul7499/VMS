@@ -1,34 +1,24 @@
 import { FastifyInstance } from 'fastify';
-import * as QualificationController from '../controllers/qualifications.controller';
-import { validatePermissions } from "../middlewares/vaildate-permissions";
-import { Permissions, Actions } from "../constants/permissions";
+import {
+    createQualification,
+    updateQualification,
+    deleteQualification,
+    getAllQualifications,
+    getQualificationById,
+    bulkCreateQualifications,
+    getQualificationCode
+} from '../controllers/qualifications.controller';
 
 async function QualificationsRoutes(fastify: FastifyInstance) {
-
-    fastify.post('/program/:program_id/qualifications', {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.QUALIFICATION])
-    }, QualificationController.createQualification);
-
-    fastify.put('/program/:program_id/qualifications/:id', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.QUALIFICATION])
-    }, QualificationController.updateQualification);
-
-    fastify.delete('/program/:program_id/qualifications/:id', QualificationController.deleteQualification);
-
-    fastify.get('/program/:program_id/qualifications', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
-    }, QualificationController.getAllQualifications);
-
-    fastify.get('/program/:program_id/qualifications/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
-    }, QualificationController.getQualificationById);
-
-    fastify.post('/program/:program_id/qualifications/bulk-upload', QualificationController.bulkCreateQualifications);
-
-    fastify.get('/program/:program_id/qualificationCode', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
-    }, QualificationController.getQualificationCode);
-
+    fastify.post('/program/:program_id/qualifications', async (request, reply) => {
+        await createQualification(request, reply);
+    });
+    fastify.put('/program/:program_id/qualifications/:id', updateQualification);
+    fastify.delete('/program/:program_id/qualifications/:id', deleteQualification);
+    fastify.get('/program/:program_id/qualifications', getAllQualifications);
+    fastify.get('/program/:program_id/qualifications/:id', getQualificationById);
+    fastify.post('/program/:program_id/qualifications/bulk-upload', bulkCreateQualifications);
+    fastify.get('/program/:program_id/qualificationCode', getQualificationCode);
 }
 
 export default QualificationsRoutes;

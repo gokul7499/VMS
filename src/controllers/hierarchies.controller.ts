@@ -137,20 +137,20 @@ export const getHierarchies = async (
 
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
-    let startDate: number | undefined;
-    let endDate: number | undefined;
-
-    if (updated_on) {
-      const dateRange = updated_on.split(",").map(date => date.trim());
-
-      if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
-        startDate = Number(dateRange[0]);
+      let startDate: number | undefined;
+      let endDate: number | undefined;
+      
+      if (updated_on) {
+        const dateRange = updated_on.split(",").map(date => date.trim());
+        
+        if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
+          startDate = Number(dateRange[0]);
+        }
+        if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
+          endDate = Number(dateRange[1]);
+        }
       }
-      if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
-        endDate = Number(dateRange[1]);
-      }
-    }
-
+      
     const offset = (page - 1) * limit;
 
     const replacements: any = {
@@ -161,7 +161,7 @@ export const getHierarchies = async (
       limit: Number(limit),
       offset: Number(offset),
     };
-
+    
     const hierarchies: any[] = await sequelize.query(
       getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
       {
@@ -212,10 +212,13 @@ interface MasterDataResult {
   parent_hierarchy_name: string | null;
 }
 
-export async function getHierarchiesById(request: FastifyRequest, reply: FastifyReply) {
+export async function getHierarchiesById(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) {
   const traceId = generateCustomUUID();
   try {
-    const { id } = request.params as { id: string };
+    const { id } = request.params;
     const [hierarchy] = await sequelize.query<any>(hierarchie, {
       replacements: { hierarchy_id: id },
       type: QueryTypes.SELECT,
@@ -491,7 +494,75 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
+
+export async function deleteHierarchies(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+  }
+  const token = authHeader.split(' ')[1];
+  const user: any = await decodeToken(token);
+  if (!user) {
+    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
+  }
+  const userId = user?.sub;
+  try {
+    const { id } = request.params;
+    const hierarchy = await HierarchiesModel.findOne({ where: { id } });
+
+    if (!hierarchy) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Hierarchy not found',
+        trace_id: traceId
+      });
+    }
+
+    if (hierarchy.parent_hierarchy_id === null) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "This hierarchies cannot be deleted because it has no parent.",
+        trace_id: traceId
+      });
+    }
+
+    const [updatedRows] = await HierarchiesModel.update(
+      {
+        is_deleted: true,
+        is_enabled: false,
+        updated_on: Date.now(),
+        updated_by: userId
+      },
+      { where: { id } }
+    );
+
+    if (updatedRows > 0) {
+      reply.status(200).send({
+        status_code: 200,
+        message: "hierarchies deleted successfully",
+        trace_id: traceId
+      });
+    } else {
+      reply.status(200).send({
+        status_code: 200,
+        message: "hierarchies not found",
+        trace_id: traceId
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting hierarchy:', error);
+    reply.status(500).send({
+      status_code: 500,
+      message: 'An error occurred while deleting the hierarchies.',
+      error,
+      trace_id: traceId
+    });
+  }
+}
+
 export async function searchHierarchies(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
+
   const searchFields = ['is_enabled', 'name', 'code', 'program_id'];
   const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'program_id'];
   return baseSearch(request, reply, HierarchiesModel, searchFields, responseFields);
@@ -875,31 +946,31 @@ export const getHierarchiesAdvancedFilter = async (
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
 
-    let startDate: number | undefined;
-    let endDate: number | undefined;
-
-    if (updated_on) {
-      const dateRange = updated_on.split(",").map(date => date.trim());
-
-      if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
-        startDate = Number(dateRange[0]);
+      let startDate: number | undefined;
+      let endDate: number | undefined;
+      
+      if (updated_on) {
+        const dateRange = updated_on.split(",").map(date => date.trim());
+        
+        if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
+          startDate = Number(dateRange[0]);
+        }
+        if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
+          endDate = Number(dateRange[1]);
+        }
       }
-      if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
-        endDate = Number(dateRange[1]);
-      }
-    }
-
-    const offset = (page - 1) * limit;
-
-    const replacements: any = {
-      program_id,
-      ...(hasName && { name: `%${name}%` }),
-      ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-      ...(startDate && endDate && { startDate, endDate }),
-      limit: Number(limit),
-      offset: Number(offset),
-    };
-
+      
+      const offset = (page - 1) * limit;
+      
+      const replacements: any = {
+        program_id,
+        ...(hasName && { name: `%${name}%` }),
+        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+        ...(startDate && endDate && { startDate, endDate }),
+        limit: Number(limit),
+        offset: Number(offset),
+      };
+      
     const hierarchies: any[] = await sequelize.query(
       getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
       {

@@ -23,7 +23,7 @@ export async function createWorkLocation(
 
   if (!authHeader?.startsWith('Bearer ')) {
     throw new Error("Unauthorized: Token not found or invalid");
-  }
+}
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
@@ -60,7 +60,7 @@ export async function createWorkLocation(
         transaction,
       });
 
-      const duplicateField =
+      const duplicateField = 
         existingWorkLocation?.name === workLocation.name
           ? 'name'
           : 'code';
@@ -164,7 +164,10 @@ export async function createWorkLocation(
 }
 
 
-export async function getAllWorkLocations(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllWorkLocations(
+  request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
+  reply: FastifyReply
+) {
   try {
     const params = request.params as WorkLocationInterface;
     const query = request.query as WorkLocationInterface | any;
@@ -199,24 +202,24 @@ export async function getAllWorkLocations(request: FastifyRequest, reply: Fastif
     if (query.name) {
       whereClause.name = { [Op.like]: `%${query.name}%` };
     }
-    if (query.code) {
-      whereClause.code = query.code
+    if(query.code){
+      whereClause.code=query.code
     }
-    if (query.zipcode) {
-      whereClause.zipcode = query.zipcode
+    if(query.zipcode){
+      whereClause.zipcode=query.zipcode
     }
     if (query.updated_on) {
       const dateRange = query.updated_on.split(',');
       if (dateRange.length === 2) {
-        const startDate = parseFloat(dateRange[0].trim());
-        const endDate = parseFloat(dateRange[1].trim());
-        whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+          const startDate = parseFloat(dateRange[0].trim());
+          const endDate = parseFloat(dateRange[1].trim());
+          whereClause.updated_on = { [Op.between]: [startDate, endDate] };
       }
-    }
+  }
     const workLocations = await WorkLocationModel.findAll({
       where: whereClause,
-      ...(limit ? { limit } : {}),
-      ...(offset ? { offset } : {}),
+    ...(limit ? { limit } : {}), 
+    ...(offset ? { offset } : {}),
       order,
       include: [
         {
@@ -308,7 +311,7 @@ export async function getWorkLocationById(
     }
     const workLocationCurrencies = await WorkLocationCurrency.findAll({
       where: { work_location_id: id },
-      attributes: ['name', 'is_default', 'code'],
+      attributes: ['name', 'is_default','code'],
     });
     const responseCurrencies = workLocationCurrencies
       .filter((currency: any) => currency.name && currency.is_default !== undefined && currency.code);
@@ -335,11 +338,17 @@ export async function getWorkLocationById(
 
 
 
-export async function updateWorkLocation(request: FastifyRequest, reply: FastifyReply) {
+export async function updateWorkLocation(
+  request: FastifyRequest<{
+    Params: { id: string };
+    Body: WorkLocationInterface;
+  }>,
+  reply: FastifyReply
+) {
   const traceId = generateCustomUUID();
   try {
-    const { id } = request.params as { id: string };
-    const { program_id, currencies, ...updates } = request.body as WorkLocationInterface;
+    const { id } = request.params;
+    const { program_id, currencies, ...updates } = request.body;
 
     if (!program_id) {
       return reply.status(400).send({
@@ -369,14 +378,14 @@ export async function updateWorkLocation(request: FastifyRequest, reply: Fastify
     if (currencies && currencies.length > 0) {
       await Promise.all(
         currencies.map(async (currency: {
-          name: unknown; id: any; is_default: any, code: any
-        }) => {
+          name: unknown; id: any; is_default: any,code:any 
+}) => {
           await WorkLocationCurrency.create({
             work_location_id: id,
             currency_id: currency.id,
             is_default: currency.is_default,
-            name: currency.name,
-            code: currency.code
+            name:currency.name,
+            code:currency.code
           });
         })
       );
@@ -491,7 +500,7 @@ export async function getAllWorkLocationsCountry(
         .flat()
         .map((country: any) => ({
           id: country.id,
-          name: country.name || "",
+          name: country.name || "", 
         }))
         .filter(country => {
           if (country.name && !uniqueCountries.has(country.name)) {
@@ -523,12 +532,12 @@ export async function getAllWorkLocationsCountry(
     }
 
     return reply.status(200).send(response);
-  } catch (error: any) {
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "Failed to retrieve work locations",
-      error: error.message,
+      error:error.message,
     });
   }
 }

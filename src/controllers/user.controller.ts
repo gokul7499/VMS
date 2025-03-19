@@ -64,12 +64,12 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function getUserById(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { id } = request.params as { id: string };
+    const { id } = request.params;
     const user = await User.findByPk(id);
     return reply.status(200).send({
       status_code: 200,
@@ -960,11 +960,13 @@ export async function getActiveUser(
 }
 
 export async function getUserContact(
-  request: FastifyRequest,
+  request: FastifyRequest<{
+    Querystring: { tenant_id: string };
+  }>,
   reply: FastifyReply
 ) {
 
-  const { tenant_id } = request.query as {tenant_id:string};
+  const { tenant_id } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -1000,7 +1002,9 @@ export async function getUserContact(
 }
 
 export async function getUserProgram(
-  request: FastifyRequest,
+  request: FastifyRequest<{
+    Querystring: { user_id: string; search?: string };
+  }>,
   reply: FastifyReply
 ) {
   const authHeader = request.headers.authorization;
@@ -1016,7 +1020,7 @@ export async function getUserProgram(
     return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
   }
   const userType = user?.userType;
-  const { user_id, search } = request.query as {user_id:string,search:string};
+  const { user_id, search } = request.query;
   const traceId = generateCustomUUID();
 
   if (!user_id || user_id.trim() === "") {

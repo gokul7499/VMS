@@ -1,7 +1,6 @@
 export const Permissions = {
   PROGRAM: "srn:vms:config:program",
   HIERARCHY: "srn:vms:config:program:hierarchy",
-  MASTER_DATA: "srn:vms:config:dm:md",
   WORK_LOCATION: "srn:vms:config:program:wl",
   WORKFLOW: "srn:vms:config:program:workflow",
   SUPPORTING_TEXT: "srn:vms:config:program:st",
@@ -17,7 +16,6 @@ export const Permissions = {
   EXPENSE_CONFIGURATION: "srn:vms:config:configurations:ec",
   INVOICE_CONFIGURATION: "srn:vms:config:configurations:ic",
   USER: "srn:vms:config:user:users",
-  CANDIDATE: "srn:vms:pdb:can",
   USER_ROLE: "srn:vms:config:user:ur",
   SECURITY_SETTING: "srn:vms:config:user:ss",
   RATE_TYPE: "srn:vms:config:rate:rt",
@@ -25,7 +23,7 @@ export const Permissions = {
   RATE_CARD: "srn:vms:config:rate:rcd",
   SHIFT_TYPE: "srn:vms:config:shift:st",
   SHIFT_CONFIGURATION: "srn:vms:config:shift:sc",
-  QUALIFICATION: "srn:vms:config:job:qualifications",
+  QUALIFICATION: "srn:vms:config:job:qualification:q",
   JOB_TEMPLATE: "srn:vms:config:job:jt",
   CUSTOM_FIELD: "srn:vms:config:dm:cf",
   RESON_CODE: "srn:vms:config:dm:rc",
@@ -37,8 +35,7 @@ export const Permissions = {
   VENDOR_GROUP: "srn:vms:config:vendormanagement:vg",
   VENDOR_DISTRIBUTION_SCHEDULE: "srn:vms:config:vendormanagement:vds",
   VENDOR_COMPLIANCE_DOCUMENT: "srn:vms:config:vendormanagement:vcd",
-  VENDOR_COMPLIANCE_DOCUMENT_GROUP: "srn:vms:config:vendormanagement:vcdg",
-  ONBORARDING: "srn:vms:pdb:can:credstatus",
+  VENDOR_COMPLIANCE_DOCUMENT_GROUP: "srn:vms:config:vendormanagement:vcdg"
 };
 
 export const Actions = {
@@ -47,19 +44,4 @@ export const Actions = {
   UPDATE: "U",
   DELETE: "D",
   REASSIGN: "RA",
-  CREATE_CANDIDATE: 'C_CAN',
-  VIEW_UNIQUEW_ID: 'V_UID',
-  EDIT_CANDIDATE: 'E_CAN',
-  VIEW_PII: 'V_PII',
-  VIEW_DNR_FLAG: 'V_DNR',
-  EDIT_DNR_FLAG: 'E_DNR',
-  VIEW_CREDENTIAL_STATUS: 'V_CRD_ST',
-  VIEW_CANDIDATE: 'V_CAN',
-  VIEW_VENDOR_DETAILS: 'V_VDR_DTLS',
-  EDIT_VENDOR_DETAILS: 'E_VDR_DTLS',
-  VIEW_COMPLIANCE_DOCUMNET: 'V_CMPL_DOC',
-  UPLOAD_COMPLIANCE_DOCUMNET: 'UPLD_CMPL_DOC',
-  VIEW_VENDOR_USER: 'V_USR',
-  CREATE_VENDOR_USER: 'C_USR',
-  EDIT_VENDOR_USER: 'E_USR',
 };

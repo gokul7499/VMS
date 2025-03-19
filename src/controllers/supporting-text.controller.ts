@@ -275,20 +275,25 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     }
 };
 
-export const updateSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
+export const updateSupportingText = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: Partial<supportingTextModel> }>,
+    reply: FastifyReply
+) => {
     const traceId = generateCustomUUID();
-    const { id } = request.params as { id: string };
+    const { id } = request.params;
     const {
         performed_by,
         is_enabled,
         is_deleted,
         created_on,
         updated_on,
+        created_by,
+        updated_by,
         program_id,
         event_id,
         module_id,
         support_text_action,
-    } = request.body as supportingTextModel;
+    } = request.body;
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -418,13 +423,10 @@ export const updateSupportingText = async (request: FastifyRequest, reply: Fasti
 };
 
 
-export const deleteSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
+export const deleteSupportingText = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params as { program_id: string, id: string }
-        const supportingText = await supportingTextModel.findAll({
-            where: { program_id, id, is_deleted: false }
-        });
+        const supportingText = await supportingTextModel.findByPk(request.params.id);
 
         if (!supportingText) {
             return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found', trace_id: traceId });
@@ -432,7 +434,7 @@ export const deleteSupportingText = async (request: FastifyRequest, reply: Fasti
 
         const [updated] = await supportingTextModel.update(
             { is_deleted: true, is_enabled: false },
-            { where: { program_id, id } }
+            { where: { id: request.params.id } }
         );
 
         if (updated) {

@@ -1,33 +1,20 @@
 import { FastifyInstance } from "fastify";
-import * as candidateController from '../controllers/candidate.controller';
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
+import {
+    createCandidate,
+    getAllCandidate,
+    getCandidateByIdAndProgramId,
+    updateCandidateByIdAndProgramId,
+    deleteCandidateByIdAndProgramId,
+    candidateSearch,
+    getCandidates
+} from '../controllers/candidate.controller'
 
-async function candidateRoutes(fastify: FastifyInstance) {
-
-    fastify.post('/candidate', {
-        preHandler: validatePermissions(Actions.CREATE_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.createCandidate);
-
-    fastify.get('/program/:program_id/candidate', {
-        preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.getAllCandidate);
-
-    fastify.get('/program/:program_id/candidate/:id', {
-        preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.getCandidateByIdAndProgramId);
-
-    fastify.put('/program/:program_id/candidate/:id', {
-        preHandler: validatePermissions(Actions.EDIT_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.updateCandidateByIdAndProgramId);
-
-    fastify.get('/search', {
-        preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.candidateSearch);
-
-    fastify.get('/program/:program_id/candidates', {
-        preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.getCandidates);
+export default async function candidateRoutes(fastify: FastifyInstance) {
+    fastify.post('/candidate', createCandidate)
+    fastify.get('/program/:program_id/candidate', getAllCandidate)
+    fastify.get('/program/:program_id/candidate/:id', getCandidateByIdAndProgramId)
+    fastify.put('/program/:program_id/candidate/:id', updateCandidateByIdAndProgramId);
+    fastify.delete('/program/:program_id/candidate/:id', deleteCandidateByIdAndProgramId);
+    fastify.get('/search', candidateSearch);
+    fastify.get('/program/:program_id/candidates', getCandidates)
 }
-
-export default candidateRoutes;

@@ -81,11 +81,11 @@ export const createPasswordPolicy = async (request: FastifyRequest, reply: Fasti
 }
 
 export async function updatePasswordPolicy(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const { id } = request.params as{ id: string };
+    const { id } = request.params;
     const data = request.body as passwordPolicyData
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer')) {

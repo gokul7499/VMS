@@ -1,56 +1,54 @@
 import { FastifyInstance } from 'fastify';
-import * as FoundationalDataTypeController from '../controllers/foundational-datatypes.controller';
+import {
+    createFoundationalDataTypes,
+    updateFoundationalDataTypes,
+    deleteFoundationalDataTypes,
+    getAllFoundationalDataTypes,
+    getFoundationalDataTypeById,
+    getAllFoundationalDataTypesAdvancedFilter
+} from '../controllers/foundational-datatypes.controller';
 import { createFoundationalDataTypeSchema, paramsSchema, querySchema } from '../interfaces/foundational-datatypes.interface';
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
-
 
 async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
-
     fastify.post('/program/:program_id/foundational-datatypes', {
         schema: {
             body: createFoundationalDataTypeSchema,
             params: paramsSchema,
-        },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.MASTER_DATA])
-    }, FoundationalDataTypeController.createFoundationalDataTypes);
-
+        }
+    }, async (request, reply) => {
+        await createFoundationalDataTypes(request, reply);
+    });
     fastify.put('/program/:program_id/foundational-datatypes/:id', {
         schema: {
             body: createFoundationalDataTypeSchema,
             params: paramsSchema,
-        },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.MASTER_DATA])
-    }, FoundationalDataTypeController.updateFoundationalDataTypes);
-
+        }
+    }, updateFoundationalDataTypes);
     fastify.delete('/program/:program_id/foundational-datatypes/:id', {
         schema: {
             params: paramsSchema,
         }
-    }, FoundationalDataTypeController.deleteFoundationalDataTypes);
-
+    }, deleteFoundationalDataTypes);
     fastify.get('/program/:program_id/foundational-datatypes', {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
-    }, FoundationalDataTypeController.getAllFoundationalDataTypes);
 
+        }
+    }, getAllFoundationalDataTypes);
     fastify.get('/program/:program_id/foundational-datatypes/:id', {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
-    }, FoundationalDataTypeController.getFoundationalDataTypeById);
+
+        }
+    }, getFoundationalDataTypeById);
 
     fastify.post('/program/:program_id/foundational-datatypes-advanced-filter', {
         schema: {
             params: paramsSchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
-    }, FoundationalDataTypeController.getAllFoundationalDataTypesAdvancedFilter);
+        }
+    }, getAllFoundationalDataTypesAdvancedFilter);
 }
 
 export default foundationalDataTypeRoutes;

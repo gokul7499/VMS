@@ -1,54 +1,46 @@
 import { FastifyInstance } from 'fastify';
-import * as TimesheetExpenseRuleGroupController from '../controllers/timesheet-expense-rule-group.controller';
+import {
+    createTimesheetExpenseRuleGroup,
+    updateTimesheetExpenseRuleGroup,
+    deleteTimesheetExpenseRuleGroup,
+    getAllTimesheetExpenseRuleGroups,
+    getTimesheetExpenseRuleGroupById,
+    filterTimesheetExpenseRuleGroups
+} from '../controllers/timesheet-expense-rule-group.controller';
 import { createTimesheetExpenseRuleGroupSchema, paramsSchema, querySchema } from '../interfaces/timesheet-expense-rule-group.interface';
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
 
-async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
-
-    fastify.post('/timesheet-expense-rule-groups', {
+export default async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
+    fastify.post('/timesheet-expense-rule-groups',{
         schema: {
             params: paramsSchema,
-            body: createTimesheetExpenseRuleGroupSchema
-        },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
-    }, TimesheetExpenseRuleGroupController.createTimesheetExpenseRuleGroup);
-
+           body:createTimesheetExpenseRuleGroupSchema
+        }
+    }, createTimesheetExpenseRuleGroup);
     fastify.get('/timesheet-expense-rule-groups/get-all', {
         schema: {
             params: paramsSchema,
-            querystring: querySchema
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
-    }, TimesheetExpenseRuleGroupController.getAllTimesheetExpenseRuleGroups);
-
-    fastify.get('/timesheet-expense-rule-groups/:id', {
+            querystring:querySchema
+        }
+    },getAllTimesheetExpenseRuleGroups);
+    fastify.get('/timesheet-expense-rule-groups/:id',{
         schema: {
             params: paramsSchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
-    }, TimesheetExpenseRuleGroupController.getTimesheetExpenseRuleGroupById);
-
-    fastify.put('/timesheet-expense-rule-groups/:id', {
+        }
+    }, getTimesheetExpenseRuleGroupById);
+    fastify.put('/timesheet-expense-rule-groups/:id',{
         schema: {
             params: paramsSchema,
-            body: createTimesheetExpenseRuleGroupSchema
-        },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
-    }, TimesheetExpenseRuleGroupController.updateTimesheetExpenseRuleGroup);
-
+           body:createTimesheetExpenseRuleGroupSchema
+        }
+    }, updateTimesheetExpenseRuleGroup);
     fastify.delete('/timesheet-expense-rule-groups/:id', {
         schema: {
             params: paramsSchema
         }
-    }, TimesheetExpenseRuleGroupController.deleteTimesheetExpenseRuleGroup);
-
+    },deleteTimesheetExpenseRuleGroup);
     fastify.post('/timesheet-expense-rule-groups/advance-filter', {
         schema: {
             params: paramsSchema
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
-    }, TimesheetExpenseRuleGroupController.filterTimesheetExpenseRuleGroups);
+        }
+    },filterTimesheetExpenseRuleGroups);
 }
-
-export default timesheetExpenseRuleGroupRoutes;

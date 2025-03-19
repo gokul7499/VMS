@@ -1,6 +1,6 @@
 import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateRateTypeData, RateTypeQueryParams } from "../interfaces/rate-type-interface";
+import { CreateRateTypeData } from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
@@ -190,24 +190,27 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   }
 };
 
-export async function getAllRateType(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllRateType(request: FastifyRequest<{
+  Querystring: {
+    id?: string;
+    name?: string;
+    is_enabled?: boolean | string;
+    updated_on?: string;
+    is_shift_rate?: boolean | string;
+    is_base_rate?: string | boolean;
+    differential_on?: string;
+    rate_type_category?: string;
+    shift_type?: string;
+    rate_type_category_label?: string;
+    abbreviation?: string;
+    page?: string;
+    limit?: string;
+  };
+}>,
+  reply: FastifyReply
+) {
   const { program_id } = request.params as { program_id: string };
-  const {
-    id,
-    name,
-    is_enabled,
-    updated_on,
-    is_shift_rate,
-    is_base_rate,
-    differential_on,
-    rate_type_category,
-    shift_type,
-    rate_type_category_label,
-    abbreviation,
-    page = "1",
-    limit = "10",
-  } = request.query as RateTypeQueryParams;
-
+  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query;
   const traceId = generateCustomUUID();
 
   try {
@@ -474,8 +477,8 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { pro
   }
 };
 
-export const deleteRateTypeById = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { id } = request.params as { id: string };
+export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  const { id } = request.params;
   const traceId = generateCustomUUID();
   let { name } = request.body as { name: string };
   name = name.trim();

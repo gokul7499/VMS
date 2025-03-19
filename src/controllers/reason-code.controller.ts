@@ -26,7 +26,9 @@ export async function createReasoncode(
             reason_codes: Array<{
                 name: string;
                 category: string;
-                is_enabled: boolean
+                is_enabled: Boolean
+
+
             }>;
         };
 
@@ -40,12 +42,12 @@ export async function createReasoncode(
             slug: reasoncode.slug,
         });
 
-        await ReasonCodeModel.bulkCreate(
+        const reasonCodes = await ReasonCodeModel.bulkCreate(
             reasoncode.reason_codes.map((reason) => ({
                 name: reason.name,
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
-                is_enabled: reason.is_enabled
+                is_enabled:reason.is_enabled
             }))
         );
 
@@ -139,11 +141,11 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
 
         if (!filteredReasoncodes || filteredReasoncodes.length === 0) {
             return reply.status(200).send({
-                status_code: 200,
+                status_code:200,
                 message: "Reasoncode not found",
                 reason_code_action: [],
                 totalRecords,
-                trace_id: traceId
+                trace_id:traceId
             });
         }
 
@@ -476,3 +478,4 @@ export const getReasonCodeBySlug = async (
         });
     }
 };
+

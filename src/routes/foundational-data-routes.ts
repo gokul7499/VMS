@@ -1,48 +1,41 @@
 import { FastifyInstance } from "fastify";
-import * as FoundationalDataController from "../controllers/foundational-data.controller";
+import {
+    getFoundationalData,
+    getFoundationalDataById,
+    createFoundationalData,
+    updateFoundationalData,
+    deleteFoundationalData
+} from "../controllers/foundational-data.controller";
 import { createFoundationalDataSchema, paramsSchema, querySchema } from "../interfaces/foundational-data.interface";
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
-
 async function foundationalDataRoutes(fastify: FastifyInstance) {
-
     fastify.get('/program/:program_id/foundational_data', {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
-    }, FoundationalDataController.getFoundationalData);
-
+        }
+    }, getFoundationalData);
     fastify.get('/program/:program_id/foundational_data/:id', {
         schema: {
             params: paramsSchema,
             querystring: querySchema,
-        },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
-    }, FoundationalDataController.getFoundationalDataById);
-
+        }
+    }, getFoundationalDataById);
     fastify.post('/foundational_data', {
         schema: {
             body: createFoundationalDataSchema,
-        },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.MASTER_DATA])
-    }, FoundationalDataController.createFoundationalData);
-
+        }
+    }, createFoundationalData);
     fastify.put('/program/:program_id/foundational_data/:id', {
         schema: {
             body: createFoundationalDataSchema,
             params: paramsSchema,
-        },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.MASTER_DATA])
-    }, FoundationalDataController.updateFoundationalData);
-
+        }
+    }, updateFoundationalData);
     fastify.delete('/program/:program_id/foundational_data/:id', {
         schema: {
             params: paramsSchema,
         }
-    }, FoundationalDataController.deleteFoundationalData);
-
+    }, deleteFoundationalData);
 }
 
 export default foundationalDataRoutes;

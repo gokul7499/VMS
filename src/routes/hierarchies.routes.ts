@@ -1,56 +1,22 @@
 import { FastifyInstance } from 'fastify';
-import * as HierarchyController from '../controllers/hierarchies.controller';
-import { validatePermissions } from '../middlewares/vaildate-permissions';
-import { Actions, Permissions } from '../constants/permissions';
+import {
+    getHierarchiesById, createHierarchies, updateHierarchies, deleteHierarchies, advancedSearchHierarchies, searchHierarchies,
+    getHierarchiesByProgram, getHierarchies, getRateModel,getVendorMarkup,updateIsNotEditableFlag,getUserHierarchies,getHierarchiesAdvancedFilter
+} from '../controllers/hierarchies.controller';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
-    fastify.get('/program/:program_id/hierarchies/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getHierarchiesById);
-
-    fastify.post('/program/:program_id/hierarchies', {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.HIERARCHY])
-    }, HierarchyController.createHierarchies);
-
-    fastify.put('/program/:program_id/hierarchies/:id', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.HIERARCHY])
-    }, HierarchyController.updateHierarchies);
-
-    fastify.get('/program/:program_id/hierarchies/', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.searchHierarchies);
-
-    fastify.post('/program/:program_id/hierarchies/advance_search', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.advancedSearchHierarchies);
-
-    fastify.get('/program/:program_id/hierarchies', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getHierarchiesByProgram);
-
-    fastify.get('/program/:program_id/hierarchies/get-all', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getHierarchies);
-
-    fastify.get('/program/:program_id/get-rate-model', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getRateModel);
-
-    fastify.get('/program/:program_id/get-vendor-markup', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getVendorMarkup);
-
-    fastify.put('/program/:program_id/update-hierarchy', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.HIERARCHY])
-    }, HierarchyController.updateIsNotEditableFlag);
-
-    fastify.get('/program/:program_id/hierarchies/user', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getUserHierarchies);
-
-    fastify.post('/program/:program_id/hierarchies/advance-filter', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getHierarchiesAdvancedFilter);
+    fastify.get('/program/:program_id/hierarchies/:id', getHierarchiesById);
+    fastify.post('/program/:program_id/hierarchies', createHierarchies);
+    fastify.put('/program/:program_id/hierarchies/:id', updateHierarchies);
+    fastify.delete('/hierarchies/:id', deleteHierarchies);
+    fastify.get('/program/:program_id/hierarchies/', searchHierarchies);
+    fastify.post('/program/:program_id/hierarchies/advance_search', advancedSearchHierarchies);
+    fastify.get('/program/:program_id/hierarchies', getHierarchiesByProgram);
+    fastify.get('/program/:program_id/hierarchies/get-all', getHierarchies);
+    fastify.get('/program/:program_id/get-rate-model', getRateModel);
+    fastify.get('/program/:program_id/get-vendor-markup', getVendorMarkup);
+    fastify.put('/program/:program_id/update-hierarchy', updateIsNotEditableFlag);
+    fastify.get('/program/:program_id/hierarchies/user', getUserHierarchies);
+    fastify.post('/program/:program_id/hierarchies/advance-filter', getHierarchiesAdvancedFilter);
 }
-
 export default hierarchiesRoutes;

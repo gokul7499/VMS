@@ -1,57 +1,52 @@
 import { FastifyInstance } from 'fastify';
-import * as customFieldController from '../controllers/custom-fields.controller';
+import {
+  saveCustomFields,
+  getAllCustomFields,
+  getCustomFieldById,
+  updateCustomFieldById,
+  deleteCustomField,
+  searchCustomFields,
+  updateCustomFieldsIsdisable,
+  advanceFilterCustomFiled
+} from '../controllers/custom-fields.controller';
 import { createCustomFieldsSchema, paramsSchema } from '../interfaces/custom-fields.interface';
-import { validatePermissions } from "../middlewares/vaildate-permissions";
-import { Actions, Permissions } from "../constants/permissions";
+
 async function customFieldsRoutes(fastify: FastifyInstance) {
-
-  fastify.post('/custom-fields', {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.CUSTOM_FIELD]),
+  fastify.post('/custom-fields',{
     schema: {
-      body: createCustomFieldsSchema,
+      body:createCustomFieldsSchema,
     }
-  }, customFieldController.saveCustomFields);
-
+  },
+     saveCustomFields);
   fastify.get('/program/:program_id/custom-fields',
     {
-      preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
-      schema: {
-        params: paramsSchema,
+      schema:{
+       
+         params: paramsSchema,
       }
-    },
-    customFieldController.getAllCustomFields
-  );
-
-  fastify.get('/program/:program_id/custom-fields/:id', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
-    schema: {
-      params: paramsSchema,
+    }, getAllCustomFields);
+  fastify.get('/program/:program_id/custom-fields/:id',{
+    schema:{
+       params: paramsSchema,
     }
-  }, customFieldController.getCustomFieldById);
-
-  fastify.put('/program/:program_id/custom-fields/:id', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.CUSTOM_FIELD]),
-    schema: {
-      body: createCustomFieldsSchema,
+  }, getCustomFieldById);
+  fastify.put('/program/:program_id/custom-fields/:id',{
+    schema:{
+      body:createCustomFieldsSchema,
       params: paramsSchema,
 
     }
-  }, customFieldController.updateCustomFieldById);
-
+  }, updateCustomFieldById);
   fastify.delete('/program/:program_id/custom-fields/:id',
     {
-      schema: {
-        params: paramsSchema
+      schema:{
+        params:paramsSchema
       }
-    }, customFieldController.deleteCustomField);
-
-  fastify.get('/program/:program_id/custom-fields/search', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
-  }, customFieldController.searchCustomFields);
-
-  fastify.put('/program/:program_id/custom-fields/:id/enable-disable', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.CUSTOM_FIELD]),
-  }, customFieldController.updateCustomFieldsIsdisable);
+    },
+     deleteCustomField);
+  fastify.get('/program/:program_id/custom-fields/search', searchCustomFields);
+  fastify.put('/program/:program_id/custom-fields/:id/enable-disable', updateCustomFieldsIsdisable);
+  fastify.post('/program/:program_id/custom-fields/advance-filter', advanceFilterCustomFiled); 
 }
 
 export default customFieldsRoutes;
