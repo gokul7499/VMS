@@ -16,6 +16,7 @@ export const Permissions = {
   EXPENSE_CONFIGURATION: "srn:vms:config:configurations:ec",
   INVOICE_CONFIGURATION: "srn:vms:config:configurations:ic",
   USER: "srn:vms:config:user:users",
+  CANDIDATE: "srn:vms:pdb:can",
   USER_ROLE: "srn:vms:config:user:ur",
   SECURITY_SETTING: "srn:vms:config:user:ss",
   RATE_TYPE: "srn:vms:config:rate:rt",
@@ -35,7 +36,8 @@ export const Permissions = {
   VENDOR_GROUP: "srn:vms:config:vendormanagement:vg",
   VENDOR_DISTRIBUTION_SCHEDULE: "srn:vms:config:vendormanagement:vds",
   VENDOR_COMPLIANCE_DOCUMENT: "srn:vms:config:vendormanagement:vcd",
-  VENDOR_COMPLIANCE_DOCUMENT_GROUP: "srn:vms:config:vendormanagement:vcdg"
+  VENDOR_COMPLIANCE_DOCUMENT_GROUP: "srn:vms:config:vendormanagement:vcdg",
+  ONBORARDING: "srn:vms:pdb:can:credstatus",
 };
 
 export const Actions = {
@@ -44,4 +46,12 @@ export const Actions = {
   UPDATE: "U",
   DELETE: "D",
   REASSIGN: "RA",
+  CREATE_CANDIDATE: 'C_CAN',
+  VIEW_UNIQUEW_ID: 'V_UID',
+  EDIT_CANDIDATE: 'E_CAN',
+  VIEW_PII: 'V_PII',
+  VIEW_DNR_FLAG: 'V_DNR',
+  EDIT_DNR_FLAG: 'E_DNR',
+  VIEW_CREDENTIAL_STATUS: 'V_CRD_ST',
+  VIEW_CANDIDATE: 'V_CAN'
 };
