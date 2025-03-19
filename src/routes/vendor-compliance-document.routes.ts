@@ -1,4 +1,3 @@
-
 import { FastifyInstance } from 'fastify';
 import * as VendorDocumentController from '../controllers/vendor-compliance-document.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
@@ -25,4 +24,5 @@ async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
     }, VendorDocumentController.getAllVendorCompDocummentByProgramId)
 }
+
 export default vendorComplianceDocumentRoutes;

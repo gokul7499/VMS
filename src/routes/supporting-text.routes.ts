@@ -13,14 +13,13 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
     preHandler: validatePermissions(Actions.CREATE, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.createSupportingText);
 
-  fastify.get('/program/:program_id/supporting-text',
-    {
-      schema: {
-        params: paramsSchema,
-        querystring: querySchema,
-      },
-      preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
-    }, SupportingTextController.getAllSupportingTexts);
+  fastify.get('/program/:program_id/supporting-text', {
+    schema: {
+      params: paramsSchema,
+      querystring: querySchema,
+    },
+    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+  }, SupportingTextController.getAllSupportingTexts);
 
   fastify.get('/program/:program_id/supporting-text/:id', {
     schema: {

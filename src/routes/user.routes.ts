@@ -4,58 +4,54 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 
 async function userRoutes(fastify: FastifyInstance) {
-    fastify.get('/user/',{
+    fastify.get('/user/', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUser);
 
-    fastify.get('/user/:id',{
+    fastify.get('/user/:id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserById);
 
-    fastify.post('/user/',
-        {
+    fastify.post('/user/', {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.USER])
-        }, userController.createUser);
+    }, userController.createUser);
 
-    fastify.put('/user/:id/program/:program_id',
-        {
+    fastify.put('/user/:id/program/:program_id', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.USER])
-        }, userController.updateUser);
+    }, userController.updateUser);
 
     fastify.delete('/user/:id', userController.deleteUser);
-    fastify.get('/user/search-user',{
+
+    fastify.get('/user/search-user', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.searchUser);
-    fastify.get('/user/program/:program_id',
-        {
+    fastify.get('/user/program/:program_id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
-        }, userController.getAllUserIDAndUserId);
-    fastify.get('/user/:id/program/:program_id',
-        {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
-        }, userController.getUserHierarchiesByProgram);
+    }, userController.getAllUserIDAndUserId);
 
-    fastify.get('/user/program/:program_id/user-worklocation',
-        {
+    fastify.get('/user/:id/program/:program_id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
-        }, userController.getUserWorkLocationAndTimeZone);
+    }, userController.getUserHierarchiesByProgram);
 
-    fastify.get('/program/:program_id/user-associated-hierachies',
-       {
+    fastify.get('/user/program/:program_id/user-worklocation', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
-        }, userController.getUserAndHierarchieId);
-       
-    // fastify.get('/program/:program_id/pending-user', getPendingUser);
-    fastify.get('/program/:program_id/get-job-manegers',{
+    }, userController.getUserWorkLocationAndTimeZone);
+
+    fastify.get('/program/:program_id/user-associated-hierachies', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+    }, userController.getUserAndHierarchieId);
+
+    fastify.get('/program/:program_id/get-job-manegers', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getActiveUser);
 
-    fastify.get('/get-user-contact',{
+    fastify.get('/get-user-contact', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserContact);
 
-    fastify.get('/get-user-program',{
+    fastify.get('/get-user-program', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserProgram);
 }
+
 export default userRoutes;
