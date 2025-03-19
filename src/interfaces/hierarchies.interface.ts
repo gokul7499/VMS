@@ -24,4 +24,13 @@ export interface hierarchiesData {
   is_enabled: boolean; 
   is_not_editable:boolean;
   support_email:string;
+  address?: {
+    country: string;
+    zipcode: string;
+    city: string;
+    state: string;
+    county: string;
+    address_line_1: string;
+    address_line_2?: string;
+  };
 }
