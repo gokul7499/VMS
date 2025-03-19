@@ -635,20 +635,11 @@ export const getPicklistAndPicklistItem = async (
 };
 
 export async function getAllPickListByProgramId(
-  request: FastifyRequest<{
-    Querystring: {
-      name?: string;
-      picklist_id?: string;
-      program_id?: string;
-      label?: string;
-      slug?: string;
-      defined_by: string;
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const { name, picklist_id, program_id, label, slug, defined_by } =
-    request.query;
+    request.query as{name?:string,picklist_id?:string,program_id?:string,label?:string,slug?:string,defined_by:string};
   let picklistData;
   try {
     const whereCondition: any = {};
@@ -765,7 +756,7 @@ export async function getAllPickListByProgramId(
 }
 
 export const createPicklistData = async (
-  request: FastifyRequest<{ Body: any }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const { picklist_items, ...picklist_data } = request.body as {

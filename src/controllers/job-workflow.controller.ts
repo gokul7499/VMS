@@ -1252,7 +1252,9 @@ export const rejectLevel = async (
                             }
 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                };
+                                 actor_first_name: userData?.first_name,
+                                actor_last_name: userData?.last_name,
+                                actor_by_avatar: userData?.avatar,};
 
                         });
                         return {
@@ -1266,7 +1268,9 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                      
+                        actor_first_name: userData?.first_name,
+                        actor_last_name: userData?.last_name,
+                        actor_by_avatar: userData?.avatar,
                     }));
 
                     return {
