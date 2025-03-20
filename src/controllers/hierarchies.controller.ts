@@ -11,6 +11,7 @@ import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQue
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 import User from '../models/user.model';
 import { ProgramVendor } from '../models/program-vendor.model';
+import CountryModel from '../models/countries.model';
 
 interface HierarchyItem {
   support_email: any;
@@ -112,7 +113,6 @@ export const getHierarchiesByProgram = async (
     });
   }
 };
-
 export const getHierarchies = async (
   request: FastifyRequest<{
     Params: { program_id: string },
@@ -205,6 +205,7 @@ export const getHierarchies = async (
   }
 };
 
+
 interface MasterDataResult {
   foundational_data: string | null;
   parent_hierarchy_name: string | null;
@@ -222,6 +223,24 @@ export async function getHierarchiesById(
       type: QueryTypes.SELECT,
     });
 
+    if (!hierarchy) {
+      return reply.status(404).send({
+        status_code: 404,
+        message: "Hierarchies not found",
+        trace_id: traceId,
+        hierarchies: [],
+      });
+    }
+
+    const countryId = hierarchy.address?.country;
+    let countryData = null;
+
+    if (countryId) {
+      countryData = await CountryModel.findOne({
+        where: { id: countryId },
+        attributes: ["id", "name"],
+      });
+    }
     if (hierarchy) {
       const [masterDataResult] = await sequelize.query<MasterDataResult>(masterDataQuery, {
         replacements: { hierarchy_id: id },
@@ -230,6 +249,8 @@ export async function getHierarchiesById(
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
       hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
+      hierarchy.country = countryData || { id: null, name: "Unknown" };
+
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
           ? JSON.parse(masterDataResult.foundational_data)
@@ -265,7 +286,6 @@ export async function getHierarchiesById(
     });
   }
 }
-
 
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
