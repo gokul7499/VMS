@@ -459,8 +459,8 @@ export const getAllSupportingTextsAdvancedFilter = async (
             performed_by?: string;
             event_slug?: string;
             updated_on?: string[];
-            module_name?: string;
-            event_name?: string;
+            module_id?: string;
+            event_id?: string;
             pagination?: { page?: number; limit?: number };
         };
     }>,
@@ -473,8 +473,8 @@ export const getAllSupportingTextsAdvancedFilter = async (
             performed_by,
             event_slug,
             updated_on,
-            event_name,
-            module_name,
+            event_id,
+            module_id,
             pagination = { page: 1, limit: 10 },
         } = request.body;
         const { page = 1, limit = 10 } = pagination;
@@ -488,13 +488,14 @@ export const getAllSupportingTextsAdvancedFilter = async (
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             whereConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
+        
         const includeConditions: any[] = [
             {
                 model: Event,
                 as: 'event',
                 attributes: ['id', 'name', 'slug'],
                 where: {
-                    ...(event_name ? { name: event_name } : {}),
+                    ...(event_id ? { id: event_id } : {}),
                     ...(event_slug ? { slug: event_slug } : {}),
                 },
             },
@@ -502,7 +503,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
                 model: Module,
                 as: 'module',
                 attributes: ['id', 'name'],
-                where: module_name ? { name: module_name } : undefined,
+                where: module_id ? { id: module_id } : undefined,
             },
         ];
 
