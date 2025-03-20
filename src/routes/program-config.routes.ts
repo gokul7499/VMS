@@ -1,72 +1,33 @@
 import { FastifyInstance } from "fastify";
-import {
-  getConfigurationById,
-  createConfiguration,
-  updateConfiguration,
-  deleteConfiguration,
-  getProgramConfigurations,
-  getTransformedConfig,
-  getConfigByProgramIdAndTitles
-} from "../controllers/program-config.controller";
+import * as ProgramConfigController from "../controllers/program-config.controller";
 import { Permissions, Actions } from "../constants/permissions";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 
 async function programsConfigRoutes(fastify: FastifyInstance) {
-  fastify.get("/program/:program_id/program-config/:id",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.READ,
-    //   },
-    // },
-    getConfigurationById);
-  fastify.get("/program/:program_id/configurations",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.READ,
-    //   },
-    // },
-    getConfigByProgramIdAndTitles);
-  fastify.post("/program-config", createConfiguration);
-  fastify.put("/program/:program_id/program-config",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.UPDATE,
-    //   },
-    // },
-    updateConfiguration);
-  fastify.delete("/program/:program_id/program-config/:id",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.DELETE,
-    //   },
-   
-    deleteConfiguration);
-  fastify.get("/program/:program_id/program-config",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.READ,
-    //   },
-    // },
-    getProgramConfigurations);
-  fastify.get("/program/:program_id/program-configuration",
-    // {
-    //   preHandler: validatePermissions,
-    //   config: {
-    //     permissions: [Permissions.PROGRAM_CONFIGURATION],
-    //     action: Actions.READ,
-    //   },
-    // },
-    getTransformedConfig);
+
+  fastify.get("/program/:program_id/program-config/:id", {
+    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+  }, ProgramConfigController.getConfigurationById);
+
+  fastify.get("/program/:program_id/configurations", {
+    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+  }, ProgramConfigController.getConfigByProgramIdAndTitles);
+
+  fastify.post("/program-config", ProgramConfigController.createConfiguration);
+
+  fastify.put("/program/:program_id/program-config", {
+    preHandler: validatePermissions(Actions.UPDATE, [Permissions.PROGRAM_CONFIGURATION])
+  }, ProgramConfigController.updateConfiguration);
+
+  fastify.delete("/program/:program_id/program-config/:id", ProgramConfigController.deleteConfiguration);
+
+  fastify.get("/program/:program_id/program-config", {
+    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+  }, ProgramConfigController.getProgramConfigurations);
+
+  fastify.get("/program/:program_id/program-configuration", {
+    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+  }, ProgramConfigController.getTransformedConfig);
 }
 
 export default programsConfigRoutes;
