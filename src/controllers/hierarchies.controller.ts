@@ -119,7 +119,7 @@ export const getHierarchies = async (
     Querystring: {
       name?: string;
       is_enabled?: boolean | string;
-      updated_on?: string;
+      updated_on?: number[];
       page?: number;
       limit?: number;
     };
@@ -135,17 +135,16 @@ export const getHierarchies = async (
 
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+
       let startDate: number | undefined;
       let endDate: number | undefined;
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const parsedStartDate = Number(updated_on[0]);
+        const parsedEndDate = Number(updated_on[1]);
       
-      if (updated_on) {
-        const dateRange = updated_on.split(",").map(date => date.trim());
-        
-        if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
-          startDate = Number(dateRange[0]);
-        }
-        if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
-          endDate = Number(dateRange[1]);
+        if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
+          startDate = parsedStartDate;
+          endDate = parsedEndDate;
         }
       }
       
@@ -155,7 +154,7 @@ export const getHierarchies = async (
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-      ...(startDate && endDate && { startDate, endDate }),
+       ...(startDate !== undefined && endDate !== undefined && { startDate, endDate }),
       limit: Number(limit),
       offset: Number(offset),
     };
@@ -908,7 +907,7 @@ export const getHierarchiesAdvancedFilter = async (
     Body: {
       name?: string;
       is_enabled?: boolean | string;
-      updated_on?: string;
+      updated_on?: number[]; 
       page?: number;
       limit?: number;
     };
@@ -923,32 +922,31 @@ export const getHierarchiesAdvancedFilter = async (
     const hasName = !!name;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+      const { updated_on } = request.body;
 
       let startDate: number | undefined;
       let endDate: number | undefined;
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const parsedStartDate = Number(updated_on[0]);
+        const parsedEndDate = Number(updated_on[1]);
       
-      if (updated_on) {
-        const dateRange = updated_on.split(",").map(date => date.trim());
-        
-        if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
-          startDate = Number(dateRange[0]);
-        }
-        if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
-          endDate = Number(dateRange[1]);
+        if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
+          startDate = parsedStartDate;
+          endDate = parsedEndDate;
         }
       }
       
-      const offset = (page - 1) * limit;
-      
-      const replacements: any = {
-        program_id,
-        ...(hasName && { name: `%${name}%` }),
-        ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-        ...(startDate && endDate && { startDate, endDate }),
-        limit: Number(limit),
-        offset: Number(offset),
-      };
-      
+    const offset = (page - 1) * limit;
+
+    const replacements: any = {
+      program_id,
+      ...(hasName && { name: `%${name}%` }),
+      ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
+      ...(startDate !== undefined && endDate !== undefined && { startDate, endDate }),
+      limit: Number(limit),
+      offset: Number(offset),
+    };
+
     const hierarchies: any[] = await sequelize.query(
       getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
       {
