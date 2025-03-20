@@ -678,7 +678,8 @@ export async function getAllJobTempletsByHierarchies(
       offset?: number;
       labour_category_id?: string;
       is_enabled?:string;
-      is_shift_rate?:string
+      is_shift_rate?:string;
+      hierarchy_ids?:string
     };
   }>,
   reply: FastifyReply
@@ -696,7 +697,8 @@ export async function getAllJobTempletsByHierarchies(
       offset,
       labour_category_id,
       is_enabled,
-      is_shift_rate
+      is_shift_rate,
+      hierarchy_ids
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
@@ -705,6 +707,7 @@ export async function getAllJobTempletsByHierarchies(
     const qualificationIdsArray = qualification?.split(",") || [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
+    const isHierarchyIdsArray = hierarchy_ids?.split(",") || [];
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
       program_id,
       hierarchyIdsArray,
@@ -716,9 +719,17 @@ export async function getAllJobTempletsByHierarchies(
       name,
       labour_category_id,
       isEnabledBool,
-      isShiftRate
+      isShiftRate,
+      isHierarchyIdsArray
     );
-
+    if (!data || data.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No job templates found",
+        job_templates: [],
+        trace_id: traceId,
+      });
+    }
     const uniqueJobTemplates = data.map((jobTemplate: any) => {
       const uniqueHierarchies = Array.from(
         new Set(jobTemplate.hierarchy.map((h: any) => JSON.stringify(h)))

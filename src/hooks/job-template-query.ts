@@ -157,121 +157,154 @@ class JobTempletRepository {
     return data;
   }
 
-async getAllJobTemplateByHierarchy(
-  program_id: string,
-  hierarchyIdsArray: string[],
-  laborCategoryIdsArray: string[],
-  qualificationIdsArray: string[],
-  limit?: number,
-  offset?: number,
-  jobTypeArray?: string[],
-  name?: string,
-  labour_category_id?: string,
-  is_enabled?: boolean,
-  is_shift_rate?: boolean
-) {
-  const hierarchyCondition = hierarchyIdsArray.length > 0
-  ? `job_templates.id IN (
-      SELECT job_temp_id
-      FROM job_template_hierarchies
-      WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
-      GROUP BY job_temp_id
-      HAVING COUNT(DISTINCT hierarchy) = ?
-    )`
-  : "";
-  const conditions = [
-    hierarchyCondition,
-    laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
-    qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
-    jobTypeArray && jobTypeArray.length > 0 && `(${jobTypeArray.map(() => `JSON_CONTAINS(job_templates.job_type, JSON_QUOTE(?))`).join(' OR ')})`,
-    name && `job_templates.template_name LIKE ?`,
-    labour_category_id && `labour_category.id = ?`, 
-    is_enabled !== undefined && `job_templates.is_enabled
-    ${is_enabled ? '=1' : '=0'}`,
-    is_shift_rate !== undefined && `job_templates.is_shift_rate
-    ${is_shift_rate ? '=1' : '=0'}`
-  ].filter(Boolean).join(' AND ');
-
-  const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
-
-  const query = `
-    SELECT
-      job_templates.template_name,
-      MIN(job_templates.id) AS id,
-      MIN(job_templates.job_id) AS job_id,
-      MIN(job_templates.is_shift_rate) AS is_shift_rate,
-      MIN(job_templates.program_id) AS program_id,
-      MIN(job_templates.job_type) AS job_type,
-      MIN(job_templates.description) AS description,
-      MIN(job_templates.checklist_version) AS checklist_version,
-      MIN(job_templates.checklist_entity_id) AS checklist_entity_id,
-      MIN(job_templates.template_code) AS template_code,
-      MIN(job_category.title) AS job_category,
-      MIN(labour_category.name) AS labour_category_name,
-      MIN(labour_category.id) AS labour_category_id,
-      JSON_OBJECT(
-        'id', ph.id,
-        'name', ph.name
-      ) AS primary_hierarchy,
-      JSON_ARRAYAGG(
+  async getAllJobTemplateByHierarchy(
+    program_id: string,
+    hierarchyIdsArray: string[],
+    laborCategoryIdsArray: string[],
+    qualificationIdsArray: string[],
+    limit?: number,
+    offset?: number,
+    jobTypeArray?: string[],
+    name?: string,
+    labour_category_id?: string,
+    is_enabled?: boolean,
+    is_shift_rate?: boolean,
+    isHierarchyIdsArray?: string[]
+  ) {
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+        )`
+      : "";
+  
+    const isHierarchyCondition = isHierarchyIdsArray && isHierarchyIdsArray.length > 0
+      ? `job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${isHierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+          AND COUNT(DISTINCT hierarchy) = (
+            SELECT COUNT(*)
+            FROM job_template_hierarchies AS jth_sub
+            WHERE jth_sub.job_temp_id = job_template_hierarchies.job_temp_id
+          )
+        )`
+      : "";
+  
+    const conditions = [
+      hierarchyCondition,
+      isHierarchyCondition,
+      laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
+      qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
+      jobTypeArray && jobTypeArray.length > 0 && `(${jobTypeArray.map(() => `JSON_CONTAINS(job_templates.job_type, JSON_QUOTE(?))`).join(' OR ')})`,
+      name && `job_templates.template_name LIKE ?`,
+      labour_category_id && `labour_category.id = ?`, 
+      is_enabled !== undefined && `job_templates.is_enabled ${is_enabled ? '=1' : '=0'}`,
+      is_shift_rate !== undefined && `job_templates.is_shift_rate ${is_shift_rate ? '=1' : '=0'}`
+    ].filter(Boolean).join(' AND ');
+  
+    const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
+  
+    const query = `
+      SELECT
+        job_templates.template_name,
+        MIN(job_templates.id) AS id,
+        MIN(job_templates.job_id) AS job_id,
+        MIN(job_templates.is_shift_rate) AS is_shift_rate,
+        MIN(job_templates.program_id) AS program_id,
+        MIN(job_templates.job_type) AS job_type,
+        MIN(job_templates.description) AS description,
+        MIN(job_templates.checklist_version) AS checklist_version,
+        MIN(job_templates.checklist_entity_id) AS checklist_entity_id,
+        MIN(job_templates.template_code) AS template_code,
+        MIN(job_category.title) AS job_category,
+        MIN(labour_category.name) AS labour_category_name,
+        MIN(labour_category.id) AS labour_category_id,
         JSON_OBJECT(
-          'id', unique_hierarchies.id,
-          'name', unique_hierarchies.name
+          'id', ph.id,
+          'name', ph.name
+        ) AS primary_hierarchy,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', unique_hierarchies.id,
+            'name', unique_hierarchies.name
+          )
+        ) AS hierarchy,
+        MIN(qualifications.name) AS qualification_name,
+        MIN(qualifications.id) AS qualification_id
+      FROM job_templates
+      INNER JOIN job_template_hierarchies
+        ON job_templates.id = job_template_hierarchies.job_temp_id
+      INNER JOIN (
+        SELECT DISTINCT id, name
+        FROM hierarchies
+      ) unique_hierarchies
+        ON job_template_hierarchies.hierarchy = unique_hierarchies.id
+      LEFT JOIN job_category
+        ON job_templates.category = job_category.id
+      LEFT JOIN labour_category
+        ON job_templates.labour_category = labour_category.id
+      LEFT JOIN job_template_qualification
+        ON job_templates.id = job_template_qualification.job_temp_id
+      LEFT JOIN hierarchies AS ph
+        ON job_templates.primary_hierarchy = ph.id  
+      LEFT JOIN qualifications
+        ON JSON_CONTAINS(
+            JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
+            JSON_QUOTE(qualifications.id)
         )
-      ) AS hierarchy,
-      MIN(qualifications.name) AS qualification_name,
-      MIN(qualifications.id) AS qualification_id
-    FROM job_templates
-    INNER JOIN job_template_hierarchies
-      ON job_templates.id = job_template_hierarchies.job_temp_id
-    INNER JOIN (
-      SELECT DISTINCT id, name
-      FROM hierarchies
-    ) unique_hierarchies
-      ON job_template_hierarchies.hierarchy = unique_hierarchies.id
-    LEFT JOIN job_category
-      ON job_templates.category = job_category.id
-    LEFT JOIN labour_category
-      ON job_templates.labour_category = labour_category.id
-    LEFT JOIN job_template_qualification
-      ON job_templates.id = job_template_qualification.job_temp_id
-    LEFT JOIN hierarchies AS ph
-      ON job_templates.primary_hierarchy = ph.id  
-    LEFT JOIN qualifications
-      ON JSON_CONTAINS(
-          JSON_EXTRACT(job_template_qualification.qualifications, '$[*].qualification_id'),
-          JSON_QUOTE(qualifications.id)
-      )
-    WHERE job_templates.program_id = ?
-    ${conditions ? `AND ${conditions}` : ''}
-    GROUP BY job_templates.template_name, ph.id, ph.name
-    ORDER BY job_templates.template_name
-    ${pagination};
-  `;
-
-  const replacements: (string | number)[] = [program_id];
-  if (hierarchyIdsArray.length > 0) replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length); 
-   if (laborCategoryIdsArray.length > 0) replacements.push(...laborCategoryIdsArray);
-  if (qualificationIdsArray.length > 0) replacements.push(...qualificationIdsArray);
-  if (jobTypeArray && jobTypeArray.length > 0) replacements.push(...jobTypeArray);
-  if (name) replacements.push(`%${name}%`);
-  if (labour_category_id) replacements.push(labour_category_id);
-  if (is_enabled !== undefined) {
-    replacements.push(is_enabled ? 1 : 0); 
+      WHERE job_templates.program_id = ?
+      ${conditions ? `AND ${conditions}` : ''}
+      GROUP BY job_templates.template_name, ph.id, ph.name
+      ORDER BY job_templates.template_name
+      ${pagination};
+    `;
+  
+    const replacements: (string | number)[] = [program_id];
+    
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+    if (isHierarchyIdsArray && isHierarchyIdsArray.length > 0) {
+      replacements.push(...isHierarchyIdsArray, isHierarchyIdsArray.length);
+    }
+    if (laborCategoryIdsArray.length > 0) {
+      replacements.push(...laborCategoryIdsArray);
+    }
+    if (qualificationIdsArray.length > 0) {
+      replacements.push(...qualificationIdsArray);
+    }
+    if (jobTypeArray && jobTypeArray.length > 0) {
+      replacements.push(...jobTypeArray);
+    }
+    if (name) {
+      replacements.push(`%${name}%`);
+    }
+    if (labour_category_id) {
+      replacements.push(labour_category_id);
+    }
+    if (is_enabled !== undefined) {
+      replacements.push(is_enabled ? 1 : 0);
+    }
+    if (is_shift_rate !== undefined) {
+      replacements.push(is_shift_rate ? 1 : 0);
+    }
+    if (limit && offset) {
+      replacements.push(limit, offset);
+    }
+      const data = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+  
+    return data;
   }
-  if(is_shift_rate !== undefined) {
-    replacements.push(is_shift_rate ? 1 : 0);
-  }
-  if (limit && offset) replacements.push(limit, offset);
-
-  const data = await sequelize.query(query, {
-    replacements,
-    type: QueryTypes.SELECT,
-  });
-
-  return data;
-}
-
+  
 
 async programQuery(program_id: string): Promise<{
   unique_id: string; name: string
