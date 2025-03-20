@@ -449,7 +449,7 @@ export async function advancefilter(
         whereClause.allow_unit_based = allow_unit_based === "true";
     }
     if (is_enabled !== undefined) {
-        whereClause.is_enabled = is_enabled === "true";
+        whereClause.is_enabled = (typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled === true);
     }
     if (max_limit !== undefined && !isNaN(Number(max_limit))) {
         whereClause = {
