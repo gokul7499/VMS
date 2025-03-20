@@ -48,16 +48,16 @@ class JobTempletRepository {
     job_type?: string,
     limit?: number,
     offset?: number,
-    is_enabled?:boolean
+    is_enabled?: boolean
   ) {
     const hierarchyCondition = hierarchy_ids.length > 0
       ? `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
       : '';
-      const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
+    const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const paginationCondition = limit !== undefined && offset !== undefined
       ? `LIMIT ? OFFSET ?`
       : '';
-      const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
+    const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
 
     const query = `
       SELECT
@@ -89,14 +89,14 @@ class JobTempletRepository {
     `;
     const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
     if (job_type) {
-      replacements.push(`"${job_type}"`); 
+      replacements.push(`"${job_type}"`);
     }
     if (limit !== undefined && offset !== undefined) {
       replacements.push(limit, offset);
     }
 
     if (is_enabled !== undefined) {
-      replacements.push(is_enabled ? 1 : 0); 
+      replacements.push(is_enabled ? 1 : 0);
     }
 
     const data = await sequelize.query(query, {
@@ -107,7 +107,7 @@ class JobTempletRepository {
     return data;
   }
 
-  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string,is_enabled?: boolean|undefined) {
+  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string, is_enabled?: boolean | undefined) {
     let hierarchyCondition = '';
 
     if (hierarchy_ids.length > 0) {
@@ -143,10 +143,10 @@ class JobTempletRepository {
     `;
     const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
     if (job_type) {
-      replacements.push(`"${job_type}"`); 
+      replacements.push(`"${job_type}"`);
     }
     if (is_enabled !== undefined) {
-      replacements.push(is_enabled ? 1 : 0); 
+      replacements.push(is_enabled ? 1 : 0);
     }
 
     const data = await sequelize.query(query, {
@@ -180,7 +180,7 @@ class JobTempletRepository {
           HAVING COUNT(DISTINCT hierarchy) = ?
         )`
       : "";
-  
+
     const isHierarchyCondition = isHierarchyIdsArray && isHierarchyIdsArray.length > 0
       ? `job_templates.id IN (
           SELECT job_temp_id
@@ -195,7 +195,7 @@ class JobTempletRepository {
           )
         )`
       : "";
-  
+
     const conditions = [
       hierarchyCondition,
       isHierarchyCondition,
@@ -203,13 +203,13 @@ class JobTempletRepository {
       qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
       jobTypeArray && jobTypeArray.length > 0 && `(${jobTypeArray.map(() => `JSON_CONTAINS(job_templates.job_type, JSON_QUOTE(?))`).join(' OR ')})`,
       name && `job_templates.template_name LIKE ?`,
-      labour_category_id && `labour_category.id = ?`, 
+      labour_category_id && `labour_category.id = ?`,
       is_enabled !== undefined && `job_templates.is_enabled ${is_enabled ? '=1' : '=0'}`,
       is_shift_rate !== undefined && `job_templates.is_shift_rate ${is_shift_rate ? '=1' : '=0'}`
     ].filter(Boolean).join(' AND ');
-  
+
     const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
-  
+
     const query = `
       SELECT
         job_templates.template_name,
@@ -264,9 +264,9 @@ class JobTempletRepository {
       ORDER BY job_templates.template_name
       ${pagination};
     `;
-  
+
     const replacements: (string | number)[] = [program_id];
-    
+
     if (hierarchyIdsArray.length > 0) {
       replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
     }
@@ -297,19 +297,19 @@ class JobTempletRepository {
     if (limit && offset) {
       replacements.push(limit, offset);
     }
-      const data = await sequelize.query(query, {
+    const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-  
+
     return data;
   }
-  
 
-async programQuery(program_id: string): Promise<{
-  unique_id: string; name: string
-}[]> {
-  const query = `
+
+  async programQuery(program_id: string): Promise<{
+    unique_id: string; name: string
+  }[]> {
+    const query = `
             SELECT
                 programs.name,
                 programs.unique_id
@@ -317,13 +317,13 @@ async programQuery(program_id: string): Promise<{
             WHERE programs.id = :program_id;
         `;
 
-  const data = await sequelize.query<{ name: string, unique_id: string }>(query, {
-    replacements: { program_id },
-    type: QueryTypes.SELECT,
-  });
+    const data = await sequelize.query<{ name: string, unique_id: string }>(query, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT,
+    });
 
-  return data;
-}
+    return data;
+  }
 
   async getAllJobTemplets(
     program_id: string,
@@ -539,11 +539,11 @@ async programQuery(program_id: string): Promise<{
     return jobTemplate;
   }
 
-  async managerQuery(job_manager_id: string) {
+  async managerQuery(job_manager_id: string, program_id: string) {
     const managerData = await sequelize.query<{
       associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids FROM user WHERE id = :job_manager_id`, {
-      replacements: { job_manager_id },
+    }>(`SELECT associate_hierarchy_ids FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`, {
+      replacements: { job_manager_id, program_id },
       type: QueryTypes.SELECT,
     });
 
