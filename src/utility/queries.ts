@@ -3078,3 +3078,12 @@ export const rateConfigurationsFilterQuery = (
   ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ORDER BY created_on DESC
   LIMIT :limit OFFSET :offset;`;
+
+
+  export const getParentHierarchiesQuery = `
+  SELECT * 
+  FROM hierarchies 
+  WHERE hierarchies.program_id = :program_id
+  AND hierarchies.parent_hierarchy_id IS NULL;
+  `;
+  
