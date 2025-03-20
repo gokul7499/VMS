@@ -66,7 +66,7 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
   logger.info("Fetching Redis key:", redisKey);
 
   try {
-    const cachedPolicies = await getRedisData.get(redisKey);
+    const cachedPolicies = await redis.get(redisKey);
     if (cachedPolicies) {
       groupPolicies = JSON.parse(cachedPolicies);
       logger.info("✅ Policies fetched from Redis cache.");

@@ -2192,6 +2192,7 @@ export const hierarchie = `
         h.unit_of_measure,
         h.support_email,
         h.is_not_editable,
+        h.address,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label

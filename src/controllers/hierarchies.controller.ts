@@ -119,7 +119,7 @@ export const getHierarchies = async (
     Querystring: {
       name?: string;
       is_enabled?: boolean | string;
-      updated_on?: number[];
+      updated_on?: string;
       page?: number;
       limit?: number;
     };
@@ -135,16 +135,17 @@ export const getHierarchies = async (
 
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
-
       let startDate: number | undefined;
       let endDate: number | undefined;
-      if (Array.isArray(updated_on) && updated_on.length === 2) {
-        const parsedStartDate = Number(updated_on[0]);
-        const parsedEndDate = Number(updated_on[1]);
       
-        if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
-          startDate = parsedStartDate;
-          endDate = parsedEndDate;
+      if (updated_on) {
+        const dateRange = updated_on.split(",").map(date => date.trim());
+        
+        if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
+          startDate = Number(dateRange[0]);
+        }
+        if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
+          endDate = Number(dateRange[1]);
         }
       }
       
@@ -154,7 +155,7 @@ export const getHierarchies = async (
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-       ...(startDate !== undefined && endDate !== undefined && { startDate, endDate }),
+      ...(startDate && endDate && { startDate, endDate }),
       limit: Number(limit),
       offset: Number(offset),
     };

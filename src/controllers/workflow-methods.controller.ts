@@ -353,7 +353,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                 i => i.dataValues.event_id === eventId2 &&
                     i.dataValues.name?.trim().toLowerCase() == "approval"
             );
-        
+
             if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
                 const response = [
                     {
