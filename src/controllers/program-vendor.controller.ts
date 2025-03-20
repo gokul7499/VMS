@@ -16,8 +16,8 @@ import VendorComplianceDocumentModel from "../models/vendor-compliance-document.
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
-import User from "../models/user.model";
 interface VendorDetails {
+    doc_id: any;
     compliance_note: any;
     last_name: any;
     first_name: any;
@@ -88,7 +88,7 @@ export async function getProgramVendors(
         }
 
         if (user_id !== undefined) {
-            const userRecord = await User.findOne({ where: { user_id: user_id } });
+            const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
             if (!userRecord) {
                 return reply.status(404).send({
                     status_code: 404,
@@ -338,7 +338,7 @@ export async function saveProgramVendor(
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
-        await UserMapping.create({ id: userGroupMapping.id,user_type:userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
+        await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
             { user_id: userData.user_id, contact },
@@ -450,7 +450,7 @@ export const updateProgramVendor = async (
 
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
-                const fieldsToCheck = ['hierarchy', 'work_locations','program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification'];
+                const fieldsToCheck = ['hierarchy', 'work_locations', 'program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification'];
                 fieldsToCheck.forEach(field => {
                     if (markupData[field] === 'any') {
                         markupData[field] = null;
@@ -570,12 +570,12 @@ export const getProgramVendorById = async (
             trace_id: traceId,
             program_vendor: programVendor,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while retrieving ProgramVendor data.',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 };
@@ -845,6 +845,7 @@ export const getVendorDocuments = async (
                 to_uploaded: doc.to_uploaded,
                 no_of_days: doc.no_of_days,
                 uploaded_document: {
+                    id: doc.doc_id,
                     expiry_on: doc.expiry_on,
                     audited_on: doc.audited_on,
                     compliance_note: doc.compliance_note,
@@ -852,7 +853,8 @@ export const getVendorDocuments = async (
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
-                    updated_on:doc.updated_on,
+                    updated_on: doc.updated_on,
+                    created_on: doc.created_on,
                     first_name: doc.first_name,
                     last_name: doc.last_name
                 },
@@ -974,17 +976,25 @@ export async function updateComplianceDocument(
         const finalAudited_on = complianceDocumentUpdate.name ? audited_on : null;
 
         await VendorComplianceReqDocMappingModel.destroy({
-            where: { vendor_id: vendorId, program_id, required_document_id: document_id }
+            where: {
+                vendor_id: vendorId,
+                program_id,
+                required_document_id: document_id,
+                id: { [Op.notIn]: [uploadedDocument.id] }
+            }
         });
 
         if (uploadedDocument) {
-            await VendorComplianceReqDocMappingModel.create({
+            await VendorComplianceReqDocMappingModel.upsert({
+                id: uploadedDocument.id ?? undefined,
                 program_id,
                 required_document_id: document_id,
                 user_id: user_id,
                 vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
-                uploaded_on: Date.now(),    
+                uploaded_on: Date.now(),
+                updated_on: Date.now(),
+                created_on: uploadedDocument?.id ? undefined : Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),
@@ -1004,6 +1014,7 @@ export async function updateComplianceDocument(
             message: "Compliance document updated successfully.",
             trace_id: traceId,
         });
+
     } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
