@@ -30,16 +30,18 @@ expenseTypeHierarchie.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'expense_configuration',
+                model: 'expense_config',
                 key: 'id',
             },
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
             allowNull: true
         },
         created_by: {
@@ -66,7 +68,7 @@ expenseTypeHierarchie.init(
     }
 );
 
-expenseTypeHierarchie.belongsTo(ExpenseConfigurationModel, { foreignKey: 'expense_config_id', as: 'expense_configuration' });
+expenseTypeHierarchie.belongsTo(ExpenseConfigurationModel, { foreignKey: 'expense_config_id', as: 'expense_config' });
 expenseTypeHierarchie.belongsTo(Hierarchies, { foreignKey: 'hierarchy', as: 'hierarchies' });
 
 export default expenseTypeHierarchie;

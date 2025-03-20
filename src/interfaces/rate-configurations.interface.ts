@@ -9,8 +9,8 @@ export interface RateConfigurationsInterface {
     limit?: string;
     created_by: string;
     updated_by: string;
-    created_on: number;
-    updated_on: number;
+    created_on?: bigint;
+    updated_on?: bigint;
     hierarchies: any;
     job_templates: any;
     rate_configuration: any;
@@ -101,4 +101,16 @@ export interface RateConfigurationsBudget {
             rates: any[];
         }>;
     }>;
+}
+
+export enum accuracyType {
+    CONFIG_MODEL = "accuracy_configuration",
+    RATE = "Rate",
+    AMOUNT = "Amount",
+    HOUR = "hour",
+    MARKUP = "Markup",
+    FEE = "Fee",
+    TAX = "Tax",
+    ADJUSTMENT = "Adjustment",
+    UNIT_OF_MEASURE = "Unit of Measure"
 }

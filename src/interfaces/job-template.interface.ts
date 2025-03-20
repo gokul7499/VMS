@@ -34,8 +34,8 @@ export interface JobTemplateInterface {
   is_enabled?: boolean | null;
   created_by?: string | null;
   updated_by?: string | null;
-  created_on?: number | null;
-  updated_on?: number | null;
+  created_on?: bigint;
+  updated_on?: bigint;
   job_submitted_count?:number,
   hierarchy:string[];
   custom_fields:string[];

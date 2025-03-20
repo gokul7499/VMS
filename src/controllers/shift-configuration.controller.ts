@@ -506,3 +506,177 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
     });
   }
 }
+
+export const getFilteredShiftConfiguration = async (
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      name?: string;
+      is_enabled?: boolean | string;
+      updated_on?:string[],
+      hierarchy_names?: string;
+      shift_type_name?: string;
+      page?: number;
+      limit?: number;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  const traceId = generateCustomUUID();
+  const { program_id } = request.params;
+  const { name, is_enabled, updated_on, hierarchy_names, shift_type_name, page = 1, limit = 10 } = request.body;
+
+  if (!program_id) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Program ID is required',
+      trace_id: traceId,
+    });
+  }
+
+  const pageNumber = Number(page);
+  const pageSize = Number(limit);
+
+  if (isNaN(pageNumber) || pageNumber < 1) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Invalid page number',
+      trace_id: traceId,
+    });
+  }
+
+  if (isNaN(pageSize) || pageSize < 1) {
+    return reply.status(400).send({
+      status_code: 400,
+      message: 'Invalid limit',
+      trace_id: traceId,
+    });
+  }
+
+  const offset = (pageNumber - 1) * pageSize;
+
+  try {
+    const searchFilters: any = { program_id };
+
+    if (name) {
+      searchFilters.name = { [Op.like]: `%${name}%` };
+    }
+
+    if (is_enabled !== undefined) {
+      searchFilters.is_enabled = is_enabled === 'true' || is_enabled === true;
+    }
+
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      searchFilters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+  }
+  
+    let shiftConfigIds: string[] = [];
+    if (hierarchy_names) {
+      const hierarchyRecords = await hierarchies.findAll({
+        where: { name: { [Op.like]: `%${hierarchy_names}%` } },
+        attributes: ['id'],
+      });
+      const hierarchyIds = hierarchyRecords.map(record => record.id);
+      const shiftConfigurationHierarchyRecords = await shiftConfigurationHierarchies.findAll({
+        where: { hierarchy_id: hierarchyIds },
+        attributes: ['shift_config_id'],
+      });
+      shiftConfigIds = shiftConfigurationHierarchyRecords.map(record => record.shift_config_id);
+      searchFilters.id = { [Op.in]: shiftConfigIds };
+    }
+
+    if (shift_type_name) {
+      const shiftTypeRecords = await ShiftType.findAll({
+        where: { shift_type_name: { [Op.like]: `%${shift_type_name}%` } },
+        attributes: ['id'],
+      });
+      const shiftTypeIds = shiftTypeRecords.map(record => record.id);
+      const shiftTypeConfigRecords = await shiftTypeConfiguration.findAll({
+        where: { shift_type_id: shiftTypeIds },
+        attributes: ['shift_config_id'],
+      });
+      const configIdsByShiftType = shiftTypeConfigRecords.map(record => record.shift_config_id);
+      if (shiftConfigIds.length > 0) {
+        searchFilters.id = { [Op.in]: shiftConfigIds.filter(id => configIdsByShiftType.includes(id)) };
+      } else {
+        searchFilters.id = { [Op.in]: configIdsByShiftType };
+      }
+    }
+
+    const { count, rows: shiftConfigData } = await ShiftConfiguration.findAndCountAll({
+      where: searchFilters,
+      limit: pageSize,
+      offset,
+      order: [["updated_on", "DESC"]],
+    });
+
+    if (shiftConfigData.length > 0) {
+      const shiftConfigIds = shiftConfigData.map(config => config.id);
+      const hierarchyRecords = await shiftConfigurationHierarchies.findAll({
+        where: { shift_config_id: shiftConfigIds },
+        attributes: ['shift_config_id', 'hierarchy_id'],
+      });
+      const hierarchyIds = hierarchyRecords.map(record => record.hierarchy_id);
+      const hierarchiesList = await hierarchies.findAll({
+        where: { id: hierarchyIds },
+        attributes: ['id', 'name'],
+      });
+
+      const shiftTypeRecords = await shiftTypeConfiguration.findAll({
+        where: { shift_config_id: shiftConfigIds },
+        attributes: ['shift_config_id', 'shift_type_id'],
+      });
+
+      const shiftTypeIds = shiftTypeRecords.map(record => record.shift_type_id);
+
+      const shiftTypesList = await ShiftType.findAll({
+        where: { id: shiftTypeIds },
+        attributes: ['id', 'shift_type_name', 'created_on'],
+      });
+
+      const shiftConfigsWithDetails = await Promise.all(
+        shiftConfigIds.map(async (shiftConfigId) => {
+          const shiftTypesForConfig = shiftTypeRecords
+            .filter(record => record.shift_config_id === shiftConfigId)
+            .map(record => shiftTypesList.find(shiftType => shiftType.id === record.shift_type_id));
+
+          const hierarchyConfig = hierarchyRecords
+            .filter(record => record.shift_config_id === shiftConfigId)
+            .map(record => hierarchiesList.find(hierarchy => hierarchy.id === record.hierarchy_id));
+
+          return {
+            ...shiftConfigData.find(config => config.id === shiftConfigId)?.toJSON(),
+            hierarchies: hierarchyConfig,
+            shift_types: shiftTypesForConfig,
+          };
+        })
+      );
+
+      return reply.status(200).send({
+        status_code: 200,
+        page: pageNumber,
+        limit: pageSize,
+        total_records: count,
+        shiftConfigurations: shiftConfigsWithDetails,
+        message: 'Shift configurations retrieved successfully',
+        trace_id: traceId,
+      });
+    } else {
+      return reply.status(200).send({
+        status_code: 200,
+        shiftConfigurations: [],
+        message: 'Shift configurations not found',
+        trace_id: traceId,
+      });
+    }
+  } catch (error) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      trace_id: traceId,
+    });
+  }
+};
+
+

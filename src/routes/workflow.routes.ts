@@ -8,7 +8,8 @@ import {
     getChildWorkflows,
     updateReorder,
     createWorkflowRecipientType,
-    createWorkflowLevel
+    createWorkflowLevel,
+    workflowFilter
 } from '../controllers/workflow.controller';
 
 async function WorkflowRoutes(fastify: FastifyInstance) {
@@ -27,6 +28,7 @@ async function WorkflowRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/workflow-triggered-level', async (request, reply) => {
         await createWorkflowLevel(request, reply);
     });
+    fastify.post('/program/:program_id/workflowAdvanceFilter', workflowFilter);
 }
 
 export default WorkflowRoutes;

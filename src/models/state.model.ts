@@ -42,21 +42,23 @@ StateModel.init({
         },
     },
     created_on: {
-        type: DataTypes.DOUBLE,
-        allowNull : true
-      },
-      updated_on: {
-        type: DataTypes.DOUBLE,
-        allowNull:true
-      },
-      created_by: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        defaultValue: Date.now(),
+        allowNull: true
+    },
+    updated_on: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        defaultValue: Date.now(),
+        allowNull: true
+    },
+    created_by: {
         type: DataTypes.UUID,
         allowNull: true,
-      },
-      updated_by: {
+    },
+    updated_by: {
         type: DataTypes.UUID,
         allowNull: true,
-      },  
+    },
 },
     {
         sequelize,

@@ -10,8 +10,8 @@ export interface WorkflowData {
     is_enabled: boolean,
     levels: any[],
     initialTrigger: any[],
-    created_on: number,
-    updated_on: number,
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string,
     updated_by: string,
     program_id: string,

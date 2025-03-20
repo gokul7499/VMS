@@ -11,8 +11,8 @@ export interface DelegationInterface {
     updated_by: string;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on?: Date;
-    updated_on?: Date;
+    created_on?: bigint;
+    updated_on?: bigint;
     interview_module: boolean;
     job_module: boolean;
     offer_module: boolean;

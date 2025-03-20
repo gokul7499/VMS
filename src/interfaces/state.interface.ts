@@ -8,8 +8,8 @@ export interface stateInterface {
     ref_id?: string;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on: any;
-    updated_on: any;
+    created_on?: bigint;
+    updated_on?: bigint;
     program_id: string;
     country_id: string;
     programs?: string;

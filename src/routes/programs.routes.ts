@@ -16,7 +16,7 @@ async function programsRoutes(fastify: FastifyInstance) {
   fastify.get("/program/getbyid/:id", getProgramById);
   fastify.put("/program/:id", updateProgramById);
   fastify.delete("/program/:id", {
-    preHandler: validatePermissions,
+    // preHandler: validatePermissions,
     // config: {
     //   permissions: [Permissions.PROGRAM],
     //   action: Actions.CREATE,

@@ -18,8 +18,8 @@ export interface CustomFields {
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
-  created_on: number;
-  updated_on: number;
+  created_on?: bigint;
+  updated_on?: bigint;
   created_by: string;
   updated_by: string;
   can_view: JSON;
@@ -29,6 +29,7 @@ export interface CustomFields {
   work_location_ids?: string[];
   linked_module: JSON;
   decimal_place: string;
+  is_sensitive_data: boolean;
 }
 
 export interface GetQueryInterface {
@@ -100,6 +101,7 @@ export const createCustomFieldsSchema = {
     job_type: { type: 'array', items: { type: 'string' } },
     decimal_place: { type: 'string', pattern: '^[0-9]+$' },
     is_range_required: { type: 'boolean' },
+    is_sensitive_data: { type: 'boolean' },
     meta_data: {
       type: 'object',
       properties: {

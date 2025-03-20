@@ -6,6 +6,7 @@ import {
     updateExpenseTypeById,
     deleteExpenseTypeById,
     getAllExpenseType,
+    advancefilter
 } from "../controllers/expense-type.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
@@ -75,5 +76,16 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
             querystring: querySchema,
         }
     }, getAllExpenseType);
+    fastify.post("/program/:program_id/expense-type/advancefilter",{
+        // preHandler:validatePermissions,
+        // config:{
+        //     Permissions:[Permissions.EXPENSE_TYPE],
+        //     action:Actions.READ
+        // },
+        schema: {
+            params: paramsSchema,
+            // querystring: querySchema,
+        }
+    }, advancefilter);
 }
 export default expenseTypeRoute;

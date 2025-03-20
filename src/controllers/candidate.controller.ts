@@ -24,7 +24,6 @@ export async function createCandidate(
     reply: FastifyReply
 ) {
     const { candidate } = request.body;
-    console.log("candidate",request.body)
     const { tenant } = request.body
     const { id, program_id, email } = candidate;
     const vendor = await ProgramVendor.findOne({
@@ -253,13 +252,13 @@ export async function getAllCandidate(
         const vendors = await ProgramVendor.findAll({
             where: {
                 program_id,
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
             attributes: ['id', 'vendor_name', 'display_name', 'tenant_id']
         });
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,
@@ -273,6 +272,7 @@ export async function getAllCandidate(
                 worker_type_id: cand.worker_type_id,
                 title: cand.title,
                 email: cand.email,
+                vendor_id: cand.vendor_id,
                 vendor: vendor ? {
                     id: vendor.id,
                     vendor_name: vendor.vendor_name,
@@ -366,14 +366,14 @@ export async function getCandidateByIdAndProgramId(
         if (candidateData.job_category) {
             candidateData.job_category_id = {
                 id: candidateData.job_category.id,
-                name: candidateData.job_category.title 
+                name: candidateData.job_category.title
             };
             delete candidateData.job_category;
         }
-        
+
 
         const vendor = await ProgramVendor.findOne({
-            where: { tenant_id: candidateData.vendor_id, program_id: program_id },
+            where: { id: candidateData.vendor_id, program_id: program_id },
             attributes: [['display_name', 'vendor_name',], "id", "tenant_id"]
         });
 
@@ -605,6 +605,9 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
+
+    const workerTypeIds = worker_type_id ? worker_type_id.split(",") : [];
+   
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
@@ -616,32 +619,21 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             last_name: last_name ? `%${last_name}%` : undefined,
             title: title ? `%${title}%` : undefined,
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
-            worker_type_id
+            worker_type_id: workerTypeIds
         };
-
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
-        if (count === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "Candidates not found.",
-                items_per_page: limitNum,
-                total_candidates: count,
-                candidates: []
-            });
-        }
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
-            message: "Candidates retrieved successfully.",
+            message: candidates.length ? "Candidates retrieved successfully." : "Candidates not found.",
             items_per_page: limitNum,
             total_candidates: count,
-            candidates: candidates
+            candidates
         });
     }
 
     const userData = await User.findOne({ where: { program_id: program_id, user_id: userId } });
-
     const vendorId = userData?.tenant_id || undefined;
 
     const vendor = await ProgramVendor.findOne({
@@ -654,7 +646,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     const vendor_id = vendor?.id || null;
 
-
     if (vendorId === undefined) {
         return reply.status(200).send({
             status_code: 200,
@@ -665,19 +656,41 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     }
 
     const whereClause: any = {
-        vendor_id: vendorId,
+        vendor_id: vendor_id,
         is_deleted: false,
         ...filters
     };
 
     if (candidate_id) whereClause.candidate_id = { [Op.like]: `%${candidate_id}%` };
-    if (first_name) whereClause.first_name = { [Op.like]: `%${first_name}%` };
+    if (first_name) {
+        const nameParts = first_name.trim().split(/\s+/);
+
+        let nameFilter: any[] = [
+            { first_name: { [Op.like]: `%${first_name}%` } },
+            { last_name: { [Op.like]: `%${first_name}%` } }
+        ];
+
+        if (nameParts.length > 1) {
+            nameFilter.push({
+                [Op.and]: [
+                    { first_name: { [Op.like]: `%${nameParts[0]}%` } },
+                    { last_name: { [Op.like]: `%${nameParts.slice(1).join(' ')}%` } }
+                ]
+            });
+        }
+
+        if (!whereClause[Op.or]) {
+            whereClause[Op.or] = nameFilter;
+        } else {
+            whereClause[Op.or] = [...whereClause[Op.or], ...nameFilter];
+        }
+    }
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (middle_name) whereClause.middle_name = { [Op.like]: `%${middle_name}%` };
     if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
     if (title) whereClause.title = { [Op.like]: `%${title}%` };
     if (is_active !== undefined) whereClause.is_active = is_active === 'true';
-    if (worker_type_id) whereClause.worker_type_id = worker_type_id;
+    if (worker_type_id) whereClause.worker_type_id = { [Op.in]: workerTypeIds };
     if (availability_date) whereClause["preferences.availability_date"] = availability_date;
     if (updatedAt) whereClause.updatedAt = updatedAt;
 
@@ -708,10 +721,9 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const vendorIds = candidates.map((cand: any) => cand.vendor_id);
-
         const vendors = await ProgramVendor.findAll({
             where: {
-                tenant_id: { [Op.in]: vendorIds },
+                id: { [Op.in]: vendorIds },
                 program_id: program_id,
                 ...(vendor_name && { display_name: { [Op.like]: `%${vendor_name}%` } })
             },
@@ -719,7 +731,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
 
         const formattedCandidates = candidates.map((cand: any) => {
-            const vendor = vendors.find((vend: any) => vend.tenant_id === cand.vendor_id);
+            const vendor = vendors.find((vend: any) => vend.id === cand.vendor_id);
             return {
                 id: cand.id,
                 first_name: cand.first_name,

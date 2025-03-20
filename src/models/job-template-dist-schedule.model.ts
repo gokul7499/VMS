@@ -34,7 +34,7 @@ JobTemplateDistScheduleModel.init(
       },
     },
     schedule_value: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.DATE,
       allowNull: false,
     },
     schedule_unit: {
@@ -64,11 +64,13 @@ JobTemplateDistScheduleModel.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
     created_by: {

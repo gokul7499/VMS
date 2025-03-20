@@ -9,11 +9,8 @@ import {
   GetJobTemplatesQuery,
 } from "../interfaces/job-template.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import jobTempRateTypeModel from "../models/job-temp-rate-type.model";
 import jobTemplateQualificationModel from "../models/job-template-qualification.model";
 import jobTemplateHierarchyModel from "../models/job-template-hierarchie.model";
-import JobTemplateDistScheduleModel from "../models/job-template-dist-schedule.model";
-import jobMasterDataModel from "../models/job-master-data.model";
 import { Op, QueryTypes, Transaction } from "sequelize";
 import jobTemplateCustomFieldModel from "../models/job-template-custom-field.model";
 import JobTempletRepository from "../hooks/job-template-query"
@@ -288,77 +285,6 @@ export async function createJobTemplate(
       await Promise.all(customFieldPromises);
     }
 
-    if (Array.isArray(jobRateType.rates)) {
-      const rateTypePromises = jobRateType.rates.map(
-        (rateType: {
-          rate_type_id: any;
-          bill_rate: any;
-          pay_rate: any;
-          abbreviation: any;
-          billable: any;
-          name: any;
-        }) =>
-          jobTempRateTypeModel.create(
-            {
-              rate_type_id: rateType.rate_type_id,
-              bill_rate: rateType.bill_rate,
-              pay_rate: rateType.pay_rate,
-              abbreviation: rateType.abbreviation,
-              billable: rateType.billable,
-              name: rateType.name,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(rateTypePromises);
-    }
-
-    if (Array.isArray(jobMasterData.foundational_data)) {
-      const masterDataPromises = jobMasterData.foundational_data.map(
-        (masterData: {
-          foundation_data_type_id: any;
-          foundation_data_id: any;
-          is_read_only: any;
-        }) =>
-          jobMasterDataModel.create(
-            {
-              foundation_data_type_id: masterData.foundation_data_type_id,
-              foundation_data_id: masterData.foundation_data_id,
-              is_read_only: masterData.is_read_only,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(masterDataPromises);
-    }
-
-    if (Array.isArray(jobDistSchedule.distribute_schedule_data)) {
-      const distSchedulePromises = jobDistSchedule.distribute_schedule_data.map(
-        (distSchedule: {
-          dist_shedule_id: any;
-          schedule_value: any;
-          schedule_unit: any;
-          vendors: any;
-        }) =>
-          JobTemplateDistScheduleModel.create(
-            {
-              dist_shedule_id: distSchedule.dist_shedule_id,
-              schedule_value: distSchedule.schedule_value,
-              schedule_unit: distSchedule.schedule_unit,
-              vendors: distSchedule.vendors,
-              program_id,
-              job_temp_id: jobTemplate.id,
-            },
-            { transaction }
-          )
-      );
-      await Promise.all(distSchedulePromises);
-    }
-
     if (Array.isArray(jobQualification.qualification_types)) {
       const qualificationPromises = jobQualification.qualification_types.map(
         (qualification: {
@@ -446,7 +372,7 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...updateData } = jobTemplateData;
-    updateData.updated_on = Date.now();
+    updateData.updated_on = BigInt(Date.now());
     updateData.updated_by = userId;
     await jobTemplate.update(updateData);
 
@@ -524,98 +450,7 @@ export async function updateJobTemplate(
           },
         });
       }
-    }
-    if (jobRateType?.rates) {
-      for (const rate_type_id of jobRateType.rates) {
-        const existingRecord = await jobTempRateTypeModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            rate_type_id: rate_type_id.rate_type_id,
-          },
-        });
-        if (existingRecord) {
-          await existingRecord.update(rate_type_id);
-          existingRecord.bill_rate = rate_type_id.bill_rate;
-          existingRecord.pay_rate = rate_type_id.pay_rate;
-          await existingRecord.save();
-        } else {
-          await jobTempRateTypeModel.create({
-            ...rate_type_id,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-    }
-
-    if (jobMasterData?.foundational_data) {
-      const incomingIds = jobMasterData.foundational_data
-        .map((data: { foundation_data_type_id: any; }) => data.foundation_data_type_id)
-        .filter(Boolean);
-    
-      for (const data of jobMasterData.foundational_data) {
-        const { foundation_data_type_id, ...foundationData } = data;
-    
-        const existingRecord = await jobMasterDataModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            foundation_data_type_id,
-          },
-        });
-    
-        if (existingRecord) {
-          await existingRecord.update(foundationData);
-        } else {
-          await jobMasterDataModel.create({
-            foundation_data_type_id,
-            ...foundationData,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-          const existingRecords = await jobMasterDataModel.findAll({
-        where: {
-          program_id,
-          job_temp_id: id,
-        },
-      });
-      const existingIds = existingRecords.map((record) => record.foundation_data_type_id);
-      const idsToDelete = existingIds.filter((id) => !incomingIds.includes(id));
-    
-      if (idsToDelete.length > 0) {
-        await jobMasterDataModel.destroy({
-          where: {
-            program_id,
-            job_temp_id: id,
-            foundation_data_type_id: idsToDelete,
-          },
-        });
-      }
     }  
-
-    if (jobDistSchedule?.distribute_schedule_data) {
-      for (const schedule of jobDistSchedule.distribute_schedule_data) {
-        const existingRecord = await JobTemplateDistScheduleModel.findOne({
-          where: {
-            program_id,
-            job_temp_id: id,
-            dist_shedule_id: schedule.dist_shedule_id,
-          },
-        });
-        if (existingRecord) {
-          await existingRecord.update(schedule);
-        } else {
-          await JobTemplateDistScheduleModel.create({
-            ...schedule,
-            program_id,
-            job_temp_id: id,
-          });
-        }
-      }
-    }
 
     if (jobQualification?.qualification_types) {
       const incomingIds = jobQualification.qualification_types
@@ -842,7 +677,9 @@ export async function getAllJobTempletsByHierarchies(
       limit?: number;
       offset?: number;
       labour_category_id?: string;
-      is_enabled?:string
+      is_enabled?:string;
+      is_shift_rate?:string;
+      hierarchy_ids?:string
     };
   }>,
   reply: FastifyReply
@@ -859,13 +696,18 @@ export async function getAllJobTempletsByHierarchies(
       limit,
       offset,
       labour_category_id,
-      is_enabled
+      is_enabled,
+      is_shift_rate,
+      hierarchy_ids
     } = request.query;
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
+    const JobType = job_type?.split(",") || [];
     const laborCategoryIdsArray = labour_category?.split(",") || [];
     const qualificationIdsArray = qualification?.split(",") || [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined
+    const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
+    const isHierarchyIdsArray = hierarchy_ids?.split(",") || [];
     const data = await jobTempletRepositories.getAllJobTemplateByHierarchy(
       program_id,
       hierarchyIdsArray,
@@ -873,12 +715,21 @@ export async function getAllJobTempletsByHierarchies(
       qualificationIdsArray,
       limit,
       offset,
-      job_type,
+      JobType,
       name,
       labour_category_id,
-      isEnabledBool
+      isEnabledBool,
+      isShiftRate,
+      isHierarchyIdsArray
     );
-
+    if (!data || data.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "No job templates found",
+        job_templates: [],
+        trace_id: traceId,
+      });
+    }
     const uniqueJobTemplates = data.map((jobTemplate: any) => {
       const uniqueHierarchies = Array.from(
         new Set(jobTemplate.hierarchy.map((h: any) => JSON.stringify(h)))
@@ -1168,3 +1019,98 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
     });
   }
 }
+
+export const advanceFilterJobTemplates = async (
+  request: FastifyRequest<{ Body: GetJobTemplatesQuery, Params: { program_id: string } }>,
+  reply: FastifyReply
+) => {
+  const { program_id } = request.params;
+  const traceId = generateCustomUUID();
+
+  try {
+    const {
+      id,
+      job_id,
+      is_enabled,
+      template_name,
+      labour_category,
+      is_shift_rate,
+      primary_hierarchy,
+      category,
+      page = 1,
+      limit = 10,
+    } = request.body; 
+
+    const pageNumber = Number(page) > 0 ? Number(page) : 1;
+    const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const dynamicConditions: string[] = [];
+    const replacements: any = { program_id, limit: limitNumber, offset };
+
+    if (id) {
+      dynamicConditions.push(`job_templates.id = :id`);
+      replacements.id = id;
+    }
+    if (job_id) {
+      dynamicConditions.push(`job_templates.job_id = :job_id`);
+      replacements.job_id = job_id;
+    }
+    if (is_enabled !== undefined) {
+      dynamicConditions.push(`job_templates.is_enabled = :is_enabled`);
+      replacements.is_enabled = is_enabled.toString() !== "false";
+    }
+    if (template_name) {
+      dynamicConditions.push(`job_templates.template_name LIKE :template_name`);
+      replacements.template_name = `%${template_name}%`;
+    }
+    if (category) {
+      dynamicConditions.push(`job_category.title LIKE :category`);
+      replacements.category = `%${category}%`;
+    }
+    if (labour_category) {
+      dynamicConditions.push(`labour_category.id LIKE :labour_category`);
+      replacements.labour_category = `%${labour_category}%`;
+    }
+    if (primary_hierarchy) {
+      dynamicConditions.push(`job_templates.primary_hierarchy = :primary_hierarchy`);
+      replacements.primary_hierarchy = primary_hierarchy;
+    }
+    if (is_shift_rate !== undefined) {
+      dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
+      replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
+
+    const dynamicConditionsString =
+      dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
+
+    const jobTemplates = await jobTempletRepositories.getAllJobTemplets(
+      program_id,
+      dynamicConditionsString,
+      replacements,
+      limitNumber,
+      offset
+    ) as any[];
+
+    const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
+    const totalPages = Math.ceil(totalCount / limitNumber);
+
+    reply.status(200).send({
+      statusCode: 200,
+      trace_id: traceId,
+      job_templates: jobTemplates,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        total_pages: totalPages,
+        total_count: totalCount,
+      },
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      message: "An error occurred while fetching job templates.",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+};

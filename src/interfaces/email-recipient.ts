@@ -4,5 +4,7 @@ export interface EmailRecipient {
     middle_name?: string;
     last_name?: string;
     userType?: string;
+    created_on?: bigint;
+    updated_on?: bigint;
     // Add any other properties you need
 }

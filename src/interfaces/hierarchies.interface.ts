@@ -4,8 +4,8 @@ export interface hierarchiesData {
   program_id: string;
   name: string;
   rate_model?: string;
-  created_on?: number; 
-  updated_on?: number; 
+  created_on?: bigint;
+  updated_on?: bigint;
   created_by?: string; 
   updated_by?: string; 
   code?: string; 
@@ -24,4 +24,13 @@ export interface hierarchiesData {
   is_enabled: boolean; 
   is_not_editable:boolean;
   support_email:string;
+  address?: {
+    country: string;
+    zipcode: string;
+    city: string;
+    state: string;
+    county: string;
+    address_line_1: string;
+    address_line_2?: string;
+  };
 }

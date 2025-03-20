@@ -8,8 +8,8 @@ import FoundationalDataTypes from './foundational-datatypes.model';
 
 class SowTemplateMasterDataModel extends Model {
     id: any;
-    created_on!: string;
-    updated_on!: string;
+    created_on!: bigint;
+    updated_on!: bigint;
     master_data_type_id: any;
     master_data: any;
 }
@@ -42,12 +42,14 @@ SowTemplateMasterDataModel.init(
             allowNull: false,
         },
         created_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

@@ -9,7 +9,6 @@ import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
-import Hierarchies from '../models/hierarchies.model';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -29,11 +28,15 @@ export async function createSowTemplate(
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub;
+    const sequelize = SowTemplateModel.sequelize!;
+    const transaction = await sequelize.transaction();
     try {
         const item = await SowTemplateModel.create({
-            ...sowTemplate, program_id, created_by: userId,
+            ...sowTemplate,
+            program_id,
+            created_by: userId,
             updated_by: userId,
-        });
+        }, { transaction });
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
@@ -41,7 +44,7 @@ export async function createSowTemplate(
                     hierarchy_id: hierarchyId,
                     created_by: userId,
                     updated_by: userId,
-                });
+                }, { transaction });
             }
         }
         if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
@@ -52,7 +55,7 @@ export async function createSowTemplate(
                     master_data: JSON.stringify({}),
                     created_by: userId,
                     updated_by: userId,
-                });
+                }, { transaction });
             }
         }
         if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
@@ -63,9 +66,10 @@ export async function createSowTemplate(
                     value: customField.value,
                     created_by: userId,
                     updated_by: userId,
-                });
+                }, { transaction });
             }
         }
+        await transaction.commit(); 
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -73,6 +77,7 @@ export async function createSowTemplate(
             sowTemplate: item.id,
         });
     } catch (error: any) {
+        await transaction.rollback(); 
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -92,13 +97,17 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             limit = 10,
             type,
             template_title,
-            hierarchy_id
+            hierarchy_id,
+            code,
+            created_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
             type?: string;
             template_title?: string;
             hierarchy_id?: string;
+            code?: string;
+            created_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -107,14 +116,27 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         let whereClause = `t.program_id = :program_id AND t.is_deleted = false`;
         const replacements: any = { program_id, limit: limitNumber, offset };
+
         if (type) {
-            whereClause += ` AND t.type = :type`;
+            whereClause += ` AND EXISTS (
+                SELECT 1 
+                FROM dev_vms_configurator.picklistitems p
+                WHERE p.id = t.type 
+                AND p.id = :type 
+            )`;
             replacements.type = type;
         }
+
         if (template_title) {
             whereClause += ` AND t.template_title LIKE :template_title`;
             replacements.template_title = `%${template_title}%`;
         }
+
+        if (code) {
+            whereClause += ` AND t.code = :code`;
+            replacements.code = code;
+        }
+
         if (hierarchy_id) {
             const hierarchyIdsArray = hierarchy_id.split(',');
             whereClause += ` AND EXISTS (
@@ -123,7 +145,17 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             )`;
             replacements.hierarchyIds = hierarchyIdsArray;
         }
-
+        if (created_on) {
+            const dateRange = created_on.split(',');
+            if (dateRange.length === 2) {
+                let startDate = new Date(dateRange[0].trim()).toISOString();
+                let endDate = new Date(dateRange[1].trim()).toISOString();
+                whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
+                replacements.startDate = startDate;
+                replacements.endDate = endDate;
+            }
+        }
+        
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -134,6 +166,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: QueryTypes.SELECT,
         });
         const totalRecords = totalResult[0]?.total || 0;
+        
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
@@ -146,9 +179,9 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title: template.template_title,
             description: template.description,
             hierarchy: template.hierarchy,
-            picklist_items:template.picklist_items,
-            created_on:template.created_on,
-            updated_on:template.updated_on
+            picklist_items: template.picklist_items,
+            created_on: template.created_on,
+            updated_on: template.updated_on
         }));
 
         reply.status(200).send({
@@ -170,6 +203,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
+
+
 
 
 export const getSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {

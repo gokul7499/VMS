@@ -2,9 +2,11 @@ import { NotificationDataPayload } from '../interfaces/noifications-data-payload
 import { EmailRecipient } from '../interfaces/email-recipient';
 import { QueryTypes, Sequelize } from "sequelize";
 import { databaseConfig } from '../config/db';
+import axios from 'axios';
 import { sequelize } from '../config/instance';
 const config_db = databaseConfig.config.database;
-const sourcing_db = databaseConfig.config.db_sourcing;
+const sourcing_url = databaseConfig.config.sourcing_url;
+const teai_url= databaseConfig.config.teai_url
 
 export async function getUsersWithHierarchy(
     sequelize: any,
@@ -218,7 +220,9 @@ interface WorkflowDetails {
     email: string;
     unique_key: string;
     offer_code?: string;
-
+    candidate_id?: string;
+    events?: string;
+    workflow_trigger_id?: string;
 }
 
 export async function getWorkflowDetails(
@@ -231,16 +235,16 @@ export async function getWorkflowDetails(
         const result = await sequelize.query(
             `SELECT 
                 w.id AS workflow_id,
-                j.job_id, 
+                w.job_id, 
                 c.first_name, 
                 c.last_name, 
                 c.email, 
                 w.unique_key,
-                o.offer_code
+                w.candidate_id,
+                w.events,
+                w.workflow_trigger_id
              FROM workflow w
-             LEFT JOIN ${sourcing_db}.jobs j ON w.job_id = j.id
              LEFT JOIN candidates c ON w.candidate_id = c.id
-             LEFT JOIN ${sourcing_db}.offers o ON w.candidate_id = o.candidate_id
              WHERE w.id = :workflow_id;`,
             {
                 replacements: { workflow_id: workflowId },
@@ -256,9 +260,6 @@ export async function getWorkflowDetails(
         throw error;
     }
 }
-
-
-
 
 export async function isVendorRequired(eventCode: string): Promise<boolean> {
     const requiredEvents = new Set([        
@@ -302,3 +303,84 @@ export async function getProgramVendorsEmail(programId: string): Promise<EmailRe
         throw error;
     }
 }
+export const getJobDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/job/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Job details not found.");
+            return { status: 404, message: "Job details not found", data: null };
+        }
+
+        console.log('Job details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Job details");
+    }
+};
+
+export const getOfferDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${sourcing_url}/v1/api/program/${program_id}/offer/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Offer details not found.");
+            return { status: 404, message: "Offer details not found", data: null };
+        }
+
+        console.log('Offer details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Offer details");
+    }
+};
+
+export const getAssignmentDetails = async (id: string, program_id: string, token: string) => {
+    try {
+        const response = await axios.get(`${teai_url}/assignment/v1/program/${program_id}/assignments/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.data) {
+            console.warn("Assignment details not found.");
+            return { status: 404, message: "Assignment details not found", data: null };
+        }
+
+        console.log('Assignment details fetched successfully');
+        return { status: 200, message: "Success", data: response.data };
+    } catch (error: any) {
+        return handleErrorProperly(error, "Assignment details");
+    }
+};
+
+const handleErrorProperly = (error: any, entity: string) => {
+    if (axios.isAxiosError(error)) {
+        if (error.response) {
+            if (error.response.status === 404) {
+                console.warn(`${entity} not found:`, error.response.data);
+                return { status: 404, message: `${entity} not found`, data: null };
+            }
+            console.error(`Error fetching ${entity}:`, error.response.data);
+            return { status: error.response.status, message: `Error fetching ${entity}`, data: null };
+        } else if (error.request) {
+            console.error(`No response received while fetching ${entity}`);
+            return { status: 500, message: `No response received while fetching ${entity}`, data: null };
+        }
+    }
+    console.error(`Unexpected error while fetching ${entity}:`, error.message);
+    return { status: 500, message: `Unexpected error while fetching ${entity}`, data: null };
+};
+

@@ -338,7 +338,7 @@ export async function saveProgramVendor(
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
         const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
-        await UserMapping.create({ id: userGroupMapping.id, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
+        await UserMapping.create({ id: userGroupMapping.id,user_type:userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
             { user_id: userData.user_id, contact },
@@ -635,7 +635,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         const vendorGroups = await VendorGroup.findAll(vendorGroupQuery);
 
         const responseVendors = filteredVendors.map(vendor => ({
-            id: vendor.tenant_id,
+            id: vendor.id,
             vendor: vendor.display_name,
         }));
 
@@ -852,6 +852,7 @@ export const getVendorDocuments = async (
                     status: doc.status,
                     file_name: doc.file_name,
                     url: doc.url,
+                    updated_on:doc.updated_on,
                     first_name: doc.first_name,
                     last_name: doc.last_name
                 },
@@ -964,7 +965,7 @@ export async function updateComplianceDocument(
         const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
         if (!expiryDate) return;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.upload_document_days, documentData.to_uploaded);
+        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
 
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
@@ -983,7 +984,7 @@ export async function updateComplianceDocument(
                 user_id: user_id,
                 vendor_id: vendorId ?? null,
                 url: uploadedDocument.url,
-                uploaded_on: Date.now(),
+                uploaded_on: Date.now(),    
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
                 next_expiry_on: nextUpdateDueDate.getTime(),

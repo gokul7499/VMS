@@ -10,7 +10,7 @@ export class VendorDistributionSchedule extends Model {
   public is_enabled!: boolean;
   public created_by!: string;
   public updated_by!: string;
-  public created_on!: Date;
+  public created_on!: bigint;
   public schedules!: {
     duration: number;
     measure_unit: string;
@@ -44,12 +44,14 @@ VendorDistributionSchedule.init({
     defaultValue: false,
   },
   created_on: {
-    type: DataTypes.DOUBLE,
-  allowNull : true
+    type: DataTypes.BIGINT.UNSIGNED,
+    defaultValue: Date.now(),
+    allowNull: true
   },
   updated_on: {
-    type: DataTypes.DOUBLE,
-  allowNull:true
+    type: DataTypes.BIGINT.UNSIGNED,
+    defaultValue: Date.now(),
+    allowNull: true
   },
   created_by: {
     type: DataTypes.UUID,

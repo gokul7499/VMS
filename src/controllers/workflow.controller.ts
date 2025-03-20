@@ -15,7 +15,8 @@ import { sequelize } from '../config/instance';
 import {
     countChildWorkflowsQuery,
     getChildWorkflowsQuery,
-    getparentWorkflowsQuery
+    getparentWorkflowsQuery,
+    workflowAdvanceFilter
 } from '../utility/queries';
 import FieldOperatorModel from '../models/field-operator.model'
 import FieldConfigModel from '../models/workflow-field-config.model'
@@ -1049,3 +1050,69 @@ export const createWorkflowRecipientType = async (request: FastifyRequest, reply
         });
     }
 };
+
+export async function workflowFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            event_id?: string[];
+            hierarchy_ids?: string[];
+            module?: string[];
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const { id, event_id = [], hierarchy_ids = [], module = [], page, limit } = request.body;
+        const pageNumber = parseInt(page ?? '1', 10);
+        const limitNumber = parseInt(limit ?? '10', 10);
+        const offset = (pageNumber - 1) * limitNumber;
+        const query = workflowAdvanceFilter(
+            Boolean(id),
+            event_id,
+            module,
+            hierarchy_ids
+        );
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            limit: limitNumber,
+            offset
+        };
+        hierarchy_ids.forEach((hierarchyId, index) => {
+            replacements[`hierarchy_id${index}`] = hierarchyId;
+        });
+        event_id.forEach((event, index) => {
+            replacements[`event_id${index}`] = event;
+        });
+        module.forEach((mod, index) => {
+            replacements[`module${index}`] = mod;
+        });
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT
+        });
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Workflow data fetched successfully' : 'Workflow data not found',
+            total_records: totalRecords,
+            workflows: data,
+            page: pageNumber,
+            limit: limitNumber
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message
+        });
+    }
+}

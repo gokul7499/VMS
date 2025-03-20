@@ -9,7 +9,6 @@ import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 
-
 export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
@@ -44,7 +43,18 @@ export async function createReasoncode(
 
             }>;
         };
-
+        if (reasoncode.event_id) {
+            const existingEvent = await ReasonCodeActionModel.findOne({
+                where: { event_id: reasoncode.event_id, is_deleted: false }
+            });
+            if (existingEvent) {
+                return reply.status(400).send({
+                    status_code: 400,
+                    message: "Event already exists",
+                    trace_id: traceId
+                });
+            }
+        }
         const reason_code_action = await ReasonCodeActionModel.create({
             reasons_count: reasoncode.reasons_count,
             created_by: reasoncode.created_by,
@@ -81,7 +91,6 @@ export async function createReasoncode(
         });
     }
 }
-
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -677,3 +686,103 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
         });
     }
 };
+
+export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            module_name,
+            reasons_count,
+            event_name
+        } = request.body as {
+            page?: number;
+            limit?: number;
+            module_name?: string;
+            reasons_count?: number;
+            event_name?: string;
+        };
+
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const whereClause: any = {
+            is_deleted: false
+        };
+
+        if (module_name) {
+            whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
+        }
+
+        if (event_name) {
+            whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
+        }
+
+        if (reasons_count !== undefined) {
+            whereClause.reasons_count = reasons_count;
+        }
+
+        const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
+            where: whereClause,
+            attributes: {
+                exclude: ['ref_id', 'updated_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
+            },
+            include: [
+                {
+                    model: Event,
+                    as: 'supporting_text_event',
+                    attributes: ['id', 'name'],
+                    required: false,
+                },
+                {
+                    model: Module,
+                    as: 'module',
+                    attributes: ['id', 'name'],
+                    required: false,
+                },
+            ],
+            order: [
+                [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'],
+                [{ model: Module, as: 'module' }, 'name', 'ASC'],
+                ['updated_on', 'DESC'],
+            ],
+            limit: limitNumber,
+            offset,
+        });
+        
+        const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
+            const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
+            const enabledReasonsCount = reasoncode.reasons_count || 0;
+            
+            return {
+                ...reasoncodeWithoutReason,
+                reasons_count: enabledReasonsCount,
+                module_name: module?.name || 'Unknown Module',
+                module_id: module?.id || 'Unknown id',
+                event_name: supporting_text_event?.name || 'Unknown Event',
+                event_id: supporting_text_event?.id || 'Unknown id',
+            };
+        });
+
+        reply.status(200).send({
+            status_code: 200,
+            message: reasoncodesWithDetails.length
+                ? 'Reasoncode retrieved successfully'
+                : 'Reasoncode not found',
+            items_per_page: limitNumber,
+            total_records: totalRecords,
+            reason_code_action: reasoncodesWithDetails,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal server error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+}

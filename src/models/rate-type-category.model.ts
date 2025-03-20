@@ -29,12 +29,14 @@ RateTypeCategory.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
-            allowNull:true,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true,
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
-            allowNull:true,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true,
         },
         created_by: {
             type: DataTypes.UUID,

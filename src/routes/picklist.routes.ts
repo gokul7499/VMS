@@ -5,7 +5,10 @@ import {
   deletePicklist,
   getPicklistById,
   getPicklistAndPicklistItem,
-  getAllPickListByProgramId
+  getAllPickListByProgramId,
+  createPicklistData,
+  deletePredefinedPicklist,
+   getPicklistFilter
 } from '../controllers/picklist.controller';
 import { createPicklistSchema, paramsSchema, querySchema } from '../interfaces/picklist.interface';
 
@@ -26,7 +29,12 @@ async function picklistRoutes(fastify: FastifyInstance) {
       params: paramsSchema,
     }
   }, updatePicklistAndItem);
-  fastify.delete('/program/:program_id/picklist/:id', {
+  fastify.post('/predefined-picklist', {
+    schema: {
+      body: createPicklistSchema,
+    }
+  }, createPicklistData);
+  fastify.put('/program/:program_id/delete-picklist/:id', {
     schema: {
       params: paramsSchema
     }
@@ -42,7 +50,10 @@ async function picklistRoutes(fastify: FastifyInstance) {
       querystring: querySchema,
     }
   }, getAllPickListByProgramId)
-}		
+  fastify.put('/delete-picklist/:id', {
+  }, deletePredefinedPicklist);
+  fastify.post('/program/:program_id/picklist/advance-filter', getPicklistFilter);
+}
 
 
 export default picklistRoutes;

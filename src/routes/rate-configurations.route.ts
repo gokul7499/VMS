@@ -7,7 +7,8 @@ import {
     deleteRateConfigurations,
     getAllRateConfigurationRates,
     getAllHierarchiesAndJobTemplates,
-    getAllRateConfigurationBudget
+    getAllRateConfigurationBudget,
+    rateConfigurationsFilter
 } from '../controllers/rate-configurations.controller';
 
 async function rateConfigurationsRoutes(fastify: FastifyInstance) {
@@ -19,6 +20,7 @@ async function rateConfigurationsRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/rate-configurations', getAllRateConfigurationRates);
     fastify.get('/program/:program_id/get-all/hierarchie', getAllHierarchiesAndJobTemplates);
     fastify.post('/program/:program_id/rate-configurations/budget', getAllRateConfigurationBudget);
+    fastify.post('/program/:program_id/rate-configurations/advance-filter', rateConfigurationsFilter);
 }
 
 export default rateConfigurationsRoutes;

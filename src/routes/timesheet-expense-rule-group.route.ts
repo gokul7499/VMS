@@ -4,7 +4,8 @@ import {
     updateTimesheetExpenseRuleGroup,
     deleteTimesheetExpenseRuleGroup,
     getAllTimesheetExpenseRuleGroups,
-    getTimesheetExpenseRuleGroupById
+    getTimesheetExpenseRuleGroupById,
+    filterTimesheetExpenseRuleGroups
 } from '../controllers/timesheet-expense-rule-group.controller';
 import { createTimesheetExpenseRuleGroupSchema, paramsSchema, querySchema } from '../interfaces/timesheet-expense-rule-group.interface';
 
@@ -37,4 +38,9 @@ export default async function timesheetExpenseRuleGroupRoutes(fastify: FastifyIn
             params: paramsSchema
         }
     },deleteTimesheetExpenseRuleGroup);
+    fastify.post('/timesheet-expense-rule-groups/advance-filter', {
+        schema: {
+            params: paramsSchema
+        }
+    },filterTimesheetExpenseRuleGroups);
 }

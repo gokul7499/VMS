@@ -33,11 +33,11 @@ sendNotificationModel.init({
         allowNull: true,
     },
     created_at: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
         defaultValue: Date.now(),
     },
     modified_at: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DATE,
         defaultValue: Date.now(),
     },
 },

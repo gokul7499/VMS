@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import RateConfigurationsModel from '../models/rate-configurations.model';
-import { RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
+import { accuracyType, RateConfigurationsInterface } from '../interfaces/rate-configurations.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import RateConfigurationHierarchies from '../models/rate_configuration_hierarchies.model';
 import RateConfigurationJobTemplates from '../models/rate-configuration-job-templates.model';
@@ -12,12 +12,13 @@ import jobTemplateModel from '../models/job-template.model';
 import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklist-item.model';
-import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
+import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, rateConfigurationsFilterQuery, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
 import { QueryTypes } from 'sequelize';
 import { decodeToken } from '../middlewares/verifyToken';
 import ShiftType from '../models/shift-type.model';
 import RateConfigurationExpenses from '../models/rate-configuration-expenses.model';
 import ExpenseTypeModel from '../models/expense-type.model';
+import AccuracyConfiguration from '../utility/accuracy_configuration';
 
 export const createRateConfigurations = async (
     request: FastifyRequest,
@@ -1174,32 +1175,42 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, ot_exempt: boolean, rateTypeCategory: string) {
+function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
     return rates.map((rate) => {
         const differential_value = ot_exempt && rateTypeCategory === "overtime" ? 1 : rate.differential_value;
+
+        const min_rate = rate.differential_type === "Factor Differential"
+            ? baseRateMin * differential_value
+            : baseRateMin + differential_value;
+
+        const max_rate = rate.differential_type === "Factor Differential"
+            ? baseRateMax * differential_value
+            : baseRateMax + differential_value;
 
         return {
             ...rate,
             differential_value,
-            min_rate: rate.differential_type === "Factor Differential"
-                ? baseRateMin * differential_value
-                : baseRateMin + differential_value,
-            max_rate: rate.differential_type === "Factor Differential"
-                ? baseRateMax * differential_value
-                : baseRateMax + differential_value,
+            min_rate: formatWithAccuracy(min_rate, accuracyType.RATE),
+            max_rate: formatWithAccuracy(max_rate, accuracyType.RATE),
         };
     });
 }
 
 export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    const { program_id } = request.params as { program_id: string };
     try {
+        const configData = await AccuracyConfiguration.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
+        const formatWithAccuracy = (value: any, title: string): string => {
+            return AccuracyConfiguration.findAndCalculate(configData, title, value);
+        };
+
         const response = request.body.map((config) => {
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {
-                const baseRateMin = Number(rateConfig.base_rate.rate_type.min_rate.amount);
-                const baseRateMax = Number(rateConfig.base_rate.rate_type.max_rate.amount);
+                const baseRateMin = Number(formatWithAccuracy(rateConfig.base_rate.rate_type.min_rate.amount, accuracyType.RATE));
+                const baseRateMax = Number(formatWithAccuracy(rateConfig.base_rate.rate_type.max_rate.amount, accuracyType.RATE));
 
                 const base_rate = {
                     ...rateConfig.base_rate,
@@ -1208,8 +1219,8 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
                         return {
                             ...rate,
                             rateTypeCategory,
-                            bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
-                            pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                            bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
+                            pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
                         };
                     }),
                 };
@@ -1219,15 +1230,15 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
                     return {
                         ...rateConfigNested,
                         rateTypeCategory,
-                        bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
-                        pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                        bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
+                        pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
                         rates: rateConfigNested.rates.map((nestedRate: { rate_type: any; bill_rate: any[]; pay_rate: any[] }) => {
                             const nestedRateTypeCategory = nestedRate.rate_type.rate_type_category.value;
                             return {
                                 ...nestedRate,
                                 rateTypeCategory: nestedRateTypeCategory,
-                                bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
-                                pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
+                                bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory, formatWithAccuracy),
+                                pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory, formatWithAccuracy),
                             };
                         }),
                     };
@@ -1248,6 +1259,79 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             status_code: 500,
             trace_id: traceId,
             message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+}
+
+export async function rateConfigurationsFilter(
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            id?: string;
+            name?: string;
+            is_shift_rate?: boolean;
+            job_type?: string;
+            is_enabled?: boolean | string;
+            updated_on?: any;
+            page?: string;
+            limit?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params;
+        const { id, name, is_shift_rate, job_type, is_enabled, updated_on, page, limit } = request.body;
+
+        const query = rateConfigurationsFilterQuery(
+            Boolean(id),
+            Boolean(name),
+            Boolean(is_shift_rate),
+            Boolean(job_type),
+            Boolean(is_enabled),
+            Boolean(updated_on)
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            name: name ? `%${name}%` : undefined,
+            is_shift_rate,
+            job_type,
+            is_enabled,
+            updated_on_start: updated_on ? updated_on[0] : undefined,
+            updated_on_end: updated_on ? updated_on[1] : undefined,
+            limit: parseInt(limit ?? '10', 10),
+            offset: (parseInt(page ?? '1', 10) - 1) * parseInt(limit ?? '10', 10),
+        };
+
+        const data = await sequelize.query(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        if (!data.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Rate configurations not found.",
+                trace_id: traceId,
+                rate_configurations: [],
+            });
+        }
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: 'Rate configurations fetched successfully.',
+            rate_configurations: data,
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
             error: error.message,
         });
     }

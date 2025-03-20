@@ -28,7 +28,7 @@ SELECT
     ), NULL) AS picklist_items
 FROM sow_templates t
 WHERE ${whereClause}
-ORDER BY t.updated_on DESC
+ORDER BY t.created_on DESC
 LIMIT :limit OFFSET :offset;
 `;
 

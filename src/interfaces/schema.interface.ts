@@ -2,8 +2,8 @@ export interface SchemaData {
     id: string,
     name: string,
     is_enabled: boolean,
-    created_on: Date,
-    updated_on: Date,
+    created_on?: bigint;
+    updated_on?: bigint;
     created_by: string,
     updated_by: string,
     program_id: string,

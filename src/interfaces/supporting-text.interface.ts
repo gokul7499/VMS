@@ -18,8 +18,8 @@ export interface supportingTextAttributes {
     performed_by: string;
     is_enabled: boolean;
     is_deleted: boolean;
-    created_on?: any;
-    updated_on?: any;
+    created_on?: bigint;
+    updated_on?: bigint;
     program_id: string;
     event_id: string;
     module_id: string;

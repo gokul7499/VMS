@@ -7,8 +7,8 @@ import CustomField from './custom-fields.model';
 
 class SowTemplateCustomFieldsModel extends Model {
     id: any;
-    created_on!: string;
-    updated_on!: string;
+    created_on!: bigint;
+    updated_on!: bigint;
     custom_field_id: any;
     value: any;
 }
@@ -42,12 +42,14 @@ SowTemplateCustomFieldsModel.init(
             allowNull: false,
         },
         created_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         updated_on: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
+            allowNull: true
         },
         created_by: {
             type: DataTypes.UUID,

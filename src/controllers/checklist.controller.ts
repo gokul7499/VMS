@@ -454,13 +454,17 @@ export async function filterChecklists(
             subQuery: false
           });
         console.log(checklists);
+        
         if (!checklists.rows.length) {
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(200).send({
+                status_code: 200,
                 message: 'No checklists found for the given filters.',
+                data: [],
+                total_count: 0,
+                current_page: page,
                 traceId: traceId,
             });
-        }
+        }        
 
         return reply.status(200).send({
             status_code: 200,

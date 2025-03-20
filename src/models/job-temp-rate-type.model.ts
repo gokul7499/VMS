@@ -69,11 +69,13 @@ JobTempRateTypeModel.init(
             defaultValue: false,
         },
         created_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
             allowNull: true
         },
         updated_on: {
-            type: DataTypes.DOUBLE,
+            type: DataTypes.BIGINT.UNSIGNED,
+            defaultValue: Date.now(),
             allowNull: true
         },
         created_by: {

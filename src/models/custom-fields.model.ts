@@ -146,6 +146,11 @@ CustomField.init(
       allowNull: true,
       defaultValue: []
     },
+    is_sensitive_data:{
+      type:DataTypes.BOOLEAN,
+      allowNull:true,
+      defaultValue:false
+    },
     decimal_place: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -155,11 +160,13 @@ CustomField.init(
       allowNull: true,
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
     created_by: {

@@ -27,9 +27,9 @@ ShiftType.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    shift_format:{
+    shift_format: {
       type: DataTypes.ENUM,
-      values:["duration","split","time"],
+      values: ["duration", "split", "time"],
       allowNull: true,
     },
     is_enabled: {
@@ -55,11 +55,13 @@ ShiftType.init(
       },
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true,
     },
     updated_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true,
     },
     created_by: {

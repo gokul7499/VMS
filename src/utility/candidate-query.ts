@@ -8,6 +8,21 @@ class CandidateRepository {
     async getCandidatesWithFilters(replacements: any): Promise<CandidateResponse> {
         let whereClause = `WHERE c.program_id = :program_id AND c.is_deleted = false`;
 
+        if (replacements.candidate_id) whereClause += ` AND c.candidate_id LIKE :candidate_id`;
+        if (replacements.first_name) {
+            whereClause += ` 
+                AND (c.first_name LIKE :first_name 
+                OR c.last_name LIKE :first_name 
+                OR CONCAT_WS(' ', c.first_name, c.last_name) LIKE :first_name)`;
+        }
+        if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
+        if (replacements.last_name) whereClause += ` AND c.last_name LIKE :last_name`;
+        if (replacements.title) whereClause += ` AND c.title LIKE :title`;
+        if (replacements.is_active !== undefined) whereClause += ` AND c.is_active = :is_active`;
+        if (replacements.worker_type_id.length > 0) {
+            const workerTypeIds = replacements.worker_type_id.map((id: string) => `'${id.trim()}'`).join(',');
+            whereClause += ` AND c.worker_type_id IN (${workerTypeIds})`;
+        }
         const countQuery = `
             SELECT COUNT(*) as count 
             FROM candidates c 
@@ -19,14 +34,6 @@ class CandidateRepository {
             type: QueryTypes.SELECT,
         });
         const count = countResult[0].count;
-
-        if (replacements.candidate_id) whereClause += ` AND c.candidate_id LIKE :candidate_id`;
-        if (replacements.first_name) whereClause += ` AND c.first_name LIKE :first_name`;
-        if (replacements.middle_name) whereClause += ` AND c.middle_name LIKE :middle_name`;
-        if (replacements.last_name) whereClause += ` AND c.last_name LIKE :last_name`;
-        if (replacements.title) whereClause += ` AND c.title LIKE :title`;
-        if (replacements.is_active !== undefined) whereClause += ` AND c.is_active = :is_active`;
-        if (replacements.worker_type_id) whereClause += ` AND c.worker_type_id = :worker_type_id`;
 
         const query = `
         SELECT DISTINCT
@@ -70,10 +77,10 @@ class CandidateRepository {
         LIMIT :limit OFFSET :offset;
         `;
 
-      const candidates = await sequelize.query(query, {
-       replacements,
-       type: QueryTypes.SELECT,
-      });
+        const candidates = await sequelize.query(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
 
         return { count, candidates };
     }

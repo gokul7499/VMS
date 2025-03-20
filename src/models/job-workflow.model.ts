@@ -17,6 +17,7 @@ class JobWorkFlowModel extends Model {
   hierarchies: any;
   event: any;
   moduleDetail: any;
+  job_id!: string;
 }
 
 JobWorkFlowModel.init(
@@ -140,11 +141,13 @@ JobWorkFlowModel.init(
       allowNull: true
     },
     created_on: {
-      type: DataTypes.DOUBLE,
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
-    updated_on: {
-      type: DataTypes.DOUBLE,
+  updated_on: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      defaultValue: Date.now(),
       allowNull: true
     },
     created_by: {
