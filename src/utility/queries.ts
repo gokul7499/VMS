@@ -540,24 +540,23 @@ WITH hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.is_enabled,
     h.updated_on,
-    h.created_on, -- Include created_on
+    h.created_on,
     h.program_id,
     h.is_deleted,
     h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
-    ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
+    ph.name AS parent_hierarchy_name
   FROM hierarchies h
-  LEFT JOIN hierarchies ph
-    ON h.parent_hierarchy_id = ph.id -- Self-join to get parent name
+  LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
-    ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
+    ${hasName ? 'AND h.name LIKE :name' : ''}
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-    : ''
-  }
+      ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
+      : ''
+    }
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -568,12 +567,12 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-  h.created_on DESC, -- Sort by created_on in descending order (newest first)
-  CASE
+h.created_on DESC, 
+ CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Keep parent hierarchies first
-  h.id
+h.id
 LIMIT :limit OFFSET :offset;
 `;
 
