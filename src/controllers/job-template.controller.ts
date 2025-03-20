@@ -378,17 +378,17 @@ export async function updateJobTemplate(
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
       const incomingHierarchyIds = jobTemplateData.hierarchy.filter(Boolean);
-          const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
+      const existingHierarchyRecords = await jobTemplateHierarchyModel.findAll({
         where: {
           job_temp_id: jobTemplate.id,
           program_id: jobTemplate.program_id,
         },
       });
-    
+
       const existingHierarchyIds = existingHierarchyRecords.map((record) => record.hierarchy);
-          for (const hierarchyId of incomingHierarchyIds) {
+      for (const hierarchyId of incomingHierarchyIds) {
         const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy === hierarchyId);
-    
+
         if (!existingRecord) {
           await jobTemplateHierarchyModel.create({
             job_temp_id: jobTemplate.id,
@@ -398,7 +398,7 @@ export async function updateJobTemplate(
         }
       }
       const idsToDelete = existingHierarchyIds.filter((id) => !incomingHierarchyIds.includes(id));
-    
+
       if (idsToDelete.length > 0) {
         await jobTemplateHierarchyModel.destroy({
           where: {
@@ -409,7 +409,7 @@ export async function updateJobTemplate(
         });
       }
     }
-  
+
     if (jobTempCustomField?.custom_fields) {
       const incomingIds = jobTempCustomField.custom_fields.map((custom_field: { id: any; }) => custom_field.id).filter(Boolean);
       for (const custom_field of jobTempCustomField.custom_fields) {
@@ -450,16 +450,16 @@ export async function updateJobTemplate(
           },
         });
       }
-    }  
+    }
 
     if (jobQualification?.qualification_types) {
       const incomingIds = jobQualification.qualification_types
         .map((qualification_type: { qualification_type_id: any; }) => qualification_type.qualification_type_id)
         .filter(Boolean);
-    
+
       for (const qualification_type of jobQualification.qualification_types) {
         const { qualification_type_id, ...qualificationData } = qualification_type;
-    
+
         const existingRecord = await jobTemplateQualificationModel.findOne({
           where: {
             program_id,
@@ -467,7 +467,7 @@ export async function updateJobTemplate(
             qualification_type_id,
           },
         });
-    
+
         if (existingRecord) {
           await existingRecord.update(qualificationData);
         } else {
@@ -479,7 +479,7 @@ export async function updateJobTemplate(
           });
         }
       }
-    
+
       const existingQualifications = await jobTemplateQualificationModel.findAll({
         where: {
           program_id,
@@ -590,14 +590,14 @@ export async function getJobTemplatesByHierarchies(
 export async function getAllJobTemplateHierarchyById(
   request: FastifyRequest<{
     Params: { program_id: string };
-    Querystring: { hierarchy_ids?: string; job_type?: string;is_enabled?:string };
+    Querystring: { hierarchy_ids?: string; job_type?: string; is_enabled?: string };
   }>,
   reply: FastifyReply
 ) {
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params;
-    const { hierarchy_ids, job_type,is_enabled } = request.query;
+    const { hierarchy_ids, job_type, is_enabled } = request.query;
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
 
@@ -607,7 +607,7 @@ export async function getAllJobTemplateHierarchyById(
       job_type,
       isEnabledBool
     );
-    console.log("datat",data)
+    console.log("datat", data)
     reply.status(200).send({
       status_code: 200,
       job_templates: data,
@@ -677,9 +677,9 @@ export async function getAllJobTempletsByHierarchies(
       limit?: number;
       offset?: number;
       labour_category_id?: string;
-      is_enabled?:string;
-      is_shift_rate?:string;
-      hierarchy_ids?:string
+      is_enabled?: string;
+      is_shift_rate?: string;
+      hierarchy_ids?: string
     };
   }>,
   reply: FastifyReply
@@ -923,7 +923,7 @@ export async function getCommonHierarchies(
     }
 
     const [managerData, templateData] = await Promise.all([
-      jobTempletRepositories.managerQuery(job_manager_id),
+      jobTempletRepositories.managerQuery(job_manager_id, program_id),
       jobTempletRepositories.templateQuery(job_template_id)
     ]);
 
@@ -956,7 +956,6 @@ export async function getCommonHierarchies(
           const isAssociated = commonHierarchyIds.includes(item.id);
           const children = buildHierarchy(data, item.id);
 
-          // Ensure node is included if it's associated OR if any child is associated
           if (isAssociated || children.length > 0) {
             return {
               ...item,
@@ -965,7 +964,6 @@ export async function getCommonHierarchies(
             };
           }
 
-          // Exclude node if not associated and has no associated children
           return null;
         })
         .filter(Boolean);
@@ -975,8 +973,9 @@ export async function getCommonHierarchies(
 
     reply.status(200).send({
       status_code: 200,
-      common_hierarchies: nestedHierarchy,
+      message: "Common hierarchies fetching succesfully.",
       trace_id: traceId,
+      common_hierarchies: nestedHierarchy,
     });
   } catch (error: any) {
     reply.status(500).send({
@@ -1039,7 +1038,7 @@ export const advanceFilterJobTemplates = async (
       category,
       page = 1,
       limit = 10,
-    } = request.body; 
+    } = request.body;
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
