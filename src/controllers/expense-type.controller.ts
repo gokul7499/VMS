@@ -354,7 +354,7 @@ export async function getAllExpenseType(
         whereClause.apply_msp_fee = apply_msp_fee === "true";
     }
     if (appply_tax !== undefined) {
-        whereClause.appply_tax = appply_tax === "true";
+        whereClause.appply_tax = appply_tax === "true" ? "1" : "0";
     }
     if (allow_unit_based !== undefined) {
         whereClause.allow_unit_based = allow_unit_based === "true";
@@ -443,8 +443,9 @@ export async function advancefilter(
         whereClause.apply_msp_fee = apply_msp_fee === "true";
     }
     if (appply_tax !== undefined) {
-        whereClause.appply_tax = appply_tax === "true";
+        whereClause.appply_tax = (typeof appply_tax === 'string' ? appply_tax === 'true' : appply_tax === true);;
     }
+    
     if (allow_unit_based !== undefined) {
         whereClause.allow_unit_based = allow_unit_based === "true";
     }
@@ -473,10 +474,15 @@ export async function advancefilter(
             order: [["created_on", "DESC"]],
         });
 
+        const formattedExpenseType = expenseType.map((item) => ({
+            ...item.toJSON(),
+            appply_tax: item.appply_tax === "1", // Convert "1" -> true, "0" -> false
+            is_negative_expense_allow: item.is_negative_expense_allow === "1", // Convert "1" -> true, "0" -> false
+        }));
         reply.status(200).send({
             status_code: 200,
             message: expenseType.length > 0 ? "Expense types retrieved successfully" : "No expense types found",
-            expense_type: expenseType,
+            expense_type: formattedExpenseType,
             total_records,
             page: pageNumber,
             limit: pageSize,
