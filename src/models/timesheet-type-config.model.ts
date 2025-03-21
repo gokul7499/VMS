@@ -51,9 +51,9 @@ TimesheetTypeConfig.init(
       allowNull: true,
     },
     timesheet_format: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM('tito', 'hourly', 'daily'),
       allowNull: true,
-    },
+    },    
     time_format: {
       type: DataTypes.STRING,
       allowNull: true,
