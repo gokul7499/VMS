@@ -2433,8 +2433,10 @@ export const getPendingUserQuery = `
     'pending' AS status,
     JSON_OBJECT(
       'id', tenant.id,
-      'name', tenant.name
+      'name', tenant.name,
+      'display_name',tenant.display_name
     ) AS tenant_id,
+  JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name) AS user_role,
     JSON_OBJECT(
       'id', countries.id,
       'name', countries.name
@@ -2553,6 +2555,8 @@ LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
 LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
+LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
+
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
