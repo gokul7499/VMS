@@ -52,7 +52,6 @@ async function picklistRoutes(fastify: FastifyInstance) {
   }, pickListController.getPicklistAndPicklistItem);
 
   fastify.get('/get-all/pickList', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
       querystring: querySchema,
     }
