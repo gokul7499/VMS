@@ -696,13 +696,15 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             limit = 10,
             module_name,
             reasons_count,
-            event_name
+            event_name,
+            updated_on,
         } = request.body as {
             page?: number;
             limit?: number;
             module_name?: string;
             reasons_count?: number;
             event_name?: string;
+            updated_on?:string[];
         };
 
         const pageNumber = Number(page);
@@ -724,7 +726,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         if (reasons_count !== undefined) {
             whereClause.reasons_count = reasons_count;
         }
-
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+        }
+        
         const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
             where: whereClause,
             attributes: {
