@@ -9,6 +9,8 @@ class ExpenseTypeModel extends Model {
     name: any;
     code: any;
     program_id: any;
+    appply_tax: any;
+    is_negative_expense_allow: any;
 }
 
 ExpenseTypeModel.init({

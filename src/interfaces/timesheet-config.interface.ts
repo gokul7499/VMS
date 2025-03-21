@@ -93,7 +93,7 @@ export const createTimesheetTypeConfigSchema = {
     work_period: { type: 'string' },
     work_start_day: { type: 'string' },
     timesheet_format: { type: 'string' },
-    time_format: { type: 'string' },
+    time_format: { type: 'string', enum: ['tito', 'hourly', 'daily'] },
     project: {
       type: 'object',
       properties: {
