@@ -6,10 +6,62 @@ import { Op } from 'sequelize';
 import qualificationTypeModel from '../models/qualification-type-model';
 import { generateQualificationCode } from '../plugins/qualificationCodeGenerate';
 import { decodeToken } from '../middlewares/verifyToken';
+import { logger } from '../utility/loggerService';
 
+// export const createQualification = async (request: FastifyRequest, reply: FastifyReply) => {
+//     const traceId = generateCustomUUID();
+
+//     const authHeader = request.headers.authorization;
+
+//     if (!authHeader?.startsWith('Bearer ')) {
+//         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     let user: any = await decodeToken(token);
+
+//     if (!user) {
+//         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+//     }
+//     const userId = user?.sub;
+//     try {
+//         const { program_id } = request.params as { program_id: string };
+//         const { name,qualification_type_id } = request.body as QualificationData;
+//         const existingQualification = await Qualifications.findOne({
+//             where: { name,qualification_type_id, program_id },
+//         });
+
+//         if (existingQualification) {
+//             return reply.status(409).send({
+//                 status_code: 409,
+//                 message: 'Qualification With The Same Name Already Exists.',
+//                 trace_id: traceId,
+//             });
+//         }
+
+//         const QualificationsDataPayload = request.body as Omit<QualificationData, '_id'>;
+//         const QualificationsData: any = await Qualifications.create({
+//             ...QualificationsDataPayload,
+//             program_id,
+//             created_by: userId,
+//             updated_by: userId
+//         });
+//         reply.status(201).send({
+//             status_code: 201,
+//             message: 'Qualification Created Successfully.',
+//             Qualifications: {
+//                 id: QualificationsData?.id,
+//                 name: QualificationsData?.name,
+//             },
+//             trace_id: traceId,
+//         });
+//     } catch (error) {
+//         reply.status(500).send({ status_code: 200, message: 'Error While Creating Qualification', error, trace_id: traceId });
+//     }
+// };
 export const createQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-
+    
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -22,15 +74,52 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+    
     const userId = user?.sub;
+
     try {
         const { program_id } = request.params as { program_id: string };
-        const { name,qualification_type_id } = request.body as QualificationData;
+        const { name, qualification_type_id } = request.body as QualificationData;
+
+       
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "Creating Qualification",
+            status: "info",
+            description: `Attempting to create qualification for program_id: ${program_id}`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+        });
+
+       
         const existingQualification = await Qualifications.findOne({
-            where: { name,qualification_type_id, program_id },
+            where: { name, qualification_type_id, program_id },
         });
 
         if (existingQualification) {
+            logger({
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: userId,
+                },
+                data: request.body,
+                eventname: "Qualification Exists",
+                status: "warn",
+                description: `Qualification with name "${name}" already exists in program_id: ${program_id}`,
+                level: 'warn',
+                action: request.method,
+                url: request.url,
+                entity_id: program_id,
+            });
+
             return reply.status(409).send({
                 status_code: 409,
                 message: 'Qualification With The Same Name Already Exists.',
@@ -38,6 +127,7 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
             });
         }
 
+      
         const QualificationsDataPayload = request.body as Omit<QualificationData, '_id'>;
         const QualificationsData: any = await Qualifications.create({
             ...QualificationsDataPayload,
@@ -45,7 +135,24 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
             created_by: userId,
             updated_by: userId
         });
-        reply.status(201).send({
+
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "Qualification Created",
+            status: "success",
+            description: `Successfully created qualification "${name}" for program_id: ${program_id}`,
+            level: 'success',
+            action: request.method,
+            url: request.url,
+            entity_id: program_id,
+        });
+
+        return reply.status(201).send({
             status_code: 201,
             message: 'Qualification Created Successfully.',
             Qualifications: {
@@ -54,8 +161,31 @@ export const createQualification = async (request: FastifyRequest, reply: Fastif
             },
             trace_id: traceId,
         });
+
     } catch (error) {
-        reply.status(500).send({ status_code: 200, message: 'Error While Creating Qualification', error, trace_id: traceId });
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            },
+            data: request.body,
+            eventname: "Qualification Creation Failed",
+            status: "error",
+            description: `Error while creating qualification for program_id: `,
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            // entity_id: request.params?.program_id,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Error While Creating Qualification',
+            error: error instanceof Error ? error.message : String(error),
+            trace_id: traceId
+        });
     }
 };
 
@@ -121,6 +251,48 @@ export async function getQualificationCode(request: FastifyRequest, reply: Fasti
     }
 }
 
+// export const updateQualification = async (request: FastifyRequest, reply: FastifyReply) => {
+//     const { id, program_id } = request.params as { id: string, program_id: string };
+//     const QualificationsData = request.body as QualificationData;
+//     const traceId = generateCustomUUID();
+//     const authHeader = request.headers.authorization;
+
+//     if (!authHeader?.startsWith('Bearer ')) {
+//         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     let user: any = await decodeToken(token);
+
+//     if (!user) {
+//         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+//     }
+//     const userId = user?.sub;
+//     try {
+//         const data = await Qualifications.findOne({
+//             where: {
+//                 id, program_id, is_deleted: false
+//             }
+//         });
+//         if (data) {
+//             await data.update({
+//                 QualificationsData,
+//                 updated_by: userId,
+//             });
+//             reply.status(201).send({
+//                 status_code: 201,
+//                 Qualification_id: id,
+//                 trace_id: traceId,
+//                 message: 'Qualification Data Updated Successfully.',
+//             });
+//         } else {
+//             reply.status(200).send({ status_code: 200, message: 'Qualification Not Found.', trace_id: traceId });
+//         }
+//     } catch (error) {
+//         reply.status(500).send({ status_code: 500, message: ' An Error Occurred While Updating The Qualification', error, trace_id: traceId });
+//     }
+// }
+
 export const updateQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const QualificationsData = request.body as QualificationData;
@@ -137,31 +309,97 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
+
     try {
         const data = await Qualifications.findOne({
             where: {
-                id, program_id, is_deleted: false
+                id,
+                program_id,
+                is_deleted: false
             }
         });
+
         if (data) {
             await data.update({
-                QualificationsData,
+                ...QualificationsData,
                 updated_by: userId,
             });
-            reply.status(201).send({
+
+            logger({
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                data: QualificationsData,
+                eventname: "update qualification",
+                status: "success",
+                description: `Qualification data updated successfully for ID: ${id}`,
+                level: 'info',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false
+            }, Qualifications);
+
+            return reply.status(201).send({
                 status_code: 201,
                 Qualification_id: id,
                 trace_id: traceId,
                 message: 'Qualification Data Updated Successfully.',
             });
+
         } else {
-            reply.status(200).send({ status_code: 200, message: 'Qualification Not Found.', trace_id: traceId });
+            logger({
+                trace_id: traceId,
+                actor: {
+                    user_name: user?.preferred_username,
+                    user_id: user?.sub,
+                },
+                eventname: "update qualification",
+                status: "warning",
+                description: `Qualification not found for ID: ${id}`,
+                level: 'warning',
+                action: request.method,
+                url: request.url,
+                entity_id: id,
+                is_deleted: false
+            }, Qualifications);
+
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Qualification Not Found.',
+                trace_id: traceId
+            });
         }
-    } catch (error) {
-        reply.status(500).send({ status_code: 500, message: ' An Error Occurred While Updating The Qualification', error, trace_id: traceId });
+    } catch (error: any) {
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user?.preferred_username,
+                user_id: user?.sub,
+            },
+            eventname: "update qualification",
+            status: "error",
+            description: `Error while updating qualification for ID: ${id}`,
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            entity_id: id,
+            is_deleted: false
+        }, Qualifications);
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'An Error Occurred While Updating The Qualification',
+            error: error.message,
+            trace_id: traceId
+        });
     }
-}
+};
+
 
 export const deleteQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
