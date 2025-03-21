@@ -11,7 +11,7 @@ export interface RateTypeInterface {
     abbreviation?: string | null;
     shift_type?: string | null;
     is_shift_rate?: boolean | null;
-    rate?:Rate;
+    rate?: Rate;
     is_base_rate?: boolean | null;
     program_id?: string | null;
     rate_type_category?: string | null;
@@ -21,6 +21,7 @@ export interface RateTypeInterface {
     base_differential_on?: string;
     differential_type?: string;
     differential_value: number;
+    rate_type_category_label?: string;
 }
 export interface CreateRateTypeData {
     type: any;
@@ -35,7 +36,7 @@ export interface CreateRateTypeData {
     abbreviation?: string | null;
     shift_type?: string | null;
     is_shift_rate?: boolean | null;
-    rate?:Rate;
+    rate?: Rate;
     is_base_rate?: boolean | null;
     program_id?: string | null;
     rate_type_category?: string | null;
@@ -43,26 +44,9 @@ export interface CreateRateTypeData {
     page?: string;
     limit?: string;
 }
-interface Rate{
-    differential_on?:string;
-    base_differential_on?:string;
-    differential_type?:string;
-    differential_value:number;
-}
-
-export interface RateTypeQueryParams {
-    id?: string;
-    name?: string;
-    is_enabled?: boolean | string;
-    updated_on?: string;
-    is_shift_rate?: boolean | string;
-    is_base_rate?: boolean | string;
+interface Rate {
     differential_on?: string;
-    rate_type_category?: string;
-    shift_type?: string;
-    rate_type_category_label?: string;
-    abbreviation?: string;
-    page?: string;
-    limit?: string;
-  }
-  
+    base_differential_on?: string;
+    differential_type?: string;
+    differential_value: number;
+}

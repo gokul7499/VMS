@@ -51,6 +51,9 @@ async function hierarchiesRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/hierarchies/advance-filter', {
         preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
     }, HierarchyController.getHierarchiesAdvancedFilter);
+
+    fastify.get('/program/:program_id/get-parent-hierarchy', HierarchyController.getParentHierarchies);
+
 }
 
 export default hierarchiesRoutes;

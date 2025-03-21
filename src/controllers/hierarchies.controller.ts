@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getParentHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 import User from '../models/user.model';
 import { ProgramVendor } from '../models/program-vendor.model';
@@ -943,3 +943,39 @@ export const getHierarchiesAdvancedFilter = async (
     });
   }
 };
+
+export async function getParentHierarchies(
+    request: FastifyRequest<{ Params: { program_id: string } }>,
+    reply: FastifyReply
+) {
+    const { program_id } = request.params;
+    const traceId = generateCustomUUID();
+
+    try {
+        const parentHierarchies = await sequelize.query(getParentHierarchiesQuery, {
+            replacements: { program_id },
+            type: QueryTypes.SELECT,
+        });
+
+        return reply.code(200).send({
+            status_code: 200,
+            message: parentHierarchies.length > 0
+                ? 'Parent hierarchies retrieved successfully.'
+                : 'No parent hierarchies found.',
+            data: parentHierarchies,
+            trace_id: traceId,
+        });
+
+    } catch (error: any) {
+        request.log.error(error);
+        return reply.code(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+}
+
+
+

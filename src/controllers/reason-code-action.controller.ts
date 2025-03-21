@@ -9,7 +9,6 @@ import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 
-
 export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
@@ -42,7 +41,18 @@ export async function createReasoncode(
                 is_enabled: boolean
             }>;
         };
-
+        if (reasoncode.event_id) {
+            const existingEvent = await ReasonCodeActionModel.findOne({
+                where: { event_id: reasoncode.event_id, is_deleted: false }
+            });
+            if (existingEvent) {
+                return reply.status(400).send({
+                    status_code: 400,
+                    message: "Event already exists",
+                    trace_id: traceId
+                });
+            }
+        }
         const reason_code_action = await ReasonCodeActionModel.create({
             reasons_count: reasoncode.reasons_count,
             created_by: reasoncode.created_by,
@@ -79,7 +89,6 @@ export async function createReasoncode(
         });
     }
 }
-
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();

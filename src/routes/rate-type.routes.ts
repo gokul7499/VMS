@@ -20,10 +20,6 @@ async function rateTypeRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.RATE_TYPE])
     }, RateTypeController.updateRateTypeById);
 
-    fastify.delete('/program/:program_id/rate_type/:id', {
-        preHandler: validatePermissions(Actions.DELETE, [Permissions.RATE_TYPE])
-    }, RateTypeController.deleteRateTypeById);
-
     fastify.get('/program/:program_id/differential_on', {
         preHandler: validatePermissions(Actions.READ, [Permissions.RATE_TYPE])
     }, RateTypeController.getDifferentialOnForRateType);
@@ -31,6 +27,11 @@ async function rateTypeRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/get-all/shift', {
         preHandler: validatePermissions(Actions.READ, [Permissions.RATE_TYPE])
     }, RateTypeController.getShiftAndRateType);
+
+    fastify.post('/program/:program_id/rate_type/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.RATE_TYPE])
+    }, RateTypeController.rateTypeFilter);
+
 }
 
 export default rateTypeRoutes;

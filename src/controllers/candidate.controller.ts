@@ -547,6 +547,9 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
+
+    const workerTypeIds = worker_type_id ? worker_type_id.split(",") : [];
+   
     if (user?.userType === 'super_user') {
         const replacements = {
             program_id,
@@ -558,31 +561,21 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             last_name: last_name ? `%${last_name}%` : undefined,
             title: title ? `%${title}%` : undefined,
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
-            worker_type_id
+            worker_type_id: workerTypeIds
         };
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
-        if (count === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                trace_id: traceId,
-                message: "Candidates not found.",
-                items_per_page: limitNum,
-                total_candidates: count,
-                candidates: []
-            });
-        }
+
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
-            message: "Candidates retrieved successfully.",
+            message: candidates.length ? "Candidates retrieved successfully." : "Candidates not found.",
             items_per_page: limitNum,
             total_candidates: count,
-            candidates: candidates
+            candidates
         });
     }
 
     const userData = await User.findOne({ where: { program_id: program_id, user_id: userId } });
-
     const vendorId = userData?.tenant_id || undefined;
 
     const vendor = await ProgramVendor.findOne({
@@ -639,7 +632,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     if (last_name) whereClause.last_name = { [Op.like]: `%${last_name}%` };
     if (title) whereClause.title = { [Op.like]: `%${title}%` };
     if (is_active !== undefined) whereClause.is_active = is_active === 'true';
-    if (worker_type_id) whereClause.worker_type_id = worker_type_id;
+    if (worker_type_id) whereClause.worker_type_id = { [Op.in]: workerTypeIds };
     if (availability_date) whereClause["preferences.availability_date"] = availability_date;
     if (updatedAt) whereClause.updatedAt = updatedAt;
 

@@ -25,9 +25,6 @@ async function rateCardsRoutes(fastify: FastifyInstance) {
     preHandler: validatePermissions(Actions.UPDATE, [Permissions.RATE_CARD])
   }, RateCardController.updateRateCard);
 
-  fastify.delete("/program/:program_id/rate-card/:id", {
-    preHandler: validatePermissions(Actions.DELETE, [Permissions.RATE_CARD])
-  }, RateCardController.deleteRateCard);
 }
 
 export default rateCardsRoutes;

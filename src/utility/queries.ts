@@ -196,6 +196,7 @@ export const complianceDocumentGetByUserId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -204,6 +205,7 @@ export const complianceDocumentGetByUserId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -237,9 +239,9 @@ export const complianceDocumentGetByUserId = `
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
         vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
-        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
-        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name, vcrm.created_on,
+        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,vcrm.id,
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,vcrm.updated_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
     LIMIT :limit OFFSET :offset
 `;
@@ -259,6 +261,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -267,6 +270,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -311,6 +315,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -319,6 +324,7 @@ export const complianceDocumentGetByVendorId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -387,6 +393,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -395,6 +402,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -3070,3 +3078,12 @@ export const rateConfigurationsFilterQuery = (
   ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ORDER BY created_on DESC
   LIMIT :limit OFFSET :offset;`;
+
+
+  export const getParentHierarchiesQuery = `
+  SELECT * 
+  FROM hierarchies 
+  WHERE hierarchies.program_id = :program_id
+  AND hierarchies.parent_hierarchy_id IS NULL;
+  `;
+  

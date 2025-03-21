@@ -676,7 +676,7 @@ export async function getAllJobTempletsByHierarchies(
       labour_category_id?: string;
       is_enabled?: string;
       is_shift_rate?: string;
-      hierarchy_ids?:string
+      hierarchy_ids?: string
     };
   }>,
   reply: FastifyReply
@@ -915,7 +915,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     }
 
     const [managerData, templateData] = await Promise.all([
-      jobTempletRepositories.managerQuery(job_manager_id),
+      jobTempletRepositories.managerQuery(job_manager_id, program_id),
       jobTempletRepositories.templateQuery(job_template_id)
     ]);
 
@@ -948,7 +948,6 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
           const isAssociated = commonHierarchyIds.includes(item.id);
           const children = buildHierarchy(data, item.id);
 
-          // Ensure node is included if it's associated OR if any child is associated
           if (isAssociated || children.length > 0) {
             return {
               ...item,
@@ -957,7 +956,6 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
             };
           }
 
-          // Exclude node if not associated and has no associated children
           return null;
         })
         .filter(Boolean);
@@ -967,8 +965,9 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
 
     reply.status(200).send({
       status_code: 200,
-      common_hierarchies: nestedHierarchy,
+      message: "Common hierarchies fetching succesfully.",
       trace_id: traceId,
+      common_hierarchies: nestedHierarchy,
     });
   } catch (error: any) {
     reply.status(500).send({
