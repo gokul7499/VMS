@@ -52,6 +52,11 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
   fastify.put('/program/:program_id/custom-fields/:id/enable-disable', {
     preHandler: validatePermissions(Actions.UPDATE, [Permissions.CUSTOM_FIELD]),
   }, customFieldController.updateCustomFieldsIsdisable);
+
+  fastify.post('/program/:program_id/custom-fields/advance-filter', {
+    preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
+  }, customFieldController.advanceFilterCustomFiled);
+
 }
 
 export default customFieldsRoutes;

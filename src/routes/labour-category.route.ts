@@ -49,6 +49,13 @@ async function industriesRoutes(fastify: FastifyInstance) {
         }
     }, lebourCategoryController.deleteIndustries);
 
+    fastify.post('/program/:program_id/labour-category/advanced-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
+        schema: {
+            params: paramsSchema,
+        }
+    }, lebourCategoryController.labourCategoryFilter);
+
 }
 
 export default industriesRoutes;

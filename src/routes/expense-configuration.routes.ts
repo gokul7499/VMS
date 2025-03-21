@@ -76,6 +76,14 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchies);
 
+    fastify.post('/program/:program_id/expense-configs-advanced-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION]),
+        schema: {
+            params: paramsSchema,
+            body: createExpenseConfigurationAdvancedFilter
+        }
+    }, ExpenseConfigurationController.expenseConfigurationAdvancedFilter);
+
 }
 
 export default expenseConfigurationRoutes;

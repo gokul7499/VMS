@@ -23,6 +23,10 @@ async function VendorGroupRoutes(fastify: FastifyInstance) {
     fastify.delete('/program/:program_id/vendor-groups/:id', {
         preHandler: validatePermissions(Actions.DELETE, [Permissions.VENDOR_GROUP])
     }, VendorGroupController.deleteVendorGroup);
+
+    fastify.post('/program/:program_id/vendor-groups/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_GROUP])
+    }, VendorGroupController.vendorGroupFilter);
 }
 
 export default VendorGroupRoutes;
