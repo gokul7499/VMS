@@ -1,22 +1,40 @@
 import { FastifyInstance } from 'fastify';
-import {
-    deleteShiftType,
-    updateShiftType,
-    createShiftType,
-    getShiftTypeById,
-    getALLShiftType,
-    getShiftTypesByHierarchies,
-    getShiftCategories,
-    getShiftTypeFilter
-} from '../controllers/shift-type.controller';
+import * as ShiftTypeController from '../controllers/shift-type.controller';
+import { validatePermissions } from "../middlewares/vaildate-permissions";
+import { Permissions, Actions } from "../constants/permissions";
 
-export default async function shiftTypeRoutes(fastify: FastifyInstance) {
-    fastify.post('/shift-type', createShiftType);
-    fastify.get('/program/:program_id/shift-type', getALLShiftType);
-    fastify.get('/program/:program_id/shift-type/:id', getShiftTypeById);
-    fastify.put('/program/:program_id/shift-type/:id', updateShiftType);
-    fastify.delete('/program/:program_id/shift-type/:id', deleteShiftType);
-    fastify.get('/program/:program_id/shift-types-by-hierarchies', getShiftTypesByHierarchies);
-    fastify.get('/program/:program_id/shift-category', getShiftCategories);
-    fastify.post('/program/:program_id/shift-category/advance-filter', getShiftTypeFilter);
+async function shiftTypeRoutes(fastify: FastifyInstance) {
+
+    fastify.post('/shift-type', {
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.createShiftType);
+
+    fastify.get('/program/:program_id/shift-type', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.getALLShiftType);
+
+    fastify.get('/program/:program_id/shift-type/:id', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.getShiftTypeById);
+
+    fastify.put('/program/:program_id/shift-type/:id', {
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.updateShiftType);
+
+    fastify.delete('/program/:program_id/shift-type/:id', ShiftTypeController.deleteShiftType);
+
+    fastify.get('/program/:program_id/shift-types-by-hierarchies', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.getShiftTypesByHierarchies);
+
+    fastify.get('/program/:program_id/shift-category', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.getShiftCategories);
+
+    fastify.post('/program/:program_id/shift-category/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.SHIFT_TYPE])
+    }, ShiftTypeController.getShiftTypeFilter);
+
 }
+
+export default shiftTypeRoutes;

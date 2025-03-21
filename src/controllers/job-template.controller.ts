@@ -555,14 +555,11 @@ export async function deleteJobTemplate(
   }
 }
 
-export async function getJobTemplatesByHierarchies(
-  request: FastifyRequest<{ Body: { hierarchy_ids: string[] } }>,
-  reply: FastifyReply
-) {
+export async function getJobTemplatesByHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids } = request.body;
+    const { hierarchy_ids } = request.body as { hierarchy_ids: string[] };
 
     if (!hierarchy_ids || hierarchy_ids.length === 0) {
       return reply.status(400).send({
@@ -903,15 +900,10 @@ export async function findJobTemplatesByLabourCategories(
   }
 }
 
-export async function getCommonHierarchies(
-  request: FastifyRequest<{
-    Querystring: { job_manager_id: string; job_template_id: string };
-  }>,
-  reply: FastifyReply
-) {
+export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id } = request.query;
+    const { job_manager_id, job_template_id } = request.query as { job_manager_id: string; job_template_id: string };
     const { program_id } = request.params as { program_id: string };
 
     if (!job_manager_id || !job_template_id) {

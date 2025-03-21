@@ -9,9 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
-import { fetchSubmittedCandidate, fetchUnavailableCandidates, getSubmissionCandidate } from "../utility/submission-candidate";
-import IndustriesModel from "../models/labour-category.model";
-import JobTemplateModel from "../models/job-template.model";
+import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
 import QualificationTypeModel from "../models/qualification-type-model";
@@ -19,13 +17,10 @@ import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 const candidateRepository = new CandidateRepository();
 
-export async function createCandidate(
-    request: FastifyRequest<{ Body: { candidate: candidateInterface, tenant: TenantInterface } }>,
-    reply: FastifyReply
-) {
-    const { candidate } = request.body;
-    const { tenant } = request.body
+export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
+    const { candidate, tenant } = request.body as { candidate: candidateInterface, tenant: TenantInterface };
     const { id, program_id, email } = candidate;
+
     const vendor = await ProgramVendor.findOne({
         where: {
             program_id: program_id,
@@ -499,59 +494,6 @@ export async function updateCandidateByIdAndProgramId(
         });
     } catch (error) {
         console.error("Error updating candidate:", error);
-        return reply.status(500).send({
-            status_code: 500,
-            trace_id: traceId,
-            message: "Internal Server Error",
-        });
-    }
-}
-
-export async function deleteCandidateByIdAndProgramId(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
-    const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    try {
-        const { id, program_id } = request.params as { id: string; program_id: string };
-
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-        const userId = user?.sub;
-
-        const [updatedRows] = await candidateModel.update(
-            {
-                is_deleted: true,
-                updated_by: userId,
-            },
-            {
-                where: {
-                    id,
-                    program_id
-                }
-            }
-        );
-        if (updatedRows === 0) {
-            return reply.status(404).send({
-                status_code: 404,
-                trace_id: traceId,
-                message: "Candidate not found or already deleted",
-            });
-        }
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Candidate successfully deleted",
-            trace_id: traceId,
-        });
-    } catch (error) {
-        console.error("Error deleting candidate:", error);
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
