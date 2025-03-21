@@ -23,9 +23,10 @@ export function validatePermissions(action: string, permissions: string[]) {
       .then(() => done())
       .catch((error) => {
         logger.error(error);
-        return reply.status(401).send({
-          status_code: 401,
+        return reply.status(403).send({
+          status_code: 403,
           message: error.message,
+          error,
           trace_id: generateCustomUUID(),
         });
       });
