@@ -741,7 +741,32 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
                     event_id: eventId?.id
                 }
             });
-        } else {
+        }else if (module.toLowerCase() === 'timesheet') {            
+            const event_slug = "submit_timesheet";
+            const module_slug = "timesheet";
+           
+            let moduleId;
+            if (module_slug) {
+                moduleId = await Module.findOne({ where: { slug: module_slug } });
+            }            
+            const module_ids = moduleId?.dataValues.id || "";
+           
+            let eventId;
+            if (module_ids && event_slug) {
+                console.log(module_ids, event_slug,'module_ids && event_slug)');
+               
+                eventId = await Event.findOne({
+                    where: { module_id: module_ids, slug: event_slug, is_enabled: true },
+                });                
+            }
+           
+            item = await WorkflowMethod.findAll({
+                where: {
+                    module_id: module_ids,
+                    event_id: eventId?.id,
+                }
+            });            
+        }else {
             item = null;
         }
 
