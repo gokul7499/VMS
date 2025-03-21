@@ -2,6 +2,8 @@ import { FastifyInstance } from 'fastify';
 import {
   getModule,
   createModule,
+  updateModule,
+  getModuleById,
 } from '../controllers/module.controller';
 import { createModuleSchema, paramsSchema} from '../interfaces/module.interface';
 
@@ -20,6 +22,18 @@ async function moduleRouter(fastify: FastifyInstance) {
     }
   },
      createModule);
-}
 
+fastify.put('/module/:id',{
+  schema:{
+    body: createModuleSchema,
+  }
+},
+updateModule);
+
+fastify.get('/module/:id',{
+  schema:{
+    params:paramsSchema,
+  }
+} ,getModuleById);
+}
 export default moduleRouter;
