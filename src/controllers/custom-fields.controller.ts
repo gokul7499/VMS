@@ -16,6 +16,8 @@ import { Op } from 'sequelize';
 import { update } from 'lodash';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
+import CustomFieldMaterData from '../models/custom-field-master-data.model';
+import FoundationalDataTypes from '../models/foundational-datatypes.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name,module_id, ...customFieldData } = request.body as any;
@@ -401,7 +403,8 @@ export const getCustomFieldById = async (
         "field_type", "is_required", "module_id", "module_name",
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
-        "supporting_text", "linked_modules", "meta_data", "job_type","range_applicable","is_sensitive_data"
+        "supporting_text", "linked_modules", "meta_data", "job_type",
+        "range_applicable","is_sensitive_data"
       ],
     });
 
@@ -461,6 +464,21 @@ export const getCustomFieldById = async (
           };
         }
       }
+      const customFieldMasterData = await CustomFieldMaterData.findAll({
+        where: { custom_field_id: customFieldId },
+        attributes: ["master_data_id"],
+      });
+
+      let masterData: { id: string, name: string }[] = [];
+
+      if (customFieldMasterData.length > 0) {
+        const masterDataIds = customFieldMasterData.map((record) => record.master_data_id);
+
+        masterData = await FoundationalDataTypes.findAll({
+          where: { id: masterDataIds },
+          attributes: ["id", "name"],
+        }) as any;
+      }
 
       reply.status(200).send({
         status_code: 200,
@@ -468,6 +486,7 @@ export const getCustomFieldById = async (
           ...customfiedData.toJSON(),
           hierarchies: hierarchie,
           workLocations: workLocations,
+          master_data: masterData,
           meta_data: {
             ...customfiedData.meta_data,
             ...(picklistData ? picklistData : {}),
