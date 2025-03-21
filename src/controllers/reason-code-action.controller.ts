@@ -9,7 +9,6 @@ import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
 
-
 export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
@@ -39,12 +38,21 @@ export async function createReasoncode(
             reason_codes: Array<{
                 name: string;
                 category: string;
-                is_enabled: Boolean
-
-
+                is_enabled: boolean
             }>;
         };
-
+        if (reasoncode.event_id) {
+            const existingEvent = await ReasonCodeActionModel.findOne({
+                where: { event_id: reasoncode.event_id, is_deleted: false }
+            });
+            if (existingEvent) {
+                return reply.status(400).send({
+                    status_code: 400,
+                    message: "Event already exists",
+                    trace_id: traceId
+                });
+            }
+        }
         const reason_code_action = await ReasonCodeActionModel.create({
             reasons_count: reasoncode.reasons_count,
             created_by: reasoncode.created_by,
@@ -55,7 +63,7 @@ export async function createReasoncode(
             slug: reasoncode.slug,
         });
 
-        const reasonCodes = await ReasonCodeModel.bulkCreate(
+        await ReasonCodeModel.bulkCreate(
             reasoncode.reason_codes.map((reason) => ({
                 name: reason.name,
                 category: reason.category,
@@ -81,7 +89,6 @@ export async function createReasoncode(
         });
     }
 }
-
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -134,12 +141,12 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
             order: [
                 [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'], // Place NULL modules last
                 [{ model: Module, as: 'module' }, 'name', 'ASC'],
-                ['updated_on', 'DESC'], 
+                ['updated_on', 'DESC'],
             ],
             limit: limitNumber,
             offset,
         });
-        
+
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
             const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
@@ -175,15 +182,12 @@ export async function getAllReasoncode(request: FastifyRequest, reply: FastifyRe
     }
 }
 
-export async function getReasoncodeById(
-    request: FastifyRequest<{ Params: { program_id?: string; id: string } }>,
-    reply: FastifyReply
-) {
+export async function getReasoncodeById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     let transaction = await sequelize.transaction();
 
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id?: string; id: string };
 
         let reasonCodeResponse = null;
 
@@ -358,19 +362,12 @@ export async function getReasoncodeById(
             error: error.message || error,
         });
     }
-}
-;
+};
 
-
-export async function getReasoncodeByEventName(
-    request: FastifyRequest<{ Params: { event_slug: string } }>,
-    reply: FastifyReply
-) {
+export async function getReasoncodeByEventName(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { event_slug } = request.query as {
-            event_slug?: string
-        };
+        const { event_slug } = request.query as { event_slug?: string };
         const event = await Event.findOne({ where: { slug: event_slug } });
         const eventId = event?.dataValues?.id;
         const reason_code = await ReasonCodeActionModel.findOne({
@@ -680,20 +677,22 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
 
 export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    
+
     try {
         const {
             page = 1,
             limit = 10,
             module_name,
             reasons_count,
-            event_name
+            event_name,
+            updated_on,
         } = request.body as {
             page?: number;
             limit?: number;
             module_name?: string;
             reasons_count?: number;
             event_name?: string;
+            updated_on?:string[];
         };
 
         const pageNumber = Number(page);
@@ -715,7 +714,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         if (reasons_count !== undefined) {
             whereClause.reasons_count = reasons_count;
         }
-
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+        }
+        
         const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
             where: whereClause,
             attributes: {
@@ -743,11 +746,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             limit: limitNumber,
             offset,
         });
-        
+
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
             const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
             const enabledReasonsCount = reasoncode.reasons_count || 0;
-            
+
             return {
                 ...reasoncodeWithoutReason,
                 reasons_count: enabledReasonsCount,

@@ -275,25 +275,20 @@ export const createSupportingText = async (request: FastifyRequest, reply: Fasti
     }
 };
 
-export const updateSupportingText = async (
-    request: FastifyRequest<{ Params: { id: string }; Body: Partial<supportingTextModel> }>,
-    reply: FastifyReply
-) => {
+export const updateSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { id } = request.params;
+    const { id } = request.params as { id: string };
     const {
         performed_by,
         is_enabled,
         is_deleted,
         created_on,
         updated_on,
-        created_by,
-        updated_by,
         program_id,
         event_id,
         module_id,
         support_text_action,
-    } = request.body;
+    } = request.body as supportingTextModel;
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -423,10 +418,13 @@ export const updateSupportingText = async (
 };
 
 
-export const deleteSupportingText = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+export const deleteSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
-        const supportingText = await supportingTextModel.findByPk(request.params.id);
+        const { program_id, id } = request.params as { program_id: string, id: string }
+        const supportingText = await supportingTextModel.findAll({
+            where: { program_id, id, is_deleted: false }
+        });
 
         if (!supportingText) {
             return reply.status(200).send({ status_code: 200, message: 'Supporting Text not found', trace_id: traceId });
@@ -434,7 +432,7 @@ export const deleteSupportingText = async (request: FastifyRequest<{ Params: { i
 
         const [updated] = await supportingTextModel.update(
             { is_deleted: true, is_enabled: false },
-            { where: { id: request.params.id } }
+            { where: { program_id, id } }
         );
 
         if (updated) {
@@ -459,8 +457,8 @@ export const getAllSupportingTextsAdvancedFilter = async (
             performed_by?: string;
             event_slug?: string;
             updated_on?: string[];
-            module_name?: string;
-            event_name?: string;
+            module_id?: string;
+            event_id?: string;
             pagination?: { page?: number; limit?: number };
         };
     }>,
@@ -473,8 +471,8 @@ export const getAllSupportingTextsAdvancedFilter = async (
             performed_by,
             event_slug,
             updated_on,
-            event_name,
-            module_name,
+            event_id,
+            module_id,
             pagination = { page: 1, limit: 10 },
         } = request.body;
         const { page = 1, limit = 10 } = pagination;
@@ -488,13 +486,14 @@ export const getAllSupportingTextsAdvancedFilter = async (
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             whereConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
+        
         const includeConditions: any[] = [
             {
                 model: Event,
                 as: 'event',
                 attributes: ['id', 'name', 'slug'],
                 where: {
-                    ...(event_name ? { name: event_name } : {}),
+                    ...(event_id ? { id: event_id } : {}),
                     ...(event_slug ? { slug: event_slug } : {}),
                 },
             },
@@ -502,7 +501,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
                 model: Module,
                 as: 'module',
                 attributes: ['id', 'name'],
-                where: module_name ? { name: module_name } : undefined,
+                where: module_id ? { id: module_id } : undefined,
             },
         ];
 

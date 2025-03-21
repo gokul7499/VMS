@@ -422,58 +422,6 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
     }
 };
 
-
-
-export const deleteRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();
-    const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub
-    try {
-        const { program_id, id } = request.params as { program_id: string; id: string };
-        const rateCard = await RateCard.findOne({
-            where: { id, program_id, is_deleted: false },
-            transaction,
-        });
-        if (!rateCard) {
-            await transaction.rollback();
-            return reply.status(400).send({
-                status_code: 400,
-                message: "Rate card not found.",
-                trace_id: traceId,
-                rate_cards: [],
-            });
-        }
-        await rateCard.update({ is_deleted: true, updated_by: userId }, { transaction });
-        await DecisionTable.update(
-            { is_deleted: true },
-            { where: { rate_card_id: id }, transaction }
-        );
-        await transaction.commit();
-        reply.status(200).send({
-            status_code: 200,
-            message: "Rate card deleted successfully.",
-            trace_id: traceId,
-        });
-    } catch (error: any) {
-        await transaction.rollback();
-        reply.status(500).send({
-            message: 'Internal Server Error',
-            error: error.message || error,
-            trace_id: traceId,
-        });
-    }
-};
-
-
 export const advanceFilterRateCards = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
@@ -502,13 +450,13 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
         };
         if (Array.isArray(updated_on) && updated_on.length === 2) {
             const dateRange = updated_on.map(timestamp => Number(timestamp));
-        
+
             if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
                 whereConditions.updated_on = { [Op.between]: dateRange };
             }
         }
-        
-        
+
+
         if (is_enabled !== undefined) {
             whereConditions.is_enabled = is_enabled === 'true' || is_enabled === true;
         }

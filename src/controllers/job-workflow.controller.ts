@@ -207,14 +207,14 @@ export const updateWorkflowStatus = async (
         Body:
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids?: any[], is_admin_override?: boolean }
         | { placement_order: number; new_status: string; user_id?: string; notes?: string; behavior?: string, job_id?: string, hierarchy_ids?: any[], is_admin_override?: boolean }[];
- 
+
     }>,
     reply: FastifyReply
 ) => {
- 
+
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
- 
+
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
@@ -226,12 +226,12 @@ export const updateWorkflowStatus = async (
     const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body;
- 
+
     // Convert to array if not already
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
- 
+
     // Validate input parameters
     if (!program_id || !id || updates.length === 0) {
         return reply.status(400).send({
@@ -240,7 +240,7 @@ export const updateWorkflowStatus = async (
             trace_id: traceId,
         });
     }
- 
+
     try {
         const userResult = await getUsersStatus(sequelize, userId, program_id);
         let userData = userResult[0] as any
@@ -249,7 +249,7 @@ export const updateWorkflowStatus = async (
             impersonator_id = user.impersonator.id || null
         }
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
- 
+
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -257,28 +257,28 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
- 
+
         // let managerData: any = await getManagerDetails(program_id, id)
         let levels = workflow.levels || [];
         let updatedLevels = false;
- 
- 
+
+
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
- 
+
             levels = await Promise.all(
                 levels.map(async (level: any) => {
- 
- 
+
+
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
- 
+
                         const updatedRecipientTypes = await Promise.all(
                             level.recipient_types.map(async (recipient: any) => {
                                 // Check user type - Fixed comparison operator
                                 const isSuperUser = user.userType === "super_user";
- 
+
                                 if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
                                     const matchesUser = Object.values(recipient.meta_data).includes(user_id);
@@ -292,7 +292,7 @@ export const updateWorkflowStatus = async (
                                             created_on: Date.now(),
                                             user_id: userId, // Store the current user who is making the decision
                                         });
-                                        
+
                                         return {
                                             ...recipient,
                                             status: "approved",
@@ -313,8 +313,8 @@ export const updateWorkflowStatus = async (
                                             status_by: userId, // Track who triggered this change
                                             impersonate_by: impersonator_id,
                                             updated_on: Date.now(),
-                                           
-                                         
+
+
                                         };
                                     }
                                 } else if (isSuperUser) {
@@ -342,7 +342,7 @@ export const updateWorkflowStatus = async (
                                         };
                                     }
                                 }
-                                
+
                                 // Check if user is not a "super_user" and proceed with matching
                                 if (!isSuperUser) {
                                     if (user_id) {
@@ -358,17 +358,17 @@ export const updateWorkflowStatus = async (
                                                 user_id: user_id,
                                             });
                                             return {
-                                                ...recipient, 
-                                                status: new_status, 
-                                                status_id: history.dataValues.id, 
+                                                ...recipient,
+                                                status: new_status,
+                                                status_id: history.dataValues.id,
                                                 imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
-                                                actor_by_avatar: userData?.avatar, 
+                                                actor_by_avatar: userData?.avatar,
                                                 updated_on: Date.now(),
                                             };
                                         }
- 
+
                                         // If the recipient does not have `replaced_by`, check `meta_data`
                                         if (!recipient.replaced_by && recipient.meta_data) {
                                             const matchesUser = Object.values(recipient.meta_data).includes(user_id);
@@ -383,13 +383,13 @@ export const updateWorkflowStatus = async (
                                                     user_id: user_id,
                                                 });
                                                 return {
-                                                    ...recipient, 
-                                                    status: new_status, 
-                                                    status_id: history.dataValues.id, 
+                                                    ...recipient,
+                                                    status: new_status,
+                                                    status_id: history.dataValues.id,
                                                     imporsonate_by: impersonator_id,
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
-                                                    actor_by_avatar: userData?.avatar, 
+                                                    actor_by_avatar: userData?.avatar,
                                                     updated_on: Date.now(),
                                                 };
                                             }
@@ -407,22 +407,22 @@ export const updateWorkflowStatus = async (
                                         user_id: user_id,
                                     });
                                     return {
-                                        ...recipient, 
-                                        status: new_status, 
-                                        status_id: history.dataValues.id, 
+                                        ...recipient,
+                                        status: new_status,
+                                        status_id: history.dataValues.id,
                                         imporsonate_by: impersonator_id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
-                                        actor_by_avatar: userData?.avatar, 
+                                        actor_by_avatar: userData?.avatar,
                                         updated_on: Date.now(),
                                     };
                                 }
- 
+
                                 // If no match, return original recipient
                                 return recipient;
                             })
                         );
- 
+
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
                             (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
@@ -436,7 +436,7 @@ export const updateWorkflowStatus = async (
                     if (is_admin_override) {
                         // Slice levels from index 1 onwards
                         const slicedLevels = levels.slice(1);
- 
+
                         // Update only recipient_types in levels from index 1 onwards
                         slicedLevels.forEach((level: any) => {
                             level.recipient_types = level.recipient_types.map((recipient: any) => ({
@@ -455,17 +455,17 @@ export const updateWorkflowStatus = async (
                     return level;
                 })
             );
- 
+
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
             let allLevelsAfterFirstCompleted = true;
             let workflowStatus = "completed";
- 
+
             // Loop through levels and process
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
- 
+
                 // Skip this level if recipient_types is empty or any recipient has meta_data with null values
                 const isValidLevel = level.recipient_types &&
                     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
@@ -473,7 +473,7 @@ export const updateWorkflowStatus = async (
                         return recipient.meta_data !== null &&
                             Object.values(recipient.meta_data).every(value => value !== null);
                     });
- 
+
                 if (!isValidLevel) {
                     continue;
                 }
@@ -485,18 +485,18 @@ export const updateWorkflowStatus = async (
             // Set final workflow status based on valid levels
             workflowStatus = allLevelsAfterFirstCompleted ? "completed" : "pending";
             const is_updatedFlag = allLevelsAfterFirstCompleted ? true : false;
- 
+
             // Update the workflow object
             workflow.status = workflowStatus;
             workflow.is_updated = is_updatedFlag;
- 
+
             await workflow.update({ levels, status: workflowStatus, is_updated: is_updatedFlag, updated_on: Date.now(), updated_by: userId });
- 
+
             let allPayload = {
                 hierarchy_ids: hierarchy_ids,
                 program_id: program_id,
             };
- 
+
             if (workflowStatus === "completed") {
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
                 let eventCode = await getEventsCode(workflow);
@@ -509,7 +509,7 @@ export const updateWorkflowStatus = async (
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
             }
         }
- 
+
         if (!updatedLevels) {
             return reply.status(400).send({
                 status_code: 400,
@@ -517,7 +517,7 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
- 
+
         return reply.status(200).send({
             status_code: 200,
             message: "Approved done successfully.",
@@ -525,7 +525,7 @@ export const updateWorkflowStatus = async (
         });
     } catch (error) {
         console.error("Error updating workflow:", error);
- 
+
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to update workflow.",
@@ -581,7 +581,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     const userQuery = `
         SELECT user_id, status,first_name,last_name,avatar
         FROM user
-        WHERE user_id IN (:userId)  
+        WHERE user_id IN (:userId)
           AND is_enabled = true;`;
 
     const users = await sequelize.query(userQuery, {
@@ -797,7 +797,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 job_id: workflow?.event_title,
                 job_url: jobDatas
                     ? `${SOURCE_BASE_URL}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
-                    : '', 
+                    : '',
                 status_reason: updates[0]?.reason
             };
 
@@ -1137,7 +1137,7 @@ async function getManagerDetails(program_id: any, workflowId: any) {
             SELECT user_id, email,first_name ,last_name
             FROM user
             WHERE user_id = :managerId
-              AND program_id=:program_id    
+              AND program_id=:program_id
             LIMIT 1
         `;
 
@@ -1244,7 +1244,7 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                return { ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
                                      actor_first_name: userData?.first_name,
                                     actor_last_name: userData?.last_name,
                                     actor_by_avatar: userData?.avatar, };
@@ -1258,7 +1258,7 @@ export const rejectLevel = async (
                         return {
                             ...level,
                             updated_on: Date.now(),
-                            status: "Completed",
+                            status: "completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
@@ -1266,13 +1266,13 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                      
+
                     }));
 
                     return {
                         ...level,
                         updated_on: Date.now(),
-                        status: "Not needed",
+                        status: "canceled",
                         recipient_types: updatedRecipientTypes,
                     };
                 }
@@ -1986,7 +1986,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
          'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),            
+         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
          'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
          'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
@@ -2000,7 +2000,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             value JSON PATH '$'
         )
     ) AS recipient
-    WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
+    WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
     LIMIT 1
 ) AS recipient_details,
 
@@ -2054,7 +2054,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             LIMIT 1
         ) AS prioritized_method
     )
-ORDER BY       
+ORDER BY
     FIELD(w.method_id, ${methodIds.map((id) => `'${id}'`).join(',')}),
     l.placement_order ASC;`;
         const rows: any[] = await sequelize.query(query, {
@@ -2199,8 +2199,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
                         FROM user
-                        WHERE user_id = :user_id    
-                           AND program_id=:program_id                  
+                        WHERE user_id = :user_id
+                           AND program_id=:program_id
                           AND status = 'active'
                         LIMIT 1
                     `;
@@ -2279,7 +2279,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                          AND program_id=:program_id    
+                          AND program_id=:program_id
                             AND status = 'active'
                         LIMIT 1
                     `;
@@ -2355,7 +2355,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                      AND program_id=:program_id    
+                      AND program_id=:program_id
                         AND status = 'active'
                     LIMIT 1
                 `;
@@ -2378,7 +2378,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             SELECT user_id, first_name, last_name, email, avatar
                             FROM user
                             WHERE user_id = :supervisor
-                              AND program_id=:program_id    
+                              AND program_id=:program_id
                              AND status = 'active'
                             LIMIT 1
                         `;
@@ -2462,7 +2462,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let imporsonateUserResult = null;
                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
                     console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
-                    for (const level of levels) { 
+                    for (const level of levels) {
                         let replacedUserResult = null;
                         for (const recipients of level.recipient_types || []) {
 
@@ -2475,7 +2475,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                 AND program_id=:program_id    
+                 AND program_id=:program_id
                     AND status = 'active'
                 LIMIT 1
             `;
@@ -2925,7 +2925,7 @@ async function getRolesForRecipients(request: FastifyRequest, reply: FastifyRepl
 //                         behavior:"ALL",
 //                         notes: `Level skipped as user is the only approver for workflow type ${workflow.workflow_type}.`,
 //                     });
-//                 } 
+//                 }
 
 
 //                 else {
@@ -3126,7 +3126,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
                 assignment_title_name: assignmentData?.data?.assignment?.title,
                 id: assignmentData?.data?.assignment?.code,
                 duration: assignmentData?.data?.finance?.working_duration,
-                //remaining_budget_amount 
+                //remaining_budget_amount
                 //budget_amount
                 //worked_as
             }
@@ -3168,8 +3168,8 @@ const fetchLevelUserData = async (userId: any, program_id: any) => {
     const userQuery = `
         SELECT user_id, first_name, last_name, avatar, role_id, email
         FROM user
-        WHERE user_id = :user_id  
-          AND program_id=:program_id    
+        WHERE user_id = :user_id
+          AND program_id=:program_id
          AND status = 'active'
         LIMIT 1
     `;
@@ -3347,9 +3347,9 @@ SELECT JSON_OBJECT(
     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),            
+         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
-       
+
     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
      'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
 )
@@ -3362,7 +3362,7 @@ FROM JSON_TABLE(
         value JSON PATH '$'
     )
 ) AS recipient
-WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL 
+WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
 LIMIT 1
 ) AS recipient_details,
 
@@ -3400,7 +3400,7 @@ w.program_id = :program_id
                 AND w.workflow_trigger_id = :workflow_trigger_id
                   AND w.is_updated = true
 AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
-ORDER BY       
+ORDER BY
 l.placement_order ASC;`;
 
         const rows: any[] = await sequelize.query(query, {
@@ -3466,7 +3466,7 @@ l.placement_order ASC;`;
                     SELECT id, name
                     FROM recipient_type
                     WHERE id = :recipient_type_id
-                     AND is_enabled = true                      
+                     AND is_enabled = true
                     LIMIT 1
                 `;
                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
@@ -3488,9 +3488,9 @@ l.placement_order ASC;`;
                         SELECT user_id, first_name, last_name, avatar, role_id,email
                         FROM user
                         WHERE user_id = :user_id
-                          AND program_id=:program_id    
+                          AND program_id=:program_id
                          AND status = 'active'
-                          
+
                         LIMIT 1
                     `;
                         let userResult = null;
@@ -3559,14 +3559,14 @@ l.placement_order ASC;`;
                     }
                 }
                 if (recipientType?.name === "Manager of") {
-                    
+
                     const jobManagerQuery = `
                     SELECT user_id, first_name, last_name, email, avatar, supervisor
                     FROM user
                     WHERE user_id = :job_manager_id
-                      AND program_id=:program_id    
+                      AND program_id=:program_id
                       AND status = 'active'
-                       
+
                     LIMIT 1
                 `;
                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
@@ -3587,7 +3587,7 @@ l.placement_order ASC;`;
                             FROM user
                             WHERE user_id = :supervisor
                             AND is_enabled = true
-                              AND program_id=:program_id    
+                              AND program_id=:program_id
                                 AND status = 'active'
                             LIMIT 1
                         `;
@@ -3681,9 +3681,9 @@ l.placement_order ASC;`;
                 SELECT user_id, first_name, last_name, email, avatar
                 FROM user
                 WHERE user_id = :user_id
-                  AND program_id=:program_id    
+                  AND program_id=:program_id
                   AND status = 'active'
-                 
+
                 LIMIT 1
             `;
 
@@ -4215,7 +4215,7 @@ async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
     }
 
     const userQuery = `
-        SELECT 
+        SELECT
             id,
             first_name,
             last_name,
@@ -4223,9 +4223,9 @@ async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
             avatar,
             role_id,
             is_enabled
-        FROM 
+        FROM
             user
-        WHERE 
+        WHERE
             id IN (:userIds)
             AND is_enabled = true
     `;

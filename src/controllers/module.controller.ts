@@ -57,6 +57,41 @@ export async function getModule(
 }
 
 
+export async function getModuleById(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { id } = request.params as { id: string };
+
+  try {
+    const result = await Module.findOne({
+      where: { id, is_deleted: false },
+      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field"],
+    });
+
+    if (!result) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: "Module not found",
+        module: null,
+      });
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "Module fetched successfully",
+      module: result,
+    });
+  } catch (error: any) {
+    console.error("Error fetching module by ID:", error);
+    return reply.status(500).send({
+      status_code: 500,
+      error: "Internal Server Error",
+      message: error.message,
+    });
+  }
+}
+
 export async function createModule(request: FastifyRequest, reply: FastifyReply) {
   const { ...moduleData } = request.body as ModuleData;
 
