@@ -561,7 +561,18 @@ class JobTempletRepository {
 
     return templateData;
   }
-
+  async sowTemplateQuery(sow_template_id: string) {
+    const templateData = await sequelize.query<{ hierarchy_id: string }>(
+      `SELECT hierarchy_id FROM sow_template_hierarchy WHERE sow_template_id = :sow_template_id`,
+      {
+        replacements: { sow_template_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+  
+    return templateData;
+  }
+  
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {
     const hierarchyDetails = await sequelize.query(
       `SELECT * FROM hierarchies WHERE id IN (:commonHierarchyIds);`,
