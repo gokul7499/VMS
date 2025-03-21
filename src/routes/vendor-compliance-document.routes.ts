@@ -22,7 +22,12 @@ async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
 
     fastify.get('/program/:program_id/vendor-comp-doc', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
-    }, VendorDocumentController.getAllVendorCompDocummentByProgramId)
+    }, VendorDocumentController.getAllVendorCompDocummentByProgramId);
+
+    fastify.post('/program/:program_id/vendor-comp-doc/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
+    }, VendorDocumentController.vendorComplianceDocumentFilter);
+
 }
 
 export default vendorComplianceDocumentRoutes;

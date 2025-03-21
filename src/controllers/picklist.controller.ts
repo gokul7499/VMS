@@ -908,9 +908,9 @@ export const createPicklistData = async (
 };
 
 
-export const getPicklistFilter = async (
-  request: FastifyRequest<{
-    Body: {
+export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, created_on } =
+    request.body as {
       name?: string;
       picklist_id?: string;
       program_id?: string;
@@ -921,11 +921,6 @@ export const getPicklistFilter = async (
       is_enabled?: boolean;
       created_on?: { from?: string; to?: string };
     };
-  }>,
-  reply: FastifyReply
-) => {
-  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, created_on } =
-    request.body;
 
   let picklistData;
   try {

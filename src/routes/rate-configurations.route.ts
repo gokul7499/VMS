@@ -35,6 +35,10 @@ async function rateConfigurationsRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/rate-configurations/budget', {
         preHandler: validatePermissions(Actions.READ, [Permissions.RATE_CONFIGURATION])
     }, rateConfigurationsController.getAllRateConfigurationBudget);
+
+    fastify.post('/program/:program_id/rate-configurations/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.RATE_CONFIGURATION])
+    }, rateConfigurationsController.rateConfigurationsFilter);
 }
 
 export default rateConfigurationsRoutes;

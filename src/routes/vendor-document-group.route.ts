@@ -27,6 +27,10 @@ async function vendordocumentsgroup(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/vendor-documents-group', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT_GROUP])
     }, VendorDocumentGroup.getAllVendorCompDocummentGroupByProgramId);
+
+    fastify.post('/program/:program_id/vendor-documents-group/advance-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT_GROUP])
+    }, VendorDocumentGroup.vendorDocumentGroupFilter);
 }
 
 export default vendordocumentsgroup;
