@@ -1169,7 +1169,7 @@ export const rejectLevel = async (
     const { program_id, id } = request.params;
     let updates = request.body;
     const authHeader = request.headers.authorization;
-
+ 
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
@@ -1183,7 +1183,7 @@ export const rejectLevel = async (
     if (!Array.isArray(updates)) {
         updates = [updates];
     }
-
+ 
     if (!program_id || !id || updates.length === 0) {
         return reply.status(400).send({
             status_code: 400,
@@ -1210,17 +1210,17 @@ export const rejectLevel = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
         updates.forEach(({ placement_order, new_status, user_id, notes, reason }) => {
-
-
+ 
+ 
             if (new_status !== "rejected") {
                 throw new Error("Only 'rejected' status is allowed for this operation.");           }
-
+ 
             let levelFound = false;
-
+ 
             levels = levels.map((level: any) => {
                 if (level.placement_order >= placement_order) {
                     updatedLevels = true;
-
+ 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
                         const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
@@ -1243,22 +1243,22 @@ export const rejectLevel = async (
                                     recipient.meta_data &&
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
-
-                                return { ...recipient, status: "rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+ 
+                                return { ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
                                      actor_first_name: userData?.first_name,
                                     actor_last_name: userData?.last_name,
                                     actor_by_avatar: userData?.avatar, };
-
+ 
                             }
-
+ 
                             return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
                                 };
-
+ 
                         });
                         return {
                             ...level,
                             updated_on: Date.now(),
-                            status: "Completed",
+                            status: "completed",
                             recipient_types: updatedRecipientTypes,
                         };
                     }
@@ -1266,23 +1266,23 @@ export const rejectLevel = async (
                         ...recipient,
                         status: "canceled",
                         updated_on: Date.now(), notes: notes, reason: reason,
-                      
+                     
                     }));
-
+ 
                     return {
                         ...level,
                         updated_on: Date.now(),
-                        status: "Not needed",
+                        status: "canceled",
                         recipient_types: updatedRecipientTypes,
                     };
                 }
-
+ 
                 return level;
             });
-
+ 
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);             }
-
+ 
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
                 placement_order,
@@ -1297,8 +1297,8 @@ export const rejectLevel = async (
                 actor_by_avatar: userData?.avatar,
             });
         });
-
-
+ 
+ 
         if (!updatedLevels) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1306,10 +1306,10 @@ export const rejectLevel = async (
                 trace_id: traceId,
             });
         }
-
+ 
         // Update the workflow with the modified levels array
         await workflow.update({ levels, is_updated: true, updated_on: Date.now(), status: "completed" });
-
+ 
         let workflowStatus = "completed"
         let eventCode = await getRejectEventsCode(workflow)
         let allPayload = {
@@ -1326,7 +1326,7 @@ export const rejectLevel = async (
         });
     } catch (error) {
         console.error("Error updating job workflow:", error);
-
+ 
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to update job workflow.",
@@ -1335,7 +1335,7 @@ export const rejectLevel = async (
         });
     }
 };
-
+ 
 export const updateReplaceLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
