@@ -937,10 +937,9 @@ export async function updateComplianceDocument(
     }
 
     try {
-        const query = vendor_id && document_id ? complianceGroupQueryWithVendorId : (user_id && document_id ? complianceGroupQueryWithUserId : null);
-        const vendorId = vendor_id ?? (user_id ? await getVendorId(user_id, program_id) : null);
+        const vendorId = vendor_id || (user_id ? await getVendorId(user_id, program_id) : null);
 
-        if (!query) {
+        if (!document_id || !vendorId) {
             return reply.status(400).send({
                 status_code: 400,
                 message: "Invalid query parameters. Please provide either a user_id or vendor_id along with document_id.",
@@ -948,8 +947,8 @@ export async function updateComplianceDocument(
             });
         }
 
-        const complianceDocuments = await sequelize.query<VendorDetails>(query, {
-            replacements: { program_id, user_id, vendor_id, document_id },
+        const complianceDocuments = await sequelize.query<VendorDetails>(complianceGroupQueryWithVendorId, {
+            replacements: { program_id, user_id, vendor_id: vendorId, document_id },
             type: QueryTypes.SELECT,
         });
 
