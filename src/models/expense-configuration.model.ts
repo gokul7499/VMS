@@ -12,7 +12,6 @@ class ExpenseConfigurationModel extends Model {
   expense_item_type_config: any;
     master_data: any;
 }
-
 ExpenseConfigurationModel.init(
 
   {
@@ -96,7 +95,7 @@ ExpenseConfigurationModel.init(
   },
   {
     sequelize,
-    tableName: 'expense_config',
+    tableName: 'expense_configuration',
     timestamps:false,
   }
 );
