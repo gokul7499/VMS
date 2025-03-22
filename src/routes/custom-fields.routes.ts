@@ -5,7 +5,7 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 async function customFieldsRoutes(fastify: FastifyInstance) {
 
-  fastify.post('/custom-fields', {
+  fastify.post('/program/:program_id/custom-fields', {
     preHandler: validatePermissions(Actions.CREATE, [Permissions.CUSTOM_FIELD]),
     schema: {
       body: createCustomFieldsSchema,
@@ -52,6 +52,11 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
   fastify.put('/program/:program_id/custom-fields/:id/enable-disable', {
     preHandler: validatePermissions(Actions.UPDATE, [Permissions.CUSTOM_FIELD]),
   }, customFieldController.updateCustomFieldsIsdisable);
+
+  fastify.post('/program/:program_id/custom-fields/advance-filter', {
+    preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
+  }, customFieldController.advanceFilterCustomFiled);
+
 }
 
 export default customFieldsRoutes;

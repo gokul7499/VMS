@@ -903,30 +903,46 @@ export async function findJobTemplatesByLabourCategories(
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id } = request.query as { job_manager_id: string; job_template_id: string };
+    const { job_manager_id, job_template_id, sow_template_id } = request.query as {
+      job_manager_id: string;
+      job_template_id?: string;
+      sow_template_id?: string;
+    };
     const { program_id } = request.params as { program_id: string };
 
-    if (!job_manager_id || !job_template_id) {
+    if (!job_manager_id) {
       return reply.status(400).send({
         status_code: 400,
-        message: "Please provide both job_manager_id and job_template_id.",
+        message: "Please provide job_manager_id.",
         trace_id: traceId,
       });
     }
 
-    const [managerData, templateData] = await Promise.all([
-      jobTempletRepositories.managerQuery(job_manager_id, program_id),
-      jobTempletRepositories.templateQuery(job_template_id)
-    ]);
+    const managerData = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    const managerHierarchyIds = managerData.length > 0 ? managerData[0].associate_hierarchy_ids : [];
 
-    const managerHierarchyIds =
-      managerData.length > 0 ? managerData[0].associate_hierarchy_ids : [];
+    let templateHierarchyIds: string[] = [];
+    let sowTemplateHierarchyIds: string[] = [];
 
-    const templateHierarchyIds = templateData.map((row) => row.hierarchy);
+    if (job_template_id) {
+      const templateData = await jobTempletRepositories.templateQuery(job_template_id);
+      templateHierarchyIds = templateData.map((row) => row.hierarchy);
+    }
 
-    const commonHierarchyIds = managerHierarchyIds.filter((id: string) =>
-      templateHierarchyIds.includes(id)
-    );
+    if (sow_template_id) {
+      const sowTemplateData = await jobTempletRepositories.sowTemplateQuery(sow_template_id);
+      sowTemplateHierarchyIds = sowTemplateData.map((row) => row.hierarchy_id);
+    }
+
+    let commonHierarchyIds = managerHierarchyIds;
+
+    if (templateHierarchyIds.length > 0) {
+      commonHierarchyIds = commonHierarchyIds.filter((id) => templateHierarchyIds.includes(id));
+    }
+
+    if (sowTemplateHierarchyIds.length > 0) {
+      commonHierarchyIds = commonHierarchyIds.filter((id) => sowTemplateHierarchyIds.includes(id));
+    }
 
     if (commonHierarchyIds.length === 0) {
       return reply.status(200).send({
@@ -965,7 +981,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
 
     reply.status(200).send({
       status_code: 200,
-      message: "Common hierarchies fetching succesfully.",
+      message: "Common hierarchies fetched successfully.",
       trace_id: traceId,
       common_hierarchies: nestedHierarchy,
     });

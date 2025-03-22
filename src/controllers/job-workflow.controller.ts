@@ -650,7 +650,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         status: "submitted",
                     };
 
-                    await axios.post(apiUrl, payload, {
+                    await axios.put(apiUrl, payload, {
                         headers: {
                             'Content-Type': 'application/json',
                             authorization: authHeader
@@ -658,14 +658,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     });
 
                 } else
-
-
                     if (moduleType === "Assignment".toLowerCase()) {
-                        console.log('inside assignment approval status')
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                         const payload = { status: "approved", display_status: 'approved' };
-                        console.log('payload for update status:', payload)
+                        await axios.put(apiUrl, payload, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                authorization: authHeader
+                            },
+                        });
+                    } else
+                    if (moduleType === "Timesheet".toLowerCase()) {
+                        const timesheet_id = workflow.workflow_trigger_id;
+                        const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
+                        const payload = { status: "approved"}; 
                         await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',

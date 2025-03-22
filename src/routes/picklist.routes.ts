@@ -61,7 +61,9 @@ async function picklistRoutes(fastify: FastifyInstance) {
     preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
   }, pickListController.deletePredefinedPicklist);
 
-  fastify.post('/program/:program_id/picklist/advance-filter', pickListController.getPicklistFilter);
+  fastify.post('/program/:program_id/picklist/advance-filter', {
+    preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
+  }, pickListController.getPicklistFilter);
 
 }
 

@@ -76,6 +76,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchies);
 
+
 }
 
 export default expenseConfigurationRoutes;
