@@ -428,7 +428,7 @@ export async function vendorComplianceDocumentFilter(
       total_records: totalRecords,
       page: pageNumber,
       limit: limitNumber,
-      items: data,
+      compliance_documents: data,
     });
   } catch (error: any) {
     return reply.status(500).send({

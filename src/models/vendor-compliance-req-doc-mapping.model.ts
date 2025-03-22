@@ -74,11 +74,11 @@ VendorComplianceReqDocMappingModel.init({
         allowNull: true,
     },
     uploaded_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         allowNull: true,
     },
     complied_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         allowNull: true,
     },
     audited_by: {
@@ -86,7 +86,7 @@ VendorComplianceReqDocMappingModel.init({
         allowNull: true
     },
     audited_on: {
-        type: DataTypes.DATE,
+        type: DataTypes.DOUBLE,
         allowNull: true
     },
     program_id: {

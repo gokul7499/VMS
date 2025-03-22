@@ -5,15 +5,15 @@ import { Actions, Permissions } from "../constants/permissions";
 
 async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/user/', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUser);
 
     fastify.get('/user/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserById);
 
     fastify.post('/user/', {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.USER])
     }, userController.createUser);
 
     fastify.put('/user/:id/program/:program_id', {
@@ -23,8 +23,9 @@ async function userRoutes(fastify: FastifyInstance) {
     fastify.delete('/user/:id', userController.deleteUser);
 
     fastify.get('/user/search-user', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.searchUser);
+
     fastify.get('/user/program/:program_id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getAllUserIDAndUserId);
@@ -46,11 +47,11 @@ async function userRoutes(fastify: FastifyInstance) {
     }, userController.getActiveUser);
 
     fastify.get('/get-user-contact', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserContact);
 
     fastify.get('/get-user-program', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserProgram);
 }
 

@@ -20,7 +20,8 @@ import CustomFieldMaterData from '../models/custom-field-master-data.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
-  const { program_id, work_location_ids, hierarchy_ids, master_data_id, modules, label, name,module_id, ...customFieldData } = request.body as any;
+  const { program_id } = request.params as { program_id: string };
+  const { work_location_ids, hierarchy_ids, master_data_id, modules, label, name, module_id, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -55,20 +56,20 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
         [Op.and]: [{ name }, { label }, { module_id }]
       }
     });
-    
+
     if (existingField) {
       let errorMessage = 'Custom field already exists';
-    
+
       if (existingField.name === name) {
         errorMessage += ' with this name';
-      } 
+      }
       if (existingField.label === label) {
         errorMessage += ' with this label';
-      } 
+      }
       if (existingField.module_id === module_id) {
         errorMessage += ' with this module';
       }
-    
+
       return reply.status(400).send({
         status_code: 400,
         message: errorMessage,
@@ -76,7 +77,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       });
     }
 
-    const customField = await createCustomField({ program_id, label, name,module_id, ...customFieldData }, user);
+    const customField = await createCustomField({ program_id, label, name, module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -87,11 +88,11 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       ...(work_location_ids?.map((work_location_id: string) => createCustomFieldLocations(custom_field_id, work_location_id, program_id)) || []),
       ...(hierarchy_ids?.map((hierarchy_id: string) => saveCustomFieldsHierarchies(custom_field_id, hierarchy_id, program_id)) || []),
       ...(Array.isArray(master_data_id)
-      ? master_data_id.map((m_id: string) => saveCustomFieldsMasterData(custom_field_id, m_id))
-      : master_data_id
-        ? [saveCustomFieldsMasterData(custom_field_id, master_data_id)]
-        : []
-    )    ]);
+        ? master_data_id.map((m_id: string) => saveCustomFieldsMasterData(custom_field_id, m_id))
+        : master_data_id
+          ? [saveCustomFieldsMasterData(custom_field_id, master_data_id)]
+          : []
+      )]);
 
     logSuccess(traceId, user, request, program_id);
     return reply.status(201).send({
@@ -100,14 +101,14 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       trace_id: traceId,
     });
 
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error processing custom field:', error);
     logError(traceId, user, request, program_id);
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       traceId,
-      error:error.message
+      error: error.message
     });
   }
 };
@@ -404,7 +405,7 @@ export const getCustomFieldById = async (
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
         "supporting_text", "linked_modules", "meta_data", "job_type",
-        "range_applicable","is_sensitive_data"
+        "range_applicable", "is_sensitive_data"
       ],
     });
 
@@ -453,7 +454,7 @@ export const getCustomFieldById = async (
           const picklistItems = await PicklistItemModel.findAll({
             where: { picklist_id: picklistId },
             attributes: ["id", "value"],
-          })as any;
+          }) as any;
 
           picklistData = {
             picklist_name: picklist.name,
@@ -521,7 +522,7 @@ export const updateCustomFieldById = async (
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params;
   const updates = request.body;
-  
+
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -575,8 +576,8 @@ export const updateCustomFieldById = async (
       );
     }
 
-    await processHierarchyIds(hierarchy_ids, id,program_id);
-    await processWorkLocationIds(work_location_ids, id,program_id);
+    await processHierarchyIds(hierarchy_ids, id, program_id);
+    await processWorkLocationIds(work_location_ids, id, program_id);
     await processMasterDataIds(master_data_ids, id);
     await processLinkedModules(linked_modules, id, program_id);
 
@@ -585,7 +586,7 @@ export const updateCustomFieldById = async (
       message: 'Custom field updated successfully.',
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error updating custom field:', error.message);
     return sendError(reply, 500, 'Internal Server Error: Failed to update Custom Fields');
   }
@@ -618,7 +619,7 @@ const detectChanges = async (updates: any, customFieldRecord: any) => {
   });
 };
 
-const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFieldId: string,program_id:string) => {
+const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFieldId: string, program_id: string) => {
   if (!hierarchy_ids || hierarchy_ids.length === 0) return;
 
   const existingHierarchyRecords = await customFieldsHierarchie.findAll({ where: { custom_field_id: customFieldId } });
@@ -627,7 +628,7 @@ const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFi
   await Promise.all(hierarchy_ids.map(async (hierarchy_id) => {
     const existingRecord = existingHierarchyRecords.find((record) => record.hierarchy_id === hierarchy_id);
     if (!existingRecord) {
-      await customFieldsHierarchie.create({ custom_field_id: customFieldId, hierarchy_id ,program_id:program_id});
+      await customFieldsHierarchie.create({ custom_field_id: customFieldId, hierarchy_id, program_id: program_id });
     }
   }));
 
@@ -637,7 +638,7 @@ const processHierarchyIds = async (hierarchy_ids: string[] | undefined, customFi
   }
 };
 
-const processWorkLocationIds = async (work_location_ids: string[] | undefined, customFieldId: string,program_id:string) => {
+const processWorkLocationIds = async (work_location_ids: string[] | undefined, customFieldId: string, program_id: string) => {
   if (!work_location_ids || work_location_ids.length === 0) return;
 
   const existingWorkLocationRecords = await customFieldLocations.findAll({ where: { custom_field_id: customFieldId } });
@@ -646,7 +647,7 @@ const processWorkLocationIds = async (work_location_ids: string[] | undefined, c
   await Promise.all(work_location_ids.map(async (work_location_id) => {
     const existingRecord = existingWorkLocationRecords.find((record: { work_location_id: string; }) => record.work_location_id === work_location_id);
     if (!existingRecord) {
-      await customFieldLocations.create({ custom_field_id: customFieldId, work_location_id,program_id });
+      await customFieldLocations.create({ custom_field_id: customFieldId, work_location_id, program_id });
     }
   }));
 
@@ -873,7 +874,7 @@ export async function searchCustomFields(
 
 
 
-export const advanceFilterCustomFiled = async(
+export const advanceFilterCustomFiled = async (
   request: FastifyRequest<{
     Params: { program_id: string };
     Body: {
@@ -890,7 +891,7 @@ export const advanceFilterCustomFiled = async(
     };
   }>,
   reply: FastifyReply
-)=> {
+) => {
   const traceId = generateCustomUUID();
   const programId = request.params.program_id;
   const body = request.body;
@@ -912,7 +913,7 @@ export const advanceFilterCustomFiled = async(
   if (body.is_required !== undefined) whereClause.is_required = body.is_required;
   if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
     const [startDate, endDate] = body.updated_on.map(date => new Date(date).getTime());
-  
+
     if (!isNaN(startDate) && !isNaN(endDate)) {
       whereClause.updated_on = { [Op.between]: [startDate, endDate] };
     }
