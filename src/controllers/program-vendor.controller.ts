@@ -10,7 +10,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import { Op, QueryTypes } from "sequelize";
-import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
+import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, getProgramVendorDetails, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
@@ -92,7 +92,7 @@ export async function getProgramVendors(
             if (!userRecord) {
                 return reply.status(404).send({
                     status_code: 404,
-                    message: 'User not found.',
+                    message: 'User  not found.',
                     trace_id: traceId,
                 });
             }
@@ -224,6 +224,21 @@ export async function getProgramVendors(
                     }
                     return diversity;
                 });
+
+                const vendorDetails = await sequelize.query(getProgramVendorDetails, {
+                    replacements: { program_id:program_id, user_id: user_id || null},
+                    type: QueryTypes.SELECT,
+                })as any;
+
+                if (vendorDetails.length > 0) {
+                    vendor.hierarchies = vendorDetails[0].hierarchies;
+                    vendor.work_locations = vendorDetails[0].work_locations;
+                    vendor.is_labour_category = vendorDetails[0].labour_category;
+                } else {
+                    vendor.hierarchies = [];
+                    vendor.work_locations = [];
+                    vendor.is_labour_category = [];
+                }
 
                 return vendor;
             })

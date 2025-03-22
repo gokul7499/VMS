@@ -2441,8 +2441,10 @@ export const getPendingUserQuery = `
     'pending' AS status,
     JSON_OBJECT(
       'id', tenant.id,
-      'name', tenant.name
+      'name', tenant.name,
+      'display_name',tenant.display_name
     ) AS tenant_id,
+  JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name) AS user_role,
     JSON_OBJECT(
       'id', countries.id,
       'name', countries.name
@@ -2561,6 +2563,8 @@ LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
 LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
+LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
+
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -3086,4 +3090,40 @@ export const rateConfigurationsFilterQuery = (
   WHERE hierarchies.program_id = :program_id
   AND hierarchies.parent_hierarchy_id IS NULL;
   `;
-  
+
+  export const getProgramVendorDetails = `
+  SELECT 
+    pv.id AS program_vendor_id,
+    pv.program_id,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE 
+            (pv.all_hierarchy = TRUE AND h.program_id = pv.program_id) OR
+            (pv.all_hierarchy = FALSE AND JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id)))
+    ) AS hierarchies,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+        FROM work_locations wl
+        WHERE 
+            (pv.all_work_locations = TRUE AND wl.program_id = pv.program_id) OR
+            (pv.all_work_locations = FALSE AND JSON_CONTAINS(pv.work_locations, JSON_QUOTE(wl.id)))
+    ) AS work_locations,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', lc.id, 'name', lc.name))
+        FROM labour_category lc
+        WHERE 
+            (pv.is_labour_category = TRUE AND lc.program_id = pv.program_id) OR
+            (pv.is_labour_category = FALSE AND JSON_CONTAINS(pv.program_industry, JSON_QUOTE(lc.id)))
+    ) AS labour_category
+
+FROM 
+    program_vendors pv
+
+WHERE 
+    pv.program_id = :program_id AND 
+    (pv.user_id = :user_id OR :user_id IS NULL);
+`
