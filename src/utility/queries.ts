@@ -3090,4 +3090,40 @@ export const rateConfigurationsFilterQuery = (
   WHERE hierarchies.program_id = :program_id
   AND hierarchies.parent_hierarchy_id IS NULL;
   `;
-  
+
+  export const getProgramVendorDetails = `
+  SELECT 
+    pv.id AS program_vendor_id,
+    pv.program_id,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE 
+            (pv.all_hierarchy = TRUE AND h.program_id = pv.program_id) OR
+            (pv.all_hierarchy = FALSE AND JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id)))
+    ) AS hierarchies,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+        FROM work_locations wl
+        WHERE 
+            (pv.all_work_locations = TRUE AND wl.program_id = pv.program_id) OR
+            (pv.all_work_locations = FALSE AND JSON_CONTAINS(pv.work_locations, JSON_QUOTE(wl.id)))
+    ) AS work_locations,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', lc.id, 'name', lc.name))
+        FROM labour_category lc
+        WHERE 
+            (pv.is_labour_category = TRUE AND lc.program_id = pv.program_id) OR
+            (pv.is_labour_category = FALSE AND JSON_CONTAINS(pv.program_industry, JSON_QUOTE(lc.id)))
+    ) AS labour_category
+
+FROM 
+    program_vendors pv
+
+WHERE 
+    pv.program_id = :program_id AND 
+    (pv.user_id = :user_id OR :user_id IS NULL);
+`
