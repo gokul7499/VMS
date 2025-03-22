@@ -5,7 +5,7 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 async function customFieldsRoutes(fastify: FastifyInstance) {
 
-  fastify.post('/custom-fields', {
+  fastify.post('/program/:program_id/custom-fields', {
     preHandler: validatePermissions(Actions.CREATE, [Permissions.CUSTOM_FIELD]),
     schema: {
       body: createCustomFieldsSchema,
