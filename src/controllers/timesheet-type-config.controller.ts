@@ -214,6 +214,7 @@ export const getTimesheetTypeConfigById = async (
 
         const data = {
             ...config.toJSON(),
+            input_format: config.input_format || null,
             hierarchies: hierarchiesData.map((hierarchy) => hierarchy.toJSON()),
             labor_category: laborCategories.map((category) => category.toJSON()),
             timesheet_rule_group: ruleGroupData ? {
