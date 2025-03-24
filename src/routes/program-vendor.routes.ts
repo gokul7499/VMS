@@ -13,7 +13,7 @@ export default async function programVendorRoutes(fastify: FastifyInstance) {
     }, ProgramVendorController.advanceFilter);
 
     fastify.get('/program/:program_id/program-vendor/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
     }, ProgramVendorController.getProgramVendorById);
 
     fastify.get('/program/:program_id/program-vendor/user', {
