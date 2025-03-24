@@ -68,7 +68,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 trace_id: traceId,
             });
         }
-        
+
         const existingWorkflowWithConditions = await WorkFlow.findOne({
             where: {
                 module,
@@ -77,14 +77,14 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 is_deleted: false
             }
         });
-        
+
         if (existingWorkflowWithConditions) {
             const existingHierarchies = existingWorkflowWithConditions.hierarchies || [];
-            
+
             const isHierarchyMatch =
                 existingHierarchies.length === hierarchies.length &&
                 existingHierarchies.every((id: string) => hierarchies.includes(id));
-        
+
             if (isHierarchyMatch) {
                 return reply.status(409).send({
                     status_code: 409,
@@ -93,15 +93,15 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 });
             }
         }
-        
+
         const recipientTypeMap = new Map();
         let allowCreation = true;
-        
+
         for (const level of levels) {
             if (level.recipient_types) {
                 for (const recipient of level.recipient_types) {
                     const { recipient_type_id, behaviour } = recipient;
-                    
+
                     if (recipientTypeMap.has(recipient_type_id)) {
                         if (recipientTypeMap.get(recipient_type_id) === 'ANY' && behaviour === 'ALL') {
                             allowCreation = true;
@@ -116,7 +116,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             }
             if (!allowCreation) break;
         }
-        
+
         if (!allowCreation) {
             return reply.status(409).send({
                 status_code: 409,
@@ -124,7 +124,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 trace_id: traceId,
             });
         }
-        
+
         const workflowDataPayload = request.body as Omit<WorkflowData, '_id'>;
         let createdWorkflow: any;
         let grouped = await WorkFlow.findOne({
@@ -223,7 +223,7 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         if (data) {
             await data.update({
                 ...workflowData,
-                updated_on: new Date(), 
+                updated_on: new Date(),
                 updated_by: userId
             }, { fields: Object.keys(workflowData).filter(field => field !== 'created_on').concat(['updated_on', 'updated_by']) });
 
@@ -401,10 +401,12 @@ export async function getAllWorkflows(
             searchConditions.is_enabled = query.is_enabled !== "false";
         }
         if (query.module) {
-            searchConditions.module = query.module;
+            const modules = Array.isArray(query.module) ? query.module : query.module.split(",");
+            searchConditions.module = { [Op.in]: modules };
         }
         if (query.event_id) {
-            searchConditions.event_id = query.event_id;
+            const eventIds = Array.isArray(query.event_id) ? query.event_id : query.event_id.split(",");
+            searchConditions.event_id = { [Op.in]: eventIds };
         }
         if (query.method_id) {
             searchConditions.method_id = query.method_id;
