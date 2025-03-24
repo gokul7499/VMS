@@ -492,87 +492,85 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     }
 }
 
-    export async function deleteReasoncodeAction(
-        request: FastifyRequest<{ Params: { id: string } }>,
-        reply: FastifyReply
-    ) {
-        const traceId = generateCustomUUID();
-        try {
-            const { id } = request.params;
-            const [numRowsDeleted] = await ReasonCodeActionModel.update({
-                is_enabled: false,
-                is_deleted: true,
-                updated_on: Date.now(),
-            },
-                { where: { id } }
-            );
+export async function deleteReasoncodeAction(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { id } = request.params;
+        const [numRowsDeleted] = await ReasonCodeActionModel.update({
+            is_enabled: false,
+            is_deleted: true,
+            updated_on: Date.now(),
+        },
+            { where: { id } }
+        );
 
-            if (numRowsDeleted > 0) {
-                reply.status(200).send({
-                    status_code: 200,
-                    message: "Reasoncode deleted successfully",
-                    reason_code_action_id: id,
-                    trace_id: traceId,
-                });
-            } else {
-                reply.status(200).send({
-                    status_code: 200,
-                    message: 'Reasoncode not found',
-                    reason_code_action: [],
-                    trace_id: traceId,
-                });
-            }
-        } catch (error) {
-            reply.status(500).send({
-                status_code: 500,
-                message: 'An error occurred while deleting',
+        if (numRowsDeleted > 0) {
+            reply.status(200).send({
+                status_code: 200,
+                message: "Reasoncode deleted successfully",
+                reason_code_action_id: id,
                 trace_id: traceId,
-                error
+            });
+        } else {
+            reply.status(200).send({
+                status_code: 200,
+                message: 'Reasoncode not found',
+                reason_code_action: [],
+                trace_id: traceId,
             });
         }
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while deleting',
+            trace_id: traceId,
+            error
+        });
     }
+}
 
+export async function deleteReasoncode(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { id } = request.params;
+        const numRowsDeleted = await ReasonCodeModel.update({
+            is_enabled: false,
+            is_deleted: true,
+            updated_on: Date.now(),
+        },
+            { where: { id,is_deleted:false } }
+        );
 
-    
-    export async function deleteReasoncode(
-        request: FastifyRequest<{ Params: { id: string } }>,
-        reply: FastifyReply
-    ) {
-        const traceId = generateCustomUUID();
-        try {
-            const { id } = request.params;
-            const [numRowsDeleted] = await ReasonCodeModel.update({
-                is_enabled: false,
-                is_deleted: true,
-                updated_on: Date.now(),
-            },
-                { where: { id } }
-            );
-
-            if (numRowsDeleted) {
-                reply.status(200).send({
-                    status_code: 200,
-                    message: "Reasoncode deleted successfully",
-                    reason_code_id: id,
-                    trace_id: traceId,
-                });
-            } else {
-                reply.status(200).send({
-                    status_code: 200,
-                    message: 'Reasoncode not found',
-                    reason_code_action: [],
-                    trace_id: traceId,
-                });
-            }
-        } catch (error) {
-            reply.status(500).send({
-                status_code: 500,
-                message: 'An error occurred while deleting',
+        if (numRowsDeleted[0] > 0) {
+            reply.status(200).send({
+                status_code: 200,
+                message: "Reasoncode deleted successfully",
+                reason_code_id: id,
                 trace_id: traceId,
-                error
+            });
+        } else {
+            reply.status(200).send({
+                status_code: 200,
+                message: 'Reasoncode not found',
+                reason_code_action: [],
+                trace_id: traceId,
             });
         }
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while deleting',
+            trace_id: traceId,
+            error
+        });
     }
+}
 
 export const getReasonCodeBySlug = async (
     request: FastifyRequest<{
@@ -631,7 +629,7 @@ export const getReasonCodeBySlug = async (
             where: {
                 reason_code_id: data.map((d) => d.id),
                 program_id: program_id,
-                is_deleted:false
+                is_deleted: false
             },
             attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
         });
@@ -640,6 +638,7 @@ export const getReasonCodeBySlug = async (
             const reason_codes = await ReasonCodeModel.findAll({
                 where: {
                     reason_code_id: data.map((d) => d.id),
+                    is_deleted: false
                 },
                 attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
             });
@@ -735,7 +734,7 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             module_name?: string;
             reasons_count?: number;
             event_name?: string;
-            updated_on?:string[];
+            updated_on?: string[];
         };
 
         const pageNumber = Number(page);
@@ -761,7 +760,7 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
-        
+
         const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
             where: whereClause,
             attributes: {
