@@ -12,8 +12,9 @@ export async function createIndustries(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const { program_id } = request.params as { program_id: string };
   const labour_categories = request.body as IndustriesInterface;
-  const { name, program_id } = request.body as { name: string, program_id: string };
+  const { name } = request.body as { name: string };
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -231,9 +232,10 @@ export async function updateIndustries(
 ) {
   const traceId = generateCustomUUID();
   try {
+    const { program_id } = request.params as { program_id: string };
     const { id } = request.params as { id: string };
     const labour_categories = request.body as IndustriesInterface;
-    const { name, program_id } = request.body as { name: string, program_id: string };
+    const { name } = request.body as { name: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {

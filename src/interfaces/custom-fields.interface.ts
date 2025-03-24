@@ -130,8 +130,8 @@ export const createCustomFieldsSchema = {
           linked: { type: 'boolean' },
           module_name: { type: 'string' },
           is_readonly: { type: 'boolean' },
-          can_view: { type: ['string', 'null'] },
-          can_edit: { type: ['string', 'null'] }
+          can_view: { type: ['array', 'null'] },
+          can_edit: { type: ['array', 'null'] }
         },
       }
     },

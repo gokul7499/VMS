@@ -40,7 +40,6 @@ export const querySchema = {
 
 export const createExpenseConfigurationSchema = {
   type: "object",
-  required: [ "name"],
   properties: {
     program_id: { type: "string" },
     id: { type: "string" },
@@ -57,7 +56,7 @@ export const createExpenseConfigurationSchema = {
     },
     projects: {
       type: "object",
-     
+
     },
     enable_thresholds: { type: "boolean" },
     general_exp_incurred_submission: {
@@ -74,8 +73,9 @@ export const createExpenseConfigurationSchema = {
     },
     misc_exp_access_rules: {
       type: "object",
+    }
   }
-}}
+}
 
 export const createExpenseConfigurationAdvancedFilter = {
   type: 'object',
