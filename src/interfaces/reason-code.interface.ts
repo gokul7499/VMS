@@ -9,6 +9,7 @@ export interface ReasonCode {
     updated_on?: bigint;
     updated_by: JSON;
     created_by: JSON;
+    is_deleted: boolean;
     is_enabled: boolean;
     module_id: string;
     event_id: string;
@@ -43,9 +44,9 @@ export const querySchema = {
         search: { type: 'string' },
         limit: { type: 'integer' },
         offset: { type: 'integer' },
-        module_name:{type:"string"},
-        reasons_count:{type:'integer'},
-        event_name:{type:'string'}
+        module_name: { type: "string" },
+        reasons_count: { type: 'integer' },
+        event_name: { type: 'string' }
     }
 };
 
