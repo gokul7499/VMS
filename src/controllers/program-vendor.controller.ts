@@ -226,9 +226,9 @@ export async function getProgramVendors(
                 });
 
                 const vendorDetails = await sequelize.query(getProgramVendorDetails, {
-                    replacements: { program_id:program_id, user_id: user_id || null},
+                    replacements: { program_id: program_id, user_id: user_id || null },
                     type: QueryTypes.SELECT,
-                })as any;
+                }) as any;
 
                 if (vendorDetails.length > 0) {
                     vendor.hierarchies = vendorDetails[0].hierarchies;
@@ -750,11 +750,29 @@ export async function updateProgramVendorByUserId(
 };
 
 export const getVendorDocuments = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { vendor_id?: string; document_id?: string; page?: string; limit?: string; name?: string; is_enabled?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id } = request.params;
-    const { vendor_id, document_id, page = '1', limit = '10', name = null, is_enabled = null } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const {
+        vendor_id,
+        document_id,
+        page = '1',
+        limit = '10',
+        name = null,
+        is_enabled = null,
+        status = null,
+        updated_on = null,
+    } = request.query as {
+        vendor_id?: string;
+        document_id?: string;
+        page?: string;
+        limit?: string;
+        name?: string;
+        is_enabled?: string;
+        status?: string;
+        updated_on?: any
+    };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -773,6 +791,7 @@ export const getVendorDocuments = async (
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(limit, 10);
     const offset = (pageNumber - 1) * pageSize;
+    const statusArray = status ? status.split(',') : null;
 
     try {
         let documents: VendorDetails[] = [];
@@ -790,28 +809,43 @@ export const getVendorDocuments = async (
             );
         };
 
+        let replacements: Record<string, any> = {
+            program_id,
+            user_id,
+            vendor_id,
+            document_id,
+            name: name ? `%${name}%` : null,
+            is_enabled,
+            limit: pageSize,
+            offset,
+            status: statusArray,
+            updated_on
+        };
+
         if (vendor_id && document_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorAndDocumentId, {
-                replacements: { program_id, vendor_id, document_id },
+                replacements,
                 type: QueryTypes.SELECT,
             });
         } else if (vendor_id) {
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
-                replacements: { program_id, vendor_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset },
+                replacements,
                 type: QueryTypes.SELECT,
             });
         } else if (user_id && document_id) {
             const vendorRecord = await getVendorRecord();
-            const vendorId = vendorRecord[0].id;
+            const vendorId = vendorRecord[0]?.id;
+            replacements.vendor_id = vendorId;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserAndDocumentId, {
-                replacements: { program_id, user_id, document_id, vendor_id: vendorId },
+                replacements,
                 type: QueryTypes.SELECT,
             });
         } else if (user_id) {
             const vendorRecord = await getVendorRecord();
-            const vendorId = vendorRecord[0].id;
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId, {
-                replacements: { program_id, user_id, name: name ? `%${name}%` : null, is_enabled, limit: pageSize, offset, vendor_id: vendorId },
+            const vendorId = vendorRecord[0]?.id;
+            replacements.vendor_id = vendorId;
+            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId(replacements), {
+                replacements,
                 type: QueryTypes.SELECT,
             });
         } else {
@@ -952,10 +986,9 @@ export async function updateComplianceDocument(
     }
 
     try {
-        const query = vendor_id && document_id ? complianceGroupQueryWithVendorId : (user_id && document_id ? complianceGroupQueryWithUserId : null);
-        const vendorId = vendor_id ?? (user_id ? await getVendorId(user_id, program_id) : null);
+        const vendorId = vendor_id || (user_id ? await getVendorId(user_id, program_id) : null);
 
-        if (!query) {
+        if (!document_id || !vendorId) {
             return reply.status(400).send({
                 status_code: 400,
                 message: "Invalid query parameters. Please provide either a user_id or vendor_id along with document_id.",
@@ -963,8 +996,8 @@ export async function updateComplianceDocument(
             });
         }
 
-        const complianceDocuments = await sequelize.query<VendorDetails>(query, {
-            replacements: { program_id, user_id, vendor_id, document_id },
+        const complianceDocuments = await sequelize.query<VendorDetails>(complianceGroupQueryWithVendorId, {
+            replacements: { program_id, user_id, vendor_id: vendorId, document_id },
             type: QueryTypes.SELECT,
         });
 
