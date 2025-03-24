@@ -43,6 +43,7 @@ class ProgramVendor extends Model {
     compliance_status!: { status: string; is_audited: any; is_compliant: any; };
     diversity_details: any;
     vendor_id: any;
+    user_id: unknown;
 }
 ProgramVendor.init(
     {
