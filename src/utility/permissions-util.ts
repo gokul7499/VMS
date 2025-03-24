@@ -6,6 +6,9 @@ import dotenv from "dotenv";
 import logger from '../plugins/logger-plugin';
 
 // Custom error class for Redis-related errors
+
+dotenv.config();
+
 class RedisConnectionError extends Error {
   constructor(message: string) {
     super(message);
@@ -192,7 +195,7 @@ async function permissionsUtilAuth(fastify: any, opts: any) {
     };
   } catch (error) {
     logger.error("❌ Permissions utility initialization failed:", error);
-    throw error;
+    // throw error;
   }
 }
 
