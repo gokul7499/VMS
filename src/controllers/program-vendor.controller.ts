@@ -16,6 +16,7 @@ import VendorComplianceDocumentModel from "../models/vendor-compliance-document.
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
+import VendorCustomField from "../models/vendor-custom-field.model";
 interface VendorDetails {
     doc_id: any;
     compliance_note: any;
@@ -493,6 +494,21 @@ export const updateProgramVendor = async (
                 }
             }
         }
+
+        if (programVendorData.custom_fields && programVendorData.custom_fields.length > 0) {
+                await VendorCustomField.destroy({
+                  where: { vendor_id: programVendorData.id }});
+              }
+    
+              if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
+                const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
+                  program_id,
+                  custom_field_id: field.id,
+                  value: field.value,
+                  vendor_id: programVendorData.id,
+                }));
+                await VendorCustomField.bulkCreate(customFields);
+              }
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
