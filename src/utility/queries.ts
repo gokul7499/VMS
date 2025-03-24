@@ -756,15 +756,16 @@ SELECT
         WHERE JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id))
     ) AS hierarchies,
      (
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', vcf.id,
-                'name', vcf.name
-            )
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', vcf.id,
+            'value', vcf.value
         )
-        FROM vendor_custom_field vcf
-        WHERE JSON_CONTAINS(pv.id, JSON_QUOTE(vcf.id))
-    ) AS custom_field,
+    )
+    FROM vendor_custom_field vcf
+    WHERE vcf.id = pv.id
+) AS custom_field,
+
     CASE
        WHEN pv.is_labour_category = 1 THEN TRUE
         ELSE FALSE
