@@ -8,11 +8,10 @@ import logger from '../plugins/logger-plugin';
 dotenv.config();
 const { redis_host, redis_port, redis_auth, redis_replica_host, auth_url } = databaseConfig.config;
 
-let redisClient: RedisClient | null = null; // Explicitly type the redisClient
-let getRedisDataClient: RedisClient | null = null; // Explicitly type the getRedisDataClient
+let redisClient: RedisClient | null = null; 
+let getRedisDataClient: RedisClient | null = null; 
 
 async function connectToRedis() {
-  // Check if the main Redis client already exists
   if (redisClient && redisClient.status === 'ready' && getRedisDataClient && getRedisDataClient.status === 'ready') {
     logger.info("✅ Reusing existing Redis connection.");
     return { redis: redisClient, getRedisData: getRedisDataClient };
@@ -20,7 +19,6 @@ async function connectToRedis() {
 
   logger.info(`Connecting to Redis at ${redis_host}:${redis_port}`);
 
-  // If not, create a new Redis client instance
   redisClient = new Redis({
     host: redis_host,
     port: redis_port,
