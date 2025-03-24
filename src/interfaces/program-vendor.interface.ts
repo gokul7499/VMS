@@ -75,6 +75,7 @@ export interface programVendorInterface {
     candidate: string;
     is_job_auto_opt_in: boolean;
     display_name:string;
+    custom_fields: any[];
     
 }
 
