@@ -251,6 +251,8 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
           vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded, vcrm.id,
           vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
           vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
+      ORDER BY
+        vcrm.updated_on DESC 
       LIMIT :limit OFFSET :offset
   `;
 };
@@ -370,6 +372,8 @@ export const complianceDocumentGetByVendorId = `
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
+    ORDER BY
+        vcrm.updated_on DESC 
     LIMIT :limit OFFSET :offset
 `;
 

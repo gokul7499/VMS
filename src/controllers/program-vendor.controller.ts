@@ -556,12 +556,9 @@ export async function deleteProgramVendor(
     }
 }
 
-export const getProgramVendorById = async (
-    request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
-    reply: FastifyReply
-) => {
+export const getProgramVendorById = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string; id: string };
     try {
         const vendorData = await sequelize.query<ProgramVendor>(vendorDataQuery, {
             replacements: { id, program_id },
