@@ -11,7 +11,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseConfigurations);
 
     fastify.get('/program/:program_id/expense-config/:id', {
