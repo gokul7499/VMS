@@ -492,45 +492,87 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     }
 }
 
-export async function deleteReasoncode(
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply
-) {
-    const traceId = generateCustomUUID();
-    try {
-        const { id } = request.params;
-        const [numRowsDeleted] = await ReasonCodeActionModel.update({
-            is_enabled: false,
-            is_deleted: true,
-            updated_on: Date.now(),
-        },
-            { where: { id } }
-        );
+    export async function deleteReasoncodeAction(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply
+    ) {
+        const traceId = generateCustomUUID();
+        try {
+            const { id } = request.params;
+            const [numRowsDeleted] = await ReasonCodeActionModel.update({
+                is_enabled: false,
+                is_deleted: true,
+                updated_on: Date.now(),
+            },
+                { where: { id } }
+            );
 
-        if (numRowsDeleted > 0) {
-            reply.status(200).send({
-                status_code: 200,
-                message: "Reasoncode deleted successfully",
-                reason_code_action_id: id,
+            if (numRowsDeleted > 0) {
+                reply.status(200).send({
+                    status_code: 200,
+                    message: "Reasoncode deleted successfully",
+                    reason_code_action_id: id,
+                    trace_id: traceId,
+                });
+            } else {
+                reply.status(200).send({
+                    status_code: 200,
+                    message: 'Reasoncode not found',
+                    reason_code_action: [],
+                    trace_id: traceId,
+                });
+            }
+        } catch (error) {
+            reply.status(500).send({
+                status_code: 500,
+                message: 'An error occurred while deleting',
                 trace_id: traceId,
-            });
-        } else {
-            reply.status(200).send({
-                status_code: 200,
-                message: 'Reasoncode not found',
-                reason_code_action: [],
-                trace_id: traceId,
+                error
             });
         }
-    } catch (error) {
-        reply.status(500).send({
-            status_code: 500,
-            message: 'An error occurred while deleting',
-            trace_id: traceId,
-            error
-        });
     }
-}
+
+
+    
+    export async function deleteReasoncode(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply
+    ) {
+        const traceId = generateCustomUUID();
+        try {
+            const { id } = request.params;
+            const [numRowsDeleted] = await ReasonCodeModel.update({
+                is_enabled: false,
+                is_deleted: true,
+                updated_on: Date.now(),
+            },
+                { where: { id } }
+            );
+
+            if (numRowsDeleted) {
+                reply.status(200).send({
+                    status_code: 200,
+                    message: "Reasoncode deleted successfully",
+                    reason_code_id: id,
+                    trace_id: traceId,
+                });
+            } else {
+                reply.status(200).send({
+                    status_code: 200,
+                    message: 'Reasoncode not found',
+                    reason_code_action: [],
+                    trace_id: traceId,
+                });
+            }
+        } catch (error) {
+            reply.status(500).send({
+                status_code: 500,
+                message: 'An error occurred while deleting',
+                trace_id: traceId,
+                error
+            });
+        }
+    }
 
 export const getReasonCodeBySlug = async (
     request: FastifyRequest<{
@@ -588,7 +630,8 @@ export const getReasonCodeBySlug = async (
         const reason_codes = await ReasonCodeModel.findAll({
             where: {
                 reason_code_id: data.map((d) => d.id),
-                program_id: program_id
+                program_id: program_id,
+                is_deleted:false
             },
             attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
         });
