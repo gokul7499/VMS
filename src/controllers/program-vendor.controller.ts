@@ -454,7 +454,34 @@ export const updateProgramVendor = async (
         }
 
         await existingProgramVendor.update({ ...programVendorData, updated_by: userId, updated_on: Date.now() });
+        const userUpdatePayload: any = {};
 
+        if (programVendorData.hierarchies) {
+            userUpdatePayload.associate_hierarchy_ids = programVendorData.hierarchies;
+        }
+
+        if (programVendorData.all_hierarchy) {
+            userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
+        }
+        if (programVendorData.work_locations) {
+            userUpdatePayload.work_location_ids = programVendorData.work_locations;
+        }
+
+        if (programVendorData.all_work_locations) {
+            userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
+        }
+        if (programVendorData.contact) {
+            userUpdatePayload.contacts = programVendorData.contact;
+        }
+
+        if (Object.keys(userUpdatePayload).length > 0) {
+            await UserModel.update(userUpdatePayload, {
+                where: {
+                    user_id: existingProgramVendor.user_id,
+                    program_id: program_id
+                }
+            });
+        }
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
 
             await vendorMarkupConfig.destroy({
