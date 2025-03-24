@@ -6,7 +6,7 @@ import { Actions, Permissions } from "../constants/permissions";
 
 async function industriesRoutes(fastify: FastifyInstance) {
 
-    fastify.post('/industries', {
+    fastify.post('/program/:program_id/industries', {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.LABOUR_CATEGORY]),
         schema: {
             body: createIndustriesSchema
@@ -36,7 +36,7 @@ async function industriesRoutes(fastify: FastifyInstance) {
         }
     }, lebourCategoryController.getIndustriesById);
 
-    fastify.put('/industries/:id', {
+    fastify.put('/program/:program_id/industries/:id', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.LABOUR_CATEGORY]),
         schema: {
             body: createIndustriesSchema,

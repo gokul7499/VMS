@@ -26,25 +26,9 @@ export async function getExpenseConfigurations(
 
         const { rows: expenseConfig, count: totalRecords } = await ExpenseConfigurationModel.findAndCountAll({
             where: { program_id, is_deleted: false },
-            attributes: [
-                'id',
-                'name',
-                'status',
-                'is_enabled',
-                'program_id',
-                'weekending_day',
-                "enable_thresholds",
-                'revoke_worker_access',
-                "general_exp_incurred_submission",
-                'mdt_display_headers',
-                'project',
-                'created_on',
-                'updated_on',
-                'updated_by',
-            ],
             offset,
             limit: limitNum,
-            order: [['created_on', 'DESC']],
+            order: [['updated_on', 'DESC']],
         });
 
         const expenseTypeHierarchy = await sequelize.query(getAllExpenseTypeHierarchy, {
@@ -161,7 +145,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             status_code: 500,
             message: 'An error occurred while fetching expense configuration.',
             trace_id: traceId,
-            error: error instanceof Error ? error.message : JSON.stringify(error),
+            error: error.message,
         });
     }
 }
