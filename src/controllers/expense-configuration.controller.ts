@@ -145,7 +145,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             status_code: 500,
             message: 'An error occurred while fetching expense configuration.',
             trace_id: traceId,
-            error: error instanceof Error ? error.message : JSON.stringify(error),
+            error: error.message,
         });
     }
 }
