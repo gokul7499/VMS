@@ -1,5 +1,5 @@
 import axios from "axios";
-import Redis from "ioredis";
+import Redis, { Redis as RedisClient } from "ioredis"; // Import Redis type from ioredis
 import { getRedisKeyForAuth } from "./get-redis-key";
 import { databaseConfig } from "../config/db";
 import dotenv from "dotenv";
@@ -8,10 +8,18 @@ import logger from '../plugins/logger-plugin';
 dotenv.config();
 const { redis_host, redis_port, redis_auth, redis_replica_host, auth_url } = databaseConfig.config;
 
+let redisClient: RedisClient | null = null; 
+let getRedisDataClient: RedisClient | null = null; 
+
 async function connectToRedis() {
+  if (redisClient && redisClient.status === 'ready' && getRedisDataClient && getRedisDataClient.status === 'ready') {
+    logger.info("✅ Reusing existing Redis connection.");
+    return { redis: redisClient, getRedisData: getRedisDataClient };
+  }
+
   logger.info(`Connecting to Redis at ${redis_host}:${redis_port}`);
 
-  const redis = new Redis({
+  redisClient = new Redis({
     host: redis_host,
     port: redis_port,
     password: redis_auth,
@@ -20,7 +28,7 @@ async function connectToRedis() {
     retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
-  const getRedisData = new Redis({
+  getRedisDataClient = new Redis({
     host: redis_replica_host,
     port: redis_port,
     password: redis_auth,
@@ -29,33 +37,33 @@ async function connectToRedis() {
     retryStrategy: (times) => Math.min(times * 50, 2000),
   });
 
-  redis.on("connect", () => {
+  redisClient.on("connect", () => {
     logger.info("✅ Connected to Redis successfully!");
   });
 
-  redis.on("error", (err) => {
+  redisClient.on("error", (err) => {
     logger.error("❌ Redis connection error:", err);
   });
 
-  getRedisData.on("connect", () => {
+  getRedisDataClient.on("connect", () => {
     logger.info("✅ Connected to Redis replica successfully!");
   });
 
-  getRedisData.on("error", (err) => {
+  getRedisDataClient.on("error", (err) => {
     logger.error("❌ Redis replica connection error:", err);
   });
 
   try {
-    const pingResponse = await redis.ping();
+    const pingResponse = await redisClient.ping();
     logger.info(`Redis Ping Response: ${pingResponse}`);
   } catch (error) {
     logger.error("❌ Redis Ping Failed:", error);
   }
 
-  return { redis, getRedisData };
+  return { redis: redisClient, getRedisData: getRedisDataClient };
 }
 
-async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, fastify: any, programId: string, token: string) {
+async function getPolicies(redisClients: { redis: RedisClient, getRedisData: RedisClient }, fastify: any, programId: string, token: string) {
   if (!programId || !token) {
     throw new Error("Missing programId or token");
   }
@@ -98,6 +106,10 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
 
 async function permissionsUtilAuth(fastify: any, opts: any) {
   const redisClients = await connectToRedis();
+  if (!redisClients.getRedisData) {
+    console.log('Redis replica connection is not available')
+    // throw new Error("Redis replica connection is not available");
+  }
   return {
     getPolicies: (programId: string, token: string) =>
       getPolicies(redisClients, fastify, programId, token),
