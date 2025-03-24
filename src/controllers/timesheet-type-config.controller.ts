@@ -172,7 +172,10 @@ export const getTimesheetTypeConfigById = async (
                 config: [],
             });
         }
-
+        if (!config.input_format) {
+            config.input_format = "default_format";
+            await config.save(); 
+        }
         const hierarchyIds = config.hierarchies || [];
         const laborCategoryIds = config.labor_category || [];
         const ruleGroupId = config.timesheet_rule_group || null;
@@ -214,7 +217,7 @@ export const getTimesheetTypeConfigById = async (
 
         const data = {
             ...config.toJSON(),
-            input_format: config.input_format || null,
+            input_format: config.input_format,
             hierarchies: hierarchiesData.map((hierarchy) => hierarchy.toJSON()),
             labor_category: laborCategories.map((category) => category.toJSON()),
             timesheet_rule_group: ruleGroupData ? {
