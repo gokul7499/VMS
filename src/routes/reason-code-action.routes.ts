@@ -51,6 +51,8 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
     }, ResonCodeController.updateReasoncode);
 
+    fastify.delete('/reason-code-action/:id', ResonCodeController.deleteReasoncodeAction);
+    
     fastify.delete('/reason-code/:id', ResonCodeController.deleteReasoncode);
 
     fastify.get('/reason_codes/:slug', {
