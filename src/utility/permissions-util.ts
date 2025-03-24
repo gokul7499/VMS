@@ -42,7 +42,7 @@ function logRedisEvents(redis: RedisClient, label: string) {
 }
 
 async function connectToRedis() {
-  // Reuse existing connection if available and operational
+
   if (redisClient && redisClient.status === 'ready' && getRedisDataClient && getRedisDataClient.status === 'ready') {
     logger.info("✅ Reusing existing Redis connections.");
     return { redis: redisClient, getRedisData: getRedisDataClient };
@@ -51,13 +51,13 @@ async function connectToRedis() {
   logger.info(`Connecting to Redis at ${redis_host}:${redis_port}...`);
 
   try {
-    // Connect to main Redis instance
+
     redisClient = new Redis({
       host: redis_host,
       port: redis_port,
       password: redis_auth,
-      connectTimeout: 120000, // Increase connection timeout to 2 minutes
-      commandTimeout: 30000,  // Increase command timeout to 30 seconds
+      connectTimeout: 120000, 
+      commandTimeout: 30000, 
       maxRetriesPerRequest: 10, // Maximum retries for each request
       retryStrategy: (times) => Math.min(times * 1000, 3000), // Exponential backoff for retry
     });
@@ -73,11 +73,9 @@ async function connectToRedis() {
       retryStrategy: (times) => Math.min(times * 1000, 3000),
     });
 
-    // Log detailed Redis events
     logRedisEvents(redisClient, "Main Redis");
     logRedisEvents(getRedisDataClient, "Redis Replica");
 
-    // Perform a simple ping to ensure Redis is responsive
     const pingResponse = await redisClient.ping();
     logger.info(`Main Redis Ping Response: ${pingResponse}`);
 
@@ -107,12 +105,11 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
       logger.info("✅ Policies fetched from Redis cache.");
       return groupPolicies;
     }
-  } catch (err) {
+  } catch (err:any) {
     logger.error("❌ Error fetching from Redis:", err.message || err);
   }
 
   try {
-    // Fetch policies from external API if not in cache
     const { data } = await axios.get(
       `${auth_url}/auth/v1/api/policy/user/tenant/${programId}`,
       {
@@ -121,8 +118,6 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
     );
 
     groupPolicies = data.response;
-
-    // Cache the policies in Redis for 1 hour (3600 seconds)
     await redis.set(redisKey, JSON.stringify(groupPolicies), "EX", 3600);
     logger.info("✅ Policies cached in Redis.");
 
@@ -134,7 +129,6 @@ async function getPolicies(redisClients: { redis: Redis, getRedisData: Redis }, 
   return groupPolicies;
 }
 
-// Main function to initialize Redis connections and fetch policies
 async function permissionsUtilAuth(fastify: any, opts: any) {
   try {
     const redisClients = await connectToRedis();
