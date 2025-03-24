@@ -3,7 +3,6 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import ExpenseConfigurationModel from './expense-configuration.model';
 
 class ExpenseTypeMapping extends Model { 
     id:any;
@@ -27,11 +26,7 @@ ExpenseTypeMapping.init(
         },
         expense_config_id: {
             type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: 'expense_configuration',
-                key: 'id',
-            },
+            allowNull: true
         },
         program_id: {
             type: DataTypes.UUID,
@@ -76,6 +71,5 @@ ExpenseTypeMapping.init(
 );
 
 ExpenseTypeMapping.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-ExpenseTypeMapping.belongsTo(ExpenseConfigurationModel, { foreignKey: 'expense_config_id', as: 'expense_configuration' });
 
 export default ExpenseTypeMapping;
