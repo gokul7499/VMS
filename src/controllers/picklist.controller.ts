@@ -993,6 +993,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
+        picklist_id:picklist.picklist_id,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
