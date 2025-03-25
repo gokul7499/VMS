@@ -346,21 +346,6 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'addresses', u.addresses,
                     'associate_job_type', u.associate_job_type,
                     'is_all_job_type_associate', u.is_all_job_type_associate,
-                    'countries', (
-                        SELECT JSON_OBJECT(
-                            'id', IFNULL(c.id, ''),
-                            'name', IFNULL(c.name, '')
-                        )
-                        FROM countries c
-                        WHERE c.id = u.country_id 
-                        OR (
-                            u.country_id IS NULL AND JSON_CONTAINS(
-                                JSON_EXTRACT(u.addresses, '$[*].country'), 
-                                JSON_QUOTE(c.id)
-                            )
-                        )
-                        LIMIT 1
-                    ),
                     'contacts', COALESCE(u.contacts, JSON_ARRAY()),
                     'updated_by', u.updated_by,
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
@@ -418,7 +403,19 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 ) AS user
             FROM user_mappings um
             LEFT JOIN user u ON um.user_id = u.user_id AND um.program_id = u.program_id
-            LEFT JOIN countries ct ON u.country_id = ct.id
+            LEFT JOIN countries ct ON (
+                u.country_id = ct.id OR 
+                EXISTS (
+                    SELECT 1 
+                    FROM JSON_TABLE(
+                        u.addresses, 
+                        '$[*]' COLUMNS (
+                            country VARCHAR(36) PATH '$.country'
+                        )
+                    ) AS addr 
+                    WHERE addr.country = ct.id
+                )
+            )            
             LEFT JOIN tenant t ON u.tenant_id = t.id
             LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
             LEFT JOIN ${auth_db}.roles ur ON u.role_id = ur.id
