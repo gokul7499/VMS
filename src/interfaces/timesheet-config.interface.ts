@@ -45,6 +45,7 @@ export interface TimesheetTypeConfigInterface {
   slug?: string;
   timesheet_rule_group?: string;
   break_rule_group?: string;
+  input_format?:string;
 }
 
 export const querySchema = {
@@ -67,16 +68,16 @@ export const paramsSchema = {
 export const timesheetTypeConfigFilterSchema = {
   type: 'object',
   properties: {
-      id: { type: 'string' },
-      title: { type: 'string' },
-      hierarchy_ids: { type: 'array', items: { type: 'string' } },
-      labor_category: { type: 'string' },
-      is_enabled: { type: 'boolean' },
-      timesheet_rule_group: { type: 'string' },
-      timesheet_format: { type: 'string' },
-      allocation_method: { type: 'string' },
-      page: { type: 'string' },
-      limit: { type: 'string' }
+    id: { type: 'string' },
+    title: { type: 'string' },
+    hierarchy_ids: { type: 'array', items: { type: 'string' } },
+    labor_category: { type: 'string' },
+    is_enabled: { type: 'boolean' },
+    timesheet_rule_group: { type: 'string' },
+    timesheet_format: { type: 'string' },
+    allocation_method: { type: 'string' },
+    page: { type: 'string' },
+    limit: { type: 'string' }
   }
 };
 export const createTimesheetTypeConfigSchema = {
@@ -92,7 +93,7 @@ export const createTimesheetTypeConfigSchema = {
     is_all_labor_category_associate: { type: 'boolean' },
     work_period: { type: 'string' },
     work_start_day: { type: 'string' },
-    timesheet_format: { type: 'string' },
+    timesheet_format: { type: 'string', enum: ['tito', 'hourly', 'daily'] },
     time_format: { type: 'string' },
     project: {
       type: 'object',

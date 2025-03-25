@@ -418,8 +418,8 @@ export async function getHolidayCalendarAdvancedFilter(
           filterConditions.year = year;
       }
       if (is_enabled !== undefined) {
-          filterConditions.is_enabled = is_enabled === 'true';
-      }
+        filterConditions.is_enabled = (typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled === true);
+    }
       if (Array.isArray(updated_on) && updated_on.length === 2) {
         const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
         filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };

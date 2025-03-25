@@ -746,6 +746,11 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
             attributes: ['id', 'program_id', 'name', 'is_shift_rate'],
         });
 
+        const configData = await AccuracyConfiguration.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
+        const formatWithAccuracy = (value: any, title: string): string => {
+            return AccuracyConfiguration.findAndCalculate(configData, title, value);
+        };
+
         if (!rateConfigurations.length) {
             const standardBaseRate = await rateType.findAll({
                 where: { is_base_rate: true, program_id, is_enabled: true, is_deleted: false, is_shift_rate },
@@ -849,8 +854,16 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             ...standardBaseRate.get(),
                             shift_type: shiftType,
                             rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord.min_rate,
-                            max_rate: matchingDecisionRecord.max_rate,
+                            min_rate: {
+                                amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
+                                is_changeable: matchingDecisionRecord.min_rate.is_changeable,
+                                is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
+                            },
+                            max_rate: {
+                                amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
+                                is_changeable: matchingDecisionRecord.max_rate.is_changeable,
+                                is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
+                            },
                         },
                         rates: [],
                     },
@@ -1023,15 +1036,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         return {
                             ...billRate.get(),
                             differential_value,
-                            min_rate: (billRate.differential_type === "Factor Differential"
+                            min_rate: formatWithAccuracy((billRate.differential_type === "Factor Differential"
                                 ? matchingDecisionRecord.min_rate.amount * differential_value
                                 : matchingDecisionRecord.min_rate.amount + differential_value
-                            ).toString(),
-
-                            max_rate: (billRate.differential_type === "Factor Differential"
+                            ), accuracyType.RATE),
+                            max_rate: formatWithAccuracy((billRate.differential_type === "Factor Differential"
                                 ? matchingDecisionRecord.max_rate.amount * differential_value
                                 : matchingDecisionRecord.max_rate.amount + differential_value
-                            ).toString(),
+                            ), accuracyType.RATE),
                         };
                     });
 
@@ -1043,15 +1055,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                         return {
                             ...payRate.get(),
                             differential_value,
-                            min_rate: (payRate.differential_type === "Factor Differential"
+                            min_rate: formatWithAccuracy((payRate.differential_type === "Factor Differential"
                                 ? matchingDecisionRecord.min_rate.amount * differential_value
                                 : matchingDecisionRecord.min_rate.amount + differential_value
-                            ).toString(),
+                            ), accuracyType.RATE),
 
-                            max_rate: (payRate.differential_type === "Factor Differential"
+                            max_rate: formatWithAccuracy((payRate.differential_type === "Factor Differential"
                                 ? matchingDecisionRecord.max_rate.amount * differential_value
                                 : matchingDecisionRecord.max_rate.amount + differential_value
-                            ).toString(),
+                            ), accuracyType.RATE),
                         };
                     });
 
@@ -1088,8 +1100,16 @@ export async function getAllRateConfigurationRates(request: FastifyRequest<{
                             ...baseRate.rate_type?.get(),
                             shift_type: shiftType,
                             rate_type_category: rateTypeCategory,
-                            min_rate: matchingDecisionRecord.min_rate,
-                            max_rate: matchingDecisionRecord.max_rate,
+                            min_rate: {
+                                amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
+                                is_changeable: matchingDecisionRecord.min_rate.is_changeable,
+                                is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
+                            },
+                            max_rate: {
+                                amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
+                                is_changeable: matchingDecisionRecord.max_rate.is_changeable,
+                                is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
+                            },
                         },
                         rates: filteredRateType,
                     },
@@ -1196,7 +1216,7 @@ function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, 
     });
 }
 
-export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Body: any[] }>, reply: FastifyReply) {
+export async function getAllRateConfigurationBudget(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
@@ -1205,7 +1225,7 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest<{ Bo
             return AccuracyConfiguration.findAndCalculate(configData, title, value);
         };
 
-        const response = request.body.map((config) => {
+        const response = (request.body as any[]).map((config) => {
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {

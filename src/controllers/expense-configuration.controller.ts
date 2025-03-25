@@ -26,25 +26,9 @@ export async function getExpenseConfigurations(
 
         const { rows: expenseConfig, count: totalRecords } = await ExpenseConfigurationModel.findAndCountAll({
             where: { program_id, is_deleted: false },
-            attributes: [
-                'id',
-                'config_name',
-                'status',
-                'is_enabled',
-                'program_id',
-                'thresholds',
-                'remove_msp_access_general',
-                'remove_user_access_misc',
-                'revoke_user_access',
-                'project',
-                'week_end_day',
-                'created_on',
-                'updated_on',
-                'updated_by',
-            ],
             offset,
             limit: limitNum,
-            order: [['created_on', 'DESC']],
+            order: [['updated_on', 'DESC']],
         });
 
         const expenseTypeHierarchy = await sequelize.query(getAllExpenseTypeHierarchy, {
@@ -161,7 +145,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             status_code: 500,
             message: 'An error occurred while fetching expense configuration.',
             trace_id: traceId,
-            error: error instanceof Error ? error.message : JSON.stringify(error),
+            error: error.message,
         });
     }
 }
@@ -615,7 +599,7 @@ export async function expenseConfigurationAdvancedFilter(
     request: FastifyRequest<{
         Params: { program_id: string };
         Body: {
-            config_name?: string;
+            name?: string;
             status?: string;
             updated_on?: string[];
             is_enabled?: boolean;
@@ -629,9 +613,9 @@ export async function expenseConfigurationAdvancedFilter(
     const trace_id = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const { config_name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body;
+        const { name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body;
 
-        const hasConfigName = config_name !== undefined;
+        const hasConfigName = name !== undefined;
         const hasStatus = status !== undefined;
         const hasModifiedOn = updated_on !== undefined;
         const hasIsEnabled = is_enabled !== undefined;
@@ -654,7 +638,7 @@ export async function expenseConfigurationAdvancedFilter(
 
         const replacements: Record<string, any> = {
             program_id,
-            config_name: config_name ? `%${config_name}%` : null,
+            name: name ? `%${name}%` : null,
             status: hasStatus ? status : null,
             updated_on: modifiedOnArray,
             is_enabled: hasIsEnabled ? is_enabled : null,
@@ -696,7 +680,6 @@ export async function expenseConfigurationAdvancedFilter(
         return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id, error: error.message });
     }
 }
-
 
 export async function getExpenseTypesByProgramId(
     request: FastifyRequest,

@@ -1,52 +1,61 @@
 import { FastifyInstance } from 'fastify';
-import {
-    getIndustries,
-    createIndustries,
-    getIndustriesById,
-    updateIndustries,
-    deleteIndustries,
-    bulkUploadIndustries,
-    labourCategoryFilter
-} from '../controllers/labour-category.controller';
+import * as  lebourCategoryController from '../controllers/labour-category.controller';
 import { bulkUploadIndustriesSchema, createIndustriesSchema, paramsSchema, querySchema } from '../interfaces/labour-category.interface';
+import { validatePermissions } from "../middlewares/vaildate-permissions";
+import { Actions, Permissions } from "../constants/permissions";
 
 async function industriesRoutes(fastify: FastifyInstance) {
-    fastify.post('/industries', {
+
+    fastify.post('/program/:program_id/industries', {
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.LABOUR_CATEGORY]),
         schema: {
-            body: createIndustriesSchema,
+            body: createIndustriesSchema
         }
-    }, createIndustries);
+    }, lebourCategoryController.createIndustries);
+
     fastify.post('/industries/bulk-upload', {
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.LABOUR_CATEGORY]),
         schema: {
             body: bulkUploadIndustriesSchema,
         }
-    }, bulkUploadIndustries);
+    }, lebourCategoryController.bulkUploadIndustries);
+
     fastify.get('/program/:program_id/industries', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
         schema: {
             params: paramsSchema,
             querystring: querySchema,
         }
-    }, getIndustries);
+    }, lebourCategoryController.getIndustries);
+
     fastify.get('/program/:program_id/industries/:id', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
         schema: {
             params: paramsSchema,
             querystring: querySchema,
         }
-    }, getIndustriesById);
-    fastify.put('/industries/:id', {
+    }, lebourCategoryController.getIndustriesById);
+
+    fastify.put('/program/:program_id/industries/:id', {
+        preHandler: validatePermissions(Actions.UPDATE, [Permissions.LABOUR_CATEGORY]),
         schema: {
             body: createIndustriesSchema,
         }
-    }, updateIndustries);
+    }, lebourCategoryController.updateIndustries);
+
     fastify.delete('/program/:program_id/industries/:id', {
         schema: {
             params: paramsSchema
         }
-    }, deleteIndustries);
+    }, lebourCategoryController.deleteIndustries);
+
     fastify.post('/program/:program_id/labour-category/advanced-filter', {
+        preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
         schema: {
             params: paramsSchema,
         }
-    }, labourCategoryFilter);
+    }, lebourCategoryController.labourCategoryFilter);
+
 }
+
 export default industriesRoutes;

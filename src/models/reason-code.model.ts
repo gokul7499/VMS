@@ -30,6 +30,10 @@ ReasonCodeModel.init(
             type: DataTypes.STRING,
             allowNull: false
         },
+        is_deleted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
         reason_code_id: {
             type: DataTypes.UUID,
             allowNull: true,

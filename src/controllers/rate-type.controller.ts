@@ -1,6 +1,6 @@
 import rateType from "../models/rate-type.model";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateRateTypeData } from "../interfaces/rate-type-interface";
+import { CreateRateTypeData, RateTypeInterface } from "../interfaces/rate-type-interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
@@ -190,38 +190,13 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   }
 };
 
-export async function getAllRateType(request: FastifyRequest<{
-  Querystring: {
-    id?: string;
-    name?: string;
-    is_enabled?: boolean | string;
-    updated_on?: string;
-    is_shift_rate?: boolean | string;
-    is_base_rate?: string | boolean;
-    differential_on?: string;
-    rate_type_category?: string;
-    shift_type?: string;
-    rate_type_category_label?: string;
-    abbreviation?: string;
-    page?: string;
-    limit?: string;
-  };
-}>,
-  reply: FastifyReply
-) {
+export async function getAllRateType(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query;
+  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query as RateTypeInterface;
   const traceId = generateCustomUUID();
 
   try {
-    const parsedIsEnabled =
-      is_enabled === "true" || is_enabled === true
-        ? true
-        : is_enabled === "false" || is_enabled === false
-          ? false
-          : undefined;
-
-    const queryParams = getQueryParams({ id, name, is_enabled: parsedIsEnabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
+    const queryParams = getQueryParams({ id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
     const rateType = await fetchRateTypes(queryParams, program_id);
     const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
       replacements: { program_id },
@@ -473,52 +448,6 @@ export const updateRateTypeById = async (request: FastifyRequest<{ Params: { pro
       message: "Internal server error",
       trace_id: traceId,
       error: error.message,
-    });
-  }
-};
-
-export const deleteRateTypeById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-  const { id } = request.params;
-  const traceId = generateCustomUUID();
-  let { name } = request.body as { name: string };
-  name = name.trim();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-  const userId = user?.sub
-  try {
-    const rateTypes = await rateType.findByPk(id);
-    if (rateTypes) {
-      await rateTypes.update({
-        is_enabled: false,
-        is_deleted: true,
-        updated_on: Date.now(),
-        updated_by: userId,
-      })
-      reply.status(204).send({
-        status_code: 204,
-        message: "Rate type deleted successfully",
-        trace_id: traceId,
-      });
-    } else {
-      reply.status(200).send({
-        status_code: 200,
-        message: "Rate type not found",
-        trace_id: traceId,
-      });
-    }
-  } catch (error) {
-    reply.status(500).send({
-      status_code: 500,
-      message: "Internal server error",
-      trace_id: traceId,
-      error: error
     });
   }
 };

@@ -181,68 +181,81 @@ WHERE
   ${hasVendorId ? 'AND program_vendors.id = :vendor_id' : ''};
 `;
 
-export const complianceDocumentGetByUserId = `
-    SELECT
-        vcd.id,
-        vcd.program_id,
-        vcd.name,
-        vcd.act,
-        vcd.document_number,
-        vcd.upload_document_days,
-        vcd.attached_doc_url,
-        vcd.created_on,
-        vcd.updated_on,
-        vcd.is_enabled,
-        vcd.is_deleted,
-        vcd.to_uploaded,
-        vcd.no_of_days,
-        vcrm.next_expiry_on,
-        vcrm.status,
-        vcrm.file_name,
-        vcrm.expiry_on,
-        vcrm.url,
-        vcrm.audited_on,
-        vcrm.compliance_note,
-        vcrm.updated_on,
-        u.first_name,
-        u.last_name,
-        vcd.uploaded_document,
-        (
-            SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', wl.id,
-                    'name', wl.name
-                )
-            )
-            FROM work_locations wl
-            WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
-        ) AS work_location,
-        pv.display_name
-    FROM
-        program_vendors pv
-    JOIN
-        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
-    LEFT JOIN
-        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-    LEFT JOIN
-        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
-    LEFT JOIN
-        user u ON u.user_id = vcrm.audited_by
-    WHERE
-        pv.program_id = :program_id
-        AND (pv.id IS NULL OR pv.id = :vendor_id)
-        -- Added name filter condition
-        AND (:name IS NULL OR vcd.name LIKE :name)
-        -- Added is_enabled filter condition
-        AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
-    GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
-        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
-        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded,
-        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
-        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add all non-aggregated columns
-    LIMIT :limit OFFSET :offset
-`;
+export const complianceDocumentGetByUserId = (replacements: any) => {
+  let whereClause = `
+      pv.program_id = :program_id
+      AND vcd.is_enabled = true 
+      AND (pv.id IS NULL OR pv.id = :vendor_id)
+      AND (:name IS NULL OR vcd.name LIKE :name)
+      AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+  `;
+
+  if (replacements.status && replacements.status.length > 0) {
+      const statusArray = replacements.status.map((id: string) => `'${id.trim()}'`).join(',');
+      whereClause += ` AND vcrm.status IN (${statusArray})`;
+  }
+
+  return `
+      SELECT
+          vcd.id,
+          vcd.program_id,
+          vcd.name,
+          vcd.act,
+          vcd.document_number,
+          vcd.upload_document_days,
+          vcd.attached_doc_url,
+          vcd.created_on,
+          vcd.updated_on,
+          vcd.is_enabled,
+          vcd.is_deleted,
+          vcd.to_uploaded,
+          vcd.no_of_days,
+          vcrm.id AS doc_id,
+          vcrm.next_expiry_on,
+          vcrm.status,
+          vcrm.file_name,
+          vcrm.expiry_on,
+          vcrm.url,
+          vcrm.audited_on,
+          vcrm.compliance_note,
+          vcrm.updated_on,
+          vcrm.created_on,
+          u.first_name,
+          u.last_name,
+          vcd.uploaded_document,
+          (
+              SELECT JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                      'id', wl.id,
+                      'name', wl.name
+                  )
+              )
+              FROM work_locations wl
+              WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
+          ) AS work_location,
+          pv.display_name
+      FROM
+          program_vendors pv
+      JOIN
+          vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
+      LEFT JOIN
+          vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
+      LEFT JOIN
+          vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id = :vendor_id
+      LEFT JOIN
+          user u ON u.user_id = vcrm.audited_by
+      WHERE ${whereClause}
+      GROUP BY
+          vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number, vcrm.compliance_note,
+          vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name, vcrm.created_on,
+          vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded, vcrm.id,
+          vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
+          vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
+      ORDER BY
+        vcrm.updated_on DESC 
+      LIMIT :limit OFFSET :offset
+  `;
+};
 
 export const complianceDocumentGetByUserAndDocumentId = `
     SELECT
@@ -259,6 +272,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -267,6 +281,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -311,6 +326,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -319,6 +335,7 @@ export const complianceDocumentGetByVendorId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -355,6 +372,8 @@ export const complianceDocumentGetByVendorId = `
         vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
+    ORDER BY
+        vcrm.updated_on DESC 
     LIMIT :limit OFFSET :offset
 `;
 
@@ -387,6 +406,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
         vcrm.file_name,
@@ -395,6 +415,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcrm.audited_on,
         vcrm.compliance_note,
         vcrm.updated_on,
+        vcrm.created_on,
         u.first_name,
         u.last_name,
         vcd.uploaded_document,
@@ -746,6 +767,17 @@ SELECT
         FROM hierarchies h
         WHERE JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id))
     ) AS hierarchies,
+     (
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', vcf.id,
+            'value', vcf.value
+        )
+    )
+    FROM vendor_custom_field vcf
+    WHERE vcf.id = pv.id
+) AS custom_field,
+
     CASE
        WHEN pv.is_labour_category = 1 THEN TRUE
         ELSE FALSE
@@ -1496,7 +1528,7 @@ export const configAdvancedFilter = (
   return `
     SELECT
       ec.id AS expense_config_id,
-      ec.config_name,
+      ec.name,
       ec.program_id,
       ec.is_enabled,
       ec.updated_on,
@@ -1529,13 +1561,13 @@ export const configAdvancedFilter = (
     WHERE
       ec.is_deleted = false
       AND ec.program_id = :program_id
-      ${hasConfigName ? 'AND ec.config_name LIKE :config_name' : ''}
+      ${hasConfigName ? 'AND ec.name LIKE :name' : ''}
       ${hasStatus ? 'AND ec.status = :status' : ''}
       ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
       ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
       ${hierarchyIdsClause}
     GROUP BY
-      ec.id, ec.config_name, ec.program_id, ec.is_enabled
+      ec.id, ec.name, ec.program_id, ec.is_enabled
     ORDER BY
       ec.updated_on DESC
     LIMIT :limit
@@ -1831,7 +1863,7 @@ export const rateTypeTotalCount = `
 
 export const getExpenseType = `
    SELECT
-    ec.config_name,
+    ec.name,
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
@@ -2432,8 +2464,10 @@ export const getPendingUserQuery = `
     'pending' AS status,
     JSON_OBJECT(
       'id', tenant.id,
-      'name', tenant.name
+      'name', tenant.name,
+      'display_name',tenant.display_name
     ) AS tenant_id,
+  JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name) AS user_role,
     JSON_OBJECT(
       'id', countries.id,
       'name', countries.name
@@ -2552,6 +2586,8 @@ LEFT JOIN countries ON invitation.country_id = countries.id
 LEFT JOIN hierarchies ON invitation.default_hierarchy_id = hierarchies.id
 LEFT JOIN work_locations ON invitation.default_work_location_id = work_locations.id
 LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
+LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
+
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
@@ -3069,3 +3105,48 @@ export const rateConfigurationsFilterQuery = (
   ${hasUpdatedOn ? 'AND updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ORDER BY created_on DESC
   LIMIT :limit OFFSET :offset;`;
+
+
+  export const getParentHierarchiesQuery = `
+  SELECT * 
+  FROM hierarchies 
+  WHERE hierarchies.program_id = :program_id
+  AND hierarchies.parent_hierarchy_id IS NULL;
+  `;
+
+  export const getProgramVendorDetails = `
+  SELECT 
+    pv.id AS program_vendor_id,
+    pv.program_id,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE 
+            (pv.all_hierarchy = TRUE AND h.program_id = pv.program_id) OR
+            (pv.all_hierarchy = FALSE AND JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id)))
+    ) AS hierarchies,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
+        FROM work_locations wl
+        WHERE 
+            (pv.all_work_locations = TRUE AND wl.program_id = pv.program_id) OR
+            (pv.all_work_locations = FALSE AND JSON_CONTAINS(pv.work_locations, JSON_QUOTE(wl.id)))
+    ) AS work_locations,
+
+    (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', lc.id, 'name', lc.name))
+        FROM labour_category lc
+        WHERE 
+            (pv.is_labour_category = TRUE AND lc.program_id = pv.program_id) OR
+            (pv.is_labour_category = FALSE AND JSON_CONTAINS(pv.program_industry, JSON_QUOTE(lc.id)))
+    ) AS labour_category
+
+FROM 
+    program_vendors pv
+
+WHERE 
+    pv.program_id = :program_id AND 
+    (pv.user_id = :user_id OR :user_id IS NULL);
+`
