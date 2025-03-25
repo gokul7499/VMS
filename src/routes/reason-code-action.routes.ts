@@ -62,7 +62,7 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
     }, ResonCodeController.getReasonCodeByProgramIdAndSlug);
 
-    fastify.post('/program/:program_id/advanced-filter', {
+    fastify.post('/program/:program_id/reason-code/advanced-filter', {
         schema: {
             querystring: querySchema,
         },

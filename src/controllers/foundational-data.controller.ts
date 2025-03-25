@@ -385,3 +385,109 @@ export async function deleteFoundationalData(request: FastifyRequest, reply: Fas
         });
     }
 }
+
+export async function foundationalDataFilter(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    try {
+        const params = request.params as { program_id: string };
+        const query = request.query as { foundational_data_type_id?: string }; // Corrected to use query parameters
+        const body = request.body as {
+            id?: string;
+            name?: string;
+            is_enabled?: boolean;
+            updated_on?: string;
+            manager_id?: string;
+            code?: string;
+            first_name?: string;
+            page?: number;
+            limit?: number;
+            is_billable?: boolean;
+        };
+
+        const page = body.page ?? 1;
+        const limit = body.limit ?? 10;
+        const offset = (page - 1) * limit;
+
+        let updated_on_start = null;
+        let updated_on_end = null;
+
+        if (body.updated_on) {
+            const modifiedOnRange = body.updated_on.split(',');
+            if (modifiedOnRange.length === 2) {
+                updated_on_start = modifiedOnRange[0];
+                updated_on_end = modifiedOnRange[1];
+            }
+        }
+
+        const filters: any = {
+            program_id: params.program_id,
+            foundational_data_type_id: query.foundational_data_type_id ?? null, // Added query param
+            id: body.id ?? null,
+            name: body.name ? `%${body.name}%` : null,
+            is_enabled: body.is_enabled ?? null,
+            updated_on_start,
+            updated_on_end,
+            manager_id: body.manager_id ?? null,
+            code: body.code ? `%${body.code}%` : null,
+            first_name: body.first_name ? `%${body.first_name}%` : null,
+            is_billable: body.is_billable ?? null,
+            limit,
+            offset
+        };
+
+        const [foundationalDataResult, countResult] = await Promise.all([
+            sequelize.query(foundationDataQuery, {
+                replacements: filters,
+                type: QueryTypes.SELECT,
+            }),
+            sequelize.query(countFoundationDataQuery, {
+                replacements: filters,
+                type: QueryTypes.SELECT,
+            })
+        ]);
+
+        const totalRecords = (countResult[0] as any).total;
+
+        const foundationalDataArray = foundationalDataResult.map((row: any) => ({
+            ...row,
+            slug: row.slug,
+            depended_fields: typeof row.depended_fields === 'string' ? JSON.parse(row.depended_fields) : row.depended_fields
+        }));
+
+        let foundationalDataTypeName = 'null';
+        if (foundationalDataArray.length > 0) {
+            foundationalDataTypeName = foundationalDataArray[0].foundational_data_type_name;
+        } else if (query.foundational_data_type_id) {
+            const foundationalDataType: any = await FoundationalDataTypes.findByPk(query.foundational_data_type_id, {
+                attributes: ['name']
+            });
+            foundationalDataTypeName = foundationalDataType?.name || null;
+        }
+
+        if (foundationalDataResult.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                foundational_data_type_name: foundationalDataTypeName,
+                message: "Foundational data not found",
+                foundational_data: [],
+                trace_id: traceId,
+            });
+        }
+
+        reply.status(200).send({
+            status_code: 200,
+            message: "Foundational data retrieved successfully",
+            foundational_data_type_name: foundationalDataTypeName,
+            total_records: totalRecords,
+            data: foundationalDataArray,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal server error',
+            trace_id: traceId,
+            error: error.message
+        });
+    }
+}
