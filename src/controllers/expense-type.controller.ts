@@ -7,10 +7,9 @@ import { Op, Sequelize } from "sequelize";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 
-export async function createExpenseType(
-    request: FastifyRequest<{ Params: { program_id: string } }>,
-    reply: FastifyReply,
-) {
+export async function createExpenseType(request: FastifyRequest, reply: FastifyReply) {
+
+
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -20,13 +19,13 @@ export async function createExpenseType(
 
     const token = authHeader.split(" ")[1];
     const user = await decodeToken(token);
-
     if (!user) {
         return reply.status(401).send({ message: "Unauthorized - Invalid token" });
     }
 
     logger(
         {
+
             traceId,
             actor: {
                 user_name: user?.preferred_username,
@@ -35,11 +34,11 @@ export async function createExpenseType(
             data: request.body,
             eventname: "creating expense type",
             status: "info",
-            description: `Creating expense type for program_id ${request.params.program_id}`,
+            description: `Creating expense type for program_id ${request.params as { program_id?: string }}`,
             level: "info",
             action: request.method,
             url: request.url,
-            entity_id: request.params.program_id,
+            entity_id: request.params as { program_id?: string },
             is_deleted: false,
             created_by: user.sub,
             updated_by: user.sub,
@@ -97,11 +96,11 @@ export async function createExpenseType(
                 data: request.body,
                 eventname: "expense type creation failed",
                 status: "failed",
-                description: `Expense type creation failed for program_id ${request.params.program_id}`,
+                description: `Expense type creation failed for program_id ${request.params as { program_id?: string }}`,
                 level: "error",
                 action: request.method,
                 url: request.url,
-                entity_id: request.params.program_id,
+                entity_id: request.params as { program_id?: string },
                 is_deleted: false,
                 created_by: user.sub,
                 updated_by: user.sub,
@@ -119,12 +118,12 @@ export async function createExpenseType(
 }
 
 export async function getExpenseTypeById(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID()
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string, program_id: string };
         const expenseType = await ExpenseTypeModel.findOne({
             where: {
                 id,
@@ -158,11 +157,11 @@ export async function getExpenseTypeById(
 }
 
 export async function updateExpenseTypeById(
-    request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: Partial<ExpenseTypeInterface> }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { id, program_id } = request.params;
-    const updates = request.body;
+    const { id, program_id } = request.params as { id: string, program_id: string };
+    const updates = request.body as ExpenseTypeInterface;
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -304,27 +303,10 @@ export async function deleteExpenseTypeById(
 
 
 export async function getAllExpenseType(
-    request: FastifyRequest<{
-        Querystring: {
-            name?: string;
-            code?: string;
-            category?: string;
-            apply_msp_fee?: string;
-            appply_tax?: string;
-            allow_unit_based?: string;
-            is_enabled?: string;
-            max_limit?: number;
-            page?: number;
-            limit?: number;
-            updated_on?: string;
-        };
-        Params: {
-            program_id: string
-        }
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const {
         name,
         code,
@@ -337,7 +319,7 @@ export async function getAllExpenseType(
         page,
         limit,
         updated_on
-    } = request.query;
+    } = request.query as { name?: string, code?: string, category?: string, apply_msp_fee?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
 
@@ -370,7 +352,7 @@ export async function getAllExpenseType(
 
         if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
             whereClause.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
-        } 
+        }
     }
 
     const pageNumber = parseInt(page as unknown as string) || 1;
@@ -400,25 +382,10 @@ export async function getAllExpenseType(
 }
 
 export async function advancefilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            name?: string;
-            code?: string;
-            category?: string;
-            apply_msp_fee?: string;
-            appply_tax?: string;
-            allow_unit_based?: string;
-            is_enabled?: string;
-            max_limit?: number;
-            page?: number;
-            limit?: number;
-            updated_on?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const {
         name,
         code,
@@ -431,7 +398,7 @@ export async function advancefilter(
         page = 1,
         limit = 10,
         updated_on
-    } = request.body;
+    } = request.body as { name?: string, code?: string, category?: string, apply_msp_fee?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
 
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
@@ -445,7 +412,7 @@ export async function advancefilter(
     if (appply_tax !== undefined) {
         whereClause.appply_tax = (typeof appply_tax === 'string' ? appply_tax === 'true' : appply_tax === true);;
     }
-    
+
     if (allow_unit_based !== undefined) {
         whereClause.allow_unit_based = allow_unit_based === "true";
     }
@@ -462,7 +429,7 @@ export async function advancefilter(
         const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
         whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
     }
-    
+
     const pageNumber = parseInt(page as unknown as string, 10);
     const pageSize = parseInt(limit as unknown as string, 10);
     const offset = (pageNumber - 1) * pageSize;
@@ -498,4 +465,3 @@ export async function advancefilter(
         });
     }
 }
-

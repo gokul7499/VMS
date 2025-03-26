@@ -141,8 +141,8 @@ export const deleteConfiguration = async (
   const userId = user?.sub;
   const configuration = await ProgramsConfig.findByPk(id);
   if (configuration) {
-  
-    
+
+
     await configuration.destroy();
     reply.status(204).send({
       status_code: 204,
@@ -205,12 +205,9 @@ export const getProgramConfigurations = async (
   }
 };
 
-export async function getConfigByProgramIdAndTitles(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { title?: string, key: string } }>,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params;
-  const { title, key } = request.query;
+export async function getConfigByProgramIdAndTitles(request: FastifyRequest,reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const { title, key } = request.query as { title?: string; key?: string };
 
   const responseFields = ['id', 'title', 'value', 'key'];
   const whereClause: any = { program_id };
@@ -251,12 +248,9 @@ export async function getConfigByProgramIdAndTitles(
   }
 }
 
-export const getTransformedConfig = async (
-  request: FastifyRequest<{ Params: { program_id: string; id: string }, Querystring: { config_model?: string, key?: string } }>,
-  reply: FastifyReply
-) => {
-  const { program_id } = request.params;
-  const { config_model, key } = request.query;
+export const getTransformedConfig = async (request: FastifyRequest,reply: FastifyReply) => {
+  const { program_id } = request.params as { program_id: string };
+  const { config_model, key } = request.query as { config_model?: string; key?: string };
 
   try {
     const whereClause: Record<string, any> = { program_id };

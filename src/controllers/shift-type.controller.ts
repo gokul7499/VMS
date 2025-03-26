@@ -208,13 +208,13 @@ export async function deleteShiftType(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function getShiftTypesByHierarchies(
-    request: FastifyRequest<{ Querystring: ShiftTypeAttributes, Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { shift_type_category, is_enabled, hierarchy_ids } = request.query;
-        const { program_id } = request.params;
+        const { shift_type_category, is_enabled, hierarchy_ids } = request.query as { shift_type_category: string, is_enabled: boolean, hierarchy_ids: string };
+        const { program_id } = request.params as { program_id: string };
         const searchFields: any = { is_deleted: false };
         let hierarchyArray;
         if (hierarchy_ids) {

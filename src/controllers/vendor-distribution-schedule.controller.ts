@@ -12,10 +12,10 @@ import { QueryTypes } from "sequelize";
 import { vendorDistributionScheduleFilterQuery } from "../utility/queries";
 
 export const createVendorDistributionSchedule = async (
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const vendorDistributionScheduleData = request.body as VendorDistributionSchedule;
 
     const authHeader = request.headers.authorization;
@@ -153,12 +153,11 @@ export async function getAllvendorDistributionSchedules(request: FastifyRequest,
 }
 
 export const getVendorDistributionScheduleById = async (
-    request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
-    reply: FastifyReply
+    request: FastifyRequest,reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id: string; id: string };
 
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
             where: { program_id, id, is_deleted: false },
@@ -225,7 +224,7 @@ export const getVendorDistributionScheduleById = async (
 };
 
 export const deleteVendorDistributionSchedule = async (
-    request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+    request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -238,7 +237,7 @@ export const deleteVendorDistributionSchedule = async (
     }
     const userId = user?.sub;
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string; program_id: string };
         const [vendorSchedule] = await vendorDistributionScheduleModel.update(
             {
                 is_deleted: true,
@@ -283,7 +282,7 @@ export const deleteVendorDistributionSchedule = async (
 };
 
 export const updateVendorDistributionSchedule = async (
-    request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
@@ -298,7 +297,7 @@ export const updateVendorDistributionSchedule = async (
     }
     const userId = user?.sub;
     try {
-        const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string; id: string };
         const updateData = request.body as updateVendorDistributionScheduleDetail;
 
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
@@ -399,24 +398,17 @@ export const updateVendorDistributionSchedule = async (
 
 
 export const getVendorDistributionScheduleByIds = async (
-    request: FastifyRequest<{
-        Params: { program_id: string; id: string };
-        Querystring: {
-            program_industry?: string;
-            work_locations?: string;
-            hierarchies?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params;
-
+        const { program_id, id } = request.params as { program_id: string; id: string };
+        const { program_industry, work_locations, hierarchies } = request.query as Record<string, string | undefined>;
         // Split query parameters into arrays
-        const program_industry_ids = request.query.program_industry ? request.query.program_industry.split(',') : [];
-        const work_location_ids = request.query.work_locations ? request.query.work_locations.split(',') : [];
-        const hierarchy_ids = request.query.hierarchies ? request.query.hierarchies.split(',') : [];
+        const program_industry_ids = program_industry ? program_industry.split(',') : [];
+        const work_location_ids = work_locations ? work_locations.split(',') : [];
+        const hierarchy_ids = hierarchies ? hierarchies.split(',') : [];
 
         // Step 1: Fetch the vendor distribution schedule
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
@@ -510,10 +502,10 @@ export const getVendorDistributionScheduleByIds = async (
 //         const { program_id, id } = request.params;
 //         const { program_industry, work_locations, hierarchies } = request.query;
 
-//        
-//        
+//
+//
 
-//        
+//
 
 //         // Define sorting order for measure units
 //         const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
@@ -527,7 +519,7 @@ export const getVendorDistributionScheduleByIds = async (
 //             const unitA = a.measure_unit as keyof typeof unitOrder;
 //             const unitB = b.measure_unit as keyof typeof unitOrder;
 
-//            
+//
 
 //             return a.duration - b.duration;
 //         });
@@ -558,7 +550,7 @@ export const getVendorDistributionScheduleByIds = async (
 //             })
 //         );
 
-//         
+//
 
 //         reply.status(200).send({
 //             statusCode: 200,
@@ -575,23 +567,13 @@ export const getVendorDistributionScheduleByIds = async (
 // };
 
 export async function vendorDistributionScheduleFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            id?: string;
-            name?: string;
-            is_enabled?: boolean | string;
-            updated_on?: any;
-            page?: string;
-            limit?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { id, name, is_enabled, updated_on, page, limit } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        const { id, name, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; is_enabled: string; updated_on: string[]; page: string; limit: string };
 
         const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
 
@@ -643,5 +625,3 @@ export async function vendorDistributionScheduleFilter(
         });
     }
 }
-
-
