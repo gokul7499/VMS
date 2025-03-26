@@ -117,7 +117,23 @@ export const createCustomFieldsSchema = {
           type: 'object',
           properties: {
             action: { type: 'string' },
-            conditions: { type: 'array', items: { type: 'object' } }
+            conditions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  condition: {
+                    type: "object",
+                    properties: {
+                      value: { type: "string" },
+                    },
+                  },
+                  slug: { type: "string" },
+                  label: { type: "string" }
+                },
+              }
+            }
+            
           },
         }
       },
