@@ -187,11 +187,11 @@ export const createRateConfigurations = async (
 };
 
 export const updateRateConfigurations = async (
-    request: FastifyRequest<{ Params: { program_id: string; id: string }; Body: Partial<RateConfigurationsInterface> }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id, id } = request.params;
-    const rateConfigurationsPayload = request.body;
+    const { program_id, id } = request.params as { program_id: string; id: string };
+    const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
@@ -436,13 +436,13 @@ export const deleteRateConfigurations = async (request: FastifyRequest, reply: F
 }
 
 export async function getAllRateConfigurations(
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { name?: string; is_enabled?: string; is_shift_rate?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; updated_on?: string; page?: string; limit?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const query = request.query;
+        const { program_id } = request.params as { program_id: string };
+        const query = request.query as { page?: string; limit?: string; name?: string; job_template_id?: string; hierarchy_id?: string; rate_type?: string; is_enabled?: string; is_shift_rate?: string; updated_on?: string };
 
         const page = parseInt(query.page ?? "1", 10);
         const limit = parseInt(query.limit ?? "10", 10);
@@ -704,22 +704,11 @@ export async function getRateConfigurationById(
     }
 }
 
-export async function getAllRateConfigurationRates(request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-        hierarchie_id?: string;
-        job_templates?: string;
-        is_shift_rate?: boolean;
-        currency_id?: string;
-        unit_of_measure?: string;
-        labor_category_id?: string;
-        ot_exempt?: string;
-    };
-}>, reply: FastifyReply) {
+export async function getAllRateConfigurationRates(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt } = request.query;
+        const { program_id } = request.params as { program_id: string };
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt } = request.query as { hierarchie_id: string; job_templates: string; is_shift_rate: string; currency_id: string; unit_of_measure: string; labor_category_id: string; ot_exempt: string };
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
@@ -1285,25 +1274,13 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
 }
 
 export async function rateConfigurationsFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            id?: string;
-            name?: string;
-            is_shift_rate?: boolean;
-            job_type?: string;
-            is_enabled?: boolean | string;
-            updated_on?: any;
-            page?: string;
-            limit?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { id, name, is_shift_rate, job_type, is_enabled, updated_on, page, limit } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        const { id, name, is_shift_rate, job_type, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; is_shift_rate: string; job_type: string; is_enabled: string; updated_on: string[]; page: string; limit: string };
 
         const query = rateConfigurationsFilterQuery(
             Boolean(id),

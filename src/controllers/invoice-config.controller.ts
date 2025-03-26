@@ -66,13 +66,10 @@ export async function createInvoiceConfig(
     }
 }
 
-export async function getInvoiceConfigById(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
-    reply: FastifyReply
-) {
+export async function getInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string, program_id: string };
 
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: {
@@ -116,11 +113,8 @@ export async function getInvoiceConfigById(
     }
 }
 
-export async function updateInvoiceConfigById(
-    request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: Partial<InvoiceConfigInterface> }>,
-    reply: FastifyReply
-) {
-    const { id, program_id } = request.params;
+export async function updateInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
+    const { id, program_id } = request.params as { id: string, program_id: string };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     try {
@@ -149,7 +143,7 @@ export async function updateInvoiceConfigById(
         }
 
         const newPayload = {
-            ...request.body,
+            ...request.body as InvoiceConfigInterface,
             program_id,
             parent_id: invoiceConfig.id,
             grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
@@ -178,14 +172,11 @@ export async function updateInvoiceConfigById(
     }
 }
 
-export async function deleteInvoiceConfigById(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
-    reply: FastifyReply
-) {
+export async function deleteInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string, program_id: string };
 
         if (!authHeader?.startsWith('Bearer ')) {
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -230,15 +221,9 @@ export async function deleteInvoiceConfigById(
     }
 }
 
-export async function getAllInvoiceConfig(
-    request: FastifyRequest<{
-        Params: { program_id: string },
-        Querystring: { name?: string; page?: number; limit?: number; };
-    }>,
-    reply: FastifyReply
-) {
-    const { program_id } = request.params;
-    const { name, page = 1, limit = 10 } = request.query;
+export async function getAllInvoiceConfig(request: FastifyRequest, reply: FastifyReply) {
+    const { program_id } = request.params as { program_id: string };
+    const { name, page = 1, limit = 10 } = request.query as { name: string, page: number, limit: number };
     const traceId = generateCustomUUID();
     const offset = (page - 1) * limit;
     let whereClause: any = { program_id };

@@ -9,10 +9,10 @@ import { decodeToken } from '../middlewares/verifyToken';
 import RateType from '../models/rate-type.model';
 
 export async function createTimesheetExpenseRule(
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const program_id = request.params.program_id;
+    const { program_id } = request.params as { program_id: string };
     const timesheetRule = request.body as TimesheetExpenseRule;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -71,22 +71,11 @@ interface TimesheetExpenseRuleData {
 }
 
 export const getTimesheetExpenseRule = async (
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Querystring: {
-            rule_name?: string;
-            rule_type: string;
-            rule_category: string;
-            is_enabled?: boolean | string;
-            updated_on?: string;
-            page?: string;
-            limit?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id } = request.params;
-    const { rule_name, rule_type, rule_category, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { rule_name, rule_type, rule_category, is_enabled, updated_on, page = '1', limit = '10' } = request.query as { rule_name: string, rule_type: string, rule_category: string, is_enabled: boolean | string, updated_on: string, page: string, limit: string };
     const traceId = generateCustomUUID();
 
     try {
@@ -109,7 +98,7 @@ export const getTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-   
+
 
         const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
             where: whereCondition,
@@ -126,7 +115,7 @@ export const getTimesheetExpenseRule = async (
                 'updated_on',
                 'program_id',
                 'apply_rate_type',
-                'penalty_rules', 
+                'penalty_rules',
                 'expense_line_item',
             ],
             limit: pageSize,
@@ -152,7 +141,7 @@ export const getTimesheetExpenseRule = async (
                 (expenseRule) => expenseRule.id === rule.id
               );
               const updatedRule = rule.toJSON();
-          
+
               if (updatedRule.penalty_rules) {
                 const allKeysNull = Object.values(updatedRule.penalty_rules).every(
                   (value) => value === null || value === undefined
@@ -170,7 +159,7 @@ export const getTimesheetExpenseRule = async (
               } else {
                 updatedRule.penalty_rules = null;
               }
-          
+
               return {
                 ...updatedRule,
                 expense_line_item: matchingExpenseData?.expense_line_item || [],
@@ -178,7 +167,7 @@ export const getTimesheetExpenseRule = async (
               };
             })
           );
-        
+
 
         reply.status(200).send({
             status_code: 200,
@@ -200,12 +189,12 @@ export const getTimesheetExpenseRule = async (
 };
 
 export async function getTimesheetExpenseRuleById(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string; program_id: string };
         const timesheetRule = await TimesheetExpenseRuleModel.findOne({
             where: { id, program_id, is_deleted: false },
         });
@@ -233,7 +222,7 @@ export async function getTimesheetExpenseRuleById(
         let penaltyRules = timesheetRule.penalty_rules;
         if (penaltyRules) {
           const allKeysNull = Object.values(penaltyRules).every(value => value === null || value === undefined);
-        
+
           if (!allKeysNull) {
             if (penaltyRules.apply_rate_type) {
               const penaltyRateType = await RateType.findOne({
@@ -270,7 +259,7 @@ export async function getTimesheetExpenseRuleById(
 export async function updateTimesheetExpenseRule(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-    
+
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({
             status_code: 401,
@@ -294,9 +283,9 @@ export async function updateTimesheetExpenseRule(request: FastifyRequest, reply:
 
         const existingRule = await TimesheetExpenseRuleModel.findOne({
             where: {
-                rule_name: updateData.rule_name, 
+                rule_name: updateData.rule_name,
                 program_id,
-                id: { [Op.ne]: id }, 
+                id: { [Op.ne]: id },
             },
         });
 
@@ -397,23 +386,11 @@ export async function deleteTimesheetExpenseRule(
 }
 
 export const filterTimesheetExpenseRule = async (
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            rule_name?: string;
-            rule_type?: string;
-            rule_category?: string;
-            is_enabled?: boolean | string;
-            updated_on?: string[];
-            fields?: string[];  
-            page?: number;
-            limit?: number;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id } = request.params;
-    const { rule_name, rule_type, rule_category, is_enabled, updated_on, fields, page = 1, limit = 10 } = request.body;
+    const { program_id } = request.params as { program_id: string };
+    const { rule_name, rule_type, rule_category, is_enabled, updated_on, fields, page = 1, limit = 10 } = request.body as { rule_name: string, rule_type: string, rule_category: string, is_enabled: boolean | string, updated_on: string, fields: string[], page: number, limit: number };
     const traceId = generateCustomUUID();
 
     try {
@@ -434,7 +411,7 @@ export const filterTimesheetExpenseRule = async (
         }
         if (Array.isArray(updated_on) && updated_on.length === 2) {
             const dateRange = updated_on.map(timestamp => Number(timestamp));
-        
+
             if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
                 whereCondition.updated_on = { [Op.between]: dateRange };
             }
@@ -452,10 +429,10 @@ export const filterTimesheetExpenseRule = async (
             'updated_on',
             'program_id',
             'apply_rate_type',
-            'penalty_rules', 
+            'penalty_rules',
             'expense_line_item'
         ];
-        
+
         const selectedFields = fields && fields.length > 0 ? fields : defaultFields;
 
         const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({

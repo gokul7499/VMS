@@ -247,48 +247,41 @@ export const createCustomField = async (data: any, user: any) => {
   }
 };
 
-export async function getAllCustomFields(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: GetQueryInterface;
-  }>,
-  reply: FastifyReply
-) {
+export async function getAllCustomFields(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const programId = request.params.program_id;
-  const page = parseInt(request.query.page ?? '1', 10);
-  const limit = parseInt(request.query.limit ?? '100', 10);
+  const program_id = request.params as { program_id: string };
+  const { is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = 1, limit = 10 } = request.query as GetQueryInterface;
 
   const whereClause: any = {
-    program_id: programId,
+    program_id,
     is_deleted: false,
   };
 
-  if (request.query.is_enabled) {
-    const isEnabledValue = request.query.is_enabled === 'true' ? 1 : 0;
+  if (is_enabled) {
+    const isEnabledValue = is_enabled === 'true' ? 1 : 0;
     whereClause.is_enabled = { [Op.eq]: isEnabledValue };
   }
-  if (request.query.slug) {
-    whereClause.slug = { [Op.like]: `%${request.query.slug}%` };
+  if (slug) {
+    whereClause.slug = { [Op.like]: `%${slug}%` };
   }
-  if (request.query.name) {
-    whereClause.name = { [Op.like]: `%${request.query.name}%` };
+  if (name) {
+    whereClause.name = { [Op.like]: `%${name}%` };
   }
-  if (request.query.module_name) {
-    whereClause.module_name = { [Op.like]: `%${request.query.module_name}%` };
+  if (module_name) {
+    whereClause.module_name = { [Op.like]: `%${module_name}%` };
   }
-  if (request.query.label) {
-    whereClause.label = { [Op.like]: `%${request.query.label}%` };
+  if (label) {
+    whereClause.label = { [Op.like]: `%${label}%` };
   }
-  if (request.query.field_type) {
-    whereClause.field_type = { [Op.like]: `%${request.query.field_type}%` };
+  if (field_type) {
+    whereClause.field_type = { [Op.like]: `%${field_type}%` };
   }
-  if (request.query.is_required) {
-    const isRequiredValue = request.query.is_required === 'true' ? 1 : 0;
+  if (is_required) {
+    const isRequiredValue = is_required === 'true' ? 1 : 0;
     whereClause.is_required = { [Op.eq]: isRequiredValue };
   }
-  if (request.query.updated_on) {
-    const modifiedOnPattern = `${request.query.updated_on}`;
+  if (updated_on) {
+    const modifiedOnPattern = `${updated_on}`;
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
 
@@ -379,11 +372,8 @@ export async function getAllCustomFields(
 }
 
 
-export const getCustomFieldById = async (
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
-  reply: FastifyReply
-) => {
-  const { id, program_id } = request.params;
+export const getCustomFieldById = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { id, program_id } = request.params as { id: string, program_id: string };
   const traceId = generateCustomUUID();
 
   if (!program_id) {
@@ -515,13 +505,10 @@ export const getCustomFieldById = async (
 
 
 
-export const updateCustomFieldById = async (
-  request: FastifyRequest<{ Params: { id: string; program_id: string }; Body: CustomFields }>,
-  reply: FastifyReply
-) => {
+export const updateCustomFieldById = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params;
-  const updates = request.body;
+  const { id, program_id } = request.params as { id: string, program_id: string };
+  const updates = request.body as CustomFields;
 
   const authHeader = request.headers.authorization;
 
@@ -738,13 +725,10 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
 
 
 
-export async function updateCustomFieldsIsdisable(
-  request: FastifyRequest<{ Params: { id: string, program_id: string }; Body: { is_enabled: boolean } }>,
-  reply: FastifyReply
-) {
+export async function updateCustomFieldsIsdisable(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params;
-  const { is_enabled } = request.body;
+  const { id, program_id } = request.params as { id: string, program_id: string };
+  const { is_enabled } = request.body as { is_enabled: boolean };
 
   const authHeader = request.headers.authorization;
 
@@ -826,13 +810,10 @@ export async function updateCustomFieldsIsdisable(
   }
 }
 
-export async function searchCustomFields(
-  request: FastifyRequest<{ Querystring: GetQueryInterface, Params: { program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function searchCustomFields(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const { module_name, is_enabled, field_type } = request.query;
-    const { program_id } = request.params;
+    const { module_name, is_enabled, field_type } = request.query as { module_name: string, is_enabled: string, field_type: string };
+    const { program_id } = request.params as { program_id: string };
     const searchFields: any = { is_deleted: false };
 
     if (module_name) {
@@ -874,33 +855,27 @@ export async function searchCustomFields(
 
 
 
-export const advanceFilterCustomFiled = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      page?: number;
-      limit?: number;
-      is_enabled?: boolean;
-      slug?: string;
-      name?: string;
-      module_name?: string;
-      label?: string;
-      field_type?: string;
-      is_required?: boolean;
-      updated_on?: string;
-    };
-  }>,
-  reply: FastifyReply
-) => {
+export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
-  const programId = request.params.program_id;
-  const body = request.body;
+  const { program_id } = request.params as { program_id: string };
+  const body = request.body as {
+    page?: number;
+    limit?: number;
+    is_enabled?: boolean;
+    slug?: string;
+    name?: string;
+    module_name?: string;
+    label?: string;
+    field_type?: string;
+    is_required?: boolean;
+    updated_on?: string;
+  };
 
   const page = body.page ?? 1;
   const limit = body.limit ?? 10;
 
   const whereClause: any = {
-    program_id: programId,
+    program_id,
     is_deleted: false,
   };
 
@@ -1004,7 +979,3 @@ export const advanceFilterCustomFiled = async (
     });
   }
 }
-
-
-
-

@@ -180,14 +180,14 @@ const generateRandomPrefix = () => {
 };
 
 export const createPicklist = async (
-  request: FastifyRequest<{ Body: any; Params: { program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const { picklist_items, ...picklist_data } = request.body as {
     picklistItems?: PicklistItem[];
     [key: string]: any;
   };
-  const { program_id } = request.params;
+  const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -436,15 +436,12 @@ export async function deletePredefinedPicklist(
 
 
 export const updatePicklistAndItem = async (
-  request: FastifyRequest<{
-    Params: { id: string; program_id: string };
-    Body: picklist;
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params;
-  const { picklist_items, ...picklist_data } = request.body;
+  const { id, program_id } = request.params as { id: string; program_id: string };
+  const { picklist_items, ...picklist_data } = request.body as picklist;
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ message: 'Unauthorized - Token not found' });
@@ -565,13 +562,11 @@ export const updatePicklistAndItem = async (
 };
 
 export const getPicklistAndPicklistItem = async (
-  request: FastifyRequest<{
-    Params: { program_id: string; picklist_id: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id, picklist_id } = request.params;
+  const { program_id, picklist_id } = request.params as { program_id: string; picklist_id: string };
 
   // Validate that the parameters are not undefined or null
   if (!program_id || !picklist_id) {

@@ -1,7 +1,7 @@
 import fastify from "fastify";
 // import permissionsUtilAuth from "./permissions-util";
 
-import {  elastiCacheConnectionManager, 
+import {  elastiCacheConnectionManager,
   initializeElastiCacheConnections   } from './permissions-util';
 import logger from '../plugins/logger-plugin';
 
@@ -34,7 +34,7 @@ export async function checkPermission(params: RequiredPermissions): Promise<void
 
     // Your application logic
     const policies = await elastiCacheConnectionManager.getPolicies(
-      programId, 
+      programId,
       tokenValue
     );
     console.log('policies are now::::::::::', JSON.stringify(policies));

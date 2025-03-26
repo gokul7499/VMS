@@ -410,22 +410,7 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
     }
 }
 
-export async function getAllFoundationalDataTypesAdvancedFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            name?: string;
-            is_enabled?: boolean;
-            updated_on?: string;
-            timesheet_master_data?: boolean;
-            user_association_exclude?: boolean;
-            page?: string;
-            limit?: string;
-            track_owner?: boolean;
-        };
-    }>,
-    reply: FastifyReply
-) {
+export async function getAllFoundationalDataTypesAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const responseFields = [
         'id',
@@ -436,7 +421,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         'description',
         'configuration',
     ];
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const {
         name,
         is_enabled,
@@ -446,7 +431,16 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         page = '1',
         limit = '10',
         track_owner,
-    } = request.body;
+    } = request.body as {
+        name?: string;
+        is_enabled?: boolean;
+        updated_on?: string;
+        timesheet_master_data?: boolean;
+        user_association_exclude?: boolean;
+        page?: string;
+        limit?: string;
+        track_owner?: boolean;
+    };
 
     try {
         const filters: any = { program_id, is_deleted: false };
@@ -457,7 +451,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
-        
+
         if (timesheet_master_data !== undefined) {
             filters['configuration.timesheet_master_data'] = timesheet_master_data;
         }
