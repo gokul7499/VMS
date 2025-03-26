@@ -5,7 +5,7 @@ import { Actions, Permissions } from '../constants/permissions';
 
 async function vendordocumentsgroup(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/vendor-documents-group', {
-        // preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT_GROUP])
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT_GROUP])
     }, VendorDocumentGroup.createVendordocumentsgroup);
 
     fastify.get('/program/:program_id/vendor-documents-group/:id', {
