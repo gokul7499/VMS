@@ -27,7 +27,7 @@ async function userRoutes(fastify: FastifyInstance) {
     }, userController.searchUser);
 
     fastify.get('/user/program/:program_id', {
-        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getAllUserIDAndUserId);
 
     fastify.get('/user/:id/program/:program_id', {
