@@ -79,9 +79,10 @@ class AWSElastiCacheConnectionManager {
   // Initialize connections with proper error handling
   public async initializeReplicaConnection(): Promise<void> {
     try {
-      if (this.replicaClient) {
-        return; // Already initialized
-      }
+      await this.closeConnections();
+      // if (this.replicaClient) {
+      //   return; // Already initialized
+      // }
 
       this.replicaClient = this.createClient('Replica');
       await this.verifyConnection(this.replicaClient, 'Replica');
