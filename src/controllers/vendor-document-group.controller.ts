@@ -14,8 +14,9 @@ export async function createVendordocumentsgroup(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const { program_id } = request.params as { program_id: string };
     const vendorDocumentsGroup = request.body as VendorDocumentGroup;
-    const { program_id, required_documents } = vendorDocumentsGroup;
+    const { required_documents } = vendorDocumentsGroup;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 

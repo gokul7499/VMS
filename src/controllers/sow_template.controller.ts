@@ -31,6 +31,21 @@ export async function createSowTemplate(
     const sequelize = SowTemplateModel.sequelize!;
     const transaction = await sequelize.transaction();
     try {
+        const existingSowTemplate = await SowTemplateModel.findOne({
+            where: {
+                program_id: program_id,
+                template_title: sowTemplate.template_title,  
+            }
+        });
+        
+        if (existingSowTemplate) {
+            return reply.status(400).send({
+                status_code: 400,
+                trace_id: traceId,
+                message: "A Sow Template with the same title already exists for this program.",
+            });
+        }
+        
         const item = await SowTemplateModel.create({
             ...sowTemplate,
             program_id,
@@ -132,8 +147,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
 
         if (code) {
-            whereClause += ` AND t.code = :code`;
-            replacements.code = code;
+            whereClause += ` AND t.code LIKE :code`;
+            replacements.code = `%${code}%`;  
         }
 
         if (hierarchy_id) {
