@@ -148,8 +148,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
 
         if (code) {
-            whereClause += ` AND t.code = :code`;
-            replacements.code = code;
+            whereClause += ` AND t.code LIKE :code`;
+            replacements.code = `%${code}%`;  
         }
 
         if (hierarchy_id) {
