@@ -86,7 +86,6 @@ export async function createSowTemplate(
         });
     }
 }
-
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
 
@@ -148,14 +147,28 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         if (created_on) {
             const dateRange = created_on.split(',');
             if (dateRange.length === 2) {
-                let startDate = new Date(dateRange[0].trim()).toISOString();
-                let endDate = new Date(dateRange[1].trim()).toISOString();
-                whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
-                replacements.startDate = startDate;
-                replacements.endDate = endDate;
+                const startDate = dateRange[0].trim();
+                const endDate = dateRange[1].trim();
+                const startTimestamp = isNaN(Number(startDate)) 
+                    ? new Date(startDate).getTime() 
+                    : Number(startDate);
+                
+                const endTimestamp = isNaN(Number(endDate)) 
+                    ? new Date(endDate).getTime() 
+                    : Number(endDate);
+
+                if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
+                    const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
+        
+                    whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
+                    replacements.startDate = startTimestamp;
+                    replacements.endDate = adjustedEndTimestamp;
+                } else {
+                    console.warn('Invalid date format provided');
+                }
             }
         }
-        
+
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -203,7 +216,6 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
-
 
 
 
