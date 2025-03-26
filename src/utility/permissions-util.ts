@@ -27,7 +27,7 @@ class AWSElastiCacheConnectionManager {
     return {
       host: clientType === 'Primary' ? redis_host : redis_replica_host,
       port: redis_port,
-      // password: redis_auth, // Uncomment if auth is needed
+      password: redis_auth,
       connectTimeout: 20000,
       commandTimeout: 10000,
       maxRetriesPerRequest: 2,
