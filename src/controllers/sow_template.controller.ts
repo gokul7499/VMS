@@ -319,7 +319,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         reply.status(200).send({
             status_code: 200,
-            message: 'SOW Template updated successfully.',
+            message: 'SOW template updated successfully.',
             trace_id: traceId
         });
     } catch (error: any) {
