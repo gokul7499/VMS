@@ -158,6 +158,7 @@ class AWSElastiCacheConnectionManager {
       }
 
       const { data } = await this.fetchPoliciesFromAPI(programId, token);
+      console.log('data from auth service:', data)
 
       // Create primary client only when setting the key
       const primaryClient = await this.createPrimaryClientIfNeeded();
@@ -197,14 +198,18 @@ class AWSElastiCacheConnectionManager {
 
   private async fetchPoliciesFromAPI(programId: string, token: string) {
     console.log('URL:', `${auth_url}/v1/api/policy/user/tenant/${programId}`);
-    return axios.get(
-      `${auth_url}/v1/api/policy/user/tenant/${programId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 15000 // 15 seconds timeout
-      }
-    );
+    //  try {
+      return axios.get(
+        `${auth_url}/v1/api/policy/user/tenant/${programId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000 // 15 seconds timeout
+        }
+      );
+   
   }
+
+ 
 
   public async closeConnections(): Promise<void> {
     try {
