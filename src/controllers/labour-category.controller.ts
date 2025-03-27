@@ -144,10 +144,12 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
       whereCondition.name = { [Op.like]: `%${name}%` };
     }
 
-    if (is_enabled !== undefined) {
+    if (typeof is_enabled === 'string') {
+      whereCondition.is_enabled = is_enabled === 'true';
+    } else {
       whereCondition.is_enabled = is_enabled;
     }
-
+    
     if (updated_on) {
       const dateRange = updated_on.split(',');
       if (dateRange.length === 2) {
