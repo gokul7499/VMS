@@ -152,6 +152,7 @@ export async function updateCheckList(
     request: FastifyRequest<{ Params: { entity_id: string, program_id: string }; Body: ChecklistInterface }>,
     reply: FastifyReply
 ) {
+      const traceId = generateCustomUUID();
     const { entity_id, program_id } = request.params;
     const {
         name,
@@ -166,6 +167,7 @@ export async function updateCheckList(
         return reply.status(400).send({
             status_code: 400,
             message: '`task_category_configs` must be an array.',
+            traceId: traceId,
         });
     }
     const transaction = await sequelize.transaction();
@@ -273,6 +275,7 @@ export async function updateCheckList(
         return reply.status(200).send({
             status_code: 200,
             message: 'Checklist updated and new version created successfully.',
+            traceId:traceId
         });
     } catch (error) {
         await transaction.rollback();
@@ -280,6 +283,7 @@ export async function updateCheckList(
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while updating the checklist.',
+            traceId:traceId
         });
     }
 }
@@ -327,7 +331,7 @@ export async function deleteCheckList(
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-            traceId: traceId,
+        trace_id: traceId,
             error,
         });
     }
@@ -490,7 +494,9 @@ export async function filterChecklists(
 }
 
 export async function enableDisableChecklist(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
     try {
+       
         const { program_id, entity_id } = request.params as { program_id: string; entity_id: string };
         const { is_enabled } = request.body as { is_enabled: boolean };
 
@@ -498,6 +504,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
             return reply.status(400).send({
                 status_code: 400,
                 message: "Program ID and Entity ID are required",
+                trace_id:traceId
             });
         }
 
@@ -505,10 +512,10 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
             return reply.status(400).send({
                 status_code: 400,
                 message: "'is_enabled' is required in the payload",
+                trace_id:traceId
             });
         }
 
-        const traceId = generateCustomUUID();
 
         const checklist = await Checklist.findOne({
             where: { program_id, entity_id, latest: true, is_deleted: false },
@@ -537,7 +544,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
-            trace_id: generateCustomUUID(),
+            trace_id: traceId,
             error,
         });
     }

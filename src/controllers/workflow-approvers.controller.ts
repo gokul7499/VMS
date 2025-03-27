@@ -5,7 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import { Op } from 'sequelize';
 
 export const createWorkflowApprover = async (request: FastifyRequest, reply: FastifyReply) => {
-      const traceId=generateCustomUUID();
+    const traceId=generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const workflowApproverPayload = request.body as Omit<WorkflowApproversData, '_id'>;
