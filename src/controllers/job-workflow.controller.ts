@@ -914,6 +914,15 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
+    } else if (flow_type == "Approval" && events === "submit_timesheet") {
+        let response = {
+
+            eventCode: "SUBMIT_TIMESHEET",
+        
+
+            user_type: ['msp', 'vendor']
+        }
+        return response;
     } else if (flow_type == "Approval" && events === "update_assignment") {
         let response = {
 
@@ -4198,6 +4207,8 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return NotificationEventCode.COUNTER_OFFER_APPROVAL_FIRST;
     } else if (flow_type === "Approval" && event === "create_assignment") {
         return NotificationEventCode.ASSIGNMENT_APPROVAL_REQUEST;
+    } else if (flow_type === "Approval" && event === "submit_timesheet") {
+        return "SUBMIT_TIMESHEET";
     } else if (flow_type === "Approval" && event === "update_assignment") {
         return NotificationEventCode.ASSIGNMENT_MODIFIED_APPROVAL;
     } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {
