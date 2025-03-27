@@ -166,7 +166,7 @@ export const getProgramConfigurations = async (
   const queryConditions: any = { program_id };
   if (title) queryConditions.title = { [Op.like]: `%${title}%` };
   if (config_model) queryConditions.config_model = config_model;
-
+  const traceId = generateCustomUUID();
   try {
     const configurations = await ProgramsConfig.findAll({
       where: queryConditions,
@@ -195,6 +195,7 @@ export const getProgramConfigurations = async (
       statusCode: 200,
       message: "Program configurations retrieved successfully",
       configuration: filteredResult,
+      traceId:traceId
     });
   } catch (error: any) {
     return reply.status(500).send({

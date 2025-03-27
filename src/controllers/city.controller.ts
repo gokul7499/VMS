@@ -6,6 +6,7 @@ import { handleError } from "../utility/errorHandler";
 import { sequelize } from "../config/instance";
 import { Op } from "sequelize";
 import { decodeToken } from "../middlewares/verifyToken";
+import { trace } from "node:console";
 
 export async function createCity(
   request: FastifyRequest<{ Params: { state_id: string; program_id: string } }>,
@@ -250,6 +251,7 @@ export const getCityById = async (
   reply: FastifyReply
 ) => {
   const { id, state_id: string } = request.params;
+   const traceId = generateCustomUUID();
 
   try {
     const resourceCity = await city.findOne({
@@ -260,6 +262,7 @@ export const getCityById = async (
       return reply.status(200).send({
         status_code: 200,
         message: "city not found for the given ID",
+        trace_id: generateCustomUUID(),
         city: [],
       });
     }
