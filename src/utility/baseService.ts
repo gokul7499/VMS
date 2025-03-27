@@ -18,7 +18,16 @@ export class BaseService {
 
     async updateById(request: FastifyRequest, searchFields: Record<string, string>) {
         const data = request.body;
-        const [updatedCount] = await this.model.update(data, {
+        if (!data || typeof data !== "object") {
+            throw new Error("Invalid request body: Data is missing or not an object.");
+        }
+
+        const updatedData = {
+            ...data,  
+            updated_on: Date.now()
+        };
+
+        const [updatedCount] = await this.model.update(updatedData, {
             where: {
                 ...searchFields,
                 is_deleted: false
@@ -87,12 +96,12 @@ export class BaseService {
             }
         });
 
-        const sortField = query.sortField || "created_on";
+        const sortField = query.sortField || "updated_on";
         const sortDirection = query.sortDirection || "DESC";
-        const validSortFields = [...Object.keys(cleanedQuery), "created_on"];
+        const validSortFields = [...Object.keys(cleanedQuery), "updated_on"];
         const validDirections: ("ASC" | "DESC")[] = ["ASC", "DESC"];
 
-        const finalSortField = validSortFields.includes(sortField) ? sortField : "created_on";
+        const finalSortField = validSortFields.includes(sortField) ? sortField : "updated_on";
         const finalSortDirection = validDirections.includes(sortDirection as "ASC" | "DESC") ? sortDirection : "DESC";
 
         const options: any = {
@@ -100,7 +109,7 @@ export class BaseService {
             offset: offset,
             limit: limit,
             distinct: true,
-            order: [[finalSortField, finalSortDirection]],
+            order: [["updated_on", "DESC"], [finalSortField, finalSortDirection]],
             include: include,
         };
 
