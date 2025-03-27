@@ -4,7 +4,6 @@ import WorkLocationModel from '../models/work-location.model';
 import hierarchies from '../models/hierarchies.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import customFieldsHierarchie from '../models/custom-field-hierarchie.model';
-import customFieldMasterData from '../models/custom-field-master-data.model';
 import customFieldLocations from '../models/custom-field-location.model';
 import CustomField from '../models/custom-fields.model'
 import { saveCustomFieldsMasterData } from './custom-field-master-data.controller';
@@ -13,7 +12,6 @@ import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controlle
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
-import { update } from 'lodash';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
@@ -42,11 +40,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
 
   if (!validateLabelLength(label, reply, traceId)) return;
 
-
   if (!validateNameLength(name, reply, traceId)) return;
-
-
-  logCreatingCustomField(traceId, user, request, program_id);
 
   try {
     const existingField = await CustomField.findOne({
@@ -87,12 +81,17 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
     await Promise.all([
       ...(work_location_ids?.map((work_location_id: string) => createCustomFieldLocations(custom_field_id, work_location_id, program_id)) || []),
       ...(hierarchy_ids?.map((hierarchy_id: string) => saveCustomFieldsHierarchies(custom_field_id, hierarchy_id, program_id)) || []),
-      ...(Array.isArray(master_data_id)
-        ? master_data_id.map((m_id: string) => saveCustomFieldsMasterData(custom_field_id, m_id))
-        : master_data_id
-          ? [saveCustomFieldsMasterData(custom_field_id, master_data_id)]
-          : []
-      )]);
+    ]);
+
+    // Handle master_data_id separately to avoid nested ternary
+    if (master_data_id) {
+      if (Array.isArray(master_data_id)) {
+        await Promise.all(master_data_id.map((m_id: string) =>
+          saveCustomFieldsMasterData(custom_field_id, m_id)));
+      } else {
+        await saveCustomFieldsMasterData(custom_field_id, master_data_id);
+      }
+    }
 
     logSuccess(traceId, user, request, program_id);
     return reply.status(201).send({
@@ -346,7 +345,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           ...customField.toJSON(),
           meta_data: {
             ...customField.meta_data,
-            ...(picklistData ? picklistData : {}),
+            ...picklistData || {},
           },
         };
       })
@@ -480,7 +479,7 @@ export const getCustomFieldById = async (request: FastifyRequest, reply: Fastify
           master_data: masterData,
           meta_data: {
             ...customfiedData.meta_data,
-            ...(picklistData ? picklistData : {}),
+            ...picklistData || {},
           },
         },
         message: 'Custom Fields Type Get Successfully',
@@ -647,19 +646,19 @@ const processWorkLocationIds = async (work_location_ids: string[] | undefined, c
 const processMasterDataIds = async (master_data_ids: string[] | undefined, customFieldId: string) => {
   if (!master_data_ids || master_data_ids.length === 0) return;
 
-  const existingMasterDataRecords = await customFieldMasterData.findAll({ where: { custom_field_id: customFieldId } });
+  const existingMasterDataRecords = await CustomFieldMaterData.findAll({ where: { custom_field_id: customFieldId } });
   const existingMasterDataIds = existingMasterDataRecords.map((record) => record.master_data_id);
 
   await Promise.all(master_data_ids.map(async (master_data_id) => {
     const existingRecord = existingMasterDataRecords.find((record) => record.master_data_id === master_data_id);
     if (!existingRecord) {
-      await customFieldMasterData.create({ custom_field_id: customFieldId, master_data_id });
+      await CustomFieldMaterData.create({ custom_field_id: customFieldId, master_data_id });
     }
   }));
 
   const masterDataIdsToDelete = existingMasterDataIds.filter(existingId => !master_data_ids.includes(existingId));
   if (masterDataIdsToDelete.length > 0) {
-    await customFieldMasterData.destroy({ where: { custom_field_id: customFieldId, master_data_id: masterDataIdsToDelete } });
+    await CustomFieldMaterData.destroy({ where: { custom_field_id: customFieldId, master_data_id: masterDataIdsToDelete } });
   }
 };
 
@@ -955,7 +954,7 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
           ...customField.toJSON(),
           meta_data: {
             ...customField.meta_data,
-            ...(picklistData ? picklistData : {}),
+            ...picklistData || {},
           },
         };
       })
