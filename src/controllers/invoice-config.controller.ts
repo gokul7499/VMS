@@ -152,7 +152,7 @@ export async function updateInvoiceConfigById(
             ...request.body,
             program_id,
             parent_id: invoiceConfig.id,
-            grand_parent_id: invoiceConfig.parent_id || invoiceConfig.id
+            root_parent_id: invoiceConfig.parent_id || invoiceConfig.id
         };
 
         const newInvoiceConfig = await InvoiceConfigModel.create({
@@ -248,15 +248,22 @@ export async function getAllInvoiceConfig(
     }
 
     try {
-        const { rows: invoiceConfig, count: total_records } = await InvoiceConfigModel.findAndCountAll({
-            where: whereClause,
-            attributes: ['uuid', 'name', 'slug', 'hierarchy_ids', 'is_active', 'is_enabled', 'updated_on'],
+        const filteredRecords = await InvoiceConfigModel.findAll({
+            where: {
+                ...whereClause,
+                id: {
+                    [Op.notIn]: sequelize.literal(`
+                        (SELECT DISTINCT parent_id FROM invoice_config WHERE parent_id IS NOT NULL
+                         UNION
+                         SELECT DISTINCT root_parent_id FROM invoice_config WHERE root_parent_id IS NOT NULL)
+                    `),
+                },
+            },
+            attributes: ['id', 'uuid', 'name', 'slug', 'hierarchy_ids', 'is_active', 'is_enabled', 'updated_on', 'parent_id', 'root_parent_id'],
             order: [["created_on", "DESC"]],
-            limit: Number(limit),
-            offset: Number(offset),
         });
 
-        if (invoiceConfig.length === 0) {
+        if (filteredRecords.length === 0) {
             return reply.status(200).send({
                 status_code: 200,
                 message: "No Invoice config found",
@@ -266,14 +273,16 @@ export async function getAllInvoiceConfig(
             });
         }
 
-        const hierarchyIds = invoiceConfig.flatMap(config => config.hierarchy_ids || []);
+        const total_records = filteredRecords.length;
+        const paginatedRecords = filteredRecords.slice(offset, offset + limit);
+        const hierarchyIds = paginatedRecords.flatMap(config => config.hierarchy_ids || []);
 
         const hierarchies = await HierarchyModel.findAll({
             where: { id: hierarchyIds },
             attributes: ["id", "name"],
         });
 
-        const transformedInvoiceConfig = invoiceConfig.map(config => ({
+        const transformedInvoiceConfig = paginatedRecords.map(config => ({
             ...config.toJSON(),
             hierarchy_details: hierarchies.map(hierarchy => hierarchy.toJSON()),
         }));

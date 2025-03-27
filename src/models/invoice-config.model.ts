@@ -11,6 +11,7 @@ class InvoiceConfigModel extends Model {
     slug: any;
     parent_id: any;
     hierarchy_ids: any;
+    root_parent_id: any;
 
 }
 
@@ -47,7 +48,7 @@ InvoiceConfigModel.init(
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        grand_parent_id: {
+        root_parent_id: {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
