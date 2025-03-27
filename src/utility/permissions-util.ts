@@ -177,7 +177,20 @@ class AWSElastiCacheConnectionManager {
         error: error instanceof Error ? error.message : 'Unknown error',
         programId,
         tokenHash: this.hashToken(token)
-      });
+      }
+    );
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error occurred:', error.message);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+      if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout exceeded');
+      }
+    } else {
+      console.error('Unexpected error:', error);
+    }
       throw error;
     }
   }
@@ -206,7 +219,6 @@ class AWSElastiCacheConnectionManager {
           timeout: 15000 // 15 seconds timeout
         }
       );
-   
   }
 
  
