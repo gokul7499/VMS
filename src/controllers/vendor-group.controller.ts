@@ -12,15 +12,15 @@ import { sequelize } from '../config/instance';
 import { vendorGroupFilterQuery } from '../utility/queries';
 
 export const createVendorGroup = async (
-  request: FastifyRequest<{ Params: { program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const program_id = request.params.program_id;
+  const { program_id } = request.params as { program_id: string };
   const vendorGroup = request.body as vendorGroupInterface;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
@@ -146,10 +146,10 @@ export async function getVendorGroups(request: FastifyRequest, reply: FastifyRep
 }
 
 export async function getVendorGroupById(
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { id, program_id } = request.params;
+  const { id, program_id } = request.params as { id: string; program_id: string };
   const traceId = generateCustomUUID();
   try {
     const vendorGroup = await VendorGroup.findOne({
@@ -297,23 +297,20 @@ export const deleteVendorGroup = async (request: FastifyRequest, reply: FastifyR
 }
 
 export async function vendorGroupFilter(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      id?: string;
-      vendor_group_name?: string;
-      is_enabled?: boolean | string;
-      updated_on?: any;
-      page?: string;
-      limit?: string;
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { id, vendor_group_name, is_enabled, updated_on, page, limit } = request.body;
+    const { program_id } = request.params as { program_id: string };
+    const { id, vendor_group_name, is_enabled, updated_on, page, limit } = request.body as {
+      id: string;
+      vendor_group_name: string;
+      is_enabled: string | boolean;
+      updated_on: string[];
+      page: string;
+      limit: string;
+    };
 
     const isEnabledFilter =
       typeof is_enabled === 'string'

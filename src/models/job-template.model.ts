@@ -102,35 +102,6 @@ JobTemplateModel.init(
             type: DataTypes.INTEGER,
             allowNull: true
         },
-        is_automatic_distribution: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-            allowNull: false
-        },
-        is_tiered_distribute_schedule: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: false
-        },
-        is_manual_distribution_job_submit: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: false
-        },
-        is_automatic_distribute_submit: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: false
-        },
-        is_automatic_distribute_final_approval: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-            allowNull: false
-        },
-        immediate_distribution: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
         is_expense_allowed_editable: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
@@ -228,23 +199,23 @@ JobTemplateModel.init(
         },
         is_tiered_distribute_submit: {
             type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: true
-        },
-        is_tiered_distribute_final_approval: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: true
+            defaultValue: false
         },
         is_manual_distribute_submit: {
             type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: true
+            defaultValue: false
         },
-        is_manual_distribute_final_approval: {
+        is_automatic_distribution: {
             type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            allowNull: true
+            defaultValue: false
+        },
+        is_distribute_final_approval: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
+        is_review_configured_or_submit: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
         },
         job_id: {
             type: DataTypes.STRING,

@@ -64,19 +64,24 @@ interface VendorDetails {
 
 
 export async function getProgramVendors(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Querystring: programVendorQueryInterface;
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { vendor_name, user_id, is_enabled, status, updated_on } = request.query;
+        const { program_id } = request.params as { program_id: string };
+        const {
+            vendor_name,
+            user_id,
+            is_enabled,
+            status,
+            updated_on,
+            page: pageStr = "1",
+            limit: limitStr = "10"
+        } = request.query as programVendorQueryInterface & { page?: string; limit?: string };
 
-        const page = parseInt(request.query.page as unknown as string, 10) || 1;
-        const limit = parseInt(request.query.limit as unknown as string, 10) || 10;
+        const page = parseInt(pageStr, 10) || 1;
+        const limit = parseInt(limitStr, 10) || 10;
 
         const filters: any = { program_id, is_deleted: false };
 
@@ -264,7 +269,7 @@ export async function getProgramVendors(
 }
 
 export async function saveProgramVendor(
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const authHeader = request.headers.authorization;
@@ -285,7 +290,7 @@ export async function saveProgramVendor(
     const { id, ...userWithoutId } = user
     console.log("weruyitur", user)
     const traceId = generateCustomUUID();
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     if (!program_id) {
         return reply.status(400).send({
             status_code: 400,
@@ -424,11 +429,11 @@ export async function saveProgramVendor(
 };
 
 export const updateProgramVendor = async (
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string; id: string };
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -526,7 +531,7 @@ export const updateProgramVendor = async (
                 await VendorCustomField.destroy({
                   where: { vendor_id: programVendorData.id }});
               }
-    
+
               if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
                 const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
                   program_id,
@@ -552,7 +557,7 @@ export const updateProgramVendor = async (
 };
 
 export async function deleteProgramVendor(
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -567,7 +572,7 @@ export async function deleteProgramVendor(
     }
     const userId = user?.sub;
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id: string; id: string };
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
             await ProgramVendor.update({ is_deleted: true, is_enabled: false }, {
@@ -721,11 +726,11 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
 }
 
 export async function updateProgramVendorByUserId(
-    request: FastifyRequest<{ Params: { program_id: string, user_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const { program_id, user_id } = request.params;
+    const { program_id, user_id } = request.params as { program_id: string; user_id: string };
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -838,7 +843,7 @@ export const getVendorDocuments = async (
 
         const getVendorRecord = async () => {
             return sequelize.query<{ id: any }>(
-                `SELECT pv.id 
+                `SELECT pv.id
                 FROM user u
                 JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
                 WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
@@ -962,11 +967,11 @@ export const getVendorDocuments = async (
 };
 
 export const getProgramVendorByUserId = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_id?: string, vendor_id?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
-    const { program_id } = request.params;
-    const { user_id, vendor_id } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { user_id, vendor_id } = request.query as { user_id?: string; vendor_id?: string };
     const traceId = generateCustomUUID();
 
     try {
@@ -1004,11 +1009,11 @@ export const getProgramVendorByUserId = async (
 };
 
 export async function updateComplianceDocument(
-    request: FastifyRequest<{ Params: { program_id: string }, Querystring: { user_id?: string, vendor_id?: string, document_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { program_id } = request.params;
-    const { document_id, vendor_id } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { document_id, vendor_id } = request.query as { document_id: string; vendor_id: string };
     const complianceDocumentUpdate = request.body as Partial<VendorComplianceDocumentInterface>;
     const traceId = generateCustomUUID();
 
@@ -1115,7 +1120,7 @@ export async function updateComplianceDocument(
 
 async function getVendorId(user_id: string, program_id: string) {
     const vendorRecord: any = await sequelize.query(
-        `SELECT pv.id 
+        `SELECT pv.id
          FROM user u
          JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
          WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
@@ -1171,11 +1176,11 @@ async function getAuditedBy(user: any, program_id: string) {
 }
 
 export async function getComplianceDocument(
-    request: FastifyRequest<{ Params: { program_id: string; user_id: string }, Querystring: { document_id?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { program_id, user_id } = request.params;
-    const { document_id } = request.query;
+    const { program_id, user_id } = request.params as { program_id: string; user_id: string };
+    const { document_id } = request.query as { document_id?: string };
     const traceId = generateCustomUUID();
 
     try {
@@ -1215,25 +1220,13 @@ export async function getComplianceDocument(
 }
 
 export async function advanceFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            vendor_name?: string;
-            country_id?: string;
-            hierarchy_ids?: string[];
-            labor_category_id?: string[];
-            work_location_id?: string[];
-            job_type?: string[];
-            page?: string;
-            limit?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { vendor_name, country_id, hierarchy_ids, labor_category_id, work_location_id, job_type, page, limit } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        const { vendor_name, country_id, hierarchy_ids, labor_category_id, work_location_id, job_type, page, limit } = request.body as { vendor_name: string, country_id: string, hierarchy_ids: string[], labor_category_id: string[], work_location_id: string[], job_type: string[], page: string, limit: string };
 
         const hasQueryName = !!vendor_name;
         const hasCountry = !!country_id;

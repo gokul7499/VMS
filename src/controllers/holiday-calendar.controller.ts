@@ -6,16 +6,12 @@ import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import HolidayCalendar from "../models/holiday-calendar.model";
 
-export async function getHolidayCalendar(
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { name?: string, year?: number, is_enabled?: string, updated_on?: string, page?: string, limit?: string } }>,
-  reply: FastifyReply
-) {
+export async function getHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.query as { name?: string, year?: string, is_enabled?: string, updated_on?: string, page?: string, limit?: string };
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -72,13 +68,10 @@ export async function getHolidayCalendar(
   }
 }
 
-export async function getHolidayCalendarById(
-  request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
-  reply: FastifyReply
-) {
+export async function getHolidayCalendarById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string, id: string };
 
     const holiday_calendar = await holidayCalendar.findOne({ where: { program_id, id } });
 
@@ -287,10 +280,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
   }
 };
 
-export const updateHolidayCalendar = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
+export const updateHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
   const holiday_calendar = request.body as holidayCalendarData;
@@ -346,10 +336,7 @@ export const updateHolidayCalendar = async (
   }
 };
 
-export async function deleteHolidayCalendar(
-  request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
-  reply: FastifyReply
-) {
+export async function deleteHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID()
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -362,7 +349,7 @@ export async function deleteHolidayCalendar(
   }
   const userId = user?.sub;
   try {
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string, id: string };
     const holidayCalendarData = await holidayCalendar.findOne({ where: { program_id, id } });
     if (holidayCalendarData) {
       await holidayCalendar.update({ is_deleted: true, is_enabled: false, updated_by: userId }, { where: { program_id, id } });
@@ -386,72 +373,64 @@ export async function deleteHolidayCalendar(
   }
 }
 
-export async function getHolidayCalendarAdvancedFilter(
-  request: FastifyRequest<{ 
-    Params: { program_id: string },
-     Body: { name?: string,
-      year?: number,
-      is_enabled?: string,
-      updated_on?: string[], 
-      page?: string, 
-      limit?: string } }>, reply: FastifyReply) {
+export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-      const { program_id } = request.params;
-      const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body;
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
+    const { program_id } = request.params as { program_id: string };
+    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body as { name?: string, year?: string, is_enabled?: string, updated_on?: string, page?: string, limit?: string };
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
 
-      if (!program_id) {
-          return reply.status(400).send({
-              status_code: 400,
-              message: 'Program ID is required.',
-              trace_id: traceId,
-          });
-      }
-
-      const filterConditions: any = { program_id, is_deleted: false };
-      if (name) {
-          filterConditions.name = { [Op.like]: `%${name}%` };
-      }
-      if (year) {
-          filterConditions.year = year;
-      }
-      if (is_enabled !== undefined) {
-        filterConditions.is_enabled = (typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled === true);
-    }
-      if (Array.isArray(updated_on) && updated_on.length === 2) {
-        const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-        filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-    }
-      const offset = (pageNum - 1) * limitNum;
-      const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
-          where: filterConditions,
-          attributes: ['id', 'name', 'year', 'is_enabled', 'updated_on', 'program_id'],
-          offset,
-          limit: limitNum,
-          order: [['updated_on', 'DESC']]
+    if (!program_id) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: 'Program ID is required.',
+        trace_id: traceId,
       });
+    }
 
-      reply.status(200).send({
-          status_code: 200,
-          message: holiday_calendars.length > 0 ? 'HolidayCalendars fetched successfully.' : 'No holidayCalendars found.',
-          trace_id: traceId,
-          holiday_calendars,
-          pagination: {
-              totalRecords,
-              totalPages: Math.ceil(totalRecords / limitNum),
-              currentPage: pageNum
-          }
-      });
+    const filterConditions: any = { program_id, is_deleted: false };
+    if (name) {
+      filterConditions.name = { [Op.like]: `%${name}%` };
+    }
+    if (year) {
+      filterConditions.year = year;
+    }
+    if (is_enabled !== undefined) {
+      filterConditions.is_enabled = (typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled === true);
+    }
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+    }
+    const offset = (pageNum - 1) * limitNum;
+    const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
+      where: filterConditions,
+      attributes: ['id', 'name', 'year', 'is_enabled', 'updated_on', 'program_id'],
+      offset,
+      limit: limitNum,
+      order: [['updated_on', 'DESC']]
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: holiday_calendars.length > 0 ? 'HolidayCalendars fetched successfully.' : 'No holidayCalendars found.',
+      trace_id: traceId,
+      holiday_calendars,
+      pagination: {
+        totalRecords,
+        totalPages: Math.ceil(totalRecords / limitNum),
+        currentPage: pageNum
+      }
+    });
   } catch (error: any) {
-      console.error(`Error fetching holidayCalendars: ${error.message}`, { traceId, error });
+    console.error(`Error fetching holidayCalendars: ${error.message}`, { traceId, error });
 
-      reply.status(500).send({
-          status_code: 500,
-          message: 'An error occurred while fetching holidayCalendars.',
-          trace_id: traceId,
-          error: error.message,
-      });
+    reply.status(500).send({
+      status_code: 500,
+      message: 'An error occurred while fetching holidayCalendars.',
+      trace_id: traceId,
+      error: error.message,
+    });
   }
 }
