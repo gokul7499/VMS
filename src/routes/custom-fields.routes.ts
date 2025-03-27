@@ -3,7 +3,10 @@ import * as customFieldController from '../controllers/custom-fields.controller'
 import { createCustomFieldsSchema, paramsSchema } from '../interfaces/custom-fields.interface';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
+
 async function customFieldsRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
 
   fastify.post('/program/:program_id/custom-fields', {
     preHandler: validatePermissions(Actions.CREATE, [Permissions.CUSTOM_FIELD]),

@@ -1,271 +1,242 @@
-import axios from "axios";
-import Redis from "ioredis";
-import { getRedisKeyForAuth } from "./get-redis-key";
+import Redis, { RedisOptions } from 'ioredis';
+import axios from 'axios';
 import { databaseConfig } from "../config/db";
 import dotenv from "dotenv";
-import logger from '../plugins/logger-plugin';
 
 dotenv.config();
 const { redis_host, redis_port, redis_auth, redis_replica_host, auth_url } = databaseConfig.config;
 
-// Define types
-interface RedisClients {
-  redis: Redis;
-  getRedisData: Redis;
-}
+class AWSElastiCacheConnectionManager {
+  private static instance: AWSElastiCacheConnectionManager;
+  private primaryClient: Redis | null = null;
+  private replicaClient: Redis | null = null;
 
-interface HealthStatus {
-  primary: boolean;
-  replica: boolean;
-}
+  private constructor() { }
 
-interface FastifyInstance {
-  // Minimal FastifyInstance type - expand as needed
-  [key: string]: any;
-}
-
-// Common Redis configuration to avoid duplication
-const createRedisClient = (host: string): Redis => {
-  return new Redis({
-    host,
-    port: redis_port,
-    password: redis_auth,
-    connectTimeout: 30000,
-    commandTimeout: 5000,
-    retryStrategy: (times: number): number => {
-      const delay = Math.min(times * 50, 2000);
-      logger.info(`Retrying Redis connection in ${delay}ms (attempt ${times})`);
-      return delay;
-    },
-    maxRetriesPerRequest: 3,
-    enableReadyCheck: true,
-    autoResubscribe: true
-  });
-};
-
-// Connection singleton pattern
-let redisConnection: RedisClients | null = null;
-
-async function connectToRedis(): Promise<RedisClients> {
-  // Return existing connection if available
-  if (redisConnection &&
-    redisConnection.redis.status === 'ready' &&
-    redisConnection.getRedisData.status === 'ready') {
-    return redisConnection;
+  public static getInstance(): AWSElastiCacheConnectionManager {
+    if (!AWSElastiCacheConnectionManager.instance) {
+      AWSElastiCacheConnectionManager.instance = new AWSElastiCacheConnectionManager();
+    }
+    return AWSElastiCacheConnectionManager.instance;
   }
 
-  logger.info(`Initializing Redis connections to ${redis_host}:${redis_port} and replica`);
+  private getElastiCacheRedisConfig(host: string, clientType: string): RedisOptions {
+    return {
+      host: host,
+      port:redis_port,
+      password: redis_auth,
+      tls: {},
+      connectTimeout: 20000,
+      commandTimeout: 10000,
+      maxRetriesPerRequest: 2,
+      enableAutoPipelining: true,
+      retryStrategy: (times) => {
+        const delay = Math.min(
+          Math.pow(2, times) * 1000 + Math.random() * 1000,
+          60000
+        );
 
-  const redis = createRedisClient(redis_host);
-  const getRedisData = createRedisClient(redis_replica_host);
+        console.warn(`${clientType} ElastiCache connection retry`, {
+          attempts: times,
+          delay: delay
+        });
 
-  // Set up event handlers
-  const setupEventHandlers = (client: Redis, name: string): void => {
-    client.on("connect", () => {
-      logger.info(`✅ Connected to ${name}`);
-    });
+        if (times > 5) {
+          console.error(`${clientType} ElastiCache connection failed after max attempts`);
+          return null;
+        }
 
-    client.on("ready", () => {
-      logger.info(`✅ ${name} connection ready`);
-    });
+        return delay;
+      }
+    };
+  }
 
-    client.on("error", (err: Error) => {
-      logger.error(`❌ ${name} connection error:`, err.message);
-    });
+  public async initializeConnections(): Promise<void> {
+    try {
+      await this.closeReplicaConnection();
+      this.replicaClient = new Redis(
+        this.getElastiCacheRedisConfig(redis_replica_host, 'Replica')
+      );
+      await this.verifyElastiCacheConnection(this.replicaClient, 'Replica');
+      console.info('Replica ElastiCache connection established successfully');
+    } catch (error) {
+      console.error('ElastiCache replica connection initialization failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        replicaHost: redis_replica_host
+      });
+      throw error;
+    }
+  }
 
-    client.on("close", () => {
-      logger.warn(`⚠️ ${name} connection closed`);
-    });
+  private async createPrimaryClient(): Promise<Redis> {
+    // Close existing primary connection if any
+    await this.closePrimaryConnection();
 
-    client.on("reconnecting", () => {
-      logger.info(`🔄 Reconnecting to ${name}...`);
-    });
-  };
-
-  setupEventHandlers(redis, "Redis primary");
-  setupEventHandlers(getRedisData, "Redis replica");
-
-  try {
-    // Attempt ping with timeout
-    const pingPromise = redis.ping();
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Redis ping timeout")), 5000)
+    // Create primary client
+    const primaryClient = new Redis(
+      this.getElastiCacheRedisConfig(redis_host, 'Primary')
     );
 
-    const pingResponse = await Promise.race([pingPromise, timeoutPromise]);
-    logger.info(`Redis Ping Response: ${pingResponse}`);
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`❌ Redis Ping Failed: ${errorMessage}`);
+    // Verify primary connection
+    await this.verifyElastiCacheConnection(primaryClient, 'Primary');
+    
+    return primaryClient;
   }
 
-  redisConnection = { redis, getRedisData };
-  return redisConnection;
-}
+  private async verifyElastiCacheConnection(client: Redis, clientType: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const connectionTimeout = setTimeout(() => {
+        console.error(`${clientType} ElastiCache connection verification timeout`, {
+          host: client.options.host,
+          port: client.options.port
+        });
+        reject(new Error(`${clientType} ElastiCache connection verification timed out`));
+      }, 30000);
 
-/**
- * Validates input parameters for policy fetching
- */
-
-function validatePolicyInputs(programId: string, token: string): void {
-  if (!programId || typeof programId !== 'string') {
-    throw new Error("Invalid programId");
+      client.ping()
+        .then(() => {
+          clearTimeout(connectionTimeout);
+          resolve();
+        })
+        .catch((err) => {
+          clearTimeout(connectionTimeout);
+          console.error(`${clientType} ElastiCache ping failed`, {
+            error: err.message,
+            host: client.options.host,
+            port: client.options.port
+          });
+          reject(err instanceof Error ? err : new Error(err?.toString() || `${clientType} ElastiCache ping failed`));
+        });
+    });
   }
 
-  if (!token || typeof token !== 'string') {
-    throw new Error("Invalid token");
+  public async getPolicies(programId: string, token: string): Promise<any> {
+    if (!this.replicaClient) {
+      await this.initializeConnections();
+    }
+
+    if (!programId || !token) {
+      throw new Error("Missing programId or token");
+    }
+
+    try {
+      // Try to get from replica client
+      const cachedPolicies = await this.replicaClient!.get(
+        this.generateRedisKey(programId, token)
+      );
+
+      if (cachedPolicies) {
+        return JSON.parse(cachedPolicies);
+      }
+      const { data } = await this.fetchPoliciesFromAPI(programId, token);
+      console.log('data from auth service:', data);
+      const primaryClient = await this.createPrimaryClient();
+      await primaryClient.set(
+        this.generateRedisKey(programId, token),
+        JSON.stringify(data.response),
+        'EX',
+        3600 // 1 hour expiration
+      );
+
+      await primaryClient.quit();
+
+      return data.response;
+    } catch (error) {
+      this.logDetailedError(error, programId, token);
+      throw error;
+    }
   }
-}
 
-/**
- * Attempts to fetch policies from cache
- * @returns The cached policies or null if not found or error
- */
-
-async function fetchPoliciesFromCache(redisClients: RedisClients, redisKey: string): Promise<any> {
-  const { redis, getRedisData } = redisClients;
-
-  try {
-    // Use replica for read operations when available
-    const client = getRedisData.status === 'ready' ? getRedisData : redis;
-    const cachedPolicies = await client.get(redisKey);
-
-    if (cachedPolicies) {
+  private async closeReplicaConnection(): Promise<void> {
+    if (this.replicaClient) {
       try {
-        const policies = JSON.parse(cachedPolicies);
-        logger.debug("✅ Using cached policies");
-        return policies;
-      } catch (parseError: unknown) {
-        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-        logger.warn("⚠️ Invalid JSON in Redis cache:", errorMessage);
+        await this.replicaClient.quit();
+        this.replicaClient = null;
+      } catch (error) {
+        console.error('Error closing replica connection', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     }
-  } catch (redisError: unknown) {
-    const errorMessage = redisError instanceof Error ? redisError.message : String(redisError);
-    logger.warn("⚠️ Redis read error:", errorMessage);
   }
 
-  return null;
-}
-
-/**
- * Caches policies in Redis
- */
-
-async function cachePolicies(redis: Redis, redisKey: string, policies: any): Promise<void> {
-  try {
-    await redis.set(redisKey, JSON.stringify(policies), "EX", 3600);
-    logger.debug("✅ Policies cached in Redis");
-  } catch (cacheError: unknown) {
-    const errorMessage = cacheError instanceof Error ? cacheError.message : String(cacheError);
-    logger.warn("⚠️ Failed to cache policies:", errorMessage);
+  private async closePrimaryConnection(): Promise<void> {
+    if (this.primaryClient) {
+      try {
+        await this.primaryClient.quit();
+        this.primaryClient = null;
+      } catch (error) {
+        console.error('Error closing primary connection', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
   }
-}
 
-/**
- * Fetches policies from API
- */
-
-async function fetchPoliciesFromAPI(programId: string, token: string): Promise<any> {
-  const apiUrl = `${auth_url}/auth/v1/api/policy/user/tenant/${programId}`;
-  logger.debug(`Fetching policies from API: ${apiUrl}`);
-
-  try {
-    const { data } = await axios.get(apiUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 5000 // Add request timeout
+  private logDetailedError(error: any, programId: string, token: string): void {
+    console.error('Policy fetching error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      programId,
+      tokenHash: this.hashToken(token)
     });
 
-    if (!data?.response) {
-      throw new Error("Invalid API response format");
-    }
-
-    return data.response;
-  } catch (apiError: unknown) {
-    let errorDetail;
-    if (apiError instanceof Error) {
-      errorDetail = apiError.message;
-    } else {
-      errorDetail = String(apiError);
-    }
-
-    const errorMessage = axios.isAxiosError(apiError)
-      ? apiError.response?.data?.message || apiError.message
-      : errorDetail;
-
-    logger.error(`❌ API fetch error: ${errorMessage}`);
-    throw new Error(`Unable to fetch policies: ${errorMessage}`);
-  }
-}
-
-/**
- * Fetches policies from cache or API
- * @param {RedisClients} redisClients - Redis client instances
- * @param {FastifyInstance} fastify - Fastify instance
- * @param {string} programId - Program identifier
- * @param {string} token - Authentication token
- * @returns {Promise<object>} - Policies object
- */
-
-async function getPolicies(redisClients: RedisClients, fastify: FastifyInstance, programId: string, token: string): Promise<any> {
-  validatePolicyInputs(programId, token);
-
-  const redisKey = getRedisKeyForAuth(token, programId, null);
-  logger.debug(`Fetching policies with key: ${redisKey}`);
-
-  // Try cache first
-  const cachedPolicies = await fetchPoliciesFromCache(redisClients, redisKey);
-  if (cachedPolicies) {
-    return cachedPolicies;
-  }
-
-  // Fallback to API
-  const groupPolicies = await fetchPoliciesFromAPI(programId, token);
-
-  // Cache the result
-  await cachePolicies(redisClients.redis, redisKey, groupPolicies);
-
-  return groupPolicies;
-}
-
-/**
- * Initialize permissions utility with lazy-loaded Redis connection
- */
-
-async function permissionsUtilAuth(fastify: FastifyInstance, opts: Record<string, any> = {}) {
-  // Lazy load Redis connection when actually needed
-  return {
-    getPolicies: async (programId: string, token: string): Promise<any> => {
-      const redisClients = await connectToRedis();
-      return getPolicies(redisClients, fastify, programId, token);
-    },
-
-    // Add a healthcheck method
-    healthcheck: async (): Promise<HealthStatus> => {
-      const clients = await connectToRedis();
-      return {
-        primary: clients.redis.status === 'ready',
-        replica: clients.getRedisData.status === 'ready'
-      };
-    },
-
-    // Add method to clear cache
-    clearCache: async (programId: string, token: string): Promise<number> => {
-      const clients = await connectToRedis();
-      const redisKey = getRedisKeyForAuth(token, programId, null);
-      return clients.redis.del(redisKey);
-    },
-
-    // Add method to shutdown connections
-    shutdown: async (): Promise<void> => {
-      if (redisConnection) {
-        await redisConnection.redis.quit();
-        await redisConnection.getRedisData.quit();
-        redisConnection = null;
-        logger.info("Redis connections closed");
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error occurred:', error.message);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
       }
+      if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout exceeded');
+      }
+    } else {
+      console.error('Unexpected error:', error);
     }
-  };
+  }
+
+  private generateRedisKey(programId: string, token: string): string {
+    return `policies:${programId}:${this.hashToken(token)}`;
+  }
+
+  private hashToken(token: string): string {
+    let hash = 0;
+    for (let i = 0; i < token.length; i++) {
+      const char = token.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16);
+  }
+
+  private async fetchPoliciesFromAPI(programId: string, token: string) {
+    console.log('URL:', `${auth_url}/v1/api/policy/user/tenant/${programId}`);
+    return axios.get(
+      `${auth_url}/v1/api/policy/user/tenant/${programId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000 // 15 seconds timeout
+      }
+    );
+  }
+
+  public async shutdown(): Promise<void> {
+    await this.closeReplicaConnection();
+    await this.closePrimaryConnection();
+    console.info('ElastiCache connections closed');
+  }
 }
 
-export default permissionsUtilAuth;
+// Singleton export
+export const elastiCacheConnectionManager = AWSElastiCacheConnectionManager.getInstance();
+
+// Initialization wrapper
+export async function initializeElastiCacheConnections() {
+  try {
+    await elastiCacheConnectionManager.initializeConnections();
+  } catch (error) {
+    console.error('ElastiCache initialization failed', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
+  }
+}

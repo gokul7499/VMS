@@ -272,12 +272,9 @@ export async function getAllWorkLocations(request: FastifyRequest, reply: Fastif
   }
 }
 
-export async function getWorkLocationById(
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function getWorkLocationById(request: FastifyRequest,reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params;
+  const { id, program_id } = request.params as { id: string; program_id: string };
 
   if (!id || !program_id) {
     return reply.status(400).send({
@@ -440,12 +437,12 @@ export async function deleteWorkLocationById(
 }
 
 export async function getAllWorkLocationsCountry(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { isCountry?: string; isStates?: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const { program_id } = request.params;
-  const { isCountry, isStates } = request.query;
+  const { program_id } = request.params as { program_id: string };
+  const { isCountry, isStates } = request.query as { isCountry: string; isStates: string };
 
   try {
     const includeOptions = [];
@@ -540,12 +537,9 @@ type QueryResult = {
   countries: Array<{ id: string; name: string }> | null;
 };
 
-export async function getAllCountry(
-  request: FastifyRequest<{ Params: { program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function getAllCountry(request: FastifyRequest,reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const { program_id } = request.params;
+  const { program_id } = request.params as { program_id: string };
 
   try {
     const result = await sequelize.query<QueryResult>(getWorklocation,
@@ -580,30 +574,24 @@ export async function getAllCountry(
   }
 }
 
-export const getWorkLocationsAdvancedFilter = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      name?: string;
-      country_id?: string;
-      state_name?: string;
-      code?: string;
-      zipcode?: string;
-      is_enabled?: boolean | string;
-      updated_on?: string;
-      page?: number;
-      limit?: number;
-      sort?: string;
-    };
-  }>,
-  reply: FastifyReply
-) => {
+export const getWorkLocationsAdvancedFilter = async (request: FastifyRequest,reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const {
       name, country_id, state_name, code, zipcode, is_enabled, updated_on, page = 1, limit = 10, sort
-    } = request.body;
+    } = request.body as {
+      name: string;
+      country_id: string;
+      state_name: string;
+      code: string;
+      zipcode: string;
+      is_enabled: boolean;
+      updated_on: string[];
+      page: string;
+      limit: string;
+      sort: string;
+    };
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -635,13 +623,13 @@ export const getWorkLocationsAdvancedFilter = async (
       filters.zipcode = zipcode;
     }
     if (is_enabled !== undefined) {
-      filters.is_enabled = is_enabled === 'true' || is_enabled === true;
+      filters.is_enabled = is_enabled;
     }
     if (Array.isArray(updated_on) && updated_on.length === 2) {
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
   }
-  
+
     const workLocations = await WorkLocationModel.findAll({
       where: filters,
       limit: limitNum,

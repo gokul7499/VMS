@@ -80,6 +80,7 @@ export async function createContactUs(request: FastifyRequest, reply: FastifyRep
         return reply.status(200).send({
             status: "success",
             message: "created successfully.",
+            traceId:traceId,
             data: { your_detail, support_email, subject, URL, message },
         });
     } catch (error) {

@@ -377,7 +377,7 @@ export async function getRateTypeById(request: FastifyRequest, reply: FastifyRep
   }
 }
 
-export const updateRateTypeById = async (request: FastifyRequest<{ Params: { program_id: string, id: string }, Body: Partial<CreateRateTypeData> }>, reply: FastifyReply) => {
+export const updateRateTypeById = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id, id } = request.params as { program_id: string; id: string };
   const updates = request.body as CreateRateTypeData;
   const traceId = generateCustomUUID();
@@ -556,10 +556,11 @@ export async function getShiftAndRateType(request: FastifyRequest, reply: Fastif
   }
 }
 
-export async function rateTypeFilter(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
+export async function rateTypeFilter(request: FastifyRequest,reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { id, rate_type_category, name, abbreviation, is_enabled, is_base_rate, updated_on, page, limit } = request.body as {
       id?: string;
       rate_type_category?: string;
       name?: string;
@@ -570,13 +571,6 @@ export async function rateTypeFilter(
       page?: string;
       limit?: string;
     };
-  }>,
-  reply: FastifyReply
-) {
-  const traceId = generateCustomUUID();
-  try {
-    const { program_id } = request.params;
-    const { id, rate_type_category, name, abbreviation, is_enabled, is_base_rate, updated_on, page, limit } = request.body;
 
     const isEnabledFilter =
       typeof is_enabled === 'string'

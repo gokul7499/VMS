@@ -369,25 +369,14 @@ export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, r
 
 
 export const filterTimesheetExpenseRuleGroups = async (
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            rule_category?: string;
-            rule_group_name?: string;
-            rule_type?: string;
-            is_enabled?: boolean | string;
-            order?: string;
-            page?: number;
-            limit?: number;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
 
     try {
-        const { program_id } = request.params;
-        let { rule_category, rule_group_name, rule_type, is_enabled, order = 'created_on DESC', page = 1, limit = 10 } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        let { rule_category, rule_group_name, rule_type, is_enabled, order = 'created_on DESC', page = 1, limit = 10 } = request.body as { rule_category: string, rule_group_name: string, rule_type: string, is_enabled: string, order: string, page: string | number, limit: string | number };
 
         if (typeof is_enabled === "boolean") {
             is_enabled = is_enabled ? "1" : "0";
@@ -426,7 +415,3 @@ export const filterTimesheetExpenseRuleGroups = async (
         });
     }
 };
-
-
-
-

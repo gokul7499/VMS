@@ -25,7 +25,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             first_name: string;
             page?: string;
             limit?: string;
-            is_billable?:string;
+            is_billable?: string;
         };
 
         const page = parseInt(query.page ?? '1');
@@ -54,13 +54,13 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,
             first_name: query.first_name ? `%${query.first_name}%` : null,
-            is_billable: query.is_billable !== undefined ? query.is_billable === 'true' : null, 
+            is_billable: query.is_billable !== undefined ? query.is_billable === 'true' : null,
             limit,
             offset
         };
 
 
-       
+
         // if (query.is_billable !== undefined) {
         //     filters.is_billable = query.is_billable === 'true';
         // }
@@ -99,35 +99,32 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
                 foundational_data_type_name: foundationalDataTypeName,
                 message: "foundational data not found",
                 foundational_data: [],
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
 
         reply.status(200).send({
             status_code: 200,
-            message:"Foundational data get successfully",
+            message: "Foundational data get successfully",
             foundational_data_type_name: foundationalDataTypeName,
             total_records: totalRecords,
             foundational_data: foundationalDataArray,
-            trace_id:traceId,
+            trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
-            trace_id:traceId,
+            trace_id: traceId,
             error: error.message
         });
     }
 }
 
-export async function getFoundationalDataById(
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
-    reply: FastifyReply
-) {
+export async function getFoundationalDataById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id: string, id: string };
         const foundational_data = await foundationalData.findOne(
             {
                 where: { program_id, id },
@@ -143,20 +140,20 @@ export async function getFoundationalDataById(
                 status_code: 200,
                 message: 'FoundationalData fetch Successfully.',
                 foundational_data: foundational_data,
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'FoundationalData Not Found.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching FoundationalData.',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 }
@@ -179,7 +176,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     }
 
     const userId = user?.sub;
-    console.log("uuu",userId)
+    console.log("uuu", userId)
 
     logger(
         {
@@ -216,7 +213,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
             created_by: userId,
-           updated_by: userId,
+            updated_by: userId,
             created_on: Date.now(),
             updated_on: Date.now(),
         });
@@ -297,7 +294,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId=user?.sub
+    const userId = user?.sub
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
             where: {
@@ -320,7 +317,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
             {
                 ...request.body as FoundationalDataInterface,
                 updated_on: Date.now(),
-                updated_by:userId,
+                updated_by: userId,
             },
             { where: { program_id, id } }
         );
@@ -364,24 +361,24 @@ export async function deleteFoundationalData(request: FastifyRequest, reply: Fas
         const { program_id, id } = request.params as { program_id: string, id: string };
         const foundational_data = await foundationalData.findOne({ where: { program_id, id } });
         if (foundational_data) {
-            await foundationalData.update({ is_deleted: true, is_enabled: false ,updated_by:userId}, { where: { program_id, id } });
+            await foundationalData.update({ is_deleted: true, is_enabled: false, updated_by: userId }, { where: { program_id, id } });
             reply.status(204).send({
                 status_code: 204,
                 message: 'FoundationalData deleted successfully.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         } else {
             reply.status(200).send({
                 status_code: 200,
                 message: 'FoundationalData not found.',
-                trace_id:traceId,
+                trace_id: traceId,
             });
         }
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while deleting FoundationalData.',
-            trace_id:traceId,
+            trace_id: traceId,
         });
     }
 }
