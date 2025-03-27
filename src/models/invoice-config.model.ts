@@ -42,15 +42,17 @@ InvoiceConfigModel.init(
         },
         slug: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
         },
         parent_id: {
             type: DataTypes.INTEGER,
-            allowNull: true,
+            allowNull: false,
+            defaultValue: 0,
         },
         root_parent_id: {
             type: DataTypes.INTEGER,
-            allowNull: true,
+            allowNull: false,
+            defaultValue: 0,
         },
         is_active: {
             type: DataTypes.BOOLEAN,
