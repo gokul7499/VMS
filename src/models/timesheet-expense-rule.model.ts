@@ -38,7 +38,7 @@ TimesheetExpenseRuleModel.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
-    is_monetary_break: {
+    is_mandatory_break: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
