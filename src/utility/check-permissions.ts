@@ -1,8 +1,4 @@
-import fastify from "fastify";
-// import permissionsUtilAuth from "./permissions-util";
-
-import {  elastiCacheConnectionManager,
-  initializeElastiCacheConnections   } from './permissions-util';
+import { elastiCacheConnectionManager, initializeElastiCacheConnections } from './permissions-util';
 import logger from '../plugins/logger-plugin';
 
 interface RequiredPermissions {
@@ -26,9 +22,6 @@ export async function checkPermission(params: RequiredPermissions): Promise<void
     const { token, programId, requiredPermissions, action } = params;
     validateInputs(token, programId);
     const tokenValue = token.split(' ')[1];
-
-    // const { getPolicies } = await permissionsUtilAuth(fastify, {});
-    // const policies = await getPolicies(programId, tokenValue);
 
     await initializeElastiCacheConnections();
 
