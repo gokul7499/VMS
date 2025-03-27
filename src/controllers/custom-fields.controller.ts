@@ -292,6 +292,16 @@ export async function getAllCustomFields(
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
 
+  let hierarchyFilter: any = {};
+  if (request.query.hierarchy_ids) {
+    const hierarchyIds = request.query.hierarchy_ids.split(",").map((id: string) => id.trim());
+    hierarchyFilter = {
+      id: {
+        [Op.in]: hierarchyIds,
+      },
+    };
+  }
+  
   try {
     const result = await CustomField.findAndCountAll({
       where: whereClause,

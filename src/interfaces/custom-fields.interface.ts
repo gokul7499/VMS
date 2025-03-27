@@ -44,6 +44,7 @@ export interface GetQueryInterface {
   updated_on?: string;
   slug?: string;
   program_id?: string;
+  hierarchy_ids?:any
 }
 
 export const paramsSchema = {
