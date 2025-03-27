@@ -8,11 +8,11 @@ import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 
-export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { program_id: string, page?: number, limit?: number }; Querystring: { performed_by?: string, event_slug: string, date_range?: string, module_name?: string, event_name?: string, page?: number, limit?: number } }>, reply: FastifyReply) => {
+export const getAllSupportingTexts = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, page = 1, limit = 10 } = request.params;
-        const { performed_by, event_slug, date_range, event_name, module_name } = request.query;
+        const { program_id, page = 1, limit = 10 } = request.params as { program_id: string; page: number; limit: number };
+        const { performed_by, event_slug, date_range, event_name, module_name } = request.query as { performed_by: string; event_slug: string; date_range: string; event_name: string; module_name: string };
 
         const whereConditions: any = { program_id, is_deleted: false };
 
@@ -109,10 +109,10 @@ export const getAllSupportingTexts = async (request: FastifyRequest<{ Params: { 
 };
 
 
-export const getSupportingText = async (request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) => {
+export const getSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string; program_id: string };
         const supportingText = await supportingTextModel.findOne({
             where: { id, program_id, is_deleted: false },
             include: [
@@ -451,22 +451,12 @@ export const deleteSupportingText = async (request: FastifyRequest, reply: Fasti
 };
 
 export const getAllSupportingTextsAdvancedFilter = async (
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            performed_by?: string;
-            event_slug?: string;
-            updated_on?: string[];
-            module_id?: string;
-            event_id?: string;
-            pagination?: { page?: number; limit?: number };
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
+        const { program_id } = request.params as { program_id: string };
         const {
             performed_by,
             event_slug,
@@ -474,7 +464,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
             event_id,
             module_id,
             pagination = { page: 1, limit: 10 },
-        } = request.body;
+        } = request.body as { performed_by: string; event_slug: string; updated_on: string[]; event_id: string; module_id: string; pagination: { page: number; limit: number } };
         const { page = 1, limit = 10 } = pagination;
 
         const whereConditions: any = { program_id, is_deleted: false };
@@ -486,7 +476,7 @@ export const getAllSupportingTextsAdvancedFilter = async (
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             whereConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
-        
+
         const includeConditions: any[] = [
             {
                 model: Event,

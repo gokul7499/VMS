@@ -144,15 +144,15 @@ export async function createVendorComplianceDocument(
 }
 
 export async function vendorComplianceDocumentById(
-  request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { program_id, id } = request.params;
+  const { program_id, id } = request.params as { program_id: string; id: string };
   const traceId = generateCustomUUID();
 
   try {
 
-    const searchFields = { program_id, id };
+    const searchFields = { program_id, id } ;
     const vendorCompDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
       request,
       searchFields
@@ -202,10 +202,10 @@ export async function vendorComplianceDocumentById(
 }
 
 export async function updateVendorComplianceDocumentById(
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { id, program_id } = request.params;
+  const { id, program_id } = request.params as { id: string; program_id: string };
   const vendorDocuments = request.body as Partial<VendorComplianceDocumentInterface>;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
@@ -264,7 +264,7 @@ export async function updateVendorComplianceDocumentById(
 }
 
 export async function deleteVendorComplianceDocumentById(
-  request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
@@ -279,7 +279,7 @@ export async function deleteVendorComplianceDocumentById(
   }
   const userId = user?.sub
   try {
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string; id: string };
 
     const deletedCount = await vendorComplianceDocumentService.deleteById({ program_id, id, updated_by: userId, });
 
@@ -307,21 +307,11 @@ export async function deleteVendorComplianceDocumentById(
 }
 
 export async function getAllVendorCompDocummentByProgramId(
-  request: FastifyRequest<{
-    Params: { program_id: string },
-    Querystring: {
-      page?: number;
-      limit?: number;
-      name?: string;
-      is_enabled?: string;
-      document_details?: string;
-      updated_on?: number;
-    }
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { program_id } = request.params;
-  const { page = 1, limit = 10, name, is_enabled, document_details, updated_on } = request.query;
+  const { program_id } = request.params as { program_id: string };
+  const { page = 1, limit = 10, name, is_enabled, document_details, updated_on } = request.query as { page: string; limit: string; name: string; is_enabled: string; document_details: string; updated_on: string };
 
   const query = {
     program_id,
@@ -360,25 +350,14 @@ export async function getAllVendorCompDocummentByProgramId(
 }
 
 export async function vendorComplianceDocumentFilter(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      id?: string;
-      name?: string;
-      act?: string;
-      document_number?: string;
-      is_enabled?: boolean | string;
-      updated_on?: string[];
-      page?: string;
-      limit?: string;
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body;
+    const { program_id } = request.params as { program_id: string }
+    ;
+    const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; act: string; document_number: string; is_enabled: string; updated_on: string; page: string; limit: string };
 
     const isEnabledFilter =
       typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;

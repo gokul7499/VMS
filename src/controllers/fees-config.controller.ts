@@ -57,12 +57,12 @@ export async function createFeesConfiguration(request: FastifyRequest, reply: Fa
 }
 
 export async function getFeesConfigurationById(
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { id, program_id } = request.params;
+    const { id, program_id } = request.params as { id: string, program_id: string };
     const fees = await feesConfiguration.findOne({
       where: {
         id,
@@ -226,7 +226,8 @@ export async function deleteFeesConfigurationById(request: FastifyRequest, reply
   }
 }
 
-export async function getAllFeesConfigByProgramId(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
+export async function getAllFeesConfigByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
   const searchFields = ['program_id', 'is_enabled', 'title', 'source_model', 'labor_category', 'hierarchy_levels', 'vendors', 'updated_on'];
   const responseFields = ['id', 'title', 'labor_category', 'hierarchy_levels', 'vendors', 'source_model', 'is_enabled',
     'is_deleted', 'program_id', 'created_on', 'updated_on', 'ref_id',];
@@ -234,11 +235,11 @@ export async function getAllFeesConfigByProgramId(request: FastifyRequest<{ Para
 }
 
 export async function advancedSearchFeesConfiguration(
-  request: FastifyRequest<{ Params: { program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   try {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const result = await baseService.advancedFilter(request, program_id, []);
 
     if (result.count > 0) {
@@ -265,16 +266,13 @@ export async function advancedSearchFeesConfiguration(
 }
 
 export async function getFeesConfig(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { hierarchy_levels?: string; vendors?: string; labor_category?: string; source_model?: string; is_enabled?: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { hierarchy_levels, vendors, labor_category, source_model, is_enabled } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { hierarchy_levels, vendors, labor_category, source_model, is_enabled } = request.query as { hierarchy_levels: string, vendors: string, labor_category: string, source_model: string, is_enabled: string };
     const hierarchyLevelsArray = Array.isArray(hierarchy_levels) ? hierarchy_levels : (hierarchy_levels ?? '').split(',');
 
     const whereConditions: any = {

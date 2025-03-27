@@ -11,25 +11,12 @@ import shiftTypeConfiguration from "../models/shift-type-configuration.model";
 import { decodeToken } from "../middlewares/verifyToken";
 
 export const getAllshiftConfiguration = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-      name?: string;
-      is_enabled?: boolean | string;
-      updated_on?: string;
-      hierarchy_names?: string;
-      shift_type_name?: string;
-      page?: string;
-      limit?: string;
-      start_date?: number;
-      end_date?: number
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id } = request.params;
-  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query;
+  const { program_id } = request.params as { program_id: string };
+  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query as { name?: string; is_enabled?:boolean | string; start_date?: string; end_date?: string; hierarchy_names?: string; shift_type_name?: string; page?: string; limit?: string };
 
   if (!program_id) {
     reply.status(400).send({
@@ -199,10 +186,10 @@ export const getAllshiftConfiguration = async (
 
 
 
-export async function getShiftConfigurationById(request: FastifyRequest<{ Params: { id: string; program_id: string } }>, reply: FastifyReply) {
+export async function getShiftConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { id, program_id } = request.params;
+    const { id, program_id } = request.params as { id: string; program_id: string };
     const item = await ShiftConfiguration.findOne({
       where: {
         id,
@@ -510,23 +497,12 @@ export async function deleteShiftConfiguration(request: FastifyRequest, reply: F
 }
 
 export const getFilteredShiftConfiguration = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      name?: string;
-      is_enabled?: boolean | string;
-      updated_on?:string[],
-      hierarchy_names?: string;
-      shift_type_name?: string;
-      page?: number;
-      limit?: number;
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id } = request.params;
-  const { name, is_enabled, updated_on, hierarchy_names, shift_type_name, page = 1, limit = 10 } = request.body;
+  const { program_id } = request.params as { program_id: string };
+  const { name, is_enabled, updated_on, hierarchy_names, shift_type_name, page = 1, limit = 10 } = request.body as { name?: string; is_enabled?: boolean | string; updated_on?: string[]; hierarchy_names?: string; shift_type_name?: string; page?: number; limit?: number };
 
   if (!program_id) {
     return reply.status(400).send({

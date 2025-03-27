@@ -115,7 +115,11 @@ export async function getCountyById(
             });
         }
     } catch (error) {
-        reply.status(500).send({ status_code: 500, message: "An error occurred while fetching county", error });
+        reply.status(500).send({ status_code: 500, 
+            message: "An error occurred while fetching county", 
+            traceId:traceId,
+            error
+         });
     }
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
@@ -267,10 +271,15 @@ export async function getAllCounty(request: FastifyRequest<{ Querystring: { name
                 trace_id: traceId,
             });
         } else {
-            reply.status(200).send({ status_code: 200, message: "No counties found for the given state_id(s)", counties: [], trace_id: generateCustomUUID(), });
+            reply.status(200).send({ status_code: 200,
+                 message: "No counties found for the given state_id(s)", 
+                 counties: [], trace_id: generateCustomUUID(), });
         }
     } catch (error) {
         console.error(error);
-        reply.status(500).send({ status_code: 500, message: "Internal Server Error" });
+        reply.status(500).send({ status_code: 500,
+             message: "Internal Server Error" ,
+             traceId:traceId,
+            });
     }
 }

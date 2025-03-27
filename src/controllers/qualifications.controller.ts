@@ -349,7 +349,7 @@ export const deleteQualification = async (request: FastifyRequest, reply: Fastif
 }
 
 export async function getAllQualifications(
-    request: FastifyRequest<{ Params: QualificationData, Querystring: QualificationData }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
