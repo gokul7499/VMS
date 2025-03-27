@@ -249,7 +249,7 @@ export const createCustomField = async (data: any, user: any) => {
 export async function getAllCustomFields(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const program_id = request.params as { program_id: string };
-  const { is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = 1, limit = 10 } = request.query as GetQueryInterface;
+  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = 1, limit = 10 } = request.query as GetQueryInterface;
 
   const whereClause: any = {
     program_id,
@@ -285,15 +285,15 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   }
 
   let hierarchyFilter: any = {};
-  if (request.query.hierarchy_ids) {
-    const hierarchyIds = request.query.hierarchy_ids.split(",").map((id: string) => id.trim());
+  if (hierarchy_ids) {
+    const hierarchyIds = hierarchy_ids.split(",").map((id: string) => id.trim());
     hierarchyFilter = {
       id: {
         [Op.in]: hierarchyIds,
       },
     };
   }
-  
+
   try {
     const result = await CustomField.findAndCountAll({
       where: whereClause,
