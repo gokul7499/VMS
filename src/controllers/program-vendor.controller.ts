@@ -10,7 +10,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import { Op, QueryTypes } from "sequelize";
-import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, getProgramVendorDetails, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
+import { complianceDocumentGetByUserAndDocumentId, complianceDocumentGetByUserId, complianceDocumentGetByVendorAndDocumentId, complianceDocumentGetByVendorId, complianceGroupQueryWithUserId, complianceGroupQueryWithVendorId, getComplianceDocuments, getProgramVendorDetails, getVendorMarkups, programVendorAdvancedFilter, programVendorQuery, vendorDataQuery, vendorFilterQueryBuilder } from "../utility/queries";
 import { VendorComplianceDocumentInterface } from "../interfaces/vendor-compliance-document.interface";
 import VendorComplianceDocumentModel from "../models/vendor-compliance-document.model";
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
@@ -528,19 +528,20 @@ export const updateProgramVendor = async (
         }
 
         if (programVendorData.custom_fields && programVendorData.custom_fields.length > 0) {
-                await VendorCustomField.destroy({
-                  where: { vendor_id: programVendorData.id }});
-              }
+            await VendorCustomField.destroy({
+                where: { vendor_id: programVendorData.id }
+            });
+        }
 
-              if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
-                const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
-                  program_id,
-                  custom_field_id: field.id,
-                  value: field.value,
-                  vendor_id: programVendorData.id,
-                }));
-                await VendorCustomField.bulkCreate(customFields);
-              }
+        if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
+            const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
+                program_id,
+                custom_field_id: field.id,
+                value: field.value,
+                vendor_id: programVendorData.id,
+            }));
+            await VendorCustomField.bulkCreate(customFields);
+        }
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
@@ -1294,5 +1295,87 @@ export async function advanceFilter(
         }
     } catch (error) {
         return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
+    }
+}
+
+export async function getVendorMarkup(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id, id } = request.params as { program_id: string; id: string };
+        const { rate_model, hierarchy = [], labor_category = [], job_template = [], worker_type = [], worker_classification = [], rate_type = [] } = request.body as {
+            rate_model?: string;
+            hierarchy?: string[];
+            labor_category?: string[];
+            job_template?: string[];
+            worker_type?: string[];
+            worker_classification?: string[];
+            rate_type?: string[];
+        };
+
+        const query = getVendorMarkups({
+            rate_model,
+            hierarchy,
+            labor_category,
+            job_template,
+            worker_type,
+            worker_classification,
+            rate_type,
+        });
+
+        const replacements: Record<string, any> = {
+            program_id,
+            program_vendor_id: id,
+            ...(rate_model ? { rate_model } : {})
+        };
+
+        hierarchy.forEach((value, index) => {
+            replacements[`hierarchy${index}`] = value;
+        });
+        labor_category.forEach((value, index) => {
+            replacements[`labor_category${index}`] = value;
+        });
+        job_template.forEach((value, index) => {
+            replacements[`job_template${index}`] = value;
+        });
+        worker_type.forEach((value, index) => {
+            replacements[`worker_type${index}`] = value;
+        });
+        worker_classification.forEach((value, index) => {
+            replacements[`worker_classification${index}`] = value;
+        });
+        rate_type.forEach((value, index) => {
+            replacements[`rate_type${index}`] = value;
+        });
+
+        const data = await sequelize.query(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        if (data.length > 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Vendor markups fetched successfully.',
+                trace_id: traceId,
+                data: data,
+            });
+        } else {
+            return reply.status(200).send({
+                status_code: 200,
+                message: "No records found.",
+                trace_id: traceId,
+                data: data
+            });
+        }
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "Error while fetching vendor markup.",
+            trace_id: traceId,
+            error: error.message
+        });
     }
 }
