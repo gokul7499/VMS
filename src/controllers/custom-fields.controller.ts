@@ -248,8 +248,8 @@ export const createCustomField = async (data: any, user: any) => {
 
 export async function getAllCustomFields(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const program_id = request.params as { program_id: string };
-  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = 1, limit = 10 } = request.query as GetQueryInterface;
+  const {program_id} = request.params as { program_id: string };
+  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
   const whereClause: any = {
     program_id,
@@ -283,17 +283,9 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     const modifiedOnPattern = `${updated_on}`;
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
-
-  let hierarchyFilter: any = {};
-  if (hierarchy_ids) {
-    const hierarchyIds = hierarchy_ids.split(",").map((id: string) => id.trim());
-    hierarchyFilter = {
-      id: {
-        [Op.in]: hierarchyIds,
-      },
-    };
-  }
-
+  const pageNumber = Number(page) || 1;
+  const limitNumber = Number(limit) || 10;
+  const offset = (pageNumber - 1) * limitNumber;
   try {
     const result = await CustomField.findAndCountAll({
       where: whereClause,
@@ -319,9 +311,23 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
         "can_view"
       ],
       order: [["updated_on", "DESC"]],
-      offset: (page - 1) * limit,
-      limit: limit,
+      offset: offset,
+      limit: limitNumber,
     });
+
+    let filteredCustomFields = result.rows;
+    if (hierarchy_ids) {
+      const hierarchyIds = hierarchy_ids.split(",").map((id: string) => id.trim());
+      const hierarchyMappings = await customFieldsHierarchie.findAll({
+        where: {
+          hierarchy_id: { [Op.in]: hierarchyIds },
+          custom_field_id: { [Op.in]: filteredCustomFields.map(field => field.id) },
+        },
+        attributes: ["custom_field_id","hierarchy_id"],
+      });
+      const validCustomFieldIds = hierarchyMappings.map(mapping => mapping.custom_field_id);
+      filteredCustomFields = filteredCustomFields.filter(field => validCustomFieldIds.includes(field.id));
+    }
 
     const customFieldsWithPicklistData = await Promise.all(
       result.rows.map(async (customField) => {
@@ -365,16 +371,16 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       status_code: 200,
       custom_fields: customFieldsWithPicklistData,
       total_records: result.count,
-      page: page,
-      limit: limit,
+      page: pageNumber,
+      limit: limitNumber,
       message: 'Custom Fields Get Successfully',
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error:any) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields',
-      error: error,
+      error: error.message,
       trace_id: traceId,
     });
   }
