@@ -922,7 +922,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
     const whereCondition: any = {};
     if (slug) whereCondition.slug = slug;
     if (defined_by) whereCondition.defined_by = defined_by;
-    if (name) whereCondition.name = name;
+     if (name) whereCondition.name = { $like: `%${name}%` };    
     if (program_id) whereCondition.program_id = program_id;
     if (picklist_id) whereCondition.id = picklist_id;
     if (is_deleted !== undefined) whereCondition.is_deleted = is_deleted;
@@ -977,6 +977,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
+        slug: picklist.slug,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
         picklist_value_count: picklist.picklistItems.length,
@@ -991,6 +992,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         program_id: picklist.program_id,
         name: picklist.name,
         picklist_id:picklist.picklist_id,
+        slug: picklist.slug,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
