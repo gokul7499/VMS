@@ -38,11 +38,11 @@ InvoiceConfigModel.init(
         },
         name: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
         },
         slug: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         parent_id: {
             type: DataTypes.INTEGER,

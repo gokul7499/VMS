@@ -28,7 +28,22 @@ export async function createInvoiceConfig(
         const userId = user?.sub;
 
         const { program_id } = request.params as any;
-        const invoiceConfig = request.body as InvoiceConfigInterface & { hierarchy_ids: string[] };
+        const invoiceConfig = request.body as InvoiceConfigInterface;
+
+        const existingNameConfig = await InvoiceConfigModel.findOne({
+            where: {
+                program_id,
+                name: invoiceConfig.name,
+            },
+        });
+
+        if (existingNameConfig) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: `Invoice Configuration already exists with the name: ${invoiceConfig.name}`,
+                trace_id: traceId,
+            });
+        }
 
         const existingConfig = await sequelize.query(getInvoiceConfigByHierarchyId, {
             replacements: {
