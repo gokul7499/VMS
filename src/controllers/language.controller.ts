@@ -107,7 +107,8 @@ export async function createLanguage(
   } catch (error) {
     reply.status(500).send({
       status_code:500,
-      message: 'An error occurred while creating',
+      message: 'An error occurred while creating', 
+      trace_id: traceId,
       error
     });
   }

@@ -10,7 +10,7 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
   }, ProgramConfigController.getConfigurationById);
 
   fastify.get("/program/:program_id/configurations", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.getConfigByProgramIdAndTitles);
 
   fastify.post("/program-config", ProgramConfigController.createConfiguration);
@@ -26,7 +26,7 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
   }, ProgramConfigController.getProgramConfigurations);
 
   fastify.get("/program/:program_id/program-configuration", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.getTransformedConfig);
 }
 

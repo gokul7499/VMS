@@ -573,15 +573,12 @@ export async function deleteReasoncode(
 }
 
 export const getReasonCodeBySlug = async (
-    request: FastifyRequest<{
-        Params: { program_id: string },
-        Querystring: { event_slug?: string, module_slug?: string }
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
 
-    const { program_id } = request.params;
-    const { event_slug, module_slug } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { event_slug, module_slug } = request.query as { event_slug: string; module_slug: string };
     const traceId = generateCustomUUID();
     try {
         const event = await Event.findOne({

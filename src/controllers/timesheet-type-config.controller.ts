@@ -84,14 +84,14 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 };
 
 export const getAllTimesheetTypeConfigs = async (
-    request: FastifyRequest<{ Params: { program_id: string }; Querystring: { page?: string; limit?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
 
     try {
-        const { program_id } = request.params;
-        const { page = '1', limit = '10' } = request.query;
+        const { program_id } = request.params as { program_id: string };
+        const { page = '1', limit = '10' } = request.query as { page: string; limit: string };
 
         const pageNumber = parseInt(page, 10);
         const pageSize = parseInt(limit, 10);
@@ -101,7 +101,7 @@ export const getAllTimesheetTypeConfigs = async (
         if (program_id) searchConditions.program_id = program_id;
 
         const configs = await sequelize.query(
-            `SELECT 
+            `SELECT
                 ttc.id,
                 ttc.title,
                 ttc.is_enabled,
@@ -152,13 +152,13 @@ export const getAllTimesheetTypeConfigs = async (
 
 
 export const getTimesheetTypeConfigById = async (
-    request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
 
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string; program_id: string };
 
         const config = await TimesheetTypeConfig.findOne({
             where: { id, program_id, is_deleted: false },
@@ -172,7 +172,7 @@ export const getTimesheetTypeConfigById = async (
                 config: [],
             });
         }
-        
+
         const hierarchyIds = config.hierarchies || [];
         const laborCategoryIds = config.labor_category || [];
         const ruleGroupId = config.timesheet_rule_group || null;
@@ -182,11 +182,11 @@ export const getTimesheetTypeConfigById = async (
         const projectOptionsIds = config.project?.config?.options || [];
 
         const [
-            hierarchiesData, 
-            laborCategories, 
-            ruleGroups, 
-            masterDataTypes, 
-            breakRuleGroup, 
+            hierarchiesData,
+            laborCategories,
+            ruleGroups,
+            masterDataTypes,
+            breakRuleGroup,
             projectOptions
         ] = await Promise.all([
             hierarchyIds.length > 0
@@ -280,7 +280,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             where: {
                 title: configData.title,
                 program_id,
-                id: { [Op.ne]: id }, 
+                id: { [Op.ne]: id },
             },
         });
 
@@ -368,26 +368,12 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 };
 
 export async function timesheetTypeConfigFilter(
-    request: FastifyRequest<{
-      Params: { program_id: string };
-      Body: {
-        id?: string;
-        title?: string;
-        hierarchy_ids?: string[];
-        labor_category?: string | string[];
-        is_enabled?: boolean | string;
-        timesheet_rule_group?: string;
-        timesheet_format?: string;
-        allocation_method?: string;
-        page?: string;
-        limit?: string;
-      };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
   ) {
     const traceId = generateCustomUUID();
     try {
-      const { program_id } = request.params;
+      const { program_id } = request.params as { program_id: string };
       const {
         id,
         title,
@@ -399,8 +385,8 @@ export async function timesheetTypeConfigFilter(
         allocation_method,
         page,
         limit,
-      } = request.body;
-  
+      } = request.body as { id: string; title: string; hierarchy_ids: string[]; labor_category: string; is_enabled: string; timesheet_rule_group: string; timesheet_format: string; allocation_method: string; page: string; limit: string };
+
       const isEnabledFilter =
         typeof is_enabled === 'string'
           ? is_enabled === 'true'
@@ -411,11 +397,11 @@ export async function timesheetTypeConfigFilter(
           : is_enabled === false
           ? 0
           : undefined;
-  
+
       const pageNumber = parseInt(page ?? '1', 10);
       const limitNumber = parseInt(limit ?? '10', 10);
       const offset = (pageNumber - 1) * limitNumber;
-  
+
       const query = timesheetConfigAdvancedFilter(
         Boolean(id),
         Boolean(title),
@@ -426,7 +412,7 @@ export async function timesheetTypeConfigFilter(
         Boolean(allocation_method),
         isEnabledFilter !== undefined
       );
-  
+
       const replacements: Record<string, any> = {
         program_id,
         id,
@@ -438,7 +424,7 @@ export async function timesheetTypeConfigFilter(
         offset,
         is_enabled: isEnabledFilter,
       };
-  
+
       if (Array.isArray(labor_category)) {
         labor_category.forEach((laborCategoryId, index) => {
           replacements[`labor_category_id${index}`] = laborCategoryId;
@@ -446,18 +432,18 @@ export async function timesheetTypeConfigFilter(
       } else if (labor_category) {
         replacements[`labor_category_id0`] = labor_category;
       }
-  
+
       hierarchy_ids?.forEach((hierarchyId, index) => {
         replacements[`hierarchy_id${index}`] = hierarchyId;
       });
-  
+
       const data = await sequelize.query<{ total_count: any }>(query, {
         replacements,
         type: QueryTypes.SELECT,
       });
-  
+
       const totalRecords = data.length > 0 ? data[0].total_count : 0;
-  
+
       return reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
@@ -478,13 +464,13 @@ export async function timesheetTypeConfigFilter(
   }
 
 export const getAllRelatedDataByProgram = async (
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
 
     try {
-        const { program_id } = request.params;
+        const { program_id } = request.params as { program_id: string };
         const configs = await TimesheetTypeConfig.findAll({
             where: { program_id, is_deleted: false },
             attributes: ['hierarchies', 'labor_category', 'allocations'],

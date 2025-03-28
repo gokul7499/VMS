@@ -129,7 +129,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             status: expenseConfig.status === "1",
             expense_item_type_config: transformedExpenseTypes,
             hierarchy: hierarchy,
-            master_data: formattedMasterData, 
+            master_data: formattedMasterData,
         };
 
         return reply.status(200).send({
@@ -151,7 +151,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
 }
 
 export async function createExpenseConfiguration(
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
@@ -178,11 +178,11 @@ export async function createExpenseConfiguration(
             data: request.body,
             eventname: "creating expense configuration",
             status: "info",
-            description: `Creating expense configuration for program_id ${request.params.program_id}`,
+            description: `Creating expense configuration for program_id ${request.params as { program_id: string }}`,
             level: "info",
             action: request.method,
             url: request.url,
-            entity_id: request.params.program_id,
+            entity_id: request.params as { program_id: string },
             is_deleted: false,
             created_by: user.sub,
             updated_by: user.sub,
@@ -301,11 +301,11 @@ export async function createExpenseConfiguration(
                 data: request.body,
                 eventname: "expense configuration creation failed",
                 status: "failed",
-                description: `Expense configuration creation failed for program_id ${request.params.program_id}`,
+                description: `Expense configuration creation failed for program_id ${request.params as { program_id: string }}`,
                 level: "error",
                 action: request.method,
                 url: request.url,
-                entity_id: request.params.program_id,
+                entity_id: request.params as { program_id: string },
                 is_deleted: false,
                 created_by: user.sub,
                 updated_by: user.sub,
@@ -322,11 +322,11 @@ export async function createExpenseConfiguration(
 }
 
 export async function updateExpenseConfiguration(
-    request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const { id, program_id } = request.params;
+    const { id, program_id } = request.params as { id: string; program_id: string };
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
@@ -555,11 +555,11 @@ export async function getExpenseTypesByProgramIdAndHierarchy(
 }
 
 export const getAllExpenseConfigurationHierarchies = async (
-    request: FastifyRequest<{ Params: { program_id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
 
     try {
         const query = getAllExpenseConfigHierarchies;
@@ -596,24 +596,13 @@ export const getAllExpenseConfigurationHierarchies = async (
 };
 
 export async function expenseConfigurationAdvancedFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            name?: string;
-            status?: string;
-            updated_on?: string[];
-            is_enabled?: boolean;
-            hierarchy?: string[];
-            page?: string;
-            limit?: string;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const trace_id = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        const { name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body as { name?: string, status?: string, updated_on?: string[], is_enabled?: boolean, hierarchy?: string[], page?: string, limit?: string };
 
         const hasConfigName = name !== undefined;
         const hasStatus = status !== undefined;

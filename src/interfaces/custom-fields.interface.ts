@@ -33,8 +33,8 @@ export interface CustomFields {
 }
 
 export interface GetQueryInterface {
-  limit: string;
-  page?: string;
+  limit: number;
+  page?: number;
   is_enabled?: string;
   name?: string;
   module_name?: string;
@@ -44,6 +44,7 @@ export interface GetQueryInterface {
   updated_on?: string;
   slug?: string;
   program_id?: string;
+  hierarchy_ids?:any
 }
 
 export const paramsSchema = {
@@ -117,7 +118,23 @@ export const createCustomFieldsSchema = {
           type: 'object',
           properties: {
             action: { type: 'string' },
-            conditions: { type: 'array', items: { type: 'object' } }
+            conditions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  condition: {
+                    type: "object",
+                    properties: {
+                      value: { type: "string" },
+                    },
+                  },
+                  slug: { type: "string" },
+                  label: { type: "string" }
+                },
+              }
+            }
+
           },
         }
       },
@@ -148,4 +165,3 @@ export const createCustomFieldsSchema = {
     }
   },
 };
-

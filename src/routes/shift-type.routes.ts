@@ -2,9 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as ShiftTypeController from '../controllers/shift-type.controller';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function shiftTypeRoutes(fastify: FastifyInstance) {
-
+fastify.addHook('preHandler', verifyToken)
     fastify.post('/shift-type', {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.SHIFT_TYPE])
     }, ShiftTypeController.createShiftType);

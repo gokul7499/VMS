@@ -12,12 +12,12 @@ export async function getPasswordPolicy(request: FastifyRequest, reply: FastifyR
 }
 
 export async function getPasswordPolicyById(
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id: string, id: string };
         const password_policy = await passwordPolicyModel.findOne({ where: { program_id, id } });
         if (password_policy) {
             reply.status(200).send({
@@ -56,8 +56,8 @@ export const createPasswordPolicy = async (request: FastifyRequest, reply: Fasti
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
     const userId = user?.sub
-  
-    
+
+
     try {
         await passwordPolicyModel.create({
             ...password_policy,

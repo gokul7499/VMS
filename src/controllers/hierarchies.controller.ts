@@ -31,17 +31,12 @@ interface HierarchyItem {
   updated_on: number;
   code: string;
   program_id: string;
+  address: any;
 
 }
-export const getHierarchiesByProgram = async (
-  request: FastifyRequest<{
-    Params: { program_id: string, id?: string },
-    Querystring: { is_enabled?: string }
-  }>,
-  reply: FastifyReply
-) => {
-  const { program_id, id } = request.params;
-  const { is_enabled } = request.query;
+export const getHierarchiesByProgram = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { program_id, id } = request.params as { program_id: string; id: string };
+  const { is_enabled } = request.query as { is_enabled: string };
   const traceId = generateCustomUUID();
 
   try {
@@ -113,21 +108,16 @@ export const getHierarchiesByProgram = async (
     });
   }
 };
-export const getHierarchies = async (
-  request: FastifyRequest<{
-    Params: { program_id: string },
-    Querystring: {
-      name?: string;
-      is_enabled?: boolean | string;
-      updated_on?: string;
-      page?: number;
-      limit?: number;
-    };
-  }>,
-  reply: FastifyReply
-) => {
-  const { program_id } = request.params;
-  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query;
+
+export const getHierarchies = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { program_id } = request.params as { program_id: string };
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query as {
+    name?: string;
+    is_enabled?: boolean | string;
+    updated_on?: string;
+    page?: number;
+    limit?: number;
+  };
   const traceId = generateCustomUUID();
 
   try {
@@ -489,7 +479,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   }
 }
 
-export async function searchHierarchies(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
+export async function searchHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const searchFields = ['is_enabled', 'name', 'code', 'program_id'];
   const responseFields = ['id', 'name', 'updated_on', 'is_enabled', 'program_id'];
   return baseSearch(request, reply, HierarchiesModel, searchFields, responseFields);
@@ -518,13 +508,10 @@ interface Hierarchy {
   hierarchies: Hierarchy[];
 }
 
-export const getRateModel = async (
-  request: FastifyRequest<{ Querystring: { hierarchy_ids: string }, Params: { program_id: string } }>,
-  reply: FastifyReply
-) => {
+export const getRateModel = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
-  const { hierarchy_ids } = request.query;
-  const { program_id } = request.params;
+  const { hierarchy_ids } = request.query as { hierarchy_ids: string };
+  const { program_id } = request.params as { program_id: string };
 
   try {
     const hierarchyIdsArray = hierarchy_ids.split(',');
@@ -728,12 +715,9 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
   }
 }
 
-export const updateIsNotEditableFlag = async (
-  request: FastifyRequest<{ Params: { program_id: string }, Querystring: { hierarchy_ids?: string } }>,
-  reply: FastifyReply
-) => {
-  const { hierarchy_ids } = request.query;
-  const { program_id } = request.params;
+export const updateIsNotEditableFlag = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { hierarchy_ids } = request.query as { hierarchy_ids: string };
+  const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
 
   if (!hierarchy_ids) {
@@ -781,10 +765,7 @@ export const updateIsNotEditableFlag = async (
   }
 };
 
-export async function getUserHierarchies(
-  request: FastifyRequest<{ Params: { program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function getUserHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
 
@@ -801,7 +782,7 @@ export async function getUserHierarchies(
 
   const userId = user.sub;
   const userType = user.userType;
-  const { program_id } = request.params;
+  const { program_id } = request.params as { program_id: string };
 
   try {
     let hierarchies: any[] = [];
@@ -942,37 +923,34 @@ export const getHierarchiesAdvancedFilter = async (
 };
 
 export async function getParentHierarchies(
-    request: FastifyRequest<{ Params: { program_id: string } }>,
-    reply: FastifyReply
+  request: FastifyRequest<{ Params: { program_id: string } }>,
+  reply: FastifyReply
 ) {
-    const { program_id } = request.params;
-    const traceId = generateCustomUUID();
+  const { program_id } = request.params;
+  const traceId = generateCustomUUID();
 
-    try {
-        const parentHierarchies = await sequelize.query(getParentHierarchiesQuery, {
-            replacements: { program_id },
-            type: QueryTypes.SELECT,
-        });
+  try {
+    const parentHierarchies = await sequelize.query(getParentHierarchiesQuery, {
+      replacements: { program_id },
+      type: QueryTypes.SELECT,
+    });
 
-        return reply.code(200).send({
-            status_code: 200,
-            message: parentHierarchies.length > 0
-                ? 'Parent hierarchies retrieved successfully.'
-                : 'No parent hierarchies found.',
-            data: parentHierarchies,
-            trace_id: traceId,
-        });
+    return reply.code(200).send({
+      status_code: 200,
+      message: parentHierarchies.length > 0
+        ? 'Parent hierarchies retrieved successfully.'
+        : 'No parent hierarchies found.',
+      data: parentHierarchies,
+      trace_id: traceId,
+    });
 
-    } catch (error: any) {
-        request.log.error(error);
-        return reply.code(500).send({
-            status_code: 500,
-            message: 'Internal Server Error',
-            trace_id: traceId,
-            error: error.message,
-        });
-    }
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.code(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
 }
-
-
-

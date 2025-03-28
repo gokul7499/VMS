@@ -31,6 +31,21 @@ export async function createSowTemplate(
     const sequelize = SowTemplateModel.sequelize!;
     const transaction = await sequelize.transaction();
     try {
+        const existingSowTemplate = await SowTemplateModel.findOne({
+            where: {
+                program_id: program_id,
+                template_title: sowTemplate.template_title,  
+            }
+        });
+        
+        if (existingSowTemplate) {
+            return reply.status(400).send({
+                status_code: 400,
+                trace_id: traceId,
+                message: "A Sow Template with the same title already exists for this program.",
+            });
+        }
+        
         const item = await SowTemplateModel.create({
             ...sowTemplate,
             program_id,
@@ -86,7 +101,6 @@ export async function createSowTemplate(
         });
     }
 }
-
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
 
@@ -133,8 +147,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
 
         if (code) {
-            whereClause += ` AND t.code = :code`;
-            replacements.code = code;
+            whereClause += ` AND t.code LIKE :code`;
+            replacements.code = `%${code}%`;  
         }
 
         if (hierarchy_id) {
@@ -148,14 +162,28 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         if (created_on) {
             const dateRange = created_on.split(',');
             if (dateRange.length === 2) {
-                let startDate = new Date(dateRange[0].trim()).toISOString();
-                let endDate = new Date(dateRange[1].trim()).toISOString();
-                whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
-                replacements.startDate = startDate;
-                replacements.endDate = endDate;
+                const startDate = dateRange[0].trim();
+                const endDate = dateRange[1].trim();
+                const startTimestamp = isNaN(Number(startDate)) 
+                    ? new Date(startDate).getTime() 
+                    : Number(startDate);
+                
+                const endTimestamp = isNaN(Number(endDate)) 
+                    ? new Date(endDate).getTime() 
+                    : Number(endDate);
+
+                if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
+                    const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
+        
+                    whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
+                    replacements.startDate = startTimestamp;
+                    replacements.endDate = adjustedEndTimestamp;
+                } else {
+                    console.warn('Invalid date format provided');
+                }
             }
         }
-        
+
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -203,7 +231,6 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
     }
 };
-
 
 
 
@@ -319,7 +346,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         reply.status(200).send({
             status_code: 200,
-            message: 'SOW Template updated successfully.',
+            message: 'SOW template updated successfully.',
             trace_id: traceId
         });
     } catch (error: any) {

@@ -14,8 +14,9 @@ export async function createVendordocumentsgroup(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
+    const { program_id } = request.params as { program_id: string };
     const vendorDocumentsGroup = request.body as VendorDocumentGroup;
-    const { program_id, required_documents } = vendorDocumentsGroup;
+    const { required_documents } = vendorDocumentsGroup;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -128,13 +129,10 @@ export async function createVendordocumentsgroup(
     }
 }
 
-export async function getVendorDocumentsGroupByIdAndDoc(
-    request: FastifyRequest<{ Params: { id: string; program_id: string; required_documents?: string } }>,
-    reply: FastifyReply
-) {
+export async function getVendorDocumentsGroupByIdAndDoc(request: FastifyRequest,reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id, required_documents } = request.params;
+        const { id, program_id, required_documents } = request.params as { id: string; program_id: string; required_documents: string };
 
         const query: any = {
             where: {
@@ -246,13 +244,10 @@ export async function getVendordocumentsgroup(
     }
 }
 
-export async function getVendordocumentsgroupId(
-    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
-    reply: FastifyReply
-) {
+export async function getVendordocumentsgroupId(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params;
+        const { program_id, id } = request.params as { program_id: string; id: string };
         const vendorDocumentsGroup = await vendordocumentgroupModel.findOne(
             {
                 where: { program_id, id }
@@ -371,10 +366,7 @@ export async function updateVendordocumentsgroup(
     }
 }
 
-export async function deleteVendordocumentsgroup(
-    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
-    reply: FastifyReply
-) {
+export async function deleteVendordocumentsgroup(request: FastifyRequest,reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -387,7 +379,7 @@ export async function deleteVendordocumentsgroup(
     const userId = user?.sub;
     const traceId = generateCustomUUID();
     try {
-        const { id, program_id } = request.params;
+        const { id, program_id } = request.params as { id: string; program_id: string };
         const [numRowsDeleted] = await vendordocumentgroupModel.update({
             is_enabled: false,
             updated_on: Date.now(),
@@ -421,31 +413,17 @@ export async function deleteVendordocumentsgroup(
     }
 }
 
-export async function getAllVendorCompDocummentGroupByProgramId(request: FastifyRequest<{ Params: { program_id: string } }>, reply: FastifyReply) {
+export async function getAllVendorCompDocummentGroupByProgramId(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id', 'id', 'is_enabled', 'description', 'total_documents', 'name'];
     const responseFields = ['id', 'name', 'description', 'total_documents', 'updated_on', 'is_enabled', 'program_id'];
     return baseSearch(request, reply, vendordocumentgroupModel, searchFields, responseFields);
 }
 
-export async function vendorDocumentGroupFilter(
-    request: FastifyRequest<{
-        Params: { program_id: string };
-        Body: {
-            id?: string;
-            name?: string;
-            description?: string;
-            is_enabled?: boolean | string;
-            updated_on?: any;
-            page?: string;
-            limit?: string;
-        };
-    }>,
-    reply: FastifyReply
-) {
+export async function vendorDocumentGroupFilter(request: FastifyRequest,reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const { id, name, description, is_enabled, updated_on, page, limit } = request.body;
+        const { program_id } = request.params as { program_id: string };
+        const { id, name, description, is_enabled, updated_on, page, limit } = request.body as {id: string; name: string; description: string; is_enabled: string; updated_on: string[]; page: string; limit: string};
 
         const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
         const pageNumber = parseInt(page ?? '1', 10);
