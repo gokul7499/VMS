@@ -51,6 +51,10 @@ export default async function programVendorRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/program-vendor/user/:user_id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
     }, ProgramVendorController.getComplianceDocument);
+
+    fastify.post('/program/:program_id/vendor/:id/get-markup', {
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
+    }, ProgramVendorController.getVendorMarkup);
 }
 
 
