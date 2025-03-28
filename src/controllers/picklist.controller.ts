@@ -920,9 +920,13 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
   let picklistData;
   try {
     const whereCondition: any = {};
-    if (slug) whereCondition.slug = slug;
-    if (defined_by) whereCondition.defined_by = defined_by;
-    if (name) whereCondition.name = name;
+    if (slug) {
+      
+    whereCondition.slug = slug;
+    }
+
+     if (defined_by) whereCondition.defined_by = defined_by;
+     if (name) whereCondition.name = { $like: `%${name}%` };    
     if (program_id) whereCondition.program_id = program_id;
     if (picklist_id) whereCondition.id = picklist_id;
     if (is_deleted !== undefined) whereCondition.is_deleted = is_deleted;
