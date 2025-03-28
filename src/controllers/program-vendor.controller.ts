@@ -1367,7 +1367,7 @@ export async function getVendorMarkup(
                 status_code: 200,
                 message: "No records found.",
                 trace_id: traceId,
-                data: data
+                data: []
             });
         }
     } catch (error: any) {
