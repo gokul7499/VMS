@@ -126,7 +126,7 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
   const { program_id } = request.params as { program_id: string };
   const { name, is_enabled, updated_on, page = '1', limit = '10' } = request.query as {
     name: string;
-    is_enabled: boolean;
+    is_enabled: boolean | string;
     updated_on: string;
     page: string;
     limit: string;
@@ -144,10 +144,8 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
       whereCondition.name = { [Op.like]: `%${name}%` };
     }
 
-    if (typeof is_enabled === 'string') {
+    if (is_enabled !== undefined) {
       whereCondition.is_enabled = is_enabled === 'true';
-    } else {
-      whereCondition.is_enabled = is_enabled;
     }
     
     if (updated_on) {

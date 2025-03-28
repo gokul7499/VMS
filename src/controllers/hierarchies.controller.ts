@@ -833,27 +833,24 @@ export async function getUserHierarchies(request: FastifyRequest, reply: Fastify
 }
 
 export const getHierarchiesAdvancedFilter = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      name?: string;
-      is_enabled?: boolean | string;
-      updated_on?: number[]; 
-      page?: number;
-      limit?: number;
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  const { program_id } = request.params;
-  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body;
+  const { program_id } = request.params as { program_id: string };
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body as {
+    name?: string;
+    is_enabled?: boolean | string;
+    updated_on?: number[]; 
+    page?: number;
+    limit?: number;
+  };
   const traceId = generateCustomUUID();
 
   try {
     const hasName = !!name;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
-      const { updated_on } = request.body;
+      const { updated_on } = request.body as { updated_on:  number[]};
 
       let startDate: number | undefined;
       let endDate: number | undefined;
