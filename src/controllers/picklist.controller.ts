@@ -914,7 +914,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       defined_by?: string;
       is_deleted?: boolean;
       is_enabled?: boolean;
-      updated_on?: { from?: string; to?: string };
+      updated_on?: string[];
     };
 
   let picklistData;
@@ -929,12 +929,11 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
     if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled;
 
 
-    if (updated_on?.from || updated_on?.to) {
-      whereCondition.created_on = {};
-      if (updated_on.from) whereCondition.updated_on["$gte"] = updated_on.from;
-      if (updated_on.to) whereCondition.updated_on["$lte"] = updated_on.to;
-    }
-
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      whereCondition.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+  }
+  
     picklistData = await picklist_model.findAll({
       where: whereCondition,
       include: [
@@ -949,7 +948,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
           },
           required: false,
           attributes: {
-            exclude: ["created_on", "updated_on", "created_by", "updated_by"],
+            exclude: ["created_on", "created_by", "updated_by"],
             include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
           },
         },
@@ -996,7 +995,8 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
-        updated_on: picklist.updated_on,
+        created_on: picklist.created_on,
+        updated_on:picklist.updated_on,
         picklist_value_count: picklist.picklistItems.length,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({

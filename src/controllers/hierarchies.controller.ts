@@ -195,6 +195,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
   }
 };
 
+
 interface MasterDataResult {
   foundational_data: string | null;
   parent_hierarchy_name: string | null;
@@ -272,7 +273,6 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
     });
   }
 }
-
 
 export async function createHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
@@ -832,43 +832,48 @@ export async function getUserHierarchies(request: FastifyRequest, reply: Fastify
   }
 }
 
-export const getHierarchiesAdvancedFilter = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body as {
-    name?: string;
-    is_enabled?: boolean | string;
-    updated_on?: string;
-    page?: number;
-    limit?: number;
-  };
+export const getHierarchiesAdvancedFilter = async (
+  request: FastifyRequest<{
+    Params: { program_id: string };
+    Body: {
+      name?: string;
+      is_enabled?: boolean | string;
+      updated_on?: number[]; 
+      page?: number;
+      limit?: number;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  const { program_id } = request.params;
+  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body;
   const traceId = generateCustomUUID();
 
   try {
     const hasName = !!name;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
+      const { updated_on } = request.body;
 
-    let startDate: number | undefined;
-    let endDate: number | undefined;
-
-    if (updated_on) {
-      const dateRange = updated_on.split(",").map(date => date.trim());
-
-      if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
-        startDate = Number(dateRange[0]);
+      let startDate: number | undefined;
+      let endDate: number | undefined;
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const parsedStartDate = Number(updated_on[0]);
+        const parsedEndDate = Number(updated_on[1]);
+      
+        if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
+          startDate = parsedStartDate;
+          endDate = parsedEndDate;
+        }
       }
-      if (dateRange.length === 2 && !isNaN(Number(dateRange[1]))) {
-        endDate = Number(dateRange[1]);
-      }
-    }
-
+      
     const offset = (page - 1) * limit;
 
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
-      ...(startDate && endDate && { startDate, endDate }),
+      ...(startDate !== undefined && endDate !== undefined && { startDate, endDate }),
       limit: Number(limit),
       offset: Number(offset),
     };
