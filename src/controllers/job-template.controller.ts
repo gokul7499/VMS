@@ -492,6 +492,26 @@ export async function updateJobTemplate(
       }
     }
 
+    const foundational_data= jobMasterData.foundational_data;
+    if (foundational_data && Array.isArray(foundational_data)) {
+      await JobMasterDataModel.destroy({
+        where: { job_temp_id: id },
+      });
+
+      for (const data of foundational_data) {
+        const { foundation_data_type_id, foundation_data_id, is_read_only } = data;
+        if (!foundation_data_type_id || !foundation_data_id) continue;
+
+        await JobMasterDataModel.create({
+          program_id,
+          job_temp_id: id,
+          foundation_data_type_id,
+          foundation_data_id,
+          is_read_only,
+        });
+      }
+    }
+
     reply.status(200).send({
       status_code: 200,
       message: "Job template updated successfully.",
