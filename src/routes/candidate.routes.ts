@@ -25,9 +25,7 @@ async function candidateRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
     }, candidateController.candidateSearch);
 
-    fastify.get('/program/:program_id/candidates', {
-        preHandler: validatePermissions(Actions.VIEW_CANDIDATE, [Permissions.CANDIDATE])
-    }, candidateController.getCandidates);
+    fastify.get('/program/:program_id/candidates', candidateController.getCandidates);
 }
 
 export default candidateRoutes;
