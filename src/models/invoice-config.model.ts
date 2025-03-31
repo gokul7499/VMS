@@ -11,6 +11,7 @@ class InvoiceConfigModel extends Model {
     slug: any;
     parent_id: any;
     hierarchy_ids: any;
+    root_parent_id: any;
 
 }
 
@@ -37,7 +38,7 @@ InvoiceConfigModel.init(
         },
         name: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
         },
         slug: {
             type: DataTypes.STRING,
@@ -45,11 +46,13 @@ InvoiceConfigModel.init(
         },
         parent_id: {
             type: DataTypes.INTEGER,
-            allowNull: true,
+            allowNull: false,
+            defaultValue: 0,
         },
-        grand_parent_id: {
+        root_parent_id: {
             type: DataTypes.INTEGER,
-            allowNull: true,
+            allowNull: false,
+            defaultValue: 0,
         },
         is_active: {
             type: DataTypes.BOOLEAN,
