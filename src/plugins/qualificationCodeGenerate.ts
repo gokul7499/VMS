@@ -14,11 +14,11 @@ export const generateQualificationCode = async (qualification_type_id: string, t
     const qualificationTypePrefix = qualificationType.name.substring(0, 2).toUpperCase();
 
     const generateTitlePrefix = (title: string) => {
-        const words = title.trim().split(/[\s_]+/); // Split by space or underscore
+        const words = title.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/); 
         return words
-            .slice(0, 2) // Take the first two words
-            .map(word => word.charAt(0).toUpperCase()) // Take the first letter of each word
-            .join(''); // Join them together
+        .slice(0, 2)
+        .map(word => word.charAt(0).toUpperCase())
+        .join(''); 
     };
 
     const titlePrefix = generateTitlePrefix(title);
