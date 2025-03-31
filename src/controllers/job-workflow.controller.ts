@@ -2065,6 +2065,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
                 AND is_enabled = true
+                AND status='pending'
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
@@ -2084,7 +2085,7 @@ ORDER BY
         console.log(rows);
 
         let programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
+            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending")`,
             {
                 replacements: { workflow_trigger_id },
                 type: QueryTypes.SELECT,
