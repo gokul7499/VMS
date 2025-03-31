@@ -32,13 +32,9 @@ async function hierarchiesRoutes(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
     }, HierarchyController.getHierarchies);
 
-    fastify.get('/program/:program_id/get-rate-model', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getRateModel);
+    fastify.get('/program/:program_id/get-rate-model', HierarchyController.getRateModel);
 
-    fastify.get('/program/:program_id/get-vendor-markup', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
-    }, HierarchyController.getVendorMarkup);
+    fastify.get('/program/:program_id/get-vendor-markup', HierarchyController.getVendorMarkup);
 
     fastify.put('/program/:program_id/update-hierarchy', {
         preHandler: validatePermissions(Actions.UPDATE, [Permissions.HIERARCHY])

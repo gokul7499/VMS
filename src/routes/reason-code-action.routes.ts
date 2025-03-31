@@ -28,13 +28,7 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
     }, ResonCodeController.getReasoncodeById);
 
-    fastify.get('/program/:program_id/reason-code', {
-        schema: {
-            params: paramsSchema,
-            querystring: querySchema,
-        },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
-    }, ResonCodeController.getReasonCodeBySlug);
+    fastify.get('/program/:program_id/reason-code', ResonCodeController.getReasonCodeBySlug);
 
     fastify.get('/reason-codes', {
         schema: {
@@ -52,7 +46,7 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
     }, ResonCodeController.updateReasoncode);
 
     fastify.delete('/reason-code-action/:id', ResonCodeController.deleteReasoncodeAction);
-    
+
     fastify.delete('/reason-code/:id', ResonCodeController.deleteReasoncode);
 
     fastify.get('/reason_codes/:slug', {

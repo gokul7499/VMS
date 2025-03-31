@@ -42,9 +42,7 @@ async function jobTemplate(fastify: FastifyInstance) {
     preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.getAllJobTempletsByHierarchies);
 
-  fastify.get("/program_id/:program_id/job-templates/labour-categories", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
-  }, JobTemplateController.findJobTemplatesByLabourCategories);
+  fastify.get("/program_id/:program_id/job-templates/labour-categories", JobTemplateController.findJobTemplatesByLabourCategories);
 
   fastify.post("/program/:program_id/job-templates-by-hierarchy", {
     preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
