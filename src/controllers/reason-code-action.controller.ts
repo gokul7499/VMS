@@ -315,7 +315,6 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                     model: Module,
                     as: 'module',
                     attributes: ['id', 'name'],
-                    where: { is_enabled: true },
                     required: false
                 },
             ],
