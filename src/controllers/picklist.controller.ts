@@ -180,14 +180,14 @@ const generateRandomPrefix = () => {
 };
 
 export const createPicklist = async (
-  request: FastifyRequest<{ Body: any; Params: { program_id: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const { picklist_items, ...picklist_data } = request.body as {
     picklistItems?: PicklistItem[];
     [key: string]: any;
   };
-  const { program_id } = request.params;
+  const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -436,15 +436,12 @@ export async function deletePredefinedPicklist(
 
 
 export const updatePicklistAndItem = async (
-  request: FastifyRequest<{
-    Params: { id: string; program_id: string };
-    Body: picklist;
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params;
-  const { picklist_items, ...picklist_data } = request.body;
+  const { id, program_id } = request.params as { id: string; program_id: string };
+  const { picklist_items, ...picklist_data } = request.body as picklist;
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ message: 'Unauthorized - Token not found' });
@@ -565,13 +562,11 @@ export const updatePicklistAndItem = async (
 };
 
 export const getPicklistAndPicklistItem = async (
-  request: FastifyRequest<{
-    Params: { program_id: string; picklist_id: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id, picklist_id } = request.params;
+  const { program_id, picklist_id } = request.params as { program_id: string; picklist_id: string };
 
   // Validate that the parameters are not undefined or null
   if (!program_id || !picklist_id) {
@@ -909,7 +904,7 @@ export const createPicklistData = async (
 
 
 export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, created_on } =
+  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, updated_on } =
     request.body as {
       name?: string;
       picklist_id?: string;
@@ -919,7 +914,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       defined_by?: string;
       is_deleted?: boolean;
       is_enabled?: boolean;
-      created_on?: { from?: string; to?: string };
+      updated_on?: string[];
     };
 
   let picklistData;
@@ -927,19 +922,18 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
     const whereCondition: any = {};
     if (slug) whereCondition.slug = slug;
     if (defined_by) whereCondition.defined_by = defined_by;
-    if (name) whereCondition.name = name;
+    if (name) whereCondition.name = { [Op.like]: `%${name}%` };  
     if (program_id) whereCondition.program_id = program_id;
     if (picklist_id) whereCondition.id = picklist_id;
     if (is_deleted !== undefined) whereCondition.is_deleted = is_deleted;
     if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled;
 
 
-    if (created_on?.from || created_on?.to) {
-      whereCondition.created_on = {};
-      if (created_on.from) whereCondition.created_on["$gte"] = created_on.from;
-      if (created_on.to) whereCondition.created_on["$lte"] = created_on.to;
-    }
-
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      whereCondition.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+  }
+  
     picklistData = await picklist_model.findAll({
       where: whereCondition,
       include: [
@@ -954,7 +948,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
           },
           required: false,
           attributes: {
-            exclude: ["created_on", "updated_on", "created_by", "updated_by"],
+            exclude: ["created_on", "created_by", "updated_by"],
             include: ["picklist_id", "label", "value", "is_deleted", "is_enabled", "defined_by"],
           },
         },
@@ -979,11 +973,14 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
+        slug: picklist.slug,
+        picklist_id:picklist.picklist_id,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        picklist_value_count: picklist.picklistItems.length,
         picklistItems: picklist.picklistItems.sort(
           (a: { value: string }, b: { value: string }) =>
             (orderMap[a.value] ?? Infinity) - (orderMap[b.value] ?? Infinity)
@@ -994,11 +991,15 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
+        slug: picklist.slug,
+        picklist_id:picklist.picklist_id,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        updated_on:picklist.updated_on,
+        picklist_value_count: picklist.picklistItems.length,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({
             id: item.id,

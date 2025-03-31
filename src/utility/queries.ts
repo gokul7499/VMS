@@ -191,8 +191,8 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   `;
 
   if (replacements.status && replacements.status.length > 0) {
-      const statusArray = replacements.status.map((id: string) => `'${id.trim()}'`).join(',');
-      whereClause += ` AND vcrm.status IN (${statusArray})`;
+    const statusArray = replacements.status.map((id: string) => `'${id.trim()}'`).join(',');
+    whereClause += ` AND vcrm.status IN (${statusArray})`;
   }
 
   return `
@@ -561,19 +561,18 @@ WITH hierarchy_cte AS (
     h.parent_hierarchy_id,
     h.is_enabled,
     h.updated_on,
-    h.created_on, -- Include created_on
+    h.created_on,
     h.program_id,
     h.is_deleted,
     h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
-    ph.name AS parent_hierarchy_name -- Fetch parent hierarchy name
+    ph.name AS parent_hierarchy_name
   FROM hierarchies h
-  LEFT JOIN hierarchies ph
-    ON h.parent_hierarchy_id = ph.id -- Self-join to get parent name
+  LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
-    ${hasName ? 'AND h.name LIKE :name' : ''} -- Conditionally apply name filter
+    ${hasName ? 'AND h.name LIKE :name' : ''}
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined
     ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
@@ -589,12 +588,12 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-  h.created_on DESC, -- Sort by created_on in descending order (newest first)
-  CASE
+h.created_on DESC, 
+ CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
   END, -- Keep parent hierarchies first
-  h.id
+h.id
 LIMIT :limit OFFSET :offset;
 `;
 
@@ -3108,14 +3107,14 @@ export const rateConfigurationsFilterQuery = (
   LIMIT :limit OFFSET :offset;`;
 
 
-  export const getParentHierarchiesQuery = `
+export const getParentHierarchiesQuery = `
   SELECT * 
   FROM hierarchies 
   WHERE hierarchies.program_id = :program_id
   AND hierarchies.parent_hierarchy_id IS NULL;
   `;
 
-  export const getProgramVendorDetails = `
+export const getProgramVendorDetails = `
   SELECT 
     pv.id AS program_vendor_id,
     pv.program_id,
@@ -3150,4 +3149,90 @@ FROM
 WHERE 
     pv.program_id = :program_id AND 
     (pv.user_id = :user_id OR :user_id IS NULL);
-`
+`;
+
+export const getVendorMarkups = ({
+  rate_model,
+  hierarchy = [],
+  labor_category = [],
+  job_template = [],
+  worker_type = [],
+  worker_classification = [],
+  rate_type = [],
+}: {
+  rate_model?: string;
+  hierarchy?: string[];
+  labor_category?: string[];
+  job_template?: string[];
+  worker_type?: string[];
+  worker_classification?: string[];
+  rate_type?: string[];
+}) => {
+  const hierarchyPlaceholders = hierarchy.map((_, i) => `:hierarchy${i}`).join(',');
+  const laborCategoryPlaceholders = labor_category.map((_, i) => `:labor_category${i}`).join(',');
+  const jobTemplatePlaceholders = job_template.map((_, i) => `:job_template${i}`).join(',');
+  const workerTypePlaceholders = worker_type.map((_, i) => `:worker_type${i}`).join(',');
+  const workerClassificationPlaceholders = worker_classification.map((_, i) => `:worker_classification${i}`).join(',');
+  const rateTypePlaceholders = rate_type.map((_, i) => `:rate_type${i}`).join(',');
+
+  return `
+      SELECT 
+          vmc.id,
+          vmc.rate_model,
+          vmc.sliding_scale,
+          vmc.markups,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
+               FROM picklistitems pi WHERE pi.id = vmc.job_type), 
+              JSON_OBJECT('id', 'any', 'label', 'Any')
+          ) AS job_type,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', jt.id, 'name', jt.template_name) 
+               FROM job_templates jt WHERE jt.id = vmc.job_template), 
+              JSON_OBJECT('id', 'any', 'name', 'Any')
+          ) AS job_template,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
+               FROM picklistitems pi WHERE pi.id = vmc.worker_type), 
+              JSON_OBJECT('id', 'any', 'label', 'Any')
+          ) AS worker_type,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
+               FROM picklistitems pi WHERE pi.id = vmc.worker_classification), 
+              JSON_OBJECT('id', 'any', 'label', 'Any')
+          ) AS worker_classification,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name) 
+               FROM rate_type rt WHERE rt.id = vmc.rate_type), 
+              JSON_OBJECT('id', 'any', 'name', 'Any')
+          ) AS rate_type,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', wl.id, 'name', wl.name) 
+               FROM work_locations wl WHERE wl.id = vmc.work_locations), 
+              JSON_OBJECT('id', 'any', 'name', 'Any')
+          ) AS work_locations,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', h.id, 'name', h.name) 
+               FROM hierarchies h WHERE h.id = vmc.hierarchy), 
+              JSON_OBJECT('id', 'any', 'name', 'Any')
+          ) AS hierarchy,
+          COALESCE(
+              (SELECT JSON_OBJECT('id', i.id, 'name', i.name) 
+               FROM labour_category i WHERE i.id = vmc.program_industry), 
+              JSON_OBJECT('id', 'any', 'name', 'Any')
+          ) AS program_industry,
+          vmc.is_enabled
+      FROM vendor_markup_config vmc
+      WHERE vmc.program_id = :program_id
+      AND vmc.program_vendor_id = :program_vendor_id
+      AND vmc.is_deleted = false
+      ${rate_model ? "AND vmc.rate_model = :rate_model" : ""}
+      ${hierarchy.length > 0 ? `AND (vmc.hierarchy IN (${hierarchyPlaceholders}) OR vmc.hierarchy IS NULL)` : ""}
+      ${labor_category.length > 0 ? `AND (vmc.program_industry IN (${laborCategoryPlaceholders}) OR vmc.program_industry IS NULL)` : ""}
+      ${job_template.length > 0 ? `AND (vmc.job_template IN (${jobTemplatePlaceholders}) OR vmc.job_template IS NULL)` : ""}
+      ${worker_type.length > 0 ? `AND (vmc.worker_type IN (${workerTypePlaceholders}) OR vmc.worker_type IS NULL)` : ""}
+      ${worker_classification.length > 0 ? `AND (vmc.worker_classification IN (${workerClassificationPlaceholders}) OR vmc.worker_classification IS NULL)` : ""}
+      ${rate_type.length > 0 ? `AND (vmc.rate_type IN (${rateTypePlaceholders}) OR vmc.rate_type IS NULL)` : ""}
+      ORDER BY vmc.is_default DESC, vmc.created_on DESC
+  `;
+};

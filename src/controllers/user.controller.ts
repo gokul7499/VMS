@@ -87,10 +87,7 @@ export async function getUserById(
   }
 }
 
-export async function getUserHierarchiesByProgram(
-  request: FastifyRequest<{ Params: { id: string; program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function getUserHierarchiesByProgram(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
   const { job_template_id } = request.query as { job_template_id: string };
@@ -107,7 +104,7 @@ export async function getUserHierarchiesByProgram(
     return reply.status(401).send({ message: "Unauthorized - Invalid token" });
   }
   try {
-    const { id: user_id, program_id } = request.params;
+    const { id: user_id, program_id } = request.params as { id: string, program_id: string };
     const user = await User.findOne({
       where: { user_id: user_id, program_id },
       attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id', 'default_hierarchy_id'],
@@ -417,15 +414,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function updateUser(
-  request: FastifyRequest<{
-    Body: { user: UserInterface; user_group_mapping: UserMappingAttributes };
-    Params: { id: string; program_id: string };
-  }>,
-  reply: FastifyReply
-) {
-  const { id, program_id } = request.params;
-  const { user: userBody, user_group_mapping: userGroupMappings } = request.body;
+export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
+  const { id, program_id } = request.params as { id: string; program_id: string };
+  const { user: userBody, user_group_mapping: userGroupMappings } = request.body as { user: UserInterface; user_group_mapping: UserMappingAttributes };
   const { id: userIdToExclude, ...updates } = userBody;
   const traceId = generateCustomUUID();
   const authHeader = request.headers.authorization;
@@ -569,27 +560,8 @@ export async function deleteUser(
   }
 }
 
-export async function getAllUserIDAndUserId(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-      user_id?: string;
-      info_level?: string;
-      user_type?: string;
-      first_name?: string;
-      is_activated?: boolean;
-      status?: string;
-      role_id?: string;
-      tenant_id?: string;
-      email?: string;
-      hierarchy_id?: string;
-      page?: string;
-      limit?: string;
-    };
-  }>,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params;
+export async function getAllUserIDAndUserId(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
   const {
     user_id,
     info_level,
@@ -603,7 +575,20 @@ export async function getAllUserIDAndUserId(
     hierarchy_id,
     page = '1',
     limit = '10',
-  } = request.query;
+  } = request.query as {
+    user_id?: string;
+    info_level?: string;
+    user_type?: string;
+    first_name?: string;
+    is_activated?: boolean;
+    status?: string;
+    role_id?: string;
+    tenant_id?: string;
+    email?: string;
+    hierarchy_id?: string;
+    page?: string;
+    limit?: string;
+  };
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -689,12 +674,9 @@ interface UserLocationAndTimeZone {
   time_zone: { time_zone_id: string; time_zone_name: string }[];
 }
 
-export async function getUserWorkLocationAndTimeZone(
-  request: FastifyRequest<{ Params: { program_id: string }; Querystring: { user_ids: string } }>,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params;
-  const { user_ids } = request.query;
+export async function getUserWorkLocationAndTimeZone(request: FastifyRequest,reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const { user_ids } = request.query as { user_ids: string };
   const trace_id = generateCustomUUID();
 
   if (!user_ids) {
@@ -799,18 +781,9 @@ export async function getPendingUser(
 }
 
 
-export async function getUserAndHierarchieId(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-      user_id?: string;
-      hierarchy_id?: string;
-    };
-  }>,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params;
-  const { user_id, hierarchy_id } = request.query;
+export async function getUserAndHierarchieId(request: FastifyRequest,reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const { user_id, hierarchy_id } = request.query as { user_id: string; hierarchy_id: string };
   const traceId = generateCustomUUID();
 
   if (!user_id || !hierarchy_id) {
@@ -863,13 +836,7 @@ export async function getUserAndHierarchieId(
   }
 }
 
-export async function getActiveUser(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { hierarchy_id?: string };
-  }>,
-  reply: FastifyReply
-) {
+export async function getActiveUser(request: FastifyRequest,reply: FastifyReply) {
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     return reply.status(401).send({
@@ -887,8 +854,8 @@ export async function getActiveUser(
     });
   }
 
-  const { program_id } = request.params;
-  const { hierarchy_id } = request.query;
+  const { program_id } = request.params as { program_id: string };
+  const { hierarchy_id } = request.query as { hierarchy_id: string };
   const traceId = generateCustomUUID();
   const userId = user?.sub;
   const userType = user?.userType;
@@ -964,7 +931,7 @@ export async function getUserContact(
   reply: FastifyReply
 ) {
 
-  const { tenant_id } = request.query as {tenant_id:string};
+  const { tenant_id } = request.query as { tenant_id: string };
   const traceId = generateCustomUUID();
 
   try {
@@ -1016,7 +983,7 @@ export async function getUserProgram(
     return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
   }
   const userType = user?.userType;
-  const { user_id, search } = request.query as {user_id:string,search:string};
+  const { user_id, search } = request.query as { user_id: string, search: string };
   const traceId = generateCustomUUID();
 
   if (!user_id || user_id.trim() === "") {
@@ -1052,5 +1019,3 @@ export async function getUserProgram(
     });
   }
 }
-
-

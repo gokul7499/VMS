@@ -122,15 +122,15 @@ export async function createIndustries(
   }
 }
 
-export const getIndustries = async (
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { name?: string; is_enabled?: boolean | string; updated_on?: string; page?: string; limit?: string };
-  }>,
-  reply: FastifyReply
-) => {
-  const { program_id } = request.params;
-  const { name, is_enabled, updated_on, page = '1', limit = '10' } = request.query;
+export const getIndustries = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { program_id } = request.params as { program_id: string };
+  const { name, is_enabled, updated_on, page = '1', limit = '10' } = request.query as {
+    name: string;
+    is_enabled: boolean | string;
+    updated_on: string;
+    page: string;
+    limit: string;
+  };
   const traceId = generateCustomUUID();
 
   try {
@@ -143,9 +143,11 @@ export const getIndustries = async (
     if (name) {
       whereCondition.name = { [Op.like]: `%${name}%` };
     }
+
     if (is_enabled !== undefined) {
-      whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
+      whereCondition.is_enabled = is_enabled === 'true';
     }
+    
     if (updated_on) {
       const dateRange = updated_on.split(',');
       if (dateRange.length === 2) {
@@ -191,13 +193,10 @@ export const getIndustries = async (
   }
 };
 
-export async function getIndustriesById(
-  request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
-  reply: FastifyReply
-) {
+export async function getIndustriesById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { id, program_id } = request.params;
+    const { id, program_id } = request.params as { id: string, program_id: string };
     const item = await IndustriesModel.findOne({
       where: { id, program_id, is_deleted: false },
       attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
@@ -354,23 +353,10 @@ export const bulkUploadIndustries = async (request: FastifyRequest, reply: Fasti
   }
 };
 
-export async function labourCategoryFilter(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: {
-      id?: string;
-      name?: string;
-      updated_on?: any;
-      is_enabled?: boolean | string;
-      page?: string;
-      limit?: string;
-    };
-  }>,
-  reply: FastifyReply
-) {
+export async function labourCategoryFilter(request: FastifyRequest,reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
 
     const {
       id,
@@ -379,7 +365,14 @@ export async function labourCategoryFilter(
       is_enabled,
       page,
       limit,
-    } = request.body;
+    } = request.body as {
+        id?: string;
+        name?: string;
+        updated_on?: any;
+        is_enabled?: boolean | string;
+        page?: string;
+        limit?: string;
+    };
 
     const isEnabledFilter =
       is_enabled === 'true' || is_enabled === true ? true :

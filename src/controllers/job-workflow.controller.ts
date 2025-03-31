@@ -612,7 +612,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         if (!user) {
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
-        const moduleType = workflow.module_type.toLowerCase();
+        const moduleType = workflow.module_type?.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
@@ -699,7 +699,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
         if (!user) {
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
         }
-        const moduleType = workflow.module_type.toLowerCase();
+        const moduleType = workflow.module_type?.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
@@ -794,7 +794,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             jobDatas = await getJobDetails(workflow?.job_id, program_id, token);
         }
         let userType = userData[0]
-        if (userType.user_type.toLowerCase() == "msp".toLowerCase() || userType.user_type.toLowerCase() == "client".toLowerCase() || user.userType.toLowerCase() == "super_user".toLowerCase()) {
+        if (userType?.user_type?.toLowerCase() == "msp".toLowerCase() || userType?.user_type?.toLowerCase() == "client".toLowerCase() || user.userType?.toLowerCase() == "super_user".toLowerCase()) {
 
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
@@ -910,6 +910,15 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
         let response = {
 
             eventCode: NotificationEventCode.ASSIGNMENT_APPROVAL_COMPLETE,
+
+            user_type: ['msp', 'vendor']
+        }
+        return response;
+    } else if (flow_type == "Approval" && events === "submit_timesheet") {
+        let response = {
+
+            eventCode: NotificationEventCode.SUBMIT_TIMESHEET,
+        
 
             user_type: ['msp', 'vendor']
         }
@@ -4198,6 +4207,8 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
         return NotificationEventCode.COUNTER_OFFER_APPROVAL_FIRST;
     } else if (flow_type === "Approval" && event === "create_assignment") {
         return NotificationEventCode.ASSIGNMENT_APPROVAL_REQUEST;
+    } else if (flow_type === "Approval" && event === "submit_timesheet") {
+        return NotificationEventCode.SUBMIT_TIMESHEET;
     } else if (flow_type === "Approval" && event === "update_assignment") {
         return NotificationEventCode.ASSIGNMENT_MODIFIED_APPROVAL;
     } else if (flow_type === "Review" && event === "submit_candidate_rehire_check") {

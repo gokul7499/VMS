@@ -117,13 +117,10 @@ export const getAllJobTemplates = async (
   }
 };
 
-export async function getJobTemplateById(
-  request: FastifyRequest<{ Params: { program_id: string; id: string } }>,
-  reply: FastifyReply
-) {
+export async function getJobTemplateById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id, id } = request.params;
+    const { program_id, id } = request.params as { program_id: string; id: string };
 
     const [jobTemplate] = await jobTempletRepositories.getJobTempletById(program_id, id);
 
@@ -144,10 +141,7 @@ export async function getJobTemplateById(
         "is_description_editable",
         "is_onboarding_checklist",
         "is_automatic_distribution",
-        "is_tiered_distribute_schedule",
-        "is_manual_distribution_job_submit",
-        "is_automatic_distribute_submit",
-        "is_automatic_distribute_final_approval",
+        "is_distribute_final_approval",
         "is_expense_allowed_editable",
         "is_expense_allowed",
         "is_resume_mandatory",
@@ -157,9 +151,8 @@ export async function getJobTemplateById(
         "is_enabled",
         "is_background_check",
         "is_tiered_distribute_submit",
-        "is_tiered_distribute_final_approval",
         "is_manual_distribute_submit",
-        "is_manual_distribute_final_approval",
+        "is_review_configured_or_submit",
         "is_shift_rate",
         "is_description_required",
         "is_description_upload_required",
@@ -584,17 +577,11 @@ export async function getJobTemplatesByHierarchies(request: FastifyRequest, repl
   }
 }
 
-export async function getAllJobTemplateHierarchyById(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { hierarchy_ids?: string; job_type?: string; is_enabled?: string };
-  }>,
-  reply: FastifyReply
-) {
+export async function getAllJobTemplateHierarchyById(request: FastifyRequest, reply: FastifyReply) {
   const trace_id = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { hierarchy_ids, job_type, is_enabled } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { hierarchy_ids, job_type, is_enabled } = request.query as { hierarchy_ids: string; job_type: string; is_enabled: string };
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
 
@@ -619,23 +606,11 @@ export async function getAllJobTemplateHierarchyById(
   }
 }
 
-export async function getMostUsedJobTemplates(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-      hierarchy_ids?: string;
-      limit?: number;
-      offset?: number;
-      job_type?: string;
-      is_enabled?: string
-    };
-  }>,
-  reply: FastifyReply
-) {
+export async function getMostUsedJobTemplates(request: FastifyRequest, reply: FastifyReply) {
   const trace_id = generateCustomUUID();
   try {
-    const { program_id } = request.params;
-    const { hierarchy_ids, job_type, limit, offset, is_enabled } = request.query;
+    const { program_id } = request.params as { program_id: string };
+    const { hierarchy_ids, job_type, limit, offset, is_enabled } = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string };
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const data = await jobTempletRepositories.getMostUsedJobTemplatesByProgram(
@@ -662,28 +637,10 @@ export async function getMostUsedJobTemplates(
   }
 }
 
-export async function getAllJobTempletsByHierarchies(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: {
-      hierarchy?: string;
-      labour_category?: string;
-      job_type?: string;
-      name?: string;
-      qualification?: string;
-      limit?: number;
-      offset?: number;
-      labour_category_id?: string;
-      is_enabled?: string;
-      is_shift_rate?: string;
-      hierarchy_ids?: string
-    };
-  }>,
-  reply: FastifyReply
-) {
+export async function getAllJobTempletsByHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { program_id } = request.params;
+    const { program_id } = request.params as { program_id: string };
     const {
       hierarchy,
       labour_category,
@@ -696,7 +653,19 @@ export async function getAllJobTempletsByHierarchies(
       is_enabled,
       is_shift_rate,
       hierarchy_ids
-    } = request.query;
+    } = request.query as {
+      hierarchy?: string;
+      labour_category?: string;
+      job_type?: string;
+      name?: string;
+      qualification?: string;
+      limit?: number;
+      offset?: number;
+      labour_category_id?: string;
+      is_enabled?: string;
+      is_shift_rate?: string;
+      hierarchy_ids?: string
+    };
 
     const hierarchyIdsArray = hierarchy?.split(",") || [];
     const JobType = job_type?.split(",") || [];
@@ -754,16 +723,10 @@ export async function getAllJobTempletsByHierarchies(
   }
 }
 
-export async function findJobTemplatesByHierarchyIds(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Body: { hierarchy_ids: string[] };
-  }>,
-  reply: FastifyReply
-) {
+export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const { program_id } = request.params;
-  const { hierarchy_ids } = request.body;
+  const { program_id } = request.params as { program_id: string };
+  const { hierarchy_ids } = request.body as { hierarchy_ids: string[] };
   try {
     if (
       !Array.isArray(hierarchy_ids) ||
@@ -848,15 +811,9 @@ export async function findJobTemplatesByHierarchyIds(
   }
 }
 
-export async function findJobTemplatesByLabourCategories(
-  request: FastifyRequest<{
-    Params: { program_id: string };
-    Querystring: { labour_category: string };
-  }>,
-  reply: FastifyReply
-) {
-  const { program_id } = request.params;
-  const { labour_category } = request.query;
+export async function findJobTemplatesByLabourCategories(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const { labour_category } = request.query as { labour_category: string };
   const traceId = generateCustomUUID();
   try {
     if (!labour_category) {
@@ -1027,11 +984,8 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export const advanceFilterJobTemplates = async (
-  request: FastifyRequest<{ Body: GetJobTemplatesQuery, Params: { program_id: string } }>,
-  reply: FastifyReply
-) => {
-  const { program_id } = request.params;
+export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
 
   try {
@@ -1046,7 +1000,7 @@ export const advanceFilterJobTemplates = async (
       category,
       page = 1,
       limit = 10,
-    } = request.body;
+    } = request.body as GetJobTemplatesQuery;
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
