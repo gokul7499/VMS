@@ -20,13 +20,7 @@ async function industriesRoutes(fastify: FastifyInstance) {
         }
     }, lebourCategoryController.bulkUploadIndustries);
 
-    fastify.get('/program/:program_id/industries', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
-        schema: {
-            params: paramsSchema,
-            querystring: querySchema,
-        }
-    }, lebourCategoryController.getIndustries);
+    fastify.get('/program/:program_id/industries', lebourCategoryController.getIndustries);
 
     fastify.get('/program/:program_id/industries/:id', {
         preHandler: validatePermissions(Actions.READ, [Permissions.LABOUR_CATEGORY]),
