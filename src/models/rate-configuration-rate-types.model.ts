@@ -8,6 +8,7 @@ class RateConfigurationRateTypes extends Model {
     id: any;
     rate_type: any;
     bill_rate: any;
+    seq_number: any;
 }
 
 RateConfigurationRateTypes.init(
@@ -29,6 +30,10 @@ RateConfigurationRateTypes.init(
                 model: rateType,
                 key: 'id',
             }
+        },
+        seq_number: {
+            type: DataTypes.NUMBER,
+            allowNull: true
         },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,

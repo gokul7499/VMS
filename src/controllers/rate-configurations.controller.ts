@@ -128,6 +128,7 @@ export const createRateConfigurations = async (
                         const rateTypeRecord = await RateConfigurationRateTypes.create({
                             base_rate_type_id: baseRateResult.id,
                             rate_type_id: rate.rate_type_id,
+                            seq_number: rate.seq_number,
                             created_by: userId,
                             updated_by: userId
                         }, { transaction });
@@ -628,6 +629,7 @@ export async function getRateConfigurationById(
                             attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
                         },
                     ],
+                    attributes: ['id', 'seq_number']
                 });
 
                 const rateDetails = await Promise.all(
@@ -656,6 +658,7 @@ export async function getRateConfigurationById(
                                     rate_type_category: rateTypeCategory,
                                 }
                                 : null,
+                            seq_number: rate.seq_number,
                             bill_rate: billRates,
                             pay_rate: payRates,
                         };
@@ -990,9 +993,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                         where: { is_base_rate: false },
                         attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
                     }],
+                    attributes: ['id', 'seq_number']
                 });
 
-                const rateDetails = await Promise.all(rates.map(async (rate: { rate_type: { rate_type_category: any; shift_type: any; get: () => any; }; id: any; }) => {
+                const rateDetails = await Promise.all(rates.map(async (rate: {
+                    seq_number: any; rate_type: { rate_type_category: any; shift_type: any; get: () => any; }; id: any;
+                }) => {
                     const rateTypeCategory = rate.rate_type?.rate_type_category
                         ? await picklistItemModel.findOne({
                             where: { id: rate.rate_type?.rate_type_category },
@@ -1062,6 +1068,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                             rate_type_category: rateTypeCategory,
                             shift_type: shiftType,
                         },
+                        seq_number: rate.seq_number,
                         bill_rate: bill_rate,
                         pay_rate: pay_rate
                     };
