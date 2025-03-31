@@ -904,7 +904,7 @@ export const createPicklistData = async (
 
 
 export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, updated_on } =
+  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, updated_on, page = 1, limit = 10 } =
     request.body as {
       name?: string;
       picklist_id?: string;
@@ -915,6 +915,8 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       is_deleted?: boolean;
       is_enabled?: boolean;
       updated_on?: string[];
+      page?: number;
+      limit?: number;
     };
 
   let picklistData;
@@ -928,13 +930,16 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
     if (is_deleted !== undefined) whereCondition.is_deleted = is_deleted;
     if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled;
 
-
     if (Array.isArray(updated_on) && updated_on.length === 2) {
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       whereCondition.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-  }
-  
-    picklistData = await picklist_model.findAll({
+    }
+
+    const pageNumber = parseInt(page as unknown as string, 10);
+    const pageSize = parseInt(limit as unknown as string, 10);
+    const offset = (pageNumber - 1) * pageSize;
+
+    const { rows: picklistDataRows, count: total_records } = await picklist_model.findAndCountAll({
       where: whereCondition,
       include: [
         {
@@ -954,13 +959,18 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         },
       ],
       order: [["name", "ASC"]],
+      offset,
+      limit: pageSize,
     });
 
-    if (picklistData.length === 0) {
+    if (picklistDataRows.length === 0) {
       return reply.status(200).send({
         status_code: 200,
         message: "Pick list data not found",
         picklist_data: [],
+        total_records,
+        page: pageNumber,
+        limit: pageSize,
       });
     }
 
@@ -969,12 +979,12 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       const customOrder = ["Standard", "Over Time", "Double Time", "Holiday", "Weekend", "Other"];
       const orderMap = Object.fromEntries(customOrder.map((value, index) => [value, index]));
 
-      responseData = picklistData.map((picklist) => ({
+      responseData = picklistDataRows.map((picklist) => ({
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
         slug: picklist.slug,
-        picklist_id:picklist.picklist_id,
+        picklist_id: picklist.picklist_id,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
@@ -987,18 +997,18 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
         ),
       }));
     } else {
-      responseData = picklistData.map((picklist) => ({
+      responseData = picklistDataRows.map((picklist) => ({
         id: picklist.id,
         program_id: picklist.program_id,
         name: picklist.name,
         slug: picklist.slug,
-        picklist_id:picklist.picklist_id,
+        picklist_id: picklist.picklist_id,
         is_enabled: picklist.is_enabled,
         is_deleted: picklist.is_deleted,
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
-        updated_on:picklist.updated_on,
+        updated_on: picklist.updated_on,
         picklist_value_count: picklist.picklistItems.length,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({
@@ -1020,6 +1030,9 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       status_code: 200,
       message: "Pick list data retrieved successfully",
       picklist_data: responseData,
+      total_records,
+      page: pageNumber,
+      limit: pageSize,
     });
   } catch (error: any) {
     return reply.status(500).send({
@@ -1028,4 +1041,4 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
       error: error.message,
     });
   }
-}
+};
