@@ -6,7 +6,7 @@ import { Actions, Permissions } from "../constants/permissions";
 import { verifyToken } from '../middlewares/verifyToken';
 
 async function customFieldsRoutes(fastify: FastifyInstance) {
-    fastify.addHook('preHandler', verifyToken);
+  fastify.addHook('preHandler', verifyToken);
 
   fastify.post('/program/:program_id/custom-fields', {
     preHandler: validatePermissions(Actions.CREATE, [Permissions.CUSTOM_FIELD]),
@@ -15,15 +15,7 @@ async function customFieldsRoutes(fastify: FastifyInstance) {
     }
   }, customFieldController.saveCustomFields);
 
-  fastify.get('/program/:program_id/custom-fields',
-    {
-      preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
-      schema: {
-        params: paramsSchema,
-      }
-    },
-    customFieldController.getAllCustomFields
-  );
+  fastify.get('/program/:program_id/custom-fields', customFieldController.getAllCustomFields);
 
   fastify.get('/program/:program_id/custom-fields/:id', {
     preHandler: validatePermissions(Actions.READ, [Permissions.CUSTOM_FIELD]),
