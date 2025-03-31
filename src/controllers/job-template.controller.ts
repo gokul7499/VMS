@@ -18,6 +18,7 @@ import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
 import { extractFileContent } from "../utility/fileUpload";
+import JobMasterDataModel from "../models/job-master-data.model";
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
