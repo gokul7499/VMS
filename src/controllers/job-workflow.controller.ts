@@ -2574,7 +2574,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let level_behaviour: any;
                 let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    const recipientTypes = JSON.parse(row.recipient_types);
+                    const recipientTypes = JSON.parse(row.recipient_types) || [];
 
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
