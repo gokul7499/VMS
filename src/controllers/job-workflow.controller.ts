@@ -3008,7 +3008,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "Rejected") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
@@ -3045,7 +3045,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             // Update the status map for reference
             if (currentLevel.recipients && currentLevel.recipients.length > 0) {
                 currentLevel.recipients.forEach((recipient: any) => {
-                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "Rejected" || currentLevel.level_status === "Not needed") {
+                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "canceled" || currentLevel.level_status === "Not needed") {
                         // If the level is completed, preserve the recipient's existing status
                         recipient.status = recipient.status;
                     } else if (currentLevel.level_status === "pending") {
