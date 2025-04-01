@@ -20,4 +20,5 @@ export interface ShiftTypeAttributes {
     created_by: string;
     updated_by: string;
     hierarchy_ids:string;
+    is_billable: boolean;
   }
