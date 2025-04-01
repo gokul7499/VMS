@@ -11,7 +11,7 @@ async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createTimesheetExpenseRuleGroupSchema
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
     }, TimesheetExpenseRuleGroupController.createTimesheetExpenseRuleGroup);
 
     fastify.get('/timesheet-expense-rule-groups/get-all', {
@@ -19,14 +19,14 @@ async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
     }, TimesheetExpenseRuleGroupController.getAllTimesheetExpenseRuleGroups);
 
     fastify.get('/timesheet-expense-rule-groups/:id', {
         schema: {
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
     }, TimesheetExpenseRuleGroupController.getTimesheetExpenseRuleGroupById);
 
     fastify.put('/timesheet-expense-rule-groups/:id', {
@@ -34,7 +34,7 @@ async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createTimesheetExpenseRuleGroupSchema
         },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
     }, TimesheetExpenseRuleGroupController.updateTimesheetExpenseRuleGroup);
 
     fastify.delete('/timesheet-expense-rule-groups/:id', {
@@ -47,7 +47,7 @@ async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
         schema: {
             params: paramsSchema
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULES_GROUP])
     }, TimesheetExpenseRuleGroupController.filterTimesheetExpenseRuleGroups);
 }
 

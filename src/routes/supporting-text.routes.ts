@@ -10,7 +10,7 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
     schema: {
       body: createsupportingTextSchema,
     },
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.SUPPORTING_TEXT])
+    // preHandler: validatePermissions(Actions.CREATE, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.createSupportingText);
 
   fastify.get('/program/:program_id/supporting-text', {
@@ -18,7 +18,7 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
       params: paramsSchema,
       querystring: querySchema,
     },
-    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.getAllSupportingTexts);
 
   fastify.get('/program/:program_id/supporting-text/:id', {
@@ -26,14 +26,14 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
       params: paramsSchema,
       querystring: querySchema,
     },
-    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.getSupportingText);
 
   fastify.put('/supporting-text/:id', {
     schema: {
       body: createsupportingTextSchema,
     },
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.SUPPORTING_TEXT])
+    // preHandler: validatePermissions(Actions.UPDATE, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.updateSupportingText);
 
   fastify.delete('/program/:program_id/supporting-text/:id', {
@@ -46,7 +46,7 @@ async function supportingTextRoutes(fastify: FastifyInstance) {
     schema: {
       params: paramsSchema,
     },
-    preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.SUPPORTING_TEXT])
   }, SupportingTextController.getAllSupportingTextsAdvancedFilter);
 }
 
