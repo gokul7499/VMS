@@ -192,9 +192,7 @@ export async function createReasonCodes(
         status_code: 201,
         message: 'Reason codes created successfully',
         reason_code_action_id,
-        program_id, 
         trace_id: traceId,
-        created_codes_count: createdCodes.length,
       });
     } catch (error: any) {
       await transaction.rollback();
