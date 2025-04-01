@@ -17,6 +17,7 @@ import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
+import log from '../plugins/logger-plugin';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -669,17 +670,17 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                             },
                         });
                     } else
-                    if (moduleType === "Timesheet".toLowerCase()) {
-                        const timesheet_id = workflow.workflow_trigger_id;
-                        const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
-                        const payload = { status: "approved"}; 
-                        await axios.put(apiUrl, payload, {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                authorization: authHeader
-                            },
-                        });
-                    }
+                        if (moduleType === "Timesheet".toLowerCase()) {
+                            const timesheet_id = workflow.workflow_trigger_id;
+                            const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
+                            const payload = { status: "approved" };
+                            await axios.put(apiUrl, payload, {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    authorization: authHeader
+                                },
+                            });
+                        }
 
     } catch (error) {
         console.error('error while updating status:', error);
@@ -918,7 +919,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
         let response = {
 
             eventCode: NotificationEventCode.SUBMIT_TIMESHEET,
-        
+
 
             user_type: ['msp', 'vendor']
         }
@@ -1229,7 +1230,8 @@ export const rejectLevel = async (
 
 
             if (new_status !== "rejected") {
-                throw new Error("Only 'rejected' status is allowed for this operation.");           }
+                throw new Error("Only 'rejected' status is allowed for this operation.");
+            }
 
             let levelFound = false;
 
@@ -1260,15 +1262,18 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                     actor_first_name: userData?.first_name,
+                                return {
+                                    ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                    actor_first_name: userData?.first_name,
                                     actor_last_name: userData?.last_name,
-                                    actor_by_avatar: userData?.avatar, };
+                                    actor_by_avatar: userData?.avatar,
+                                };
 
                             }
 
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                };
+                            return {
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                            };
 
                         });
                         return {
@@ -1297,7 +1302,8 @@ export const rejectLevel = async (
             });
 
             if (!levelFound) {
-                throw new Error(`Placement order ${placement_order} not found in levels.`);             }
+                throw new Error(`Placement order ${placement_order} not found in levels.`);
+            }
 
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1333,7 +1339,7 @@ export const rejectLevel = async (
             program_id: program_id,
             user_type: eventCode.user_type
         }
-         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+        await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
         return reply.status(200).send({
             status_code: 200,
@@ -1347,7 +1353,7 @@ export const rejectLevel = async (
             status_code: 500,
             message: "Failed to update job workflow.",
             trace_id: traceId,
-            error:(error as Error).message
+            error: (error as Error).message
         });
     }
 };
@@ -1411,13 +1417,16 @@ export const updateReplaceLevel = async (
                 levelFound = true;
 
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    // Check if replaced_by exists, match directly
                     if (recipient.replaced_by === user_id) {
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
-                            existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
-                            replaced_by, // Update replaced_by with the new value from the payload
+                            meta_data: {
+                                ...recipient.meta_data,
+                                [metaDataKey]: replaced_by
+                            },
+                            replaced_by,
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
