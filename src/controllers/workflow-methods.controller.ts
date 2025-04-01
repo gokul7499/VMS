@@ -894,8 +894,6 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
     if (sortByPending) {
-        console.log('workflow is noowoww', workflows);
-        console.log('response is now', responses)
         return responses.sort((a, b) => {
             const aStatusIsPending = workflows.some(
               (w) => w?.method_id === a.id && w?.status?.toLowerCase() === "pending"
