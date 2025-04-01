@@ -121,19 +121,21 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     const shiftTypeData = request.body as ShiftTypeAttributes;
-    const user = request.user;
-
+    const authHeader = request.headers.authorization;
+    
     logger.info({ traceId, id, program_id, shiftTypeData }, 'Received request to update shift type');
 
-    if (!user) {
-        logger.warn({ traceId }, 'User is missing in request');
-        return reply.status(400).send({
-            status_code: 400,
-            message: 'User is required',
-            trace_id: traceId
-        });
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
-    const userId = user?.user_id;
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+   
+    const userId = user?.sub;
 
     try {
         logger.info({ traceId, id, program_id }, 'Checking if shift type exists');
