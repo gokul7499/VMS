@@ -441,7 +441,12 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
         });
 
         if (reasonCodeAction) {
-            const { supporting_text_event, module, reason_codes } = reasonCodeAction.toJSON();
+            const reasonCodes  = await ReasonCodeModel.findAll({
+                where: { reason_code_id: id },
+                attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                transaction,
+            });     
+            const { supporting_text_event, module,} = reasonCodeAction.toJSON();
 
             reasonCodeResponse = {
                 id: reasonCodeAction.id,
@@ -449,7 +454,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                 module_id: module?.id || 'Unknown ID',
                 event_name: supporting_text_event?.name || 'Unknown Event',
                 event_id: supporting_text_event?.id || 'Unknown ID',
-                reason_codes: reason_codes || [],
+                reason_codes: reasonCodes || [],
             };
 
             await transaction.commit();
