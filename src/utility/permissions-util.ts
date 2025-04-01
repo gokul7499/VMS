@@ -24,8 +24,8 @@ class AWSElastiCacheConnectionManager {
     return {
       host: host,
       port:redis_port,
-      // password: redis_auth,
-      // tls: {},
+      password: redis_auth,
+      tls: {},
       connectTimeout: 20000,
       commandTimeout: 10000,
       maxRetriesPerRequest: 2,
