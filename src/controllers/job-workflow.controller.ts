@@ -17,7 +17,6 @@ import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
-import log from '../plugins/logger-plugin';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
