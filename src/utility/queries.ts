@@ -3202,9 +3202,9 @@ export const getVendorMarkups = ({
               JSON_OBJECT('id', 'any', 'label', 'Any')
           ) AS worker_classification,
           COALESCE(
-              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name) 
+              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name, 'abbreviation', rt.abbreviation) 
                FROM rate_type rt WHERE rt.id = vmc.rate_type), 
-              JSON_OBJECT('id', 'any', 'name', 'Any')
+              JSON_OBJECT('id', 'any', 'name', 'Any', 'abbreviation', 'Any')
           ) AS rate_type,
           COALESCE(
               (SELECT JSON_OBJECT('id', wl.id, 'name', wl.name) 
