@@ -6,27 +6,27 @@ import { Permissions, Actions } from "../constants/permissions";
 async function QualificationsRoutes(fastify: FastifyInstance) {
 
     fastify.post('/program/:program_id/qualifications', {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.QUALIFICATION])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.QUALIFICATION])
     }, QualificationController.createQualification);
 
     fastify.put('/program/:program_id/qualifications/:id', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.QUALIFICATION])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.QUALIFICATION])
     }, QualificationController.updateQualification);
 
     fastify.delete('/program/:program_id/qualifications/:id', QualificationController.deleteQualification);
 
     fastify.get('/program/:program_id/qualifications', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
     }, QualificationController.getAllQualifications);
 
     fastify.get('/program/:program_id/qualifications/:id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
     }, QualificationController.getQualificationById);
 
     fastify.post('/program/:program_id/qualifications/bulk-upload', QualificationController.bulkCreateQualifications);
 
     fastify.get('/program/:program_id/qualificationCode', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.QUALIFICATION])
     }, QualificationController.getQualificationCode);
 
 }

@@ -5,31 +5,31 @@ import { Actions, Permissions } from '../constants/permissions';
 
 async function vendorDistributionScheduleRoutes(fastify: FastifyInstance) {
     fastify.get("/program/:program_id/vendor-distribution-schedules", {
-        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.getAllvendorDistributionSchedules);
 
     fastify.get("/program/:program_id/vendor-distribution-schedules/:id", {
-        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.getVendorDistributionScheduleById);
 
     fastify.post("/program/:program_id/vendor-distribution-schedules", {
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.createVendorDistributionSchedule);
 
     fastify.put("/program/:program_id/vendor-distribution-schedules/:id", {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.updateVendorDistributionSchedule);
 
     fastify.delete("/program/:program_id/vendor-distribution-schedules/:id", {
-        preHandler: validatePermissions(Actions.DELETE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.DELETE, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.deleteVendorDistributionSchedule);
 
     fastify.get("/program/:program_id/vendor-distribution/:id", {
-        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.getVendorDistributionScheduleByIds);
 
     fastify.post('/program/:program_id/vendor-distribution/advance-filter', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.vendorDistributionScheduleFilter);
 
 }

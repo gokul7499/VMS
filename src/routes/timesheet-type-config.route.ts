@@ -11,7 +11,7 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createTimesheetTypeConfigSchema
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.createTimesheetTypeConfig);
 
     fastify.get('/timesheet-type-config/get-all', {
@@ -19,21 +19,21 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.getAllTimesheetTypeConfigs);
 
     fastify.get('/timesheet-type-config/get', {
         schema: {
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.getAllRelatedDataByProgram);
 
     fastify.get('/timesheet-type-config/:id', {
         schema: {
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.getTimesheetTypeConfigById);
 
     fastify.put('/timesheet-type-config/:id', {
@@ -41,7 +41,7 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createTimesheetTypeConfigSchema
         },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.updateTimesheetTypeConfig);
 
     fastify.delete('/timesheet-type-config/:id', {
@@ -56,7 +56,7 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: timesheetTypeConfigFilterSchema
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.timesheetTypeConfigFilter);
 
 }

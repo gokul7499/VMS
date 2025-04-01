@@ -17,7 +17,7 @@ async function userRoutes(fastify: FastifyInstance) {
     }, userController.createUser);
 
     fastify.put('/user/:id/program/:program_id', {
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.USER])
     }, userController.updateUser);
 
     fastify.delete('/user/:id', userController.deleteUser);
@@ -27,23 +27,23 @@ async function userRoutes(fastify: FastifyInstance) {
     }, userController.searchUser);
 
     fastify.get('/user/program/:program_id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getAllUserIDAndUserId);
 
     fastify.get('/user/:id/program/:program_id', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserHierarchiesByProgram);
 
     fastify.get('/user/program/:program_id/user-worklocation', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserWorkLocationAndTimeZone);
 
     fastify.get('/program/:program_id/user-associated-hierachies', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserAndHierarchieId);
 
     fastify.get('/program/:program_id/get-job-manegers', {
-        preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getActiveUser);
 
     fastify.get('/get-user-contact', {
