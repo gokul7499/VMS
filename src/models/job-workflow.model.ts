@@ -18,6 +18,7 @@ class JobWorkFlowModel extends Model {
   event: any;
   moduleDetail: any;
   job_id!: string;
+  status!:string;
 }
 
 JobWorkFlowModel.init(
