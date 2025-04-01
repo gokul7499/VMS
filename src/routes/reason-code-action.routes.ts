@@ -13,6 +13,13 @@ async function reasoncodeRoute(fastify: FastifyInstance) {
         preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
     }, ResonCodeController.createReasoncode);
 
+    fastify.post('/reason-codes', {
+        schema: {
+            body: createReasoncodeSchema,
+        },
+        preHandler: validatePermissions(Actions.CREATE, [Permissions.RESON_CODE])
+    }, ResonCodeController.createReasonCodes);
+
     fastify.get('/reason-code', {
         schema: {
             querystring: querySchema,
