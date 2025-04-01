@@ -19,7 +19,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseConfigurationById);
 
     fastify.post('/program/:program_id/expense-config', {
@@ -27,7 +27,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             body: createExpenseConfigurationSchema,
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.createExpenseConfiguration);
 
     fastify.put('/program/:program_id/expense-config/:id', {
@@ -49,7 +49,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchy);
 
     fastify.get('/program/:program_id/expense-configs-hierarchies', {
@@ -57,7 +57,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getAllExpenseConfigurationHierarchies);
 
     fastify.post('/program/:program_id/expense-configs-advanced-filter', {
@@ -65,7 +65,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createExpenseConfigurationAdvancedFilter
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.expenseConfigurationAdvancedFilter);
 
     fastify.get('/program/:program_id/expense-config-type-by-hierarchy', {
@@ -73,7 +73,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchies);
 
 
