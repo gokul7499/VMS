@@ -894,29 +894,28 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
     if (sortByPending) {
+        console.log('workflow is noowoww', workflows);
+        console.log('response is now', responses)
         return responses.sort((a, b) => {
             const aStatusIsPending = workflows.some(
-                (w) => w?.id === a.id && w?.status?.toLowerCase() === "pending"
+              (w) => w?.method_id === a.id && w?.status?.toLowerCase() === "pending"
             );
             const bStatusIsPending = workflows.some(
-                (w) => w?.id === b.id && w?.status?.toLowerCase() === "pending"
+              (w) => w?.method_id === b.id && w?.status?.toLowerCase() === "pending"
             );
-
-            if (aStatusIsPending && !bStatusIsPending) return 1;
-            if (bStatusIsPending && !aStatusIsPending) return -1;
-
+            
+            if (aStatusIsPending && !bStatusIsPending) return 1;  
+            if (!aStatusIsPending && bStatusIsPending) return -1;  
             const aIsReviewOrApproval =
-                a?.name?.trim().toLowerCase() === "review" ||
-                a?.name?.trim().toLowerCase() === "approval";
+              a?.name?.trim().toLowerCase() === "review" ||
+              a?.name?.trim().toLowerCase() === "approval";
             const bIsReviewOrApproval =
-                b?.name?.trim().toLowerCase() === "review" ||
-                b?.name?.trim().toLowerCase() === "approval";
-
-            if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1;
-            if (bIsReviewOrApproval && !aIsReviewOrApproval) return 1;
-
+              b?.name?.trim().toLowerCase() === "review" ||
+              b?.name?.trim().toLowerCase() === "approval";
+            if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
+            if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
             return 0;
-        });
+          });
     } else {
         return responses.sort((a, b) => {
             if (a.name?.trim().toLowerCase() === 'review') return -1;
