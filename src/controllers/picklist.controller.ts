@@ -9,7 +9,6 @@ import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
-import { multiply } from 'lodash';
 
 export async function getPicklistById(
   request: FastifyRequest,
