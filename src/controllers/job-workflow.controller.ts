@@ -2092,6 +2092,26 @@ ORDER BY
         });
         console.log(rows);
 
+        // let programData = await sequelize.query(
+        //     `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
+        //     {
+        //         replacements: { workflow_trigger_id },
+        //         type: QueryTypes.SELECT,
+        //     }
+        // );
+
+        // // Create a map to store the latest status for each flow_type
+        // const flowTypeStatusMap = new Map<string, boolean>();
+
+        // for (const program of programData) {
+        //     const { flow_type, status } = program as JobWorkFlow
+
+        //     // If the flow_type is already in the map, prioritize "completed" status
+        //     if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+        //         flowTypeStatusMap.set(flow_type, status === "completed");
+        //     }
+        // }
+
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -2099,20 +2119,25 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-
-        // Create a map to store the latest status for each flow_type
+        console.log('program data is nowww', programData);
+        
         const flowTypeStatusMap = new Map<string, boolean>();
-
+        
         for (const program of programData) {
-            const { flow_type, status } = program as JobWorkFlow
-
-            // If the flow_type is already in the map, prioritize "completed" status
-            if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+            const { flow_type, status } = program as JobWorkFlow;
+        
+            if (!flowTypeStatusMap.has(flow_type)) {
                 flowTypeStatusMap.set(flow_type, status === "completed");
+            } else {
+                const currentStatus = flowTypeStatusMap.get(flow_type);
+                if (status === "pending") {
+                    flowTypeStatusMap.set(flow_type, false);
+                } else if (status === "completed" && currentStatus !== false) {
+                    flowTypeStatusMap.set(flow_type, true);
+                }
             }
         }
-
-        // Convert the map to the required array format and sort
+        
         const flowTypes = Array.from(flowTypeStatusMap.entries())
             .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
             .sort((a, b) => {
@@ -2120,7 +2145,7 @@ ORDER BY
                 if (b.flow_type === "Review") return 1;
                 return 0;
             });
-
+    
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
