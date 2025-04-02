@@ -69,6 +69,10 @@ Module.init(
             type: DataTypes.BOOLEAN,
             allowNull: true
         },
+        is_reason_code: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
