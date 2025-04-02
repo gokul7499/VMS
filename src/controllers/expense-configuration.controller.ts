@@ -218,7 +218,6 @@ export async function createExpenseConfiguration(
             created_by: user.sub,
             updated_by: user.sub,
         });
-        console.log("expenseConfigData",expenseConfigData)
         logger(
             {
                 traceId,
