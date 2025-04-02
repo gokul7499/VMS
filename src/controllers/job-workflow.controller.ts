@@ -2093,7 +2093,7 @@ ORDER BY
         console.log(rows);
 
         let programData = await sequelize.query(
-            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending")`,
+            `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
                 replacements: { workflow_trigger_id },
                 type: QueryTypes.SELECT,
