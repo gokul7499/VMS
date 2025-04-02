@@ -10,7 +10,7 @@ async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createTimesheetExpenseRuleSchema
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_EXPENSE_RULE])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.TIMESHEET_EXPENSE_RULE])
     }, TimesheetExpenseRuleController.createTimesheetExpenseRule);
 
     fastify.get('/program/:program_id/timesheet-expense-rules', {
@@ -18,14 +18,14 @@ async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: QuerySchema
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
     }, TimesheetExpenseRuleController.getTimesheetExpenseRule);
 
     fastify.get('/program/:program_id/timesheet-expense-rule/:id', {
         schema: {
             params: paramsSchema
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
     }, TimesheetExpenseRuleController.getTimesheetExpenseRuleById);
 
     fastify.put('/program/:program_id/timesheet-expense-rule/:id',
@@ -34,7 +34,7 @@ async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
                 params: paramsSchema,
                 body: createTimesheetExpenseRuleSchema
             },
-            preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_EXPENSE_RULE])
+            // preHandler: validatePermissions(Actions.UPDATE, [Permissions.TIMESHEET_EXPENSE_RULE])
         }, TimesheetExpenseRuleController.updateTimesheetExpenseRule);
 
     fastify.delete('/program/:program_id/timesheet-expense-rule/:id',
@@ -49,7 +49,7 @@ async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
             schema: {
                 params: paramsSchema
             },
-            preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
+            // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_EXPENSE_RULE])
         }, TimesheetExpenseRuleController.filterTimesheetExpenseRule);
 }
 

@@ -293,510 +293,553 @@ export async function getWorkflowMethodById(request: FastifyRequest, reply: Fast
     }
 }
 
+// export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyReply) {
+//     const traceId = generateCustomUUID();
+//     try {
+//         const {module ,workflow_trigger_id } = request.query as { module: string,workflow_trigger_id?:string };
+//         let item;
+//         if (module.toLowerCase() === 'job') {
+//             const event_slug1 = "create_job";
+//             const event_slug2 = "update_job";
+//             const module_slug = "job";
+//             let moduleId;
+        
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } });
+//             }
+        
+//             const module_ids = moduleId?.dataValues.id || "";
+        
+//             let eventId1Value: any;
+//             let eventId2Value: any;
+        
+//             if (module_ids && event_slug1) {
+//                 eventId1Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug1, is_enabled: true }
+//                 });
+//             }
+//             if (module_ids && event_slug2) {
+//                 eventId2Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug2, is_enabled: true }
+//                 });
+//             }
+        
+//             const eventId1 = eventId1Value?.dataValues?.id || null;
+//             const eventId2 = eventId2Value?.dataValues?.id || null;
+        
+//             let item = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     [Op.or]: [
+//                         { event_id: eventId1 },
+//                         { event_id: eventId2 }
+//                     ]
+//                 }
+//             });
+                  
+//             const createReviewMethod = item.find(
+//                 i => i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() == "review"
+//             );
+//             const updateReviewMethod = item.find(
+//                 i => i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() == "review"
+//             );
+//             const createApprovalMethod = item.find(
+//                 i => i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() == "approval"
+//             );
+//             const updateApprovalMethod = item.find(
+//                 i => i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() == "approval"
+//             );
+
+//             if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
+//                 const response = [
+//                     {
+//                         ...createApprovalMethod.dataValues,
+//                         method_ids: [
+//                             createApprovalMethod.dataValues.id,
+//                             updateApprovalMethod.dataValues.id
+//                         ]
+//                     },
+//                     {
+//                         ...createReviewMethod.dataValues,
+//                         method_ids: [
+//                             createReviewMethod.dataValues.id,
+//                             updateReviewMethod.dataValues.id
+//                         ]
+//                     }
+//                 ];
+//             const workflows = await JobWorkFlowModel.findAll({
+//                 where: {
+//                     workflow_trigger_id: workflow_trigger_id,
+//                     is_deleted: false,
+//                     is_enabled: true
+//                 }
+//             });
+        
+//             if (!workflows.length) {
+//                 return reply.status(400).send({
+//                     status_code: 400,
+//                     message: "No workflows found for the given trigger ID"
+//                 });
+//             }
+        
+//             const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+//            let responses = response.filter(i => workflowMethodIds.includes(i.id));
+//                 // const sortedResponse = responses.sort((a, b) => {
+//                 //     if (a.name?.trim().toLowerCase() === 'review') return -1;
+//                 //     if (b.name?.trim().toLowerCase() === 'review') return 1;
+//                 //     return 0; 
+//                 // });
+//                 // Filter responses that match the workflow method IDs
+
+
+//                 const sortedResponse = responses.sort((a, b) => {
+//                     const aStatusIsPending = workflows.some(
+//                         (w) => w?.id === a.id && w?.status?.toLowerCase() === "pending"
+//                     );
+//                     const bStatusIsPending = workflows.some(
+//                         (w) => w?.id === b.id && w?.status?.toLowerCase() === "pending"
+//                     );
+
+//                     if (aStatusIsPending && !bStatusIsPending) {
+//                         return 1;
+//                     }
+//                     if (bStatusIsPending && !aStatusIsPending) {
+//                         return -1;
+//                     }
+
+//                     const aIsReviewOrApproval =
+//                         a?.name?.trim().toLowerCase() === "review" ||
+//                         a?.name?.trim().toLowerCase() === "approval";
+//                     const bIsReviewOrApproval =
+//                         b?.name?.trim().toLowerCase() === "review" ||
+//                         b?.name?.trim().toLowerCase() === "approval";
+
+//                     if (aIsReviewOrApproval && !bIsReviewOrApproval) {
+//                         return -1;
+//                     }
+//                     if (bIsReviewOrApproval && !aIsReviewOrApproval) {
+//                         return 1;
+//                     }
+
+//                     return 0;
+//                 });
+
+        
+//                 return reply.status(200).send({
+//                     status_code: 200,
+//                     message: "Workflow methods fetched successfully",
+//                     workflow_method: sortedResponse,
+//                 });
+//             } else {
+//                 return reply.status(400).send({
+//                     status_code: 400,
+//                     message: "Required workflow methods not found"
+//                 });
+//             }
+//         }       
+//         else if (module.toLowerCase() === 'offer') {
+//             const event_slug1 = "create_offer";
+//             const event_slug2 = "counter_offer";
+//             const module_slug = "offer";
+
+//             let moduleId;
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } });
+//             }
+//             const module_ids = moduleId?.dataValues.id || "";
+
+//             let eventId1Value: any;
+//             let eventId2Value: any;
+
+//             if (module_ids && event_slug1) {
+//                 eventId1Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
+//                 });
+//             }
+//             if (module_ids && event_slug2) {
+//                 eventId2Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
+//                 });
+//             }
+
+//             const eventId1 = eventId1Value?.dataValues?.id || null;
+//             const eventId2 = eventId2Value?.dataValues?.id || null;
+
+//             const items = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     [Op.or]: [
+//                         { event_id: eventId1 },
+//                         { event_id: eventId2 },
+//                     ],
+//                 },
+//             });
+
+//             const createReviewMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "review"
+//             );
+//             const createApprovalMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+//             const counterReviewMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "review"
+//             );
+//             const counterApprovalMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+
+//             if (createReviewMethod && createApprovalMethod && counterReviewMethod && counterApprovalMethod) {
+//                 const response = [
+//                     {
+//                         ...createApprovalMethod.dataValues,
+//                         method_ids: [
+//                             createApprovalMethod.dataValues.id,
+//                             counterApprovalMethod.dataValues.id
+//                         ]
+//                     },
+//                     {
+//                         ...createReviewMethod.dataValues,
+//                         method_ids: [
+//                             createReviewMethod.dataValues.id,
+//                             counterReviewMethod.dataValues.id
+//                         ]
+//                     }
+//                 ];
+//                 const workflows = await JobWorkFlowModel.findAll({
+//                     where: {
+//                         workflow_trigger_id: workflow_trigger_id,
+//                         is_updated: false,
+//                         is_deleted: false,
+//                         is_enabled: true
+//                     }
+//                 });
+            
+//                 if (!workflows.length) {
+//                     return reply.status(400).send({
+//                         status_code: 400,
+//                         message: "No workflows found for the given trigger ID"
+//                     });
+//                 }
+            
+//                 const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+//                let responses = response.filter(i => workflowMethodIds.includes(i.id));
+//                 const sortedResponse = responses.sort((a, b) => {
+//                     if (a.name?.trim().toLowerCase() === 'review') return -1;
+//                     if (b.name?.trim().toLowerCase() === 'review') return 1;
+//                     return 0; // No change for other cases
+//                 });
+            
+//                 return reply.status(200).send({
+//                     status_code: 200,
+//                     message: "Workflow methods fetched successfully",
+//                     workflow_method: sortedResponse,
+//                 });
+//             } else {
+//                 return reply.status(400).send({
+//                     status_code: 400,
+//                     message: "Required workflow methods not found"
+//                 });
+//             }
+//         } else if (module.toLowerCase() === 'assignment'||module.toLowerCase() === 'assignments') {
+//             const event_slug1 = "create_assignment";
+//             const event_slug2 = "update_assignment";
+//             const event_slug3 = "assignment_budget_adjustment";
+//             const module_slug = "assignment";
+//             let moduleId;
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } });
+//             }
+//             const module_ids = moduleId?.dataValues.id || "";
+//             let eventId1Value: any;
+//             let eventId2Value: any;
+//             let eventId3Value: any;
+
+//             if (module_ids && event_slug1) {
+//                 eventId1Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
+//                 });
+//             }
+//             if (module_ids && event_slug2) {
+//                 eventId2Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
+//                 });
+//             }
+//             if (module_ids && event_slug3) {
+//                 eventId3Value = await Event.findOne({
+//                     where: { module_id: module_ids, slug: event_slug3, is_enabled: true },
+//                 });
+//             }
+
+//             const eventId1 = eventId1Value?.dataValues?.id || null;
+//             const eventId2 = eventId2Value?.dataValues?.id || null;
+//             const eventId3 = eventId3Value?.dataValues?.id || null;
+
+//             const items = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     [Op.or]: [
+//                         { event_id: eventId1 },
+//                         { event_id: eventId2 },
+//                         { event_id: eventId3 },
+//                     ],
+//                 },
+//             });
+
+//             const createApprovalMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+//             const updateApprovalMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+//             const budgetAdjustmentApprovalMethod = items.find(
+//                 (i) =>
+//                     i.dataValues.event_id === eventId3 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+//             if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
+//                 const response = [
+//                     {
+//                         ...createApprovalMethod.dataValues,
+//                         method_ids: [
+//                             createApprovalMethod.dataValues.id,
+//                             updateApprovalMethod.dataValues.id,
+//                             budgetAdjustmentApprovalMethod.dataValues.id
+//                         ]
+//                     }
+//                 ];
+//                 const sortedResponse = response.sort((a, b) => {
+//                     if (a.name?.trim().toLowerCase() === 'review') return -1;
+//                     if (b.name?.trim().toLowerCase() === 'review') return 1;
+//                     return 0; // No change for other cases
+//                 });
+            
+//                 return reply.status(200).send({
+//                     status_code: 200,
+//                     message: "Workflow methods fetched successfully",
+//                     workflow_method: sortedResponse,
+//                 });
+//             } else {
+//                 return reply.status(400).send({
+//                     status_code: 400,
+//                     message: "Required workflow methods not found"
+//                 });
+//             }
+//         } else if (module === 'submit_candidate_rehire_check' ) {
+//             const event_slug1 = "submit_candidate_rehire_check";
+//             const event_slug2 = "submit_candidate_shortlist";
+//             const module_slug = "submission";
+        
+//             let moduleId;
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } });
+//             }
+        
+//             const module_ids = moduleId?.dataValues.id || "";
+        
+//             let eventId1Value = await Event.findOne({
+//                 where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
+//             });
+//             let eventId2Value = await Event.findOne({
+//                 where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
+//             });
+        
+//             const eventId1 = eventId1Value?.dataValues?.id || null;
+//             const eventId2 = eventId2Value?.dataValues?.id || null;
+        
+//             let item = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     [Op.or]: [
+//                         { event_id: eventId1 },
+//                         { event_id: eventId2 }
+//                     ],
+//                 },
+//             });
+        
+//             const rehireReviewMethod = item.find(
+//                 (i) => i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "review"
+//             );
+        
+//             const shortlistReviewMethod = item.find(
+//                 (i) => i.dataValues.event_id === eventId2 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "review"
+//             );
+        
+//             const rehireApprovalMethod = item.find(
+//                 (i) => i.dataValues.event_id === eventId1 &&
+//                     i.dataValues.name?.trim().toLowerCase() === "approval"
+//             );
+        
+//             let response: { [key: string]: any }[] = [];
+        
+//             if (rehireReviewMethod && shortlistReviewMethod && rehireApprovalMethod) {
+//                 response = [
+//                     { ...rehireApprovalMethod.dataValues },
+//                     {
+//                         ...rehireReviewMethod.dataValues,
+//                         method_ids: [
+//                             rehireReviewMethod.dataValues.id,
+//                             shortlistReviewMethod.dataValues.id
+//                         ],
+//                     },
+//                 ];
+//             } else if (rehireReviewMethod || rehireApprovalMethod) {
+//                 response = [
+//                     { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues }
+//                 ];
+//             } else if (shortlistReviewMethod) {
+//                 response = [{ ...shortlistReviewMethod.dataValues }];
+//             }
+        
+//             const workflows = await JobWorkFlowModel.findAll({
+//                 where: {
+//                     workflow_trigger_id: workflow_trigger_id,
+//                     is_deleted: false,
+//                     is_enabled: true,
+//                 },
+//             });
+        
+//             if (!workflows.length) {
+//                 return reply.status(400).send({
+//                     status_code: 400,
+//                     message: "No workflows found for the given trigger ID",
+//                     trace_id: traceId,
+//                 });
+//             }
+        
+//             const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
+//             let responses = response.filter((i) => workflowMethodIds.includes(i.id));
+        
+//             const sortedResponse = responses.sort((a, b) => {
+//                 if (a.name?.trim().toLowerCase() === 'review') return -1;
+//                 if (b.name?.trim().toLowerCase() === 'review') return 1;
+//                 return 0;
+//             });
+        
+//             return reply.status(200).send({
+//                 status_code: 200,
+//                 message: "Workflow methods fetched successfully",
+//                 workflow_method: sortedResponse,
+//                 trace_id: traceId,
+//             });
+//         } 
+//          else if (module === 'submit_candidate_shortlist') {
+//             const event_slug = "submit_candidate_shortlist";
+//             const module_slug = "submission";
+//             let moduleId
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } })
+//             }
+//             const module_ids = moduleId?.dataValues.id || "";
+//             let eventId
+//             if (module_ids && event_slug) {
+//                 eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+//             }
+//             item = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     event_id: eventId?.id
+//                 }
+//             });
+//         } else if (module === 'candidate') {
+//             const event_slug = "locum_name_clear";
+//             const module_slug = "candidates";
+//             let moduleId
+//             if (module_slug) {
+//                 moduleId = await Module.findOne({ where: { slug: module_slug } })
+//             }
+//             const module_ids = moduleId?.dataValues.id || "";
+//             let eventId
+//             if (module_ids && event_slug) {
+//                 eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
+//             }
+//             item = await WorkflowMethod.findAll({
+//                 where: {
+//                     module_id: module_ids,
+//                     event_id: eventId?.id
+//                 }
+//             });
+//         } else {
+//             item = null;
+//         }
+
+//         if (item && item.length > 0) {
+//             const reviewItem = item.find(it =>
+//                 it.dataValues.name?.trim().toLowerCase() === "review"
+//             );
+//             const otherItems = item.filter(it =>
+//                 it.dataValues.name?.trim().toLowerCase() !== "review"
+//             );
+
+//             const sortedItems = reviewItem ? [reviewItem, ...otherItems] : otherItems;
+
+//             reply.status(200).send({
+//                 status_code: 200,
+//                 workflow_method: sortedItems,
+//                 trace_id: traceId
+//             });
+//         } else {
+//             reply.status(404).send({
+//                 status_code: 404,
+//                 message: 'Workflow Method Data Not Found',
+//                 workflow_method: [],
+//                 trace_id: traceId
+//             });
+//         }
+//     } catch (error) {
+//         console.log(error);
+        
+//         reply.status(500).send({
+//             status_code: 500,
+//             message: 'An Error Occurred While Fetching Workflow Method.',
+//             error,
+//             trace_id: traceId
+//         });
+//     }
+// }
+
+
 export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const {module ,workflow_trigger_id } = request.query as { module: string,workflow_trigger_id?:string };
-        let item;
-        if (module.toLowerCase() === 'job') {
-            const event_slug1 = "create_job";
-            const event_slug2 = "update_job";
-            const module_slug = "job";
-            let moduleId;
-        
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } });
-            }
-        
-            const module_ids = moduleId?.dataValues.id || "";
-        
-            let eventId1Value: any;
-            let eventId2Value: any;
-        
-            if (module_ids && event_slug1) {
-                eventId1Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug1, is_enabled: true }
-                });
-            }
-            if (module_ids && event_slug2) {
-                eventId2Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug2, is_enabled: true }
-                });
-            }
-        
-            const eventId1 = eventId1Value?.dataValues?.id || null;
-            const eventId2 = eventId2Value?.dataValues?.id || null;
-        
-            let item = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    [Op.or]: [
-                        { event_id: eventId1 },
-                        { event_id: eventId2 }
-                    ]
-                }
-            });
-                  
-            const createReviewMethod = item.find(
-                i => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() == "review"
-            );
-            const updateReviewMethod = item.find(
-                i => i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() == "review"
-            );
-            const createApprovalMethod = item.find(
-                i => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() == "approval"
-            );
-            const updateApprovalMethod = item.find(
-                i => i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() == "approval"
-            );
+        const { module, workflow_trigger_id } = request.query as { module: string, workflow_trigger_id?: string };
+        const moduleLower = module.toLowerCase();
 
-            if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
-                const response = [
-                    {
-                        ...createApprovalMethod.dataValues,
-                        method_ids: [
-                            createApprovalMethod.dataValues.id,
-                            updateApprovalMethod.dataValues.id
-                        ]
-                    },
-                    {
-                        ...createReviewMethod.dataValues,
-                        method_ids: [
-                            createReviewMethod.dataValues.id,
-                            updateReviewMethod.dataValues.id
-                        ]
-                    }
-                ];
-            const workflows = await JobWorkFlowModel.findAll({
-                where: {
-                    workflow_trigger_id: workflow_trigger_id,
-                    is_deleted: false,
-                    is_enabled: true
-                }
-            });
-        
-            if (!workflows.length) {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "No workflows found for the given trigger ID"
-                });
-            }
-        
-            const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
-           let responses = response.filter(i => workflowMethodIds.includes(i.id));
-                const sortedResponse = responses.sort((a, b) => {
-                    if (a.name?.trim().toLowerCase() === 'review') return -1;
-                    if (b.name?.trim().toLowerCase() === 'review') return 1;
-                    return 0; // No change for other cases
-                });
-        
-                return reply.status(200).send({
-                    status_code: 200,
-                    message: "Workflow methods fetched successfully",
-                    workflow_method: sortedResponse,
-                });
-            } else {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "Required workflow methods not found"
-                });
-            }
-        }       
-        else if (module.toLowerCase() === 'offer') {
-            const event_slug1 = "create_offer";
-            const event_slug2 = "counter_offer";
-            const module_slug = "offer";
-
-            let moduleId;
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } });
-            }
-            const module_ids = moduleId?.dataValues.id || "";
-
-            let eventId1Value: any;
-            let eventId2Value: any;
-
-            if (module_ids && event_slug1) {
-                eventId1Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
-                });
-            }
-            if (module_ids && event_slug2) {
-                eventId2Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
-                });
-            }
-
-            const eventId1 = eventId1Value?.dataValues?.id || null;
-            const eventId2 = eventId2Value?.dataValues?.id || null;
-
-            const items = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    [Op.or]: [
-                        { event_id: eventId1 },
-                        { event_id: eventId2 },
-                    ],
-                },
-            });
-
-            const createReviewMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
-            );
-            const createApprovalMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-            const counterReviewMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
-            );
-            const counterApprovalMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-
-            if (createReviewMethod && createApprovalMethod && counterReviewMethod && counterApprovalMethod) {
-                const response = [
-                    {
-                        ...createApprovalMethod.dataValues,
-                        method_ids: [
-                            createApprovalMethod.dataValues.id,
-                            counterApprovalMethod.dataValues.id
-                        ]
-                    },
-                    {
-                        ...createReviewMethod.dataValues,
-                        method_ids: [
-                            createReviewMethod.dataValues.id,
-                            counterReviewMethod.dataValues.id
-                        ]
-                    }
-                ];
-                const workflows = await JobWorkFlowModel.findAll({
-                    where: {
-                        workflow_trigger_id: workflow_trigger_id,
-                        is_updated: false,
-                        is_deleted: false,
-                        is_enabled: true
-                    }
-                });
-            
-                if (!workflows.length) {
-                    return reply.status(400).send({
-                        status_code: 400,
-                        message: "No workflows found for the given trigger ID"
-                    });
-                }
-            
-                const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
-               let responses = response.filter(i => workflowMethodIds.includes(i.id));
-                const sortedResponse = responses.sort((a, b) => {
-                    if (a.name?.trim().toLowerCase() === 'review') return -1;
-                    if (b.name?.trim().toLowerCase() === 'review') return 1;
-                    return 0; // No change for other cases
-                });
-            
-                return reply.status(200).send({
-                    status_code: 200,
-                    message: "Workflow methods fetched successfully",
-                    workflow_method: sortedResponse,
-                });
-            } else {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "Required workflow methods not found"
-                });
-            }
-        } else if (module.toLowerCase() === 'assignment'||module.toLowerCase() === 'assignments') {
-            const event_slug1 = "create_assignment";
-            const event_slug2 = "update_assignment";
-            const event_slug3 = "assignment_budget_adjustment";
-            const module_slug = "assignment";
-            let moduleId;
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } });
-            }
-            const module_ids = moduleId?.dataValues.id || "";
-            let eventId1Value: any;
-            let eventId2Value: any;
-            let eventId3Value: any;
-
-            if (module_ids && event_slug1) {
-                eventId1Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
-                });
-            }
-            if (module_ids && event_slug2) {
-                eventId2Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
-                });
-            }
-            if (module_ids && event_slug3) {
-                eventId3Value = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug3, is_enabled: true },
-                });
-            }
-
-            const eventId1 = eventId1Value?.dataValues?.id || null;
-            const eventId2 = eventId2Value?.dataValues?.id || null;
-            const eventId3 = eventId3Value?.dataValues?.id || null;
-
-            const items = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    [Op.or]: [
-                        { event_id: eventId1 },
-                        { event_id: eventId2 },
-                        { event_id: eventId3 },
-                    ],
-                },
-            });
-
-            const createApprovalMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-            const updateApprovalMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-            const budgetAdjustmentApprovalMethod = items.find(
-                (i) =>
-                    i.dataValues.event_id === eventId3 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-            if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
-                const response = [
-                    {
-                        ...createApprovalMethod.dataValues,
-                        method_ids: [
-                            createApprovalMethod.dataValues.id,
-                            updateApprovalMethod.dataValues.id,
-                            budgetAdjustmentApprovalMethod.dataValues.id
-                        ]
-                    }
-                ];
-                const sortedResponse = response.sort((a, b) => {
-                    if (a.name?.trim().toLowerCase() === 'review') return -1;
-                    if (b.name?.trim().toLowerCase() === 'review') return 1;
-                    return 0; // No change for other cases
-                });
-            
-                return reply.status(200).send({
-                    status_code: 200,
-                    message: "Workflow methods fetched successfully",
-                    workflow_method: sortedResponse,
-                });
-            } else {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "Required workflow methods not found"
-                });
-            }
-        } else if (module === 'submit_candidate_rehire_check' ) {
-            const event_slug1 = "submit_candidate_rehire_check";
-            const event_slug2 = "submit_candidate_shortlist";
-            const module_slug = "submission";
-        
-            let moduleId;
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } });
-            }
-        
-            const module_ids = moduleId?.dataValues.id || "";
-        
-            let eventId1Value = await Event.findOne({
-                where: { module_id: module_ids, slug: event_slug1, is_enabled: true },
-            });
-            let eventId2Value = await Event.findOne({
-                where: { module_id: module_ids, slug: event_slug2, is_enabled: true },
-            });
-        
-            const eventId1 = eventId1Value?.dataValues?.id || null;
-            const eventId2 = eventId2Value?.dataValues?.id || null;
-        
-            let item = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    [Op.or]: [
-                        { event_id: eventId1 },
-                        { event_id: eventId2 }
-                    ],
-                },
-            });
-        
-            const rehireReviewMethod = item.find(
-                (i) => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
-            );
-        
-            const shortlistReviewMethod = item.find(
-                (i) => i.dataValues.event_id === eventId2 &&
-                    i.dataValues.name?.trim().toLowerCase() === "review"
-            );
-        
-            const rehireApprovalMethod = item.find(
-                (i) => i.dataValues.event_id === eventId1 &&
-                    i.dataValues.name?.trim().toLowerCase() === "approval"
-            );
-        
-            let response: { [key: string]: any }[] = [];
-        
-            if (rehireReviewMethod && shortlistReviewMethod && rehireApprovalMethod) {
-                response = [
-                    { ...rehireApprovalMethod.dataValues },
-                    {
-                        ...rehireReviewMethod.dataValues,
-                        method_ids: [
-                            rehireReviewMethod.dataValues.id,
-                            shortlistReviewMethod.dataValues.id
-                        ],
-                    },
-                ];
-            } else if (rehireReviewMethod || rehireApprovalMethod) {
-                response = [
-                    { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues }
-                ];
-            } else if (shortlistReviewMethod) {
-                response = [{ ...shortlistReviewMethod.dataValues }];
-            }
-        
-            const workflows = await JobWorkFlowModel.findAll({
-                where: {
-                    workflow_trigger_id: workflow_trigger_id,
-                    is_deleted: false,
-                    is_enabled: true,
-                },
-            });
-        
-            if (!workflows.length) {
-                return reply.status(400).send({
-                    status_code: 400,
-                    message: "No workflows found for the given trigger ID",
-                    trace_id: traceId,
-                });
-            }
-        
-            const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
-            let responses = response.filter((i) => workflowMethodIds.includes(i.id));
-        
-            const sortedResponse = responses.sort((a, b) => {
-                if (a.name?.trim().toLowerCase() === 'review') return -1;
-                if (b.name?.trim().toLowerCase() === 'review') return 1;
-                return 0;
-            });
-        
-            return reply.status(200).send({
-                status_code: 200,
-                message: "Workflow methods fetched successfully",
-                workflow_method: sortedResponse,
-                trace_id: traceId,
-            });
-        } 
-         else if (module === 'submit_candidate_shortlist') {
-            const event_slug = "submit_candidate_shortlist";
-            const module_slug = "submission";
-            let moduleId
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } })
-            }
-            const module_ids = moduleId?.dataValues.id || "";
-            let eventId
-            if (module_ids && event_slug) {
-                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
-            }
-            item = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    event_id: eventId?.id
-                }
-            });
-        } else if (module === 'candidate') {
-            const event_slug = "locum_name_clear";
-            const module_slug = "candidates";
-            let moduleId
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } })
-            }
-            const module_ids = moduleId?.dataValues.id || "";
-            let eventId
-            if (module_ids && event_slug) {
-                eventId = await Event.findOne({ where: { module_id: module_ids, slug: event_slug, is_enabled: true } })
-            }
-            item = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    event_id: eventId?.id
-                }
-            });
-        }else if (module.toLowerCase() === 'timesheet') {            
-            const event_slug = "submit_timesheet";
-            const module_slug = "timesheet";
-           
-            let moduleId;
-            if (module_slug) {
-                moduleId = await Module.findOne({ where: { slug: module_slug } });
-            }            
-            const module_ids = moduleId?.dataValues.id || "";
-           
-            let eventId;
-            if (module_ids && event_slug) {
-                console.log(module_ids, event_slug,'module_ids && event_slug)');
-               
-                eventId = await Event.findOne({
-                    where: { module_id: module_ids, slug: event_slug, is_enabled: true },
-                });                
-            }
-           
-            item = await WorkflowMethod.findAll({
-                where: {
-                    module_id: module_ids,
-                    event_id: eventId?.id,
-                }
-            });            
-        }else {
-            item = null;
+        if (moduleLower === 'job') {
+            return await handleJobModule(workflow_trigger_id, reply, traceId);
         }
-
-        if (item && item.length > 0) {
-            const reviewItem = item.find(it =>
-                it.dataValues.name?.trim().toLowerCase() === "review"
-            );
-            const otherItems = item.filter(it =>
-                it.dataValues.name?.trim().toLowerCase() !== "review"
-            );
-
-            const sortedItems = reviewItem ? [reviewItem, ...otherItems] : otherItems;
-
-            reply.status(200).send({
-                status_code: 200,
-                workflow_method: sortedItems,
-                trace_id: traceId
-            });
-        } else {
-            reply.status(404).send({
-                status_code: 404,
-                message: 'Workflow Method Data Not Found',
-                workflow_method: [],
-                trace_id: traceId
-            });
+        else if (moduleLower === 'offer') {
+            return await handleOfferModule(workflow_trigger_id, reply, traceId);
+        }
+        else if (moduleLower === 'assignment' || moduleLower === 'assignments') {
+            return await handleAssignmentModule(reply, traceId);
+        }
+        else if (module === 'submit_candidate_rehire_check') {
+            return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
+        }
+        else {
+            return await handleOtherModules(module, reply, traceId);
         }
     } catch (error) {
         console.log(error);
-        
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
             message: 'An Error Occurred While Fetching Workflow Method.',
             error,
@@ -804,3 +847,346 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         });
     }
 }
+
+async function findModuleBySlug(slug: string) {
+    const moduleData = await Module.findOne({ where: { slug } });
+    return moduleData?.dataValues.id || "";
+}
+
+async function findEvent(moduleId: string, slug: string) {
+    if (!moduleId || !slug) return null;
+    
+    const event = await Event.findOne({
+        where: { module_id: moduleId, slug, is_enabled: true }
+    });
+    return event?.dataValues?.id || null;
+}
+
+async function findWorkflowMethods(moduleId: string, eventIds: (string | null)[]) {
+    return await WorkflowMethod.findAll({
+        where: {
+            module_id: moduleId,
+            [Op.or]: eventIds.filter(id => id !== null).map(id => ({ event_id: id }))
+        }
+    });
+}
+
+function findMethod(items: any[], eventId: string | null, methodName: string) {
+    return items.find(
+        i => i.dataValues.event_id === eventId && 
+             i.dataValues.name?.trim().toLowerCase() === methodName
+    );
+}
+
+async function getWorkflows(workflowTriggerId: string | undefined, options?: { isUpdated?: boolean }) {
+    const where: any = {
+        workflow_trigger_id: workflowTriggerId,
+        is_deleted: false,
+        is_enabled: true
+    };
+    
+    if (options && options.isUpdated !== undefined) {
+        where.is_updated = options.isUpdated;
+    }
+    
+    return await JobWorkFlowModel.findAll({ where });
+}
+
+function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
+    if (sortByPending) {
+        return responses.sort((a, b) => {
+            const aStatusIsPending = workflows.some(
+              (w) => w?.method_id === a.id && w?.status?.toLowerCase() === "pending"
+            );
+            const bStatusIsPending = workflows.some(
+              (w) => w?.method_id === b.id && w?.status?.toLowerCase() === "pending"
+            );
+            
+            if (aStatusIsPending && !bStatusIsPending) return 1;  
+            if (!aStatusIsPending && bStatusIsPending) return -1;  
+            const aIsReviewOrApproval =
+              a?.name?.trim().toLowerCase() === "review" ||
+              a?.name?.trim().toLowerCase() === "approval";
+            const bIsReviewOrApproval =
+              b?.name?.trim().toLowerCase() === "review" ||
+              b?.name?.trim().toLowerCase() === "approval";
+            if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
+            if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
+            return 0;
+          });
+    } else {
+        return responses.sort((a, b) => {
+            if (a.name?.trim().toLowerCase() === 'review') return -1;
+            if (b.name?.trim().toLowerCase() === 'review') return 1;
+            return 0;
+        });
+    }
+}
+
+// Handle job module logic
+async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("job");
+    
+    const eventId1 = await findEvent(moduleId, "create_job");
+    const eventId2 = await findEvent(moduleId, "update_job");
+    
+    const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
+    
+    const createReviewMethod = findMethod(items, eventId1, "review");
+    const updateReviewMethod = findMethod(items, eventId2, "review");
+    const createApprovalMethod = findMethod(items, eventId1, "approval");
+    const updateApprovalMethod = findMethod(items, eventId2, "approval");
+    
+    if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
+        const response = [
+            {
+                ...createApprovalMethod.dataValues,
+                method_ids: [
+                    createApprovalMethod.dataValues.id,
+                    updateApprovalMethod.dataValues.id
+                ]
+            },
+            {
+                ...createReviewMethod.dataValues,
+                method_ids: [
+                    createReviewMethod.dataValues.id,
+                    updateReviewMethod.dataValues.id
+                ]
+            }
+        ];
+        
+        const workflows = await getWorkflows(workflowTriggerId);
+        
+        if (!workflows.length) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "No workflows found for the given trigger ID"
+            });
+        }
+        
+        const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+        const responses = response.filter(i => workflowMethodIds.includes(i.id));
+        const sortedResponse = sortWorkflowMethods(responses, true, workflows);
+        
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Workflow methods fetched successfully",
+            workflow_method: sortedResponse,
+        });
+    } else {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "Required workflow methods not found"
+        });
+    }
+}
+
+// Handle offer module logic
+async function handleOfferModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("offer");
+    
+    const eventId1 = await findEvent(moduleId, "create_offer");
+    const eventId2 = await findEvent(moduleId, "counter_offer");
+    
+    const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
+    
+    const createReviewMethod = findMethod(items, eventId1, "review");
+    const createApprovalMethod = findMethod(items, eventId1, "approval");
+    const counterReviewMethod = findMethod(items, eventId2, "review");
+    const counterApprovalMethod = findMethod(items, eventId2, "approval");
+    
+    if (createReviewMethod && createApprovalMethod && counterReviewMethod && counterApprovalMethod) {
+        const response = [
+            {
+                ...createApprovalMethod.dataValues,
+                method_ids: [
+                    createApprovalMethod.dataValues.id,
+                    counterApprovalMethod.dataValues.id
+                ]
+            },
+            {
+                ...createReviewMethod.dataValues,
+                method_ids: [
+                    createReviewMethod.dataValues.id,
+                    counterReviewMethod.dataValues.id
+                ]
+            }
+        ];
+        
+        const workflows = await getWorkflows(workflowTriggerId, { isUpdated: false });
+        
+        if (!workflows.length) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "No workflows found for the given trigger ID"
+            });
+        }
+        
+        const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+        const responses = response.filter(i => workflowMethodIds.includes(i.id));
+        const sortedResponse = sortWorkflowMethods(responses);
+        
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Workflow methods fetched successfully",
+            workflow_method: sortedResponse,
+        });
+    } else {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "Required workflow methods not found"
+        });
+    }
+}
+
+// Handle assignment module logic
+async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("assignment");
+    
+    const eventId1 = await findEvent(moduleId, "create_assignment");
+    const eventId2 = await findEvent(moduleId, "update_assignment");
+    const eventId3 = await findEvent(moduleId, "assignment_budget_adjustment");
+    
+    const items = await findWorkflowMethods(moduleId, [eventId1, eventId2, eventId3]);
+    
+    const createApprovalMethod = findMethod(items, eventId1, "approval");
+    const updateApprovalMethod = findMethod(items, eventId2, "approval");
+    const budgetAdjustmentApprovalMethod = findMethod(items, eventId3, "approval");
+    
+    if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
+        const response = [
+            {
+                ...createApprovalMethod.dataValues,
+                method_ids: [
+                    createApprovalMethod.dataValues.id,
+                    updateApprovalMethod.dataValues.id,
+                    budgetAdjustmentApprovalMethod.dataValues.id
+                ]
+            }
+        ];
+        
+        const sortedResponse = sortWorkflowMethods(response);
+        
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Workflow methods fetched successfully",
+            workflow_method: sortedResponse,
+        });
+    } else {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "Required workflow methods not found"
+        });
+    }
+}
+
+// Handle candidate rehire check module logic
+async function handleCandidateRehireCheckModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("submission");
+    
+    const eventId1 = await findEvent(moduleId, "submit_candidate_rehire_check");
+    const eventId2 = await findEvent(moduleId, "submit_candidate_shortlist");
+    
+    const item = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
+    
+    const rehireReviewMethod = findMethod(item, eventId1, "review");
+    const shortlistReviewMethod = findMethod(item, eventId2, "review");
+    const rehireApprovalMethod = findMethod(item, eventId1, "approval");
+    
+    let response: { [key: string]: any }[] = [];
+    
+    if (rehireReviewMethod && shortlistReviewMethod && rehireApprovalMethod) {
+        response = [
+            { ...rehireApprovalMethod.dataValues },
+            {
+                ...rehireReviewMethod.dataValues,
+                method_ids: [
+                    rehireReviewMethod.dataValues.id,
+                    shortlistReviewMethod.dataValues.id
+                ],
+            },
+        ];
+    } else if (rehireReviewMethod || rehireApprovalMethod) {
+        response = [
+            { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues }
+        ];
+    } else if (shortlistReviewMethod) {
+        response = [{ ...shortlistReviewMethod.dataValues }];
+    }
+    
+    const workflows = await getWorkflows(workflowTriggerId);
+    
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID",
+            trace_id: traceId,
+        });
+    }
+    
+    const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
+    const responses = response.filter((i) => workflowMethodIds.includes(i.id));
+    
+    const sortedResponse = sortWorkflowMethods(responses);
+    
+    return reply.status(200).send({
+        status_code: 200,
+        message: "Workflow methods fetched successfully",
+        workflow_method: sortedResponse,
+        trace_id: traceId,
+    });
+}
+
+// Handle other modules logic
+async function handleOtherModules(module: string, reply: FastifyReply, traceId: string) {
+    let item;
+    
+    if (module === 'submit_candidate_shortlist') {
+        const moduleId = await findModuleBySlug("submission");
+        const eventId = await findEvent(moduleId, "submit_candidate_shortlist");
+        
+        item = await WorkflowMethod.findAll({
+            where: {
+                module_id: moduleId,
+                event_id: eventId
+            }
+        });
+    } else if (module === 'candidate') {
+        const moduleId = await findModuleBySlug("candidates");
+        const eventId = await findEvent(moduleId, "locum_name_clear");
+        
+        item = await WorkflowMethod.findAll({
+            where: {
+                module_id: moduleId,
+                event_id: eventId
+            }
+        });
+    } else {
+        item = null;
+    }
+    
+    if (item && item.length > 0) {
+        const reviewItem = item.find(it =>
+            it.dataValues.name?.trim().toLowerCase() === "review"
+        );
+        const otherItems = item.filter(it =>
+            it.dataValues.name?.trim().toLowerCase() !== "review"
+        );
+
+        const sortedItems = reviewItem ? [reviewItem, ...otherItems] : otherItems;
+
+        return reply.status(200).send({
+            status_code: 200,
+            workflow_method: sortedItems,
+            trace_id: traceId
+        });
+    } else {
+        return reply.status(404).send({
+            status_code: 404,
+            message: 'Workflow Method Data Not Found',
+            workflow_method: [],
+            trace_id: traceId
+        });
+    }
+}
+
