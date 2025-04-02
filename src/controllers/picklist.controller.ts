@@ -960,7 +960,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
           },
         },
       ],
-      order: [["name", "ASC"]],
+      order: [["created_on", "ASC"]],
       offset,
       limit: pageSize,
     });
