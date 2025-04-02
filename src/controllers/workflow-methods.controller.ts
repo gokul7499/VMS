@@ -893,35 +893,39 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 }
 
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
-    if (sortByPending) {
-        return responses.sort((a, b) => {
-            const aStatusIsPending = workflows.some(
-              (w) => w?.method_id === a.id && w?.dataValues?.status?.toLowerCase() === "pending"
-            );
-            const bStatusIsPending = workflows.some(
-              (w) => w?.method_id === b.id && w?.dataValues?.status?.toLowerCase() === "pending"
-            );
-            
-            if (aStatusIsPending && !bStatusIsPending) return 1;  
-            if (!aStatusIsPending && bStatusIsPending) return -1;  
-            const aIsReviewOrApproval =
-              a?.name?.trim().toLowerCase() === "review" ||
-              a?.name?.trim().toLowerCase() === "approval";
-            const bIsReviewOrApproval =
-              b?.name?.trim().toLowerCase() === "review" ||
-              b?.name?.trim().toLowerCase() === "approval";
-            if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
-            if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
-            return 0;
-          });
-    } else {
-        return responses.sort((a, b) => {
-            if (a.name?.trim().toLowerCase() === 'review') return -1;
-            if (b.name?.trim().toLowerCase() === 'review') return 1;
-            return 0;
-        });
-    }
-}
+    return responses.map((response) => {
+      const statusIsPending = workflows.some(
+        (w) =>
+          response.method_ids?.includes(w.dataValues.method_id) &&
+          w.dataValues.status.toLowerCase() === "pending"
+      );
+    
+      response.is_workflow = statusIsPending ? true : false;
+      return response;
+    }).sort((a, b) => {
+      const aStatusIsPending = a.is_workflow ?? false;  
+      const bStatusIsPending = b.is_workflow ?? false;  
+  
+      if (sortByPending) {
+        if (aStatusIsPending && !bStatusIsPending) return 1;  
+        if (!aStatusIsPending && bStatusIsPending) return -1;
+      }
+  
+      const aIsReviewOrApproval =
+        a?.name?.trim().toLowerCase() === "review" ||
+        a?.name?.trim().toLowerCase() === "approval";
+      const bIsReviewOrApproval =
+        b?.name?.trim().toLowerCase() === "review" ||
+        b?.name?.trim().toLowerCase() === "approval";
+  
+      if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
+      if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
+  
+      return 0; 
+    });
+  }
+  
+  
 
 // Handle job module logic
 async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
