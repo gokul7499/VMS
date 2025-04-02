@@ -204,7 +204,6 @@ export async function createExpenseConfiguration(
             created_by: user.sub,
             updated_by: user.sub,
         });
-        console.log("expenseConfigData",expenseConfigData)
         logger(
             {
                 traceId,
@@ -333,7 +332,6 @@ export async function updateExpenseConfiguration(
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string; program_id: string };
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
-    console.log("expenseConfigData",expenseConfigData)
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
 
@@ -358,7 +356,7 @@ export async function updateExpenseConfiguration(
                 trace_id: traceId,
             });
         }
-       const ddd= await ExpenseConfigurationModel.update({...expenseConfigData,updated_on:Date.now()}, {
+        await ExpenseConfigurationModel.update({...expenseConfigData,updated_on:Date.now()}, {
             where: { id, program_id}
         });
         if (
