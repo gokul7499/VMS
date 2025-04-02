@@ -213,6 +213,7 @@ export async function createExpenseConfiguration(
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
             created_on:expenseConfig.created_on || Date.now(),
+            updated_on:expenseConfig.updated_on || Date.now(),
             program_id,
             created_by: user.sub,
             updated_by: user.sub,
