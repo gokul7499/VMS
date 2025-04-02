@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
+import { multiply } from 'lodash';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -698,6 +699,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest, reply: 
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        multiselect: picklist.multiselect,
         picklistItems: picklist.picklistItems.sort(
           (a: { value: string }, b: { value: string }) =>
             (orderMap[a.value] ?? Infinity) - (orderMap[b.value] ?? Infinity)
@@ -715,6 +717,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest, reply: 
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        multiselect: picklist.multiselect,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({
             id: item.id,
