@@ -3477,11 +3477,14 @@ l.placement_order ASC;`;
                     status: row.status,
                     config: row.config,
                     levels: [],
+                    is_rejected_workflow: false
                 };
             }
 
             const workflow = workflows[job_workflow_id];
-
+            if (level_status === "canceled") {
+                workflow.is_rejected_workflow = true;
+            }
 
             let previousLevelCompleted = false;
             // let levelStatusMap: { [key: number]: string } = {};
