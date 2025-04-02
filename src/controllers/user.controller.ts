@@ -16,6 +16,7 @@ import { decodeToken } from "../middlewares/verifyToken";
 import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
+import Hierarchies from "../models/hierarchies.model";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -107,7 +108,7 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
     const { id: user_id, program_id } = request.params as { id: string, program_id: string };
     const user = await User.findOne({
       where: { user_id: user_id, program_id },
-      attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id', 'default_hierarchy_id'],
+      attributes: ['associate_hierarchy_ids', 'work_location_ids', 'default_work_location_id', 'default_hierarchy_id', 'is_all_hierarchy_associate'],
     });
 
     if (!user) {
@@ -122,23 +123,24 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
       });
     }
 
-    let associateHierarchyIds = user?.associate_hierarchy_ids ?? [];
-
+    let associateHierarchyIds = user.is_all_hierarchy_associate
+      ? (await Hierarchies.findAll({
+        where: { program_id, is_deleted: false },
+        attributes: ['id'],
+      })).map((h: any) => h.id)
+      : user.associate_hierarchy_ids ?? [];
 
     if (job_template_id) {
       const [templateData] = await Promise.all([
         jobTempletRepositories.templateQuery(job_template_id)
       ]);
-      const managerHierarchyIds =
-        user?.associate_hierarchy_ids ?? [];
 
       const templateHierarchyIds = templateData.map((row: any) => row.hierarchy);
 
-      associateHierarchyIds = managerHierarchyIds.filter((id: string) =>
+      associateHierarchyIds = associateHierarchyIds.filter((id: string) =>
         templateHierarchyIds.includes(id)
       );
     }
-
 
     const hierarchiesWithChildren = await sequelize.query<{ name: any }>(getHierarchieWithChildren, {
       replacements: { program_id },
@@ -226,7 +228,6 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
     });
   }
 }
-
 
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
@@ -674,7 +675,7 @@ interface UserLocationAndTimeZone {
   time_zone: { time_zone_id: string; time_zone_name: string }[];
 }
 
-export async function getUserWorkLocationAndTimeZone(request: FastifyRequest,reply: FastifyReply) {
+export async function getUserWorkLocationAndTimeZone(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const { user_ids } = request.query as { user_ids: string };
   const trace_id = generateCustomUUID();
@@ -781,7 +782,7 @@ export async function getPendingUser(
 }
 
 
-export async function getUserAndHierarchieId(request: FastifyRequest,reply: FastifyReply) {
+export async function getUserAndHierarchieId(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const { user_id, hierarchy_id } = request.query as { user_id: string; hierarchy_id: string };
   const traceId = generateCustomUUID();
@@ -836,7 +837,7 @@ export async function getUserAndHierarchieId(request: FastifyRequest,reply: Fast
   }
 }
 
-export async function getActiveUser(request: FastifyRequest,reply: FastifyReply) {
+export async function getActiveUser(request: FastifyRequest, reply: FastifyReply) {
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     return reply.status(401).send({
