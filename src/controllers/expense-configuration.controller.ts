@@ -10,6 +10,7 @@ import expenseTypeHierarchie from "../models/expense-type-hierarchie.model";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import { create } from "lodash";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{ Params: { program_id: string }, Querystring: { page?: string, limit?: string } }>,
@@ -195,14 +196,15 @@ export async function createExpenseConfiguration(
 
     try {
         const { program_id } = request.params as { program_id: string };
-        const expenseConfig: ExpenseConfigurationAttributes = request.body as ExpenseConfigurationAttributes;
-
+        const expenseConfig= request.body as ExpenseConfigurationAttributes;
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
+            created_on:expenseConfig.created_on || Date.now(),
             program_id,
             created_by: user.sub,
             updated_by: user.sub,
         });
+        console.log("expenseConfigData",expenseConfigData)
         logger(
             {
                 traceId,
@@ -259,7 +261,7 @@ export async function createExpenseConfiguration(
         }
 
         if (Array.isArray(expenseConfig.hierarchy) && expenseConfig.hierarchy.length > 0) {
-            const hierarchyMappings = expenseConfig.hierarchy.map((hierarchyId) => ({
+            const hierarchyMappings = expenseConfig.hierarchy.map((hierarchyId: any) => ({
                 expense_config_id: expenseConfigData.id,
                 hierarchy: hierarchyId,
             }));
@@ -331,6 +333,7 @@ export async function updateExpenseConfiguration(
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string; program_id: string };
     const expenseConfigData = request.body as ExpenseConfigurationAttributes;
+    console.log("expenseConfigData",expenseConfigData)
     const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
 
@@ -355,10 +358,9 @@ export async function updateExpenseConfiguration(
                 trace_id: traceId,
             });
         }
-        await ExpenseConfigurationModel.update({...expenseConfigData,updated_on:Date.now()}, {
+       const ddd= await ExpenseConfigurationModel.update({...expenseConfigData,updated_on:Date.now()}, {
             where: { id, program_id}
         });
-
         if (
             Array.isArray(expenseConfigData.expense_item_type_config) &&
             expenseConfigData.expense_item_type_config.length > 0
