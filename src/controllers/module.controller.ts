@@ -7,7 +7,7 @@ export async function getModule(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { is_enabled , is_custom_field} = request.query as { is_enabled?: boolean | string, is_custom_field?:boolean | string };
+  const { is_enabled , is_custom_field , is_reason_code} = request.query as { is_enabled?: boolean | string, is_custom_field?:boolean | string, is_reason_code?:boolean|string };
 
   try {
 
@@ -21,10 +21,13 @@ export async function getModule(
     if (is_custom_field !== undefined) {
       searchFilters.is_custom_field = is_custom_field === "true" || is_custom_field === true ? 1 : 0;
     }
+     if(is_reason_code !== undefined){
+      searchFilters.is_reason_code =is_reason_code =="true"||is_reason_code === true?1:0;
+     }
 
     const result = await Module.findAndCountAll({
       where: searchFilters,
-      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field"],
+      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field","is_reason_code"],
       order: [["name", "ASC"]],
     });
 
@@ -66,7 +69,7 @@ export async function getModuleById(
   try {
     const result = await Module.findOne({
       where: { id, is_deleted: false },
-      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field"],
+      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field","is_reason_code"],
     });
 
     if (!result) {

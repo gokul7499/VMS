@@ -23,7 +23,7 @@ class User extends Model {
   user_type: string | undefined;
   foundational_data: any;
   user_id: unknown;
-  ;
+  is_all_hierarchy_associate: any;
 }
 
 User.init(
