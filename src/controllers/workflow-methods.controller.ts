@@ -1013,7 +1013,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
             }
         ];
         
-        const workflows = await getWorkflows(workflowTriggerId, { isUpdated: false });
+        const workflows = await getWorkflows(workflowTriggerId);
         
         if (!workflows.length) {
             return reply.status(400).send({
