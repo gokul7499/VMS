@@ -31,6 +31,18 @@ export async function getExpenseConfigurations(
             order: [['updated_on', 'DESC']],
         });
 
+        const updatedByIds = expenseConfig.map(config => config.updated_by).filter(id => id);
+        const users = await sequelize.query(
+            `SELECT user_id, first_name FROM user WHERE user_id IN (:updatedByIds)`,
+            {
+                replacements: { updatedByIds },
+                type: QueryTypes.SELECT,
+            }
+        );
+        const userMap: { [key: string]: string } = {};
+        users.forEach((user: any) => {
+        userMap[user.user_id] = user.first_name;
+        });
         const expenseTypeHierarchy = await sequelize.query(getAllExpenseTypeHierarchy, {
             replacements: { program_id },
             type: QueryTypes.SELECT,
@@ -50,6 +62,7 @@ export async function getExpenseConfigurations(
             ...config.toJSON(),
             status: config.status === '1',
             hierarchy: hierarchyMap[config.id] || [],
+            updated_by: userMap[config.updated_by] || null,
         }));
         reply.status(200).send({
             status_code: 200,
