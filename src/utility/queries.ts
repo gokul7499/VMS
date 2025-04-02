@@ -1863,7 +1863,7 @@ export const rateTypeTotalCount = `
 
 export const getExpenseType = `
    SELECT
-    ec.name,
+    ec.config_name,
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
@@ -2455,8 +2455,8 @@ export const getPendingUserQuery = `
     invitation.*,
     invitation.user_email AS email,
     invitation.is_allow_unlimited_autherity AS is_allow_unlimited_authority,
-    invitation.updated_at AS updated_on,
-    invitation.created_at AS created_on,
+    invitation.updated_on,
+    invitation.created_on,
     user_group_mapping.user_type AS user_type,
     user_group_mapping.last_name,
     user_group_mapping.first_name,
@@ -3202,9 +3202,9 @@ export const getVendorMarkups = ({
               JSON_OBJECT('id', 'any', 'label', 'Any')
           ) AS worker_classification,
           COALESCE(
-              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name) 
+              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name, 'abbreviation', rt.abbreviation) 
                FROM rate_type rt WHERE rt.id = vmc.rate_type), 
-              JSON_OBJECT('id', 'any', 'name', 'Any')
+              JSON_OBJECT('id', 'any', 'name', 'Any', 'abbreviation', 'Any')
           ) AS rate_type,
           COALESCE(
               (SELECT JSON_OBJECT('id', wl.id, 'name', wl.name) 

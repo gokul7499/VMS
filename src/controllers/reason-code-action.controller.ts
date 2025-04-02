@@ -89,6 +89,125 @@ export async function createReasoncode(
         });
     }
 }
+export async function createReasonCodes(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const traceId = generateCustomUUID();
+    
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer')) {
+      return reply.status(401).send({
+        status_code: 401,
+        message: 'Unauthorized - Token not found',
+        trace_id: traceId,
+      });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const user = await decodeToken(token);
+    if (!user) {
+      return reply.status(401).send({
+        status_code: 401,
+        message: 'Unauthorized - Invalid token',
+        trace_id: traceId,
+      });
+    }
+    const userId = user.sub;
+    
+    const transaction = await sequelize.transaction();
+    
+    try {
+      const reasoncodes = request.body as {
+        reason_code_action_id: string;
+        reason_codes: Array<{
+          name: string;
+          category: string;
+          is_enabled: boolean;
+        }>;
+      };
+      
+      const { reason_code_action_id, reason_codes } = reasoncodes;
+      const program_id = null; 
+      
+      if (!reason_code_action_id) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: 'reason_code_action_id is required',
+          trace_id: traceId,
+        });
+      }
+      
+      if (!reason_codes || reason_codes.length === 0) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: 'reason_codes array cannot be empty',
+          trace_id: traceId,
+        });
+      }
+      
+      const existingAction = await ReasonCodeActionModel.findByPk(reason_code_action_id, { transaction });
+      if (!existingAction) {
+        await transaction.rollback();
+        return reply.status(404).send({
+          status_code: 404,
+          message: 'Reason code action not found',
+          trace_id: traceId,
+        });
+      }
+            
+      const createdCodes = await ReasonCodeModel.bulkCreate(
+        reason_codes.map((reason) => ({
+          name: reason.name,
+          category: reason.category,
+          is_enabled: reason.is_enabled,
+          program_id: null, 
+          reason_code_id: reason_code_action_id,
+          created_by: userId,
+          updated_by: userId,
+          created_on: Date.now(), 
+          updated_on: Date.now(), 
+          is_deleted: false,
+        })),
+        { transaction }
+      );
+      
+      await ReasonCodeActionModel.update(
+        {
+          reasons_count: sequelize.literal(`reasons_count + ${reason_codes.length}`),
+          updated_by: userId,
+          updated_on: Date.now(), 
+        },
+        {
+          where: { id: reason_code_action_id },
+          transaction,
+        }
+      );
+      
+      await transaction.commit();
+      
+      return reply.status(201).send({
+        status_code: 201,
+        message: 'Reason codes created successfully',
+        reason_code_action_id,
+        trace_id: traceId,
+      });
+    } catch (error: any) {
+      await transaction.rollback();
+      console.error('Error creating reason codes:', error);
+      
+      return reply.status(500).send({
+        status_code: 500,
+        message: 'Internal Server Error',
+        trace_id: traceId,
+        error: error.message,
+      });
+    }
+  }
+  
+
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -315,7 +434,6 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                     model: Module,
                     as: 'module',
                     attributes: ['id', 'name'],
-                    where: { is_enabled: true },
                     required: false
                 },
             ],
@@ -323,7 +441,12 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
         });
 
         if (reasonCodeAction) {
-            const { supporting_text_event, module, reason_codes } = reasonCodeAction.toJSON();
+            const reasonCodes  = await ReasonCodeModel.findAll({
+                where: { reason_code_id: id },
+                attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                transaction,
+            });     
+            const { supporting_text_event, module,} = reasonCodeAction.toJSON();
 
             reasonCodeResponse = {
                 id: reasonCodeAction.id,
@@ -331,7 +454,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                 module_id: module?.id || 'Unknown ID',
                 event_name: supporting_text_event?.name || 'Unknown Event',
                 event_id: supporting_text_event?.id || 'Unknown ID',
-                reason_codes: reason_codes || [],
+                reason_codes: reasonCodes || [],
             };
 
             await transaction.commit();

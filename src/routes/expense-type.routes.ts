@@ -12,7 +12,7 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
     }, ExpenseTypeController.getExpenseTypeById);
 
     fastify.post("/program/:program_id/expense-type", {
@@ -20,7 +20,7 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
             params: paramsSchema,
             body: createExpenseTypeSchema,
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.EXPENSE_TYPE])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.EXPENSE_TYPE])
     }, ExpenseTypeController.createExpenseType);
 
     fastify.delete("/program/:program_id/expense-type/:id", {
@@ -34,7 +34,7 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
             body: createExpenseTypeSchema,
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_TYPE])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_TYPE])
     }, ExpenseTypeController.updateExpenseTypeById);
 
     fastify.get("/program/:program_id/expense-type", {
@@ -42,14 +42,14 @@ async function expenseTypeRoute(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
     }, ExpenseTypeController.getAllExpenseType);
 
     fastify.post("/program/:program_id/expense-type/advancefilter", {
         schema: {
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_TYPE])
     }, ExpenseTypeController.advancefilter);
 
 }

@@ -6,27 +6,27 @@ import { Actions, Permissions } from '../constants/permissions';
 async function holidayCalendarRoutes(fastify: FastifyInstance) {
 
   fastify.get('/program/:program_id/holiday-calendar', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendar);
 
   fastify.get('/program/:program_id/holiday-calendar/:id', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarById);
 
   fastify.post('/holiday-calendar', {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.CREATE, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.createHolidayCalendar);
 
   fastify.put('/program/:program_id/holiday-calendar/:id', {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.UPDATE, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.updateHolidayCalendar);
 
   fastify.delete('/program/:program_id/holiday-calendar/:id', {
-    preHandler: validatePermissions(Actions.DELETE, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.DELETE, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.deleteHolidayCalendar);
 
   fastify.post('/program/:program_id/holiday-calendar-advanced-filter', {
-    preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarAdvancedFilter);
 }
 

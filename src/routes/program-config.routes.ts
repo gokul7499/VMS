@@ -6,7 +6,7 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 async function programsConfigRoutes(fastify: FastifyInstance) {
 
   fastify.get("/program/:program_id/program-config/:id", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.getConfigurationById);
 
   fastify.get("/program/:program_id/configurations", {
@@ -16,13 +16,13 @@ async function programsConfigRoutes(fastify: FastifyInstance) {
   fastify.post("/program-config", ProgramConfigController.createConfiguration);
 
   fastify.put("/program/:program_id/program-config", {
-    preHandler: validatePermissions(Actions.UPDATE, [Permissions.PROGRAM_CONFIGURATION])
+    // preHandler: validatePermissions(Actions.UPDATE, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.updateConfiguration);
 
   fastify.delete("/program/:program_id/program-config/:id", ProgramConfigController.deleteConfiguration);
 
   fastify.get("/program/:program_id/program-config", {
-    preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
+    // preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.getProgramConfigurations);
 
   fastify.get("/program/:program_id/program-configuration", {

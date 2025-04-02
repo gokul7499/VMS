@@ -120,23 +120,26 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             return expenseData;
         });
 
-        const masterData = await FoundationalDataTypes.findAll({
-            where: {
-                id: {
-                    [Op.in]: expenseConfig.master_data.value,
-                },
-            },
-            attributes: ["id", "name"],
-        });
+        const masterDataObject = typeof expenseConfig.master_data === "object" && expenseConfig.master_data !== null 
+        ? expenseConfig.master_data 
+        : { value: [], is_enabled: false };
 
-        const formattedMasterData = {
-            value: masterData.map((data: any) => ({
-                id: data.id,
-                name: data.name,
-            })),
-            is_enabled: expenseConfig.master_data.is_enabled,
-        };
+    const masterDataIds = Array.isArray(masterDataObject.value) ? masterDataObject.value : [];
 
+    const masterData = masterDataIds.length > 0
+        ? await FoundationalDataTypes.findAll({
+              where: { id: { [Op.in]: masterDataIds } },
+              attributes: ["id", "name"],
+          })
+        : [];
+
+    const formattedMasterData = {
+        value: masterData.map((data: any) => ({
+            id: data.id,
+            name: data.name,
+        })),
+        is_enabled: masterDataObject.is_enabled ?? false, // Defaults to false if undefined
+    };
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
             status: expenseConfig.status === "1",
@@ -365,8 +368,8 @@ export async function updateExpenseConfiguration(
                 trace_id: traceId,
             });
         }
-        await ExpenseConfigurationModel.update(expenseConfigData, {
-            where: { id, program_id }
+        await ExpenseConfigurationModel.update({...expenseConfigData,updated_on:Date.now()}, {
+            where: { id, program_id}
         });
 
         if (

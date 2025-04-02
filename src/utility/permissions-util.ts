@@ -79,7 +79,7 @@ class AWSElastiCacheConnectionManager {
 
     // Verify primary connection
     await this.verifyElastiCacheConnection(primaryClient, 'Primary');
-    
+
     return primaryClient;
   }
 

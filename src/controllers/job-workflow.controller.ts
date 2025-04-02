@@ -669,17 +669,17 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                             },
                         });
                     } else
-                    if (moduleType === "Timesheet".toLowerCase()) {
-                        const timesheet_id = workflow.workflow_trigger_id;
-                        const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
-                        const payload = { status: "approved"}; 
-                        await axios.put(apiUrl, payload, {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                authorization: authHeader
-                            },
-                        });
-                    }
+                        if (moduleType === "Timesheet".toLowerCase()) {
+                            const timesheet_id = workflow.workflow_trigger_id;
+                            const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
+                            const payload = { status: "approved" };
+                            await axios.put(apiUrl, payload, {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    authorization: authHeader
+                                },
+                            });
+                        }
 
     } catch (error) {
         console.error('error while updating status:', error);
@@ -918,7 +918,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
         let response = {
 
             eventCode: NotificationEventCode.SUBMIT_TIMESHEET,
-        
+
 
             user_type: ['msp', 'vendor']
         }
@@ -1229,7 +1229,8 @@ export const rejectLevel = async (
 
 
             if (new_status !== "rejected") {
-                throw new Error("Only 'rejected' status is allowed for this operation.");           }
+                throw new Error("Only 'rejected' status is allowed for this operation.");
+            }
 
             let levelFound = false;
 
@@ -1260,15 +1261,18 @@ export const rejectLevel = async (
                                     Object.values(recipient.meta_data).includes(user_id))
                             ) {
 
-                                return { ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                     actor_first_name: userData?.first_name,
+                                return {
+                                    ...recipient, status: "Rejected", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                    actor_first_name: userData?.first_name,
                                     actor_last_name: userData?.last_name,
-                                    actor_by_avatar: userData?.avatar, };
+                                    actor_by_avatar: userData?.avatar,
+                                };
 
                             }
 
-                            return { ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
-                                };
+                            return {
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                            };
 
                         });
                         return {
@@ -1297,7 +1301,8 @@ export const rejectLevel = async (
             });
 
             if (!levelFound) {
-                throw new Error(`Placement order ${placement_order} not found in levels.`);             }
+                throw new Error(`Placement order ${placement_order} not found in levels.`);
+            }
 
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1333,7 +1338,7 @@ export const rejectLevel = async (
             program_id: program_id,
             user_type: eventCode.user_type
         }
-         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
+        await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
         return reply.status(200).send({
             status_code: 200,
@@ -1347,7 +1352,7 @@ export const rejectLevel = async (
             status_code: 500,
             message: "Failed to update job workflow.",
             trace_id: traceId,
-            error:(error as Error).message
+            error: (error as Error).message
         });
     }
 };
@@ -1411,13 +1416,16 @@ export const updateReplaceLevel = async (
                 levelFound = true;
 
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    // Check if replaced_by exists, match directly
                     if (recipient.replaced_by === user_id) {
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
-                            existing_replaced_user: recipient.replaced_by, // Retain the current replaced_by value
-                            replaced_by, // Update replaced_by with the new value from the payload
+                            meta_data: {
+                                ...recipient.meta_data,
+                                [metaDataKey]: replaced_by
+                            },
+                            replaced_by,
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
@@ -2065,6 +2073,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
                 AND is_enabled = true
+                AND status='pending'
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
@@ -2083,6 +2092,26 @@ ORDER BY
         });
         console.log(rows);
 
+        // let programData = await sequelize.query(
+        //     `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
+        //     {
+        //         replacements: { workflow_trigger_id },
+        //         type: QueryTypes.SELECT,
+        //     }
+        // );
+
+        // // Create a map to store the latest status for each flow_type
+        // const flowTypeStatusMap = new Map<string, boolean>();
+
+        // for (const program of programData) {
+        //     const { flow_type, status } = program as JobWorkFlow
+
+        //     // If the flow_type is already in the map, prioritize "completed" status
+        //     if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+        //         flowTypeStatusMap.set(flow_type, status === "completed");
+        //     }
+        // }
+
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -2090,20 +2119,25 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-
-        // Create a map to store the latest status for each flow_type
+        console.log('program data is nowww', programData);
+        
         const flowTypeStatusMap = new Map<string, boolean>();
-
+        
         for (const program of programData) {
-            const { flow_type, status } = program as JobWorkFlow
-
-            // If the flow_type is already in the map, prioritize "completed" status
-            if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
+            const { flow_type, status } = program as JobWorkFlow;
+        
+            if (!flowTypeStatusMap.has(flow_type)) {
                 flowTypeStatusMap.set(flow_type, status === "completed");
+            } else {
+                const currentStatus = flowTypeStatusMap.get(flow_type);
+                if (status === "pending") {
+                    flowTypeStatusMap.set(flow_type, false);
+                } else if (status === "completed" && currentStatus !== false) {
+                    flowTypeStatusMap.set(flow_type, true);
+                }
             }
         }
-
-        // Convert the map to the required array format and sort
+        
         const flowTypes = Array.from(flowTypeStatusMap.entries())
             .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
             .sort((a, b) => {
@@ -2111,7 +2145,7 @@ ORDER BY
                 if (b.flow_type === "Review") return 1;
                 return 0;
             });
-
+    
         let manager = rows[0]?.manager
         if (rows.length === 0) {
             return reply.status(200).send({
@@ -2574,7 +2608,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let level_behaviour: any;
                 let receipentstatus: any
                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
-                    const recipientTypes = JSON.parse(row.recipient_types);
+                    const recipientTypes = JSON.parse(row.recipient_types) || [];
 
                     for (const recipient of recipientTypes) {
                         let receipentstatus = recipient.status;
@@ -3007,7 +3041,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "Rejected") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
@@ -3044,7 +3078,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             // Update the status map for reference
             if (currentLevel.recipients && currentLevel.recipients.length > 0) {
                 currentLevel.recipients.forEach((recipient: any) => {
-                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "Rejected" || currentLevel.level_status === "Not needed") {
+                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "canceled" || currentLevel.level_status === "Not needed") {
                         // If the level is completed, preserve the recipient's existing status
                         recipient.status = recipient.status;
                     } else if (currentLevel.level_status === "pending") {

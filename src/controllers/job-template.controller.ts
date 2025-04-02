@@ -18,6 +18,7 @@ import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
 import { extractFileContent } from "../utility/fileUpload";
+import JobMasterDataModel from "../models/job-master-data.model";
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
@@ -488,6 +489,26 @@ export async function updateJobTemplate(
             job_temp_id: id,
             qualification_type_id: idsToDelete,
           },
+        });
+      }
+    }
+
+    const foundational_data= jobMasterData.foundational_data;
+    if (foundational_data && Array.isArray(foundational_data)) {
+      await JobMasterDataModel.destroy({
+        where: { job_temp_id: id },
+      });
+
+      for (const data of foundational_data) {
+        const { foundation_data_type_id, foundation_data_id, is_read_only } = data;
+        if (!foundation_data_type_id || !foundation_data_id) continue;
+
+        await JobMasterDataModel.create({
+          program_id,
+          job_temp_id: id,
+          foundation_data_type_id,
+          foundation_data_id,
+          is_read_only,
         });
       }
     }

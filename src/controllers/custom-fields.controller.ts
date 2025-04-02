@@ -713,7 +713,7 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
       } else {
         reply.status(500).send({
           status_code: 500,
-          message: 'Custom Field cannot be deleted as it is linked with modules.',
+          message: 'Deletion can be possible only if the linked module is removed.',
           trace_id: traceId,
         });
 

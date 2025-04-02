@@ -12,7 +12,7 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
             body: createFoundationalDataTypeSchema,
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.CREATE, [Permissions.MASTER_DATA])
+        // preHandler: validatePermissions(Actions.CREATE, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.createFoundationalDataTypes);
 
     fastify.put('/program/:program_id/foundational-datatypes/:id', {
@@ -20,7 +20,7 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
             body: createFoundationalDataTypeSchema,
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.MASTER_DATA])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.updateFoundationalDataTypes);
 
     fastify.delete('/program/:program_id/foundational-datatypes/:id', {
@@ -34,7 +34,7 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.getAllFoundationalDataTypes);
 
     fastify.get('/program/:program_id/foundational-datatypes/:id', {
@@ -42,14 +42,14 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
             querystring: querySchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.getFoundationalDataTypeById);
 
     fastify.post('/program/:program_id/foundational-datatypes-advanced-filter', {
         schema: {
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
+        // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.getAllFoundationalDataTypesAdvancedFilter);
 }
 

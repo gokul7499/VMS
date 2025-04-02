@@ -72,6 +72,11 @@ ShiftType.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
+    is_billable:{
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    }
   },
   {
     sequelize,
