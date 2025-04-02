@@ -30,7 +30,7 @@ async function picklistRoutes(fastify: FastifyInstance) {
   }, pickListController.updatePicklistAndItem);
 
   fastify.post('/predefined-picklist', {
-    preHandler: validatePermissions(Actions.CREATE, [Permissions.PICKLIST]),
+    // preHandler: validatePermissions(Actions.CREATE, [Permissions.PICKLIST]),
     schema: {
       body: createPicklistSchema,
     }
