@@ -11,6 +11,7 @@ class ExpenseConfigurationModel extends Model {
   status!: any;
   expense_item_type_config: any;
     master_data: any;
+    updated_by: any;
 }
 ExpenseConfigurationModel.init(
 
