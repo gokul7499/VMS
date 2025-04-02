@@ -896,10 +896,10 @@ function sortWorkflowMethods(responses: any[], sortByPending = false, workflows:
     if (sortByPending) {
         return responses.sort((a, b) => {
             const aStatusIsPending = workflows.some(
-              (w) => w?.method_id === a.id && w?.status?.toLowerCase() === "pending"
+              (w) => w?.method_id === a.id && w?.dataValues?.status?.toLowerCase() === "pending"
             );
             const bStatusIsPending = workflows.some(
-              (w) => w?.method_id === b.id && w?.status?.toLowerCase() === "pending"
+              (w) => w?.method_id === b.id && w?.dataValues?.status?.toLowerCase() === "pending"
             );
             
             if (aStatusIsPending && !bStatusIsPending) return 1;  
