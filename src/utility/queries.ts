@@ -1863,7 +1863,7 @@ export const rateTypeTotalCount = `
 
 export const getExpenseType = `
    SELECT
-    ec.name,
+    ec.config_name,
     ec.id AS expense_config_id,
     ec.program_id,
     et.name AS expense_type_name,
