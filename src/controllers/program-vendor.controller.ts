@@ -428,10 +428,7 @@ export async function saveProgramVendor(
     }
 };
 
-export const updateProgramVendor = async (
-    request: FastifyRequest,
-    reply: FastifyReply
-) => {
+export const updateProgramVendor = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string; id: string };
     const programVendorData = request.body as Partial<programVendorInterface>;
@@ -498,21 +495,30 @@ export const updateProgramVendor = async (
 
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
-                const fieldsToCheck = ['hierarchy', 'work_locations', 'program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification'];
+                const fieldsToCheck = ['hierarchy', 'work_locations', 'program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification', 'rate_model'];
                 fieldsToCheck.forEach(field => {
                     if (markupData[field] === 'any') {
                         markupData[field] = null;
                     }
                 });
-                const existingRecord = await vendorMarkupConfig.findOne({
-                    where: {
-                        program_id,
-                        program_vendor_id: existingProgramVendor.id,
-                        hierarchy: markup.hierarchy,
-                        rate_model: markup.rate_model,
-                        program_industry: markup.program_industry,
-                    },
-                });
+
+                const whereClause: Record<string, any> = {
+                    program_id,
+                    program_vendor_id: existingProgramVendor.id,
+                    hierarchy: markup.hierarchy,
+                    rate_model: markup.rate_model,
+                    program_industry: markup.program_industry,
+                    rate_type: markup.rate_type,
+                    worker_type: markup.worker_type,
+                    worker_classification: markup.worker_classification,
+                    job_template: markup.job_template
+                };
+
+                if (markup.job_type !== undefined) whereClause.job_type = markup.job_type;
+                if (markup.work_locations !== undefined) whereClause.work_locations = markup.work_locations;
+
+                const existingRecord = await vendorMarkupConfig.findOne({where: whereClause});
+
                 if (!existingRecord) {
                     await vendorMarkupConfig.create({
                         ...markupData,
