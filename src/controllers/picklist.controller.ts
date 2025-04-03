@@ -698,6 +698,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest, reply: 
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        multiselect: picklist.multiselect,
         picklistItems: picklist.picklistItems.sort(
           (a: { value: string }, b: { value: string }) =>
             (orderMap[a.value] ?? Infinity) - (orderMap[b.value] ?? Infinity)
@@ -715,6 +716,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest, reply: 
         is_visible: picklist.is_visible,
         defined_by: picklist.defined_by,
         created_on: picklist.created_on,
+        multiselect: picklist.multiselect,
         picklistItems: picklist.picklistItems
           .map((item: any) => ({
             id: item.id,
@@ -958,7 +960,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
           },
         },
       ],
-      order: [["name", "ASC"]],
+      order: [["created_on", "ASC"]],
       offset,
       limit: pageSize,
     });

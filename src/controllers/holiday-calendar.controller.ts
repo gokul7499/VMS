@@ -299,9 +299,10 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
   try {
     const existingHolidayCalendar = await holidayCalendar.findOne({
       where: {
-        program_id: holiday_calendar.program_id,
+        program_id: holiday_calendar.program_id ,
         name: holiday_calendar.name,
-        is_deleted: false
+        is_deleted: false,
+        id: { [Op.ne]: id }
       }
     });
 
@@ -310,6 +311,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
         status_code: 409,
         trace_id: traceId,
         message: 'Holiday calendar name already exists.',
+
       });
     }
     const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId, updated_on: Date.now() }, { where: { program_id, id } });

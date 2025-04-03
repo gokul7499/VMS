@@ -8,7 +8,8 @@ interface ModuleData {
   updated_on?: bigint;
   created_by: string,
   updated_by: string,
-  is_custom_field: boolean
+  is_custom_field: boolean,
+  is_reason_code:boolean
 }
 
 export const paramsSchema = {

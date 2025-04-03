@@ -829,7 +829,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             return await handleOfferModule(workflow_trigger_id, reply, traceId);
         }
         else if (moduleLower === 'assignment' || moduleLower === 'assignments') {
-            return await handleAssignmentModule(reply, traceId);
+            return await handleAssignmentModule(workflow_trigger_id, reply, traceId);
         }
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
@@ -893,35 +893,43 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 }
 
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
-    if (sortByPending) {
-        return responses.sort((a, b) => {
-            const aStatusIsPending = workflows.some(
-              (w) => w?.method_id === a.id && w?.status?.toLowerCase() === "pending"
-            );
-            const bStatusIsPending = workflows.some(
-              (w) => w?.method_id === b.id && w?.status?.toLowerCase() === "pending"
-            );
-            
-            if (aStatusIsPending && !bStatusIsPending) return 1;  
-            if (!aStatusIsPending && bStatusIsPending) return -1;  
-            const aIsReviewOrApproval =
-              a?.name?.trim().toLowerCase() === "review" ||
-              a?.name?.trim().toLowerCase() === "approval";
-            const bIsReviewOrApproval =
-              b?.name?.trim().toLowerCase() === "review" ||
-              b?.name?.trim().toLowerCase() === "approval";
-            if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
-            if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
-            return 0;
-          });
-    } else {
-        return responses.sort((a, b) => {
-            if (a.name?.trim().toLowerCase() === 'review') return -1;
-            if (b.name?.trim().toLowerCase() === 'review') return 1;
-            return 0;
-        });
-    }
-}
+    return responses.map((response) => {
+        console.log('method ids is noowwww', response.method_ids);
+        console.log('workflow is', workflows)
+      const statusIsPending = workflows.some(
+        (w) =>
+          response.method_ids?.includes(w.dataValues.method_id) &&
+          w.dataValues.status.toLowerCase() === "pending"
+      );
+
+      console.log('status is pending', statusIsPending)
+    
+      response.is_workflow = statusIsPending ? true : false;
+      return response;
+    }).sort((a, b) => {
+      const aStatusIsPending = a.is_workflow ?? false;  
+      const bStatusIsPending = b.is_workflow ?? false;  
+  
+      if (sortByPending) {
+        if (aStatusIsPending && !bStatusIsPending) return 1;  
+        if (!aStatusIsPending && bStatusIsPending) return -1;
+      }
+  
+      const aIsReviewOrApproval =
+        a?.name?.trim().toLowerCase() === "review" ||
+        a?.name?.trim().toLowerCase() === "approval";
+      const bIsReviewOrApproval =
+        b?.name?.trim().toLowerCase() === "review" ||
+        b?.name?.trim().toLowerCase() === "approval";
+  
+      if (aIsReviewOrApproval && !bIsReviewOrApproval) return -1; 
+      if (!aIsReviewOrApproval && bIsReviewOrApproval) return 1;  
+  
+      return 0; 
+    });
+  }
+  
+  
 
 // Handle job module logic
 async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
@@ -1013,7 +1021,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
             }
         ];
         
-        const workflows = await getWorkflows(workflowTriggerId, { isUpdated: false });
+        const workflows = await getWorkflows(workflowTriggerId);
         
         if (!workflows.length) {
             return reply.status(400).send({
@@ -1024,7 +1032,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
         
         const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
         const responses = response.filter(i => workflowMethodIds.includes(i.id));
-        const sortedResponse = sortWorkflowMethods(responses);
+        const sortedResponse = sortWorkflowMethods(responses, false, workflows);
         
         return reply.status(200).send({
             status_code: 200,
@@ -1040,7 +1048,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
 }
 
 // Handle assignment module logic
-async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
+async function handleAssignmentModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
     const moduleId = await findModuleBySlug("assignment");
     
     const eventId1 = await findEvent(moduleId, "create_assignment");
@@ -1052,7 +1060,7 @@ async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
     const createApprovalMethod = findMethod(items, eventId1, "approval");
     const updateApprovalMethod = findMethod(items, eventId2, "approval");
     const budgetAdjustmentApprovalMethod = findMethod(items, eventId3, "approval");
-    
+    const workflows = await getWorkflows(workflowTriggerId);
     if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
         const response = [
             {
@@ -1065,7 +1073,7 @@ async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
             }
         ];
         
-        const sortedResponse = sortWorkflowMethods(response);
+        const sortedResponse = sortWorkflowMethods(response, false, workflows);
         
         return reply.status(200).send({
             status_code: 200,
@@ -1127,7 +1135,7 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
     const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
     const responses = response.filter((i) => workflowMethodIds.includes(i.id));
     
-    const sortedResponse = sortWorkflowMethods(responses);
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
     
     return reply.status(200).send({
         status_code: 200,
