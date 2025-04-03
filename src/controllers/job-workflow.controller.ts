@@ -2810,7 +2810,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         });
     }
 };
-async function updateMissingLevels(levels: any[], workflow: any) {``
+async function updateMissingLevels(levels: any[], workflow: any) {
     // Extract all placement orders from workflow.levels into a Set
     const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
 
@@ -3482,7 +3482,7 @@ l.placement_order ASC;`;
             }
 
             const workflow = workflows[job_workflow_id];
-            if (row.status === "Rejected") {
+            if (row.status?.toLowerCase() === "rejected") {
                 workflow.is_rejected_workflow = true;
             }
 
@@ -3970,7 +3970,7 @@ l.placement_order ASC;`;
                     }
                    
                     if (recipients.length > 0) {
-                        const hasRejectedRecipient = recipients.some(recipient => recipient.status === "Rejected");
+                        const hasRejectedRecipient = recipients.some(recipient => recipient.status?.toLowerCase() === "rejected");
                         if (hasRejectedRecipient) {
                             workflow.is_rejected_workflow = true;
                         }
