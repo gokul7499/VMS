@@ -62,6 +62,7 @@ export interface Workflow {
  
   levels: Level[];
   config: any
+  is_rejected_workflow?: boolean;
 }
 
 export interface Users {

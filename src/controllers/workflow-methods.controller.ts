@@ -829,7 +829,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             return await handleOfferModule(workflow_trigger_id, reply, traceId);
         }
         else if (moduleLower === 'assignment' || moduleLower === 'assignments') {
-            return await handleAssignmentModule(reply, traceId);
+            return await handleAssignmentModule(workflow_trigger_id, reply, traceId);
         }
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
@@ -894,11 +894,15 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
     return responses.map((response) => {
+        console.log('method ids is noowwww', response.method_ids);
+        console.log('workflow is', workflows)
       const statusIsPending = workflows.some(
         (w) =>
           response.method_ids?.includes(w.dataValues.method_id) &&
           w.dataValues.status.toLowerCase() === "pending"
       );
+
+      console.log('status is pending', statusIsPending)
     
       response.is_workflow = statusIsPending ? true : false;
       return response;
@@ -1028,7 +1032,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
         
         const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
         const responses = response.filter(i => workflowMethodIds.includes(i.id));
-        const sortedResponse = sortWorkflowMethods(responses);
+        const sortedResponse = sortWorkflowMethods(responses, false, workflows);
         
         return reply.status(200).send({
             status_code: 200,
@@ -1044,7 +1048,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
 }
 
 // Handle assignment module logic
-async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
+async function handleAssignmentModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
     const moduleId = await findModuleBySlug("assignment");
     
     const eventId1 = await findEvent(moduleId, "create_assignment");
@@ -1056,7 +1060,7 @@ async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
     const createApprovalMethod = findMethod(items, eventId1, "approval");
     const updateApprovalMethod = findMethod(items, eventId2, "approval");
     const budgetAdjustmentApprovalMethod = findMethod(items, eventId3, "approval");
-    
+    const workflows = await getWorkflows(workflowTriggerId);
     if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
         const response = [
             {
@@ -1069,7 +1073,7 @@ async function handleAssignmentModule(reply: FastifyReply, traceId: string) {
             }
         ];
         
-        const sortedResponse = sortWorkflowMethods(response);
+        const sortedResponse = sortWorkflowMethods(response, false, workflows);
         
         return reply.status(200).send({
             status_code: 200,
@@ -1131,7 +1135,7 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
     const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
     const responses = response.filter((i) => workflowMethodIds.includes(i.id));
     
-    const sortedResponse = sortWorkflowMethods(responses);
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
     
     return reply.status(200).send({
         status_code: 200,

@@ -3502,11 +3502,14 @@ l.placement_order ASC;`;
                     status: row.status,
                     config: row.config,
                     levels: [],
+                    is_rejected_workflow: false
                 };
             }
 
             const workflow = workflows[job_workflow_id];
-
+            if (row.status?.toLowerCase() === "rejected") {
+                workflow.is_rejected_workflow = true;
+            }
 
             let previousLevelCompleted = false;
             // let levelStatusMap: { [key: number]: string } = {};
@@ -3990,7 +3993,13 @@ l.placement_order ASC;`;
                             imporsonate_by: imposonate_user_data
                         }];
                     }
-
+                   
+                    if (recipients.length > 0) {
+                        const hasRejectedRecipient = recipients.some(recipient => recipient.status?.toLowerCase() === "rejected");
+                        if (hasRejectedRecipient) {
+                            workflow.is_rejected_workflow = true;
+                        }
+                    }
                     // Add the recipients to the workflow levels
                     recipients.forEach(recipient => {
                         const existingLevel = getExistingLevel(workflow, level_id);
