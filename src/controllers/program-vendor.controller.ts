@@ -495,7 +495,12 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
 
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
-                const fieldsToCheck = ['hierarchy', 'work_locations', 'program_industry', 'rate_type', 'job_type', 'job_template', 'worker_type', 'worker_classification', 'rate_model'];
+                const fieldsToCheck = [
+                    'hierarchy', 'work_locations', 'program_industry',
+                    'rate_type', 'job_type', 'job_template',
+                    'worker_type', 'worker_classification', 'rate_model'
+                ];
+
                 fieldsToCheck.forEach(field => {
                     if (markupData[field] === 'any') {
                         markupData[field] = null;
@@ -505,31 +510,36 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 const whereClause: Record<string, any> = {
                     program_id,
                     program_vendor_id: existingProgramVendor.id,
-                    hierarchy: markup.hierarchy,
-                    rate_model: markup.rate_model,
-                    program_industry: markup.program_industry,
-                    rate_type: markup.rate_type,
-                    worker_type: markup.worker_type,
-                    worker_classification: markup.worker_classification,
-                    job_template: markup.job_template
+                    hierarchy: markup.hierarchy === 'any' ? null : markup.hierarchy,
+                    rate_model: markup.rate_model === 'any' ? null : markup.rate_model,
+                    program_industry: markup.program_industry === 'any' ? null : markup.program_industry,
+                    rate_type: markup.rate_type === 'any' ? null : markup.rate_type,
+                    worker_type: markup.worker_type === 'any' ? null : markup.worker_type,
+                    worker_classification: markup.worker_classification === 'any' ? null : markup.worker_classification,
+                    job_template: markup.job_template === 'any' ? null : markup.job_template
                 };
 
-                if (markup.job_type !== undefined) whereClause.job_type = markup.job_type;
-                if (markup.work_locations !== undefined) whereClause.work_locations = markup.work_locations;
-
-                const existingRecord = await vendorMarkupConfig.findOne({where: whereClause});
-
-                if (!existingRecord) {
-                    await vendorMarkupConfig.create({
-                        ...markupData,
-                        program_vendor_id: existingProgramVendor.id,
-                        program_id: program_id,
-                        created_by: userId,
-                        updated_by: userId
-                    });
-                } else {
-                    throw new Error("A record with the same markup already exists.");
+                if (markup.job_type !== undefined) {
+                    whereClause.job_type = markup.job_type === 'any' ? null : markup.job_type;
                 }
+                if (markup.work_locations !== undefined) {
+                    whereClause.work_locations = markup.work_locations === 'any' ? null : markup.work_locations;
+                }
+
+                const existingRecord = await vendorMarkupConfig.findOne({
+                    where: whereClause
+                });
+
+                if (existingRecord) {
+                    throw new Error(`A record with the same markup already exists: ${JSON.stringify(whereClause)}`);
+                }
+                await vendorMarkupConfig.create({
+                    ...markupData,
+                    program_vendor_id: existingProgramVendor.id,
+                    program_id: program_id,
+                    created_by: userId,
+                    updated_by: userId
+                });
             }
         }
 
