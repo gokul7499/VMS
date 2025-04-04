@@ -315,14 +315,14 @@ cron.schedule('0 0 * * *', async () => {
     const todayTimestamp = startOfToday.getTime();
 
     const [updatedRows] = await VendorComplianceReqDocMappingModel.update(
-      { status: 'expired' },
+      { status: 'Expired' },
       {
         where: {
           expiry_on: {
             [Op.lt]: todayTimestamp,
           },
           status: {
-            [Op.ne]: 'expired',
+            [Op.ne]: 'Expired',
           },
         },
       }
