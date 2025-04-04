@@ -327,7 +327,6 @@ cron.schedule('0 0 * * *', async () => {
         },
       }
     );
-    console.log(`[CronJob] Expired ${updatedRows} vendor documents at 12:00 AM`);
   } catch (error) {
     console.error('[CronJob] Error updating expired vendor documents:', error);
   }
