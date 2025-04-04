@@ -2815,7 +2815,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         }
                     });
                 }
-                // await applyBypassDublicateStatus(request, reply, workflow)
+                // await applyBypassDublicateStatus(request, reply, workflow)                
                 let data = await statusHandling(request, reply, workflow)
                 await updateMissingLevels(levels, workflow)
                 // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
@@ -3049,7 +3049,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                     currentLevel.level_status = "not started";
                 }
             }
-            if (currentLevel.level_status === "pending") {
+            if (currentLevel.level_status === "pending"||currentLevel.level_status === "bypassed") {                
                 const hasMatchingRecipient =
                     user.userType == "super_user" ||
                     currentLevel.recipients.some((recipient: any) => {
@@ -3078,7 +3078,15 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             // Update the status map for reference
             if (currentLevel.recipients && currentLevel.recipients.length > 0) {
                 currentLevel.recipients.forEach((recipient: any) => {
-                    if (currentLevel.level_status === "completed" || currentLevel.level_status === "canceled" || currentLevel.level_status === "Not needed") {
+                    if (currentLevel.level_status === "bypassed") {
+                        // If the level is bypassed, set recipient's status to "bypassed"
+                        recipient.status = "bypassed";
+
+                        // Set actor fields to null when the level is bypassed
+                        recipient.actor_first_name = null;
+                        recipient.actor_last_name = null;
+                    } else  if (currentLevel.level_status === "completed" || currentLevel.level_status === "canceled" || currentLevel.level_status === "Not needed") {
+                       
                         // If the level is completed, preserve the recipient's existing status
                         recipient.status = recipient.status;
                     } else if (currentLevel.level_status === "pending") {
@@ -4026,6 +4034,8 @@ l.placement_order ASC;`;
                     });
                 }
                 // await applyBypassDublicateStatus(request, reply, workflow)
+                console.log('in getupdate workflow');
+                
                 let data = await statusHandling(request, reply, workflow)
             }
         }
