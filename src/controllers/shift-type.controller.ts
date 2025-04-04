@@ -332,6 +332,7 @@ export const getShiftTypeFilter = async (request: FastifyRequest, reply: Fastify
         is_enabled?: boolean;
         shift_type_category?: string;
         updated_on?: string;
+        time_duration:string;
         page?: number;
         limit?: number;
     };
@@ -343,6 +344,7 @@ export const getShiftTypeFilter = async (request: FastifyRequest, reply: Fastify
 
     if (body.program_id) whereClause.program_id = body.program_id;
     if (body.id) whereClause.id = body.id;
+    if (body.time_duration) whereClause.time_duration = body.time_duration;
     if (body.shift_type_name) whereClause.shift_type_name = { [Op.like]: `%${body.shift_type_name}%` };
     if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
     if (body.shift_type_category) whereClause.shift_type_category = { [Op.like]: `%${body.shift_type_category}%` };
