@@ -8,7 +8,7 @@ cron.schedule('0 0 * * *', async () => {
     startOfToday.setHours(0, 0, 0, 0);
     const todayTimestamp = startOfToday.getTime();
 
-     await VendorComplianceReqDocMappingModel.update(
+    await VendorComplianceReqDocMappingModel.update(
       { status: 'Expired' },
       {
         where: {
