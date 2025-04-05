@@ -5,8 +5,7 @@ import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendor-comp
 import { baseSearch } from "../utility/baseService";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from '../utility/loggerService';
-import cron from 'node-cron';
-import { Op } from "sequelize";
+
 
 export async function createVendorComplianceReqDoc(
     request: FastifyRequest,
@@ -308,26 +307,3 @@ export async function deleteVendorComplianceReqDoc(
     }
 }
 
-cron.schedule('0 0 * * *', async () => {
-  try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const todayTimestamp = startOfToday.getTime();
-
-     await VendorComplianceReqDocMappingModel.update(
-      { status: 'Expired' },
-      {
-        where: {
-          expiry_on: {
-            [Op.lt]: todayTimestamp,
-          },
-          status: {
-            [Op.ne]: 'Expired',
-          },
-        },
-      }
-    );
-  } catch (error) {
-    console.error('[CronJob] Error updating expired vendor documents:', error);
-  }
-});
