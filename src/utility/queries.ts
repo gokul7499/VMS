@@ -842,7 +842,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.job_type
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'job_template', COALESCE(
                     (
@@ -853,7 +853,7 @@ SELECT
                         FROM job_templates jt
                         WHERE jt.id = vmc.job_template
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'worker_type', COALESCE(
                     (
@@ -865,7 +865,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.worker_type
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'worker_classification', COALESCE(
                     (
@@ -877,7 +877,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.worker_classification
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'rate_type', COALESCE(
                     (
@@ -888,7 +888,7 @@ SELECT
                         FROM rate_type rt
                         WHERE rt.id = vmc.rate_type
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'work_locations', COALESCE(
                     (
@@ -899,7 +899,7 @@ SELECT
                         FROM work_locations wl
                         WHERE wl.id = vmc.work_locations
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'hierarchy', COALESCE(
                     (
@@ -910,7 +910,7 @@ SELECT
                         FROM hierarchies h
                         WHERE h.id = vmc.hierarchy
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'program_industry', COALESCE(
                     (
@@ -921,7 +921,7 @@ SELECT
                         FROM labour_category i
                         WHERE i.id = vmc.program_industry
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'is_enabled', vmc.is_enabled
             )
