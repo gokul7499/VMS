@@ -3516,7 +3516,7 @@ l.placement_order ASC;`;
 
             const workflow = workflows[job_workflow_id];
             if (row.status?.toLowerCase() === "rejected") {
-                workflow.is_rejected_workflow = false;
+                workflow.is_rejected_workflow = true;
             }
 
             let previousLevelCompleted = false;
