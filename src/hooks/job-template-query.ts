@@ -44,15 +44,21 @@ class JobTempletRepository {
 
   async getMostUsedJobTemplatesByProgram(
     program_id: string,
-    hierarchy_ids: string[],
+    hierarchyIdsArray: string[],
     job_type?: string,
     limit?: number,
     offset?: number,
     is_enabled?: boolean
   ) {
-    const hierarchyCondition = hierarchy_ids.length > 0
-      ? `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
-      : '';
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+    ? `job_templates.id IN (
+        SELECT job_temp_id
+        FROM job_template_hierarchies
+        WHERE hierarchy_ids IN (${hierarchyIdsArray.map(() => '?').join(',')})
+        GROUP BY job_temp_id
+        HAVING COUNT(DISTINCT hierarchy) = ?
+      )`
+    : "";
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const paginationCondition = limit !== undefined && offset !== undefined
       ? `LIMIT ? OFFSET ?`
@@ -87,7 +93,7 @@ class JobTempletRepository {
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
+    const replacements: (string | number)[] = [program_id, ...hierarchyIdsArray];
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
@@ -107,12 +113,16 @@ class JobTempletRepository {
     return data;
   }
 
-  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string, is_enabled?: boolean | undefined) {
-    let hierarchyCondition = '';
-
-    if (hierarchy_ids.length > 0) {
-      hierarchyCondition = `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`;
-    }
+  async getJobTempletByHierarchies(program_id: string, hierarchyIdsArray: string[], job_type?: string, is_enabled?: boolean | undefined) {
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+    ? `job_templates.id IN (
+        SELECT job_temp_id
+        FROM job_template_hierarchies
+        WHERE hierarchy_ids IN (${hierarchyIdsArray.map(() => '?').join(',')})
+        GROUP BY job_temp_id
+        HAVING COUNT(DISTINCT hierarchy) = ?
+      )`
+    : "";
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
     const query = `
@@ -141,7 +151,7 @@ class JobTempletRepository {
       GROUP BY job_templates.template_name
       ORDER BY created_on DESC;
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
+    const replacements: (string | number)[] = [program_id, ...hierarchyIdsArray];
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
