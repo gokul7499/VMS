@@ -832,7 +832,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             return await handleAssignmentModule(workflow_trigger_id, reply, traceId);
         }
         
-        else if (moduleLower === 'timesheet'|| moduleLower === 'timesheet' ) {
+        else if (moduleLower === 'timesheet') {
             return await handleTimesheetModule(workflow_trigger_id, reply, traceId);
         }
         else if (module === 'submit_candidate_rehire_check') {
