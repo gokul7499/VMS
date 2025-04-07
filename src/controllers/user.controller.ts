@@ -316,7 +316,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      const candidateId = await CandidateCodeGenerate(user.tenant_id, program_id);
+      const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
 
       await candidateModel.create({
         ...userWithoutId,
