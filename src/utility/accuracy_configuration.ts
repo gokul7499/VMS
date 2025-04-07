@@ -16,7 +16,7 @@ class AccuracyConfiguration {
                     \`value\`,
                     configuration_id
                 FROM programs_config
-                WHERE program_id = :program_id AND config_model = :config_model
+                WHERE program_id = :program_id AND title = :config_model
             `;
 
             const replacements = { program_id, config_model };
@@ -52,6 +52,13 @@ class AccuracyConfiguration {
             return amount.toString();
         }
 
+        const accuracyConfigRecord = configData.find(
+            (item) =>
+                item.title === "Accuracy Configuration" &&
+                item.config_model === "platform"
+        );
+        const isAccuracyEnabled = accuracyConfigRecord?.value == true;
+        
         const amountObject = configData
             .find((item) => item.title === "Accuracy Configuration")
             ?.value.find((val: { title: string }) => val.title === title);
@@ -65,8 +72,8 @@ class AccuracyConfiguration {
             Array.isArray(group.fields) ? group.fields : []
         );
 
-        const scaleLimit = parseInt(allFields[1].value, 10);
-        const threshold = parseInt(allFields[2].value, 10);
+        const scaleLimit = isAccuracyEnabled ? parseInt(allFields[1].value, 10) : 4;
+        const threshold = isAccuracyEnabled ? parseInt(allFields[2].value, 10) : 4;
         const scalingType = allFields[0].value;
 
         const factor = Math.pow(10, scaleLimit);

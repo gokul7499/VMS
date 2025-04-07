@@ -1191,16 +1191,16 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(rates: any[], baseRateMin: number, baseRateMax: number, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
+function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
     return rates.map((rate) => {
         const differential_value = ot_exempt && rateTypeCategory === "overtime" ? 1 : rate.differential_value;
 
         const min_rate = rate.differential_type === "Factor Differential"
-            ? baseRateMin * differential_value
+            ? Number(baseRateMin) * differential_value
             : baseRateMin + differential_value;
 
         const max_rate = rate.differential_type === "Factor Differential"
-            ? baseRateMax * differential_value
+            ? Number(baseRateMax) * differential_value
             : baseRateMax + differential_value;
 
         return {
@@ -1225,11 +1225,22 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {
-                const baseRateMin = Number(formatWithAccuracy(rateConfig.base_rate.rate_type.min_rate.amount, accuracyType.RATE));
-                const baseRateMax = Number(formatWithAccuracy(rateConfig.base_rate.rate_type.max_rate.amount, accuracyType.RATE));
+                const baseRateMin = formatWithAccuracy(rateConfig.base_rate.rate_type.min_rate.amount, accuracyType.RATE);
+                const baseRateMax = formatWithAccuracy(rateConfig.base_rate.rate_type.max_rate.amount, accuracyType.RATE);
 
                 const base_rate = {
                     ...rateConfig.base_rate,
+                    rate_type: {
+                        ...rateConfig.base_rate.rate_type,
+                        min_rate: {
+                            ...rateConfig.base_rate.rate_type.min_rate,
+                            amount: baseRateMin,
+                        },
+                        max_rate: {
+                            ...rateConfig.base_rate.rate_type.max_rate,
+                            amount: baseRateMax,
+                        }
+                    },
                     rates: rateConfig.base_rate.rates.map((rate) => {
                         const rateTypeCategory = rate.rate_type.rate_type_category.value;
                         return {

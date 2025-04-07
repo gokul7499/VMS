@@ -104,7 +104,7 @@ export interface RateConfigurationsBudget {
 }
 
 export enum accuracyType {
-    CONFIG_MODEL = "accuracy_configuration",
+    CONFIG_MODEL = "Accuracy Configuration",
     RATE = "Rate",
     AMOUNT = "Amount",
     HOUR = "hour",
