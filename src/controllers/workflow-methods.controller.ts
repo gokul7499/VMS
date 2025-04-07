@@ -831,6 +831,10 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         else if (moduleLower === 'assignment' || moduleLower === 'assignments') {
             return await handleAssignmentModule(workflow_trigger_id, reply, traceId);
         }
+        
+        else if (moduleLower === 'timesheet'|| moduleLower === 'timesheet' ) {
+            return await handleTimesheetModule(workflow_trigger_id, reply, traceId);
+        }
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
         }
@@ -1075,6 +1079,37 @@ async function handleAssignmentModule(workflowTriggerId: string | undefined, rep
         
         const sortedResponse = sortWorkflowMethods(response, false, workflows);
         
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Workflow methods fetched successfully",
+            workflow_method: sortedResponse,
+        });
+    } else {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "Required workflow methods not found"
+        });
+    }
+}
+
+// Handle timesheet module logic
+async function handleTimesheetModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("timesheet");
+
+    const eventId = await findEvent(moduleId, "submit_timesheet");
+    const items = await findWorkflowMethods(moduleId, [eventId]);
+    const submitApprovalMethod = findMethod(items, eventId, "approval");
+    const workflows = await getWorkflows(workflowTriggerId);
+
+    if (submitApprovalMethod) {
+        const response = [
+            {
+                ...submitApprovalMethod.dataValues,
+                method_ids: [submitApprovalMethod.dataValues.id]
+            }
+        ];
+
+        const sortedResponse = sortWorkflowMethods(response, false, workflows);
         return reply.status(200).send({
             status_code: 200,
             message: "Workflow methods fetched successfully",
