@@ -5,7 +5,8 @@ import {VendorComplianceReqDocMappingInterface } from '../interfaces/vendor-comp
 import { baseSearch } from "../utility/baseService";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from '../utility/loggerService';
-
+import {runVendorDocExpiryJob} from "../utility/cronJob";
+runVendorDocExpiryJob();
 
 export async function createVendorComplianceReqDoc(
     request: FastifyRequest,
@@ -306,4 +307,3 @@ export async function deleteVendorComplianceReqDoc(
         });
     }
 }
-

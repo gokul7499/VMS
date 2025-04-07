@@ -1,7 +1,7 @@
 import VendorComplianceReqDocMappingModel from "../models/vendor-compliance-req-doc-mapping.model";
 import cron from 'node-cron';
 import { Op } from "sequelize";
-
+export function runVendorDocExpiryJob() {
 cron.schedule('0 0 * * *', async () => {
   try {
     const startOfToday = new Date();
@@ -21,7 +21,9 @@ cron.schedule('0 0 * * *', async () => {
         },
       }
     );
+    console.log('[CronJob] Expired vendor documents updated successfully.');
   } catch (error) {
     console.error('[CronJob] Error updating expired vendor documents:', error);
   }
 });
+}
