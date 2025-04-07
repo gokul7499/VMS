@@ -6,6 +6,7 @@ import { baseSearch } from "../utility/baseService";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from '../utility/loggerService';
 
+
 export async function createVendorComplianceReqDoc(
     request: FastifyRequest,
     reply: FastifyReply
@@ -305,3 +306,4 @@ export async function deleteVendorComplianceReqDoc(
         });
     }
 }
+

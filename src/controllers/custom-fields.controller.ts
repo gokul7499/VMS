@@ -11,7 +11,7 @@ import { createCustomFieldLocations } from './custom-field-location.controller';
 import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
@@ -283,6 +283,18 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     const modifiedOnPattern = `${updated_on}`;
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
+  if (hierarchy_ids) {
+    const hierarchyArray = hierarchy_ids.split(',').map((id: any) => `'${id.trim()}'`); 
+    if (hierarchyArray.length > 0) {
+      whereClause.id = {
+        [Op.in]: Sequelize.literal(`(
+          SELECT custom_field_id
+          FROM custom_fields_hierarchie
+          WHERE hierarchy_id IN (${hierarchyArray.join(',')})
+        )`)
+      };
+    }
+  }
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 10;
   const offset = (pageNumber - 1) * limitNumber;
@@ -315,19 +327,6 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       limit: limitNumber,
     });
 
-    let filteredCustomFields = result.rows;
-    if (hierarchy_ids) {
-      const hierarchyIds = hierarchy_ids.split(",").map((id: string) => id.trim());
-      const hierarchyMappings = await customFieldsHierarchie.findAll({
-        where: {
-          hierarchy_id: { [Op.in]: hierarchyIds },
-          custom_field_id: { [Op.in]: filteredCustomFields.map(field => field.id) },
-        },
-        attributes: ["custom_field_id","hierarchy_id"],
-      });
-      const validCustomFieldIds = hierarchyMappings.map(mapping => mapping.custom_field_id);
-      filteredCustomFields = filteredCustomFields.filter(field => validCustomFieldIds.includes(field.id));
-    }
 
     const customFieldsWithPicklistData = await Promise.all(
       result.rows.map(async (customField) => {
