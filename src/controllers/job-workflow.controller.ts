@@ -2510,7 +2510,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                 }
                 let imporsonateUserResult = null;
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
                     console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
                     for (const level of levels) {
                         let replacedUserResult = null;
@@ -2607,7 +2607,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {
                     const recipientTypes = JSON.parse(row.recipient_types) || [];
 
                     for (const recipient of recipientTypes) {
@@ -3724,7 +3724,7 @@ l.placement_order ASC;`;
                     }
                 }
                 let imporsonateUserResult = null;
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
                     console.log(recipientType);
 
                     // Loop through each placement order
@@ -3818,7 +3818,7 @@ l.placement_order ASC;`;
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {                    
                     const recipientTypes = JSON.parse(row.recipient_types);
 
                     for (const recipient of recipientTypes) {
