@@ -58,9 +58,9 @@ class AccuracyConfiguration {
                 item.config_model === "platform"
         );
         const isAccuracyEnabled = accuracyConfigRecord?.value == true;
-        
+
         const amountObject = configData
-            .find((item) => item.title === "Accuracy Configuration")
+            .find((item) => item.config_model === "accuracy_configuration")
             ?.value.find((val: { title: string }) => val.title === title);
 
         if (!amountObject || !Array.isArray(amountObject.fields)) {
