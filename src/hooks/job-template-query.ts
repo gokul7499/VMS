@@ -51,20 +51,19 @@ class JobTempletRepository {
     is_enabled?: boolean
   ) {
     const hierarchyCondition = hierarchyIdsArray.length > 0
-    ? `job_templates.id IN (
-        SELECT job_temp_id
-        FROM job_template_hierarchies
-        WHERE hierarchy_ids IN (${hierarchyIdsArray.map(() => '?').join(',')})
-        GROUP BY job_temp_id
-        HAVING COUNT(DISTINCT hierarchy) = ?
-      )`
-    : "";
-    const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
-    const paginationCondition = limit !== undefined && offset !== undefined
-      ? `LIMIT ? OFFSET ?`
+      ? `job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+        )`
       : '';
+  
+    const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
-
+    const paginationCondition = limit !== undefined && offset !== undefined ? `LIMIT ? OFFSET ?` : '';
+  
     const query = `
       SELECT
         job_templates.template_name,
@@ -85,46 +84,61 @@ class JobTempletRepository {
       LEFT JOIN job_category ON job_templates.category = job_category.id
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
       WHERE job_templates.program_id = ?
-      ${hierarchyCondition}
+      ${hierarchyCondition ? `AND ${hierarchyCondition}` : ''}
       ${jobTypeCondition}
       ${isEnabledCondition}
-      AND job_templates.job_submitted_count >=1
+      AND job_templates.job_submitted_count >= 1
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchyIdsArray];
+  
+    const replacements: (string | number)[] = [program_id];
+  
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+  
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
-    if (limit !== undefined && offset !== undefined) {
-      replacements.push(limit, offset);
-    }
-
+  
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0);
     }
-
+  
+    if (limit !== undefined && offset !== undefined) {
+      replacements.push(limit, offset);
+    }
+  
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
+  
     return data;
   }
+  
 
-  async getJobTempletByHierarchies(program_id: string, hierarchyIdsArray: string[], job_type?: string, is_enabled?: boolean | undefined) {
+  async getJobTempletByHierarchies(
+    program_id: string,
+    hierarchyIdsArray: string[],
+    job_type?: string,
+    is_enabled?: boolean
+  ) {
     const hierarchyCondition = hierarchyIdsArray.length > 0
-    ? `job_templates.id IN (
-        SELECT job_temp_id
-        FROM job_template_hierarchies
-        WHERE hierarchy_ids IN (${hierarchyIdsArray.map(() => '?').join(',')})
-        GROUP BY job_temp_id
-        HAVING COUNT(DISTINCT hierarchy) = ?
-      )`
-    : "";
+      ? `AND job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+        )`
+      : "";
+  
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
+  
     const query = `
       SELECT
         job_templates.template_name,
@@ -151,21 +165,29 @@ class JobTempletRepository {
       GROUP BY job_templates.template_name
       ORDER BY created_on DESC;
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchyIdsArray];
+  
+    const replacements: (string | number)[] = [program_id];
+  
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+  
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
+  
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0);
     }
-
+  
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
+  
     return data;
   }
+  
 
   async getAllJobTemplateByHierarchy(
     program_id: string,
