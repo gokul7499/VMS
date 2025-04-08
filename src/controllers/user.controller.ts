@@ -231,7 +231,7 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
 
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
-  const traceId = generateCustomUUID();
+ 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -245,6 +245,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
   const userId = user?.sub;
+  const traceId = (request.body as any)?.trace_id;
 
   try {
     const { user, user_group_mapping } = request.body as {
