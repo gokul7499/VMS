@@ -114,3 +114,116 @@ export enum accuracyType {
     ADJUSTMENT = "Adjustment",
     UNIT_OF_MEASURE = "Unit of Measure"
 }
+
+export interface RateConfiguration {
+    id: string;
+    program_id: string;
+    name: string;
+    is_shift_rate: boolean;
+}
+
+export interface RateCardDecisionRecord {
+    id: string;
+    rate_card_id: string;
+    rate_type_id: string;
+    hierarchy_id: string | null;
+    min_rate: {
+        amount: number;
+        is_changeable: boolean;
+        is_reduceable: boolean;
+    };
+    max_rate: {
+        amount: number;
+        is_changeable: boolean;
+        is_reduceable: boolean;
+    };
+    job_template_id: string;
+    unit_of_measure: string;
+    currency: string;
+}
+
+export interface RateConfigurationHierarchyRelation {
+    rate_configuration_id: string;
+    hierarchy_id: string;
+    hierarchy?: {
+        id: string;
+        name: string;
+    };
+}
+
+export interface Expense {
+    id: string;
+    rate_configuration_id: string;
+    unit_of_measure: string;
+    unit_lable: string;
+    rate: number;
+    max_limit: number;
+    expense_type?: {
+        id: string;
+        name: string;
+    };
+}
+
+export interface BaseRate {
+    id: string;
+    rate_configuration_id: string;
+    rate_type?: {
+        id: string;
+        name: string;
+        abbreviation: string;
+        rate_type_category: string;
+        is_base_rate: boolean;
+        shift_type: string;
+        get: () => any;
+    };
+}
+
+export interface RateType {
+    id: string;
+    base_rate_type_id: string;
+    rate_type?: {
+        id: string;
+        name: string;
+        abbreviation: string;
+        rate_type_category: string;
+        is_base_rate: boolean;
+        shift_type: string;
+        get: () => any;
+    };
+    seq_number: number;
+}
+
+export interface RateDifferential {
+    rate_id: string;
+    differential_on: string;
+    differential_type: string;
+    differential_value: number;
+    get: () => any;
+}
+
+export interface Category {
+    id: string;
+    value: string;
+    label: string;
+}
+
+export interface ShiftTypeObj {
+    id: string;
+    shift_type_name: string;
+    shift_format: string;
+    time_duration: string;
+    shift_type_time: string;
+}
+
+export interface MinMaxRate {
+    min_rate: {
+        amount: number;
+        is_changeable: boolean;
+        is_reduceable: boolean;
+    };
+    max_rate: {
+        amount: number;
+        is_changeable: boolean;
+        is_reduceable: boolean;
+    };
+}
