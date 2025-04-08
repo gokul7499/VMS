@@ -602,15 +602,16 @@ export async function getAllJobTemplateHierarchyById(request: FastifyRequest, re
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids, job_type, is_enabled } = request.query as { hierarchy_ids: string; job_type: string; is_enabled: string };
+    const { hierarchy_ids, job_type, is_enabled,is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; is_enabled: string,is_shift_rate?: string; };
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
-
+    const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
     const data = await jobTempletRepositories.getJobTempletByHierarchies(
       program_id,
       hierarchyIdsArray,
       job_type,
-      isEnabledBool
+      isEnabledBool,
+      isShiftRate
     );
     console.log("datat", data)
     reply.status(200).send({
@@ -631,17 +632,18 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids, job_type, limit, offset, is_enabled } = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string };
+    const { hierarchy_ids, job_type, limit, offset, is_enabled,is_shift_rate} = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string,is_shift_rate?: string};
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
+    const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
     const data = await jobTempletRepositories.getMostUsedJobTemplatesByProgram(
       program_id,
       hierarchyIdsArray,
       job_type,
       limit,
       offset,
-      isEnabledBool
-
+      isEnabledBool,
+      isShiftRate
     );
 
     reply.status(200).send({
