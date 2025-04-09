@@ -281,7 +281,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 reply
             );
         }
-        if ((userType === "super_user" && (userStatus[0].status === "active" || userStatus[0].status === "inactive")) || userStatus[0].status === "active") {
+        if (userStatus[0].status === "active" || userStatus[0].status === "inactive"){
             const query = `
             SELECT 
                 um.id, 
