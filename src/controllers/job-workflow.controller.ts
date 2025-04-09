@@ -498,7 +498,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
@@ -597,7 +597,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         status: user.status || null,
     }));
 }
-export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
 
 
     try {
@@ -645,9 +645,14 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             } else
                 if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
+                    const workflowID = workflow?.id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
                         status: "submitted",
+                        updates,
+                        workflowID,
+                        user,
+                        userData
                     };
 
                     await axios.put(apiUrl, payload, {
