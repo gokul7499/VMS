@@ -2249,7 +2249,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager" ||  recipientType?.name === "Timesheet Managers") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
