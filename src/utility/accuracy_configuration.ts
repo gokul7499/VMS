@@ -74,42 +74,32 @@ class AccuracyConfiguration {
 
         const scaleLimit = isAccuracyEnabled ? parseInt(allFields[1].value, 10) : 4;
         const threshold = isAccuracyEnabled ? parseInt(allFields[2].value, 10) : 4;
-        const scalingType = allFields[0].value;
+        const scalingType = isAccuracyEnabled ? allFields[0].value : 'Truncate';
 
         const factor = Math.pow(10, scaleLimit);
+        let adjustedAmount = amount;
 
         switch (scalingType) {
             case 'Round Up':
-                return AccuracyConfiguration.roundUp(amount, threshold, scaleLimit, factor).toFixed(scaleLimit);
+                adjustedAmount = Number(adjustedAmount.toFixed(scaleLimit));
+                if (adjustedAmount % 1 !== 0 && adjustedAmount % 1 >= threshold / 10) {
+                    adjustedAmount = Math.ceil(adjustedAmount * factor) / factor;
+                }
+                break;
             case 'Round Down':
-                return AccuracyConfiguration.roundDown(amount, threshold, scaleLimit, factor).toFixed(scaleLimit);
+                adjustedAmount = Number(adjustedAmount.toFixed(scaleLimit));
+                if (adjustedAmount % 1 !== 0 && adjustedAmount % 1 < threshold / 10) {
+                    adjustedAmount = Math.floor(adjustedAmount * factor) / factor;
+                }
+                break;
             case 'Truncate':
-                return AccuracyConfiguration.truncate(amount, scaleLimit, factor).toFixed(scaleLimit);
+                adjustedAmount = Math.trunc(adjustedAmount * factor) / factor;
+                break;
             default:
-                return amount.toFixed(scaleLimit);
+                return amount.toString();
         }
-    }
 
-    private static roundUp(value: number, threshold: number, scaleLimit: number, factor: number): number {
-        let roundedValue = Math.ceil(value * factor) / factor;
-
-        if (threshold && (value * factor - Math.floor(value * factor)) * 10 >= threshold) {
-            roundedValue = (Math.ceil(value * factor) + 1) / factor;
-        }
-        return roundedValue;
-    }
-
-    private static roundDown(value: number, threshold: number, scaleLimit: number, factor: number): number {
-        let roundedValue = Math.floor(value * factor) / factor;
-
-        if (threshold && (value * factor - Math.floor(value * factor)) * 10 <= threshold) {
-            roundedValue = (Math.floor(value * factor) - 1) / factor;
-        }
-        return roundedValue;
-    }
-
-    private static truncate(value: number, scaleLimit: number, factor: number): number {
-        return Math.floor(value * factor) / factor;
+        return adjustedAmount.toFixed(scaleLimit);
     }
 
 }
