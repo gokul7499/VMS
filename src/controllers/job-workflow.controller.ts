@@ -3046,7 +3046,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled"|| previousLevel.level_status === "bypassed") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
