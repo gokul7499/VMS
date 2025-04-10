@@ -1290,7 +1290,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason,
+                        updated_on: Date.now(),  
 
                     }));
 
