@@ -1276,7 +1276,7 @@ export const rejectLevel = async (
                             }
 
                             return {
-                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(),
                             };
 
                         });
