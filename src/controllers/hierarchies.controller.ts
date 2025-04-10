@@ -219,7 +219,10 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
       });
     }
 
-    const countryId = hierarchy.address[0].country;
+    const countryId = Array.isArray(hierarchy.address) && hierarchy.address.length > 0
+      ? hierarchy.address[0].country
+      : null;
+      
     let countryData = null;
 
     if (countryId) {
