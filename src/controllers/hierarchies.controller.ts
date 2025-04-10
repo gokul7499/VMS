@@ -219,7 +219,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
       });
     }
 
-    const countryId = hierarchy.address?.country;
+    const countryId = hierarchy.address[0].country;
     let countryData = null;
 
     if (countryId) {
@@ -840,7 +840,7 @@ export const getHierarchiesAdvancedFilter = async (
   const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.body as {
     name?: string;
     is_enabled?: boolean | string;
-    updated_on?: number[]; 
+    updated_on?: number[];
     page?: number;
     limit?: number;
   };
@@ -850,20 +850,20 @@ export const getHierarchiesAdvancedFilter = async (
     const hasName = !!name;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
-      const { updated_on } = request.body as { updated_on:  number[]};
+    const { updated_on } = request.body as { updated_on: number[] };
 
-      let startDate: number | undefined;
-      let endDate: number | undefined;
-      if (Array.isArray(updated_on) && updated_on.length === 2) {
-        const parsedStartDate = Number(updated_on[0]);
-        const parsedEndDate = Number(updated_on[1]);
-      
-        if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
-          startDate = parsedStartDate;
-          endDate = parsedEndDate;
-        }
+    let startDate: number | undefined;
+    let endDate: number | undefined;
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const parsedStartDate = Number(updated_on[0]);
+      const parsedEndDate = Number(updated_on[1]);
+
+      if (!isNaN(parsedStartDate) && !isNaN(parsedEndDate)) {
+        startDate = parsedStartDate;
+        endDate = parsedEndDate;
       }
-      
+    }
+
     const offset = (page - 1) * limit;
 
     const replacements: any = {
