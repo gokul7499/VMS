@@ -1276,7 +1276,7 @@ export const rejectLevel = async (
                             }
 
                             return {
-                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(),
                             };
 
                         });
@@ -1290,7 +1290,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason,
+                        updated_on: Date.now(),  
 
                     }));
 
