@@ -4,8 +4,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from 'sequelize';
 import SowTemplateModel from '../models/sow_template.model';
 import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
-import SowTemplateMasterDataModel from '../models/sow_temp_master_data.model';
-import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model';
+
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
@@ -62,28 +61,7 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
-        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
-            for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTemplateMasterDataModel.create({
-                    sow_template_id: item.id,
-                    master_data_type_id: masterDataId,
-                    master_data: JSON.stringify({}),
-                    created_by: userId,
-                    updated_by: userId,
-                }, { transaction });
-            }
-        }
-        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
-            for (const customField of sowTemplate.custom_fields) {
-                await SowTemplateCustomFieldsModel.create({
-                    sow_template_id: item.id,
-                    custom_field_id: customField.id,
-                    value: customField.value,
-                    created_by: userId,
-                    updated_by: userId,
-                }, { transaction });
-            }
-        }
+       
         await transaction.commit(); 
         reply.status(201).send({
             status_code: 201,
@@ -184,7 +162,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         
         
         }
-
+      
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -307,8 +285,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
         await template.update(sowTemplate);
         await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-        await SowTemplateMasterDataModel.destroy({ where: { sow_template_id: id } });
-        await SowTemplateCustomFieldsModel.destroy({ where: { sow_template_id: id } });
+      
 
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
@@ -321,30 +298,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             }
         }
 
-        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
-            for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTemplateMasterDataModel.create({
-                    sow_template_id: id,
-                    master_data_type_id: masterDataId,
-                    master_data: JSON.stringify({}),
-                    created_by: userId,
-                    updated_by: userId,
-                });
-            }
-        }
-
-        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
-            for (const customField of sowTemplate.custom_fields) {
-                await SowTemplateCustomFieldsModel.create({
-                    sow_template_id: id,
-                    custom_field_id: customField.id,
-                    value: customField.value,
-                    created_by: userId,
-                    updated_by: userId,
-                });
-            }
-        }
-
+       
         reply.status(200).send({
             status_code: 200,
             message: 'SOW template updated successfully.',
