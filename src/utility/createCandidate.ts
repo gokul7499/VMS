@@ -19,8 +19,6 @@ export async function uploadCandidateResume(
       program_id
     };
 
-    console.log("Payload being sent:", payload);
-
     const response = await fetch(uploadResumeUrl, {
       method: 'POST',
       headers: {
@@ -30,8 +28,7 @@ export async function uploadCandidateResume(
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    console.log('Resume upload response:', data);
+    await response.json();
   } catch (uploadError) {
     console.error('Error initiating resume upload service call:', uploadError);
   }
@@ -55,9 +52,6 @@ export async function searchSimilarProfiles(
       Vendor_Search: vendorSearch,
       ...(vendorSearch && vendorId ? { Vendor_ID: vendorId } : {}),
     };
-
-    console.log("_______________________Profiles Payload:", searchPayload);
-
     const response = await fetch(searchUrl, {
       method: "POST",
       headers: {
@@ -68,8 +62,7 @@ export async function searchSimilarProfiles(
     });
 
     const result = await response.json();
-    console.log("********************* result:", result);
-
+    
     const matches = result?.results?.matches;
 
     if (result?.success && Array.isArray(matches) && matches.length > 0) {
