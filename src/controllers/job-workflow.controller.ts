@@ -498,7 +498,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
@@ -597,7 +597,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         status: user.status || null,
     }));
 }
-export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
 
 
     try {
@@ -645,9 +645,14 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             } else
                 if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
+                    const workflowID = workflow?.id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
                         status: "submitted",
+                        updates,
+                        workflowID,
+                        user,
+                        userData
                     };
 
                     await axios.put(apiUrl, payload, {
@@ -1271,7 +1276,7 @@ export const rejectLevel = async (
                             }
 
                             return {
-                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(),
                             };
 
                         });
@@ -1285,7 +1290,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason,
+                        updated_on: Date.now(),  
 
                     }));
 
@@ -2244,7 +2249,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager" ||  recipientType?.name === "Timesheet Managers") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
@@ -3041,7 +3046,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled" || previousLevel.level_status === "bypassed") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
