@@ -3,11 +3,11 @@ import { PossibleDuplicateCandidate } from '../models/possible_duplicate_candida
 const AI_SERVICE_URL = databaseConfig.config.ai_url;
 
 export async function uploadCandidateResume(
-  candidate_id: string |unknown,
+  candidate_id: string | unknown,
   vendorId: string,
   resume_url: string,
   authHeader: string,
-  program_id:string
+  program_id: string
 ): Promise<void> {
   try {
     const uploadResumeUrl = `${AI_SERVICE_URL}/upload-from-url`;
@@ -62,19 +62,19 @@ export async function searchSimilarProfiles(
     });
 
     const result = await response.json();
-    
+
     const matches = result?.results?.matches;
 
-    if (result?.success && Array.isArray(matches) && matches.length > 0) {
+    if (result?.success && Array.isArray(matches)) {
       const matchingProfile = matches.map((match: { candidate_id: string }) => match.candidate_id);
       const candidateMatchingScore = matches.map(
         (match: { candidate_id: string; similarity_score: number }) => ({
           candidate_id: match.candidate_id,
-          score:match.similarity_score
+          score: match.similarity_score,
         })
       );
 
-     const data= await PossibleDuplicateCandidate.create({
+      const data = await PossibleDuplicateCandidate.create({
         candidate_id: result.results.query_id,
         vendor_id: result.results.vendor_id,
         matching_profile: matchingProfile,
@@ -83,8 +83,7 @@ export async function searchSimilarProfiles(
         created_by: userId,
         updated_by: userId,
       });
-
-      console.log("Saved matching duplicate candidate",data);
+      console.log("Saved matching duplicate candidate", data);
     } else {
       console.log(" No matches found.");
     }
@@ -93,4 +92,3 @@ export async function searchSimilarProfiles(
   }
 }
 
-  
