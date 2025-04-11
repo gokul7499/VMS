@@ -377,15 +377,15 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
 function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
     return responses
         .map((response) => {
-            const statusIsPending = workflows.some(
+            const matchedWorkflow = workflows.find(
                 (w) =>
                     response.method_ids?.includes(w.dataValues.method_id) &&
                     w.dataValues.status.toLowerCase() === "pending"
             );
-
-            console.log('status is pending', statusIsPending);
-
-            response.is_workflow = statusIsPending ? true : false;
+            
+            response.is_workflow = !!matchedWorkflow;
+            response.workflow_id = matchedWorkflow?.dataValues?.id ?? null;
+            response.workflow_status = matchedWorkflow?.dataValues?.status ?? null;
             return response;
         })
         .sort((a, b) => {
