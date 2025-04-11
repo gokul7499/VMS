@@ -84,7 +84,6 @@ export const createExpenseConfigurationSchema = {
     created_by: { type: "string", format: "uuid" },
     updated_by: { type: "string", format: "uuid" }
   },
-  required: ["program_id", "is_enabled", "is_deleted"]
 };
 
 
