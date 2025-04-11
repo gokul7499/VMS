@@ -17,7 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
-import  {uploadCandidateResume, searchSimilarProfiles, findDuplicateCandidates } from "../utility/createCandidate";
+import  {uploadCandidateResume, searchSimilarProfiles} from "../utility/createCandidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -318,7 +318,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-       const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
 
       await candidateModel.create({
         ...userWithoutId,
@@ -332,26 +332,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       const resumeText = user.resume_url;
       const candidate_id = user_id ;
-     uploadCandidateResume(candidate_id, vendor_id, resumeText, authHeader);
+     uploadCandidateResume(candidate_id, vendor_id, resumeText, authHeader,program_id);
 
-     searchSimilarProfiles(candidate_id,resumeText,vendor_id, authHeader);
-     
-     const candidateIdsResult = await candidateModel.findAll({
-      attributes: ['user_id'],
-      where: {
-        program_id: program_id,
-        is_deleted: false
-      },
-      transaction,
-    });
-    
-    const CandidateIds = candidateIdsResult.map(c => c.user_id);
-    if (!CandidateIds.includes(candidate_id)) {
-      CandidateIds.push(candidate_id);
-    }
-    
-    findDuplicateCandidates(CandidateIds, authHeader);
-
+     searchSimilarProfiles(candidate_id,resumeText,vendor_id, authHeader,program_id,userId);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
