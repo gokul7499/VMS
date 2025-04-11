@@ -2078,7 +2078,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
                 AND is_enabled = true
-                AND status='pending'
+                AND status IN ('pending', 'completed')
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
@@ -2097,26 +2097,6 @@ ORDER BY
         });
         console.log(rows);
 
-        // let programData = await sequelize.query(
-        //     `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
-        //     {
-        //         replacements: { workflow_trigger_id },
-        //         type: QueryTypes.SELECT,
-        //     }
-        // );
-
-        // // Create a map to store the latest status for each flow_type
-        // const flowTypeStatusMap = new Map<string, boolean>();
-
-        // for (const program of programData) {
-        //     const { flow_type, status } = program as JobWorkFlow
-
-        //     // If the flow_type is already in the map, prioritize "completed" status
-        //     if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
-        //         flowTypeStatusMap.set(flow_type, status === "completed");
-        //     }
-        // }
-
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -2124,8 +2104,7 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-        console.log('program data is nowww', programData);
-        
+
         const flowTypeStatusMap = new Map<string, boolean>();
         
         for (const program of programData) {
