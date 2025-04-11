@@ -1,4 +1,5 @@
 export interface UserInterface {
+  resume_url: any;
   id: unknown;
   vendor_id: any;
   program_id?: string;

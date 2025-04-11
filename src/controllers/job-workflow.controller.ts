@@ -498,7 +498,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
@@ -597,7 +597,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         status: user.status || null,
     }));
 }
-export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
 
 
     try {
@@ -645,9 +645,14 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             } else
                 if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
+                    const workflowID = workflow?.id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
                         status: "submitted",
+                        updates,
+                        workflowID,
+                        user,
+                        userData
                     };
 
                     await axios.put(apiUrl, payload, {
@@ -1271,7 +1276,7 @@ export const rejectLevel = async (
                             }
 
                             return {
-                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(),
                             };
 
                         });
@@ -1285,7 +1290,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason,
+                        updated_on: Date.now(),  
 
                     }));
 
@@ -2073,7 +2078,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
                 AND is_enabled = true
-                AND status='pending'
+                AND status IN ('pending', 'completed')
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
@@ -2092,26 +2097,6 @@ ORDER BY
         });
         console.log(rows);
 
-        // let programData = await sequelize.query(
-        //     `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
-        //     {
-        //         replacements: { workflow_trigger_id },
-        //         type: QueryTypes.SELECT,
-        //     }
-        // );
-
-        // // Create a map to store the latest status for each flow_type
-        // const flowTypeStatusMap = new Map<string, boolean>();
-
-        // for (const program of programData) {
-        //     const { flow_type, status } = program as JobWorkFlow
-
-        //     // If the flow_type is already in the map, prioritize "completed" status
-        //     if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
-        //         flowTypeStatusMap.set(flow_type, status === "completed");
-        //     }
-        // }
-
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
             {
@@ -2119,8 +2104,7 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-        console.log('program data is nowww', programData);
-        
+
         const flowTypeStatusMap = new Map<string, boolean>();
         
         for (const program of programData) {
@@ -2244,7 +2228,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager" ||  recipientType?.name === "Timesheet Managers") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
@@ -3041,7 +3025,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled" || previousLevel.level_status === "bypassed") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
