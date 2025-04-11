@@ -36,6 +36,7 @@ export const databaseConfig = {
       client_id: config.client_id,
       client_secret: config.client_secret,
       keycloak_realm: config.keycloak_realm,
+      ai_url:config.ai_url,
       reconnect: {
         max: 10,
         delay: 1000,

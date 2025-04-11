@@ -17,6 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
+import  {uploadCandidateResume, searchSimilarProfiles, findDuplicateCandidates } from "../utility/createCandidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -231,7 +232,7 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
 
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
-  const traceId = generateCustomUUID();
+ 
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -245,6 +246,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
   const userId = user?.sub;
+  const traceId = (request.body as any)?.trace_id;
 
   try {
     const { user, user_group_mapping } = request.body as {
@@ -316,17 +318,41 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      // const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
 
-      await candidateModel.create({
+      const newCandidate= await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
-        candidate_id: candidateId,
+        // candidate_id: candidateId,
         vendor_id: vendor_id,
         user_type: userType,
         created_by: userId,
         updated_by: userId,
       }, { transaction });
+
+      const resumeText = user.resume_url;
+      const candidateId = user_id ;
+     uploadCandidateResume(candidateId, vendor_id, resumeText, authHeader);
+
+     searchSimilarProfiles(candidateId,resumeText,vendor_id, authHeader);
+     
+     const candidateIdsResult = await candidateModel.findAll({
+      attributes: ['user_id'],
+      where: {
+        program_id: program_id,
+        is_deleted: false
+      },
+      transaction,
+    });
+    
+    const allCandidateIds = candidateIdsResult.map(c => c.user_id);
+    if (!allCandidateIds.includes(candidateId)) {
+      allCandidateIds.push(candidateId);
+    }
+    
+    findDuplicateCandidates(allCandidateIds, authHeader);
+
+
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
@@ -847,7 +873,7 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
   }
 
   const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
   if (!user) {
     return reply.status(401).send({
       status_code: 401,
@@ -856,34 +882,31 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
   }
 
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_id } = request.query as { hierarchy_id: string };
+  const { hierarchy_id } = request.query as { hierarchy_id?: string };
   const traceId = generateCustomUUID();
   const userId = user?.sub;
+  console.log("userId",userId)
   const userType = user?.userType;
+ console.log("userType", userType)
   try {
     let arrayOfHierarchy: string[] | null = null;
-    let replacements: Record<string, any> = { program_id };
+    const replacements: Record<string, any> = {
+      program_id,
+      is_all_hierarchy_associate: false,
+    };
+
     if (hierarchy_id) {
       arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
       replacements.hierarchy_id = JSON.stringify(arrayOfHierarchy);
-    }
-    else if (userType === "super_user") {
+    } else if (userType === "super_user") {
+      // Super users can see all active client users in the program
       replacements.hierarchy_id = null;
-      const users = await sequelize.query(getActiveUsers, {
-        replacements,
-        type: QueryTypes.SELECT,
-      });
-      return reply.code(200).send({
-        status_code: 200,
-        message: users.length > 0 ? "Get active user data" : "No matching records found.",
-        users,
-        trace_id: traceId,
-      });
-    }
-    else {
+      replacements.is_all_hierarchy_associate = true;
+    } else {
+      // Fetch current user to determine access scope
       const currentUser = await User.findOne({
         where: { program_id, user_id: userId },
-        attributes: ["associate_hierarchy_ids"],
+        attributes: ["associate_hierarchy_ids", "is_all_hierarchy_associate"],
       }) as any;
 
       if (!currentUser) {
@@ -894,16 +917,20 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
         });
       }
 
-      arrayOfHierarchy = currentUser.dataValues.associate_hierarchy_ids || null;
-      replacements.hierarchy_id = arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null;
-    }
-    if (!arrayOfHierarchy && !(userType === "super_admin" || userType === "super_user")) {
-      return reply.code(200).send({
-        status_code: 200,
-        message: "No matching records found.",
-        users: [],
-        trace_id: traceId,
-      });
+      const { associate_hierarchy_ids, is_all_hierarchy_associate } = currentUser.dataValues;
+      const isEmptyHierarchy = Array.isArray(associate_hierarchy_ids) && associate_hierarchy_ids.length === 0;
+
+      if (!is_all_hierarchy_associate && isEmptyHierarchy) {
+        return reply.code(200).send({
+          status_code: 200,
+          message: "No matching records found.",
+          users: [],
+          trace_id: traceId,
+        });
+      }
+
+      replacements.hierarchy_id = isEmptyHierarchy ? null : JSON.stringify(associate_hierarchy_ids);
+      replacements.is_all_hierarchy_associate = !!is_all_hierarchy_associate;
     }
 
     const users = await sequelize.query(getActiveUsers, {
@@ -926,6 +953,7 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
     });
   }
 }
+ 
 
 export async function getUserContact(
   request: FastifyRequest,

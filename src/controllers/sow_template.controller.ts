@@ -88,7 +88,7 @@ export async function createSowTemplate(
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
-            message: "Sow template created successfully.",
+            message: "SOW template created successfully.",
             sowTemplate: item.id,
         });
     } catch (error: any) {
@@ -113,7 +113,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title,
             hierarchy_id,
             code,
-            created_on
+            updated_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
@@ -121,7 +121,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title?: string;
             hierarchy_id?: string;
             code?: string;
-            created_on?: string;
+            updated_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -159,29 +159,30 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             )`;
             replacements.hierarchyIds = hierarchyIdsArray;
         }
-        if (created_on) {
-            const dateRange = created_on.split(',');
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
                 const startDate = dateRange[0].trim();
                 const endDate = dateRange[1].trim();
-                const startTimestamp = isNaN(Number(startDate)) 
-                    ? new Date(startDate).getTime() 
+                const startTimestamp = isNaN(Number(startDate))
+                    ? new Date(startDate).getTime()
                     : Number(startDate);
-                
-                const endTimestamp = isNaN(Number(endDate)) 
-                    ? new Date(endDate).getTime() 
+        
+                const endTimestamp = isNaN(Number(endDate))
+                    ? new Date(endDate).getTime()
                     : Number(endDate);
-
+        
                 if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
                     const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
-        
-                    whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
-                    replacements.startDate = startTimestamp;
-                    replacements.endDate = adjustedEndTimestamp;
+                    whereClause += ` AND t.updated_on BETWEEN :updatedStartDate AND :updatedEndDate`;
+                    replacements.updatedStartDate = startTimestamp;
+                    replacements.updatedEndDate = adjustedEndTimestamp;
                 } else {
-                    console.warn('Invalid date format provided');
+                    console.warn('Invalid updated_on date format provided');
                 }
             }
+        
+        
         }
 
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {

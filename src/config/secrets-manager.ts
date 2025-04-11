@@ -29,7 +29,8 @@ export const getSecretsManager = async () => {
             keycloak_client_id: process.env.KC_CLIENT_ID,
             keycloak_client_secret: process.env.KC_CLIENT_SECRET,
             keycloak_realm: process.env.KC_REALM,
-            app_origin: process.env.KC_URL
+            app_origin: process.env.KC_URL,
+            ai_url: process.env.AI_URL,
         };
     }
 
