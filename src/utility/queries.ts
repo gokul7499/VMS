@@ -1489,20 +1489,18 @@ export const masterDataQuery = `
 `;
 
 export const getAllExpenseConfigHierarchies = `
- SELECT
-  ec.program_id,
+SELECT ec.program_id,
   JSON_ARRAYAGG(
     JSON_OBJECT(
       'id', h.id,
       'name', h.name
     )
-  ) AS hierarchy
+  ) AS expense_config_hierarchy_mapping
 FROM expense_configuration ec
-LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+JOIN expense_config_hierarchy_mapping eth ON ec.id = eth.expense_config_id
+JOIN hierarchies h ON eth.hierarchy_id = h.id
 WHERE ec.program_id = :program_id
-GROUP BY ec.program_id
-LIMIT 0, 1000;
+GROUP BY ec.program_id;
 `;
 
 export const configAdvancedFilter = (
@@ -1553,7 +1551,7 @@ export const configAdvancedFilter = (
           'allow_unit_based', et.allow_unit_based,
           'expense_type_id', et.id
         )
-      ) AS expense_item_type_config
+      ) AS expense_type
     FROM
       expense_configuration ec
     LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
@@ -1582,19 +1580,19 @@ export const getAllExpenseTypeByHierarchies = (
 ): string => {
   const isEnabledCondition = isEnabled !== null ? `AND ec.is_enabled = ${isEnabled}` : "";
   return `
-      WITH HierarchyMatches AS (
-        SELECT ec.id AS expense_config_id
-        FROM expense_configuration ec
-        WHERE ec.program_id = :program_id
+    WITH MatchingExpenseConfigs AS (
+      SELECT DISTINCT ec.id AS expense_config_id
+      FROM expense_configuration ec
+      JOIN expense_config_hierarchy_mapping echm ON ec.id = echm.expense_config_id
+      WHERE ec.program_id = :program_id
         AND (${hierarchyCondition})
         ${isEnabledCondition}
-        LIMIT 1
-      )
-      SELECT et.*
-      FROM expense_item_type_config et
-      JOIN HierarchyMatches hm ON et.expense_config_id = hm.expense_config_id
-      WHERE et.program_id = :program_id;
-    `;
+    )
+    SELECT et.*
+    FROM expense_type et
+    JOIN MatchingExpenseConfigs mec ON et.expense_config_id = mec.expense_config_id
+    WHERE et.program_id = :program_id;
+  `;
 };
 
 export const resonCode = `
@@ -1888,20 +1886,19 @@ WHERE ec.program_id =:program_id
 GROUP BY ec.id, et.id;
 `
 export const getAllExpenseTypeHierarchy = `
-SELECT
+  SELECT
     ec.id AS config_id,
     JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
-        )
+      JSON_OBJECT(
+        'id', h.id,
+        'name', h.name
+      )
     ) AS hierarchy
   FROM expense_configuration ec
-  LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-  LEFT JOIN hierarchies h ON eth.hierarchy = h.id
+  LEFT JOIN expense_config_hierarchy_mapping eth ON ec.id = eth.expense_config_id
+  LEFT JOIN hierarchies h ON eth.hierarchy_id = h.id
   WHERE ec.program_id = :program_id
-  GROUP BY ec.id
-
+  GROUP BY ec.id;
 `;
 
 export const getAllRateConfigurationsQuery = async (replacements: any) => {
@@ -2254,18 +2251,17 @@ export const hierarchie = `
 
 export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
   const hierarchyCondition = hierarchy_ids.length > 0
-    ? `AND eth.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
+    ? `AND eth.hierarchy_id IN (${hierarchy_ids.map(() => '?').join(',')})`
     : '';
-
   return `
    SELECT DISTINCT
     eic.*
    FROM
-    expense_type_hierarchies eth
+    expense_config_hierarchy_mapping eth
    LEFT JOIN
-    expense_type_mapping etm ON eth.expense_config_id = etm.expense_config_id
+    expense_config_expense_type_mapping etm ON eth.expense_config_id = etm.expense_config_id
    INNER JOIN
-    expense_item_type_config eic ON etm.expense_type_id = eic.id
+    expense_type eic ON etm.expense_type_id = eic.id
    WHERE
     eic.program_id =?
      ${hierarchyCondition}
