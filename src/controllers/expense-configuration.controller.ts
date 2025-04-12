@@ -188,12 +188,11 @@ export async function createExpenseConfiguration(
 
         const created_on = expenseConfig.created_on || Date.now();
         const updated_on = expenseConfig.updated_on || Date.now();
-        const entity_id = uuidv4();
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
             program_id,
             created_on,
-            entity_id,
+        
             modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,
@@ -258,7 +257,6 @@ export async function updateExpenseConfiguration(
         }
 
         await existingConfig.update({ latest: false }, { transaction });
-        const newConfigId = uuidv4();
         const oldRevision = Number(existingConfig.revision ?? 0);
         const newRevision = oldRevision + 1;
         const timestamp = Date.now();
@@ -266,13 +264,13 @@ export async function updateExpenseConfiguration(
             {
                 ...existingConfig.toJSON(),
                 ...updatedData,
-                id: newConfigId,
                 revision: newRevision,
                 latest: true,
                 created_on: existingConfig.created_on,
                 created_by: existingConfig.created_by,
                 modified_on: timestamp,
                 updated_by: user.sub,
+                id: undefined,
             },
             { transaction }
         );
@@ -285,7 +283,7 @@ export async function updateExpenseConfiguration(
                 await ExpenseTypeMapping.create(
                     {
                         program_id,
-                        expense_config_id: newConfigId,
+                        expense_config_id: newConfig.id,
                         expense_type_id: expenseTypeId,
                     },
                     { transaction }
@@ -307,7 +305,7 @@ export async function updateExpenseConfiguration(
                 level: "success",
                 action: request.method,
                 url: request.url,
-                entity_id: newConfigId,
+                entity_id: newConfig.id,
                 is_deleted: false,
                 updated_by: user.sub,
             },
@@ -576,13 +574,6 @@ export async function getExpenseTypesByProgramIdAndHierarchies(
             error,
         });
     }
-}
-function uuidv4(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = (crypto.getRandomValues(new Uint8Array(1))[0] % 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
 }
 
 

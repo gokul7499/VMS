@@ -2929,7 +2929,8 @@ export const getUserHierarchiesBasedOnUserType = `
       SELECT
         u.associate_hierarchy_ids,
         u.user_type,
-        u.tenant_id
+        u.tenant_id,
+        u.is_all_hierarchy_associate 
       FROM user u
       WHERE u.user_id = :userId
         AND u.program_id = :program_id
@@ -2952,7 +2953,12 @@ export const getUserHierarchiesBasedOnUserType = `
             SELECT 1
             FROM user_data
             WHERE user_type IN ('client', 'msp')
-              AND JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+              AND
+              (
+                user_data.is_all_hierarchy_associate = true
+                OR
+                JSON_CONTAINS(user_data.associate_hierarchy_ids, JSON_ARRAY(h.id))
+              )
           )
           OR
           -- For vendor: Match hierarchies in program_vendors
@@ -2962,7 +2968,13 @@ export const getUserHierarchiesBasedOnUserType = `
             JOIN program_vendors pv ON pv.tenant_id = user_data.tenant_id
             WHERE user_data.user_type = 'vendor'
               AND pv.program_id = :program_id
-              AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id))
+              AND (
+              -- If vendor has all_hierarchy = true, return all hierarchies
+              pv.all_hierarchy = true
+              OR
+              -- Else, match specific hierarchies
+              (pv.all_hierarchy = false AND JSON_CONTAINS(pv.hierarchies, JSON_ARRAY(h.id)))
+            )
           )
         )
     ),
