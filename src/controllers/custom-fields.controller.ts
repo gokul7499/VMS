@@ -284,17 +284,26 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
   if (hierarchy_ids) {
-    const hierarchyArray = hierarchy_ids.split(',').map((id: any) => `'${id.trim()}'`); 
+    const hierarchyArray = hierarchy_ids.split(',').map((id: any) => `'${id.trim()}'`);
+  
     if (hierarchyArray.length > 0) {
-      whereClause.id = {
-        [Op.in]: Sequelize.literal(`(
-          SELECT custom_field_id
-          FROM custom_fields_hierarchie
-          WHERE hierarchy_id IN (${hierarchyArray.join(',')})
-        )`)
-      };
+      whereClause[Op.or] = [
+        {
+          id: {
+            [Op.in]: Sequelize.literal(`(
+              SELECT custom_field_id
+              FROM custom_fields_hierarchie
+              WHERE hierarchy_id IN (${hierarchyArray.join(',')})
+            )`)
+          }
+        },
+        {
+          is_all_hierarchy: true
+        }
+      ];
     }
   }
+  
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 10;
   const offset = (pageNumber - 1) * limitNumber;
