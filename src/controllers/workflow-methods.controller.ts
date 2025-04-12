@@ -480,59 +480,78 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
 // Handle offer module logic
 async function handleOfferModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
     const moduleId = await findModuleBySlug("offer");
-    
     const eventId1 = await findEvent(moduleId, "create_offer");
     const eventId2 = await findEvent(moduleId, "counter_offer");
-    
+
     const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
-    
+
     const createReviewMethod = findMethod(items, eventId1, "review");
     const createApprovalMethod = findMethod(items, eventId1, "approval");
     const counterReviewMethod = findMethod(items, eventId2, "review");
     const counterApprovalMethod = findMethod(items, eventId2, "approval");
-    
-    if (createReviewMethod && createApprovalMethod && counterReviewMethod && counterApprovalMethod) {
-        const response = [
-            {
-                ...createApprovalMethod.dataValues,
-                method_ids: [
-                    createApprovalMethod.dataValues.id,
-                    counterApprovalMethod.dataValues.id
-                ]
-            },
-            {
-                ...createReviewMethod.dataValues,
-                method_ids: [
-                    createReviewMethod.dataValues.id,
-                    counterReviewMethod.dataValues.id
-                ]
-            }
-        ];
-        
-        const workflows = await getWorkflows(workflowTriggerId);
-        
-        if (!workflows.length) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "No workflows found for the given trigger ID"
-            });
-        }
-        
-        const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
-        const responses = response.filter(i => workflowMethodIds.includes(i.id));
-        const sortedResponse = sortWorkflowMethods(responses, false, workflows);
-        
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Workflow methods fetched successfully",
-            workflow_method: sortedResponse,
-        });
-    } else {
-        return reply.status(400).send({
-            status_code: 400,
-            message: "Required workflow methods not found"
+
+    const response = [];
+
+    if (createApprovalMethod) {
+        response.push({
+            ...createApprovalMethod.dataValues,
+            method_ids: [createApprovalMethod.dataValues.id]
         });
     }
+    
+    if (createReviewMethod) {
+        response.push({
+            ...createReviewMethod.dataValues,
+            method_ids: [createReviewMethod.dataValues.id]
+        });
+    }
+    
+    if (counterApprovalMethod) {
+        response.push({
+            ...counterApprovalMethod.dataValues,
+            method_ids: [counterApprovalMethod.dataValues.id]
+        });
+    }
+    
+    if (counterReviewMethod) {
+        response.push({
+            ...counterReviewMethod.dataValues,
+            method_ids: [counterReviewMethod.dataValues.id]
+        });
+    }
+    
+
+    if (response.length === 0) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "Required workflow methods not found",
+            trace_id: traceId
+        });
+    }
+
+    const workflows = await getWorkflows(workflowTriggerId);
+
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID",
+            trace_id: traceId
+        });
+    }
+
+    const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+    const responses = response.filter(i => {
+        return i.method_ids.some((id: string) => workflowMethodIds.includes(id));
+    });
+
+    const sortedResponse = sortWorkflowMethods(responses, true, workflows);
+
+    return reply.status(200).send({
+        status_code: 200,
+        message: "Workflow methods fetched successfully",
+        workflow_method: sortedResponse,
+        trace_id: traceId
+    });
 }
 
 // Handle assignment module logic
