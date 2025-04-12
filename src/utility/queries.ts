@@ -1489,18 +1489,32 @@ export const masterDataQuery = `
 `;
 
 export const getAllExpenseConfigHierarchies = `
-SELECT ec.program_id,
+WITH distinct_hierarchies AS (
+  SELECT DISTINCT
+    ec.program_id,
+    h.id,
+    h.name
+  FROM expense_config ec
+  JOIN JSON_TABLE(
+    ec.hierarchy_ids,
+    '$[*]' COLUMNS (
+      hierarchy_id CHAR(36) PATH '$'
+    )
+  ) AS hier ON TRUE
+  JOIN hierarchies h ON h.id = hier.hierarchy_id
+  WHERE ec.program_id = :program_id
+)
+
+SELECT 
+  program_id,
   JSON_ARRAYAGG(
     JSON_OBJECT(
-      'id', h.id,
-      'name', h.name
+      'id', id,
+      'name', name
     )
-  ) AS expense_config_hierarchy_mapping
-FROM expense_configuration ec
-JOIN expense_config_hierarchy_mapping eth ON ec.id = eth.expense_config_id
-JOIN hierarchies h ON eth.hierarchy_id = h.id
-WHERE ec.program_id = :program_id
-GROUP BY ec.program_id;
+  ) AS hierarchy_ids
+FROM distinct_hierarchies
+GROUP BY program_id;
 `;
 
 export const configAdvancedFilter = (

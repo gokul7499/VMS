@@ -12,6 +12,7 @@ class ExpenseTypeMapping extends Model {
     expense_name:any;
     is_enabled:any;
     expense_type_id: any;
+    expense_type: any;
 }
 
 ExpenseTypeMapping.init(

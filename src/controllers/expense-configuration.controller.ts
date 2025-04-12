@@ -3,25 +3,26 @@ import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import { QueryTypes, Op } from 'sequelize';
-import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeByHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
+import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
-import ExpenseConfigHierarchyMapping from "../models/expense-config-hierarchie.model";
 import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.model";
 import Hierarchies from "../models/hierarchies.model";
-import ExpenseTypeModel from "../models/expense-type.model";
+import IndustriesModel from "../models/labour-category.model";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
         Params: { program_id: string },
         Querystring: {
-            page?: number,
-            limit?: number,
-            search?: string,
-            status?: string
-        }
+            page?: number;
+            limit?: number;
+            search?: string;
+            status?: string;
+            updated_on?: string;
+            hierarchy_ids?: string;
+        };
     }>,
     reply: FastifyReply
 ) {
@@ -33,17 +34,33 @@ export async function getExpenseConfigurations(
             limit = 10,
             search,
             status,
+            updated_on,
+            hierarchy_ids,
         } = request.query;
         const offset = (page - 1) * limit;
         const whereCondition: any = {
             program_id,
             is_deleted: false,
         };
+
         if (search) {
             whereCondition.name = { [Op.iLike]: `%${search}%` };
         }
         if (status) {
             whereCondition.status = status;
+        }
+        if (updated_on) {
+            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+
+            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
+                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+            }
+        }
+        if (hierarchy_ids) {
+            const ids = hierarchy_ids.split(',').map((id) => id.trim());
+            whereCondition.hierarchy_ids = {
+                [Op.overlap]: ids,
+            };
         }
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
@@ -51,45 +68,28 @@ export async function getExpenseConfigurations(
             limit,
             order: [['created_on', 'DESC']],
         });
-        const updatedByIds = expenseConfigList
-            .map(config => config.updated_by)
-            .filter(id => id);
-        const users = updatedByIds.length > 0
-            ? await sequelize.query(
-                `SELECT user_id, first_name FROM user WHERE user_id IN (:updatedByIds)`,
-                {
-                    replacements: { updatedByIds },
-                    type: QueryTypes.SELECT,
-                }
-            )
-            : [];
-        const userMap = Object.fromEntries(users.map((u: any) => [u.user_id, u.first_name]));
         const populatedExpenseConfig = await Promise.all(
             expenseConfigList.map(async (config) => {
                 const configJSON = config.toJSON();
-                const hierarchyMappings = await ExpenseConfigHierarchyMapping.findAll({
-                    where: { program_id, expense_config_id: config.id },
-                    include: [
-                        {
-                            model: Hierarchies,
-                            as: 'hierarchy',
-                            attributes: ['id', 'name'],
-                        },
-                    ],
-                });
-
-                const hierarch_ids = hierarchyMappings.map((item) => ({
-                    id: item.hierarchy?.id,
-                    name: item.hierarchy?.name,
-                }));
-                const updatedByName = userMap[config.updated_by] || null;
+                const hierarchyIds = Array.isArray(configJSON.hierarchy_ids) ? configJSON.hierarchy_ids : [];
+                let hierarchyDetails: { id: any; name: any }[] = [];
+                if (hierarchyIds.length > 0) {
+                    const hierarchies = await Hierarchies.findAll({
+                        where: { id: { [Op.in]: hierarchyIds } },
+                        attributes: ['id', 'name'],
+                    });
+                    hierarchyDetails = hierarchies.map((h: any) => ({
+                        id: h.id,
+                        name: h.name,
+                    }));
+                }
                 return {
                     ...configJSON,
-                    hierarch_ids,
-                    updated_by_name: updatedByName,
+                    hierarchy_ids: hierarchyDetails,
                 };
             })
         );
+
         reply.status(200).send({
             status_code: 200,
             message: populatedExpenseConfig.length > 0
@@ -102,6 +102,7 @@ export async function getExpenseConfigurations(
             totalPages: Math.ceil(count / limit),
             expenseConfig: populatedExpenseConfig,
         });
+
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
@@ -128,49 +129,26 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
                 trace_id: traceId,
             });
         }
-        const hierarchyIds = Array.isArray(expenseConfig.hierarch_ids) ? expenseConfig.hierarch_ids : [];
-        const expenseTypeIds = Array.isArray(expenseConfig.expense_type_ids) ? expenseConfig.expense_type_ids : [];
+        const laborCategoryIds = Array.isArray(expenseConfig.labor_category_ids) ? expenseConfig.labor_category_ids : [];
+        const hierarchyIds = Array.isArray(expenseConfig.hierarchy_ids) ? expenseConfig.hierarchy_ids : [];
         const hierarchies = await Hierarchies.findAll({
             where: { id: { [Op.in]: hierarchyIds } },
             attributes: ['id', 'name'],
         });
-        const expenseTypes = await ExpenseTypeModel.findAll({
-            where: { id: { [Op.in]: expenseTypeIds } },
-            attributes: [
-                'id',
-                'name',
-                'category',
-                'apply_msp_fee',
-                'appply_tax',
-                'allow_unit_based',
-            ],
+        const laborCategories = await IndustriesModel.findAll({
+            where: { id: { [Op.in]: laborCategoryIds } },
+            attributes: ['id', 'name'],
         });
-        const projectsField = (expenseConfig as any).projects;
-        let populatedProjects: { value: { id: any; name: any }[]; is_enabled: boolean } = {
-            value: [],
-            is_enabled: false,
-        };
-        if (
-            projectsField &&
-            typeof projectsField === 'object' &&
-            Array.isArray(projectsField.value)
-        ) {
-            const projectData = await FoundationalDataTypes.findAll({
-                where: { id: { [Op.in]: projectsField.value } },
-                attributes: ['id', 'name'],
-            });
-            populatedProjects = {
-                value: projectData.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                })),
-                is_enabled: projectsField.is_enabled ?? false,
-            };}
+        const masterDataTypeIds = Array.isArray(expenseConfig.master_data_types) ? expenseConfig.master_data_types : [];
+        const masterDataTypes = await FoundationalDataTypes.findAll({
+            where: { id: { [Op.in]: masterDataTypeIds } },
+            attributes: ['id', 'name'],
+        });
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
-            expense_type_ids: expenseTypes,
-            hierarch_ids: hierarchies,
-            projects: populatedProjects,
+            hierarchy_ids: hierarchies,
+            labor_category_ids: laborCategories,
+            master_data_types: masterDataTypes,
         };
         return reply.status(200).send({
             status_code: 200,
@@ -209,10 +187,12 @@ export async function createExpenseConfiguration(
 
         const created_on = expenseConfig.created_on || Date.now();
         const updated_on = expenseConfig.updated_on || Date.now();
+        const entity_id = uuidv4();
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
             program_id,
             created_on,
+            entity_id,
             modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,
@@ -225,16 +205,6 @@ export async function createExpenseConfiguration(
                     program_id,
                     expense_config_id: expenseConfigData.id,
                     expense_type_id: expenseTypeId,
-
-                });
-            }
-        }
-        if (Array.isArray(expenseConfig.hierarch_ids)) {
-            for (const hierarchyId of expenseConfig.hierarch_ids) {
-                await ExpenseConfigHierarchyMapping.create({
-                    program_id,
-                    expense_config_id: expenseConfigData.id,
-                    hierarchy_id: hierarchyId,
 
                 });
             }
@@ -277,53 +247,45 @@ export async function updateExpenseConfiguration(
             where: { id, program_id },
             transaction,
         });
-
         if (!existingConfig) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(404).send({
+                status_code: 404,
                 trace_id: traceId,
                 message: "Expense configuration not found.",
             });
         }
-        const updated_on = Date.now();
-        await ExpenseConfigurationModel.update(
+
+        await existingConfig.update({ latest: false }, { transaction });
+        const newConfigId = uuidv4();
+        const oldRevision = Number(existingConfig.revision ?? 0);
+        const newRevision = oldRevision + 1;
+        const timestamp = Date.now();
+        const newConfig = await ExpenseConfigurationModel.create(
             {
+                ...existingConfig.toJSON(),
                 ...updatedData,
+                id: newConfigId,
+                revision: newRevision,
+                latest: true,
+                created_on: existingConfig.created_on,
+                created_by: existingConfig.created_by,
+                modified_on: timestamp,
                 updated_by: user.sub,
-                modified_on: updated_on,
-            }, {
-            where: { id, program_id },
-            transaction,
-        }
+            },
+            { transaction }
         );
         if (Array.isArray(updatedData.expense_type_ids)) {
             await ExpenseTypeMapping.destroy({
-                where: { expense_config_id: id },
+                where: { expense_config_id: existingConfig.id },
                 transaction,
             });
             for (const expenseTypeId of updatedData.expense_type_ids) {
                 await ExpenseTypeMapping.create(
                     {
                         program_id,
-                        expense_config_id: id,
+                        expense_config_id: newConfigId,
                         expense_type_id: expenseTypeId,
-                    },
-                    { transaction }
-                );
-            }
-        }
-        if (Array.isArray(updatedData.hierarch_ids)) {
-            await ExpenseConfigHierarchyMapping.destroy({
-                where: { expense_config_id: id },
-                transaction,
-            });
-            for (const hierarchyId of updatedData.hierarch_ids) {
-                await ExpenseConfigHierarchyMapping.create(
-                    {
-                        program_id,
-                        expense_config_id: id,
-                        hierarchy_id: hierarchyId,
                     },
                     { transaction }
                 );
@@ -338,25 +300,28 @@ export async function updateExpenseConfiguration(
                     user_name: user?.preferred_username,
                     user_id: user?.sub,
                 },
-                eventname: "expense configuration updated",
+                eventname: "expense configuration version created",
                 status: "success",
-                description: `Expense configuration with ID ${id} updated successfully`,
+                description: `New version (rev ${newRevision}) created for expense configuration ${id}`,
                 level: "success",
                 action: request.method,
                 url: request.url,
-                entity_id: id,
+                entity_id: newConfigId,
                 is_deleted: false,
                 updated_by: user.sub,
             },
             ExpenseConfigurationModel
         );
+
         return reply.status(200).send({
             status_code: 200,
-            message: "Expense configuration updated successfully.",
+            message: "Expense configuration versioned update successful.",
             trace_id: traceId,
+            data: newConfig,
         });
     } catch (error: any) {
         await transaction.rollback();
+
         logger(
             {
                 traceId,
@@ -407,11 +372,9 @@ export async function deleteExpenseConfiguration(
                 is_deleted: true,
                 is_enabled: false,
                 updated_by: user.sub,
-
             },
             { where: { program_id, id } }
         );
-
         if (updatedCount > 0) {
             reply.status(204).send({
                 status_code: 204,
@@ -419,8 +382,8 @@ export async function deleteExpenseConfiguration(
                 trace_id: traceId,
             });
         } else {
-            reply.status(404).send({
-                status_code: 404,
+            reply.status(200).send({
+                status_code: 200,
                 message: 'Expense configuration not found.',
                 expense_config: [],
                 trace_id: traceId,
@@ -447,26 +410,17 @@ export const getAllExpenseConfigurationHierarchies = async (
             replacements: { program_id },
             type: QueryTypes.SELECT,
         });
-        if (!results || results.length === 0 || !results[0].expense_config_hierarchy_mapping) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'No hierarchies found for the specified program.',
-                hierarchies: [],
-                trace_id: traceId,
-            });
-        }
-        const hierarchyArray = results[0].expense_config_hierarchy_mapping;
-        const uniqueHierarchies = Array.from(
-            new Map(hierarchyArray.map((item: any) => [item.id, item])).values()
-        );
+        const hierarchyIds = results.flatMap((row) => row.hierarchy_ids || []);
         return reply.status(200).send({
             status_code: 200,
             trace_id: traceId,
-            message: 'Hierarchies retrieved successfully.',
-            hierarchies: uniqueHierarchies,
+            message: hierarchyIds.length
+                ? 'Hierarchy IDs retrieved successfully.'
+                : 'No hierarchy IDs found for the specified program.',
+            hierarchies: hierarchyIds,
         });
     } catch (error: any) {
-        console.error("Error retrieving hierarchies:", error);
+        console.error("Error retrieving hierarchy IDs:", error);
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
@@ -475,79 +429,125 @@ export const getAllExpenseConfigurationHierarchies = async (
         });
     }
 };
-
-
 export async function expenseConfigurationAdvancedFilter(
-    request: FastifyRequest,
+    request: FastifyRequest<{
+        Params: { program_id: string };
+        Body: {
+            page?: number;
+            limit?: number;
+            search?: string;
+            status?: string;
+            updated_on?: string;
+            hierarchy_ids?: string;
+        };
+    }>,
     reply: FastifyReply
 ) {
-    const trace_id = generateCustomUUID();
+    const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params as { program_id: string };
-        const { name, status, updated_on, is_enabled, hierarchy, page, limit } = request.body as { name?: string, status?: string, updated_on?: string[], is_enabled?: boolean, hierarchy?: string[], page?: string, limit?: string };
-        const hasConfigName = name !== undefined;
-        const hasStatus = status !== undefined;
-        const hasModifiedOn = updated_on !== undefined;
-        const hasIsEnabled = is_enabled !== undefined;
-        const hasPage = page !== undefined;
-        const hasLimit = limit !== undefined;
-        const hierarchyIdsArray = hierarchy || [];
-        const modifiedOnArray = updated_on || [];
-        const pageNumber = hasPage ? parseInt(page, 10) : 1;
-        const limitNumber = hasLimit ? parseInt(limit, 10) : 10;
-        const offset = (pageNumber - 1) * limitNumber;
-
-        const query = configAdvancedFilter(
-            hasConfigName,
-            hasStatus,
-            hasModifiedOn,
-            hasIsEnabled,
-            hierarchyIdsArray,
-            modifiedOnArray
-        );
-
-        const replacements: Record<string, any> = {
+        const { program_id } = request.params;
+        const {
+            page = 1,
+            limit = 10,
+            search,
+            status,
+            updated_on,
+            hierarchy_ids,
+        } = request.body;
+        const offset = (page - 1) * limit;
+        const whereCondition: any = {
             program_id,
-            name: name ? `%${name}%` : null,
-            status: hasStatus ? status : null,
-            updated_on: modifiedOnArray,
-            is_enabled: hasIsEnabled ? is_enabled : null,
-            limit: limitNumber,
-            offset,
+            is_deleted: false,
         };
-        modifiedOnArray.forEach((_, index) => {
-            replacements[`updated_on${index}`] = modifiedOnArray[index];
-        });
-        hierarchyIdsArray.forEach((_, index) => {
-            replacements[`hierarchy${index}`] = hierarchyIdsArray[index];
-        });
-        const data = await sequelize.query(query, {
-            replacements,
-            type: QueryTypes.SELECT,
-        });
-        const transformedData = data.map((item: any) => ({
-            ...item,
-        }));
-
-        if (transformedData.length > 0) {
-            return reply.status(201).send({
-                status_code: 201,
-                total_records: transformedData.length,
-                items: transformedData,
-                trace_id,
-                pagination: {
-                    page: pageNumber,
-                    limit: limitNumber,
-                    total_pages: Math.ceil(transformedData.length / limitNumber),
-                },
-            });
-        } else {
-            return reply.status(200).send({ status_code: 200, message: 'No records found', items: [], trace_id });
+        if (search) {
+            whereCondition.name = { [Op.iLike]: `%${search}%` };
         }
-    } catch (error: any) {
-        return reply.status(500).send({ status_code: 500, message: 'Internal Server Error', trace_id, error: error.message });
+        if (status) {
+            whereCondition.status = status;
+        }
+        if (updated_on) {
+            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
+                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+            }
+        }
+        if (hierarchy_ids) {
+            const ids = hierarchy_ids.split(',').map((id) => id.trim());
+            whereCondition.hierarchy_ids = {
+                [Op.overlap]: ids,
+            };
+        }
+        const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
+            where: whereCondition,
+            offset,
+            limit,
+            order: [['created_on', 'DESC']],
+        });
+        const updatedByIds = expenseConfigList
+            .map(config => config.updated_by)
+            .filter(id => id);
+        const users = updatedByIds.length > 0
+            ? await sequelize.query(
+                'SELECT user_id, first_name FROM `user` WHERE user_id IN (:updatedByIds)',
+                {
+                    replacements: { updatedByIds },
+                    type: QueryTypes.SELECT,
+                }
+            )
+            : [];
+        const userMap = Object.fromEntries(users.map((u: any) => [u.user_id, u.first_name]));
+        const populatedExpenseConfig = await Promise.all(
+            expenseConfigList.map(async (config) => {
+                const configJSON = config.toJSON();
+                const updatedByName = userMap[config.updated_by] || null;
+
+                const hierarchyIds = Array.isArray(configJSON.hierarchy_ids) ? configJSON.hierarchy_ids : [];
+                let hierarchyDetails: { id: any; name: any }[] = [];
+                if (hierarchyIds.length > 0) {
+                    const hierarchies = await Hierarchies.findAll({
+                        where: { id: { [Op.in]: hierarchyIds } },
+                        attributes: ['id', 'name'],
+                    });
+                    hierarchyDetails = hierarchies.map((h: any) => ({
+                        id: h.id,
+                        name: h.name,
+                    }));
+                }
+                return {
+                    ...configJSON,
+                    updated_by_name: updatedByName,
+                    hierarchy_ids: hierarchyDetails,
+                };
+            })
+        );
+        reply.status(200).send({
+            status_code: 200,
+            message: populatedExpenseConfig.length > 0
+                ? 'Expense configuration fetched successfully.'
+                : 'No expense configuration found.',
+            trace_id: traceId,
+            data: {
+                pagination: {
+                    totalRecords: count,
+                    currentPage: page,
+                    totalPages: Math.ceil(count / limit),
+                    pageSize: limit,
+                    hasNextPage: page * limit < count,
+                    hasPreviousPage: page > 1,
+                },
+                expenseConfigurations: populatedExpenseConfig,
+            }
+        });
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: (error as Error).message,
+        });
     }
 }
+
 
 export async function getExpenseTypesByProgramIdAndHierarchies(
     request: FastifyRequest,
@@ -556,7 +556,6 @@ export async function getExpenseTypesByProgramIdAndHierarchies(
     const { program_id } = request.params as { program_id: string };
     const { hierarchy_ids } = request.query as { hierarchy_ids: string };
     const traceId = generateCustomUUID();
-
     try {
         const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
         const query = getExpenseByHierarchy(hierarchyIdsArray);
@@ -580,3 +579,12 @@ export async function getExpenseTypesByProgramIdAndHierarchies(
         });
     }
 }
+function uuidv4(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (crypto.getRandomValues(new Uint8Array(1))[0] % 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+

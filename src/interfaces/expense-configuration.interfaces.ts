@@ -1,17 +1,29 @@
 export interface ExpenseConfigurationAttributes {
   id: string;
-  program_id: string;
+  entity_id?: string;
+  slug?: string;
   name?: string;
-  hierarch_ids?: any;
+  program_id: string;
+
+  hierarchy_ids?: any;
+  labor_category_ids?: any;
   expense_type_ids?: any;
-  weekending_day?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
-  mdt_display_headers?: any;
+
+  week_ending_day?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+  is_mdt_enabled?: boolean;
+  master_data_types?: any;
+  is_projects_enabled?: boolean;
   projects?: any;
   is_thresholds_enabled?: boolean;
-  general_exp_duration_rule?: any;
-  worker_access_revoke_rule?: any;
-  misc_exp_entry_rules?: any;
-  general_exp_entry_rules?: any;
+  gnrl_duration_rule?: any;
+  misc_duration_rule?: any;
+  gnrl_grace_period_rule?: any;
+  misc_grace_period_rule?: any;
+  gnrl_revoke_access_rule?: any;
+  misc_revoke_access_rule?: any;
+  revision?: number;
+  latest?: boolean;
+
   is_enabled: boolean;
   is_deleted: boolean;
   created_on?: number;
@@ -37,15 +49,19 @@ export const querySchema = {
     offset: { type: 'integer' }
   }
 };
-
 export const createExpenseConfigurationSchema = {
   type: "object",
   properties: {
-    id: { type: "string", format: "uuid" },
-    program_id: { type: "string", format: "uuid" },
+    id: { type: "string" },
+    entity_id: { type: "string", format: "uuid" },
+    slug: { type: "string" },
     name: { type: "string" },
-
-    hierarch_ids: {
+    program_id: { type: "string", format: "uuid" },
+    hierarchy_ids: {
+      type: "array",
+      items: { type: "string" }
+    },
+    labor_category_ids: {
       type: "array",
       items: { type: "string" }
     },
@@ -53,37 +69,32 @@ export const createExpenseConfigurationSchema = {
       type: "array",
       items: { type: "string" }
     },
-    weekending_day: {
+    week_ending_day: {
       type: "string",
       enum: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
     },
-    mdt_display_headers: {
-      type: "object"
-    },
-    projects: {
-      type: "object"
-    },
+    is_mdt_enabled: { type: "boolean" },
+    master_data_types: { type: "array" },
+    is_projects_enabled: { type: "boolean" },
+    projects: { type: "object" },
     is_thresholds_enabled: { type: "boolean" },
 
-    general_exp_duration_rule: {
-      type: "object"
-    },
-    worker_access_revoke_rule: {
-      type: "object"
-    },
-    misc_exp_entry_rules: {
-      type: "object"
-    },
-    general_exp_entry_rules: {
-      type: "object"
-    },
+    gnrl_duration_rule: { type: "object" },
+    misc_duration_rule: { type: "object" },
+    gnrl_grace_period_rule: { type: "object" },
+    misc_grace_period_rule: { type: "object" },
+
+    gnrl_revoke_access_rule: { type: "object" },
+    misc_revoke_access_rule: { type: "object" },
+    revision: { type: "integer" },
+    latest: { type: "boolean" },
     is_enabled: { type: "boolean" },
     is_deleted: { type: "boolean" },
     created_on: { type: "number" },
     updated_on: { type: "number" },
     created_by: { type: "string", format: "uuid" },
     updated_by: { type: "string", format: "uuid" }
-  },
+  }
 };
 
 
