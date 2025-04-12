@@ -1868,12 +1868,18 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { method_id, job_id, workflow_trigger_id, hierarchy_id , workflow_id } = request.query as {
             method_id: string;
             job_id?: string;
             workflow_trigger_id: string;
-            hierarchy_id: any
+            hierarchy_id: any, 
+            workflow_id:string;
         };
+        let workflowIdCondition = '';
+if (workflow_id) {
+    workflowIdCondition = 'AND id = :workflow_id';
+}
+console.log('workflowIdCondition', workflowIdCondition)
         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
@@ -2077,6 +2083,7 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND FIND_IN_SET(method_id, :method_ids) > 0
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
+                 ${workflowIdCondition}
                 AND is_enabled = true
                 AND status IN ('pending')
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
@@ -2092,10 +2099,11 @@ ORDER BY
                 method_ids: methodIds.join(','),
                 program_id,
                 workflow_trigger_id,
+                workflow_id,
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);
+        console.log('Workflow result',rows?.length);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
