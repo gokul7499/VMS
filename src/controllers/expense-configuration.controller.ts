@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
-import { QueryTypes, Op } from 'sequelize';
+import { QueryTypes, Op, Sequelize } from 'sequelize';
 import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -18,8 +18,8 @@ export async function getExpenseConfigurations(
         Querystring: {
             page?: number;
             limit?: number;
-            search?: string;
-            status?: string;
+            name?: string;
+            is_enabled?: string | boolean;
             updated_on?: string;
             hierarchy_ids?: string;
         };
@@ -32,8 +32,8 @@ export async function getExpenseConfigurations(
         const {
             page = 1,
             limit = 10,
-            search,
-            status,
+            name,
+            is_enabled,
             updated_on,
             hierarchy_ids,
         } = request.query;
@@ -43,11 +43,11 @@ export async function getExpenseConfigurations(
             is_deleted: false,
         };
 
-        if (search) {
-            whereCondition.name = { [Op.iLike]: `%${search}%` };
+        if (name) {
+            whereCondition.name = name;
         }
-        if (status) {
-            whereCondition.status = status;
+        if (is_enabled !== undefined) {
+            whereCondition.is_enabled = is_enabled === "true";
         }
         if (updated_on) {
             const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
@@ -62,6 +62,7 @@ export async function getExpenseConfigurations(
                 [Op.overlap]: ids,
             };
         }
+        whereCondition.latest = true;
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
             offset,
@@ -100,7 +101,7 @@ export async function getExpenseConfigurations(
             page,
             limit,
             totalPages: Math.ceil(count / limit),
-            expenseConfig: populatedExpenseConfig,
+            data: populatedExpenseConfig,
         });
 
     } catch (error) {
@@ -435,10 +436,10 @@ export async function expenseConfigurationAdvancedFilter(
         Body: {
             page?: number;
             limit?: number;
-            search?: string;
-            status?: string;
+            name?: string;
+            is_enabled?: boolean | string;
             updated_on?: string;
-            hierarchy_ids?: string;
+            hierarchy_ids?: string[];
         };
     }>,
     reply: FastifyReply
@@ -449,8 +450,8 @@ export async function expenseConfigurationAdvancedFilter(
         const {
             page = 1,
             limit = 10,
-            search,
-            status,
+            name,
+            is_enabled,
             updated_on,
             hierarchy_ids,
         } = request.body;
@@ -459,11 +460,11 @@ export async function expenseConfigurationAdvancedFilter(
             program_id,
             is_deleted: false,
         };
-        if (search) {
-            whereCondition.name = { [Op.iLike]: `%${search}%` };
+        if (name) {
+            whereCondition.name = name;
         }
-        if (status) {
-            whereCondition.status = status;
+        if (is_enabled !== undefined) {
+            whereCondition.is_enabled = is_enabled === "true";
         }
         if (updated_on) {
             const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
@@ -472,11 +473,14 @@ export async function expenseConfigurationAdvancedFilter(
             }
         }
         if (hierarchy_ids) {
-            const ids = hierarchy_ids.split(',').map((id) => id.trim());
-            whereCondition.hierarchy_ids = {
-                [Op.overlap]: ids,
-            };
+            const ids = hierarchy_ids.map((id: string) => id.trim());
+            whereCondition[Op.or] = ids.map(id => ({
+                hierarchy_ids: {
+                    [Op.contains]: [{ id }]
+                }
+            }));
         }
+        whereCondition.latest = true;
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
             offset,
@@ -526,17 +530,12 @@ export async function expenseConfigurationAdvancedFilter(
                 ? 'Expense configuration fetched successfully.'
                 : 'No expense configuration found.',
             trace_id: traceId,
-            data: {
-                pagination: {
-                    totalRecords: count,
-                    currentPage: page,
-                    totalPages: Math.ceil(count / limit),
-                    pageSize: limit,
-                    hasNextPage: page * limit < count,
-                    hasPreviousPage: page > 1,
-                },
-                expenseConfigurations: populatedExpenseConfig,
-            }
+            totalRecords: count,
+            currentPage: page,
+            totalPages: Math.ceil(count / limit),
+            pageSize: limit,
+            data: populatedExpenseConfig,
+
         });
     } catch (error) {
         reply.status(500).send({
@@ -547,7 +546,6 @@ export async function expenseConfigurationAdvancedFilter(
         });
     }
 }
-
 
 export async function getExpenseTypesByProgramIdAndHierarchies(
     request: FastifyRequest,
