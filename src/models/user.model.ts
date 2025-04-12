@@ -24,6 +24,8 @@ class User extends Model {
   foundational_data: any;
   user_id: unknown;
   is_all_hierarchy_associate: any;
+  ast_name: string | undefined;
+  first_name: string | undefined;
 }
 
 User.init(

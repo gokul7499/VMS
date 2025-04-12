@@ -1,70 +1,135 @@
 import { Model, DataTypes } from 'sequelize';
-import { sequelize } from "../config/instance";
+import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
+import IndustriesModel from './labour-category.model';
+import Hierarchies from './hierarchies.model';
+import FoundationalDataTypes from './foundational-datatypes.model';
 
 class ExpenseConfigurationModel extends Model {
-  id: any;
-  foundational_data_type_id: any;
-  name: any;
-  code: any;
-  hierarchy: any;
-  status!: any;
-  expense_item_type_config: any;
-    master_data: any;
-    updated_by: any;
+  master_data_types(master_data_types: any) {
+    throw new Error("Method not implemented.");
+  }
+  id: unknown;
+  hierarch_ids: any;
+  expense_type_ids: any;
+  updated_by: any;
+  hierarchy_ids: any;
+  labor_category_ids: any;
+  entity_id: string | undefined;
+  revision: number | undefined;
+  created_on: unknown;
+  created_by: unknown;
 }
 ExpenseConfigurationModel.init(
-
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      allowNull: false,
       primaryKey: true,
+    },
+    entity_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+    },
+    week_ending_day: {
+      type: DataTypes.ENUM(
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday'
+      ),
+      allowNull: true,
+    },
+    is_mdt_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    master_data_types: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      references: {
+        model: FoundationalDataTypes,
+        key: 'id',
+      }
+    },
+    is_projects_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    projects: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    is_thresholds_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    labor_category_ids: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      references: {
+        model: IndustriesModel,
+        key: 'id',
+      }
+    },
+    hierarchy_ids: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      references: {
+        model: Hierarchies,
+        key: 'id',
+      }
+    },
+    gnrl_duration_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    misc_duration_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    gnrl_grace_period_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    misc_grace_period_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    gnrl_revoke_access_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    misc_revoke_access_rule: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    revision: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+    },
+    latest: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
     },
     program_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: "programs",
-        key: "id",
+        model: 'programs',
+        key: 'id',
       },
-    },
-    enable_thresholds:{
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    weekending_day: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    mdt_display_headers:{
-      type:DataTypes.JSON,
-      allowNull:true
-    },
-    misc_exp_access_rules: {
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    general_exp_access_rules: {
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    revoke_worker_access: {
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    general_exp_incurred_submission:{
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    project: {
-      type: DataTypes.JSON,
-      allowNull: true
     },
     is_enabled: {
       type: DataTypes.BOOLEAN,
@@ -75,12 +140,11 @@ ExpenseConfigurationModel.init(
       defaultValue: false,
     },
     created_on: {
-      type: DataTypes.BIGINT.UNSIGNED,
+      type: DataTypes.DOUBLE,
       defaultValue: Date.now(),
-      allowNull: true,
     },
     updated_on: {
-      type: DataTypes.BIGINT.UNSIGNED,
+      type: DataTypes.DOUBLE,
       defaultValue: Date.now(),
       allowNull: true,
     },
@@ -92,16 +156,17 @@ ExpenseConfigurationModel.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
-
   },
   {
     sequelize,
     tableName: 'expense_config',
-    timestamps:false,
+    timestamps: false,
   }
 );
 ExpenseConfigurationModel.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
-
+ExpenseConfigurationModel.belongsTo(IndustriesModel, { foreignKey: 'labor_category_ids', as: 'industries' });
+ExpenseConfigurationModel.belongsTo(Hierarchies, { foreignKey: 'hierarchy_ids', as: 'hierarchies' });
+ExpenseConfigurationModel.belongsTo(FoundationalDataTypes, { foreignKey: 'master_data_types', as: 'foundational_data_types' });
 sequelize.sync();
 
 export default ExpenseConfigurationModel;

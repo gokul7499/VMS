@@ -35,7 +35,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
             body: createExpenseConfigurationSchema,
             params: paramsSchema,
         },
-        preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_CONFIGURATION])
+        // preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.updateExpenseConfiguration);
 
     fastify.delete('/program/:program_id/expense-config/:id', {
@@ -44,13 +44,6 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
         }
     }, ExpenseConfigurationController.deleteExpenseConfiguration);
 
-    fastify.get('/program/:program_id/expense-config-types', {
-        schema: {
-            params: paramsSchema,
-            querystring: querySchema,
-        },
-        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
-    }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchy);
 
     fastify.get('/program/:program_id/expense-configs-hierarchies', {
         schema: {
