@@ -65,12 +65,12 @@ export async function searchSimilarProfiles(
 
     const matches = result?.results?.matches;
 
-    if (result?.success && Array.isArray(matches)) {
+    if (result?.success && Array.isArray(matches) && matches.length > 0) {
       const matchingProfile = matches.map((match: { candidate_id: string }) => match.candidate_id);
       const candidateMatchingScore = matches.map(
         (match: { candidate_id: string; similarity_score: number }) => ({
           candidate_id: match.candidate_id,
-          score: match.similarity_score,
+          score: match.similarity_score
         })
       );
 
@@ -83,7 +83,8 @@ export async function searchSimilarProfiles(
         created_by: userId,
         updated_by: userId,
       });
-      console.log("Saved matching duplicate candidate", data);
+
+      console.log("Saved matching profile to DB.", data);
     } else {
       console.log(" No matches found.");
     }
