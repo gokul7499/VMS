@@ -44,21 +44,27 @@ class JobTempletRepository {
 
   async getMostUsedJobTemplatesByProgram(
     program_id: string,
-    hierarchy_ids: string[],
+    hierarchyIdsArray: string[],
     job_type?: string,
     limit?: number,
     offset?: number,
-    is_enabled?: boolean
+    is_enabled?: boolean,
+    is_shift_rate?: boolean
   ) {
-    const hierarchyCondition = hierarchy_ids.length > 0
-      ? `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+        )`
       : '';
+  
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
-    const paginationCondition = limit !== undefined && offset !== undefined
-      ? `LIMIT ? OFFSET ?`
-      : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
-
+    const paginationCondition = limit !== undefined && offset !== undefined ? `LIMIT ? OFFSET ?` : '';
+    const isShiftRateCondition = is_shift_rate !== undefined ? `AND job_templates.is_shift_rate = ?` : '';
     const query = `
       SELECT
         job_templates.template_name,
@@ -79,42 +85,68 @@ class JobTempletRepository {
       LEFT JOIN job_category ON job_templates.category = job_category.id
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
       WHERE job_templates.program_id = ?
-      ${hierarchyCondition}
+      ${hierarchyCondition ? `AND ${hierarchyCondition}` : ''}
       ${jobTypeCondition}
       ${isEnabledCondition}
-      AND job_templates.job_submitted_count >=1
+      ${isShiftRateCondition}
+      AND job_templates.job_submitted_count >= 1
       GROUP BY job_templates.template_name
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
+  
+    const replacements: (string | number)[] = [program_id];
+  
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+  
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
+  
+    if (is_enabled !== undefined) {
+      replacements.push(is_enabled ? 1 : 0);
+    }
+  
     if (limit !== undefined && offset !== undefined) {
       replacements.push(limit, offset);
     }
 
-    if (is_enabled !== undefined) {
-      replacements.push(is_enabled ? 1 : 0);
+    if (is_shift_rate !== undefined) {
+      replacements.push(is_shift_rate ? 1 : 0);
     }
-
+  
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
+  
     return data;
   }
+  
 
-  async getJobTempletByHierarchies(program_id: string, hierarchy_ids: string[], job_type?: string, is_enabled?: boolean | undefined) {
-    let hierarchyCondition = '';
-
-    if (hierarchy_ids.length > 0) {
-      hierarchyCondition = `AND job_template_hierarchies.hierarchy IN (${hierarchy_ids.map(() => '?').join(',')})`;
-    }
+  async getJobTempletByHierarchies(
+    program_id: string,
+    hierarchyIdsArray: string[],
+    job_type?: string,
+    is_enabled?: boolean,
+    is_shift_rate?: boolean
+  ) {
+    const hierarchyCondition = hierarchyIdsArray.length > 0
+      ? `AND job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+          GROUP BY job_temp_id
+          HAVING COUNT(DISTINCT hierarchy) = ?
+        )`
+      : "";
+  
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
+    const isShiftRateCondition = is_shift_rate !== undefined ? `AND job_templates.is_shift_rate = ?` : '';
+
     const query = `
       SELECT
         job_templates.template_name,
@@ -138,24 +170,37 @@ class JobTempletRepository {
       ${hierarchyCondition}
       ${jobTypeCondition}
       ${isEnabledCondition}
+      ${isShiftRateCondition}
       GROUP BY job_templates.template_name
       ORDER BY created_on DESC;
     `;
-    const replacements: (string | number)[] = [program_id, ...hierarchy_ids];
+  
+    const replacements: (string | number)[] = [program_id];
+  
+    if (hierarchyIdsArray.length > 0) {
+      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+  
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
+  
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0);
     }
 
+    if (is_shift_rate !== undefined) {
+      replacements.push(is_shift_rate ? 1 : 0);
+    }
+  
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-
+  
     return data;
   }
+  
 
   async getAllJobTemplateByHierarchy(
     program_id: string,

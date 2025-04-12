@@ -80,6 +80,7 @@ export const createCustomFieldsSchema = {
     can_edit_vendor: { type: 'array', items: { type: 'string' } },
     program_id: { type: 'string' },
     module_name: { type: 'string' },
+    organization_category:{ type: 'array', items: { type: 'string' } },
     module_id: { type: 'string' },
     name: { type: 'string' },
     is_enabled: { type: 'boolean' },

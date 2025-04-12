@@ -41,7 +41,7 @@ const AUTH_BASE_URL = databaseConfig.config.auth_url;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
-    const { name, levels, module, hierarchies, method_id } = request.body as WorkflowData;
+    const { name, module, hierarchies, method_id } = request.body as WorkflowData;
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -94,37 +94,6 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
             }
         }
 
-        const recipientTypeMap = new Map();
-        let allowCreation = true;
-
-        for (const level of levels) {
-            if (level.recipient_types) {
-                for (const recipient of level.recipient_types) {
-                    const { recipient_type_id, behaviour } = recipient;
-
-                    if (recipientTypeMap.has(recipient_type_id)) {
-                        if (recipientTypeMap.get(recipient_type_id) === 'ANY' && behaviour === 'ALL') {
-                            allowCreation = true;
-                        } else {
-                            allowCreation = false;
-                            break;
-                        }
-                    } else {
-                        recipientTypeMap.set(recipient_type_id, behaviour);
-                    }
-                }
-            }
-            if (!allowCreation) break;
-        }
-
-        if (!allowCreation) {
-            return reply.status(409).send({
-                status_code: 409,
-                message: "A workflow with duplicate recipient_type and invalid behaviour conditions cannot be created",
-                trace_id: traceId,
-            });
-        }
-
         const workflowDataPayload = request.body as Omit<WorkflowData, '_id'>;
         let createdWorkflow: any;
         let grouped = await WorkFlow.findOne({
@@ -156,7 +125,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
                 program_id,
                 placement_order: 0,
                 created_by: userId,
-                updatedd_by: userId,
+                updated_by: userId,
                 flow_count: 1,
                 type: "parent",
                 workflow_id: null
@@ -181,6 +150,7 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
         });
     }
 };
+
 
 export const updateWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };

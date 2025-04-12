@@ -498,7 +498,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                await updatePendingApprovalStatus(request, reply, program_id, id, workflow)
+                await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
@@ -597,7 +597,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         status: user.status || null,
     }));
 }
-export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
 
 
     try {
@@ -645,9 +645,14 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             } else
                 if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;
+                    const workflowID = workflow?.id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
                         status: "submitted",
+                        updates,
+                        workflowID,
+                        user,
+                        userData
                     };
 
                     await axios.put(apiUrl, payload, {
@@ -1271,7 +1276,7 @@ export const rejectLevel = async (
                             }
 
                             return {
-                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(), notes: notes, reason: reason,
+                                ...recipient, status: "canceled", imporsonate_by: impersonator_id, updated_on: Date.now(),
                             };
 
                         });
@@ -1285,7 +1290,7 @@ export const rejectLevel = async (
                     const updatedRecipientTypes = level.recipient_types.map((recipient: any) => ({
                         ...recipient,
                         status: "canceled",
-                        updated_on: Date.now(), notes: notes, reason: reason,
+                        updated_on: Date.now(),  
 
                     }));
 
@@ -1863,12 +1868,18 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
         is_deleted: false
     }, JobWorkFlowModel);
     try {
-        const { method_id, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { method_id, job_id, workflow_trigger_id, hierarchy_id , workflow_id } = request.query as {
             method_id: string;
             job_id?: string;
             workflow_trigger_id: string;
-            hierarchy_id: any
+            hierarchy_id: any, 
+            workflow_id:string;
         };
+        let workflowIdCondition = '';
+if (workflow_id) {
+    workflowIdCondition = 'AND id = :workflow_id';
+}
+console.log('workflowIdCondition', workflowIdCondition)
         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
@@ -2072,8 +2083,9 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                 AND FIND_IN_SET(method_id, :method_ids) > 0
                 AND workflow_trigger_id = :workflow_trigger_id
                 AND is_updated = false
+                 ${workflowIdCondition}
                 AND is_enabled = true
-                AND status='pending'
+                AND status IN ('pending')
                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
@@ -2087,30 +2099,11 @@ ORDER BY
                 method_ids: methodIds.join(','),
                 program_id,
                 workflow_trigger_id,
+                workflow_id,
             },
             type: QueryTypes.SELECT,
         });
-        console.log(rows);
-
-        // let programData = await sequelize.query(
-        //     `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
-        //     {
-        //         replacements: { workflow_trigger_id },
-        //         type: QueryTypes.SELECT,
-        //     }
-        // );
-
-        // // Create a map to store the latest status for each flow_type
-        // const flowTypeStatusMap = new Map<string, boolean>();
-
-        // for (const program of programData) {
-        //     const { flow_type, status } = program as JobWorkFlow
-
-        //     // If the flow_type is already in the map, prioritize "completed" status
-        //     if (!flowTypeStatusMap.has(flow_type) || status === "completed") {
-        //         flowTypeStatusMap.set(flow_type, status === "completed");
-        //     }
-        // }
+        console.log('Workflow result',rows?.length);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
@@ -2119,8 +2112,7 @@ ORDER BY
                 type: QueryTypes.SELECT,
             }
         );
-        console.log('program data is nowww', programData);
-        
+
         const flowTypeStatusMap = new Map<string, boolean>();
         
         for (const program of programData) {
@@ -2244,7 +2236,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
 
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager" ||  recipientType?.name === "Timesheet Managers") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id,first_name, last_name, avatar, role_id,email
@@ -2510,7 +2502,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                 }
                 let imporsonateUserResult = null;
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
                     console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
                     for (const level of levels) {
                         let replacedUserResult = null;
@@ -2607,7 +2599,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {
                     const recipientTypes = JSON.parse(row.recipient_types) || [];
 
                     for (const recipient of recipientTypes) {
@@ -3041,7 +3033,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
             } else {
 
                 const previousLevel = sortedLevels[i - 1];
-                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled") {
+                if (previousLevel.level_status === "completed" || previousLevel.level_status === "canceled" || previousLevel.level_status === "bypassed") {
 
                     currentLevel.level_status = currentLevel.level_status;
                 } else {
@@ -3724,7 +3716,7 @@ l.placement_order ASC;`;
                     }
                 }
                 let imporsonateUserResult = null;
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Top of Financial Authority Chain" || recipientType?.name === "Manager of") {
+                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
                     console.log(recipientType);
 
                     // Loop through each placement order
@@ -3818,7 +3810,7 @@ l.placement_order ASC;`;
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain") {
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {                    
                     const recipientTypes = JSON.parse(row.recipient_types);
 
                     for (const recipient of recipientTypes) {
@@ -4240,6 +4232,446 @@ export const getModuleEvent = async (
 //         });
 //     }
 // };
+
+export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: FastifyReply) {
+    const trace_id = generateCustomUUID();
+    const { program_id } = request.params as { program_id: string };
+    const authHeader = request.headers.authorization;
+
+    // Quick authentication check
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    
+    try {
+        // Optimize: Decode token asynchronously while fetching data to parallelize operations
+        const userPromise = decodeToken(token);
+        
+        // Extract common query parameters
+        const queryParams = request.query as Record<string, any>;
+        const { workflow_trigger_id, hierarchy_id } = queryParams;
+        let hierarchy_ids = hierarchy_id.split(",").map((id: string) => id.trim());
+        
+        // Determine which type of workflow request this is
+        const isUpdateWorkflow = !!queryParams.workflow_action;
+        
+        // OPTIMIZATION: Dramatically reduce query complexity by only selecting needed fields
+        // This will reduce database processing time and network transfer
+        const minimalSelectPart = `
+            SELECT
+                w.id As job_workflow_id,
+                w.workflow_id,
+                w.event_id,
+                w.event_title,
+                w.name AS workflow_name,
+                w.flow_type AS workflow_type,
+                w.levels,
+                w.status,
+                w.config,
+                w.manager,
+                l.id AS level_id,
+                l.placement_order,
+                r.recipient_type_id,
+                r.meta_data,
+                r.behaviour,
+                e.slug AS event_slug,
+                JSON_UNQUOTE(JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].status'))) AS level_status
+            FROM
+                workflow w
+            INNER JOIN workflow_triggered_level l ON l.workflow_id = w.workflow_id AND l.workflow_trigger_id = w.workflow_trigger_id
+            LEFT JOIN workflow_triggered_recepient r ON r.level_id = l.id
+            LEFT JOIN event e ON w.event_id = e.id
+        `;
+        
+        // OPTIMIZATION: Fetch only 1 record for the non-update workflow case, since we only use the first one
+        let query: string;
+        let rows: any[];
+        
+        if (isUpdateWorkflow) {
+            // CASE 1: Update workflow approval handling
+            const { workflow_action } = queryParams;
+            
+            // OPTIMIZATION: Limit query to just what's needed and add indexes/query hints if available
+            query = `${minimalSelectPart}
+            WHERE
+                w.program_id = :program_id
+                AND w.flow_type = :workflow_action
+                AND w.workflow_trigger_id = :workflow_trigger_id
+                AND w.is_updated = true
+                AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
+            ORDER BY
+                l.placement_order ASC
+            LIMIT 50; /* Reduced limit from 100 to 50 */
+            `;
+
+            // OPTIMIZATION: Execute user token verification and database query in parallel
+            const [user, queryRows] = await Promise.all([
+                userPromise,
+                sequelize.query(query, {
+                    replacements: { workflow_action, program_id, workflow_trigger_id },
+                    type: QueryTypes.SELECT,
+                })
+            ]);
+            
+            if (!user) {
+                return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+            }
+            
+            rows = queryRows;
+            
+            if (rows.length === 0) {
+                return reply.status(200).send({
+                    statusCode: 200,
+                    message: 'Workflow data not found',
+                    workflow: [],
+                    trace_id,
+                });
+            }
+            
+            // OPTIMIZATION: Simpler data processing with Map/Set for O(1) lookups
+            const uniqueWorkflowIds = new Set<string>();
+            for (const row of rows) {
+                uniqueWorkflowIds.add(row.job_workflow_id);
+            }
+            
+            // Use a faster workflow instantiation method
+            const workflows: Record<string, any> = {};
+            for (const id of uniqueWorkflowIds) {
+                const sampleRow = rows.find(r => r.job_workflow_id === id);
+                workflows[id as string] = {
+                    program_id: program_id,
+                    job_workflow_id: id,
+                    workflow_id: sampleRow.workflow_id,
+                    event_title: sampleRow.event_title,
+                    workflow_name: sampleRow.workflow_name,
+                    workflow_type: sampleRow.workflow_type,
+                    event_slug: sampleRow.event_slug,
+                    status: sampleRow.status,
+                    config: sampleRow.config,
+                    levels: [],
+                    is_rejected_workflow: sampleRow.status?.toLowerCase() === "rejected"
+                };
+            }
+            
+            // OPTIMIZATION: Efficient data collection for batch operations
+            const recipientTypeIds = new Set<string>();
+            const userIds = new Set<string>();
+            const recipientRowMap = new Map<string, any[]>(); // level -> rows
+
+            // One-pass data collection
+            for (const row of rows) {
+                const levelKey = `${row.job_workflow_id}-${row.level_id}`;
+                
+                if (row.recipient_type_id) {
+                    recipientTypeIds.add(row.recipient_type_id);
+                }
+                
+                if (row.meta_data) {
+                    const values = Object.values(row.meta_data);
+                    for (const v of values) {
+                        if (v && typeof v === 'string') userIds.add(v);
+                    }
+                }
+                
+                // Group rows by level for easier processing
+                if (!recipientRowMap.has(levelKey)) {
+                    recipientRowMap.set(levelKey, []);
+                }
+                recipientRowMap.get(levelKey)?.push(row);
+            }
+            
+            // OPTIMIZATION: Execute all database lookups in parallel
+            const [recipientTypes, users] = await Promise.all([
+                // Only fetch if there are recipient types to fetch
+                recipientTypeIds.size > 0 ? 
+                    sequelize.query(
+                        `SELECT id, name FROM recipient_type 
+                         WHERE id IN (:recipient_type_ids) AND is_enabled = true`,
+                        {
+                            type: QueryTypes.SELECT,
+                            replacements: { recipient_type_ids: [...recipientTypeIds] },
+                        }
+                    ) : Promise.resolve([]),
+                
+                // Only fetch if there are user IDs to fetch
+                userIds.size > 0 ?
+                    sequelize.query(
+                        `SELECT user_id, first_name, last_name, avatar, role_id, email, supervisor
+                         FROM user
+                         WHERE user_id IN (:user_ids) AND program_id = :program_id AND status = 'active'`,
+                        {
+                            type: QueryTypes.SELECT,
+                            replacements: { user_ids: [...userIds], program_id },
+                        }
+                    ) : Promise.resolve([])
+            ]);
+            
+            // Create lookup maps for fast access
+            const recipientTypesMap: Record<string, any> = {};
+            for (const type of recipientTypes) {
+                // Fix TypeScript error by using type assertion
+                const typeObj = type as any;
+                recipientTypesMap[typeObj.id] = typeObj;
+            }
+            
+            const usersMap: Record<string, any> = {};
+            for (const user of users) {
+                // Fix TypeScript error by using type assertion
+                const userObj = user as any;
+                usersMap[userObj.user_id] = userObj;
+            }
+            
+            // OPTIMIZATION: Simplified processing with fewer loops
+            // Process each level only once
+            for (const [levelKey, levelRows] of recipientRowMap.entries()) {
+                const [workflowId, levelId] = levelKey.split('-');
+                const workflow = workflows[workflowId];
+                const firstRow = levelRows[0];
+                
+                if (!firstRow.meta_data || Object.keys(firstRow.meta_data).length === 0) {
+                    continue;
+                }
+                
+                const recipientType = recipientTypesMap[firstRow.recipient_type_id];
+                if (!recipientType) continue;
+                
+                // Process recipient data more efficiently
+                const recipients = [];
+                
+                // Process just what we need based on meta_data
+                const input_values = Object.values(firstRow.meta_data);
+                
+                // OPTIMIZATION: Simplified recipient creation - focus on the minimal viable logic
+                if (input_values.length > 0) {
+                    const userId = firstRow.existing_replaced_user || input_values[0];
+                    const user = usersMap[userId];
+                    
+                    if (user) {
+                        recipients.push({
+                            name: `${user.first_name} ${user.last_name}`.trim(),
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            level_id: levelId,
+                            status: firstRow.recipient_status,
+                            user_id: user.user_id,
+                            avatar: user.avatar?.url || '',
+                            role_id: user.role_id,
+                            email: user.email,
+                            recipient_type: recipientType?.name || '',
+                            behaviour: firstRow.behaviour,
+                        });
+                    }
+                }
+                
+                if (recipients.length > 0) {
+                    workflow.levels.push({
+                        level_id: levelId,
+                        level_order: firstRow.placement_order,
+                        placement_order: firstRow.placement_order,
+                        level_status: firstRow.level_status,
+                        behaviour: firstRow.behaviour,
+                        recipients
+                    });
+                }
+            }
+            
+            // OPTIMIZATION: Process status handling in parallel with minimal data
+            // Replace with a simplified version if possible
+            const statusHandlingPromises = Object.values(workflows).map(workflow => {
+                return statusHandling(request, reply, workflow).catch(err => {
+                    console.error("Error in status handling:", err);
+                    // Continue despite errors
+                });
+            });
+            
+            // Wait for status handling but with a timeout
+            await Promise.race([
+                Promise.all(statusHandlingPromises),
+                new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+            ]);
+            
+            return reply.status(200).send({
+                statusCode: 200,
+                workflows: Object.values(workflows),
+                trace_id,
+            });
+        } else {
+            // CASE 2: Regular workflow approval handling
+            const { method_id } = queryParams;
+            const methodIds = method_id.split(',');
+            
+            // OPTIMIZATION: For regular workflow, we only use the first result, so limit to 1
+            // after ordering by priority (pending first, then completed)
+            const optimizedQuery = `${minimalSelectPart}
+            WHERE
+                w.program_id = :program_id
+                AND w.workflow_trigger_id = :workflow_trigger_id
+                AND w.is_updated = false
+                AND FIND_IN_SET(w.method_id, :method_ids) > 0
+                AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
+                AND w.is_enabled = true
+                AND w.status IN ('pending', 'completed')
+            ORDER BY
+                FIELD(w.status, 'pending', 'completed'),
+                FIELD(w.method_id, ${methodIds.map((id:any) => `'${id}'`).join(',')}),
+                l.placement_order ASC
+            LIMIT 50;
+            `;
+            
+            // OPTIMIZATION: Execute all queries in parallel to save time
+            const [user, queryRows, flowTypesData] = await Promise.all([
+                userPromise,
+                sequelize.query(optimizedQuery, {
+                    replacements: {
+                        method_ids: methodIds.join(','),
+                        program_id,
+                        workflow_trigger_id
+                    },
+                    type: QueryTypes.SELECT,
+                }),
+                sequelize.query(
+                    `SELECT flow_type, status FROM workflow 
+                     WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")
+                     AND program_id = :program_id
+                     LIMIT 1`, // Limit to avoid excessive results
+                    {
+                        replacements: { workflow_trigger_id, program_id },
+                        type: QueryTypes.SELECT,
+                    }
+                )
+            ]);
+            
+            if (!user) {
+                return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+            }
+            
+            rows = queryRows;
+            
+            // Log job creation asynchronously if request body exists - don't wait for it
+            if (request.body) {
+                const initialJobData = request.body as JobWorkFlow;
+                logger({
+                    actor: {
+                        user_name: user?.preferred_username,
+                        user_id: user?.sub,
+                    },
+                    data: initialJobData,
+                    eventname: "creating job",
+                    status: "info",
+                    description: `Creating job for ${program_id}`,
+                    level: 'info',
+                    action: request.method,
+                    url: request.url,
+                    entity_id: program_id,
+                    is_deleted: false
+                }, JobWorkFlowModel).catch(err => console.error("Logging error:", err));
+            }
+            
+            // Process flow types
+            const flowTypeStatusMap = new Map<string, boolean>();
+            
+            for (const program of flowTypesData) {
+                const { flow_type, status } = program as any;
+                
+                if (!flowTypeStatusMap.has(flow_type)) {
+                    flowTypeStatusMap.set(flow_type, status === "completed");
+                } else {
+                    const currentStatus = flowTypeStatusMap.get(flow_type);
+                    if (status === "pending") {
+                        flowTypeStatusMap.set(flow_type, false);
+                    } else if (status === "completed" && currentStatus !== false) {
+                        flowTypeStatusMap.set(flow_type, true);
+                    }
+                }
+            }
+            
+            const flowTypes = Array.from(flowTypeStatusMap.entries())
+                .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
+                .sort((a, b) => {
+                    if (a.flow_type === "Review") return -1;
+                    if (b.flow_type === "Review") return 1;
+                    return 0;
+                });
+            
+            if (rows.length === 0) {
+                return reply.status(200).send({
+                    statusCode: 200,
+                    flowTypes: flowTypes,
+                    message: 'Workflow data not found',
+                    workflow: [],
+                    trace_id,
+                });
+            }
+            
+            // OPTIMIZATION: Since this code path only uses the first workflow, 
+            // filter data more aggressively
+            
+            // Group rows by workflow ID to get the first one
+            const workflowIds = new Set<string>();
+            for (const row of rows) {
+                workflowIds.add(row.job_workflow_id);
+            }
+            
+            if (workflowIds.size === 0) {
+                return reply.status(200).send({
+                    statusCode: 200,
+                    flowTypes: flowTypes,
+                    message: 'Workflow data not found',
+                    workflow: [],
+                    trace_id,
+                });
+            }
+            
+            // Get the first workflow ID (should be pending if available)
+            const workflowId = [...workflowIds][0];
+            const workflowRows = rows.filter(row => row.job_workflow_id === workflowId);
+            const firstRow = workflowRows[0];
+            
+            const workflow: any = {
+                program_id: program_id,
+                job_workflow_id: firstRow.job_workflow_id,
+                workflow_id: firstRow.workflow_id,
+                workflow_name: firstRow.workflow_name,
+                workflow_type: firstRow.workflow_type,
+                event_title: firstRow.event_title,
+                event_slug: firstRow.event_slug,
+                status: firstRow.status,
+                config: firstRow.config,
+                levels: [],
+            };
+            
+            // OPTIMIZATION: Use optimized version that directly processes the data
+            // instead of making additional queries
+            // Start this processing immediately
+            const getLevelDataPromise = getLevelData(request, reply, workflowRows, workflow, firstRow?.manager);
+            
+            // OPTIMIZATION: Start notification in background without awaiting
+            // This can happen completely asynchronously
+            setTimeout(() => {
+                sendNotificationSequencially(request, reply, workflow)
+                    .catch(err => console.error('Error sending notifications:', err));
+            }, 100);
+            
+            // Only wait for level data
+            await getLevelDataPromise;
+            
+            return reply.status(200).send({
+                statusCode: 200,
+                flowTypes: flowTypes,
+                workflow,
+                trace_id,
+            });
+        }
+    } catch (error: any) {
+        console.log(error);
+        return reply.status(500).send({
+            statusCode: 500,
+            message: 'An error occurred while fetching workflow data.',
+            trace_id,
+        });
+    }
+}
 
 async function getTriggeredEventsCode(flow_type: any, event: any) {
     if (flow_type === "Approval" && event === "create_job") {

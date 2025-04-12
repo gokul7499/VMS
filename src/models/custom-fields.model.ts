@@ -100,6 +100,10 @@ CustomField.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
     },
+    organization_category:{
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
