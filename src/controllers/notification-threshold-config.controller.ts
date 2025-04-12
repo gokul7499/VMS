@@ -1,11 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import thresholdConfig from '../models/notification-threshold-config.model';
 import { decodeToken } from '../middlewares/verifyToken';
+import { trace } from 'console';
+import generateCustomUUID from '../utility/genrateTraceId';
 
 export const createThreshold = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
         const token = request.headers.authorization?.split(' ')[1];
@@ -32,9 +35,9 @@ export const createThreshold = async (
 
         reply.status(201).send({
             status_code: 201,
-            trace_id: newThreshold.id,
+            trace_id: traceId,
+            id: newThreshold.id,
             message: 'Threshold configuration created successfully',
-            data: newThreshold,
 
 
         });
@@ -44,6 +47,7 @@ export const createThreshold = async (
             status_code: 500,
             message: 'Internal server error',
             error: error?.message || error,
+            trace_id: traceId
         });
     }
 };
@@ -58,6 +62,7 @@ export const getAllThresholds = async (
     request: FastifyRequest<{ Params: Params }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
     try {
         const token = request.headers.authorization?.split(' ')[1];
         await decodeToken(token || '');
@@ -82,6 +87,7 @@ export const getAllThresholds = async (
         reply.send({
             status_code: 200,
             message: 'Fetched successfully',
+            trace_id: traceId,
             data,
         });
     } catch (error: any) {
@@ -89,6 +95,7 @@ export const getAllThresholds = async (
             status_code: 500,
             message: 'Error fetching data',
             error: error?.message || error,
+            trace_id: traceId
         });
     }
 };
@@ -99,6 +106,8 @@ export const getThresholdById = async (
     request: FastifyRequest<{ Params: { trace_id: string, program_id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
+
     try {
         const token = request.headers.authorization?.split(' ')[1];
         await decodeToken(token || '');
@@ -123,6 +132,7 @@ export const getThresholdById = async (
         reply.send({
             status_code: 200,
             message: 'Fetched successfully',
+            trace_id: traceId,
             data: record,
         });
     } catch (error: any) {
@@ -131,6 +141,8 @@ export const getThresholdById = async (
             status_code: 500,
             message: 'Error fetching threshold',
             error: error?.message || error,
+            trace_id: traceId
+
         });
     }
 };
@@ -149,6 +161,8 @@ export const updateThreshold = async (
     }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
+
     try {
         const { program_id, trace_id } = request.params;
         const token = request.headers.authorization?.split(' ')[1];
@@ -182,6 +196,7 @@ export const updateThreshold = async (
         reply.send({
             status_code: 200,
             message: 'Threshold updated successfully',
+            trace_id: traceId,
             data: existing,
         });
     } catch (error: any) {
@@ -189,6 +204,8 @@ export const updateThreshold = async (
             status_code: 500,
             message: 'Update failed',
             error: error?.message || error,
+            trace_id: traceId
+
         });
     }
 };
@@ -198,6 +215,8 @@ export const deleteThreshold = async (
     request: FastifyRequest<{ Params: { program_id: string, trace_id: string } }>,
     reply: FastifyReply
 ) => {
+    const traceId = generateCustomUUID();
+
     try {
         const { program_id, trace_id } = request.params;
 
@@ -228,7 +247,7 @@ export const deleteThreshold = async (
         reply.send({
             status_code: 200,
             message: 'Threshold deleted successfully',
-            data: existing,
+            trace_id: traceId,
         });
     } catch (error: any) {
         console.error('Error during delete operation:', error);
@@ -236,6 +255,8 @@ export const deleteThreshold = async (
             status_code: 500,
             message: 'Delete failed',
             error: error?.message || error,
+            trace_id: traceId
+
         });
     }
 };
