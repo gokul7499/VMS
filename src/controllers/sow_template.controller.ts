@@ -4,8 +4,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from 'sequelize';
 import SowTemplateModel from '../models/sow_template.model';
 import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
-import SowTemplateMasterDataModel from '../models/sow_temp_master_data.model';
-import SowTemplateCustomFieldsModel from '../models/sow_temp_custom_fields.model';
+
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
@@ -62,33 +61,12 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
-        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
-            for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTemplateMasterDataModel.create({
-                    sow_template_id: item.id,
-                    master_data_type_id: masterDataId,
-                    master_data: JSON.stringify({}),
-                    created_by: userId,
-                    updated_by: userId,
-                }, { transaction });
-            }
-        }
-        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
-            for (const customField of sowTemplate.custom_fields) {
-                await SowTemplateCustomFieldsModel.create({
-                    sow_template_id: item.id,
-                    custom_field_id: customField.id,
-                    value: customField.value,
-                    created_by: userId,
-                    updated_by: userId,
-                }, { transaction });
-            }
-        }
+       
         await transaction.commit(); 
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
-            message: "Sow template created successfully.",
+            message: "SOW template created successfully.",
             sowTemplate: item.id,
         });
     } catch (error: any) {
@@ -113,7 +91,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title,
             hierarchy_id,
             code,
-            created_on
+            updated_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
@@ -121,7 +99,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title?: string;
             hierarchy_id?: string;
             code?: string;
-            created_on?: string;
+            updated_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -159,31 +137,32 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             )`;
             replacements.hierarchyIds = hierarchyIdsArray;
         }
-        if (created_on) {
-            const dateRange = created_on.split(',');
+        if (updated_on) {
+            const dateRange = updated_on.split(',');
             if (dateRange.length === 2) {
                 const startDate = dateRange[0].trim();
                 const endDate = dateRange[1].trim();
-                const startTimestamp = isNaN(Number(startDate)) 
-                    ? new Date(startDate).getTime() 
+                const startTimestamp = isNaN(Number(startDate))
+                    ? new Date(startDate).getTime()
                     : Number(startDate);
-                
-                const endTimestamp = isNaN(Number(endDate)) 
-                    ? new Date(endDate).getTime() 
+        
+                const endTimestamp = isNaN(Number(endDate))
+                    ? new Date(endDate).getTime()
                     : Number(endDate);
-
+        
                 if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
                     const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
-        
-                    whereClause += ` AND t.created_on BETWEEN :startDate AND :endDate`;
-                    replacements.startDate = startTimestamp;
-                    replacements.endDate = adjustedEndTimestamp;
+                    whereClause += ` AND t.updated_on BETWEEN :updatedStartDate AND :updatedEndDate`;
+                    replacements.updatedStartDate = startTimestamp;
+                    replacements.updatedEndDate = adjustedEndTimestamp;
                 } else {
-                    console.warn('Invalid date format provided');
+                    console.warn('Invalid updated_on date format provided');
                 }
             }
+        
+        
         }
-
+      
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -306,8 +285,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
         await template.update(sowTemplate);
         await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-        await SowTemplateMasterDataModel.destroy({ where: { sow_template_id: id } });
-        await SowTemplateCustomFieldsModel.destroy({ where: { sow_template_id: id } });
+      
 
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
@@ -320,30 +298,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             }
         }
 
-        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
-            for (const masterDataId of sowTemplate.master_date_type) {
-                await SowTemplateMasterDataModel.create({
-                    sow_template_id: id,
-                    master_data_type_id: masterDataId,
-                    master_data: JSON.stringify({}),
-                    created_by: userId,
-                    updated_by: userId,
-                });
-            }
-        }
-
-        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
-            for (const customField of sowTemplate.custom_fields) {
-                await SowTemplateCustomFieldsModel.create({
-                    sow_template_id: id,
-                    custom_field_id: customField.id,
-                    value: customField.value,
-                    created_by: userId,
-                    updated_by: userId,
-                });
-            }
-        }
-
+       
         reply.status(200).send({
             status_code: 200,
             message: 'SOW template updated successfully.',
