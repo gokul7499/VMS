@@ -11,6 +11,7 @@ import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.model";
 import Hierarchies from "../models/hierarchies.model";
 import IndustriesModel from "../models/labour-category.model";
+import ExpenseTypeModel from "../models/expense-type.model";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
@@ -145,11 +146,29 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             where: { id: { [Op.in]: masterDataTypeIds } },
             attributes: ['id', 'name'],
         });
+        const expenseTypes = await ExpenseTypeMapping.findAll({
+            where: {
+                expense_config_id: id,
+                program_id: program_id,
+            },
+            include: [{
+                model: ExpenseTypeModel,
+                as: 'expense_type',
+                attributes: ['id', 'name'],
+            }],
+        });
+
+        const transformedExpenseTypes = expenseTypes.map(mapping => ({
+            id: mapping.expense_type?.id,
+            name: mapping.expense_type?.name,
+        }));
+
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
             hierarchy_ids: hierarchies,
             labor_category_ids: laborCategories,
             master_data_types: masterDataTypes,
+            expense_type: transformedExpenseTypes
         };
         return reply.status(200).send({
             status_code: 200,
