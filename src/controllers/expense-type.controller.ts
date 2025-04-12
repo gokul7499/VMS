@@ -187,7 +187,7 @@ export async function updateExpenseTypeById(
             },
             ExpenseTypeModel
         );
-
+        
         const [updatedCount] = await ExpenseTypeModel.update(
             { ...updates, updated_by: user.sub, updated_on: Date.now() },
             {
@@ -443,8 +443,8 @@ export async function advancefilter(
 
         const formattedExpenseType = expenseType.map((item) => ({
             ...item.toJSON(),
-            appply_tax: item.appply_tax === "1", // Convert "1" -> true, "0" -> false
-            is_negative_expense_allow: item.is_negative_expense_allow === "1", // Convert "1" -> true, "0" -> false
+            appply_tax: item.is_tax_applied === "1", // Convert "1" -> true, "0" -> false
+            is_negative_expense_allow: item.is_negative_expense_allowed === "1", // Convert "1" -> true, "0" -> false
         }));
         reply.status(200).send({
             status_code: 200,
