@@ -493,33 +493,33 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
     const response = [];
 
     if (createApprovalMethod) {
-        const methodIds = [createApprovalMethod.dataValues.id];
-        if (counterApprovalMethod) {
-            methodIds.push(counterApprovalMethod.dataValues.id);
-        }
-
         response.push({
             ...createApprovalMethod.dataValues,
-            method_ids: methodIds
+            method_ids: [createApprovalMethod.dataValues.id]
         });
     }
-
+    
     if (createReviewMethod) {
-        const methodIds = [createReviewMethod.dataValues.id];
-        if (counterReviewMethod) {
-            methodIds.push(counterReviewMethod.dataValues.id);
-        }
-
         response.push({
             ...createReviewMethod.dataValues,
-            method_ids: methodIds
+            method_ids: [createReviewMethod.dataValues.id]
         });
-    } else if (counterReviewMethod) {
+    }
+    
+    if (counterApprovalMethod) {
+        response.push({
+            ...counterApprovalMethod.dataValues,
+            method_ids: [counterApprovalMethod.dataValues.id]
+        });
+    }
+    
+    if (counterReviewMethod) {
         response.push({
             ...counterReviewMethod.dataValues,
             method_ids: [counterReviewMethod.dataValues.id]
         });
     }
+    
 
     if (response.length === 0) {
         return reply.status(400).send({
