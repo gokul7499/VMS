@@ -65,12 +65,9 @@ export const createThreshold = async (
 
 
 
-interface Params {
-    program_id: string;
-}
 
 export const getAllThresholds = async (
-    request: FastifyRequest<{ Params: Params }>,
+    request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
