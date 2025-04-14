@@ -906,7 +906,8 @@ export const createPicklistData = async (
 
 
 export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { name, picklist_id, program_id, label, slug, defined_by, is_deleted, is_enabled, updated_on, page = 1, limit = 10 } =
+  const {program_id} = request.params as { program_id: string };
+  const { name, picklist_id, label, slug, defined_by, is_deleted, is_enabled, updated_on, page = 1, limit = 10 } =
     request.body as {
       name?: string;
       picklist_id?: string;
@@ -943,6 +944,7 @@ export const getPicklistFilter = async (request: FastifyRequest, reply: FastifyR
 
     const { rows: picklistDataRows, count: total_records } = await picklist_model.findAndCountAll({
       where: whereCondition,
+      distinct: true,
       include: [
         {
           model: picklist_item_model,

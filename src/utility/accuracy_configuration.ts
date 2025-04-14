@@ -78,6 +78,8 @@ class AccuracyConfiguration {
 
         const factor = Math.pow(10, scaleLimit);
         let adjustedAmount = amount;
+        const stringAmount = adjustedAmount.toString();
+        const decimalPart = stringAmount.split('.')[1] || '';
 
         switch (scalingType) {
             case 'Round Up':
@@ -87,9 +89,15 @@ class AccuracyConfiguration {
                 }
                 break;
             case 'Round Down':
-                adjustedAmount = Number(adjustedAmount.toFixed(scaleLimit));
-                if (adjustedAmount % 1 !== 0 && adjustedAmount % 1 < threshold / 10) {
-                    adjustedAmount = Math.floor(adjustedAmount * factor) / factor;
+                if (decimalPart.length > scaleLimit) {
+                    const extraDigit = parseInt(decimalPart[scaleLimit] || '0', 10);
+                    if (extraDigit <= threshold) {
+                        adjustedAmount = Math.floor(adjustedAmount * factor) / factor - 1 / factor;
+                    } else {
+                        adjustedAmount = Math.floor(adjustedAmount * factor) / factor;
+                    }
+                } else {
+                    adjustedAmount = Number(adjustedAmount.toFixed(scaleLimit));
                 }
                 break;
             case 'Truncate':
