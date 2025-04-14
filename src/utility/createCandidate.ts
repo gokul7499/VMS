@@ -3,7 +3,7 @@ import { PossibleDuplicateCandidate } from '../models/possible_duplicate_candida
 const AI_SERVICE_URL = databaseConfig.config.ai_url;
 
 export async function uploadCandidateResume(
-  candidate_id: string | unknown,
+  candidate_id: string ,
   vendorId: string,
   resume_url: string,
   authHeader: string,
@@ -34,13 +34,16 @@ export async function uploadCandidateResume(
   }
 }
 export async function searchSimilarProfiles(
-  candidateId: string | unknown,
+  candidateId: string ,
   resumeText: string,
   vendorId: string | null,
   authHeader: string,
   programId: string,
   userId: string
 ): Promise<void> {
+  console.log("Searching for similar profiles...");
+  console.log("Candidate ID:", candidateId);
+  console.log("userId",userId)
   try {
     const searchUrl = `${AI_SERVICE_URL}/candidates/search`;
 
