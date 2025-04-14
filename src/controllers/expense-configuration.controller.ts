@@ -429,6 +429,7 @@ export async function expenseConfigurationAdvancedFilter(
         const whereCondition: any = {
             program_id,
             is_deleted: false,
+            latest: true,
         };
         if (name) {
             whereCondition.name = { [Op.like]: `%${name}%` };
