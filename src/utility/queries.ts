@@ -2938,7 +2938,6 @@ WHERE
                     -- Users requiring exact hierarchy match
                     :is_all_hierarchy_associate_param = false
                     AND JSON_CONTAINS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
-                    AND JSON_CONTAINS(CAST(:allowed_hierarchy_ids AS JSON), user.associate_hierarchy_ids)
                 )
             )
         )
