@@ -3,7 +3,7 @@ import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import { QueryTypes, Op, Sequelize } from 'sequelize';
-import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
+import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseConfigurationQuery, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
@@ -165,74 +165,53 @@ export async function getExpenseConfigurations(
 export async function getExpenseConfigurationById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params as { program_id: string; id: string };
-        const expenseConfig = await ExpenseConfigurationModel.findOne({
-            where: { program_id, id },
-        });
-
-        if (!expenseConfig) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'Expense configuration not found.',
-                expense_config: [],
-                trace_id: traceId,
-            });
-        }
-        const laborCategoryIds = Array.isArray(expenseConfig.labor_category_ids) ? expenseConfig.labor_category_ids : [];
-        const hierarchyIds = Array.isArray(expenseConfig.hierarchy_ids) ? expenseConfig.hierarchy_ids : [];
-        const hierarchies = await Hierarchies.findAll({
-            where: { id: { [Op.in]: hierarchyIds } },
-            attributes: ['id', 'name'],
-        });
-        const laborCategories = await IndustriesModel.findAll({
-            where: { id: { [Op.in]: laborCategoryIds } },
-            attributes: ['id', 'name'],
-        });
-        const masterDataTypeIds = Array.isArray(expenseConfig.master_data_types) ? expenseConfig.master_data_types : [];
-        const masterDataTypes = await FoundationalDataTypes.findAll({
-            where: { id: { [Op.in]: masterDataTypeIds } },
-            attributes: ['id', 'name'],
-        });
-        const expenseTypes = await ExpenseTypeMapping.findAll({
-            where: {
-                expense_config_id: id,
-                program_id: program_id,
-            },
-            include: [{
-                model: ExpenseTypeModel,
-                as: 'expense_type',
-                attributes: ['id', 'name'],
-            }],
-        });
-
-        const transformedExpenseTypes = expenseTypes.map(mapping => ({
-            id: mapping.expense_type?.id,
-            name: mapping.expense_type?.name,
-        }));
-
-        const transformedExpenseConfig = {
-            ...expenseConfig.toJSON(),
-            hierarchy_ids: hierarchies,
-            labor_category_ids: laborCategories,
-            master_data_types: masterDataTypes,
-            expense_type: transformedExpenseTypes
-        };
+      const { program_id, id } = request.params as { program_id: string; id: string };
+      const query = getExpenseConfigurationQuery(program_id, id);
+      const [expenseConfig] = await sequelize.query(query, {
+        replacements: { program_id, id },
+        type: QueryTypes.SELECT,
+      }) as [{ [key: string]: any }];
+      console.log('RAW master_data_types:', expenseConfig?.master_data_types);
+      console.log('RAW expense_types:', expenseConfig?.expense_types);
+  
+      if (!expenseConfig) {
         return reply.status(200).send({
-            status_code: 200,
-            message: 'Expense configuration fetched successfully.',
-            trace_id: traceId,
-            expenseConfig: transformedExpenseConfig,
+          status_code: 200,
+          message: 'Expense configuration not found.',
+          trace_id: traceId,
+          expense_config: [],
         });
+      }
+      const parseJsonSafely = (value: any): any[] => {
+        try {
+          return typeof value === 'string' ? JSON.parse(value) : value || [];
+        } catch {
+          return [];
+        }
+      };
+  
+      const transformedExpenseConfig = {
+        ...expenseConfig,
+        master_data_types: parseJsonSafely(expenseConfig.master_data_types),
+        expense_types: parseJsonSafely(expenseConfig.expense_types),
+      };
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Expense configuration fetched successfully.',
+        trace_id: traceId,
+        expenseConfig: transformedExpenseConfig,
+      });
     } catch (error: any) {
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'An error occurred while fetching expense configuration.',
-            trace_id: traceId,
-            error: error.message,
-        });
+      console.error('Error fetching expense config:', error);
+      return reply.status(500).send({
+        status_code: 500,
+        message: 'An error occurred while fetching expense configuration.',
+        trace_id: traceId,
+        error: error.message,
+      });
     }
-}
-
+  }
+  
 export async function createExpenseConfiguration(
     request: FastifyRequest,
     reply: FastifyReply

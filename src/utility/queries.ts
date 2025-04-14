@@ -3258,3 +3258,59 @@ export const getVendorMarkups = ({
       ORDER BY vmc.is_default DESC, vmc.created_on DESC
   `;
 };
+
+export const getExpenseConfigurationQuery = (
+  programId: string,
+  id: string
+) => {
+  return `
+    SELECT
+      ec.*,
+
+      -- Fetch hierarchy details
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', h.id, 'name', h.name)
+        )
+        FROM hierarchies h
+        WHERE JSON_CONTAINS(ec.hierarchy_ids, JSON_QUOTE(h.id))
+      ) AS hierarchy_ids,
+
+      -- Fetch labor category details
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', lc.id, 'name', lc.name)
+        )
+        FROM labour_category lc
+        WHERE JSON_CONTAINS(ec.labor_category_ids, JSON_QUOTE(lc.id))
+      ) AS labor_category_ids,
+
+      -- Fetch master data type details
+      (
+        SELECT JSON_ARRAYAGG(
+    JSON_OBJECT('id', mdt.id, 'name', mdt.name)
+  )
+  FROM master_data_type mdt
+  WHERE JSON_OVERLAPS(ec.master_data_types, JSON_ARRAY(mdt.id))
+) AS master_data_types,
+
+      -- Fetch expense type details via mapping table
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', et.id, 'name', et.name)
+        )
+        FROM expense_config_expense_type_mapping etm
+        JOIN expense_type et ON etm.expense_type_id = et.id
+        WHERE etm.expense_config_id = ec.id
+          AND etm.program_id = ec.program_id
+      ) AS expense_types
+
+    FROM
+      expense_config ec
+    WHERE
+      ec.program_id = :program_id
+      AND ec.id = :id
+      AND ec.is_deleted = FALSE;
+  `;
+};
+
