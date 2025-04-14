@@ -1587,6 +1587,41 @@ export const configAdvancedFilter = (
   `;
 };
 
+export const configAdvancedFilterV2 = (
+  hierarchyIds: string[],
+  updatedOnDates: string[] | undefined,
+  isCountQuery: boolean = false
+): string => {
+  const hierarchyFilter = hierarchyIds.length
+    ? `AND JSON_CONTAINS(ec.hierarchy_id, JSON_ARRAY(${hierarchyIds.map((_, i) => `:hierarchy${i}`).join(', ')}))`
+    : '';
+
+  const updatedOnFilter =
+    updatedOnDates && updatedOnDates.length === 2
+      ? `AND ec.updated_on BETWEEN :updated_on_start AND :updated_on_end`
+      : '';
+
+  const selectFields = isCountQuery
+    ? 'COUNT(*) AS count'
+    : `
+      ec.id,
+      ec.name,
+      ec.is_enabled,
+      ec.updated_on
+    `;
+
+  return `
+    SELECT ${selectFields}
+    FROM expense_config ec
+    WHERE ec.is_deleted = false
+      AND ec.program_id = :program_id
+      ${hierarchyFilter}
+      ${updatedOnFilter}
+      ${'AND (:name IS NULL OR ec.name LIKE :name)'}
+      ${'AND (:is_enabled IS NULL OR ec.is_enabled = :is_enabled)'}
+    ${!isCountQuery ? 'ORDER BY ec.updated_on DESC LIMIT :limit OFFSET :offset' : ''}
+  `;
+};
 
 export const getAllExpenseTypeByHierarchies = (
   hierarchyCondition: string,

@@ -3,7 +3,7 @@ import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import { QueryTypes, Op, Sequelize } from 'sequelize';
-import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
+import { configAdvancedFilter, configAdvancedFilterV2, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
@@ -12,6 +12,7 @@ import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.mo
 import Hierarchies from "../models/hierarchies.model";
 import IndustriesModel from "../models/labour-category.model";
 import ExpenseTypeModel from "../models/expense-type.model";
+import { count } from "console";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
@@ -38,7 +39,7 @@ export async function getExpenseConfigurations(
             is_enabled,
             updated_on,
             hierarchy_ids,
-            expense_type_ids, 
+            expense_type_ids,
         } = request.query;
         const offset = (page - 1) * limit;
         const whereCondition: any = {
@@ -258,7 +259,7 @@ export async function createExpenseConfiguration(
             ...expenseConfig,
             program_id,
             created_on,
-        
+
             modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,
@@ -494,6 +495,7 @@ export const getAllExpenseConfigurationHierarchies = async (
         });
     }
 };
+
 export async function expenseConfigurationAdvancedFilter(
     request: FastifyRequest<{
         Params: { program_id: string };
@@ -513,44 +515,84 @@ export async function expenseConfigurationAdvancedFilter(
         const { program_id } = request.params;
         const {
             page = 1,
-            limit = 10,
-            name,
+            limit = 10, name,
             is_enabled,
             updated_on,
             hierarchy_ids,
         } = request.body;
         const offset = (page - 1) * limit;
+
         const whereCondition: any = {
             program_id,
             is_deleted: false,
         };
+
         if (name) {
-            whereCondition.name = name;
+            whereCondition.name = { [Op.like]: `%${name}%` };
         }
+
         if (is_enabled !== undefined) {
-            whereCondition.is_enabled = is_enabled === "true";
+            whereCondition.is_enabled = is_enabled === true || is_enabled === "true";
         }
+
         if (updated_on) {
-            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
-            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
-                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
+            if (Array.isArray(updated_on)) {
+                if (updated_on.length === 1) {
+                    const ts = Number(updated_on[0]);
+                    if (!isNaN(ts)) {
+                        whereCondition.updated_on = { [Op.eq]: ts };
+                    } else {
+                        return reply.status(400).send({
+                            status_code: 400,
+                            message: "Invalid timestamp in 'updated_on'. Must be a number.",
+                            trace_id: traceId,
+                        });
+                    }
+                } else if (updated_on.length === 2) {
+                    const [start, end] = updated_on.map(Number);
+                    if (!isNaN(start) && !isNaN(end)) {
+                        whereCondition.updated_on = {
+                            [Op.between]: [start, end],
+                        };
+                    } else {
+                        return reply.status(400).send({
+                            status_code: 400,
+                            message: "'updated_on' must contain valid numeric timestamps.",
+                            trace_id: traceId,
+                        });
+                    }
+                } else {
+                    return reply.status(400).send({
+                        status_code: 400,
+                        message: "'updated_on' must be an array with 1 or 2 numeric values.",
+                        trace_id: traceId,
+                    });
+                }
+            } else {
+                return reply.status(400).send({
+                    status_code: 400,
+                    message: "'updated_on' must be an array.",
+                    trace_id: traceId,
+                });
             }
         }
-        if (hierarchy_ids) {
-            const ids = hierarchy_ids.map((id: string) => id.trim());
-            whereCondition[Op.or] = ids.map(id => ({
-                hierarchy_ids: {
-                    [Op.contains]: [{ id }]
-                }
-            }));
+        
+                
+        if (hierarchy_ids && hierarchy_ids.length > 0) {
+            whereCondition[Op.and] = sequelize.literal(
+                `JSON_CONTAINS(hierarchy_ids, '[${hierarchy_ids.map(id => `"${id}"`).join(', ')}]')`
+            );
         }
+
         whereCondition.latest = true;
+
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
             offset,
             limit,
             order: [['created_on', 'DESC']],
         });
+
         const updatedByIds = expenseConfigList
             .map(config => config.updated_by)
             .filter(id => id);
@@ -563,24 +605,23 @@ export async function expenseConfigurationAdvancedFilter(
                 }
             )
             : [];
+
         const userMap = Object.fromEntries(users.map((u: any) => [u.user_id, u.first_name]));
+
         const populatedExpenseConfig = await Promise.all(
             expenseConfigList.map(async (config) => {
                 const configJSON = config.toJSON();
-                const updatedByName = userMap[config.updated_by] || null;
+                const updatedByName = userMap[config.updated_by] || 'Unknown'; // Default to 'Unknown' if no user
 
-                const hierarchyIds = Array.isArray(configJSON.hierarchy_ids) ? configJSON.hierarchy_ids : [];
                 let hierarchyDetails: { id: any; name: any }[] = [];
-                if (hierarchyIds.length > 0) {
+                if (Array.isArray(configJSON.hierarchy_ids) && configJSON.hierarchy_ids.length > 0) {
                     const hierarchies = await Hierarchies.findAll({
-                        where: { id: { [Op.in]: hierarchyIds } },
+                        where: { id: { [Op.in]: configJSON.hierarchy_ids } },
                         attributes: ['id', 'name'],
                     });
-                    hierarchyDetails = hierarchies.map((h: any) => ({
-                        id: h.id,
-                        name: h.name,
-                    }));
+                    hierarchyDetails = hierarchies.map((h: any) => ({ id: h.id, name: h.name }));
                 }
+
                 return {
                     ...configJSON,
                     updated_by_name: updatedByName,
@@ -588,6 +629,7 @@ export async function expenseConfigurationAdvancedFilter(
                 };
             })
         );
+
         reply.status(200).send({
             status_code: 200,
             message: populatedExpenseConfig.length > 0
@@ -599,7 +641,6 @@ export async function expenseConfigurationAdvancedFilter(
             totalPages: Math.ceil(count / limit),
             pageSize: limit,
             data: populatedExpenseConfig,
-
         });
     } catch (error) {
         reply.status(500).send({
@@ -610,6 +651,7 @@ export async function expenseConfigurationAdvancedFilter(
         });
     }
 }
+
 
 export async function getExpenseTypesByProgramIdAndHierarchies(
     request: FastifyRequest,
