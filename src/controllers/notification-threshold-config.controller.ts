@@ -11,8 +11,19 @@ export const createThreshold = async (
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params;
-        const token = request.headers.authorization?.split(' ')[1];
-        const user: any = await decodeToken(token || '');
+        const authHeader = request.headers.authorization;
+
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
+
+        const userId = user?.sub;
 
         const { module, config } = request.body as {
             module: string;
@@ -63,6 +74,19 @@ export const getAllThresholds = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
     try {
         const token = request.headers.authorization?.split(' ')[1];
         await decodeToken(token || '');
@@ -103,20 +127,32 @@ export const getAllThresholds = async (
 
 
 export const getThresholdById = async (
-    request: FastifyRequest<{ Params: { trace_id: string, program_id: string } }>,
+    request: FastifyRequest<{ Params: { id: string, program_id: string } }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
     try {
         const token = request.headers.authorization?.split(' ')[1];
         await decodeToken(token || '');
 
-        const { trace_id, program_id } = request.params;
+        const { id, program_id } = request.params;
 
         const record = await thresholdConfig.findOne({
             where: {
-                id: trace_id,
+                id: id,
                 program_id: program_id,
                 is_deleted: false,
             }
@@ -156,21 +192,33 @@ type ThresholdUpdateBody = {
 
 export const updateThreshold = async (
     request: FastifyRequest<{
-        Params: { program_id: string; trace_id: string };
+        Params: { program_id: string; id: string };
         Body: ThresholdUpdateBody;
     }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
     try {
-        const { program_id, trace_id } = request.params;
+        const { program_id, id } = request.params;
         const token = request.headers.authorization?.split(' ')[1];
         const user: any = await decodeToken(token || '');
 
         const existing = await thresholdConfig.findOne({
             where: {
-                id: trace_id,
+                id: id,
                 program_id,
                 is_deleted: false,
             },
@@ -212,20 +260,31 @@ export const updateThreshold = async (
 
 
 export const deleteThreshold = async (
-    request: FastifyRequest<{ Params: { program_id: string, trace_id: string } }>,
+    request: FastifyRequest<{ Params: { program_id: string, id: string } }>,
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const authHeader = request.headers.authorization;
 
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
     try {
-        const { program_id, trace_id } = request.params;
-
+        const { program_id, id } = request.params;
         const token = request.headers.authorization?.split(' ')[1];
         const user: any = await decodeToken(token || '');
 
         const existing = await thresholdConfig.findOne({
             where: {
-                id: trace_id,
+                id: id,
                 program_id,
                 is_deleted: false,
             }

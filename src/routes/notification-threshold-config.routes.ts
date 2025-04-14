@@ -10,9 +10,9 @@ import {
 async function thresholdRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/notification-thresholds', createThreshold);
     fastify.get('/program/:program_id/notification-thresholds', getAllThresholds);
-    fastify.get('/program/:program_id/notification-thresholds/:trace_id', getThresholdById);
-    fastify.put('/program/:program_id/notification-thresholds/:trace_id', updateThreshold);
-    fastify.delete('/program/:program_id/notification-thresholds/:trace_id', deleteThreshold);
+    fastify.get('/program/:program_id/notification-thresholds/:id', getThresholdById);
+    fastify.put('/program/:program_id/notification-thresholds/:id', updateThreshold);
+    fastify.delete('/program/:program_id/notification-thresholds/:id', deleteThreshold);
 }
 
 export default thresholdRoutes;
