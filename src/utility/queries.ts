@@ -1287,62 +1287,138 @@ export const countChildWorkflowsQuery = (hierarchyIdCount: number) => {
 export const programVendorAdvancedFilter = (
   hasQueryName: boolean,
   hasCountry: boolean,
+  hasStatus: boolean,
+  hasEmail: boolean,
+  hasFullName: boolean,
+  hasComplianceStatus: boolean,
+  hasAudited: boolean,
   hierarchyIdsArray: string[],
   laborCategoryIdsArray: string[],
   workLocationIdsArray: string[],
   jobtypeIdsArray: string[]
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `AND (${hierarchyIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+    ? `AND (${hierarchyIdsArray
+      .map((_, index) => `JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`)
+      .join(' OR ')})`
     : '';
 
   const laborCategoryIdsClause = laborCategoryIdsArray.length
-    ? `AND (${laborCategoryIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+    ? `AND (${laborCategoryIdsArray
+      .map((_, index) => `JSON_CONTAINS(pv.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`)
+      .join(' OR ')})`
     : '';
 
   const workLocationIdsClause = workLocationIdsArray.length
-    ? `AND (${workLocationIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+    ? `AND (${workLocationIdsArray
+      .map((_, index) => `JSON_CONTAINS(pv.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`)
+      .join(' OR ')})`
     : '';
 
   const jobTypeIdsClause = jobtypeIdsArray.length
-    ? `AND (${jobtypeIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.job_type, JSON_QUOTE(:job_type${index}), '$')`).join(' OR ')})`
+    ? `AND (${jobtypeIdsArray
+      .map((_, index) => `JSON_CONTAINS(pv.job_type, JSON_QUOTE(:job_type${index}), '$')`)
+      .join(' OR ')})`
     : '';
 
   const countryClause = hasCountry
-    ? `AND JSON_UNQUOTE(JSON_EXTRACT(program_vendors.addresses, '$[0].country')) = :country_id`
+    ? `AND JSON_UNQUOTE(JSON_EXTRACT(pv.addresses, '$[0].country')) = :country_id`
     : '';
 
   return `
-        SELECT
-            program_vendors.*,
-            JSON_ARRAYAGG(
-                JSON_OBJECT('id', hierarchies.id, 'name', hierarchies.name)
-            ) AS hierarchies  -- Aggregate hierarchies into a JSON array
-        FROM
-            program_vendors
-        LEFT JOIN
-            hierarchies ON JSON_VALID(program_vendors.hierarchies)
-            AND JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(CAST(hierarchies.id AS CHAR)))
-        WHERE
-            program_vendors.is_deleted = false
-            AND program_vendors.program_id = :program_id
-            ${hasQueryName ? 'AND program_vendors.vendor_name LIKE :vendor_name' : ''}
-            ${hierarchyIdsClause}
-            ${laborCategoryIdsClause}
-            ${workLocationIdsClause}
-            ${jobTypeIdsClause}
-            ${countryClause}
-        GROUP BY
-            program_vendors.id
-        ORDER BY
-            program_vendors.id ASC
-        LIMIT :limit
-        OFFSET :offset;
-    `;
+    WITH document_data AS (
+      SELECT 
+        vdg.id AS doc_group_id,
+        vdg.name AS doc_group_name,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'doc_id', vcd.id,
+            'doc_name', vcd.name
+          )
+        ) AS compliance_documents
+      FROM 
+        vendor_document_groups vdg
+      LEFT JOIN 
+        vendor_compliance_documents vcd 
+        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
+      GROUP BY 
+        vdg.id
+    ),
+    compliance_check AS (
+      SELECT 
+        vr.vendor_id,
+        CAST(CONCAT(
+          '{',
+            '"status":"',
+              IF(COUNT(*) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END), 'Compliant', 'Non-compliant'),
+            '",',
+            '"is_audited":',
+              IF(COUNT(*) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END), 'true', 'false'),
+            ',',
+            '"is_compliant":',
+              IF(COUNT(*) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END), 'true', 'false'),
+          '}'
+        ) AS JSON) AS compliance_status
+      FROM 
+        vendor_compliance_req_doc_mappings vr
+      GROUP BY 
+        vr.vendor_id
+    )
+
+    SELECT 
+      pv.id,
+      pv.program_id,
+      pv.tenant_id,
+      pv.com_doc_group,
+      pv.display_name,
+      pv.vendor_name,
+      pv.is_enabled,
+      pv.updated_on,
+      pv.status,
+      pv.contact,
+      IFNULL(
+        cc.compliance_status,
+        JSON_OBJECT(
+          'status', 'Non-Compliant',
+          'is_audited', false,
+          'is_compliant', false
+        )
+      ) AS compliance_status,
+      COUNT(*) OVER() AS total_count
+    FROM 
+      program_vendors AS pv
+    LEFT JOIN 
+      compliance_check cc ON cc.vendor_id = pv.id
+    WHERE 
+      pv.is_deleted = false
+      AND pv.program_id = :program_id
+      ${hasQueryName ? 'AND pv.display_name LIKE :display_name' : ''}
+      ${hasStatus ? 'AND pv.status = :status' : ''}
+      ${hasEmail ? `AND JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].email')) LIKE :contact_email` : ''}
+      ${hasFullName ? `
+        AND (
+          LOWER(TRIM(CONCAT(
+            IFNULL(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name')), ''),
+            ' ',
+            IFNULL(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].last_name')), '')
+          ))) LIKE LOWER(TRIM(:full_name))
+          OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name'))) LIKE LOWER(TRIM(:full_name))
+          OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].last_name'))) LIKE LOWER(TRIM(:full_name))
+        )
+      ` : ''}
+      ${hasComplianceStatus ? `AND JSON_UNQUOTE(JSON_EXTRACT(cc.compliance_status, '$.status')) = :compliance_status` : ''}
+      ${hasAudited ? `AND JSON_UNQUOTE(JSON_EXTRACT(cc.compliance_status, '$.is_audited')) = :is_audited` : ''}
+      ${hierarchyIdsClause}
+      ${laborCategoryIdsClause}
+      ${workLocationIdsClause}
+      ${jobTypeIdsClause}
+      ${countryClause}
+    GROUP BY 
+      pv.id
+    ORDER BY 
+      pv.updated_on DESC
+    LIMIT :limit OFFSET :offset;
+  `;
 };
 
 export const vendorFilterQueryBuilder = (
@@ -2862,7 +2938,6 @@ WHERE
                     -- Users requiring exact hierarchy match
                     :is_all_hierarchy_associate_param = false
                     AND JSON_CONTAINS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
-                    AND JSON_CONTAINS(CAST(:allowed_hierarchy_ids AS JSON), user.associate_hierarchy_ids)
                 )
             )
         )

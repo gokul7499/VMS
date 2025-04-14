@@ -988,7 +988,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
                     // Get differentials
                     const billRates = (billRatesByRateId[rate.id] || []).map(billRate => {
-                        const differential_value = ot_exempt == 'true' ? 1 : billRate.differential_value;
+                        let differential_value
+                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                            differential_value = billRate.differential_value;
+                        }
+                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                            differential_value = billRate.differential_value;
+                        } else {
+                            differential_value = ot_exempt == "true" ? 1 : billRate.differential_value;
+                        }
 
                         return {
                             ...billRate.get(),
@@ -1009,7 +1017,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                     });
 
                     const payRates = (payRatesByRateId[rate.id] || []).map(payRate => {
-                        const differential_value = ot_exempt == 'true' ? 1 : payRate.differential_value;
+                        let differential_value
+                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                            differential_value = payRate.differential_value;
+                        }
+                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                            differential_value = payRate.differential_value;
+                        } else {
+                            differential_value = ot_exempt == "true" ? 1 : payRate.differential_value;
+                        }
 
                         return {
                             ...payRate.get(),
@@ -1343,7 +1359,16 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
 
 function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
     return rates.map((rate) => {
-        const differential_value = ot_exempt && rateTypeCategory === "overtime" ? 1 : rate.differential_value;
+
+        let differential_value
+        if (ot_exempt == true && rateTypeCategory === "other") {
+            differential_value = rate.differential_value;
+        }
+        else if (ot_exempt == true && rateTypeCategory === "shift") {
+            differential_value = rate.differential_value;
+        } else {
+            differential_value = ot_exempt == true ? 1 : rate.differential_value;
+        }
 
         const min_rate = rate.differential_type === "Factor Differential"
             ? Number(baseRateMin) * differential_value
