@@ -9,7 +9,7 @@ import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
 import { CandidateCodeGenerate } from "../utility/code-genrate-service";
-import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getActiveUsers, getUserContacts, getUserPrograms } from "../utility/queries";
+import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getUserContacts, getUserPrograms, getActiveUsers } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
 import { decodeToken } from "../middlewares/verifyToken";
@@ -849,92 +849,100 @@ export async function getUserAndHierarchieId(request: FastifyRequest, reply: Fas
 export async function getActiveUser(request: FastifyRequest, reply: FastifyReply) {
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: "Unauthorized - Token not found",
-    });
+      return reply.status(401).send({
+          status_code: 401,
+          message: "Unauthorized - Token not found",
+      });
   }
 
   const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: "Unauthorized - Invalid token",
-    });
+  const userTokenData: any = await decodeToken(token);
+  if (!userTokenData) {
+      return reply.status(401).send({
+          status_code: 401,
+          message: "Unauthorized - Invalid token",
+      });
   }
 
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_id } = request.query as { hierarchy_id: string };
+  const { hierarchy_id } = request.query as { hierarchy_id?: string };
   const traceId = generateCustomUUID();
-  const userId = user?.sub;
-  const userType = user?.userType;
-  try {
-    let arrayOfHierarchy: string[] | null = null;
-    let replacements: Record<string, any> = { program_id };
-    if (hierarchy_id) {
-      arrayOfHierarchy = hierarchy_id.split(",").map((id) => id.trim());
-      replacements.hierarchy_id = JSON.stringify(arrayOfHierarchy);
-    }
-    else if (userType === "super_user") {
-      replacements.hierarchy_id = null;
-      const users = await sequelize.query(getActiveUsers, {
-        replacements,
-        type: QueryTypes.SELECT,
-      });
-      return reply.code(200).send({
-        status_code: 200,
-        message: users.length > 0 ? "Get active user data" : "No matching records found.",
-        users,
-        trace_id: traceId,
-      });
-    }
-    else {
-      const currentUser = await User.findOne({
-        where: { program_id, user_id: userId },
-        attributes: ["associate_hierarchy_ids"],
-      }) as any;
+  const userId = userTokenData?.sub;
+  const userType = userTokenData?.userType;
 
-      if (!currentUser) {
-        return reply.status(404).send({
-          status_code: 404,
-          message: "User not found",
-          trace_id: traceId,
-        });
+  try {
+      let isSuperUser = userType === "super_user";
+      let allowedHierarchyIds: string[] | null = null;
+      let isAllHierarchyAssociateParam = false;
+
+      if (isSuperUser) {
+          if (hierarchy_id) {
+              allowedHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
+          }
+      } else {
+          const currentUser = await User.findOne({
+              where: { program_id, user_id: userId },
+              attributes: ["associate_hierarchy_ids", "is_all_hierarchy_associate"],
+          }) as any;
+
+          if (!currentUser) {
+              return reply.status(404).send({
+                  status_code: 404,
+                  message: "User not found",
+                  trace_id: traceId,
+              });
+          }
+
+          const isAllHierarchyAssociate = currentUser.dataValues.is_all_hierarchy_associate;
+          isAllHierarchyAssociateParam = isAllHierarchyAssociate;
+          const associateHierarchyIds: string[] = currentUser.dataValues.associate_hierarchy_ids || [];
+
+          let accessibleHierarchyIds: string[] = associateHierarchyIds.map(String);
+
+          if (hierarchy_id) {
+              const filterHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
+              allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
+              if (allowedHierarchyIds.length === 0 && !isAllHierarchyAssociate) {
+                  return reply.code(200).send({
+                      status_code: 200,
+                      message: "No matching records found.",
+                      users: [],
+                      trace_id: traceId,
+                  });
+              }
+          } else {
+              allowedHierarchyIds = accessibleHierarchyIds.length > 0 ? accessibleHierarchyIds : null;
+          }
       }
 
-      arrayOfHierarchy = currentUser.dataValues.associate_hierarchy_ids || null;
-      replacements.hierarchy_id = arrayOfHierarchy ? JSON.stringify(arrayOfHierarchy) : null;
-    }
-    if (!arrayOfHierarchy && !(userType === "super_admin" || userType === "super_user")) {
-      return reply.code(200).send({
-        status_code: 200,
-        message: "No matching records found.",
-        users: [],
-        trace_id: traceId,
+      const replacements = {
+          program_id,
+          is_super_user: isSuperUser,
+          is_all_hierarchy_associate_param: isAllHierarchyAssociateParam,
+          allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null
+      };
+
+      const users = await sequelize.query(getActiveUsers, {
+          replacements,
+          type: QueryTypes.SELECT,
       });
-    }
 
-    const users = await sequelize.query(getActiveUsers, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
-
-    return reply.code(200).send({
-      status_code: 200,
-      message: users.length > 0 ? "Get active user data" : "No matching records found.",
-      users,
-      trace_id: traceId,
-    });
+      return reply.code(200).send({
+          status_code: 200,
+          message: users.length > 0 ? "Get active user data" : "No matching records found.",
+          users,
+          trace_id: traceId,
+      });
   } catch (error: any) {
-    return reply.code(500).send({
-      status_code: 500,
-      message: "Internal Server Error",
-      trace_id: traceId,
-      error: error.message,
-    });
+      return reply.code(500).send({
+          status_code: 500,
+          message: "Internal Server Error",
+          trace_id: traceId,
+          error: error.message,
+      });
   }
 }
+
 
 export async function getUserContact(
   request: FastifyRequest,
