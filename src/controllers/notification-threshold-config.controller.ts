@@ -3,6 +3,7 @@ import thresholdConfig from '../models/notification-threshold-config.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import { trace } from 'console';
 import generateCustomUUID from '../utility/genrateTraceId';
+import { ProgramThresholdInput } from '../interfaces/notification-threshold.interface';
 
 export const createThreshold = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -181,16 +182,10 @@ export const getThresholdById = async (
 };
 
 
-type ThresholdUpdateBody = {
-    module: string;
-    config: any[];
-    is_enabled: boolean;
-};
-
 export const updateThreshold = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
-        Body: ThresholdUpdateBody;
+        Body: ProgramThresholdInput;
     }>,
     reply: FastifyReply
 ) => {

@@ -16,4 +16,6 @@ export interface ProgramThresholdInput {
     program_id: string;
     module: string;
     config: ConfigItem[];
+    is_enabled: boolean;
+
 }
