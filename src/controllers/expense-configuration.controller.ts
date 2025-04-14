@@ -15,41 +15,22 @@ import ExpenseTypeModel from "../models/expense-type.model";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
-        Params: { program_id: string },
-        Querystring: {
-            page?: number;
-            limit?: number;
-            name?: string;
-            is_enabled?: string | boolean;
-            updated_on?: string;
-            hierarchy_ids?: string;
-            expense_type_ids?: string;
-        };
     }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params;
-        const {
-            page = 1,
-            limit = 10,
-            name,
-            is_enabled,
-            updated_on,
-            hierarchy_ids,
-            expense_type_ids, 
-        } = request.query;
+        const { program_id } = request.params as { program_id: string };
+        const { page = 1, limit = 10, name, is_enabled, updated_on, hierarchy_ids,
+        } = request.query as { page?: number; limit?: number; name?: string; is_enabled?: string | boolean; updated_on?: string; hierarchy_ids?: string; expense_type_ids?: string; };
         const offset = (page - 1) * limit;
         const whereCondition: any = {
             program_id,
             is_deleted: false,
             latest: true,
         };
-
         if (name) whereCondition.name = name;
         if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled === "true";
-
         if (updated_on) {
             const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
             if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
@@ -57,39 +38,13 @@ export async function getExpenseConfigurations(
             }
         }
         if (hierarchy_ids) {
-            const ids = hierarchy_ids.split(',').map((id) => id.trim());
-            whereCondition.hierarchy_ids = {
-                [Op.overlap]: ids,
-            };
-        }
-        let expenseConfigIdsToFilter: string[] | undefined;
-
-        if (expense_type_ids) {
-            const typeIds = expense_type_ids.split(',').map((id) => id.trim());
-            const mappings = await ExpenseTypeMapping.findAll({
-                where: {
-                    expense_type_id: { [Op.in]: typeIds },
-                    program_id,
-                },
-                attributes: ['expense_config_id'],
-            });
-
-            expenseConfigIdsToFilter = mappings.map((m: any) => m.expense_config_id);
-
-            if (expenseConfigIdsToFilter.length === 0) {
-                return reply.status(200).send({
-                    status_code: 200,
-                    message: 'No expense configuration found.',
-                    trace_id: traceId,
-                    total: 0,
-                    page,
-                    limit,
-                    totalPages: 0,
-                    data: [],
-                });
-            }
-
-            whereCondition.id = { [Op.in]: expenseConfigIdsToFilter };
+            const ids = hierarchy_ids.split(',').map(id => id.trim());
+            whereCondition[Op.and] = ids.map(id =>
+                Sequelize.where(
+                    Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                    true
+                )
+            );
         }
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
@@ -112,29 +67,9 @@ export async function getExpenseConfigurations(
                         name: h.name,
                     }));
                 }
-                const expenseTypes = await ExpenseTypeMapping.findAll({
-                    where: {
-                        expense_config_id: configJSON.id,
-                        program_id: configJSON.program_id,
-                    },
-                    include: [
-                        {
-                            model: ExpenseTypeModel,
-                            as: 'expense_type',
-                            attributes: ['id', 'name'],
-                        },
-                    ],
-                });
-
-                const transformedExpenseTypes = expenseTypes.map((mapping: any) => ({
-                    id: mapping.expense_type?.id,
-                    name: mapping.expense_type?.name,
-                }));
-
                 return {
                     ...configJSON,
                     hierarchy_ids: hierarchyDetails,
-                    expenseTypes: transformedExpenseTypes,
                 };
             })
         );
@@ -151,7 +86,6 @@ export async function getExpenseConfigurations(
             totalPages: Math.ceil(count / limit),
             data: populatedExpenseConfig,
         });
-
     } catch (error) {
         reply.status(500).send({
             status_code: 500,
@@ -252,10 +186,10 @@ export async function createExpenseConfiguration(
         const { program_id } = request.params as { program_id: string };
         const expenseConfig = request.body as ExpenseConfigurationAttributes;
         const slug = (expenseConfig.name ?? '')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^\w_]+/g, '');
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^\w_]+/g, '');
 
         const created_on = expenseConfig.created_on || Date.now();
         const updated_on = expenseConfig.updated_on || Date.now();
@@ -648,3 +582,81 @@ export async function getExpenseTypesByProgramIdAndHierarchies(
 }
 
 
+export async function getExpenseConfigByExpenseType(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params as { program_id: string };
+        const { hierarchy_ids, expense_type_ids } = request.query as { hierarchy_ids: string; expense_type_ids: string };
+        const whereCondition: any = {
+            program_id,
+            is_deleted: false,
+            latest: true,
+        };
+        if (hierarchy_ids) {
+            const ids = hierarchy_ids.split(',').map(id => id.trim());
+            whereCondition[Op.and] = ids.map(id =>
+                Sequelize.where(
+                    Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                    true));
+        }
+        if (expense_type_ids) {
+            const typeIds = expense_type_ids.split(',').map(id => id.trim());
+            const mappings = await ExpenseTypeMapping.findAll({
+                where: {
+                    expense_type_id: { [Op.in]: typeIds },
+                    program_id,
+                },
+                attributes: ['expense_config_id'],
+            });
+            const expenseConfigIds = mappings.map((m: any) => m.expense_config_id);
+            whereCondition.id = { [Op.in]: expenseConfigIds };
+        }
+        const expenseConfigs = await ExpenseConfigurationModel.findAll({
+            where: whereCondition,
+            order: [['created_on', 'DESC']],
+        });
+        const result = await Promise.all(
+            expenseConfigs.map(async (config) => {
+                const configJSON = config.toJSON();
+                const hierarchies = await Hierarchies.findAll({
+                    where: { id: { [Op.in]: configJSON.hierarchy_ids || [] } },
+                    attributes: ['id', 'name'],
+                });
+                const expenseTypes = await ExpenseTypeMapping.findAll({
+                    where: {
+                        expense_config_id: configJSON.id,
+                        program_id: configJSON.program_id,
+                    },
+                    include: [{
+                        model: ExpenseTypeModel,
+                        as: 'expense_type',
+                        attributes: ['id', 'name'],
+                    }],
+                });
+                return {
+                    ...configJSON,
+                    hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
+                    expenseTypes: expenseTypes.map((e: any) => ({
+                        id: e.expense_type?.id,
+                        name: e.expense_type?.name,
+                    })),
+                };
+            }));
+        reply.status(200).send({
+            status_code: 200,
+            message: result.length > 0 ? 'Expense configuration fetched.' : 'No configuration found.',
+            trace_id: traceId,
+            data: result,
+        });
+    } catch (error) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: (error as Error).message,
+        });
+    }
+}
