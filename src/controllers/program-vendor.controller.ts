@@ -1243,12 +1243,45 @@ export async function advanceFilter(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { vendor_name, country_id, hierarchy_ids, labor_category_id, work_location_id, job_type, page, limit } = request.body as { vendor_name: string, country_id: string, hierarchy_ids: string[], labor_category_id: string[], work_location_id: string[], job_type: string[], page: string, limit: string };
+        const {
+            display_name,
+            country_id,
+            hierarchy_ids,
+            labor_category_id,
+            work_location_id,
+            job_type,
+            status,
+            contact_email,
+            full_name,
+            compliance_status,
+            is_audited,
+            page,
+            limit,
+        } = request.body as {
+            display_name: string;
+            country_id: string;
+            hierarchy_ids: string[];
+            labor_category_id: string[];
+            work_location_id: string[];
+            job_type: string[];
+            status: string;
+            contact_email: string;
+            full_name: string;
+            compliance_status: string;
+            is_audited: boolean;
+            page: string;
+            limit: string;
+        };
 
-        const hasQueryName = !!vendor_name;
+        const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
         const hasPage = !!page;
         const hasLimit = !!limit;
+        const hasStatus = !!status;
+        const hasEmail = !!contact_email;
+        const hasFullName = !!full_name;
+        const hasComplianceStatus = !!compliance_status;
+        const hasAudited = !!is_audited;
         const hierarchyIdsArray = hierarchy_ids || [];
         const laborCategoryIdsArray = labor_category_id || [];
         const workLocationIdsArray = work_location_id || [];
@@ -1261,6 +1294,11 @@ export async function advanceFilter(
         const query = programVendorAdvancedFilter(
             hasQueryName,
             hasCountry,
+            hasStatus,
+            hasEmail,
+            hasFullName,
+            hasComplianceStatus,
+            hasAudited,
             hierarchyIdsArray,
             laborCategoryIdsArray,
             workLocationIdsArray,
@@ -1269,8 +1307,13 @@ export async function advanceFilter(
 
         const replacements: Record<string, any> = {
             program_id,
-            vendor_name: vendor_name ? `${vendor_name}%` : null,
+            display_name: display_name ? `${display_name}%` : null,
             country_id: country_id ?? null,
+            status: status ?? null,
+            contact_email: contact_email ? `${contact_email}%` : null,
+            full_name: full_name ? `${full_name.trim()}%` : null,
+            compliance_status: compliance_status ?? null,
+            is_audited: is_audited ?? null,
             limit: limitNumber,
             offset: offset,
         };
@@ -1288,29 +1331,46 @@ export async function advanceFilter(
             replacements[`job_type${index}`] = id;
         });
 
-        const data = await sequelize.query(query, {
+        const data = await sequelize.query<{ total_count: any }>(query, {
             replacements,
             type: QueryTypes.SELECT,
         });
+        const totalRecords = data[0]?.total_count ? data[0].total_count : 0;;
 
         if (data.length > 0) {
             return reply.status(201).send({
                 status_code: 201,
-                message: 'ProgramVendors fetched successfully.',
+                message: 'Program vendors fetched successfully.',
                 trace_id: traceId,
-                total_records: data.length,
+                total_records: totalRecords,
                 program_vendors: data,
                 pagination: {
                     page: pageNumber,
                     limit: limitNumber,
-                    total_pages: Math.ceil(data.length / limitNumber),
+                    total_pages: Math.ceil(totalRecords / limitNumber),
                 },
             });
         } else {
-            return reply.status(200).send({ status_code: 200, message: "No records found", program_vendors: [], trace_id: traceId });
+            return reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                total_records: totalRecords,
+                message: "Program vendor not found.",
+                program_vendors: [],
+                pagination: {
+                    page: pageNumber,
+                    limit: limitNumber,
+                    total_pages: Math.ceil(totalRecords / limitNumber),
+                }
+            });
         }
-    } catch (error) {
-        return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            trace_id: traceId,
+            error: error.message
+        });
     }
 }
 
