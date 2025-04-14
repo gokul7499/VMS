@@ -169,23 +169,7 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     }
     const userId = user?.sub;
 
-    try {
-        const existingWorkFlowWithSameName = await WorkFlow.findOne({
-            where: {
-                name,
-                program_id,
-                id: { [Op.ne]: id },
-            },
-        });
-
-        if (existingWorkFlowWithSameName) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "A workflow with the same name already exists",
-                trace_id: traceId,
-            });
-        }
-
+    try {   
         const data = await WorkFlow.findOne({
             where: { id, is_deleted: false, program_id }
         });
