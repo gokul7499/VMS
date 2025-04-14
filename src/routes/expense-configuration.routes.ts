@@ -70,6 +70,14 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchies);
 
 
+    fastify.get('/program/:program_id/get-expense-config', {
+        schema: {
+            params: paramsSchema,
+        },
+        // preHandler: validatePermissions(Actions.READ, [Permissions.EXPENSE_CONFIGURATION])
+    }, ExpenseConfigurationController.getExpenseConfigByExpenseType);
+
+
 }
 
 export default expenseConfigurationRoutes;
