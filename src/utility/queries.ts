@@ -2837,8 +2837,36 @@ WHERE
     user.program_id = :program_id
     AND LOWER(user.status) = 'active'
     AND user.user_type = 'client'
-    AND (:hierarchy_id IS NULL OR JSON_CONTAINS(:hierarchy_id, user.associate_hierarchy_ids))
-
+    AND (
+        ( -- Super user case: allow all or filter by hierarchy_ids
+            :is_super_user = true
+            AND (
+                :allowed_hierarchy_ids IS NULL
+                OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+            )
+        )
+        OR
+        ( -- Non-super user case
+            :is_super_user = false
+            AND (
+                (
+                    -- Users with all hierarchy access
+                    :is_all_hierarchy_associate_param = true
+                    AND (
+                        user.is_all_hierarchy_associate = true
+                        OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                    )
+                )
+                OR
+                (
+                    -- Users requiring exact hierarchy match
+                    :is_all_hierarchy_associate_param = false
+                    AND JSON_CONTAINS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                    AND JSON_CONTAINS(CAST(:allowed_hierarchy_ids AS JSON), user.associate_hierarchy_ids)
+                )
+            )
+        )
+    )
 `;
 
 export const getUserContacts = `
