@@ -996,7 +996,7 @@ export async function getPicklistFilter(
       is_visible: picklist.is_visible,
       program_id: picklist.program_id,
       defined_by: picklist.defined_by,
-      picklist_items_count: picklist.picklistItems.length,
+      picklist_value_count: picklist.picklistItems.length,
     }));
 
     reply.status(200).send({
