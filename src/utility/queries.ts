@@ -1587,6 +1587,41 @@ export const configAdvancedFilter = (
   `;
 };
 
+export const configAdvancedFilterV2 = (
+  hierarchyIds: string[],
+  updatedOnDates: string[] | undefined,
+  isCountQuery: boolean = false
+): string => {
+  const hierarchyFilter = hierarchyIds.length
+    ? `AND JSON_CONTAINS(ec.hierarchy_id, JSON_ARRAY(${hierarchyIds.map((_, i) => `:hierarchy${i}`).join(', ')}))`
+    : '';
+
+  const updatedOnFilter =
+    updatedOnDates && updatedOnDates.length === 2
+      ? `AND ec.updated_on BETWEEN :updated_on_start AND :updated_on_end`
+      : '';
+
+  const selectFields = isCountQuery
+    ? 'COUNT(*) AS count'
+    : `
+      ec.id,
+      ec.name,
+      ec.is_enabled,
+      ec.updated_on
+    `;
+
+  return `
+    SELECT ${selectFields}
+    FROM expense_config ec
+    WHERE ec.is_deleted = false
+      AND ec.program_id = :program_id
+      ${hierarchyFilter}
+      ${updatedOnFilter}
+      ${'AND (:name IS NULL OR ec.name LIKE :name)'}
+      ${'AND (:is_enabled IS NULL OR ec.is_enabled = :is_enabled)'}
+    ${!isCountQuery ? 'ORDER BY ec.updated_on DESC LIMIT :limit OFFSET :offset' : ''}
+  `;
+};
 
 export const getAllExpenseTypeByHierarchies = (
   hierarchyCondition: string,
@@ -3266,8 +3301,6 @@ export const getExpenseConfigurationQuery = (
   return `
     SELECT
       ec.*,
-
-      -- Fetch hierarchy details
       (
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT('id', h.id, 'name', h.name)
@@ -3275,8 +3308,6 @@ export const getExpenseConfigurationQuery = (
         FROM hierarchies h
         WHERE JSON_CONTAINS(ec.hierarchy_ids, JSON_QUOTE(h.id))
       ) AS hierarchy_ids,
-
-      -- Fetch labor category details
       (
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT('id', lc.id, 'name', lc.name)
@@ -3284,8 +3315,6 @@ export const getExpenseConfigurationQuery = (
         FROM labour_category lc
         WHERE JSON_CONTAINS(ec.labor_category_ids, JSON_QUOTE(lc.id))
       ) AS labor_category_ids,
-
-      -- Fetch master data type details
       (
         SELECT JSON_ARRAYAGG(
     JSON_OBJECT('id', mdt.id, 'name', mdt.name)
@@ -3293,18 +3322,29 @@ export const getExpenseConfigurationQuery = (
   FROM master_data_type mdt
   WHERE JSON_OVERLAPS(ec.master_data_types, JSON_ARRAY(mdt.id))
 ) AS master_data_types,
-
-      -- Fetch expense type details via mapping table
       (
         SELECT JSON_ARRAYAGG(
-          JSON_OBJECT('id', et.id, 'name', et.name)
+          JSON_OBJECT(  'id', et.id,
+      'name', et.name,
+      'category', et.category,
+      'code', et.code,
+      'is_enabled', et.is_enabled,
+      'is_attachments_mandatory', et.is_attachments_mandatory,
+      'is_notes_mandatory', et.is_notes_mandatory,
+      'is_msp_fees_applied', et.is_msp_fees_applied,
+      'is_tax_applied', et.is_tax_applied,
+      'is_negative_expense_allowed', et.is_negative_expense_allowed,
+      'is_unit_based', et.is_unit_based,
+      'unit_label', et.unit_label,
+      'rate_per_unit', et.rate_per_unit,
+      'max_unit_limit', et.max_unit_limit
+      )
         )
         FROM expense_config_expense_type_mapping etm
         JOIN expense_type et ON etm.expense_type_id = et.id
         WHERE etm.expense_config_id = ec.id
           AND etm.program_id = ec.program_id
       ) AS expense_types
-
     FROM
       expense_config ec
     WHERE
