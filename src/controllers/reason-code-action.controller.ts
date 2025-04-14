@@ -857,8 +857,8 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             updated_on?: string[];
         };
 
-        const pageNumber = Number(page);
-        const limitNumber = Number(limit);
+        const pageNumber = parseInt(String(page), 10) || 1;
+        const limitNumber = parseInt(String(limit), 10) || 10;
         const offset = (pageNumber - 1) * limitNumber;
 
         const whereClause: any = {
@@ -905,8 +905,9 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
                 [{ model: Module, as: 'module' }, 'name', 'ASC'],
                 ['updated_on', 'DESC'],
             ],
-            limit: limitNumber,
             offset,
+            limit: limitNumber,
+            distinct: true,
         });
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
