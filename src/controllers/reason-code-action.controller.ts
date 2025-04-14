@@ -349,7 +349,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
                     reasonCodeResponse = {
                         id: reasonCodesWithoutProgram[0]?.id,
-                        module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+                        module_name: reasonCodeAction?.module?.name,
                         module_id: reasonCodeAction?.module?.id,
                         event_name: reasonCodeAction?.supporting_text_event?.name,
                         event_id: reasonCodeAction?.supporting_text_event?.id,
@@ -395,7 +395,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
                 reasonCodeResponse = {
                     id: reasonCodes[0]?.id,
-                    module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+                    module_name: reasonCodeAction?.module?.name,
                     module_id: reasonCodeAction?.module?.id,
                     event_name: reasonCodeAction?.supporting_text_event?.name,
                     event_id: reasonCodeAction?.supporting_text_event?.id,
@@ -450,10 +450,10 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
             reasonCodeResponse = {
                 id: reasonCodeAction.id,
-                module_name: module?.name || 'Unknown Module',
-                module_id: module?.id || 'Unknown ID',
-                event_name: supporting_text_event?.name || 'Unknown Event',
-                event_id: supporting_text_event?.id || 'Unknown ID',
+                module_name: module?.name ,
+                module_id: module?.id ,
+                event_name: supporting_text_event?.name,
+                event_id: supporting_text_event?.id,
                 reason_codes: reasonCodes || [],
             };
 
