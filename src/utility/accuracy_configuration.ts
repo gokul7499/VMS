@@ -77,7 +77,7 @@ class AccuracyConfiguration {
         const scalingType = isAccuracyEnabled ? allFields[0].value : 'Truncate';
 
         const factor = Math.pow(10, scaleLimit);
-        let adjustedAmount = amount;
+        let adjustedAmount = Number(amount.toFixed(10));
         const stringAmount = adjustedAmount.toString();
         const decimalPart = stringAmount.split('.')[1] || '';
 
