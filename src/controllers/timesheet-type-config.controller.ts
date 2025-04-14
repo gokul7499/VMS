@@ -93,13 +93,19 @@ export const getAllTimesheetTypeConfigs = async (
         const { program_id } = request.params as { program_id: string };
         const { page = '1', limit = '10' } = request.query as { page: string; limit: string };
 
-        const pageNumber = parseInt(page, 10);
-        const pageSize = parseInt(limit, 10);
-        const offset = (pageNumber - 1) * pageSize;
+        const pageNumber = parseInt(page, 10); 
+        const pageSize = parseInt(limit, 10); 
+        const offset = (pageNumber - 1) * pageSize; 
 
         const searchConditions: Record<string, any> = { is_deleted: false };
         if (program_id) searchConditions.program_id = program_id;
 
+        const { count: totalRecords } = await sequelize.models.TimesheetTypeConfig.findAndCountAll({
+            where: searchConditions,
+            limit: pageSize,   
+            offset: offset,  
+        });
+    
         const configs = await sequelize.query(
             `SELECT
                 ttc.id,
@@ -137,7 +143,7 @@ export const getAllTimesheetTypeConfigs = async (
             trace_id: traceId,
             items_per_page: pageSize,
             current_page: pageNumber,
-            total_records: configs.length,
+            total_records: totalRecords,
             data: configs
         });
     } catch (error: any) {

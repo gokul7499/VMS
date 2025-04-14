@@ -11,6 +11,7 @@ import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.model";
 import Hierarchies from "../models/hierarchies.model";
 import IndustriesModel from "../models/labour-category.model";
+import ExpenseTypeModel from "../models/expense-type.model";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
@@ -22,6 +23,7 @@ export async function getExpenseConfigurations(
             is_enabled?: string | boolean;
             updated_on?: string;
             hierarchy_ids?: string;
+            expense_type_ids?: string;
         };
     }>,
     reply: FastifyReply
@@ -36,22 +38,20 @@ export async function getExpenseConfigurations(
             is_enabled,
             updated_on,
             hierarchy_ids,
+            expense_type_ids, 
         } = request.query;
         const offset = (page - 1) * limit;
         const whereCondition: any = {
             program_id,
             is_deleted: false,
+            latest: true,
         };
 
-        if (name) {
-            whereCondition.name = name;
-        }
-        if (is_enabled !== undefined) {
-            whereCondition.is_enabled = is_enabled === "true";
-        }
+        if (name) whereCondition.name = name;
+        if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled === "true";
+
         if (updated_on) {
             const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
-
             if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
                 whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
             }
@@ -62,7 +62,35 @@ export async function getExpenseConfigurations(
                 [Op.overlap]: ids,
             };
         }
-        whereCondition.latest = true;
+        let expenseConfigIdsToFilter: string[] | undefined;
+
+        if (expense_type_ids) {
+            const typeIds = expense_type_ids.split(',').map((id) => id.trim());
+            const mappings = await ExpenseTypeMapping.findAll({
+                where: {
+                    expense_type_id: { [Op.in]: typeIds },
+                    program_id,
+                },
+                attributes: ['expense_config_id'],
+            });
+
+            expenseConfigIdsToFilter = mappings.map((m: any) => m.expense_config_id);
+
+            if (expenseConfigIdsToFilter.length === 0) {
+                return reply.status(200).send({
+                    status_code: 200,
+                    message: 'No expense configuration found.',
+                    trace_id: traceId,
+                    total: 0,
+                    page,
+                    limit,
+                    totalPages: 0,
+                    data: [],
+                });
+            }
+
+            whereCondition.id = { [Op.in]: expenseConfigIdsToFilter };
+        }
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
             offset,
@@ -84,9 +112,29 @@ export async function getExpenseConfigurations(
                         name: h.name,
                     }));
                 }
+                const expenseTypes = await ExpenseTypeMapping.findAll({
+                    where: {
+                        expense_config_id: configJSON.id,
+                        program_id: configJSON.program_id,
+                    },
+                    include: [
+                        {
+                            model: ExpenseTypeModel,
+                            as: 'expense_type',
+                            attributes: ['id', 'name'],
+                        },
+                    ],
+                });
+
+                const transformedExpenseTypes = expenseTypes.map((mapping: any) => ({
+                    id: mapping.expense_type?.id,
+                    name: mapping.expense_type?.name,
+                }));
+
                 return {
                     ...configJSON,
                     hierarchy_ids: hierarchyDetails,
+                    expenseTypes: transformedExpenseTypes,
                 };
             })
         );
@@ -145,11 +193,29 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
             where: { id: { [Op.in]: masterDataTypeIds } },
             attributes: ['id', 'name'],
         });
+        const expenseTypes = await ExpenseTypeMapping.findAll({
+            where: {
+                expense_config_id: id,
+                program_id: program_id,
+            },
+            include: [{
+                model: ExpenseTypeModel,
+                as: 'expense_type',
+                attributes: ['id', 'name'],
+            }],
+        });
+
+        const transformedExpenseTypes = expenseTypes.map(mapping => ({
+            id: mapping.expense_type?.id,
+            name: mapping.expense_type?.name,
+        }));
+
         const transformedExpenseConfig = {
             ...expenseConfig.toJSON(),
             hierarchy_ids: hierarchies,
             labor_category_ids: laborCategories,
             master_data_types: masterDataTypes,
+            expense_type: transformedExpenseTypes
         };
         return reply.status(200).send({
             status_code: 200,
@@ -185,6 +251,11 @@ export async function createExpenseConfiguration(
     try {
         const { program_id } = request.params as { program_id: string };
         const expenseConfig = request.body as ExpenseConfigurationAttributes;
+        const slug = (expenseConfig.name ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^\w_]+/g, '');
 
         const created_on = expenseConfig.created_on || Date.now();
         const updated_on = expenseConfig.updated_on || Date.now();
@@ -192,7 +263,7 @@ export async function createExpenseConfiguration(
             ...expenseConfig,
             program_id,
             created_on,
-        
+            slug,
             modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,
