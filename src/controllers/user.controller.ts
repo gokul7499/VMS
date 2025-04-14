@@ -17,7 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
-import  {uploadCandidateResume, searchSimilarProfiles} from "../utility/createCandidate";
+import  {uploadCandidateResume, searchSimilarProfiles} from "../utility/create-candidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
