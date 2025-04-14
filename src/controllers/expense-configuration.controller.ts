@@ -251,6 +251,11 @@ export async function createExpenseConfiguration(
     try {
         const { program_id } = request.params as { program_id: string };
         const expenseConfig = request.body as ExpenseConfigurationAttributes;
+        const slug = (expenseConfig.name ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^\w_]+/g, '');
 
         const created_on = expenseConfig.created_on || Date.now();
         const updated_on = expenseConfig.updated_on || Date.now();
@@ -258,7 +263,7 @@ export async function createExpenseConfiguration(
             ...expenseConfig,
             program_id,
             created_on,
-        
+            slug,
             modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,

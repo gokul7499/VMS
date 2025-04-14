@@ -2162,11 +2162,11 @@ export const getExpenseTypeAndRateType = `
   SELECT
     timesheet_expense_rules.id,
     CASE
-      WHEN COUNT(expense_item_type_config.id) = 0 THEN NULL
+      WHEN COUNT(expense_type.id) = 0 THEN NULL
       ELSE JSON_ARRAYAGG(
         JSON_OBJECT(
-          'id', expense_item_type_config.id,
-          'name', expense_item_type_config.name
+          'id', expense_type.id,
+          'name', expense_type.name
         )
       )
     END AS expense_line_item,
@@ -2183,10 +2183,10 @@ export const getExpenseTypeAndRateType = `
   FROM
     timesheet_expense_rules
   LEFT JOIN
-    expense_item_type_config
+    expense_type
     ON JSON_CONTAINS(
       timesheet_expense_rules.expense_line_item,
-      JSON_QUOTE(expense_item_type_config.id),
+      JSON_QUOTE(expense_type.id),
       '$'
     )
   LEFT JOIN
