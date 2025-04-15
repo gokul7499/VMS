@@ -15,6 +15,7 @@ export async function getPicklistById(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
+
   const { program_id } = request.params as { program_id: string };
   const {
     name,
@@ -34,14 +35,35 @@ export async function getPicklistById(
     updated_on?: string;
     picklist_items_count?: string;
     search?: string;
-    page?: string;
-    limit?: string;
+    page?: number;
+    limit?: number;
   };
 
   try {
+    const pageNumber = parseInt(String(page), 10) || 1;
+    const limitNumber = parseInt(String(limit), 10) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
     let whereClause: any = {
       is_deleted: false,
     };
+
+    // Filters
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (picklist_id)
+      whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
+    if (is_enabled !== undefined)
+      whereClause.is_enabled = is_enabled === "true";
+    if (defined_by) whereClause.defined_by = defined_by;
+    if (Array.isArray(updated_on) && updated_on.length === 2) {
+      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+      whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+    }
+
+    whereClause[Op.or] = [
+      { defined_by: "predefined" },
+      { program_id: program_id },
+    ];
 
     if (search) {
       const searchFields = [
@@ -65,21 +87,7 @@ export async function getPicklistById(
       }
     }
 
-    if (name) whereClause.name = { [Op.like]: `%${name}%` };
-    if (picklist_id)
-      whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
-    if (is_enabled !== undefined)
-      whereClause.is_enabled = is_enabled === "true";
-    if (defined_by) whereClause.defined_by = defined_by;
-    if (updated_on) whereClause.updated_on = parseInt(updated_on, 10);
-
-    const pageNumber = parseInt(page as any, 10) || 1;
-    const limitNumber = parseInt(limit as any, 10) || 10;
-
-    // Calculate offset for pagination
-    const offset = (pageNumber - 1) * limitNumber;
-
-    let picklists = await picklist_model.findAndCountAll({
+    const picklists = await picklist_model.findAndCountAll({
       where: whereClause,
       include: [
         {
@@ -89,48 +97,21 @@ export async function getPicklistById(
           required: false,
         },
       ],
-      distinct: true,
       order: [["updated_on", "DESC"]],
+      offset,
+      limit: limitNumber,
+      distinct: true,
     });
 
-    let predefinedPicklists = picklists.rows.filter(
-      (picklist) => picklist.defined_by === "predefined"
-    );
-    const programDefinedPicklists = picklists.rows.filter(
-      (picklist) => picklist.program_id === program_id
-    );
-
-    if (name)
-      predefinedPicklists = predefinedPicklists.filter((picklist) =>
-        picklist.name?.toLowerCase().includes(name.toLowerCase())
-      );
-    if (picklist_id)
-      predefinedPicklists = predefinedPicklists.filter((picklist) =>
-        picklist.picklist_id?.toLowerCase().includes(picklist_id.toLowerCase())
-      );
-    if (is_enabled !== undefined)
-      predefinedPicklists = predefinedPicklists.filter(
-        (picklist) => picklist.is_enabled === (is_enabled === "true")
-      );
-    if (defined_by)
-      predefinedPicklists = predefinedPicklists.filter(
-        (picklist) => picklist.defined_by === defined_by
-      );
-    if (updated_on)
-      predefinedPicklists = predefinedPicklists.filter(
-        (picklist) => Number(picklist.updated_on) === parseInt(updated_on, 10)
-      );
+    let filteredPicklists = picklists.rows;
     if (picklist_items_count) {
       const countFilter = parseInt(picklist_items_count, 10);
-      predefinedPicklists = predefinedPicklists.filter(
+      filteredPicklists = filteredPicklists.filter(
         (picklist) => picklist.picklistItems.length === countFilter
       );
     }
 
-    let picklistsData = [
-      ...programDefinedPicklists,
-      ...predefinedPicklists,
-    ].map((picklist: any) => ({
+    const picklistsData = filteredPicklists.map((picklist: any) => ({
       id: picklist.id,
       name: picklist.name,
       picklist_id: picklist.picklist_id,
@@ -145,19 +126,16 @@ export async function getPicklistById(
       picklist_items_count: picklist.picklistItems.length,
     }));
 
-    const totalPicklists = picklistsData.length;
-    const paginatedPicklists = picklistsData.slice(
-      offset,
-      offset + limitNumber
-    );
-
     reply.status(200).send({
       status_code: 200,
       message: "Picklists retrieved successfully",
       trace_id: traceId,
-      picklists: paginatedPicklists,
-      total_records: totalPicklists,
-      error
+      picklist_data: picklistsData,
+      total_records: picklist_items_count
+        ? picklistsData.length
+        : picklists.count,
+      page: pageNumber,
+      limit: limitNumber,
     });
   } catch (error) {
     console.error("Error fetching picklists:", error);
@@ -1018,7 +996,7 @@ export async function getPicklistFilter(
       is_visible: picklist.is_visible,
       program_id: picklist.program_id,
       defined_by: picklist.defined_by,
-      picklist_items_count: picklist.picklistItems.length,
+      picklist_value_count: picklist.picklistItems.length,
     }));
 
     reply.status(200).send({

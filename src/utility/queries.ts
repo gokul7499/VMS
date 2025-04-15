@@ -1564,105 +1564,6 @@ export const masterDataQuery = `
     LIMIT 0, 1000;
 `;
 
-export const getAllExpenseConfigHierarchies = `
-WITH distinct_hierarchies AS (
-  SELECT DISTINCT
-    ec.program_id,
-    h.id,
-    h.name
-  FROM expense_config ec
-  JOIN JSON_TABLE(
-    ec.hierarchy_ids,
-    '$[*]' COLUMNS (
-      hierarchy_id CHAR(36) PATH '$'
-    )
-  ) AS hier ON TRUE
-  JOIN hierarchies h ON h.id = hier.hierarchy_id
-  WHERE ec.program_id = :program_id
-)
-
-SELECT 
-  program_id,
-  JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', id,
-      'name', name
-    )
-  ) AS hierarchy_ids
-FROM distinct_hierarchies
-GROUP BY program_id;
-`;
-
-export const configAdvancedFilter = (
-  hasConfigName: boolean,
-  hasStatus: boolean,
-  hasModifiedOn: boolean,
-  hasIsEnabled: boolean,
-  hierarchyIdsArray: string[],
-  modifiedOnArray: string[] | undefined
-) => {
-  const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `AND ec.id IN (
-          SELECT expense_config_id
-          FROM expense_type_hierarchies
-          WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
-        )`
-    : '';
-
-  const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.updated_on IN (${modifiedOnArray.map((_, index) => `:updated_on${index}`).join(', ')})`
-    : '';
-
-  return `
-    SELECT
-      ec.id AS expense_config_id,
-      ec.name,
-      ec.program_id,
-      ec.is_enabled,
-      ec.updated_on,
-      ec.status,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
-          )
-        )
-        FROM expense_type_hierarchies
-        LEFT JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
-        WHERE expense_type_hierarchies.expense_config_id = ec.id
-      ) AS hierarchy,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'expense_type_name', et.name,
-          'expense_type_category', et.category,
-          'apply_msp_fee', et.apply_msp_fee,
-          'apply_tax', et.appply_tax,
-          'allow_unit_based', et.allow_unit_based,
-          'expense_type_id', et.id
-        )
-      ) AS expense_type
-    FROM
-      expense_configuration ec
-    LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-    LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-    WHERE
-      ec.is_deleted = false
-      AND ec.program_id = :program_id
-      ${hasConfigName ? 'AND ec.name LIKE :name' : ''}
-      ${hasStatus ? 'AND ec.status = :status' : ''}
-      ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
-      ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
-      ${hierarchyIdsClause}
-    GROUP BY
-      ec.id, ec.name, ec.program_id, ec.is_enabled
-    ORDER BY
-      ec.updated_on DESC
-    LIMIT :limit
-    OFFSET :offset;
-  `;
-};
-
 export const configAdvancedFilterV2 = (
   hierarchyIds: string[],
   updatedOnDates: string[] | undefined,
@@ -1984,32 +1885,7 @@ export const rateTypeTotalCount = `
   WHERE program_id = :program_id AND is_deleted = false
 `;
 
-export const getExpenseType = `
-   SELECT
-    ec.config_name,
-    ec.id AS expense_config_id,
-    ec.program_id,
-    et.name AS expense_type_name,
-    et.category AS expense_type_category,
-    et.apply_msp_fee,
-    et.appply_tax,
-    et.allow_unit_based,
-    et.id AS expense_type_id,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
-        )
-    ) AS hierarchy
-FROM expense_configuration ec
-LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-LEFT JOIN hierarchies h ON eth.hierarchy = h.id
-WHERE ec.program_id =:program_id
-  AND ec.id =:id
-GROUP BY ec.id, et.id;
-`
+
 export const getAllExpenseTypeHierarchy = `
   SELECT
     ec.id AS config_id,
@@ -2374,24 +2250,6 @@ export const hierarchie = `
 `;
 
 
-export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
-  const hierarchyCondition = hierarchy_ids.length > 0
-    ? `AND eth.hierarchy_id IN (${hierarchy_ids.map(() => '?').join(',')})`
-    : '';
-  return `
-   SELECT DISTINCT
-    eic.*
-   FROM
-    expense_config_hierarchy_mapping eth
-   LEFT JOIN
-    expense_config_expense_type_mapping etm ON eth.expense_config_id = etm.expense_config_id
-   INNER JOIN
-    expense_type eic ON etm.expense_type_id = eic.id
-   WHERE
-    eic.program_id =?
-     ${hierarchyCondition}
-    `;
-};
 
 export const getWorklocation = `
 SELECT
@@ -3397,63 +3255,5 @@ export const getVendorMarkups = ({
   `;
 };
 
-export const getExpenseConfigurationQuery = (
-  programId: string,
-  id: string
-) => {
-  return `
-    SELECT
-      ec.*,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT('id', h.id, 'name', h.name)
-        )
-        FROM hierarchies h
-        WHERE JSON_CONTAINS(ec.hierarchy_ids, JSON_QUOTE(h.id))
-      ) AS hierarchy_ids,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT('id', lc.id, 'name', lc.name)
-        )
-        FROM labour_category lc
-        WHERE JSON_CONTAINS(ec.labor_category_ids, JSON_QUOTE(lc.id))
-      ) AS labor_category_ids,
-      (
-        SELECT JSON_ARRAYAGG(
-    JSON_OBJECT('id', mdt.id, 'name', mdt.name)
-  )
-  FROM master_data_type mdt
-  WHERE JSON_OVERLAPS(ec.master_data_types, JSON_ARRAY(mdt.id))
-) AS master_data_types,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(  'id', et.id,
-      'name', et.name,
-      'category', et.category,
-      'code', et.code,
-      'is_enabled', et.is_enabled,
-      'is_attachments_mandatory', et.is_attachments_mandatory,
-      'is_notes_mandatory', et.is_notes_mandatory,
-      'is_msp_fees_applied', et.is_msp_fees_applied,
-      'is_tax_applied', et.is_tax_applied,
-      'is_negative_expense_allowed', et.is_negative_expense_allowed,
-      'is_unit_based', et.is_unit_based,
-      'unit_label', et.unit_label,
-      'rate_per_unit', et.rate_per_unit,
-      'max_unit_limit', et.max_unit_limit
-      )
-        )
-        FROM expense_config_expense_type_mapping etm
-        JOIN expense_type et ON etm.expense_type_id = et.id
-        WHERE etm.expense_config_id = ec.id
-          AND etm.program_id = ec.program_id
-      ) AS expense_types
-    FROM
-      expense_config ec
-    WHERE
-      ec.program_id = :program_id
-      AND ec.id = :id
-      AND ec.is_deleted = FALSE;
-  `;
-};
+
 

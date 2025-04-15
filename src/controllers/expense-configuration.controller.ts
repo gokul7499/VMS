@@ -3,7 +3,6 @@ import ExpenseConfigurationModel from "../models/expense-configuration.model";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { ExpenseConfigurationAttributes } from "../interfaces/expense-configuration.interfaces";
 import { QueryTypes, Op, Sequelize } from 'sequelize';
-import { configAdvancedFilter, getAllExpenseConfigHierarchies, getAllExpenseTypeHierarchy, getExpenseByHierarchy, getExpenseConfigurationQuery, getExpenseType } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
@@ -13,6 +12,7 @@ import Hierarchies from "../models/hierarchies.model";
 import IndustriesModel from "../models/labour-category.model";
 import ExpenseTypeModel from "../models/expense-type.model";
 import { count } from "console";
+import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
 
 export async function getExpenseConfigurations(
     request: FastifyRequest<{
@@ -437,11 +437,14 @@ export async function expenseConfigurationAdvancedFilter(
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === true || is_enabled === "true";
         }
-        if (updated_on) {
-            const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
-            if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
-                whereCondition.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
-            }}
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const dateRange = updated_on.map(timestamp => Number(timestamp));
+
+            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
+                whereCondition.updated_on = { [Op.between]: dateRange };
+            }
+        }
+
         if (hierarchy_ids && hierarchy_ids.length > 0) {
             whereCondition[Op.and] = sequelize.literal(
                 `JSON_CONTAINS(hierarchy_ids, '[${hierarchy_ids.map(id => `"${id}"`).join(', ')}]')`
