@@ -422,60 +422,84 @@ function sortWorkflowMethods(responses: any[], sortByPending = false, workflows:
 // Handle job module logic
 async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
     const moduleId = await findModuleBySlug("job");
-    
+
     const eventId1 = await findEvent(moduleId, "create_job");
     const eventId2 = await findEvent(moduleId, "update_job");
-    
+
     const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
-    
+
     const createReviewMethod = findMethod(items, eventId1, "review");
     const updateReviewMethod = findMethod(items, eventId2, "review");
     const createApprovalMethod = findMethod(items, eventId1, "approval");
     const updateApprovalMethod = findMethod(items, eventId2, "approval");
-    
-    if (createReviewMethod && updateReviewMethod && createApprovalMethod && updateApprovalMethod) {
-        const response = [
-            {
-                ...createApprovalMethod.dataValues,
-                method_ids: [
-                    createApprovalMethod.dataValues.id,
-                    updateApprovalMethod.dataValues.id
-                ]
-            },
-            {
-                ...createReviewMethod.dataValues,
-                method_ids: [
-                    createReviewMethod.dataValues.id,
-                    updateReviewMethod.dataValues.id
-                ]
-            }
-        ];
-        
-        const workflows = await getWorkflows(workflowTriggerId);
-        
-        if (!workflows.length) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: "No workflows found for the given trigger ID"
-            });
-        }
-        
-        const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
-        const responses = response.filter(i => workflowMethodIds.includes(i.id));
-        const sortedResponse = sortWorkflowMethods(responses, false, workflows);
-        
-        return reply.status(200).send({
-            status_code: 200,
-            message: "Workflow methods fetched successfully",
-            workflow_method: sortedResponse,
-        });
-    } else {
-        return reply.status(400).send({
-            status_code: 400,
-            message: "Required workflow methods not found"
+
+    // Dynamically build response methods
+    const response: any[] = [];
+
+    if (createApprovalMethod || updateApprovalMethod) {
+        const method_ids = [
+            createApprovalMethod?.dataValues?.id,
+            updateApprovalMethod?.dataValues?.id
+        ].filter(Boolean);
+
+        const baseData = createApprovalMethod?.dataValues || updateApprovalMethod?.dataValues;
+
+        response.push({
+            ...baseData,
+            method_ids
         });
     }
+
+    if (createReviewMethod || updateReviewMethod) {
+        const method_ids = [
+            createReviewMethod?.dataValues?.id,
+            updateReviewMethod?.dataValues?.id
+        ].filter(Boolean);
+
+        const baseData = createReviewMethod?.dataValues || updateReviewMethod?.dataValues;
+
+        response.push({
+            ...baseData,
+            method_ids
+        });
+    }
+
+    // If no methods found, return early
+    if (!response.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflow methods found"
+        });
+    }
+
+    const workflows = await getWorkflows(workflowTriggerId);
+
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID"
+        });
+    }
+
+    const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+    const responses = response.filter(i => workflowMethodIds.includes(i.id));
+    
+    if (!responses.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No matching workflow methods found for trigger ID"
+        });
+    }
+
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
+
+    return reply.status(200).send({
+        status_code: 200,
+        message: "Workflow methods fetched successfully",
+        workflow_method: sortedResponse,
+    });
 }
+
 
 // Handle offer module logic
 async function handleOfferModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
