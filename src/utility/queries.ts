@@ -2580,26 +2580,36 @@ export const getPendingUserQuery = `
         'color', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.color'))
       )
     ) AS avatar,
-    COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', hierarchies.id,
-          'name', hierarchies.name
-        )
-      )
-      FROM hierarchies
-      WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
-    ), JSON_ARRAY()) AS associate_hierarchy_ids,
-    COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', work_locations.id,
-          'name', work_locations.name
-        )
-      )
-      FROM work_locations
-      WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
-    ), JSON_ARRAY()) AS work_location_ids,
+   COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT('id', h.id, 'name', h.name)
+  )
+  FROM hierarchies h
+  WHERE 
+    (
+      invitation.is_all_hierarchy_associate = true 
+      AND h.program_id = invitation.program_id
+    )
+    OR (
+      invitation.is_all_hierarchy_associate = false 
+      AND JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(h.id))
+    )
+), JSON_ARRAY()) AS associate_hierarchy_ids,
+   COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT('id', wl.id, 'name', wl.name)
+  )
+  FROM work_locations wl
+  WHERE (
+    invitation.is_all_work_location_associate = true
+    AND wl.program_id = invitation.program_id
+  )
+  OR (
+    invitation.is_all_work_location_associate = false
+    AND JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(wl.id))
+  )
+), JSON_ARRAY()) AS work_location_ids,
+
    COALESCE((
     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
     FROM labour_category l
