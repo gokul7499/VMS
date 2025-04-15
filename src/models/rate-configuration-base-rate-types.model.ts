@@ -30,6 +30,10 @@ RateConfigurationBaseRateTypes.init(
                 key: 'id',
             }
         },
+        seq_number: {
+            type: DataTypes.NUMBER,
+            allowNull: true
+        },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
