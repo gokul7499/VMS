@@ -72,8 +72,8 @@ class AccuracyConfiguration {
             Array.isArray(group.fields) ? group.fields : []
         );
 
-        const scaleLimit = isAccuracyEnabled ? parseInt(allFields[1].value, 10) : 2;
-        const threshold = isAccuracyEnabled ? parseInt(allFields[2].value, 10) : 2;
+        const scaleLimit = isAccuracyEnabled ? parseInt(allFields[1].value, 10) : 4;
+        const threshold = isAccuracyEnabled ? parseInt(allFields[2].value, 10) : 4;
         const scalingType = isAccuracyEnabled ? allFields[0].value : 'Truncate';
 
         const factor = Math.pow(10, scaleLimit);
