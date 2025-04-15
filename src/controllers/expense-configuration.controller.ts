@@ -128,7 +128,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
                 is_projects_enabled: Boolean(config.is_projects_enabled),
                 is_thresholds_enabled: Boolean(config.is_thresholds_enabled),
                 latest: Boolean(config.latest),
-                is_deleted: Boolean(config.is_deleted), 
+                is_deleted: Boolean(config.is_deleted),
             };
         };
         const transformedExpenseConfig = {
@@ -177,14 +177,10 @@ export async function createExpenseConfiguration(
             .replace(/\s+/g, '_')
             .replace(/[^\w_]+/g, '');
 
-        const created_on = expenseConfig.created_on || Date.now();
-        const updated_on = expenseConfig.updated_on || Date.now();
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
             program_id,
-            created_on,
             slug,
-            modified_on: updated_on,
             created_by: user.sub,
             updated_by: user.sub,
             is_enabled: true,
@@ -250,7 +246,7 @@ export async function updateExpenseConfiguration(
         await existingConfig.update({ latest: false }, { transaction });
         const oldRevision = Number(existingConfig.revision ?? 0);
         const newRevision = oldRevision + 1;
-        const timestamp = Date.now();
+        const updated_on = Date.now();
         const newConfig = await ExpenseConfigurationModel.create(
             {
                 ...existingConfig.toJSON(),
@@ -259,7 +255,7 @@ export async function updateExpenseConfiguration(
                 latest: true,
                 created_on: existingConfig.created_on,
                 created_by: existingConfig.created_by,
-                modified_on: timestamp,
+                updated_on: updated_on,
                 updated_by: user.sub,
                 id: undefined,
             },
@@ -424,7 +420,7 @@ export async function expenseConfigurationAdvancedFilter(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const {page = 1,limit = 10, name,is_enabled,updated_on,hierarchy_ids} = request.body as { page: number; limit: number; name?: string; is_enabled?: string | boolean; updated_on?: string; hierarchy_ids?: string[] };
+        const { page = 1, limit = 10, name, is_enabled, updated_on, hierarchy_ids } = request.body as { page: number; limit: number; name?: string; is_enabled?: string | boolean; updated_on?: string; hierarchy_ids?: string[] };
         const offset = (page - 1) * limit;
         const whereCondition: any = {
             program_id,
@@ -448,7 +444,8 @@ export async function expenseConfigurationAdvancedFilter(
         if (hierarchy_ids && hierarchy_ids.length > 0) {
             whereCondition[Op.and] = sequelize.literal(
                 `JSON_CONTAINS(hierarchy_ids, '[${hierarchy_ids.map(id => `"${id}"`).join(', ')}]')`
-            );}
+            );
+        }
         whereCondition.latest = true;
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
             where: whereCondition,
@@ -579,7 +576,9 @@ export async function getExpenseConfigByExpenseType(
                     include: [{
                         model: ExpenseTypeModel,
                         as: 'expense_type',
-                        attributes: ['id', 'name'],
+                        attributes: ['id', 'name', 'is_unit_based', 'is_msp_fees_applied',
+                            'is_tax_applied', 'max_unit_limit', 'category',
+                            'code',],
                     }],
                 });
                 return {
@@ -588,6 +587,12 @@ export async function getExpenseConfigByExpenseType(
                     expenseTypes: expenseTypes.map((e: any) => ({
                         id: e.expense_type?.id,
                         name: e.expense_type?.name,
+                        is_unit_based: e.expense_type?.is_unit_based,
+                        is_msp_fees_applied: e.expense_type?.is_msp_fees_applied,
+                        is_tax_applied: e.expense_type?.is_tax_applied,
+                        max_unit_limit: e.expense_type?.max_unit_limit,
+                        category: e.expense_type?.category,
+                        code: e.expense_type?.code,
                     })),
                 };
             }));
