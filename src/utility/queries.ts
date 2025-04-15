@@ -1016,7 +1016,8 @@ export const getShiftTypesByHierarchiesQuery = `
         st.shift_type_name,
         st.shift_type_category,
         st.is_enabled,
-        st.shift_type_time
+        st.shift_type_time,
+        st.time_duration
     FROM
         shift_types st
     JOIN
@@ -1032,6 +1033,7 @@ export const getShiftTypesByHierarchiesQuery = `
     AND
         st.program_id = :program_id
 `;
+ 
 
 export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
