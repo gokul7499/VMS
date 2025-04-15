@@ -1097,6 +1097,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
                             },
                         },
+                        seq_number: baseRate.seq_number,
                         rates: filteredRateType,
                     },
                     rate: filteredRate
