@@ -311,7 +311,7 @@ export async function getAllExpenseType(
         name,
         code,
         category,
-        apply_msp_fee,
+        is_msp_fees_applied,
         appply_tax,
         allow_unit_based,
         is_enabled,
@@ -319,7 +319,7 @@ export async function getAllExpenseType(
         page,
         limit,
         updated_on
-    } = request.query as { name?: string, code?: string, category?: string, apply_msp_fee?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
+    } = request.query as { name?: string, code?: string, category?: string, is_msp_fees_applied?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
 
@@ -332,8 +332,8 @@ export async function getAllExpenseType(
     if (category) {
         whereClause.category = { [Op.like]: `%${category}%` };
     }
-    if (apply_msp_fee !== undefined) {
-        whereClause.apply_msp_fee = apply_msp_fee === "true";
+    if (is_msp_fees_applied !== undefined) {
+        whereClause.apply_msp_fee = is_msp_fees_applied === "true";
     }
     if (appply_tax !== undefined) {
         whereClause.appply_tax = appply_tax === "true" ? "1" : "0";
@@ -390,7 +390,7 @@ export async function advancefilter(
         name,
         code,
         category,
-        apply_msp_fee,
+        is_msp_fees_applied,
         appply_tax,
         allow_unit_based,
         is_enabled,
@@ -398,7 +398,7 @@ export async function advancefilter(
         page = 1,
         limit = 10,
         updated_on
-    } = request.body as { name?: string, code?: string, category?: string, apply_msp_fee?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
+    } = request.body as { name?: string, code?: string, category?: string, is_msp_fees_applied?: string, appply_tax?: string, allow_unit_based?: string, is_enabled?: string, max_limit?: string, page?: string, limit?: string, updated_on?: string };
 
     const traceId = generateCustomUUID();
     let whereClause: any = { program_id };
@@ -406,8 +406,8 @@ export async function advancefilter(
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (code) whereClause.code = code;
     if (category) whereClause.category = { [Op.like]: `%${category}%` };
-    if (apply_msp_fee !== undefined) {
-        whereClause.apply_msp_fee = apply_msp_fee === "true";
+    if (is_msp_fees_applied !== undefined) {
+        whereClause.apply_msp_fee = is_msp_fees_applied === "true";
     }
     if (appply_tax !== undefined) {
         whereClause.appply_tax = (typeof appply_tax === 'string' ? appply_tax === 'true' : appply_tax === true);;
