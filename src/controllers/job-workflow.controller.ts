@@ -1421,8 +1421,7 @@ export const updateReplaceLevel = async (
                 levelFound = true;
 
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    if (recipient.replaced_by === user_id) {
-                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
@@ -1434,23 +1433,6 @@ export const updateReplaceLevel = async (
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
-                    }
-
-                    // If replaced_by doesn't exist, match against meta_data values
-                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
-                        return {
-                            ...recipient,
-                            status: status,
-                            replaced_by,
-                            meta_data: {
-                                ...recipient.meta_data,
-                            },
-                            replaced_notes: notes,
-                            replaced_modified_on: Date.now()
-                        };
-                    }
-
-                    return recipient;
                 });
 
                 return {
@@ -3196,7 +3178,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         const notificationPayloads: NotificationDataPayload = {
             program_id,
             traceId,
-            eventCode,
+            eventCode: eventCode ?? '',
             recipientEmail: recipientEmails,
             payload,
             token,
@@ -4716,7 +4698,7 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
     } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
         return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
-        throw new Error(`Event code not found for event: ${event}`);
+        console.log(`Event code not found for event: ${event}`);
     }
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {

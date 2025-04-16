@@ -119,6 +119,7 @@ export const createRateConfigurations = async (
                 const baseRateResult = await RateConfigurationBaseRateTypes.create({
                     rate_configuration_id: rateData.id,
                     rate_type_id: baseRate.rate_type_id,
+                    seq_number: baseRate.seq_number,
                     created_by: userId,
                     updated_by: userId
                 }, { transaction });
@@ -320,6 +321,7 @@ export const updateRateConfigurations = async (
                             id: base_rate.id,
                             rate_configuration_id: id,
                             rate_type_id: base_rate.rate_type_id,
+                            seq_number: base_rate.seq_number
                         },
                         { transaction }
                     );
@@ -337,6 +339,7 @@ export const updateRateConfigurations = async (
                                 id: rateItem.id,
                                 base_rate_type_id: baseRateResult?.id,
                                 rate_type_id: rateItem.rate_type_id,
+                                seq_number: rateItem.seq_number
                             },
                             { transaction }
                         );
@@ -1094,6 +1097,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
                             },
                         },
+                        seq_number: baseRate.seq_number,
                         rates: filteredRateType,
                     },
                     rate: filteredRate

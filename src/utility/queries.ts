@@ -2,7 +2,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+const auth_db="dev_vms_auth"
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -1016,7 +1017,8 @@ export const getShiftTypesByHierarchiesQuery = `
         st.shift_type_name,
         st.shift_type_category,
         st.is_enabled,
-        st.shift_type_time
+        st.shift_type_time,
+        st.time_duration
     FROM
         shift_types st
     JOIN
@@ -1032,6 +1034,7 @@ export const getShiftTypesByHierarchiesQuery = `
     AND
         st.program_id = :program_id
 `;
+ 
 
 export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -1564,105 +1567,41 @@ export const masterDataQuery = `
     LIMIT 0, 1000;
 `;
 
-export const getAllExpenseConfigHierarchies = `
-WITH distinct_hierarchies AS (
-  SELECT DISTINCT
-    ec.program_id,
-    h.id,
-    h.name
-  FROM expense_config ec
-  JOIN JSON_TABLE(
-    ec.hierarchy_ids,
-    '$[*]' COLUMNS (
-      hierarchy_id CHAR(36) PATH '$'
-    )
-  ) AS hier ON TRUE
-  JOIN hierarchies h ON h.id = hier.hierarchy_id
-  WHERE ec.program_id = :program_id
-)
-
-SELECT 
-  program_id,
-  JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'id', id,
-      'name', name
-    )
-  ) AS hierarchy_ids
-FROM distinct_hierarchies
-GROUP BY program_id;
-`;
-
-export const configAdvancedFilter = (
-  hasConfigName: boolean,
-  hasStatus: boolean,
-  hasModifiedOn: boolean,
-  hasIsEnabled: boolean,
-  hierarchyIdsArray: string[],
-  modifiedOnArray: string[] | undefined
-) => {
-  const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `AND ec.id IN (
-          SELECT expense_config_id
-          FROM expense_type_hierarchies
-          WHERE expense_type_hierarchies.hierarchy IN (${hierarchyIdsArray.map((_, index) => `:hierarchy${index}`).join(', ')})
-        )`
+export const configAdvancedFilterV2 = (
+  hierarchyIds: string[],
+  updatedOnDates: string[] | undefined,
+  isCountQuery: boolean = false
+): string => {
+  const hierarchyFilter = hierarchyIds.length
+    ? `AND JSON_CONTAINS(ec.hierarchy_id, JSON_ARRAY(${hierarchyIds.map((_, i) => `:hierarchy${i}`).join(', ')}))`
     : '';
 
-  const modifiedOnClause = modifiedOnArray && modifiedOnArray.length
-    ? `AND ec.updated_on IN (${modifiedOnArray.map((_, index) => `:updated_on${index}`).join(', ')})`
-    : '';
+  const updatedOnFilter =
+    updatedOnDates && updatedOnDates.length === 2
+      ? `AND ec.updated_on BETWEEN :updated_on_start AND :updated_on_end`
+      : '';
+
+  const selectFields = isCountQuery
+    ? 'COUNT(*) AS count'
+    : `
+      ec.id,
+      ec.name,
+      ec.is_enabled,
+      ec.updated_on
+    `;
 
   return `
-    SELECT
-      ec.id AS expense_config_id,
-      ec.name,
-      ec.program_id,
-      ec.is_enabled,
-      ec.updated_on,
-      ec.status,
-      (
-        SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
-          )
-        )
-        FROM expense_type_hierarchies
-        LEFT JOIN hierarchies h ON expense_type_hierarchies.hierarchy = h.id
-        WHERE expense_type_hierarchies.expense_config_id = ec.id
-      ) AS hierarchy,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'expense_type_name', et.name,
-          'expense_type_category', et.category,
-          'apply_msp_fee', et.apply_msp_fee,
-          'apply_tax', et.appply_tax,
-          'allow_unit_based', et.allow_unit_based,
-          'expense_type_id', et.id
-        )
-      ) AS expense_type
-    FROM
-      expense_configuration ec
-    LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-    LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-    WHERE
-      ec.is_deleted = false
+    SELECT ${selectFields}
+    FROM expense_config ec
+    WHERE ec.is_deleted = false
       AND ec.program_id = :program_id
-      ${hasConfigName ? 'AND ec.name LIKE :name' : ''}
-      ${hasStatus ? 'AND ec.status = :status' : ''}
-      ${hasIsEnabled ? 'AND ec.is_enabled = :is_enabled' : ''}
-      ${hasModifiedOn && modifiedOnArray && modifiedOnArray.length ? modifiedOnClause : ''}
-      ${hierarchyIdsClause}
-    GROUP BY
-      ec.id, ec.name, ec.program_id, ec.is_enabled
-    ORDER BY
-      ec.updated_on DESC
-    LIMIT :limit
-    OFFSET :offset;
+      ${hierarchyFilter}
+      ${updatedOnFilter}
+      ${'AND (:name IS NULL OR ec.name LIKE :name)'}
+      ${'AND (:is_enabled IS NULL OR ec.is_enabled = :is_enabled)'}
+    ${!isCountQuery ? 'ORDER BY ec.updated_on DESC LIMIT :limit OFFSET :offset' : ''}
   `;
 };
-
 
 export const getAllExpenseTypeByHierarchies = (
   hierarchyCondition: string,
@@ -1949,32 +1888,7 @@ export const rateTypeTotalCount = `
   WHERE program_id = :program_id AND is_deleted = false
 `;
 
-export const getExpenseType = `
-   SELECT
-    ec.config_name,
-    ec.id AS expense_config_id,
-    ec.program_id,
-    et.name AS expense_type_name,
-    et.category AS expense_type_category,
-    et.apply_msp_fee,
-    et.appply_tax,
-    et.allow_unit_based,
-    et.id AS expense_type_id,
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', h.id,
-            'name', h.name
-        )
-    ) AS hierarchy
-FROM expense_configuration ec
-LEFT JOIN expense_type_mapping etm ON ec.id = etm.expense_config_id
-LEFT JOIN expense_item_type_config et ON etm.expense_type_id = et.id
-LEFT JOIN expense_type_hierarchies eth ON ec.id = eth.expense_config_id
-LEFT JOIN hierarchies h ON eth.hierarchy = h.id
-WHERE ec.program_id =:program_id
-  AND ec.id =:id
-GROUP BY ec.id, et.id;
-`
+
 export const getAllExpenseTypeHierarchy = `
   SELECT
     ec.id AS config_id,
@@ -2339,24 +2253,6 @@ export const hierarchie = `
 `;
 
 
-export const getExpenseByHierarchy = (hierarchy_ids: string[]) => {
-  const hierarchyCondition = hierarchy_ids.length > 0
-    ? `AND eth.hierarchy_id IN (${hierarchy_ids.map(() => '?').join(',')})`
-    : '';
-  return `
-   SELECT DISTINCT
-    eic.*
-   FROM
-    expense_config_hierarchy_mapping eth
-   LEFT JOIN
-    expense_config_expense_type_mapping etm ON eth.expense_config_id = etm.expense_config_id
-   INNER JOIN
-    expense_type eic ON etm.expense_type_id = eic.id
-   WHERE
-    eic.program_id =?
-     ${hierarchyCondition}
-    `;
-};
 
 export const getWorklocation = `
 SELECT
@@ -2580,26 +2476,36 @@ export const getPendingUserQuery = `
         'color', JSON_UNQUOTE(JSON_EXTRACT(invitation.avatar, '$.color.color'))
       )
     ) AS avatar,
-    COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', hierarchies.id,
-          'name', hierarchies.name
-        )
-      )
-      FROM hierarchies
-      WHERE JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(hierarchies.id))
-    ), JSON_ARRAY()) AS associate_hierarchy_ids,
-    COALESCE((
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', work_locations.id,
-          'name', work_locations.name
-        )
-      )
-      FROM work_locations
-      WHERE JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(work_locations.id))
-    ), JSON_ARRAY()) AS work_location_ids,
+   COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT('id', h.id, 'name', h.name)
+  )
+  FROM hierarchies h
+  WHERE 
+    (
+      invitation.is_all_hierarchy_associate = true 
+      AND h.program_id = invitation.program_id
+    )
+    OR (
+      invitation.is_all_hierarchy_associate = false 
+      AND JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(h.id))
+    )
+), JSON_ARRAY()) AS associate_hierarchy_ids,
+   COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT('id', wl.id, 'name', wl.name)
+  )
+  FROM work_locations wl
+  WHERE (
+    invitation.is_all_work_location_associate = true
+    AND wl.program_id = invitation.program_id
+  )
+  OR (
+    invitation.is_all_work_location_associate = false
+    AND JSON_CONTAINS(invitation.work_location_ids, JSON_QUOTE(wl.id))
+  )
+), JSON_ARRAY()) AS work_location_ids,
+
    COALESCE((
     SELECT JSON_ARRAYAGG(JSON_OBJECT('id', l.id, 'name', l.name))
     FROM labour_category l
@@ -2612,47 +2518,50 @@ COALESCE((
         'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
         'name', mdt.name
       ),
-      'default_master_data', COALESCE(
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', dmdt.id,
-              'name', dmdt.name
+      'default_master_data', COALESCE((
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', dmdt.id,
+            'name', dmdt.name
+          )
+        )
+        FROM master_data AS dmdt
+        WHERE JSON_CONTAINS(
+          CASE
+            WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY'
+            THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
+            ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
+          END,
+          JSON_QUOTE(dmdt.id)
+        )
+      ), JSON_ARRAY()),
+      'associated_master_data', COALESCE((
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', m.id,
+            'name', m.name
+          )
+        )
+        FROM master_data AS m
+        WHERE (
+          (
+            JSON_EXTRACT(fd.value, '$.is_all_associated') = true
+            AND m.program_id = invitation.program_id
+            AND m.foundational_data_type_id = JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data'))
+          )
+          OR (
+            JSON_EXTRACT(fd.value, '$.is_all_associated') = false
+            AND JSON_CONTAINS(
+              CASE
+                WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY'
+                THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
+                ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
+              END,
+              JSON_QUOTE(m.id)
             )
           )
-          FROM master_data AS dmdt
-          WHERE JSON_CONTAINS(
-            -- Normalize to array if not already an array
-            CASE
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY'
-              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
-              ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
-            END,
-            JSON_QUOTE(dmdt.id) -- Ensure ID is treated as JSON string
-          )
-        ),
-        JSON_ARRAY()
-      ),
-      'associated_master_data', COALESCE(
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', associated_mdt.id,
-              'name', associated_mdt.name
-            )
-          )
-          FROM master_data AS associated_mdt
-          WHERE JSON_CONTAINS(
-            CASE
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY'
-              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
-              ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
-            END,
-            JSON_QUOTE(associated_mdt.id)
-          )
-        ),
-        JSON_ARRAY()
-      )
+        )
+      ), JSON_ARRAY())
     )
   )
   FROM (
@@ -2665,6 +2574,7 @@ COALESCE((
   JOIN master_data_type AS mdt
     ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
 ), JSON_ARRAY()) AS foundational_data
+
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
@@ -3361,3 +3271,6 @@ export const getVendorMarkups = ({
       ORDER BY vmc.is_default DESC, vmc.created_on DESC
   `;
 };
+
+
+
