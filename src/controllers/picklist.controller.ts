@@ -26,7 +26,7 @@ export async function getPicklistById(
     picklist_items_count,
     search,
     page = 1,
-    limit = 10,
+    limit,
   } = request.query as {
     name?: string;
     picklist_id?: string;
@@ -41,8 +41,8 @@ export async function getPicklistById(
 
   try {
     const pageNumber = parseInt(String(page), 10) || 1;
-    const limitNumber = parseInt(String(limit), 10) || 10;
-    const offset = (pageNumber - 1) * limitNumber;
+    const limitNumber = limit !== undefined ? parseInt(String(limit), 10) : undefined;
+    const offset = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
 
     let whereClause: any = {
       is_deleted: false,
@@ -99,7 +99,7 @@ export async function getPicklistById(
       ],
       order: [["updated_on", "DESC"]],
       offset,
-      limit: limitNumber,
+      ...(limitNumber !== undefined && { offset, limit: limitNumber }),
       distinct: true,
     });
 

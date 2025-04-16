@@ -3178,7 +3178,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         const notificationPayloads: NotificationDataPayload = {
             program_id,
             traceId,
-            eventCode,
+            eventCode: eventCode ?? '',
             recipientEmail: recipientEmails,
             payload,
             token,
@@ -4698,7 +4698,7 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
     } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
         return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
-        throw new Error(`Event code not found for event: ${event}`);
+        console.log(`Event code not found for event: ${event}`);
     }
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
