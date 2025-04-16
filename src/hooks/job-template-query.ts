@@ -477,15 +477,17 @@ class JobTempletRepository {
                 'default_time_format', primary_hierarchy.default_time_format,
                 'default_timezone', primary_hierarchy.default_timezone
             ) AS primary_hierarchy,
-            COALESCE((
-    SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'custom_field_id', job_template_custom_field.custom_field_id,
-            'value', JSON_UNQUOTE(job_template_custom_field.value)
-        )
-    )
-    FROM job_template_custom_field
-    WHERE job_template_custom_field.job_temp_id = job_templates.id
+          COALESCE((
+             SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+            'custom_field_id', jtc.custom_field_id,
+            'value', JSON_UNQUOTE(jtc.value),
+            'label', cf.label
+            )
+          )
+    FROM job_template_custom_field jtc
+    LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
+    WHERE jtc.job_temp_id = job_templates.id
 ), JSON_ARRAY()) AS job_template_custom_fields,
 
             COALESCE((
