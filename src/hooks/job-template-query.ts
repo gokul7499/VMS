@@ -5,32 +5,47 @@ import { databaseConfig } from "../config/db";
 const config_db = databaseConfig.config.database;
 
 class JobTempletRepository {
-  async getJobTemplateByHierarchies(program_id: string, hierarchy_ids: string[]) {
-    const query = `
+
+  async getJobTemplateByHierarchies(
+      program_id: string,
+      hierarchy_ids?: string[],
+      filter_by_hierarchy?: boolean
+  ) {
+    let query = `
       SELECT
-          ji.id,
-          ji.template_name,
-          ji.job_id,
-          ji.program_id,
-          ji.created_on,
-          GROUP_CONCAT(jc.hierarchy SEPARATOR ',') AS hierarchy -- concatenate hierarchies
+        ji.id,
+        ji.template_name,
+        ji.job_id,
+        ji.program_id,
+        ji.created_on,
+        GROUP_CONCAT(jc.hierarchy SEPARATOR ',') AS hierarchy
       FROM job_templates AS ji
-      INNER JOIN job_template_hierarchies AS jc ON jc.job_temp_id = ji.id
+             INNER JOIN job_template_hierarchies AS jc ON jc.job_temp_id = ji.id
       WHERE ji.is_deleted = false
         AND ji.program_id = :program_id
-      GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on
-      ORDER BY ji.created_on DESC;
     `;
 
+    const replacements: Record<string, any> = {
+      program_id,
+    };
+    if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
+      query += ` AND jc.hierarchy IN (:hierarchy_ids)`;
+      replacements.hierarchy_ids = hierarchy_ids;
+    }
+
+    query += `
+    GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on
+    ORDER BY ji.created_on DESC
+  `;
+
     const data = await sequelize.query(query, {
-      replacements: {
-        program_id,
-        hierarchy_ids,
-      },
+      replacements,
       type: QueryTypes.SELECT,
     });
+
     return data;
   }
+
 
   async deleteJobTemplateHierarchy(program_id: string, job_temp_id: string) {
     const deleteQuery = `
@@ -60,7 +75,7 @@ class JobTempletRepository {
           HAVING COUNT(DISTINCT hierarchy) = ?
         )`
       : '';
-  
+
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
     const paginationCondition = limit !== undefined && offset !== undefined ? `LIMIT ? OFFSET ?` : '';
@@ -94,21 +109,21 @@ class JobTempletRepository {
       ORDER BY job_submitted_count DESC
       ${paginationCondition};
     `;
-  
+
     const replacements: (string | number)[] = [program_id];
-  
+
     if (hierarchyIdsArray.length > 0) {
       replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
     }
-  
+
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
-  
+
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0);
     }
-  
+
     if (limit !== undefined && offset !== undefined) {
       replacements.push(limit, offset);
     }
@@ -116,15 +131,15 @@ class JobTempletRepository {
     if (is_shift_rate !== undefined) {
       replacements.push(is_shift_rate ? 1 : 0);
     }
-  
+
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-  
+
     return data;
   }
-  
+
 
   async getJobTempletByHierarchies(
     program_id: string,
@@ -142,7 +157,7 @@ class JobTempletRepository {
           HAVING COUNT(DISTINCT hierarchy) = ?
         )`
       : "";
-  
+
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
     const isShiftRateCondition = is_shift_rate !== undefined ? `AND job_templates.is_shift_rate = ?` : '';
@@ -174,17 +189,17 @@ class JobTempletRepository {
       GROUP BY job_templates.template_name
       ORDER BY created_on DESC;
     `;
-  
+
     const replacements: (string | number)[] = [program_id];
-  
+
     if (hierarchyIdsArray.length > 0) {
       replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
     }
-  
+
     if (job_type) {
       replacements.push(`"${job_type}"`);
     }
-  
+
     if (is_enabled !== undefined) {
       replacements.push(is_enabled ? 1 : 0);
     }
@@ -192,15 +207,15 @@ class JobTempletRepository {
     if (is_shift_rate !== undefined) {
       replacements.push(is_shift_rate ? 1 : 0);
     }
-  
+
     const data = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
     });
-  
+
     return data;
   }
-  
+
 
   async getAllJobTemplateByHierarchy(
     program_id: string,
@@ -633,10 +648,10 @@ COALESCE((
         type: QueryTypes.SELECT,
       }
     );
-  
+
     return templateData;
   }
-  
+
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {
     const hierarchyDetails = await sequelize.query(
       `SELECT * FROM hierarchies WHERE id IN (:commonHierarchyIds);`,

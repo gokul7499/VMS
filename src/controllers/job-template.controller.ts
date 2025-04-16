@@ -571,32 +571,43 @@ export async function deleteJobTemplate(
 
 export async function getJobTemplatesByHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids } = request.body as { hierarchy_ids: string[] };
+    const { hierarchy_ids, filter_by_hierarchy } = request.body as {
+      hierarchy_ids?: string[];
+      filter_by_hierarchy?: boolean;
+    };
 
-    if (!hierarchy_ids || hierarchy_ids.length === 0) {
+    if (filter_by_hierarchy && (!hierarchy_ids || hierarchy_ids.length === 0)) {
       return reply.status(400).send({
         status_code: 400,
-        message: "Please fill all mandatory fields.",
+        message: "Hierarchy filtering is enabled, but no hierarchy_ids provided.",
         trace_id: traceId,
       });
     }
-    const data = await jobTempletRepositories.getJobTemplateByHierarchies(program_id, hierarchy_ids);
-    reply.status(200).send({
+
+    const data = await jobTempletRepositories.getJobTemplateByHierarchies(
+        program_id,
+        hierarchy_ids,
+        filter_by_hierarchy
+    );
+
+    return reply.status(200).send({
       status_code: 200,
       job_templates: data,
       trace_id: traceId,
     });
   } catch (error) {
     console.error("Error fetching job templates:", error);
-    reply.status(500).send({
+    return reply.status(500).send({
       status_code: 500,
       message: "An error occurred while fetching job templates.",
       trace_id: traceId,
     });
   }
 }
+
 
 export async function getAllJobTemplateHierarchyById(request: FastifyRequest, reply: FastifyReply) {
   const trace_id = generateCustomUUID();
