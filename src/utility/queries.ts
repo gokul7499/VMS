@@ -2,7 +2,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { MinMaxRateQueryParams } from "../interfaces/rate-card-configuration.interface";
 import { databaseConfig } from '../config/db';
-const auth_db = databaseConfig.config.database_auth;
+// const auth_db = databaseConfig.config.database_auth;
+const auth_db="dev_vms_auth"
 
 export const getAllRateCardQuery = (hierarchyIdCount: number, jobTemplateIdCount: number, startDate: number | undefined,
   endDate: number | undefined) => {
@@ -2622,47 +2623,50 @@ COALESCE((
         'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
         'name', mdt.name
       ),
-      'default_master_data', COALESCE(
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', dmdt.id,
-              'name', dmdt.name
+      'default_master_data', COALESCE((
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', dmdt.id,
+            'name', dmdt.name
+          )
+        )
+        FROM master_data AS dmdt
+        WHERE JSON_CONTAINS(
+          CASE
+            WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY'
+            THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
+            ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
+          END,
+          JSON_QUOTE(dmdt.id)
+        )
+      ), JSON_ARRAY()),
+      'associated_master_data', COALESCE((
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', m.id,
+            'name', m.name
+          )
+        )
+        FROM master_data AS m
+        WHERE (
+          (
+            JSON_EXTRACT(fd.value, '$.is_all_associated') = true
+            AND m.program_id = invitation.program_id
+            AND m.foundational_data_type_id = JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data'))
+          )
+          OR (
+            JSON_EXTRACT(fd.value, '$.is_all_associated') = false
+            AND JSON_CONTAINS(
+              CASE
+                WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY'
+                THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
+                ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
+              END,
+              JSON_QUOTE(m.id)
             )
           )
-          FROM master_data AS dmdt
-          WHERE JSON_CONTAINS(
-            -- Normalize to array if not already an array
-            CASE
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.default_master_data')) != 'ARRAY'
-              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.default_master_data'))
-              ELSE JSON_EXTRACT(fd.value, '$.default_master_data')
-            END,
-            JSON_QUOTE(dmdt.id) -- Ensure ID is treated as JSON string
-          )
-        ),
-        JSON_ARRAY()
-      ),
-      'associated_master_data', COALESCE(
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', associated_mdt.id,
-              'name', associated_mdt.name
-            )
-          )
-          FROM master_data AS associated_mdt
-          WHERE JSON_CONTAINS(
-            CASE
-              WHEN JSON_TYPE(JSON_EXTRACT(fd.value, '$.associated_master_data')) != 'ARRAY'
-              THEN JSON_ARRAY(JSON_EXTRACT(fd.value, '$.associated_master_data'))
-              ELSE JSON_EXTRACT(fd.value, '$.associated_master_data')
-            END,
-            JSON_QUOTE(associated_mdt.id)
-          )
-        ),
-        JSON_ARRAY()
-      )
+        )
+      ), JSON_ARRAY())
     )
   )
   FROM (
@@ -2675,6 +2679,7 @@ COALESCE((
   JOIN master_data_type AS mdt
     ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
 ), JSON_ARRAY()) AS foundational_data
+
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
 LEFT JOIN tenant ON invitation.tenant_id = tenant.id
