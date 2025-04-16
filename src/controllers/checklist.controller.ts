@@ -393,7 +393,7 @@ export async function filterChecklists(
     request: FastifyRequest<{
         Querystring: {
             task_ids?: string;
-            is_enabled?: boolean;
+            is_enabled?: boolean | string;
             entity_id?: string;
             name?: string;
             limit?: number;
@@ -417,8 +417,13 @@ export async function filterChecklists(
             program_id,
         }
         if (is_enabled !== undefined) {
-            whereConditions.is_enabled = is_enabled;
-        }
+            if (typeof is_enabled === 'string') {
+              if (is_enabled.toLowerCase() === 'true') whereConditions.is_enabled = true;
+              else if (is_enabled.toLowerCase() === 'false') whereConditions.is_enabled = false;
+            } else {
+              whereConditions.is_enabled = is_enabled;
+            }
+          }
         if (name !== undefined) {
             whereConditions.name = {
                 [Op.like]: `%${name}%`, 
