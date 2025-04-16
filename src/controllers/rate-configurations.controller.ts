@@ -119,6 +119,7 @@ export const createRateConfigurations = async (
                 const baseRateResult = await RateConfigurationBaseRateTypes.create({
                     rate_configuration_id: rateData.id,
                     rate_type_id: baseRate.rate_type_id,
+                    seq_number: baseRate.seq_number,
                     created_by: userId,
                     updated_by: userId
                 }, { transaction });
@@ -320,6 +321,7 @@ export const updateRateConfigurations = async (
                             id: base_rate.id,
                             rate_configuration_id: id,
                             rate_type_id: base_rate.rate_type_id,
+                            seq_number: base_rate.seq_number
                         },
                         { transaction }
                     );
@@ -337,6 +339,7 @@ export const updateRateConfigurations = async (
                                 id: rateItem.id,
                                 base_rate_type_id: baseRateResult?.id,
                                 rate_type_id: rateItem.rate_type_id,
+                                seq_number: rateItem.seq_number
                             },
                             { transaction }
                         );
@@ -988,7 +991,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
                     // Get differentials
                     const billRates = (billRatesByRateId[rate.id] || []).map(billRate => {
-                        const differential_value = ot_exempt == 'true' ? 1 : billRate.differential_value;
+                        let differential_value
+                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                            differential_value = billRate.differential_value;
+                        }
+                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                            differential_value = billRate.differential_value;
+                        } else {
+                            differential_value = ot_exempt == "true" ? 1 : billRate.differential_value;
+                        }
 
                         return {
                             ...billRate.get(),
@@ -1009,7 +1020,15 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                     });
 
                     const payRates = (payRatesByRateId[rate.id] || []).map(payRate => {
-                        const differential_value = ot_exempt == 'true' ? 1 : payRate.differential_value;
+                        let differential_value
+                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                            differential_value = payRate.differential_value;
+                        }
+                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                            differential_value = payRate.differential_value;
+                        } else {
+                            differential_value = ot_exempt == "true" ? 1 : payRate.differential_value;
+                        }
 
                         return {
                             ...payRate.get(),
@@ -1078,6 +1097,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
                             },
                         },
+                        seq_number: baseRate.seq_number,
                         rates: filteredRateType,
                     },
                     rate: filteredRate
@@ -1343,7 +1363,16 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
 
 function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
     return rates.map((rate) => {
-        const differential_value = ot_exempt && rateTypeCategory === "overtime" ? 1 : rate.differential_value;
+
+        let differential_value
+        if (ot_exempt == true && rateTypeCategory === "other") {
+            differential_value = rate.differential_value;
+        }
+        else if (ot_exempt == true && rateTypeCategory === "shift") {
+            differential_value = rate.differential_value;
+        } else {
+            differential_value = ot_exempt == true ? 1 : rate.differential_value;
+        }
 
         const min_rate = rate.differential_type === "Factor Differential"
             ? Number(baseRateMin) * differential_value

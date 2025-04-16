@@ -479,34 +479,20 @@ export const getAllRelatedDataByProgram = async (
         const { program_id } = request.params as { program_id: string };
         const configs = await TimesheetTypeConfig.findAll({
             where: { program_id, is_deleted: false },
-            attributes: ['hierarchies', 'labor_category', 'allocations'],
+            attributes: ['hierarchies', 'labor_category', 'timesheet_rule_group'],
         });
         const hierarchyIds = [...new Set(configs.flatMap(config => config.hierarchies || []))];
         const laborIds = [...new Set(configs.flatMap(config => config.labor_category || []))];
         const ruleGroupIds = [
-            ...new Set(
-                configs
-                    .flatMap(config => config.allocations?.timesheet_rule_group || [])
-                    .filter(Boolean)
-            ),
-        ];
+            ...new Set(configs.flatMap(config => config.timesheet_rule_group || []))];
         const [hierarchiesData, laborsData, ruleGroupsData] = await Promise.all([
             hierarchyIds.length ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
             laborIds.length ? IndustriesModel.findAll({ where: { id: laborIds }, attributes: ['id', 'name'] }) : [],
-            ruleGroupIds.length
-                ? TimesheetExpenseRuleGroup.findAll({
-                    where: { id: ruleGroupIds },
-                    attributes: ['id', 'rule_group_name'],
-                })
-                : [],
-        ]);
+            ruleGroupIds.length? TimesheetExpenseRuleGroup.findAll({where: { id: ruleGroupIds }, attributes: ['id', 'rule_group_name'],}): [], ]);
         const data = {
             hierarchies: hierarchiesData.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
             labor_categories: laborsData.map(labor => ({ id: labor.id, name: labor.name })),
-            timesheet_rule_groups: ruleGroupsData.map(ruleGroup => ({
-                id: ruleGroup.id,
-                name: ruleGroup.rule_group_name,
-            })),
+            timesheet_rule_groups: ruleGroupsData.map(ruleGroup => ({id: ruleGroup.id,name: ruleGroup.rule_group_name,})),
         };
         reply.status(200).send({
             status_code: 200,
