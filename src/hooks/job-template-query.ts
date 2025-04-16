@@ -540,19 +540,30 @@ class JobTempletRepository {
                 WHERE job_template_dist_schedules.job_temp_id = job_templates.id
             ), JSON_ARRAY()) AS job_template_distribution_schedules,
             COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', job_template_master_data.id,
-                        'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
-                        'foundation_data_type_name', master_data_type.name,
-                        'foundation_data_id', JSON_EXTRACT(job_template_master_data.foundation_data_id, '$'),
-                        'is_read_only', job_template_master_data.is_read_only
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', job_template_master_data.id,
+            'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
+            'foundation_data_type_name', master_data_type.name,
+            'foundation_data_id', COALESCE((
+                SELECT JSON_ARRAYAGG(md.id)
+                FROM JSON_TABLE(
+                    job_template_master_data.foundation_data_id,
+                    '$[*]' COLUMNS (
+                        id CHAR(36) PATH '$'
                     )
-                )
-                FROM job_template_master_data
-                LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
-                WHERE job_template_master_data.job_temp_id = job_templates.id
-            ), JSON_ARRAY()) AS job_master_data
+                ) AS jt
+                JOIN master_data md ON md.id = jt.id
+                WHERE md.is_enabled = true
+            ), JSON_ARRAY()),
+            'is_read_only', job_template_master_data.is_read_only
+        )
+    )
+    FROM job_template_master_data
+    LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
+    WHERE job_template_master_data.job_temp_id = job_templates.id
+), JSON_ARRAY()) AS job_master_data
+
         FROM
             job_templates
         LEFT JOIN
