@@ -539,14 +539,19 @@ class JobTempletRepository {
                 FROM job_template_dist_schedules
                 WHERE job_template_dist_schedules.job_temp_id = job_templates.id
             ), JSON_ARRAY()) AS job_template_distribution_schedules,
-            COALESCE((
+COALESCE((
     SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
             'id', job_template_master_data.id,
             'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
             'foundation_data_type_name', master_data_type.name,
             'foundation_data_id', COALESCE((
-                SELECT JSON_ARRAYAGG(md.id)
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', md.id,
+                        'name', md.name
+                    )
+                )
                 FROM JSON_TABLE(
                     job_template_master_data.foundation_data_id,
                     '$[*]' COLUMNS (
@@ -560,9 +565,12 @@ class JobTempletRepository {
         )
     )
     FROM job_template_master_data
-    LEFT JOIN master_data_type ON job_template_master_data.foundation_data_type_id = master_data_type.id
+    LEFT JOIN master_data_type 
+        ON job_template_master_data.foundation_data_type_id = master_data_type.id
+       AND master_data_type.is_enabled = true
     WHERE job_template_master_data.job_temp_id = job_templates.id
 ), JSON_ARRAY()) AS job_master_data
+
 
         FROM
             job_templates
