@@ -1,44 +1,7 @@
 import { databaseConfig } from '../config/db';
 import { CandidateMatch, CandidateMatchScore } from '../interfaces/user.interface';
 import { PossibleDuplicateCandidate } from '../models/possible-duplicate-candidate.model';
-const AI_SERVICE_URL = databaseConfig.config.ai_url;
-
-// export async function uploadCandidateResume(
-//   candidateId: string ,
-//   vendorId: string,
-//   resumeUrl: string,
-//   authHeader: string,
-//   programId: string
-// ){
-//   try {
-//     const uploadResumeUrl = `${AI_SERVICE_URL}/upload-from-url`;
-
-//     const payload = {
-//       url: resumeUrl,
-//       candidate_id:candidateId,
-//       vendor_id: vendorId,
-//       program_id: programId
-//     };
-
-//    const response= await fetch(uploadResumeUrl, {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'Authorization': authHeader,
-//       },
-//       body: JSON.stringify(payload),
-//     });
-
-//     if (!response.ok) {
-//       console.error('Resume upload failed:',response);
-//     }
-//     console.log('Resume upload successful for candidate:', response);
-
-//   } catch (uploadError) {
-//     console.error('Error initiating resume upload service call:', uploadError);
-//   }
-// }
-
+const AI_SERVICE_URL = databaseConfig.config.ai_url 
 
 export async function uploadCandidateResume(
   candidateId: string,
@@ -101,6 +64,7 @@ export async function searchSimilarProfiles(
   maxRetries = 3,
   delayMs = 1000
 ) {
+  console.log("*****************************")
   console.log("Searching for similar profiles...");
   console.log("Candidate ID:", candidateId);
   console.log("userId", userId);
