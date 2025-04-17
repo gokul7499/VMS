@@ -22,7 +22,7 @@ class User extends Model {
   work_locations: any;
   user_type: string | undefined;
   foundational_data: any;
-  user_id: unknown;
+  user_id: any;
   is_all_hierarchy_associate: any;
   ast_name: string | undefined;
   first_name: string | undefined;
