@@ -22,7 +22,6 @@ const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 let TEAI_BASE_URL = databaseConfig.config.teai_url
 
-
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -1598,7 +1597,7 @@ export const imporsonateLevel = async (
 
 
                     const allApproved = updatedRecipientTypes.every(
-                        (recipient: any) => recipient.status === "approved"
+                        (recipient: any) => recipient.status === "approved" || recipient.status === "reviewed" 
                     );
 
                     return {
@@ -3475,7 +3474,6 @@ l.placement_order ASC;`;
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-            console.log(recipient_type_id);
 
             let manager = row?.manager
             // Initialize workflow for the job if not already initialized
@@ -4698,7 +4696,7 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
     } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
         return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
-        console.log(`Event code not found for event: ${event}`);
+        throw new Error(`Event code not found for event: ${event}`);
     }
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
@@ -5012,7 +5010,6 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log('Workflow result', rows?.length);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
@@ -5223,6 +5220,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
             const { level_id, level_status, recipient_status, recipient_details,
                   placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
                   existing_replaced_user, imporsonate_by } = row;
+                  console.log("rowsssssssssssssss", row);
+                  
             
             if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
                 return; // Skip rows without metadata or recipient type
@@ -5258,12 +5257,19 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                     
                     if (userId) {
-                        const [userResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
+                        const [userResult, replacedUserResult] = await Promise.all([
                             fetchUser(userId),
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+                        ]);
+                        const [imporsonateUserResult] = await Promise.all([
+                            fetchUser(userId),
+                           
                             imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
                         ]);
-                        
+                        console.log("shree", userResult);
+                        console.log("shivam", replacedUserResult);
+                        console.log("imporsonateUserResultasdfghjkl", imporsonate_by);
+                        console.log("imporsonateUserResultasdfghjkl", imporsonateUserResult);
                         if (userResult) {
                             input_value = {
                                 id: userResult.user_id,
@@ -5279,6 +5285,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             };
                             
                             if (replacedUserResult) {
+                                console.log("ssssssssssssssss");
+                                
                                 replaced_user_data = {
                                     id: replacedUserResult.user_id,
                                     first_name: replacedUserResult.first_name,
@@ -5293,6 +5301,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             }
                             
                             if (imporsonateUserResult) {
+                                console.log("saiiiiiiiiiiiiiiii");
+                                
                                 imposonate_user_data = {
                                     id: imporsonateUserResult.user_id,
                                     first_name: imporsonateUserResult.first_name,
@@ -5304,6 +5314,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     recipient_type: recipientType.name || '',
                                     behaviour,
                                 };
+                                console.log("atolesdfghjk", imposonate_user_data);
+                                
                             }
                         }
                     }
@@ -5326,6 +5338,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
                             imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
                         ]);
+                        console.log("");
                         
                         if (supervisorResult) {
                             const supervisorData = {
@@ -5466,8 +5479,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             
                             const user = await fetchUser(userId);
                             
-                            if (user) {
-                                const userData: any = {
+                            if (user) {                             
+                                const userData: any = {                              
                                     id: user.user_id,
                                     first_name: user.first_name,
                                     last_name: user.last_name,
