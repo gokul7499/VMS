@@ -11,6 +11,7 @@ jest.mock('../config/db', () => ({
     },
     initializeDatabase: jest.fn()
   }));
+
   
 jest.mock('../models/possible-duplicate-candidate.model', () => ({
   PossibleDuplicateCandidate: {
@@ -19,12 +20,12 @@ jest.mock('../models/possible-duplicate-candidate.model', () => ({
 }));
 
 describe('searchSimilarProfiles', () => {
-  const candidateId = '123';
-  const vendorId = 'V456';
-  const resumeText = '09999';
+  const candidateId = '6547e46c-23c0-467a-8e36-e37e811100ff';
+  const vendorId = '0daebadc-3ac3-4727-93a2-5ac99f2973d5';
+  const resumeText = 'https://imageuploadv4.s3.us-east-1.amazonaws.com/image/1234/Kirtigirme%20Resume.pdf';
   const authHeader = 'Bearer token';
-  const programId = 'Program001';
-  const userId = 'UserXYZ';
+  const programId = '3d8c2ef5-97cc-4876-a3d3-3b7362bda689';
+  const userId = '6547e46c-23c0-467a-8e36-e37e811100ff';
 
   const mockApiResponse = {
     success: true,
@@ -34,7 +35,7 @@ describe('searchSimilarProfiles', () => {
       vendor_search: true,
       matches: [
         {
-          candidate_id: '789',
+          candidate_id: candidateId,
           vendor_id: vendorId,
           similarity_score: 0.85,
         },
@@ -60,10 +61,10 @@ describe('searchSimilarProfiles', () => {
     expect(mockCreate).toHaveBeenCalledWith({
       candidate_id: candidateId,
       vendor_id: vendorId,
-      matching_profile: ['789'],
+      matching_profile: ['6547e46c-23c0-467a-8e36-e37e811100ff'],
       candidate_matching_score: [
         {
-          candidate_id: '789',
+          candidate_id: candidateId,
           vendor_id: vendorId,
           score: 0.85,
         },
