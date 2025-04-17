@@ -1,4 +1,5 @@
 export interface UserInterface {
+  resume_url: any;
   id: unknown;
   vendor_id: any;
   program_id?: string;
@@ -59,3 +60,16 @@ export interface UserInterface {
   associate_job_type?:any;
   date_format?:string
 }
+
+export interface CandidateMatch {
+  similarity_score: any;
+  vendor_id: any;
+  candidate_id: string;
+}
+
+export interface CandidateMatchScore {
+  candidate_id: string;
+  vendor_id: string;
+  score: number;
+}
+
