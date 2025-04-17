@@ -1728,8 +1728,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
       GROUP BY
         timesheet_type_config.id
-      ORDER BY
-        timesheet_type_config.id ASC
+       ORDER BY timesheet_type_config.created_on DESC
       LIMIT :limit
       OFFSET :offset;
   `;

@@ -404,8 +404,8 @@ export async function timesheetTypeConfigFilter(
           ? 0
           : undefined;
 
-      const pageNumber = parseInt(page ?? '1', 10);
-      const limitNumber = parseInt(limit ?? '10', 10);
+      const pageNumber = parseInt(page ?? '1');
+      const limitNumber = parseInt(limit ?? '10');
       const offset = (pageNumber - 1) * limitNumber;
 
       const query = timesheetConfigAdvancedFilter(
