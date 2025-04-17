@@ -73,6 +73,7 @@ import checklistRoutes from "./checklist.routes";
 import contactUsRoutes from './contactUs.route';
 import leaveTypeRoutes from "./leave-type.route";
 import sowTemplateRoutes from "./sow_template.route";
+import mtpRoutes from "./mtp.routes";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -149,4 +150,5 @@ export default async function (app: FastifyInstance) {
   app.register(contactUsRoutes, { prefix: `${basePrefix}` });
   app.register(leaveTypeRoutes, { prefix: `${basePrefix}` });
   app.register(sowTemplateRoutes, { prefix: `${basePrefix}` });
+  app.register(mtpRoutes, { prefix: `${basePrefix}` });
 }

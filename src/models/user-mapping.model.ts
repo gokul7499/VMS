@@ -94,7 +94,7 @@ UserMapping.init({
 }, {
     sequelize,
     tableName: 'user_mappings',
-    timestamps: true,
+    timestamps: false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);
