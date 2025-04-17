@@ -312,18 +312,17 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (program_id) {
             const reasonCodes = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id, program_id },
+                where: { reason_code_id: id, program_id ,is_deleted:false},
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id, program_id: null },
+                    where: { reason_code_id: id, program_id: null,is_deleted:false },
                     attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                     transaction,
                 });
-
                 if (reasonCodesWithoutProgram.length > 0) {
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
                         where: {
