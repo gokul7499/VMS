@@ -1034,7 +1034,7 @@ export const getShiftTypesByHierarchiesQuery = `
     AND
         st.program_id = :program_id
 `;
- 
+
 
 export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -2385,9 +2385,15 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-    ? `AND (${hierarchy_id
+    ? `AND (
+            u.is_all_hierarchy_associate = true 
+            OR (
+              u.is_all_hierarchy_associate = false 
+              AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-      .join(' OR ')})`
+      .join(' OR ')})
+            )
+          )`
     : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id
 )
