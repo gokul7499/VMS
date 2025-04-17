@@ -186,6 +186,8 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
       pv.program_id = :program_id
       AND vcd.is_enabled = true 
+      AND vcd.program_id = :program_id
+      AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
       AND (pv.id IS NULL OR pv.id = :vendor_id)
       AND (:name IS NULL OR vcd.name LIKE :name)
       AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
