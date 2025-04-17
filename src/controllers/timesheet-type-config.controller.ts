@@ -132,7 +132,7 @@ export const getAllTimesheetTypeConfigs = async (
             LEFT JOIN timesheet_expense_rule_groups terg_timesheet ON ttc.timesheet_rule_group = terg_timesheet.id
             WHERE ttc.is_deleted = false
             AND (ttc.program_id = ? OR ? IS NULL)
-            ORDER BY ttc.created_on DESC
+            ORDER BY ttc.updated_on DESC
             LIMIT ? OFFSET ?`,
             { replacements: [program_id, program_id, pageSize, offset], type: QueryTypes.SELECT }
         );
@@ -404,8 +404,8 @@ export async function timesheetTypeConfigFilter(
           ? 0
           : undefined;
 
-      const pageNumber = parseInt(page ?? '1', 10);
-      const limitNumber = parseInt(limit ?? '10', 10);
+      const pageNumber = parseInt(page ?? '1');
+      const limitNumber = parseInt(limit ?? '10');
       const offset = (pageNumber - 1) * limitNumber;
 
       const query = timesheetConfigAdvancedFilter(
