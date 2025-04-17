@@ -442,7 +442,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (reasonCodeAction) {
             const reasonCodes  = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id },
+                where: { reason_code_id: id ,is_deleted:false},
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });     
@@ -917,13 +917,12 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             return {
                 ...reasoncodeWithoutReason,
                 reasons_count: enabledReasonsCount,
-                module_name: module?.name || 'Unknown Module',
-                module_id: module?.id || 'Unknown id',
-                event_name: supporting_text_event?.name || 'Unknown Event',
-                event_id: supporting_text_event?.id || 'Unknown id',
+                module_name: module?.name  ,
+                module_id: module?.id ,
+                event_name: supporting_text_event?.name ,
+                event_id: supporting_text_event?.id ,
             };
         });
-
         reply.status(200).send({
             status_code: 200,
             message: reasoncodesWithDetails.length
