@@ -186,6 +186,8 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
       pv.program_id = :program_id
       AND vcd.is_enabled = true 
+      AND vcd.program_id = :program_id
+      AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
       AND (pv.id IS NULL OR pv.id = :vendor_id)
       AND (:name IS NULL OR vcd.name LIKE :name)
       AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
@@ -519,7 +521,6 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
-    AND h.is_enabled = true
   UNION ALL
 
   SELECT
@@ -542,7 +543,7 @@ WITH RECURSIVE hierarchy_cte AS (
     h.is_vendor_neutral_program
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
-  WHERE h.is_deleted = false AND h.is_enabled = true
+  WHERE h.is_deleted = false
 )
 SELECT *
 FROM hierarchy_cte;
@@ -1034,7 +1035,7 @@ export const getShiftTypesByHierarchiesQuery = `
     AND
         st.program_id = :program_id
 `;
- 
+
 
 export const rateTypeConfigQuery = (hierarchyIdCount: number, jobTemplateIdCount: number) => {
   let hierarchyIdCondition = hierarchyIdCount > 0
@@ -2384,9 +2385,15 @@ WITH user_data AS (
     ${email ? 'AND u.email = :email' : ''}
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
-    ? `AND (${hierarchy_id
+    ? `AND (
+            u.is_all_hierarchy_associate = true 
+            OR (
+              u.is_all_hierarchy_associate = false 
+              AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
-      .join(' OR ')})`
+      .join(' OR ')})
+            )
+          )`
     : ''}
   GROUP BY u.id, dh.id, dwl.id, c.id, t.id
 )

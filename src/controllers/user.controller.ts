@@ -17,6 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
+import  {uploadCandidateResume, searchSimilarProfiles} from "../utility/create-candidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -317,9 +318,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      const candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      let candidateId = await CandidateCodeGenerate(vendor_id, program_id);
 
-      await candidateModel.create({
+    const candidateData=  await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
         candidate_id: candidateId,
@@ -328,6 +329,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         created_by: userId,
         updated_by: userId,
       }, { transaction });
+       candidateId =candidateData.user_id
+      createCandidateInAi(user, candidateId , vendor_id, authHeader, program_id,userId);
+    
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
@@ -414,6 +418,14 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       trace_id: traceId,
     });
   }
+}
+
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string) {
+  const resumeText = user.resume_url;
+
+  uploadCandidateResume(candidateId, vendor_id, resumeText, authHeader, program_id);
+
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader,program_id, userId);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -566,7 +578,6 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
   const { program_id } = request.params as { program_id: string };
   const {
     user_id,
-    info_level,
     user_type,
     first_name,
     is_activated,
@@ -579,7 +590,6 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
     limit = '10',
   } = request.query as {
     user_id?: string;
-    info_level?: string;
     user_type?: string;
     first_name?: string;
     is_activated?: boolean;
@@ -624,14 +634,12 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
     ) as any[];
 
     for (const user of users) {
-
       const masterData = await sequelize.query(getMasterData, {
         replacements: { user_id: user.user_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
     }
-
 
     const total_count = users.length > 0 ? users[0].total_count : 0;
 
