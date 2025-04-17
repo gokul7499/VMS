@@ -566,7 +566,6 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
   const { program_id } = request.params as { program_id: string };
   const {
     user_id,
-    info_level,
     user_type,
     first_name,
     is_activated,
@@ -579,7 +578,6 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
     limit = '10',
   } = request.query as {
     user_id?: string;
-    info_level?: string;
     user_type?: string;
     first_name?: string;
     is_activated?: boolean;
@@ -624,14 +622,12 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
     ) as any[];
 
     for (const user of users) {
-
       const masterData = await sequelize.query(getMasterData, {
         replacements: { user_id: user.user_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
     }
-
 
     const total_count = users.length > 0 ? users[0].total_count : 0;
 
