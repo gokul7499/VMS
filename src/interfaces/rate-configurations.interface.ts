@@ -165,6 +165,7 @@ export interface Expense {
 }
 
 export interface BaseRate {
+    seq_number: any;
     id: string;
     rate_configuration_id: string;
     rate_type?: {

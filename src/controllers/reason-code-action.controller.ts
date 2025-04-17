@@ -312,18 +312,17 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (program_id) {
             const reasonCodes = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id, program_id },
+                where: { reason_code_id: id, program_id ,is_deleted:false},
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id, program_id: null },
+                    where: { reason_code_id: id, program_id: null,is_deleted:false },
                     attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                     transaction,
                 });
-
                 if (reasonCodesWithoutProgram.length > 0) {
                     const reasonCodeAction = await ReasonCodeActionModel.findOne({
                         where: {
@@ -349,7 +348,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
                     reasonCodeResponse = {
                         id: reasonCodesWithoutProgram[0]?.id,
-                        module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+                        module_name: reasonCodeAction?.module?.name,
                         module_id: reasonCodeAction?.module?.id,
                         event_name: reasonCodeAction?.supporting_text_event?.name,
                         event_id: reasonCodeAction?.supporting_text_event?.id,
@@ -395,7 +394,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
                 reasonCodeResponse = {
                     id: reasonCodes[0]?.id,
-                    module_name: reasonCodeAction?.module?.name || 'Unknown Module',
+                    module_name: reasonCodeAction?.module?.name,
                     module_id: reasonCodeAction?.module?.id,
                     event_name: reasonCodeAction?.supporting_text_event?.name,
                     event_id: reasonCodeAction?.supporting_text_event?.id,
@@ -442,7 +441,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (reasonCodeAction) {
             const reasonCodes  = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id },
+                where: { reason_code_id: id ,is_deleted:false},
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 transaction,
             });     
@@ -450,10 +449,10 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
             reasonCodeResponse = {
                 id: reasonCodeAction.id,
-                module_name: module?.name || 'Unknown Module',
-                module_id: module?.id || 'Unknown ID',
-                event_name: supporting_text_event?.name || 'Unknown Event',
-                event_id: supporting_text_event?.id || 'Unknown ID',
+                module_name: module?.name ,
+                module_id: module?.id ,
+                event_name: supporting_text_event?.name,
+                event_id: supporting_text_event?.id,
                 reason_codes: reasonCodes || [],
             };
 
@@ -857,8 +856,8 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             updated_on?: string[];
         };
 
-        const pageNumber = Number(page);
-        const limitNumber = Number(limit);
+        const pageNumber = parseInt(String(page), 10) || 1;
+        const limitNumber = parseInt(String(limit), 10) || 10;
         const offset = (pageNumber - 1) * limitNumber;
 
         const whereClause: any = {
@@ -905,8 +904,9 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
                 [{ model: Module, as: 'module' }, 'name', 'ASC'],
                 ['updated_on', 'DESC'],
             ],
-            limit: limitNumber,
             offset,
+            limit: limitNumber,
+            distinct: true,
         });
 
         const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
@@ -916,13 +916,12 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             return {
                 ...reasoncodeWithoutReason,
                 reasons_count: enabledReasonsCount,
-                module_name: module?.name || 'Unknown Module',
-                module_id: module?.id || 'Unknown id',
-                event_name: supporting_text_event?.name || 'Unknown Event',
-                event_id: supporting_text_event?.id || 'Unknown id',
+                module_name: module?.name  ,
+                module_id: module?.id ,
+                event_name: supporting_text_event?.name ,
+                event_id: supporting_text_event?.id ,
             };
         });
-
         reply.status(200).send({
             status_code: 200,
             message: reasoncodesWithDetails.length
