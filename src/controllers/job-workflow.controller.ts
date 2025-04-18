@@ -5220,7 +5220,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
             const { level_id, level_status, recipient_status, recipient_details,
                   placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
                   existing_replaced_user, imporsonate_by } = row;
-                  console.log("rowsssssssssssssss", row);
+            
                   
             
             if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
@@ -5266,10 +5266,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                            
                             imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
                         ]);
-                        console.log("shree", userResult);
-                        console.log("shivam", replacedUserResult);
-                        console.log("imporsonateUserResultasdfghjkl", imporsonate_by);
-                        console.log("imporsonateUserResultasdfghjkl", imporsonateUserResult);
+                     
                         if (userResult) {
                             input_value = {
                                 id: userResult.user_id,
@@ -5285,7 +5282,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             };
                             
                             if (replacedUserResult) {
-                                console.log("ssssssssssssssss");
                                 
                                 replaced_user_data = {
                                     id: replacedUserResult.user_id,
@@ -5301,7 +5297,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             }
                             
                             if (imporsonateUserResult) {
-                                console.log("saiiiiiiiiiiiiiiii");
                                 
                                 imposonate_user_data = {
                                     id: imporsonateUserResult.user_id,
@@ -5314,7 +5309,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     recipient_type: recipientType.name || '',
                                     behaviour,
                                 };
-                                console.log("atolesdfghjk", imposonate_user_data);
                                 
                             }
                         }
@@ -5338,7 +5332,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
                             imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
                         ]);
-                        console.log("");
                         
                         if (supervisorResult) {
                             const supervisorData = {
