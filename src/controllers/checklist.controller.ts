@@ -319,7 +319,7 @@ export async function deleteCheckList(
         }
 
         await Checklist.update(
-            { is_deleted: true,updated_by:userId, updated_on: new Date() },
+            { is_deleted: true, updated_by:userId, updated_on: BigInt(Date.now()) },
             { where: { entity_id } }
         );
 
@@ -536,7 +536,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
         }
 
         await Checklist.update(
-            { is_enabled,  updated_on: new Date() },
+            { is_enabled,  updated_on: BigInt(Date.now()) },
             { where: { program_id, entity_id, latest: true, is_deleted: false } }
         );
 
