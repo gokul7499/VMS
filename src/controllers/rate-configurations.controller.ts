@@ -1365,22 +1365,23 @@ function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, 
     return rates.map((rate) => {
 
         let differential_value
-        if (ot_exempt == true && rateTypeCategory === "other") {
+        if (ot_exempt && rateTypeCategory === "other") {
             differential_value = rate.differential_value;
-        }
-        else if (ot_exempt == true && rateTypeCategory === "shift") {
+        } else if (ot_exempt && rateTypeCategory === "shift") {
             differential_value = rate.differential_value;
+        } else if (rate.differential_type === "Factor Differential") {
+            differential_value = ot_exempt ? 1 : rate.differential_value;
         } else {
-            differential_value = ot_exempt == true ? 1 : rate.differential_value;
+            differential_value = ot_exempt ? 0 : rate.differential_value;
         }
 
         const min_rate = rate.differential_type === "Factor Differential"
             ? Number(baseRateMin) * differential_value
-            : baseRateMin + differential_value;
+            : Number(baseRateMin) + differential_value;
 
         const max_rate = rate.differential_type === "Factor Differential"
             ? Number(baseRateMax) * differential_value
-            : baseRateMax + differential_value;
+            : Number(baseRateMax) + differential_value;
 
         return {
             ...rate,
