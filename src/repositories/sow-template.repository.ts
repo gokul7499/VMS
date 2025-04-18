@@ -77,7 +77,7 @@ export const getSowTemplateByIdQuery = `
             'id', p.id,
             'label', p.label
         )
-        FROM dev_vms_configurator.picklistitems p
+        FROM picklistitems p
         WHERE p.id = t.type
         LIMIT 1
     ), NULL) AS picklist_items

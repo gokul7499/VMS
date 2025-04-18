@@ -541,6 +541,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         is_talent_pool,
         job_id,
         vendor_name,
+        updated_on,
         ...filters
     } = request.query as any;
 
@@ -561,7 +562,9 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             last_name: last_name ? `%${last_name}%` : undefined,
             title: title ? `%${title}%` : undefined,
             is_active: is_active !== undefined ? is_active === 'true' : undefined,
-            worker_type_id: workerTypeIds
+            worker_type_id: workerTypeIds,
+            availability_date: availability_date ? parseInt(availability_date, 10) : undefined,
+            updated_on: updated_on ? updated_on : undefined
         };
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
 
