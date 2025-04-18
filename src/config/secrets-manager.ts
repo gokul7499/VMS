@@ -29,7 +29,8 @@ export const getSecretsManager = async () => {
             keycloak_client_id: process.env.KC_CLIENT_ID,
             keycloak_client_secret: process.env.KC_CLIENT_SECRET,
             keycloak_realm: process.env.KC_REALM,
-            app_origin: process.env.KC_URL
+            app_origin: process.env.KC_URL,
+            ai_url: process.env.AI_URL,
         };
     }
 
@@ -60,7 +61,8 @@ export const getSecretsManager = async () => {
                 app_origin: secret.KC_URL,
                 keycloak_client_id: secret.KC_CLIENT_ID,
                 keycloak_client_secret: secret.KC_CLIENT_SECRET,
-                keycloak_realm: secret.KC_REALM
+                keycloak_realm: secret.KC_REALM,
+                ai_url:secret.AI_URL
             };
         } else {
             throw new Error("Secret is in an invalid format (no SecretString found)");

@@ -862,8 +862,8 @@ export const getVendorDocuments = async (
             return sequelize.query<{ id: any }>(
                 `SELECT pv.id
                 FROM user u
-                JOIN program_vendors pv ON u.tenant_id = pv.tenant_id
-                WHERE u.user_id = :user_id AND u.program_id = :program_id AND pv.program_id = :program_id`,
+                JOIN program_vendors pv ON u.tenant_id = pv.tenant_id AND pv.program_id = :program_id
+                WHERE u.user_id = :user_id AND u.program_id = :program_id`,
                 {
                     replacements: { user_id, program_id },
                     type: QueryTypes.SELECT,

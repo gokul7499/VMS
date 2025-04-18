@@ -264,6 +264,116 @@ export const updateWorkflowStatus = async (
 
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
+            const bypass_duplicate_approver = workflow.config?.bypass_duplicate_approver ?? false;
+            const isSuperUser = user.userType === "super_user";
+
+            if (bypass_duplicate_approver === true) {
+                workflow.levels = workflow.levels.map((level: any) => {
+ 
+                    level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
+                        updatedLevels = true;
+                        levelFound = true
+                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                        const commonFields = {
+                            ...recipient,
+                            impersonate_by: impersonator_id,
+                            updated_on: Date.now(),
+                            actor_first_name: userData.first_name,
+                            actor_last_name: userData.last_name,
+                            actor_by_avtar: userData.avatar,
+                        };
+ 
+                        if (isSuperUser && level.placement_order === placement_order) {
+                            const updatedRecipient = {
+                                ...recipient,
+                                impersonate_by: impersonator_id,
+                                updated_on: Date.now(),
+                                actor_first_name: userData.first_name,
+                                actor_last_name: userData.last_name,
+                                actor_by_avtar: userData.avatar,
+                                status: new_status,
+                            };
+                            return updatedRecipient;
+                        }
+                        let updatedRecipient = recipient;
+
+                        if (recipient.behaviour?.toLowerCase() === 'any') {
+                            if (level.placement_order === placement_order) {
+                                if (matchesUser) {
+                                    updatedRecipient = {
+                                        ...commonFields,
+                                        status: 'reviewed',
+                                    };
+                                }
+                                else {
+                                    updatedRecipient = {
+                                        ...updatedRecipient,
+                                        status: 'Not needed',
+                                    };
+                                }
+                            }
+                        } else if (recipient.behaviour?.toLowerCase() === 'all') {
+                            if (level.placement_order === placement_order) {
+                                if (matchesUser) {
+                                    updatedRecipient = {
+                                        ...commonFields,
+                                        status: 'reviewed',
+                                    };
+                                }
+                                else {
+                                    updatedRecipient = {
+                                        ...updatedRecipient,
+                                        status: commonFields?.status,
+                                    };
+                                }
+                            }
+                        }
+                        else if (!recipient.behaviour) {
+                            if (level.placement_order === placement_order) {
+                                if (matchesUser) {
+                                    updatedRecipient = {
+                                        ...commonFields,
+                                        status: 'bypassed',
+                                    };
+                                } else {
+                                    updatedRecipient = {
+                                        status: commonFields?.status,
+                                    };
+                                }
+ 
+                            } else {
+                                if (level.recipient_types.length == 1) {
+                                    if (!commonFields.behaviour && matchesUser) {
+                                        updatedRecipient = {
+                                            ...commonFields,
+                                            status: matchesUser ? 'bypassed' : commonFields?.status,
+                                        };
+                                    }
+                                }
+ 
+                            }
+                        }
+                        return updatedRecipient;
+                    });
+ 
+                    const anyBypassed = level.recipient_types.some(
+                        (recipient: any) => recipient.status === 'bypassed'
+                    );
+                    if (anyBypassed) {
+                        level.status = 'bypassed';
+                    } else {
+                        const allApproved = level.recipient_types.every(
+                            (recipient: any) =>
+                                recipient.status === 'reviewed' ||
+                                recipient.status === 'Not needed' ||
+                                recipient.status === 'bypassed'
+                        );
+                        level.status = allApproved ? 'completed' : 'pending';
+                    }
+                    return level;
+                });
+ 
+            }
 
             levels = await Promise.all(
                 levels.map(async (level: any) => {
@@ -5244,7 +5354,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Multiple users':
                 case 'Job Manager':
                 case 'Assignment Manager':
-                case 'Timesheet Managers': {
+                case 'Timesheet Managers': 
+                case 'Manager of':{
                     const input_values = Object.values(meta_data);
                     let userId: string | undefined;
                     

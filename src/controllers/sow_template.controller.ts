@@ -112,7 +112,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         if (type) {
             whereClause += ` AND EXISTS (
                 SELECT 1 
-                FROM dev_vms_configurator.picklistitems p
+                FROM picklistitems p
                 WHERE p.id = t.type 
                 AND p.id = :type 
             )`;

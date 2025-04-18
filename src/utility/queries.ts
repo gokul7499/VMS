@@ -186,6 +186,8 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
       pv.program_id = :program_id
       AND vcd.is_enabled = true 
+      AND vcd.program_id = :program_id
+      AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
       AND (pv.id IS NULL OR pv.id = :vendor_id)
       AND (:name IS NULL OR vcd.name LIKE :name)
       AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
@@ -1727,8 +1729,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
       GROUP BY
         timesheet_type_config.id
-      ORDER BY
-        timesheet_type_config.id ASC
+       ORDER BY timesheet_type_config.updated_on DESC
       LIMIT :limit
       OFFSET :offset;
   `;
