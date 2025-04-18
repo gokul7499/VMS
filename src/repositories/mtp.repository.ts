@@ -30,11 +30,10 @@ class MtpRepository {
                where program_id=:program_id
             `;
     
-        const data = await sequelize.query(query, {
+          const data = await sequelize.query(query, {
           replacements: { program_id:programId },
           type: QueryTypes.SELECT,
         });
-    
         return data;
       }
   

@@ -4,11 +4,8 @@ import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
-import { sequelize } from "../config/instance";
-import { QueryTypes } from "sequelize";
 import MtpRepository from "../repositories/mtp.repository";
 const mtpRepository = new MtpRepository()
-
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();

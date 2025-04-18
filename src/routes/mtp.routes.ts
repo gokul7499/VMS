@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import * as mtpController from '../controllers/mtp.controller';
 
 async function mtpRoutes(fastify: FastifyInstance) {
-
     fastify.post('/program/:program_id/mtp', {
     }, mtpController.createMtp);
 

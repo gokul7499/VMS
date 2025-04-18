@@ -3,6 +3,7 @@ import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import MtpRepository from "../repositories/mtp.repository";
 const mtpRepositories = new MtpRepository();
+
 class MtpModel extends Model {
     mtp_id: any;
     program_id: any;
