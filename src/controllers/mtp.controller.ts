@@ -16,10 +16,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const user = request.user;
 
         if (!user) {
-            return reply.status(400).send({
-                status_code: 400,
-                message: 'User is required.',
-            });
+            console.log("User not found in request.");
         }
 
         const userId = user.sub;
@@ -109,14 +106,52 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
 export async function getAllMtp(
     request: FastifyRequest,
     reply: FastifyReply
+  ) {
+    const { program_id: programId } = request.params as { program_id: string };
+    const { page = 1, limit = 10 } = request.query as { page?: number; limit?: number };
+    const traceId = generateCustomUUID();
+  
+    try {
+      const offset = (Number(page) - 1) * Number(limit);
+      const { data: mtpData, count } = await mtpRepository.getAllMtpData(programId, Number(limit), offset);
+  
+      return reply.code(200).send({
+        status_code: 200,
+        message: mtpData.length > 0 
+        ? "Mtp data fetched successfully."
+         : "No matching records found.",
+        mtp_data: mtpData,
+        pagination: {
+          page: page,
+          limit: limit,
+          total_count: count,
+          total_pages: Math.ceil(count / Number(limit)),
+        },
+        trace_id: traceId,
+      });
+    } catch (error: any) {
+      return reply.code(500).send({
+        status_code: 500,
+        message: "Internal Server Error",
+        trace_id: traceId,
+        error: error.message,
+      });
+    }
+  }
+  
+
+export async function getMtpById(
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-    const { program_id:programId } = request.params as { program_id: string };
+    const { program_id:programId,id } = request.params as { program_id: string,id: string };
+    console.log("Params:", programId, id);
     const traceId = generateCustomUUID();
     
     try {
 
-        const mtpData = await mtpRepository.getAllMtpData(programId)
+        const mtpData = await mtpRepository.getMtpById(programId,id)
 
         if (mtpData && mtpData.length > 0) {
             return reply.code(200).send({

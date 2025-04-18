@@ -24,20 +24,29 @@ class MtpRepository {
       }
 
 
-      async getAllMtpData(programId: string): Promise<{
-      }[]> {
+      async getAllMtpData(
+        programId: string,
+        limit: number,
+        offset: number
+      ): Promise<{ data: any[]; count: number }> {
         const query = `
-               Select *
-               from mtp
-               where program_id=:program_id
-            `;
-    
-          const data = await sequelize.query(query, {
-          replacements: { program_id:programId },
+          SELECT *, COUNT(*) OVER() AS total_count
+          FROM mtp
+          WHERE program_id = :program_id
+          GROUP BY mtp.id
+          LIMIT :limit OFFSET :offset
+        `;
+      
+        const data = await sequelize.query(query, {
+          replacements: { program_id: programId, limit, offset },
           type: QueryTypes.SELECT,
         });
-        return data;
+      
+        const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
+      
+        return { data, count };
       }
+      
       async getPossibleDuplicateCandidate(programId: any, candidateId: any): Promise<any> {
         console.log("programId", programId)
         console.log("candidateId", candidateId)
@@ -61,6 +70,42 @@ class MtpRepository {
         });
         return result;
     }
+
+
+    async getMtpById(programId: any, id: any): Promise<any> {
+      console.log("programId", programId)
+      console.log("candidateId", id)
+      const query = `
+  SELECT 
+    m.id,
+    m.talent_name,
+    m.updated_on,
+JSON_ARRAYAGG(JSON_OBJECT(
+          'program_id', c.program_id,
+          'vendor_id', c.vendor_id,
+          'candidate_id', c.candidate_id,
+          'birth_date', c.birth_date,
+          'address', c.addresses,
+          'email', c.email,
+          'contacts', c.contacts
+        )) AS linked_profiles
+  FROM 
+    mtp m
+  JOIN 
+    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.user_id), '$')
+  WHERE 
+    m.program_id = :program_id
+    AND m.id = :id;
+`;
+
+         const result = await sequelize.query(query, {
+           replacements: { program_id: programId,id },
+           type: QueryTypes.SELECT,
+          raw: true,
+         });
+
+      return result;
+  }
     
   
   }

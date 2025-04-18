@@ -9,6 +9,10 @@ async function mtpRoutes(fastify: FastifyInstance) {
 
     fastify.get('/program/:program_id/mtp', {
     }, mtpController.getAllMtp);
+    
+    fastify.get('/program/:program_id/mtp/:id', {
+    }, mtpController.getMtpById);
+
 
 
 }
