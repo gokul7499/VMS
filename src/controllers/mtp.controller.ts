@@ -23,13 +23,10 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const candidateId = mtp.linked_profiles;
 
         const duplicateCandidate = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
-        console.log("duplicateCandidate", duplicateCandidate);
 
         let mtpData: any;
 
         if (duplicateCandidate?.length > 0 && duplicateCandidate[0]?.candidate_id) {
-            console.log("Duplicate candidate found. Skipping MTP creation.");
-        } else {
             logger({
                 trace_id: traceId,
                 actor: {
@@ -37,22 +34,39 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                     user_id: user.sub,
                 },
                 data: request.body,
-                eventname: "creating mtp",
-                status: "info",
-                description: "Attempting to create a new mtp record",
-                level: "info",
+                eventname: "create mtp",
+                status: "skipped",
+                description: `Duplicate candidate found. MTP creation skipped. Candidate ID: ${duplicateCandidate[0]?.candidate_id}`,
+                level: "warn",
                 action: request.method,
                 url: request.url,
                 is_deleted: false,
             }, MtpModel);
 
-            mtpData = await MtpModel.create({
-                ...mtp,
-                created_by: userId,
-                updatedby: userId,
-            });
-
+            return []
         }
+
+        logger({
+            trace_id: traceId,
+            actor: {
+                user_name: user.preferred_username,
+                user_id: user.sub,
+            },
+            data: request.body,
+            eventname: "creating mtp",
+            status: "info",
+            description: "Attempting to create a new mtp record",
+            level: "info",
+            action: request.method,
+            url: request.url,
+            is_deleted: false,
+        }, MtpModel);
+
+        mtpData = await MtpModel.create({
+            ...mtp,
+            created_by: userId,
+            updatedby: userId,
+        });
 
         logger({
             trace_id: traceId,
@@ -63,22 +77,12 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             data: request.body,
             eventname: "create mtp",
             status: "success",
-            description: mtpData
-                ? `MTP created successfully: ${mtpData.id}`
-                : "MTP creation skipped due to duplicate candidate.",
+            description: `MTP created successfully: ${mtpData.id}`,
             level: "success",
             action: request.method,
             url: request.url,
             is_deleted: false,
         }, MtpModel);
-
-        return reply.send({
-            status_code: mtpData ? 200 : 204,
-            message: mtpData ? "MTP created successfully" 
-            : "Duplicate candidate. MTP creation skipped.",
-            data: mtpData || null,
-            trace_id: traceId,
-        });
 
     } catch (error) {
         logger({
@@ -101,6 +105,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
+
 
 
 export async function getAllMtp(
