@@ -4,7 +4,8 @@ import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
-
+import MtpRepository from "../repositories/mtp.repository";
+const mtpRepository = new MtpRepository();
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -86,6 +87,43 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             message: "An error occurred while creating mtp",
             trace_id: traceId,
             error,
+        });
+    }
+}
+
+export async function getAllMtp(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+
+    const { program_id:programId } = request.params as { program_id: string };
+    const traceId = generateCustomUUID();
+    
+    try {
+
+        const mtpData = await mtpRepository.getAllMtpData(programId)
+
+        if (mtpData && mtpData.length > 0) {
+            return reply.code(200).send({
+                status_code: 200,
+                message: "Mtp data get successfully.",
+                mtp_data: mtpData,
+                trace_id: traceId
+            });
+        } else {
+            return reply.code(200).send({
+                status_code: 200,
+                message: "No matching records found.",
+                mtp_data: [],
+                trace_id: traceId
+            });
+        }
+    } catch (error: any) {
+        return reply.code(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            trace_id: traceId,
+            error: error.message
         });
     }
 }

@@ -1,6 +1,9 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 class MtpRepository {
+    static getAllMtpData(programId: string) {
+        throw new Error("Method not implemented.");
+    }
     async programQuery(program_id: string): Promise<{
         unique_id: string; name: string
       }[]> {
@@ -17,6 +20,22 @@ class MtpRepository {
           type: QueryTypes.SELECT,
         });
     
+        return data;
+      }
+
+
+      async getAllMtpData(programId: string): Promise<{
+      }[]> {
+        const query = `
+               Select *
+               from mtp
+               where program_id=:program_id
+            `;
+    
+          const data = await sequelize.query(query, {
+          replacements: { program_id:programId },
+          type: QueryTypes.SELECT,
+        });
         return data;
       }
   

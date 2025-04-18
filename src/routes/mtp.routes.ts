@@ -6,8 +6,9 @@ async function mtpRoutes(fastify: FastifyInstance) {
     fastify.post('/program/:program_id/mtp', {
     }, mtpController.createMtp);
 
-    // fastify.get('/program/:program_id/candidate', {
-    // }, mtpController.getAllMtp);
+    fastify.get('/program/:program_id/mtp', {
+    }, mtpController.getAllMtp);
+
 
 }
 
