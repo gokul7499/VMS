@@ -22,7 +22,6 @@ const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 let TEAI_BASE_URL = databaseConfig.config.teai_url
 
-
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
     reply: FastifyReply
@@ -1490,13 +1489,11 @@ export const updateReplaceLevel = async (
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
@@ -1508,10 +1505,8 @@ export const updateReplaceLevel = async (
             trace_id: traceId,
         });
     }
-
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1519,19 +1514,16 @@ export const updateReplaceLevel = async (
                 trace_id: traceId,
             });
         }
-
         let levels = workflow.levels || [];
         let levelFound = false;
-
         // Update the matching level
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
                 console.log(level.placement_order, placement_order);
-
                 levelFound = true;
-
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    if (recipient.replaced_by === user_id) {
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
@@ -1543,8 +1535,21 @@ export const updateReplaceLevel = async (
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
+                    }
+                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
+                        return {
+                            ...recipient,
+                            status: status,
+                            replaced_by,
+                            meta_data: {
+                                ...recipient.meta_data,
+                            },
+                            replaced_notes: notes,
+                            replaced_modified_on: Date.now()
+                        };
+                    }
+                    return recipient;
                 });
-
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
@@ -1552,7 +1557,6 @@ export const updateReplaceLevel = async (
             }
             return level;
         });
-
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1560,8 +1564,6 @@ export const updateReplaceLevel = async (
                 trace_id: traceId,
             });
         }
-
-        // Create workflow status history if user_id is provided
         if (user_id) {
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1573,10 +1575,7 @@ export const updateReplaceLevel = async (
                 user_id: user.sub,
             });
         }
-
-        // Update the workflow with the modified levels array
         await workflow.update({ levels, updated_on: Date.now() });
-
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -1584,7 +1583,6 @@ export const updateReplaceLevel = async (
         });
     } catch (error) {
         console.error("Error updating job workflow:", error);
-
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to update job workflow.",
@@ -1592,7 +1590,6 @@ export const updateReplaceLevel = async (
         });
     }
 };
-
 
 async function fetchUserById(user_id: any) {
     const userQuery = `
@@ -1708,7 +1705,7 @@ export const imporsonateLevel = async (
 
 
                     const allApproved = updatedRecipientTypes.every(
-                        (recipient: any) => recipient.status === "approved"
+                        (recipient: any) => recipient.status === "approved" || recipient.status === "reviewed" 
                     );
 
                     return {
@@ -3585,7 +3582,6 @@ l.placement_order ASC;`;
                 imporsonate_by,
                 job_workflow_id,
             } = row;
-            console.log(recipient_type_id);
 
             let manager = row?.manager
             // Initialize workflow for the job if not already initialized
@@ -4808,7 +4804,7 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
     } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
         return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
-        console.log(`Event code not found for event: ${event}`);
+        throw new Error(`Event code not found for event: ${event}`);
     }
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
@@ -5122,7 +5118,6 @@ ORDER BY
             },
             type: QueryTypes.SELECT,
         });
-        console.log('Workflow result', rows?.length);
 
         let programData = await sequelize.query(
             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
@@ -5334,6 +5329,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                   placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
                   existing_replaced_user, imporsonate_by } = row;
             
+                  
+            
             if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
                 return; // Skip rows without metadata or recipient type
             }
@@ -5369,12 +5366,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                     
                     if (userId) {
-                        const [userResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
+                        const [userResult, replacedUserResult] = await Promise.all([
                             fetchUser(userId),
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+                        ]);
+                        const [imporsonateUserResult] = await Promise.all([
+                            fetchUser(userId),
+                           
                             imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
                         ]);
-                        
+                     
                         if (userResult) {
                             input_value = {
                                 id: userResult.user_id,
@@ -5390,6 +5391,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             };
                             
                             if (replacedUserResult) {
+                                
                                 replaced_user_data = {
                                     id: replacedUserResult.user_id,
                                     first_name: replacedUserResult.first_name,
@@ -5404,6 +5406,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             }
                             
                             if (imporsonateUserResult) {
+                                
                                 imposonate_user_data = {
                                     id: imporsonateUserResult.user_id,
                                     first_name: imporsonateUserResult.first_name,
@@ -5415,6 +5418,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     recipient_type: recipientType.name || '',
                                     behaviour,
                                 };
+                                
                             }
                         }
                     }
@@ -5577,8 +5581,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             
                             const user = await fetchUser(userId);
                             
-                            if (user) {
-                                const userData: any = {
+                            if (user) {                             
+                                const userData: any = {                              
                                     id: user.user_id,
                                     first_name: user.first_name,
                                     last_name: user.last_name,
