@@ -807,7 +807,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         return reply.status(500).send({ message: 'Internal Server Error' });
     }
 }
-export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any , updates: any) {
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -836,7 +836,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             });
         } else if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
             const offer_id = workflow.workflow_trigger_id;
-            const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/offer/${offer_id}`;
             const payload = {
                 status: "Rejected",
             };
@@ -849,13 +849,14 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             });
         } else
             if (moduleType === "Submissions".toLowerCase()) {
-                const offer_id = workflow.workflow_trigger_id;
-                const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                const submission_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/submission-candidate/${submission_id}`;
                 const payload = {
                     status: "Rejected",
+                    update: updates
                 };
 
-                await axios.post(apiUrl, payload, {
+                await axios.put(apiUrl, payload, {
                     headers: {
                         'Content-Type': 'application/json',
                         authorization: authHeader
@@ -1460,7 +1461,7 @@ export const rejectLevel = async (
             user_type: eventCode.user_type
         }
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
+        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates)
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
