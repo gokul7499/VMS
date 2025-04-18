@@ -576,12 +576,19 @@ export const updateWorkflowStatus = async (
                 const level = levels[i];
 
                 // Skip this level if recipient_types is empty or any recipient has meta_data with null values
+                // const isValidLevel = level.recipient_types &&
+                //     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
+                //     level.recipient_types.every((recipient: any) => {
+                //         return recipient.meta_data !== null &&
+                //             Object.values(recipient.meta_data).every(value => value !== null);
+                //     });
                 const isValidLevel = level.recipient_types &&
-                    level.recipient_types.length > 0 && // Ensure recipient_types is not empty
-                    level.recipient_types.every((recipient: any) => {
-                        return recipient.meta_data !== null &&
-                            Object.values(recipient.meta_data).every(value => value !== null);
-                    });
+    level.recipient_types.length > 0 && 
+    level.recipient_types.every((recipient: any) => {
+        return recipient.meta_data !== null && recipient.meta_data !== undefined && 
+            Object.values(recipient.meta_data).every(value => value !== null);
+    });
+
 
                 if (!isValidLevel) {
                     continue;
