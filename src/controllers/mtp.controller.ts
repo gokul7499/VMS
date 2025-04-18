@@ -9,19 +9,28 @@ const mtpRepository = new MtpRepository();
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
+        const { program_id: programId } = request.params as { program_id: string };
+
         const mtp = request.body as MtpInterface;
-        console.log("mtp", mtp)
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
+        const user = request.user;
+
         if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+            return reply.status(400).send({ status_code: 400, message: 'user is requried.' });
+          }
+
         const userId = user?.sub;
+        const candidateId = mtp.linked_profiles;
+        
+        const duplicateCandidate = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
+
+        if (duplicateCandidate?.length > 0 && duplicateCandidate[0]?.candidate_id) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: 'Duplicate candidate found. MTP creation skipped.',
+                trace_id: traceId,
+            });
+        }
 
         logger({
             trace_id: traceId,
@@ -45,7 +54,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                 created_by: userId,
                 updatedby: userId
             });
-        console.log("mtpData", mtpData)
+
         reply.status(201).send({
             status_code: 201,
             message: "mtp created successfully",

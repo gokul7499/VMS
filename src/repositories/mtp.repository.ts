@@ -38,6 +38,30 @@ class MtpRepository {
         });
         return data;
       }
+      async getPossibleDuplicateCandidate(programId: any, candidateId: any): Promise<any> {
+        console.log("programId", programId)
+        console.log("candidateId", candidateId)
+        const query = `
+            SELECT 
+                MIN(pdc.candidate_id) AS candidate_id,
+                MIN(pdc.program_id) AS program_id
+            FROM 
+                candidates c
+            JOIN 
+                possible_duplicate_candidate pdc ON c.user_id = pdc.candidate_id
+            WHERE 
+                c.program_id = :program_id
+                AND c.user_id = :candidate_id;
+        `;
+    
+        const result = await sequelize.query(query, {
+            replacements: { program_id: programId, candidate_id: candidateId },
+            type: QueryTypes.SELECT,
+            raw: true,
+        });
+        return result;
+    }
+    
   
   }
 
