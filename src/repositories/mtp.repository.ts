@@ -20,6 +20,23 @@ class MtpRepository {
     
         return data;
       }
+
+
+      async getAllMtpData(programId: string): Promise<{
+      }[]> {
+        const query = `
+               Select *
+               from mtp
+               where program_id=:program_id
+            `;
+    
+        const data = await sequelize.query(query, {
+          replacements: { program_id:programId },
+          type: QueryTypes.SELECT,
+        });
+    
+        return data;
+      }
   
   }
 

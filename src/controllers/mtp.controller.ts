@@ -4,6 +4,10 @@ import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
+import { sequelize } from "../config/instance";
+import { QueryTypes } from "sequelize";
+import MtpRepository from "../repositories/mtp.repository";
+const mtpRepository = new MtpRepository()
 
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
@@ -11,7 +15,6 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     try {
         const mtp = request.body as MtpInterface;
-        console.log("mtp", mtp)
         if (!authHeader?.startsWith('Bearer ')) {
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
@@ -44,7 +47,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                 created_by: userId,
                 updatedby: userId
             });
-        console.log("mtpData", mtpData)
+
         reply.status(201).send({
             status_code: 201,
             message: "mtp created successfully",
@@ -86,6 +89,44 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             message: "An error occurred while creating mtp",
             trace_id: traceId,
             error,
+        });
+    }
+}
+
+
+export async function getAllMtp(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+
+    const { program_id:programId } = request.params as { program_id: string };
+    const traceId = generateCustomUUID();
+    
+    try {
+
+        const mtpData = await mtpRepository.getAllMtpData(programId)
+
+        if (mtpData && mtpData.length > 0) {
+            return reply.code(200).send({
+                status_code: 200,
+                message: "Mtp data get successfully.",
+                mtp_data: mtpData,
+                trace_id: traceId
+            });
+        } else {
+            return reply.code(200).send({
+                status_code: 200,
+                message: "No matching records found.",
+                mtp_data: [],
+                trace_id: traceId
+            });
+        }
+    } catch (error: any) {
+        return reply.code(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            trace_id: traceId,
+            error: error.message
         });
     }
 }
