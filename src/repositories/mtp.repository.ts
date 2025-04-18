@@ -1,6 +1,5 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-
 class MtpRepository {
     async programQuery(program_id: string): Promise<{
         unique_id: string; name: string
