@@ -283,7 +283,7 @@ export const updateWorkflowStatus = async (
                             actor_by_avtar: userData.avatar,
                         };
  
-                        if (isSuperUser && level.placement_order === placement_order) {
+                        if (isSuperUser && level.placement_order === placement_order  && recipient?.status === 'pending') {
                             const updatedRecipient = {
                                 ...recipient,
                                 impersonate_by: impersonator_id,
@@ -298,11 +298,11 @@ export const updateWorkflowStatus = async (
                         let updatedRecipient = recipient;
 
                         if (recipient.behaviour?.toLowerCase() === 'any') {
-                            if (level.placement_order === placement_order) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
                                 if (matchesUser) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'reviewed',
+                                        status: 'approved',
                                     };
                                 }
                                 else {
@@ -313,11 +313,11 @@ export const updateWorkflowStatus = async (
                                 }
                             }
                         } else if (recipient.behaviour?.toLowerCase() === 'all') {
-                            if (level.placement_order === placement_order) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
                                 if (matchesUser) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'reviewed',
+                                        status: 'approved',
                                     };
                                 }
                                 else {
@@ -329,28 +329,18 @@ export const updateWorkflowStatus = async (
                             }
                         }
                         else if (!recipient.behaviour) {
-                            if (level.placement_order === placement_order) {
-                                if (matchesUser) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
+                                updatedRecipient = {
+                                    ...commonFields,
+                                    status: matchesUser ? 'reviewed' : commonFields?.status,
+                                };
+                            } else {
+                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' ) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'bypassed',
-                                    };
-                                } else {
-                                    updatedRecipient = {
-                                        status: commonFields?.status,
+                                        status: matchesUser ? 'bypassed' : commonFields?.status,
                                     };
                                 }
- 
-                            } else {
-                                if (level.recipient_types.length == 1) {
-                                    if (!commonFields.behaviour && matchesUser) {
-                                        updatedRecipient = {
-                                            ...commonFields,
-                                            status: matchesUser ? 'bypassed' : commonFields?.status,
-                                        };
-                                    }
-                                }
- 
                             }
                         }
                         return updatedRecipient;
@@ -364,7 +354,7 @@ export const updateWorkflowStatus = async (
                     } else {
                         const allApproved = level.recipient_types.every(
                             (recipient: any) =>
-                                recipient.status === 'reviewed' ||
+                                recipient.status === 'approved' ||
                                 recipient.status === 'Not needed' ||
                                 recipient.status === 'bypassed'
                         );
@@ -375,7 +365,7 @@ export const updateWorkflowStatus = async (
  
             }
 
-            levels = await Promise.all(
+            levels = await Promise.all( 
                 levels.map(async (level: any) => {
 
 
@@ -1528,10 +1518,16 @@ export const updateReplaceLevel = async (
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
                 console.log(level.placement_order, placement_order);
+        
                 levelFound = true;
+        
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    if (recipient.replaced_by === user_id) {
-                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    const metaDataValue = recipient.meta_data[metaDataKey];
+        
+                    if (metaDataValue === user_id) {
+                        console.log("Meta data value matched:", metaDataValue, user_id);
+        
                         return {
                             ...recipient,
                             status: status,
@@ -1544,27 +1540,19 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now(),
                         };
                     }
-                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
-                        return {
-                            ...recipient,
-                            status: status,
-                            replaced_by,
-                            meta_data: {
-                                ...recipient.meta_data,
-                            },
-                            replaced_notes: notes,
-                            replaced_modified_on: Date.now()
-                        };
-                    }
+        
                     return recipient;
                 });
+        
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
                 };
             }
+        
             return level;
         });
+        
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
