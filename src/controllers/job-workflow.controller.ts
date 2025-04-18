@@ -1489,13 +1489,11 @@ export const updateReplaceLevel = async (
     const { program_id, id } = request.params;
     const { placement_order, status, replaced_by, user_id, notes } = request.body;
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
@@ -1507,10 +1505,8 @@ export const updateReplaceLevel = async (
             trace_id: traceId,
         });
     }
-
     try {
         const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1518,19 +1514,16 @@ export const updateReplaceLevel = async (
                 trace_id: traceId,
             });
         }
-
         let levels = workflow.levels || [];
         let levelFound = false;
-
         // Update the matching level
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
                 console.log(level.placement_order, placement_order);
-
                 levelFound = true;
-
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    if (recipient.replaced_by === user_id) {
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
@@ -1542,8 +1535,21 @@ export const updateReplaceLevel = async (
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
+                    }
+                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
+                        return {
+                            ...recipient,
+                            status: status,
+                            replaced_by,
+                            meta_data: {
+                                ...recipient.meta_data,
+                            },
+                            replaced_notes: notes,
+                            replaced_modified_on: Date.now()
+                        };
+                    }
+                    return recipient;
                 });
-
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
@@ -1551,7 +1557,6 @@ export const updateReplaceLevel = async (
             }
             return level;
         });
-
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1559,8 +1564,6 @@ export const updateReplaceLevel = async (
                 trace_id: traceId,
             });
         }
-
-        // Create workflow status history if user_id is provided
         if (user_id) {
             WorkflowStatusHistory.create({
                 job_workflow_id: id,
@@ -1572,10 +1575,7 @@ export const updateReplaceLevel = async (
                 user_id: user.sub,
             });
         }
-
-        // Update the workflow with the modified levels array
         await workflow.update({ levels, updated_on: Date.now() });
-
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -1583,7 +1583,6 @@ export const updateReplaceLevel = async (
         });
     } catch (error) {
         console.error("Error updating job workflow:", error);
-
         return reply.status(500).send({
             status_code: 500,
             message: "Failed to update job workflow.",
@@ -1591,7 +1590,6 @@ export const updateReplaceLevel = async (
         });
     }
 };
-
 
 async function fetchUserById(user_id: any) {
     const userQuery = `
