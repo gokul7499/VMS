@@ -23,6 +23,12 @@ class CandidateRepository {
             const workerTypeIds = replacements.worker_type_id.map((id: string) => `'${id.trim()}'`).join(',');
             whereClause += ` AND c.worker_type_id IN (${workerTypeIds})`;
         }
+        if (replacements.updated_on) {
+            whereClause += ` AND c.updated_on = :updated_on`;
+        }
+        if (replacements.availability_date) {
+            whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(c.preferences, '$.availability_date')) AS UNSIGNED) = :availability_date`;
+          }
         const countQuery = `
             SELECT COUNT(*) as count 
             FROM candidates c 
