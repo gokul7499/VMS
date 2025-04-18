@@ -23,10 +23,12 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const candidateId = mtp.linked_profiles;
 
         const duplicateCandidate = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
+        console.log("duplicateCandidate", duplicateCandidate);
 
         let mtpData: any;
 
         if (duplicateCandidate?.length > 0 && duplicateCandidate[0]?.candidate_id) {
+            console.log("Duplicate candidate found. Skipping MTP creation.");
             logger({
                 trace_id: traceId,
                 actor: {
@@ -83,6 +85,13 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             url: request.url,
             is_deleted: false,
         }, MtpModel);
+
+        return reply.send({
+            status_code: 200,
+            message: "MTP created successfully",
+            data: mtpData,
+            trace_id: traceId,
+        });
 
     } catch (error) {
         logger({
