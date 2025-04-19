@@ -283,7 +283,7 @@ export const updateWorkflowStatus = async (
                             actor_by_avtar: userData.avatar,
                         };
  
-                        if (isSuperUser && level.placement_order === placement_order) {
+                        if (isSuperUser && level.placement_order === placement_order  && recipient?.status === 'pending') {
                             const updatedRecipient = {
                                 ...recipient,
                                 impersonate_by: impersonator_id,
@@ -298,11 +298,11 @@ export const updateWorkflowStatus = async (
                         let updatedRecipient = recipient;
 
                         if (recipient.behaviour?.toLowerCase() === 'any') {
-                            if (level.placement_order === placement_order) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
                                 if (matchesUser) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'reviewed',
+                                        status: 'approved',
                                     };
                                 }
                                 else {
@@ -313,11 +313,11 @@ export const updateWorkflowStatus = async (
                                 }
                             }
                         } else if (recipient.behaviour?.toLowerCase() === 'all') {
-                            if (level.placement_order === placement_order) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
                                 if (matchesUser) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'reviewed',
+                                        status: 'approved',
                                     };
                                 }
                                 else {
@@ -329,28 +329,18 @@ export const updateWorkflowStatus = async (
                             }
                         }
                         else if (!recipient.behaviour) {
-                            if (level.placement_order === placement_order) {
-                                if (matchesUser) {
+                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
+                                updatedRecipient = {
+                                    ...commonFields,
+                                    status: matchesUser ? 'reviewed' : commonFields?.status,
+                                };
+                            } else {
+                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' ) {
                                     updatedRecipient = {
                                         ...commonFields,
-                                        status: 'bypassed',
-                                    };
-                                } else {
-                                    updatedRecipient = {
-                                        status: commonFields?.status,
+                                        status: matchesUser ? 'bypassed' : commonFields?.status,
                                     };
                                 }
- 
-                            } else {
-                                if (level.recipient_types.length == 1) {
-                                    if (!commonFields.behaviour && matchesUser) {
-                                        updatedRecipient = {
-                                            ...commonFields,
-                                            status: matchesUser ? 'bypassed' : commonFields?.status,
-                                        };
-                                    }
-                                }
- 
                             }
                         }
                         return updatedRecipient;
@@ -364,7 +354,7 @@ export const updateWorkflowStatus = async (
                     } else {
                         const allApproved = level.recipient_types.every(
                             (recipient: any) =>
-                                recipient.status === 'reviewed' ||
+                                recipient.status === 'approved' ||
                                 recipient.status === 'Not needed' ||
                                 recipient.status === 'bypassed'
                         );
@@ -375,7 +365,7 @@ export const updateWorkflowStatus = async (
  
             }
 
-            levels = await Promise.all(
+            levels = await Promise.all( 
                 levels.map(async (level: any) => {
 
 
@@ -576,12 +566,19 @@ export const updateWorkflowStatus = async (
                 const level = levels[i];
 
                 // Skip this level if recipient_types is empty or any recipient has meta_data with null values
+                // const isValidLevel = level.recipient_types &&
+                //     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
+                //     level.recipient_types.every((recipient: any) => {
+                //         return recipient.meta_data !== null &&
+                //             Object.values(recipient.meta_data).every(value => value !== null);
+                //     });
                 const isValidLevel = level.recipient_types &&
-                    level.recipient_types.length > 0 && // Ensure recipient_types is not empty
-                    level.recipient_types.every((recipient: any) => {
-                        return recipient.meta_data !== null &&
-                            Object.values(recipient.meta_data).every(value => value !== null);
-                    });
+    level.recipient_types.length > 0 && 
+    level.recipient_types.every((recipient: any) => {
+        return recipient.meta_data !== null && recipient.meta_data !== undefined && 
+            Object.values(recipient.meta_data).every(value => value !== null);
+    });
+
 
                 if (!isValidLevel) {
                     continue;
@@ -800,7 +797,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         return reply.status(500).send({ message: 'Internal Server Error' });
     }
 }
-export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any) {
+export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any , updates: any) {
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -829,7 +826,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             });
         } else if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
             const offer_id = workflow.workflow_trigger_id;
-            const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+            const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/offer/${offer_id}`;
             const payload = {
                 status: "Rejected",
             };
@@ -842,13 +839,14 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
             });
         } else
             if (moduleType === "Submissions".toLowerCase()) {
-                const offer_id = workflow.workflow_trigger_id;
-                const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${offer_id}`;
+                const submission_id = workflow.workflow_trigger_id;
+                const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/submission-candidate/${submission_id}`;
                 const payload = {
                     status: "Rejected",
+                    update: updates
                 };
 
-                await axios.post(apiUrl, payload, {
+                await axios.put(apiUrl, payload, {
                     headers: {
                         'Content-Type': 'application/json',
                         authorization: authHeader
@@ -1453,7 +1451,7 @@ export const rejectLevel = async (
             user_type: eventCode.user_type
         }
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow)
+        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates)
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -1520,10 +1518,16 @@ export const updateReplaceLevel = async (
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
                 console.log(level.placement_order, placement_order);
+        
                 levelFound = true;
+        
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    if (recipient.replaced_by === user_id) {
-                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    const metaDataKey = Object.keys(recipient.meta_data)[0];
+                    const metaDataValue = recipient.meta_data[metaDataKey];
+        
+                    if (metaDataValue === user_id) {
+                        console.log("Meta data value matched:", metaDataValue, user_id);
+        
                         return {
                             ...recipient,
                             status: status,
@@ -1536,27 +1540,19 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now(),
                         };
                     }
-                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
-                        return {
-                            ...recipient,
-                            status: status,
-                            replaced_by,
-                            meta_data: {
-                                ...recipient.meta_data,
-                            },
-                            replaced_notes: notes,
-                            replaced_modified_on: Date.now()
-                        };
-                    }
+        
                     return recipient;
                 });
+        
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
                 };
             }
+        
             return level;
         });
+        
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -5353,6 +5349,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Job Manager':
                 case 'Assignment Manager':
                 case 'Timesheet Managers': 
+                case 'Job Manager On Offer':
                 case 'Manager of':{
                     const input_values = Object.values(meta_data);
                     let userId: string | undefined;
@@ -5561,6 +5558,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Master Data Owner':
                 case 'Managerial Chain':
                 case 'Financial Authority Chain':
+                case 'Vendor Users':    
                 case 'Top of Financial Authority Chain': {
                     const users: any[] = [];
                     const recipientTypes = JSON.parse(row.recipient_types) || [];
