@@ -45,7 +45,7 @@ export async function uploadCandidateResume(
 
       if (attempt >= maxRetries) {
         console.error('Max retries reached. Upload failed.');
-        throw uploadError;
+        return uploadError;
       }
 
       await new Promise((res) => setTimeout(res, delayMs));
@@ -64,10 +64,6 @@ export async function searchSimilarProfiles(
   maxRetries = 3,
   delayMs = 1000
 ) {
-  console.log("*****************************")
-  console.log("Searching for similar profiles...");
-  console.log("Candidate ID:", candidateId);
-  console.log("userId", userId);
 
   const searchUrl = `${AI_SERVICE_URL}/candidates/search`;
   const vendorSearch = !!vendorId;
@@ -93,7 +89,7 @@ export async function searchSimilarProfiles(
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch similar profiles: ${response.statusText}`);
+        return(`Failed to fetch similar profiles: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -136,7 +132,7 @@ export async function searchSimilarProfiles(
 
       if (attempt >= maxRetries) {
         console.error("Max retries reached. Search failed.");
-        throw searchError;
+        return searchError;
       }
 
       await new Promise((res) => setTimeout(res, delayMs)); 
