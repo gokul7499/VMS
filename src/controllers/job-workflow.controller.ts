@@ -5212,12 +5212,14 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
 
+
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
     
-    try {
-        // Pre-fetch all recipient types needed in a single query
+    const impersonatorId = user.impersonator?.id || null;
+    
+    try {        
         const uniqueRecipientTypeIds = [...new Set(rows
             .filter((row: any) => row.recipient_type_id)
             .map((row: any) => row.recipient_type_id))];
@@ -5235,14 +5237,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 replacements: { recipient_type_ids: uniqueRecipientTypeIds },
             });
             
-            // Create a map for quick lookup
             recipientTypes = (recipientTypeResults as any[]).reduce((acc: Record<string, any>, type: any) => {
                 acc[type.id] = type;
                 return acc;
             }, {});
         }
         
-        // Pre-fetch user data for common users (like manager)
         let managerData: any = null;
         if (manager) {
             const userQuery = `
@@ -5262,20 +5262,37 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 managerData = userResult[0];
             }
         }
-        
-        // Create a user cache to avoid redundant queries
+
         const userCache = new Map<string, any>();
         
-        // Function to fetch user data with caching
+        let impersonatorData: any = null;
+        if (impersonatorId) {
+            const userQuery = `
+                SELECT user_id, first_name, last_name, avatar, role_id, email
+                FROM user
+                WHERE user_id = :user_id         
+                AND status = 'active'
+                LIMIT 1
+            `;
+            const impersonatorResult = await sequelize.query(userQuery, {
+                type: QueryTypes.SELECT,
+                replacements: { user_id: impersonatorId },
+             
+            });
+            
+            if (impersonatorResult.length > 0) {
+                impersonatorData = impersonatorResult[0];
+                userCache.set(impersonatorId, impersonatorData);
+            }
+        }
+        
         const fetchUser = async (userId: string): Promise<any> => {
             if (!userId) return null;
             
-            // Check cache first
             if (userCache.has(userId)) {
                 return userCache.get(userId);
             }
             
-            // Check if it's the manager
             if (userId === manager && managerData) {
                 userCache.set(userId, managerData);
                 return managerData;
@@ -5301,7 +5318,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
             return userData;
         };
         
-        // Group rows by level_id
         const levelMap = new Map<string, any>();
         
         for (const row of rows) {
@@ -5314,35 +5330,50 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     level_status,
                     behaviour: row.behaviour,
                     recipients: [],
-                    processedUsers: new Set<string>() // Track processed users to avoid duplicates
+                    processedUsers: new Set<string>() 
                 });
             }
         }
         
-        // Process each row to extract recipient data
+        const createImpersonateUserData = (userData: any, recipientDetails: any, recipientType: string, behaviour: string) => {
+            if (!userData) return null;
+            
+            return {
+                id: userData.user_id,
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                avatar: userData.avatar,
+                role_id: userData.role_id,
+                email: userData.email,
+                updated_on: recipientDetails?.updated_on,
+                recipient_type: recipientType || '',
+                replaced_notes: recipientDetails?.replaced_notes,
+                behaviour,
+            };
+        };
+        
         const processPromises = rows.map(async (row: any) => {
             const { level_id, level_status, recipient_status, recipient_details,
                   placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
                   existing_replaced_user, imporsonate_by } = row;
             
-                  
-            
             if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
-                return; // Skip rows without metadata or recipient type
+                return; 
             }
             
             const levelInfo = levelMap.get(level_id);
             const recipientType = recipientTypes[recipient_type_id];
             
             if (!recipientType) {
-                return; // Skip if recipient type not found
+                return; 
             }
             
             let input_value: any = null;
             let replaced_user_data: any = null;
             let imposonate_user_data: any = null;
             
-            // Process different recipient types with optimized logic
+            const effectiveImpersonateBy = imporsonate_by || impersonatorId;
+            
             switch (recipientType.name) {
                 case 'Specific User':
                 case 'Multiple users':
@@ -5363,16 +5394,19 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                     
                     if (userId) {
-                        const [userResult, replacedUserResult] = await Promise.all([
+                        const imporsonateUserPromise = effectiveImpersonateBy ? 
+                            (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
+                                Promise.resolve(impersonatorData) : 
+                                fetchUser(effectiveImpersonateBy)
+                            ) : 
+                            Promise.resolve(null);
+                            
+                        const [userResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
                             fetchUser(userId),
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+                            imporsonateUserPromise
                         ]);
-                        const [imporsonateUserResult] = await Promise.all([
-                            fetchUser(userId),
-                           
-                            imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
-                        ]);
-                     
+                        
                         if (userResult) {
                             input_value = {
                                 id: userResult.user_id,
@@ -5388,7 +5422,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             };
                             
                             if (replacedUserResult) {
-                                
                                 replaced_user_data = {
                                     id: replacedUserResult.user_id,
                                     first_name: replacedUserResult.first_name,
@@ -5403,19 +5436,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             }
                             
                             if (imporsonateUserResult) {
-                                
-                                imposonate_user_data = {
-                                    id: imporsonateUserResult.user_id,
-                                    first_name: imporsonateUserResult.first_name,
-                                    last_name: imporsonateUserResult.last_name,
-                                    avatar: imporsonateUserResult.avatar,
-                                    role_id: imporsonateUserResult.role_id,
-                                    email: imporsonateUserResult.email,
-                                    updated_on: recipient_details?.updated_on,
-                                    recipient_type: recipientType.name || '',
-                                    behaviour,
-                                };
-                                
+                                imposonate_user_data = createImpersonateUserData(
+                                    imporsonateUserResult,
+                                    recipient_details,
+                                    recipientType.name,
+                                    behaviour
+                                );
                             }
                         }
                     }
@@ -5433,10 +5459,17 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }
                     
                     if (supervisorId) {
+                        const imporsonateUserPromise = effectiveImpersonateBy ? 
+                            (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
+                                Promise.resolve(impersonatorData) : 
+                                fetchUser(effectiveImpersonateBy)
+                            ) : 
+                            Promise.resolve(null);
+                            
                         const [supervisorResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
                             fetchUser(supervisorId),
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
-                            imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
+                            imporsonateUserPromise
                         ]);
                         
                         if (supervisorResult) {
@@ -5470,18 +5503,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             }
                             
                             if (imporsonateUserResult) {
-                                imposonate_user_data = {
-                                    id: imporsonateUserResult.user_id,
-                                    first_name: imporsonateUserResult.first_name,
-                                    last_name: imporsonateUserResult.last_name,
-                                    avatar: imporsonateUserResult.avatar,
-                                    role_id: imporsonateUserResult.role_id,
-                                    email: imporsonateUserResult.email,
-                                    updated_on: recipient_details?.updated_on,
-                                    recipient_type: recipientType.name || '',
-                                    replaced_notes: recipient_details?.replaced_notes,
-                                    behaviour,
-                                };
+                                imposonate_user_data = createImpersonateUserData(
+                                    imporsonateUserResult,
+                                    recipient_details,
+                                    recipientType.name,
+                                    behaviour
+                                );
                             }
                         }
                     }
@@ -5499,10 +5526,17 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 const userId = recipient.existing_replaced_user || metaValue;
                                 
                                 if (userId) {
+                                    const imporsonateUserPromise = effectiveImpersonateBy ? 
+                                        (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
+                                            Promise.resolve(impersonatorData) : 
+                                            fetchUser(effectiveImpersonateBy)
+                                        ) : 
+                                        Promise.resolve(null);
+                                        
                                     const [userData, replacedUserResult, imporsonateUserResult] = await Promise.all([
                                         fetchUser(userId),
                                         replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
-                                        imporsonate_by ? fetchUser(imporsonate_by) : Promise.resolve(null)
+                                        imporsonateUserPromise
                                     ]);
                                     
                                     if (userData) {
@@ -5533,18 +5567,12 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                         }
                                         
                                         if (imporsonateUserResult) {
-                                            imposonate_user_data = {
-                                                id: imporsonateUserResult.user_id,
-                                                first_name: imporsonateUserResult.first_name,
-                                                last_name: imporsonateUserResult.last_name,
-                                                avatar: imporsonateUserResult.avatar,
-                                                role_id: imporsonateUserResult.role_id,
-                                                email: imporsonateUserResult.email,
-                                                updated_on: recipient_details?.updated_on,
-                                                recipient_type: recipientType.name || '',
-                                                replaced_notes: recipient_details?.replaced_notes,
-                                                behaviour,
-                                            };
+                                            imposonate_user_data = createImpersonateUserData(
+                                                imporsonateUserResult,
+                                                recipient_details,
+                                                recipientType.name,
+                                                behaviour
+                                            );
                                         }
                                     }
                                 }
@@ -5558,29 +5586,26 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Master Data Owner':
                 case 'Managerial Chain':
                 case 'Financial Authority Chain':
-                case 'Vendor Users':    
                 case 'Top of Financial Authority Chain': {
                     const users: any[] = [];
                     const recipientTypes = JSON.parse(row.recipient_types) || [];
                     
-                    // Process each recipient in parallel
                     await Promise.all(recipientTypes.map(async (recipient: any) => {
                         const receipentstatus = recipient.status;
                         
                         if (recipient?.meta_data) {
                             const metaData = recipient.meta_data;
-                            let userId = Object.values(metaData)[0] as string; // Default value to userId from meta_data
+                            let userId = Object.values(metaData)[0] as string; 
                             const level_behaviour = Object.values(metaData)[1];
                             
-                            // If existing_replaced_user is present, use that as the userId
                             if (recipient.existing_replaced_user) {
                                 userId = recipient.existing_replaced_user;
                             }
                             
                             const user = await fetchUser(userId);
                             
-                            if (user) {                             
-                                const userData: any = {                              
+                            if (user) {
+                                const userData: any = {
                                     id: user.user_id,
                                     first_name: user.first_name,
                                     last_name: user.last_name,
@@ -5590,8 +5615,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     receipentstatus: receipentstatus,
                                     modifiedOn: recipient.updated_on,
                                     level_behaviour: level_behaviour,
-                                    replaced_by: null, // Default value
-                                    impersonate_by: null, // Default value
+                                    replaced_by: null, 
+                                    impersonate_by: null,
                                     updated_on: recipient.updated_on,
                                     notes: recipient.notes,
                                     reason: recipient.reason,
@@ -5602,7 +5627,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     replaced_notes: recipient.replaced_notes
                                 };
                                 
-                                // Fetch replaced_by user if applicable
                                 if (recipient.replaced_by) {
                                     const replacedByUser = await fetchUser(recipient.replaced_by);
                                     if (replacedByUser) {
@@ -5623,9 +5647,17 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     }
                                 }
                                 
-                                // Fetch impersonate_by user if applicable
-                                if (recipient.impersonate_by) {
-                                    const impersonatedUser = await fetchUser(recipient.impersonate_by);
+                                const effectiveImpersonateId = recipient.impersonate_by || impersonatorId;
+                                
+                                if (effectiveImpersonateId) {
+                                    let impersonatedUser = null;
+                                    
+                                    if (effectiveImpersonateId === impersonatorId && impersonatorData) {
+                                        impersonatedUser = impersonatorData;
+                                    } else {
+                                        impersonatedUser = await fetchUser(effectiveImpersonateId);
+                                    }
+                                    
                                     if (impersonatedUser) {
                                         userData.impersonate_by = {
                                             id: impersonatedUser.user_id,
@@ -5650,7 +5682,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         }
                     }));
                     
-                    // Map users to the input_value format
                     if (users.length > 0) {
                         input_value = users.map(user => ({
                             id: user.id,
@@ -5698,7 +5729,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         role_id: user.role_id,
                         email: user.email,
                         replaced_by: user.replaced_by,
-                        imporsonate_by: imposonate_user_data,
+                        imporsonate_by: user.impersonate_by || imposonate_user_data,
                         recipient_type: recipientType.name || '',
                         behaviour,
                     }));
@@ -5729,7 +5760,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                     }];
                 }
                 
-                // Add unique recipients to the level
                 const levelData = levelMap.get(level_id);
                 for (const recipient of recipients) {
                     if (!levelData.processedUsers.has(recipient.user_id)) {
@@ -5740,11 +5770,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
             }
         });
         
-        // Wait for all row processing to complete in parallel
         await Promise.all(processPromises);
         
-        // Build the final workflow.levels array from the processed level map,
-        // removing levels with empty recipients
+      
         const unprocessedLevels = Array.from(levelMap.values())
         .filter(({recipients}) => recipients.length > 0) // Remove levels with empty recipients
         .map(({level_id, placement_order, level_status, behaviour, recipients}) => ({
@@ -5802,7 +5830,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         // Sort by placement_order
         finalLevels.sort((a, b) => a.placement_order - b.placement_order);
         
-        // Set the deduplicated levels to workflow
+        // Set the dedupli
+        // cated levels to workflow
         workflow.levels = finalLevels;
         
         // Process status handling and update missing levels
