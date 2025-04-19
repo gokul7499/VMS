@@ -5349,6 +5349,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Job Manager':
                 case 'Assignment Manager':
                 case 'Timesheet Managers': 
+                case 'Job Manager On Offer':
                 case 'Manager of':{
                     const input_values = Object.values(meta_data);
                     let userId: string | undefined;
