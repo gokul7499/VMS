@@ -635,7 +635,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
 
         reply.status(200).send({
             status_code: 200,
-            message: result.length > 0 ? 'Expense configuration fetched.' : 'No configuration found.',
+            message: result ? 'Expense configuration fetched.' : 'No expense configuration found.',
             trace_id: traceId,
             data: result,
         });
