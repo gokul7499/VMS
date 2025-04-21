@@ -273,9 +273,9 @@ export const updateWorkflowStatus = async (
                     level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
                         updatedLevels = true;
                         levelFound = true
-                        const matchesUser = recipient.replaced_by
-                        ? user_id === recipient.replaced_by
-                        : Object.values(recipient.meta_data).includes(user_id);
+                        const matchesUser = recipient?.replaced_by
+                        ? user_id === recipient?.replaced_by
+                        : Object.values(recipient?.meta_data).includes(user_id);
 
 
                         const commonFields = {
@@ -384,9 +384,9 @@ export const updateWorkflowStatus = async (
 
                                 if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
-                                    const matchesUser = recipient.replaced_by
-                                            ? user_id === recipient.replaced_by
-                                            : Object.values(recipient.meta_data).includes(user_id);
+                                    const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
                                     if (matchesUser) {
                                         const history = await WorkflowStatusHistory.create({
                                             job_workflow_id: id,
@@ -425,9 +425,9 @@ export const updateWorkflowStatus = async (
                                 } else if (isSuperUser) {
                                     if (behavior?.toLowerCase() === "any" && level.placement_order === placement_order) {
                                         // Check if the recipient's user_id matches any value in meta_data
-                                        const matchesUser = recipient.replaced_by
-                                            ? user_id === recipient.replaced_by
-                                            : Object.values(recipient.meta_data).includes(user_id);
+                                        const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
                                         const history = await WorkflowStatusHistory.create({
                                             job_workflow_id: id,
                                             placement_order,
@@ -478,9 +478,9 @@ export const updateWorkflowStatus = async (
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
                                         if (!recipient.replaced_by && recipient.meta_data) {
-                                            const matchesUser = recipient.replaced_by
-                                                    ? user_id === recipient.replaced_by
-                                                    : Object.values(recipient.meta_data).includes(user_id);
+                                            const matchesUser = recipient?.replaced_by
+                                                    ? user_id === recipient?.replaced_by
+                                                    : Object.values(recipient?.meta_data).includes(user_id);
                                             if (matchesUser) {
                                                 const history = await WorkflowStatusHistory.create({
                                                     job_workflow_id: id,
@@ -1695,9 +1695,9 @@ export const imporsonateLevel = async (
                                 }
                             } else {
                                 // If replaced_by doesn't exist, check meta_data
-                                const matchesUser = recipient.replaced_by
-                                            ? user_id === recipient.replaced_by
-                                            : Object.values(recipient.meta_data).includes(user_id);
+                                const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
 
                                 if (matchesUser) {
                                     return { ...recipient, status: new_status, imporsonate_by };
