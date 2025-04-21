@@ -3637,7 +3637,7 @@ l.placement_order ASC;`;
                 const input_values: any = Object.values(meta_data);
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id, first_name, last_name, avatar, role_id,email
@@ -3912,7 +3912,7 @@ l.placement_order ASC;`;
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {                    
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain"  || recipientType?.name === "Vendor Users") {                    
                     const recipientTypes = JSON.parse(row.recipient_types);
 
                     for (const recipient of recipientTypes) {
