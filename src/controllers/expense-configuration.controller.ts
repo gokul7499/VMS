@@ -548,7 +548,6 @@ export async function getExpenseTypesByProgramIdAndHierarchies(
     }
 }
 
-
 export async function getExpenseConfigByExpenseType(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
@@ -581,46 +580,58 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             whereCondition.id = { [Op.in]: expenseConfigIds };
         }
 
-        const expenseConfigs = await ExpenseConfigurationModel.findAll({
+        // Find the single matching expense configuration
+        const expenseConfig = await ExpenseConfigurationModel.findOne({
             where: whereCondition,
             order: [['created_on', 'DESC']],
         });
 
-        const result = await Promise.all(
-            expenseConfigs.map(async (config) => {
-                const configJSON = config.toJSON();
-                const hierarchies = await Hierarchies.findAll({
-                    where: { id: { [Op.in]: configJSON.hierarchy_ids ?? [] } },
-                    attributes: ['id', 'name'],
-                });
-                const expenseTypes = await ExpenseTypeMapping.findAll({
-                    where: {
-                        expense_config_id: configJSON.id,
-                        program_id: configJSON.program_id,
-                    },
-                    include: [{
-                        model: ExpenseTypeModel,
-                        as: 'expense_type',
-                        attributes: ['id', 'name', 'is_unit_based', 'is_msp_fees_applied',
-                            'is_tax_applied', 'max_unit_limit', 'category',
-                            'code',],
-                    }],
-                });
-                return {
-                    ...configJSON,
-                    hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
-                    expenseTypes: expenseTypes.map((e: any) => ({
-                        id: e.expense_type?.id,
-                        name: e.expense_type?.name,
-                        is_unit_based: e.expense_type?.is_unit_based,
-                        is_msp_fees_applied: e.expense_type?.is_msp_fees_applied,
-                        is_tax_applied: e.expense_type?.is_tax_applied,
-                        max_unit_limit: e.expense_type?.max_unit_limit,
-                        category: e.expense_type?.category,
-                        code: e.expense_type?.code,
-                    })),
-                };
-            }));
+        // If no configuration found, return null
+        if (!expenseConfig) {
+            reply.status(200).send({
+            status_code: 200,
+            message: 'No expense configuration found.',
+            trace_id: traceId,
+            data: null,
+            });
+            return;
+        }
+
+        // Process the single expense config
+        const configJSON = expenseConfig.toJSON();
+        const hierarchies = await Hierarchies.findAll({
+            where: { id: { [Op.in]: configJSON.hierarchy_ids ?? [] } },
+            attributes: ['id', 'name'],
+        });
+
+        const expenseTypes = await ExpenseTypeMapping.findAll({
+            where: {
+            expense_config_id: configJSON.id,
+            program_id: configJSON.program_id,
+            },
+            include: [{
+            model: ExpenseTypeModel,
+            as: 'expense_type',
+            attributes: ['id', 'name', 'is_unit_based', 'is_msp_fees_applied',
+                'is_tax_applied', 'max_unit_limit', 'category',
+                'code',],
+            }],
+        });
+
+        const result = {
+            ...configJSON,
+            hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
+            expenseTypes: expenseTypes.map((e: any) => ({
+            id: e.expense_type?.id,
+            name: e.expense_type?.name,
+            is_unit_based: e.expense_type?.is_unit_based,
+            is_msp_fees_applied: e.expense_type?.is_msp_fees_applied,
+            is_tax_applied: e.expense_type?.is_tax_applied,
+            max_unit_limit: e.expense_type?.max_unit_limit,
+            category: e.expense_type?.category,
+            code: e.expense_type?.code,
+            })),
+        };
 
         reply.status(200).send({
             status_code: 200,
