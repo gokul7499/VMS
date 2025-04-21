@@ -19,6 +19,7 @@ function validateToken(token: string | undefined): boolean {
 }
 
 export async function sendNotification(payload: NotificationDataPayload): Promise<void> {
+    try{
     const programData = await sequelize.query(
         `SELECT * FROM programs WHERE id =:program_id`,
         {
@@ -149,5 +150,8 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
             }
         });
     }
+    } catch (error: any) {
+    console.error('Error occurred in sendNotification:', error.message, error.stack);
+   }
 
 }
