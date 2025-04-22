@@ -3,12 +3,14 @@ import { sequelize } from '../config/instance';
 import { beforeSave } from "../hooks/timeFormatHook";
 import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 import { Programs } from './programs.model';
+import Hierarchies from './hierarchies.model';
 
 class CustomFieldHierarchie extends Model {
   hierarchy_id: any;
   id: any;
   custom_field_id: any;
   work_location_id: any;
+  hierarchy: any;
 }
 
 CustomFieldHierarchie.init(
@@ -66,5 +68,5 @@ CustomFieldHierarchie.init(
 );
 
 CustomFieldHierarchie.belongsTo(Programs, { foreignKey: 'program_id', as: 'program' });
-
+CustomFieldHierarchie.belongsTo(Hierarchies, { foreignKey: 'hierarchy_id', as: 'hierarchy' });
 export default CustomFieldHierarchie;
