@@ -334,14 +334,22 @@ export const updateWorkflowStatus = async (
                         }
                         else if (!recipient.behaviour) {
                             if (level.placement_order === placement_order && recipient?.status === 'pending') {
-                                updatedRecipient = {
-                                    ...commonFields,
-                                    status: matchesUser ? 'reviewed' : commonFields?.status,
-                                };
-                            } else {
-                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' ) {
+                                if(matchesUser){
                                     updatedRecipient = {
                                         ...commonFields,
+                                        status:'approved',
+                                    };
+                                }
+                                else{
+                                    updatedRecipient = {
+                                        ...recipient,
+                                        status: commonFields?.status,
+                                    };
+                                }
+                            } else {
+                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' && level.recipient_types.length === 1) {
+                                    updatedRecipient = {
+                                        ...recipient,
                                         status: matchesUser ? 'bypassed' : commonFields?.status,
                                     };
                                 }
