@@ -1009,11 +1009,12 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
       trace_id: traceId,
       data: htmlResponse,
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: "File upload failed",
       trace_id: traceId,
+      error: error.message,
     });
   }
 }
@@ -1087,7 +1088,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       `);
       replacements.hierarchy_ids = hierarchy_ids;
     }
-    
+
 
     const dynamicConditionsString =
       dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
