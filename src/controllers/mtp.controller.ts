@@ -29,7 +29,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         
         const duplicateData = await mtpRepository.getPossibleDuplicateCandidate(programId);
 
-        if (duplicateData.length === 0) {
+        if (duplicateData.length > 0) {
             logger({
                 trace_id: traceId,
                 actor: {
