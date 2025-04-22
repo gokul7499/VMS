@@ -32,6 +32,8 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         }, []);
 
         const duplicateData = await mtpRepository.getPossibleDuplicateCandidate(programId);
+
+        if(duplicateData > 0){
         const duplicateCandidateIds = duplicateData.reduce((acc: string[], row: any) => {
         return acc.concat(row.candidate_id);
         }, []);
@@ -41,8 +43,8 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const duplicatesFound = linkedIds.filter(id =>
           talentCandidateIds.includes(id) && duplicateCandidateIds.includes(id)
         );
-
-   if (duplicatesFound.length > 0) {
+    
+   if (duplicatesFound.length > 1) {
     console.log("Duplicate Candidate ID", duplicatesFound);
     findDuplicateCandidate(duplicatesFound, programId, userId, token);
 
@@ -62,8 +64,9 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         is_deleted: false,
     }, MtpModel);
     return ({message: "Duplicate detected. Added to possible duplicates."})
-}
-        logger({
+   }
+}    
+            logger({
             trace_id: traceId,
             actor: {
                 user_name: user.preferred_username,
