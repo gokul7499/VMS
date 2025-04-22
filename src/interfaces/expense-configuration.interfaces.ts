@@ -4,11 +4,9 @@ export interface ExpenseConfigurationAttributes {
   slug?: string;
   name?: string;
   program_id: string;
-
   hierarchy_ids?: any;
   labor_category_ids?: any;
   expense_type_ids?: any;
-
   week_ending_day?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
   is_mdt_enabled?: boolean;
   master_data_types?: any;
@@ -22,8 +20,8 @@ export interface ExpenseConfigurationAttributes {
   gnrl_revoke_access_rule?: any;
   misc_revoke_access_rule?: any;
   revision?: number;
+  expense_types?: string[];
   latest?: boolean;
-
   is_enabled: boolean;
   is_deleted: boolean;
   created_on?: number;
@@ -49,6 +47,7 @@ export const querySchema = {
     offset: { type: 'integer' }
   }
 };
+
 export const createExpenseConfigurationSchema = {
   type: "object",
   properties: {
@@ -78,25 +77,23 @@ export const createExpenseConfigurationSchema = {
     is_projects_enabled: { type: "boolean" },
     projects: { type: "object" },
     is_thresholds_enabled: { type: "boolean" },
-
     gnrl_duration_rule: { type: "object" },
     misc_duration_rule: { type: "object" },
     gnrl_grace_period_rule: { type: "object" },
     misc_grace_period_rule: { type: "object" },
-
     gnrl_revoke_access_rule: { type: "object" },
     misc_revoke_access_rule: { type: "object" },
     revision: { type: "integer" },
     latest: { type: "boolean" },
     is_enabled: { type: "boolean" },
-    is_deleted: { type: "boolean" },
-    created_on: { type: "number" },
-    updated_on: { type: "number" },
-    created_by: { type: "string", format: "uuid" },
-    updated_by: { type: "string", format: "uuid" }
+    expense_types: {
+      type: "array",
+      items: {
+        type: "string"
+      }
+    }
   }
 };
-
 
 export const createExpenseConfigurationAdvancedFilter = {
   type: 'object',
@@ -112,3 +109,9 @@ export const createExpenseConfigurationAdvancedFilter = {
     }
   }
 };
+
+
+// Define an interface for the ID type
+export interface HierarchyId {
+  [key: string]: any;  // This allows for any additional properties in the ID
+}

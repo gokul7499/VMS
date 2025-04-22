@@ -15,7 +15,7 @@ export function validatePermissions(action: string, permissions: string[]) {
 
     // Get program_id from params or body
     const program_id =
-      (request.params as any)?.program_id ||
+      (request.params as any)?.program_id ??
       (request.body as any)?.program_id;
 
     // Generate a trace ID for this request

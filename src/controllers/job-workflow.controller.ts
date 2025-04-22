@@ -273,7 +273,11 @@ export const updateWorkflowStatus = async (
                     level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
                         updatedLevels = true;
                         levelFound = true
-                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                        const matchesUser = recipient?.replaced_by
+                        ? user_id === recipient?.replaced_by
+                        : Object.values(recipient?.meta_data).includes(user_id);
+
+
                         const commonFields = {
                             ...recipient,
                             impersonate_by: impersonator_id,
@@ -380,7 +384,9 @@ export const updateWorkflowStatus = async (
 
                                 if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
-                                    const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                    const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
                                     if (matchesUser) {
                                         const history = await WorkflowStatusHistory.create({
                                             job_workflow_id: id,
@@ -419,7 +425,9 @@ export const updateWorkflowStatus = async (
                                 } else if (isSuperUser) {
                                     if (behavior?.toLowerCase() === "any" && level.placement_order === placement_order) {
                                         // Check if the recipient's user_id matches any value in meta_data
-                                        const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                        const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
                                         const history = await WorkflowStatusHistory.create({
                                             job_workflow_id: id,
                                             placement_order,
@@ -470,7 +478,9 @@ export const updateWorkflowStatus = async (
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
                                         if (!recipient.replaced_by && recipient.meta_data) {
-                                            const matchesUser = Object.values(recipient.meta_data).includes(user_id);
+                                            const matchesUser = recipient?.replaced_by
+                                                    ? user_id === recipient?.replaced_by
+                                                    : Object.values(recipient?.meta_data).includes(user_id);
                                             if (matchesUser) {
                                                 const history = await WorkflowStatusHistory.create({
                                                     job_workflow_id: id,
@@ -1518,41 +1528,42 @@ export const updateReplaceLevel = async (
         levels = levels.map((level: any) => {
             if (level.placement_order === placement_order) {
                 console.log(level.placement_order, placement_order);
-        
                 levelFound = true;
-        
                 const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    const metaDataKey = Object.keys(recipient.meta_data)[0];
-                    const metaDataValue = recipient.meta_data[metaDataKey];
-        
-                    if (metaDataValue === user_id) {
-                        console.log("Meta data value matched:", metaDataValue, user_id);
-        
+                    if (recipient.replaced_by === user_id) {
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
                         return {
                             ...recipient,
                             status: status,
                             meta_data: {
                                 ...recipient.meta_data,
-                                [metaDataKey]: replaced_by
                             },
                             replaced_by,
                             replaced_notes: notes,
                             replaced_modified_on: Date.now(),
                         };
                     }
-        
+                    if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
+                        return {
+                            ...recipient,
+                            status: status,
+                            replaced_by,
+                            meta_data: {
+                                ...recipient.meta_data,
+                            },
+                            replaced_notes: notes,
+                            replaced_modified_on: Date.now()
+                        };
+                    }
                     return recipient;
                 });
-        
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
                 };
             }
-        
             return level;
         });
-        
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1684,9 +1695,9 @@ export const imporsonateLevel = async (
                                 }
                             } else {
                                 // If replaced_by doesn't exist, check meta_data
-                                const matchesUser =
-                                    recipient.meta_data &&
-                                    Object.values(recipient.meta_data).includes(user_id);
+                                const matchesUser = recipient?.replaced_by
+                                            ? user_id === recipient?.replaced_by
+                                            : Object.values(recipient?.meta_data).includes(user_id);
 
                                 if (matchesUser) {
                                     return { ...recipient, status: new_status, imporsonate_by };
@@ -3626,7 +3637,7 @@ l.placement_order ASC;`;
                 const input_values: any = Object.values(meta_data);
                 let replaced_user_data: any
                 let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager") {
+                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager") {
                     if (input_values.length > 0) {
                         const userQuery = `
                         SELECT user_id, first_name, last_name, avatar, role_id,email
@@ -3901,7 +3912,7 @@ l.placement_order ASC;`;
                 let users: any[] = [];
                 let level_behaviour: any;
                 let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {                    
+                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain"  || recipientType?.name === "Vendor Users") {                    
                     const recipientTypes = JSON.parse(row.recipient_types);
 
                     for (const recipient of recipientTypes) {
