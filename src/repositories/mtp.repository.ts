@@ -48,21 +48,20 @@ class MtpRepository {
         return { data, count };
       }
       
-      async getPossibleDuplicateCandidate(programId: string, candidateIds: any): Promise<any> {    
+      async getPossibleDuplicateCandidate(programId: string): Promise<any> {    
         const query = `
             SELECT 
-                MIN(pdc.candidate_id) AS candidate_id,
-                MIN(pdc.program_id) AS program_id
+                pdc.matching_profile AS candidate_id,
+                pdc.program_id AS program_id
             FROM 
                 possible_duplicate_candidate pdc
           
             WHERE 
                 pdc.program_id = :program_id
-                AND pdc.candidate_id IN (:candidate_ids);
         `;
     
         const result = await sequelize.query(query, {
-            replacements: { program_id: programId, candidate_ids: candidateIds },
+            replacements: { program_id: programId},
             type: QueryTypes.SELECT,
             raw: true,
         });
@@ -104,6 +103,48 @@ JSON_ARRAYAGG(JSON_OBJECT(
 
       return result;
   }
+
+  async getCandidate(programId: string,candidateId:any): Promise<any> {
+    console.log("program_id88888888888888",programId)
+    console.log("candidateId",candidateId)
+
+    const query =`
+        SELECT 
+            MIN(c.candidate_id) AS candidate_id,
+            MIN(c.program_id) AS program_id,
+            CONCAT(MIN(c.first_name), ' ', MIN(c.last_name)) AS candidate_name
+        FRom 
+            candidates c             
+        WHERE 
+            c.program_id = :program_id
+            AND c.user_id = :candidate_id;
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id:programId,candidate_id:candidateId},
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    console.log("talentDDDDDDDDDDDDDDDDDD",result)
+    return result;
+}
+
+async getAllMtp(programId: string): Promise<any> {
+    const query = `
+        SELECT 
+            s.linked_profiles AS candidate_id
+        FROM 
+            mtp s
+        WHERE s.program_id = :program_id
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id: programId },
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    return result; 
+}
     
   
   }
