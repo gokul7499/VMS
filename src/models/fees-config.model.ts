@@ -90,6 +90,11 @@ FeesConfigurationModel.init({
     type: DataTypes.UUID,
     allowNull: true,
   },
+  is_all_labor_category: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+  }
 },
   {
     sequelize,
