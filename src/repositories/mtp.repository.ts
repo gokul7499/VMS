@@ -105,8 +105,6 @@ JSON_ARRAYAGG(JSON_OBJECT(
   }
 
   async getCandidate(programId: string,candidateId:any): Promise<any> {
-    console.log("program_id88888888888888",programId)
-    console.log("candidateId",candidateId)
 
     const query =`
         SELECT 
@@ -125,7 +123,6 @@ JSON_ARRAYAGG(JSON_OBJECT(
         type: QueryTypes.SELECT,
         raw: true,
     });
-    console.log("talentDDDDDDDDDDDDDDDDDD",result)
     return result;
 }
 
@@ -145,8 +142,7 @@ async getAllMtp(programId: string): Promise<any> {
     });
     return result; 
 }
-    
-  
+
   }
 
   export default MtpRepository;
