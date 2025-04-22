@@ -89,7 +89,7 @@ JSON_ARRAYAGG(JSON_OBJECT(
   FROM 
     mtp m
   JOIN 
-    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.user_id), '$')
+    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
@@ -115,7 +115,7 @@ JSON_ARRAYAGG(JSON_OBJECT(
             candidates c             
         WHERE 
             c.program_id = :program_id
-            AND c.user_id = :candidate_id;
+            AND c.id = :candidate_id;
     `;
 
     const result = await sequelize.query(query, {
