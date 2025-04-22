@@ -136,8 +136,6 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
 }
 
 
-
-
 export async function getAllMtp(
     request: FastifyRequest,
     reply: FastifyReply
