@@ -222,7 +222,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
     const countryId = Array.isArray(hierarchy.address) && hierarchy.address.length > 0
       ? hierarchy.address[0].country
       : null;
-      
+
     let countryData = null;
 
     if (countryId) {
@@ -672,7 +672,7 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
         program_id,
         vendor_id,
         rateModel: rate_model,
-        labour_category_id,
+        program_industry: labour_category_id,
         hierarchy_id
       },
       type: QueryTypes.SELECT,
@@ -682,12 +682,14 @@ export async function getVendorMarkup(request: FastifyRequest, reply: FastifyRep
 
     if (markupsData) {
       const { markups } = markupsData;
-      selectedMarkup =
-        candidate_source === "sourced"
-          ? markups?.sourced_markup
-          : candidate_source === "payrolled"
-            ? markups?.payrolled_markup
-            : null;
+
+      if (candidate_source === "sourced") {
+        selectedMarkup = markups?.sourced_markup;
+      } else if (candidate_source === "payrolled") {
+        selectedMarkup = markups?.payrolled_markup;
+      } else {
+        selectedMarkup = null;
+      }
     }
 
     if (!selectedMarkup) {
