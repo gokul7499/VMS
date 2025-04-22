@@ -1,5 +1,6 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
+import { Json } from "sequelize/types/utils";
 class MtpRepository {
     static getAllMtpData(programId: string) {
         throw new Error("Method not implemented.");
@@ -47,30 +48,26 @@ class MtpRepository {
         return { data, count };
       }
       
-      async getPossibleDuplicateCandidate(programId: any, candidateId: any): Promise<any> {
-        console.log("programId", programId)
-        console.log("candidateId", candidateId)
+      async getPossibleDuplicateCandidate(programId: string): Promise<any> {    
         const query = `
             SELECT 
-                MIN(pdc.candidate_id) AS candidate_id,
-                MIN(pdc.program_id) AS program_id
+                pdc.matching_profile AS candidate_id,
+                pdc.program_id AS program_id
             FROM 
-                candidates c
-            JOIN 
-                possible_duplicate_candidate pdc ON c.user_id = pdc.candidate_id
+                possible_duplicate_candidate pdc
+          
             WHERE 
-                c.program_id = :program_id
-                AND c.user_id = :candidate_id;
+                pdc.program_id = :program_id
         `;
     
         const result = await sequelize.query(query, {
-            replacements: { program_id: programId, candidate_id: candidateId },
+            replacements: { program_id: programId},
             type: QueryTypes.SELECT,
             raw: true,
         });
+    
         return result;
     }
-
 
     async getMtpById(programId: any, id: any): Promise<any> {
       console.log("programId", programId)
@@ -106,8 +103,46 @@ JSON_ARRAYAGG(JSON_OBJECT(
 
       return result;
   }
-    
-  
+
+  async getCandidate(programId: string,candidateId:any): Promise<any> {
+
+    const query =`
+        SELECT 
+            MIN(c.candidate_id) AS candidate_id,
+            MIN(c.program_id) AS program_id,
+            CONCAT(MIN(c.first_name), ' ', MIN(c.last_name)) AS candidate_name
+        FRom 
+            candidates c             
+        WHERE 
+            c.program_id = :program_id
+            AND c.user_id = :candidate_id;
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id:programId,candidate_id:candidateId},
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    return result;
+}
+
+async getAllMtp(programId: string): Promise<any> {
+    const query = `
+        SELECT 
+            s.linked_profiles AS candidate_id
+        FROM 
+            mtp s
+        WHERE s.program_id = :program_id
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id: programId },
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    return result; 
+}
+
   }
 
   export default MtpRepository;

@@ -2,9 +2,9 @@ import { MtpInterface } from "../interfaces/mtp.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
-import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 import MtpRepository from "../repositories/mtp.repository";
+import { findDuplicateCandidate } from "../utility/create-candidate";
 const mtpRepository = new MtpRepository();
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
@@ -14,21 +14,45 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const { program_id: programId } = request.params as { program_id: string };
         const mtp = request.body as MtpInterface;
         const user = request.user;
+        const token = request.headers.authorization 
 
         if (!user) {
             console.log("User not found in request.");
         }
 
         const userId = user.sub;
-        const candidateId = mtp.linked_profiles;
+        let linkedProfileId = mtp.linked_profiles;
+        const getCandidateData = await mtpRepository.getCandidate(programId, linkedProfileId);
+        const TalentName = getCandidateData?.[0]?.candidate_name;
 
-        const duplicateCandidate = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
-        console.log("duplicateCandidate", duplicateCandidate);
+        const talentData = await mtpRepository.getAllMtp(programId);
+        
+        const duplicateData = await mtpRepository.getPossibleDuplicateCandidate(programId);
 
-        let mtpData: any;
+        if (duplicateData.length > 0) {
+            logger({
+                trace_id: traceId,
+                actor: {
+                    user_name: user.preferred_username,
+                    user_id: user.sub,
+                },
+                data: request.body,
+                eventname: "creating mtp",
+                status: "info",
+                description: "Attempting to create a new mtp record",
+                level: "info",
+                action: request.method,
+                url: request.url,
+                is_deleted: false,
+            }, MtpModel);
+            
+            const mtpData = await MtpModel.create({
+                ...mtp,
+                talent_name: TalentName,
+                created_by: userId,
+                updatedby: userId,
+            });
 
-        if (duplicateCandidate?.length > 0 && duplicateCandidate[0]?.candidate_id) {
-            console.log("Duplicate candidate found. Skipping MTP creation.");
             logger({
                 trace_id: traceId,
                 actor: {
@@ -37,63 +61,113 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                 },
                 data: request.body,
                 eventname: "create mtp",
-                status: "skipped",
-                description: `Duplicate candidate found. MTP creation skipped. Candidate ID: ${duplicateCandidate[0]?.candidate_id}`,
-                level: "warn",
+                status: "success",
+                description: `MTP created successfully: ${mtpData.id}`,
+                level: "success",
                 action: request.method,
                 url: request.url,
                 is_deleted: false,
             }, MtpModel);
 
-            return []
+            return reply.send({
+                status_code: 200,
+                message: "MTP created successfully",
+                data: mtpData,
+                trace_id: traceId,
+            });
+        } else {
+            const talentCandidateIds = talentData.reduce((acc: string[], row: any) => {
+                return acc.concat(row.candidate_id);
+            }, []);
+            
+            const duplicateCandidateIds = duplicateData.reduce((acc: string[], row: any) => {
+                return acc.concat(row.candidate_id);
+            }, []);
+
+            const linkedIds = Array.isArray(linkedProfileId) ? linkedProfileId : [linkedProfileId];
+            
+            const duplicatesFound = linkedIds.filter(id =>
+                talentCandidateIds.includes(id) && duplicateCandidateIds.includes(id)
+            );
+            
+            if (duplicatesFound.length > 0) {
+
+                if (duplicatesFound.length >=2) {
+                    findDuplicateCandidate(duplicatesFound, programId, userId, token);
+                } else {
+                    console.log("Single duplicate found, not calling findDuplicateCandidate");
+                }
+
+                findDuplicateCandidate(duplicatesFound, programId, userId, token);
+
+                logger({
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user.preferred_username,
+                        user_id: user.sub,
+                    },
+                    data: request.body,
+                    eventname: "create mtp",
+                    status: "skipped",
+                    description: `Duplicate detected. Added to possible duplicates. Candidate ID: ${duplicatesFound.join(', ')}`,
+                    level: "warn",
+                    action: request.method,
+                    url: request.url,
+                    is_deleted: false,
+                }, MtpModel);
+                
+                return reply.send({
+                    message: "Duplicate detected. Added to possible duplicates."
+                });
+
+            } else {
+                logger({
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user.preferred_username,
+                        user_id: user.sub,
+                    },
+                    data: request.body,
+                    eventname: "creating mtp",
+                    status: "info",
+                    description: "Attempting to create a new mtp record",
+                    level: "info",
+                    action: request.method,
+                    url: request.url,
+                    is_deleted: false,
+                }, MtpModel);
+                
+                const mtpData = await MtpModel.create({
+                    ...mtp,
+                    talent_name: TalentName,
+                    created_by: userId,
+                    updatedby: userId,
+                });
+
+                logger({
+                    trace_id: traceId,
+                    actor: {
+                        user_name: user.preferred_username,
+                        user_id: user.sub,
+                    },
+                    data: request.body,
+                    eventname: "create mtp",
+                    status: "success",
+                    description: `MTP created successfully: ${mtpData.id}`,
+                    level: "success",
+                    action: request.method,
+                    url: request.url,
+                    is_deleted: false,
+                }, MtpModel);
+                return reply.send({
+                    status_code: 200,
+                    message: "MTP created successfully",
+                    data: mtpData,
+                    trace_id: traceId,
+                });
+            }
         }
-
-        logger({
-            trace_id: traceId,
-            actor: {
-                user_name: user.preferred_username,
-                user_id: user.sub,
-            },
-            data: request.body,
-            eventname: "creating mtp",
-            status: "info",
-            description: "Attempting to create a new mtp record",
-            level: "info",
-            action: request.method,
-            url: request.url,
-            is_deleted: false,
-        }, MtpModel);
-
-        mtpData = await MtpModel.create({
-            ...mtp,
-            created_by: userId,
-            updatedby: userId,
-        });
-
-        logger({
-            trace_id: traceId,
-            actor: {
-                user_name: user.preferred_username,
-                user_id: user.sub,
-            },
-            data: request.body,
-            eventname: "create mtp",
-            status: "success",
-            description: `MTP created successfully: ${mtpData.id}`,
-            level: "success",
-            action: request.method,
-            url: request.url,
-            is_deleted: false,
-        }, MtpModel);
-
-        return reply.send({
-            status_code: 200,
-            message: "MTP created successfully",
-            data: mtpData,
-            trace_id: traceId,
-        });
-
-    } catch (error) {
+    } catch (error: any) {
         logger({
             trace_id: traceId,
             data: request.body,
@@ -110,12 +184,10 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             status_code: 500,
             message: "An error occurred while creating MTP",
             trace_id: traceId,
-            error,
+            error: error.message,
         });
     }
 }
-
-
 
 export async function getAllMtp(
     request: FastifyRequest,
