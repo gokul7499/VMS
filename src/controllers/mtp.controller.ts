@@ -91,7 +91,13 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             );
             
             if (duplicatesFound.length > 0) {
-                console.log("Duplicate Candidate ID", duplicatesFound);
+
+                if (duplicatesFound.length >=2) {
+                    findDuplicateCandidate(duplicatesFound, programId, userId, token);
+                } else {
+                    console.log("Single duplicate found, not calling findDuplicateCandidate");
+                }
+
                 findDuplicateCandidate(duplicatesFound, programId, userId, token);
 
                 logger({
