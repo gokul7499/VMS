@@ -6,6 +6,7 @@ const mtpRepositories = new MtpRepository();
 class MtpModel extends Model {
     mtp_id: any;
     program_id: any;
+    id: any;
 
 }
 

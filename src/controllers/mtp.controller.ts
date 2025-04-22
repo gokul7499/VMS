@@ -2,9 +2,9 @@ import { MtpInterface } from "../interfaces/mtp.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
-import { decodeToken } from "../middlewares/verifyToken";
 import { logger } from "../utility/loggerService";
 import MtpRepository from "../repositories/mtp.repository";
+import { PossibleDuplicateCandidate } from "../models/possible-duplicate-candidate.model";
 const mtpRepository = new MtpRepository();
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
@@ -20,15 +20,34 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         }
 
         const userId = user.sub;
-        const candidateId = mtp.linked_profiles;
+        let candidateId = mtp.linked_profiles;
+        const vendorId = mtp.vendor_id;
 
-        const duplicateCandidate = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
-        console.log("duplicateCandidate", duplicateCandidate);
+        const duplicateCandidateList = await mtpRepository.getPossibleDuplicateCandidate(programId, candidateId);
 
-        let mtpData: any;
+        if (duplicateCandidateList?.length > 0 && duplicateCandidateList[0]?.candidate_id !== null) {
+            const matchingCandidateIds = duplicateCandidateList.map((item: any) => item.candidate_id);
+            const allMatchingCandidates = Array.from(
+                new Set([...matchingCandidateIds, ...(Array.isArray(candidateId) ? candidateId : [candidateId])])
+              );
+            candidateId= allMatchingCandidates?.[0]
+            const candidate_matching_score = allMatchingCandidates
+            .filter(id => matchingCandidateIds.includes(id))
+            .map((id: string) => ({
+                candidate_id: id,
+                similarity_score: 0.89
+            }));
+        
+          await PossibleDuplicateCandidate.create({
+                candidate_id: candidateId,
+                vendor_id: vendorId,
+                matching_profile: allMatchingCandidates,
+                candidate_matching_score,
+                program_id: programId,
+                created_by: userId,
+                updated_by: userId,
+            });
 
-        if (duplicateCandidate?.length > 0 && duplicateCandidate[0]?.candidate_id) {
-            console.log("Duplicate candidate found. Skipping MTP creation.");
             logger({
                 trace_id: traceId,
                 actor: {
@@ -38,14 +57,15 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                 data: request.body,
                 eventname: "create mtp",
                 status: "skipped",
-                description: `Duplicate candidate found. MTP creation skipped. Candidate ID: ${duplicateCandidate[0]?.candidate_id}`,
+                description: `Duplicate detected. Added to possible duplicates. Candidate ID: ${candidateId}`,
                 level: "warn",
                 action: request.method,
                 url: request.url,
                 is_deleted: false,
             }, MtpModel);
 
-            return []
+            return ({message: "Duplicate detected. Added to possible duplicates."})
+
         }
 
         logger({
@@ -64,7 +84,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             is_deleted: false,
         }, MtpModel);
 
-        mtpData = await MtpModel.create({
+        const mtpData = await MtpModel.create({
             ...mtp,
             created_by: userId,
             updatedby: userId,
@@ -114,6 +134,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
+
 
 
 
