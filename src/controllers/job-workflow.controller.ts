@@ -334,7 +334,7 @@ export const updateWorkflowStatus = async (
                         }
                         else if (!recipient.behaviour) {
                             if (level.placement_order === placement_order && recipient?.status === 'pending') {
-                                if(matchesUser){
+                                if(!commonFields.behaviour && matchesUser && recipient?.status === 'pending' ){
                                     updatedRecipient = {
                                         ...commonFields,
                                         status:'approved',
@@ -5201,7 +5201,7 @@ ORDER BY
 
         (async () => {
             console.log('here calling the notificationsss');
-            let notifyUser = sendNotificationSequencially(request, reply, workflow);
+            // let notifyUser = sendNotificationSequencially(request, reply, workflow);
         })();
         
         console.log('returning response from here');
