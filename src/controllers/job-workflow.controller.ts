@@ -5201,7 +5201,7 @@ ORDER BY
 
         (async () => {
             console.log('here calling the notificationsss');
-            // let notifyUser = sendNotificationSequencially(request, reply, workflow);
+            let notifyUser = sendNotificationSequencially(request, reply, workflow);
         })();
         
         console.log('returning response from here');
