@@ -1739,8 +1739,7 @@ export const labourCategoryAdvanceFilter = (
       ${hasIsEnabled ? 'AND labour_category.is_enabled = :is_enabled' : ''}
       ${name ? 'AND labour_category.name LIKE :name' : ''}
       ${updatedOnCondition}
-    ORDER BY
-      labour_category.id ASC
+    ORDER BY labour_category.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
