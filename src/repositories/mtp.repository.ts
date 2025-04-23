@@ -1,10 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-import { Json } from "sequelize/types/utils";
 class MtpRepository {
-    static getAllMtpData(programId: string) {
-        throw new Error("Method not implemented.");
-    }
+    
     async programQuery(program_id: string): Promise<{
         unique_id: string; name: string
       }[]> {
@@ -31,10 +28,11 @@ class MtpRepository {
         offset: number
       ): Promise<{ data: any[]; count: number }> {
         const query = `
-          SELECT *, COUNT(*) OVER() AS total_count
+          SELECT mtp.*,c.do_not_rehire, COUNT(*) OVER() AS total_count
           FROM mtp
-          WHERE program_id = :program_id
-          GROUP BY mtp.id
+          LEFT JOIN 
+          candidates c ON mtp.mtp_candidate_id=c.user_id
+          WHERE mtp.program_id = :program_id
           LIMIT :limit OFFSET :offset
         `;
       
@@ -42,7 +40,7 @@ class MtpRepository {
           replacements: { program_id: programId, limit, offset },
           type: QueryTypes.SELECT,
         });
-      
+        console.log("data",data)
         const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
       
         return { data, count };
@@ -77,6 +75,7 @@ class MtpRepository {
     m.id,
     m.talent_name,
     m.updated_on,
+    m.mtp_id,
 JSON_ARRAYAGG(JSON_OBJECT(
           'program_id', c.program_id,
           'vendor_id', c.vendor_id,
@@ -84,12 +83,16 @@ JSON_ARRAYAGG(JSON_OBJECT(
           'birth_date', c.birth_date,
           'address', c.addresses,
           'email', c.email,
-          'contacts', c.contacts
+          'contacts', c.contacts,
+          'do_not_rehire',c.do_not_rehire,
+          'do_not_rehire_notes',c.do_not_rehire_notes,
+          'do_not_rehire_reason',rc.name
         )) AS linked_profiles
   FROM 
     mtp m
-  JOIN 
+  LEFT JOIN 
     candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
+  LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
@@ -100,12 +103,11 @@ JSON_ARRAYAGG(JSON_OBJECT(
            type: QueryTypes.SELECT,
           raw: true,
          });
-
+        console.log("mtpDtata",result)
       return result;
   }
 
   async getCandidate(programId: string,candidateId:any): Promise<any> {
-
     const query =`
         SELECT 
             MIN(c.candidate_id) AS candidate_id,
@@ -129,7 +131,7 @@ JSON_ARRAYAGG(JSON_OBJECT(
 async getAllMtp(programId: string): Promise<any> {
     const query = `
         SELECT 
-            s.linked_profiles AS candidate_id
+            s.mtp_candidate_id AS candidate_id
         FROM 
             mtp s
         WHERE s.program_id = :program_id
@@ -141,6 +143,24 @@ async getAllMtp(programId: string): Promise<any> {
         raw: true,
     });
     return result; 
+}
+
+async getMtpByLinkedProfile(programId: string,linkedProfileId:any): Promise<any> {
+  const query = `
+      SELECT 
+          s.linked_profiles AS candidate_id
+      FROM 
+          mtp s
+      WHERE s.program_id = :program_id
+      AND s.linked_profiles=:linkedProfileId
+  `;
+
+  const result = await sequelize.query(query, {
+      replacements: { program_id: programId,linked_profiles:linkedProfileId },
+      type: QueryTypes.SELECT,
+      raw: true,
+  });
+  return result; 
 }
 
   }

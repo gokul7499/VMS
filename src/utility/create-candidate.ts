@@ -143,19 +143,20 @@ export async function searchSimilarProfiles(
 }
 
 export async function findDuplicateCandidate(
-  candidateId: string[],
+  candidateId: any[],
   programId: string,
   userId: string,
   authHeader: any,
+  candidate:string,
   maxRetries = 3,
   delayMs = 1000
 ) {
   const searchUrl = `${AI_SERVICE_URL}/candidates/cross-match`;
 
   const searchPayload = {
-    Candidate_ID: candidateId
+    candidate_ids: candidateId
   };
-
+  console.log("searchPayload",searchPayload)
   let attempt = 0;
 
   while (attempt < maxRetries) {
@@ -169,7 +170,7 @@ export async function findDuplicateCandidate(
         body: JSON.stringify(searchPayload),
       });
 
-       const result = await response.json();
+      const result = await response.json();
       console.log("response", result);
 
       if (!response.ok) {
@@ -198,7 +199,7 @@ export async function findDuplicateCandidate(
         });
 
         const data = await PossibleDuplicateCandidate.create({
-          candidate_id: candidateId[0],
+          candidate_id:candidate,
           matching_profile: matchingProfile,
           candidate_matching_score: candidateMatchingScore,
           program_id: programId,

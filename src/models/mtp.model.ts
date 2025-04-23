@@ -40,6 +40,10 @@ MtpModel.init(
             defaultValue: Date.now(),
             allowNull: true
         },
+        mtp_candidate_id:{
+            type: DataTypes.UUID,
+            allowNull: false,
+        },
         updated_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
