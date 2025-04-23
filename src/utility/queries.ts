@@ -185,7 +185,7 @@ WHERE
 export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
       pv.program_id = :program_id
-      AND vcd.is_enabled = true 
+      AND vcd.is_enabled = true
       AND vcd.program_id = :program_id
       AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
       AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -255,7 +255,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
           vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
           vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
       ORDER BY
-        vcrm.updated_on DESC 
+        vcrm.updated_on DESC
       LIMIT :limit OFFSET :offset
   `;
 };
@@ -376,7 +376,7 @@ export const complianceDocumentGetByVendorId = `
         vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
         vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
     ORDER BY
-        vcrm.updated_on DESC 
+        vcrm.updated_on DESC
     LIMIT :limit OFFSET :offset
 `;
 
@@ -590,7 +590,7 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-h.created_on DESC, 
+h.created_on DESC,
  CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
@@ -844,7 +844,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.job_type
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'job_template', COALESCE(
                     (
@@ -855,7 +855,7 @@ SELECT
                         FROM job_templates jt
                         WHERE jt.id = vmc.job_template
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'worker_type', COALESCE(
                     (
@@ -867,7 +867,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.worker_type
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'worker_classification', COALESCE(
                     (
@@ -879,7 +879,7 @@ SELECT
                         FROM picklistitems pi
                         WHERE pi.id = vmc.worker_classification
                     ),
-                    JSON_OBJECT('id', 'any', 'label', 'Any')
+                    JSON_OBJECT('id', 'all', 'label', 'All')
                 ),
                 'rate_type', COALESCE(
                     (
@@ -890,7 +890,7 @@ SELECT
                         FROM rate_type rt
                         WHERE rt.id = vmc.rate_type
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'work_locations', COALESCE(
                     (
@@ -901,7 +901,7 @@ SELECT
                         FROM work_locations wl
                         WHERE wl.id = vmc.work_locations
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'hierarchy', COALESCE(
                     (
@@ -912,7 +912,7 @@ SELECT
                         FROM hierarchies h
                         WHERE h.id = vmc.hierarchy
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'program_industry', COALESCE(
                     (
@@ -923,7 +923,7 @@ SELECT
                         FROM labour_category i
                         WHERE i.id = vmc.program_industry
                     ),
-                    JSON_OBJECT('id', 'any', 'name', 'Any')
+                    JSON_OBJECT('id', 'all', 'name', 'All')
                 ),
                 'is_enabled', vmc.is_enabled
             )
@@ -1331,7 +1331,7 @@ export const programVendorAdvancedFilter = (
 
   return `
     WITH document_data AS (
-      SELECT 
+      SELECT
         vdg.id AS doc_group_id,
         vdg.name AS doc_group_name,
         JSON_ARRAYAGG(
@@ -1340,16 +1340,16 @@ export const programVendorAdvancedFilter = (
             'doc_name', vcd.name
           )
         ) AS compliance_documents
-      FROM 
+      FROM
         vendor_document_groups vdg
-      LEFT JOIN 
-        vendor_compliance_documents vcd 
+      LEFT JOIN
+        vendor_compliance_documents vcd
         ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
-      GROUP BY 
+      GROUP BY
         vdg.id
     ),
     compliance_check AS (
-      SELECT 
+      SELECT
         vr.vendor_id,
         CAST(CONCAT(
           '{',
@@ -1363,13 +1363,13 @@ export const programVendorAdvancedFilter = (
               IF(COUNT(*) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END), 'true', 'false'),
           '}'
         ) AS JSON) AS compliance_status
-      FROM 
+      FROM
         vendor_compliance_req_doc_mappings vr
-      GROUP BY 
+      GROUP BY
         vr.vendor_id
     )
 
-    SELECT 
+    SELECT
       pv.id,
       pv.program_id,
       pv.tenant_id,
@@ -1389,11 +1389,11 @@ export const programVendorAdvancedFilter = (
         )
       ) AS compliance_status,
       COUNT(*) OVER() AS total_count
-    FROM 
+    FROM
       program_vendors AS pv
-    LEFT JOIN 
+    LEFT JOIN
       compliance_check cc ON cc.vendor_id = pv.id
-    WHERE 
+    WHERE
       pv.is_deleted = false
       AND pv.program_id = :program_id
       ${hasQueryName ? 'AND pv.display_name LIKE :display_name' : ''}
@@ -1417,9 +1417,9 @@ export const programVendorAdvancedFilter = (
       ${workLocationIdsClause}
       ${jobTypeIdsClause}
       ${countryClause}
-    GROUP BY 
+    GROUP BY
       pv.id
-    ORDER BY 
+    ORDER BY
       pv.updated_on DESC
     LIMIT :limit OFFSET :offset;
   `;
@@ -2386,9 +2386,9 @@ WITH user_data AS (
     ${first_name ? 'AND u.first_name = :first_name' : ''}
     ${hierarchy_id && hierarchy_id.length > 0
     ? `AND (
-            u.is_all_hierarchy_associate = true 
+            u.is_all_hierarchy_associate = true
             OR (
-              u.is_all_hierarchy_associate = false 
+              u.is_all_hierarchy_associate = false
               AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
       .join(' OR ')})
@@ -2487,13 +2487,13 @@ export const getPendingUserQuery = `
     JSON_OBJECT('id', h.id, 'name', h.name)
   )
   FROM hierarchies h
-  WHERE 
+  WHERE
     (
-      invitation.is_all_hierarchy_associate = true 
+      invitation.is_all_hierarchy_associate = true
       AND h.program_id = invitation.program_id
     )
     OR (
-      invitation.is_all_hierarchy_associate = false 
+      invitation.is_all_hierarchy_associate = false
       AND JSON_CONTAINS(invitation.associate_hierarchy_ids, JSON_QUOTE(h.id))
     )
 ), JSON_ARRAY()) AS associate_hierarchy_ids,
@@ -2605,37 +2605,11 @@ export const vendorMarkup = `
         vendor_markup_config vmc
     WHERE
         vmc.program_id = :program_id
-        AND vmc.program_vendor_id = :vendor_id
-        AND (
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id)
-            OR
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.program_industry = :labour_category_id AND vmc.is_all_hierarchy = 1)
-            OR
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.hierarchy = :hierarchy_id AND vmc.is_all_labor_category = 1)
-            OR
-            (:rateModel LIKE CONCAT(vmc.rate_model, '%') AND vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1)
-        )
-    ORDER BY
-        -- Prioritize by exact industry and location matches
-        CASE
-          WHEN vmc.program_industry = :labour_category_id AND vmc.hierarchy = :hierarchy_id THEN 1
-          ELSE 2
-        END,
-        -- Fallback: Prioritize rows where all categories, locations, and hierarchy are set to 1
-        CASE
-          WHEN vmc.is_all_labor_category = 1 AND vmc.is_all_work_locations = 1 AND vmc.is_all_hierarchy = 1 THEN 3
-          ELSE 1
-        END,
-        -- Additional sorting logic if needed
-        CASE
-          WHEN vmc.program_industry = :labour_category_id THEN 1
-          ELSE 2
-        END,
-        CASE
-          WHEN vmc.hierarchy = :hierarchy_id THEN 1
-          ELSE 2
-        END
-    LIMIT 1;
+        AND (vmc.program_vendor_id = :vendor_id OR vmc.program_vendor_id IS NULL)
+        AND (vmc.rate_model = :rateModel OR vmc.rate_model IS NULL)
+        AND (vmc.hierarchy IN (:hierarchy_id) OR vmc.hierarchy IS NULL)
+        AND (vmc.program_industry = :program_industry OR vmc.program_industry IS NULL)
+    LIMIT 1
 `;
 
 export const fetchTimesheetExpenseRuleGroups = async (
@@ -2949,7 +2923,7 @@ export const getUserHierarchiesBasedOnUserType = `
         u.associate_hierarchy_ids,
         u.user_type,
         u.tenant_id,
-        u.is_all_hierarchy_associate 
+        u.is_all_hierarchy_associate
       FROM user u
       WHERE u.user_id = :userId
         AND u.program_id = :program_id
@@ -3149,21 +3123,21 @@ export const rateConfigurationsFilterQuery = (
 
 
 export const getParentHierarchiesQuery = `
-  SELECT * 
-  FROM hierarchies 
+  SELECT *
+  FROM hierarchies
   WHERE hierarchies.program_id = :program_id
   AND hierarchies.parent_hierarchy_id IS NULL;
   `;
 
 export const getProgramVendorDetails = `
-  SELECT 
+  SELECT
     pv.id AS program_vendor_id,
     pv.program_id,
 
     (
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
         FROM hierarchies h
-        WHERE 
+        WHERE
             (pv.all_hierarchy = TRUE AND h.program_id = pv.program_id) OR
             (pv.all_hierarchy = FALSE AND JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id)))
     ) AS hierarchies,
@@ -3171,7 +3145,7 @@ export const getProgramVendorDetails = `
     (
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
         FROM work_locations wl
-        WHERE 
+        WHERE
             (pv.all_work_locations = TRUE AND wl.program_id = pv.program_id) OR
             (pv.all_work_locations = FALSE AND JSON_CONTAINS(pv.work_locations, JSON_QUOTE(wl.id)))
     ) AS work_locations,
@@ -3179,16 +3153,16 @@ export const getProgramVendorDetails = `
     (
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', lc.id, 'name', lc.name))
         FROM labour_category lc
-        WHERE 
+        WHERE
             (pv.is_labour_category = TRUE AND lc.program_id = pv.program_id) OR
             (pv.is_labour_category = FALSE AND JSON_CONTAINS(pv.program_industry, JSON_QUOTE(lc.id)))
     ) AS labour_category
 
-FROM 
+FROM
     program_vendors pv
 
-WHERE 
-    pv.program_id = :program_id AND 
+WHERE
+    pv.program_id = :program_id AND
     (pv.user_id = :user_id OR :user_id IS NULL);
 `;
 
@@ -3217,49 +3191,49 @@ export const getVendorMarkups = ({
   const rateTypePlaceholders = rate_type.map((_, i) => `:rate_type${i}`).join(',');
 
   return `
-      SELECT 
+      SELECT
           vmc.id,
           vmc.rate_model,
           vmc.sliding_scale,
           vmc.markups,
           COALESCE(
-              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
-               FROM picklistitems pi WHERE pi.id = vmc.job_type), 
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value)
+               FROM picklistitems pi WHERE pi.id = vmc.job_type),
               JSON_OBJECT('id', 'any', 'label', 'Any')
           ) AS job_type,
           COALESCE(
-              (SELECT JSON_OBJECT('id', jt.id, 'name', jt.template_name) 
-               FROM job_templates jt WHERE jt.id = vmc.job_template), 
+              (SELECT JSON_OBJECT('id', jt.id, 'name', jt.template_name)
+               FROM job_templates jt WHERE jt.id = vmc.job_template),
               JSON_OBJECT('id', 'any', 'name', 'Any')
           ) AS job_template,
           COALESCE(
-              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
-               FROM picklistitems pi WHERE pi.id = vmc.worker_type), 
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value)
+               FROM picklistitems pi WHERE pi.id = vmc.worker_type),
               JSON_OBJECT('id', 'any', 'label', 'Any')
           ) AS worker_type,
           COALESCE(
-              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value) 
-               FROM picklistitems pi WHERE pi.id = vmc.worker_classification), 
+              (SELECT JSON_OBJECT('id', pi.id, 'label', pi.label, 'value', pi.value)
+               FROM picklistitems pi WHERE pi.id = vmc.worker_classification),
               JSON_OBJECT('id', 'any', 'label', 'Any')
           ) AS worker_classification,
           COALESCE(
-              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name, 'abbreviation', rt.abbreviation) 
-               FROM rate_type rt WHERE rt.id = vmc.rate_type), 
+              (SELECT JSON_OBJECT('id', rt.id, 'name', rt.name, 'abbreviation', rt.abbreviation)
+               FROM rate_type rt WHERE rt.id = vmc.rate_type),
               JSON_OBJECT('id', 'any', 'name', 'Any', 'abbreviation', 'Any')
           ) AS rate_type,
           COALESCE(
-              (SELECT JSON_OBJECT('id', wl.id, 'name', wl.name) 
-               FROM work_locations wl WHERE wl.id = vmc.work_locations), 
+              (SELECT JSON_OBJECT('id', wl.id, 'name', wl.name)
+               FROM work_locations wl WHERE wl.id = vmc.work_locations),
               JSON_OBJECT('id', 'any', 'name', 'Any')
           ) AS work_locations,
           COALESCE(
-              (SELECT JSON_OBJECT('id', h.id, 'name', h.name) 
-               FROM hierarchies h WHERE h.id = vmc.hierarchy), 
+              (SELECT JSON_OBJECT('id', h.id, 'name', h.name)
+               FROM hierarchies h WHERE h.id = vmc.hierarchy),
               JSON_OBJECT('id', 'any', 'name', 'Any')
           ) AS hierarchy,
           COALESCE(
-              (SELECT JSON_OBJECT('id', i.id, 'name', i.name) 
-               FROM labour_category i WHERE i.id = vmc.program_industry), 
+              (SELECT JSON_OBJECT('id', i.id, 'name', i.name)
+               FROM labour_category i WHERE i.id = vmc.program_industry),
               JSON_OBJECT('id', 'any', 'name', 'Any')
           ) AS program_industry,
           vmc.is_enabled
@@ -3277,6 +3251,3 @@ export const getVendorMarkups = ({
       ORDER BY vmc.is_default DESC, vmc.created_on DESC
   `;
 };
-
-
-

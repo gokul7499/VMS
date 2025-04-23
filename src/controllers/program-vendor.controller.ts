@@ -502,7 +502,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 ];
 
                 fieldsToCheck.forEach(field => {
-                    if (markupData[field] === 'any') {
+                    if (markupData[field] === 'all') {
                         markupData[field] = null;
                     }
                 });
@@ -510,7 +510,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 const whereClause: Record<string, any> = {
                     program_id,
                     program_vendor_id: existingProgramVendor.id,
-                    hierarchy: markup.hierarchy === 'any' ? null : markup.hierarchy,
+                    hierarchy: markup.hierarchy === 'all' ? null : markup.hierarchy,
                     rate_model: markup.rate_model === 'any' ? null : markup.rate_model,
                     program_industry: markup.program_industry === 'any' ? null : markup.program_industry,
                     rate_type: markup.rate_type === 'any' ? null : markup.rate_type,
