@@ -41,7 +41,7 @@ MtpModel.init(
             allowNull: true
         },
         mtp_candidate_id:{
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: false,
         },
         updated_on: {

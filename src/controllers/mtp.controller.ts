@@ -80,9 +80,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
             }, MtpModel);
 
             return reply.send({
-                message: "Duplicate detected. Added to possible duplicates.",
-                trace_id: traceId
-            });
+                message: "Duplicate detected. Added to possible duplicates." });
         }
         const mtpData = await MtpModel.create({
             ...mtp,

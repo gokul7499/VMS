@@ -6,5 +6,5 @@ export interface MtpInterface{
     mtp_id:string,
     linked_profiles:JSON,
     talent_name:string,
-    mtp_candidate_id:string
+    mtp_candidate_id:UUID
 }
