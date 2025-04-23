@@ -28,12 +28,11 @@ class MtpRepository {
         offset: number
       ): Promise<{ data: any[]; count: number }> {
         const query = `
-          SELECT *,c.do_not_rehire, COUNT(*) OVER() AS total_count
+          SELECT mtp.*,c.do_not_rehire, COUNT(*) OVER() AS total_count
           FROM mtp
           LEFT JOIN 
-          candidates c ON JSON_CONTAINS(tp.linked_profiles, JSON_QUOTE(c.user_id), '$')
-          WHERE program_id = :program_id
-          GROUP BY mtp.id
+          candidates c ON mtp.mtp_candidate_id=c.user_id
+          WHERE mtp.program_id = :program_id
           LIMIT :limit OFFSET :offset
         `;
       
@@ -41,7 +40,7 @@ class MtpRepository {
           replacements: { program_id: programId, limit, offset },
           type: QueryTypes.SELECT,
         });
-      
+        console.log("data",data)
         const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
       
         return { data, count };
@@ -92,7 +91,7 @@ JSON_ARRAYAGG(JSON_OBJECT(
   FROM 
     mtp m
   LEFT JOIN 
-    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.user_id), '$')
+    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
   LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id

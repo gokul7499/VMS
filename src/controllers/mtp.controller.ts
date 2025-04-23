@@ -138,6 +138,7 @@ export async function getAllMtp(
     reply: FastifyReply
   ) {
     const { program_id: programId } = request.params as { program_id: string };
+    
     const { page = 1, limit = 10 } = request.query as { page?: number; limit?: number };
     const traceId = generateCustomUUID();
   
@@ -176,14 +177,13 @@ export async function getMtpById(
 ) {
 
     const { program_id:programId,id } = request.params as { program_id: string,id: string };
-    console.log("Params:", programId, id);
     const traceId = generateCustomUUID();
     
     try {
 
-        const mtpData = await mtpRepository.getMtpById(programId,id)
+        const [mtpData] = await mtpRepository.getMtpById(programId,id)
 
-        if (mtpData && mtpData.length > 0) {
+        if (mtpData) {
             return reply.code(200).send({
                 status_code: 200,
                 message: "Mtp data get successfully.",
