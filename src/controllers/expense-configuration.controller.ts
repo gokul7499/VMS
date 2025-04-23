@@ -127,7 +127,16 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
         const transformedExpenseConfig = {
             ...convertExpenseConfigBooleans(expenseConfig),
             master_data_types: parseJsonSafely(expenseConfig.master_data_types),
-            expense_types: parseJsonSafely(expenseConfig.expense_types),
+            expense_types: parseJsonSafely(expenseConfig.expense_types).map((et: any) => ({
+                ...et,
+                is_enabled: Boolean(et.is_enabled),
+                is_attachments_mandatory: Boolean(et.is_attachments_mandatory),
+                is_notes_mandatory: Boolean(et.is_notes_mandatory),
+                is_msp_fees_applied: Boolean(et.is_msp_fees_applied),
+                is_tax_applied: Boolean(et.is_tax_applied),
+                is_negative_expense_allowed: Boolean(et.is_negative_expense_allowed),
+                is_unit_based: Boolean(et.is_unit_based),
+              })),
         };
         return reply.status(200).send({
             status_code: 200,
@@ -278,20 +287,20 @@ export async function updateExpenseConfiguration(
             },
             { transaction }
         );
-        if (Array.isArray(updatedData.expense_type_ids)) {
+        if (Array.isArray(updatedData.expense_types)) {
             await ExpenseTypeMapping.destroy({
                 where: { expense_config_id: existingConfig.id },
                 transaction,
             });
-            for (const expenseTypeId of updatedData.expense_type_ids) {
+            for (const expenseTypeId of updatedData.expense_types) {
                 await ExpenseTypeMapping.create(
                     {
-                        program_id,
-                        expense_config_id: newConfig.id,
-                        expense_type_id: expenseTypeId,
-                    },
-                    { transaction }
-                );
+                    program_id,
+                    expense_config_id: newConfig.id,
+                    expense_type_id: expenseTypeId,
+                },
+                { transaction }
+            );
             }
         }
         await transaction.commit();
