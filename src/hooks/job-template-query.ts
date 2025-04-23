@@ -638,7 +638,7 @@ COALESCE((
     if (is_all_hierarchy_associate) {
       const allHierarchies = await sequelize.query<{
         id: string;
-      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id`, {
+      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
         replacements: { program_id },
         type: QueryTypes.SELECT,
       });
