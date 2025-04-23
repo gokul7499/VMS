@@ -26,7 +26,35 @@ export const getExpenseConfigurationQuery = (
     FROM master_data_type mdt
     WHERE JSON_OVERLAPS(ec.master_data_types, JSON_ARRAY(mdt.id))
   ) AS master_data_types,
-        (
+   (
+  SELECT JSON_OBJECT(
+    'source', ec.projects->>'$.source',
+    'options', CASE
+      WHEN ec.projects->>'$.source' = 'master_data_type' THEN (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', mdt.id, 'name', mdt.name)
+        )
+        FROM master_data_type mdt
+        WHERE JSON_OVERLAPS(JSON_EXTRACT(ec.projects, '$.options'), JSON_ARRAY(mdt.id))
+      )
+      WHEN ec.projects->>'$.source' = 'hierarchy' THEN (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', h.id, 'name', h.name)
+        )
+        FROM hierarchies h
+        WHERE JSON_OVERLAPS(JSON_EXTRACT(ec.projects, '$.options'), JSON_ARRAY(h.id))
+      )
+      WHEN ec.projects->>'$.source' = 'custom_field' THEN (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT('id', cf.id, 'name', cf.name)
+        )
+        FROM custom_fields cf
+        WHERE JSON_OVERLAPS(JSON_EXTRACT(ec.projects, '$.options'), JSON_ARRAY(cf.id))
+      )
+      ELSE NULL
+    END
+  )
+) AS projects, (
           SELECT JSON_ARRAYAGG(
             JSON_OBJECT(  'id', et.id,
         'name', et.name,
