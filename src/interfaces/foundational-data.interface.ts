@@ -41,7 +41,7 @@ export const createFoundationalDataSchema = {
         description: { type: 'string' },
         is_enabled: { type: 'boolean' },
         code: { type: 'string' },
-        manager_id: { type: 'string' },
+        manager_id: { type: 'array' },
         is_billable: { type: 'boolean' },
         depended_fields: {
             type: 'array'

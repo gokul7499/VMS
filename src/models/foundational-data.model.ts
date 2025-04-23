@@ -60,7 +60,7 @@ FoundationalData.init({
         allowNull: true,
     },
     manager_id: {
-        type: DataTypes.UUID,
+        type: DataTypes.JSON,
         allowNull: true,
         references: {
             model: 'user',

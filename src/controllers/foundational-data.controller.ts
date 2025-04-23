@@ -59,8 +59,6 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             offset
         };
 
-
-
         // if (query.is_billable !== undefined) {
         //     filters.is_billable = query.is_billable === 'true';
         // }
@@ -123,33 +121,38 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
 
 export async function getFoundationalDataById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
-        const foundational_data = await foundationalData.findOne(
-            {
-                where: { program_id, id },
-                include: [{
-                    model: User,
-                    as: 'owner',
-                    attributes: ['id', 'first_name', 'last_name']
-                }]
-            }
-        );
-        if (foundational_data) {
-            reply.status(200).send({
-                status_code: 200,
-                message: 'FoundationalData fetch Successfully.',
-                foundational_data: foundational_data,
-                trace_id: traceId,
-            });
-        } else {
-            reply.status(200).send({
+
+        const foundational_data = await foundationalData.findOne({ where: { program_id, id } });
+
+        if (!foundational_data) {
+            return reply.status(200).send({
                 status_code: 200,
                 message: 'FoundationalData Not Found.',
                 trace_id: traceId,
             });
         }
+
+        const populatedManagers = foundational_data.manager_id?.length
+            ? await User.findAll({
+                  where: { id: foundational_data.manager_id },
+                  attributes: ['id', 'first_name', 'last_name'],
+              })
+            : [];
+
+        reply.status(200).send({
+            status_code: 200,
+            message: 'FoundationalData fetched successfully.',
+            foundational_data: {
+                ...foundational_data.toJSON(),
+                manager_id: populatedManagers,
+            },
+            trace_id: traceId,
+        });
     } catch (error) {
+        console.error('Error fetching foundational data:', error);
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching FoundationalData.',
