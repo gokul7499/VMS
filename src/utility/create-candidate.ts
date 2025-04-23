@@ -147,7 +147,7 @@ export async function findDuplicateCandidate(
   programId: string,
   userId: string,
   authHeader: any,
-  mtpCandidateId:string,
+  candidate:string,
   maxRetries = 3,
   delayMs = 1000
 ) {
@@ -199,7 +199,7 @@ export async function findDuplicateCandidate(
         });
 
         const data = await PossibleDuplicateCandidate.create({
-          candidate_id:mtpCandidateId,
+          candidate_id:candidate,
           matching_profile: matchingProfile,
           candidate_matching_score: candidateMatchingScore,
           program_id: programId,

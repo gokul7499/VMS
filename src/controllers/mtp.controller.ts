@@ -28,10 +28,8 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         }, []);
 
         const candidateData = [...talentCandidateIds, mtpCandidateId].flat();
-
         if (!talentData || talentData.length === 0) {
             console.log("No existing MTP data found, creating new MTP");
-
             const mtpData = await MtpModel.create({
                 ...mtp,
                 talent_name: TalentName,
@@ -86,14 +84,12 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
                 trace_id: traceId
             });
         }
-
         const mtpData = await MtpModel.create({
             ...mtp,
             talent_name: TalentName,
             created_by: userId,
             updatedby: userId,
         });
-
         logger({
             trace_id: traceId,
             actor: {
@@ -138,7 +134,6 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
-
 
 export async function getAllMtp(
     request: FastifyRequest,
