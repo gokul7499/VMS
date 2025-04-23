@@ -8,7 +8,7 @@ export interface FoundationalDataInterface {
     program_id: string;
     is_deleted: boolean;
     creation_source: string;
-    manager_id: string;
+    manager_ids: string;
     created_on?: bigint;
     updated_on?: bigint;
     created_by: string;
@@ -41,7 +41,7 @@ export const createFoundationalDataSchema = {
         description: { type: 'string' },
         is_enabled: { type: 'boolean' },
         code: { type: 'string' },
-        manager_id: { type: 'array' },
+        manager_ids: { type: 'array' },
         is_billable: { type: 'boolean' },
         depended_fields: {
             type: 'array'

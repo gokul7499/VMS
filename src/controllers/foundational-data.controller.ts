@@ -19,7 +19,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             name?: string;
             is_enabled?: string;
             updated_on?: string;
-            manager_id?: string;
+            manager_ids?: string;
             code?: string;
             foundational_data_type_id?: string;
             first_name: string;
@@ -50,7 +50,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             is_enabled: query.is_enabled !== undefined ? query.is_enabled === 'true' : null,
             updated_on_start,
             updated_on_end,
-            manager_id: query.manager_id ?? null,
+            manager_ids: query.manager_ids ?? null,
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,
             first_name: query.first_name ? `%${query.first_name}%` : null,
@@ -135,11 +135,11 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             });
         }
 
-        const populatedManagers = foundational_data.manager_id?.length
+        const populatedManagers = foundational_data.manager_ids?.length
             ? await User.findAll({
-                  where: { id: foundational_data.manager_id },
-                  attributes: ['id', 'first_name', 'last_name'],
-              })
+                where: { id: foundational_data.manager_ids },
+                attributes: ['id', 'first_name', 'last_name'],
+            })
             : [];
 
         reply.status(200).send({
@@ -147,16 +147,16 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             message: 'FoundationalData fetched successfully.',
             foundational_data: {
                 ...foundational_data.toJSON(),
-                manager_id: populatedManagers,
+                manager_ids: populatedManagers,
             },
             trace_id: traceId,
         });
-    } catch (error) {
-        console.error('Error fetching foundational data:', error);
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching FoundationalData.',
             trace_id: traceId,
+            error: error.message
         });
     }
 }
@@ -338,11 +338,12 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server error',
             trace_id: traceId,
+            error:error.message
         });
     }
 }
@@ -396,7 +397,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             name?: string;
             is_enabled?: boolean;
             updated_on?: string;
-            manager_id?: string;
+            manager_ids?: string;
             code?: string;
             first_name?: string;
             page?: number;
@@ -427,7 +428,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             is_enabled: body.is_enabled ?? null,
             updated_on_start,
             updated_on_end,
-            manager_id: body.manager_id ?? null,
+            manager_ids: body.manager_ids ?? null,
             code: body.code ? `%${body.code}%` : null,
             first_name: body.first_name ? `%${body.first_name}%` : null,
             is_billable: body.is_billable ?? null,

@@ -9,7 +9,7 @@ class FoundationalData extends Model {
     id: any;
     foundational_data_type_id: any;
     name: any;
-    manager_id: any;
+    manager_ids: any;
 }
 
 FoundationalData.init({
@@ -59,7 +59,7 @@ FoundationalData.init({
         type: DataTypes.STRING(50),
         allowNull: true,
     },
-    manager_id: {
+    manager_ids: {
         type: DataTypes.JSON,
         allowNull: true,
         references: {
@@ -107,7 +107,7 @@ FoundationalData.init({
 
 FoundationalData.belongsTo(Programs, { foreignKey: 'program_id', as: 'programs' });
 FoundationalData.belongsTo(FoundationalDataTypes, { foreignKey: 'foundational_data_type_id', as: 'master_data_type' });
-FoundationalData.belongsTo(User, { foreignKey: 'manager_id', as: 'owner' });
+FoundationalData.belongsTo(User, { foreignKey: 'manager_ids', as: 'owner' });
 sequelize.sync();
 
 export default FoundationalData;
