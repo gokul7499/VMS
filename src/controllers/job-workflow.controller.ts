@@ -5605,6 +5605,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Master Data Owner':
                 case 'Managerial Chain':
                 case 'Financial Authority Chain':
+                case 'Vendor Users':
                 case 'Top of Financial Authority Chain': {
                     const users: any[] = [];
                     const recipientTypes = JSON.parse(row.recipient_types) || [];
