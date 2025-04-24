@@ -42,7 +42,7 @@ export async function createSowTemplate(
             return reply.status(400).send({
                 status_code: 400,
                 trace_id: traceId,
-                message: "A Sow Template with the same title already exists for this program.",
+                message: "SOW Template Title already exists",
             });
         }
         
