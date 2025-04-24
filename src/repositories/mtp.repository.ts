@@ -76,6 +76,7 @@ class MtpRepository {
     m.talent_name,
     m.updated_on,
     m.mtp_id,
+    m.mtp_candidate_id,
 JSON_ARRAYAGG(JSON_OBJECT(
           'program_id', c.program_id,
           'vendor_id', c.vendor_id,
@@ -90,14 +91,14 @@ JSON_ARRAYAGG(JSON_OBJECT(
         )) AS linked_profiles
   FROM 
     mtp m
-  LEFT JOIN 
-    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
-  LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
+LEFT JOIN 
+candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$') 
+             OR m.mtp_candidate_id = c.id  
+LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
 `;
-
          const result = await sequelize.query(query, {
            replacements: { program_id: programId,id },
            type: QueryTypes.SELECT,
