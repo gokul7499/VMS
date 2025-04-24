@@ -10,6 +10,8 @@ import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.mo
 import Hierarchies from "../models/hierarchies.model";
 import ExpenseTypeModel from "../models/expense-type.model";
 import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
+import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import CustomField from "../models/custom-fields.model";
 
 export async function getExpenseConfigurations(request: FastifyRequest<{}>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -572,6 +574,10 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             where: { id: { [Op.in]: configJSON.hierarchy_ids ?? [] } },
             attributes: ['id', 'name'],
         });
+        const master_data_types = await FoundationalDataTypes.findAll({
+            where: { id: { [Op.in]: configJSON.master_data_types ?? [] } },
+            attributes: ['id', 'name'],
+        });
 
         const expenseTypes = await ExpenseTypeMapping.findAll({
             where: {
@@ -581,16 +587,54 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             include: [{
                 model: ExpenseTypeModel,
                 as: 'expense_type',
-                attributes: {exclude: ["program_id","created_on","updated_on","created_by","updated_by"],},
+                attributes: { exclude: ["program_id", "created_on", "updated_on", "created_by", "updated_by"], },
             }],
         });
 
+        let populatedProjects = null;
+        const projects = configJSON.projects;
+
+        if (projects?.source && Array.isArray(projects.options)) {
+            let records: any[] = [];
+
+            if (projects.source === "master_data_type") {
+                records = await FoundationalDataTypes.findAll({
+                    where: { id: { [Op.in]: projects.options } },
+                    attributes: ['id', 'name'],
+                });
+            } else if (projects.source === "hierarchy") {
+                records = await Hierarchies.findAll({
+                    where: { id: { [Op.in]: projects.options } },
+                    attributes: ['id', 'name'],
+                });
+            } else if (projects.source === "custom_field") {
+                records = await CustomField.findAll({
+                    where: { id: { [Op.in]: projects.options } },
+                    attributes: ['id', 'name'],
+                });
+            }
+
+            populatedProjects = {
+                source: projects.source,
+                options: records.map((r: any) => ({
+                    id: r.id,
+                    name: r.name,
+                })),
+            };
+        }
         const result = {
             ...configJSON,
             hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
-            expenseTypes: expenseTypes.map((e: any) => ({
-                ...(e.expense_type?.dataValues || e.expense_type || {}),
-            })),
+            master_data_types: master_data_types.map(m => ({ id: m.id, name: m.name })),
+            expenseTypes: expenseTypes.reduce((acc: any, curr: any) => {
+                const expense = curr.expense_type?.dataValues || curr.expense_type || {};
+                const category = expense.category || 'uncategorized';
+                if (!acc[category]) acc[category] = [];
+                acc[category].push(expense);
+                return acc;
+            }, {}),
+            
+            projects: populatedProjects,
         };
 
         reply.status(200).send({
