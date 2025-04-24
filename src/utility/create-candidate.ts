@@ -15,7 +15,7 @@ export async function searchSimilarProfiles(
   delayMs = 1000
 ) {
    console.log("candidateId",candidateId)
-  const searchUrl = `${AI_SERVICE_URL}/vms-ai-v4/upload-and-search`;
+  const searchUrl = `${AI_SERVICE_URL}/upload-and-search`;
   const vendorSearch = !!vendorId;
  console.log("vendorSearch",vendorSearch)
   const searchPayload = {
