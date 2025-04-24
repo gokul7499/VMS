@@ -34,6 +34,7 @@ export async function createSowTemplate(
             where: {
                 program_id: program_id,
                 template_title: sowTemplate.template_title,  
+                is_deleted: false,
             }
         });
         
