@@ -1,60 +1,7 @@
 import { databaseConfig } from '../config/db';
-import { CandidateMatch, CandidateMatchScore } from '../interfaces/user.interface';
+import MtpModel from '../models/mtp.model';
 import { PossibleDuplicateCandidate } from '../models/possible-duplicate-candidate.model';
 const AI_SERVICE_URL = databaseConfig.config.ai_url 
-
-export async function uploadCandidateResume(
-  candidateId: string,
-  vendorId: string,
-  resumeUrl: string,
-  authHeader: string,
-  programId: string,
-  uniqueId:string,
-  maxRetries = 3,
-  delayMs = 1000
-) {
-  const uploadResumeUrl = `${AI_SERVICE_URL}/upload-from-url`;
-  const payload = {
-    url: resumeUrl,
-    candidate_id: candidateId,
-    vendor_id: vendorId,
-    program_id: programId,
-    c_unique_id:uniqueId
-  };
-
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const response = await fetch(uploadResumeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify(payload),
-      });
-      console.log("Response", response);
-    if (!response.ok) {
-      console.error('Resume upload failed:',response);
-    }
-      console.log(`Resume upload succeeded on attempt ${attempt + 1}`);
-      return; 
-
-    } catch (uploadError) {
-      attempt++;
-      console.error(`Upload attempt ${attempt} failed:`, uploadError);
-
-      if (attempt >= maxRetries) {
-        console.error('Max retries reached. Upload failed.');
-        return uploadError;
-      }
-
-      await new Promise((res) => setTimeout(res, delayMs));
-    }
-  }
-}
-
 
 export async function searchSimilarProfiles(
   candidateId: string,
@@ -63,20 +10,22 @@ export async function searchSimilarProfiles(
   authHeader: string,
   programId: string,
   userId: string,
+  uniqueId:String,
   maxRetries = 3,
   delayMs = 1000
 ) {
-
-  const searchUrl = `${AI_SERVICE_URL}/candidates/search`;
+   console.log("candidateId",candidateId)
+  const searchUrl = `${AI_SERVICE_URL}/vms-ai-v4/upload-and-search`;
   const vendorSearch = !!vendorId;
-
+ console.log("vendorSearch",vendorSearch)
   const searchPayload = {
-    Candidate_ID: candidateId,
-    Resume_Text: resumeText,
-    Vendor_Search: vendorSearch,
-    ...(vendorSearch && vendorId ? { Vendor_ID: vendorId } : {}),
+    candidate_id: candidateId,
+    url: resumeText,
+    c_unique_id:uniqueId,
+    vendor_search: vendorSearch,
+    ...(vendorSearch && vendorId ? { vendor_id: vendorId } : {}),
   };
-
+  console.log("similar profile paylod",searchPayload)
   let attempt = 0;
 
   while (attempt < maxRetries) {
@@ -85,48 +34,19 @@ export async function searchSimilarProfiles(
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': authHeader,
+          'Authorization': `Bearer ${authHeader}`,
         },
         body: JSON.stringify(searchPayload),
-      });
+      }); 
+
 
       if (!response.ok) {
         return(`Failed to fetch similar profiles: ${response.statusText}`);
       }
 
       const result = await response.json();
-      const matches: CandidateMatch[] = result?.results?.matches;
-
-      if (result?.success && Array.isArray(matches) && matches.length > 0) {
-        const { query_id, vendor_id, matches } = result.results;
-        const matchingProfile: string[] = matches.map(
-          (match: CandidateMatch) => match.candidate_id
-        );
-
-        const candidateMatchingScore: CandidateMatchScore[] = matches.map(
-          (match: CandidateMatch) => ({
-            candidate_id: match.candidate_id,
-            vendor_id: match.vendor_id,
-            score: match.similarity_score,
-          })
-        );
-
-        const data = await PossibleDuplicateCandidate.create({
-          candidate_id: query_id,
-          vendor_id: vendor_id,
-          matching_profile: matchingProfile,
-          candidate_matching_score: candidateMatchingScore,
-          program_id: programId,
-          created_by: userId,
-          updated_by: userId,
-        });
-
-        console.log("Saved matching profile to DB.", data);
-      } else {
-        console.log("No matches found.");
-      }
-
-      return; 
+      console.log("similar profile Data",result)
+       return result; 
 
     } catch (searchError) {
       attempt++;
@@ -148,6 +68,7 @@ export async function findDuplicateCandidate(
   userId: string,
   authHeader: any,
   candidate:string,
+  paylod:any,
   maxRetries = 3,
   delayMs = 1000
 ) {
@@ -208,7 +129,13 @@ export async function findDuplicateCandidate(
         });
         console.log("Saved matching profile to DB.", data);
       } else {
-        console.log("No matches found.");
+        console.log("No duplicate found Create MTP.......");
+         const mtpData = await MtpModel.create({
+                    ...paylod,
+                    created_by: userId,
+                    updatedby: userId,
+                });
+              console.log("mtpData",mtpData)
       }
       return;
 
