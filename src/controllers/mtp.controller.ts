@@ -5,6 +5,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { logger } from "../utility/loggerService";
 import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
+import { sequelize } from "../config/instance";
 const mtpRepository = new MtpRepository();
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
@@ -210,3 +211,144 @@ export async function getMtpById(
         });
     }
 }
+
+
+export async function linkUnlinkMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    let transaction;
+    try {
+      const { program_id:programId, id } = request.params as { program_id: string, id: string };
+      const { action, mtp_candidate_id:mtpCandidateId } = request.body as { action: string, mtp_candidate_id: string };
+      const user = request.user;
+      const userId = user?.sub;
+
+      if (!['Link', 'Unlink'].includes(action)) {
+        console.warn(`Invalid action.`);
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Invalid action. Must be 'Link' or 'Unlink'",
+          trace_id: traceId
+        });
+      }
+
+    transaction = await sequelize.transaction();
+  
+      const mtp = await MtpModel.findOne({ 
+        where: { id, program_id:programId },
+        transaction
+      });
+      
+      
+      if (!mtp) {
+        console.warn(`MTP not found for ID: ${id}`);
+        await transaction.rollback();
+        return reply.status(404).send({
+          status_code: 404,
+          message: "MTP not found",
+          trace_id: traceId
+        });
+      }
+  
+      const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
+      console.log(`Current linked_profiles:`, currentLinks);
+  
+      if (action === 'Link') {
+        if (!currentLinks.includes(mtpCandidateId)) {
+          currentLinks.push(mtpCandidateId);
+          console.log(`Updated linked_profiles after linking:`, currentLinks);
+  
+          const updateRes = await MtpModel.update(
+            {
+              linked_profiles: currentLinks
+            },
+            {
+              where: { id, program_id:programId },
+              transaction
+            }
+          );
+          console.log(`Link update result:`, updateRes);
+  
+          const deleteRes = await MtpModel.destroy({
+            where: {
+              mtp_candidate_id: mtpCandidateId,
+              program_id:programId
+            },
+            transaction
+          });
+          console.log(`Candidate MTP deleted result:`, deleteRes);
+        }
+
+        await transaction.commit();
+
+        return reply.send({
+          status_code: 200,
+          message: "MTP linked successfully!",
+          trace_id: traceId
+        });
+      } else if (action === 'Unlink') {
+
+        if (!currentLinks.includes(mtpCandidateId)) {
+          console.warn(`Candidate ID not found in linked_profiles.`);
+          await transaction.rollback();
+          return reply.status(400).send({
+            status_code: 400,
+            message: "Candidate ID not found in linked_profiles.",
+            trace_id: traceId
+          });
+        }
+
+        const updatedLinks = currentLinks.filter(id => id !== mtpCandidateId);
+        console.log(`linked_profiles after unlinking:`, updatedLinks);
+
+        await MtpModel.update(
+          {
+            linked_profiles: updatedLinks
+          },
+          {
+            where: { id, program_id:programId },
+            transaction
+          }
+        );
+  
+        const getCandidateData = await mtpRepository.getCandidate(programId, mtpCandidateId);
+        const TalentName = getCandidateData?.[0]?.candidate_name;
+  
+        const newMtp = await MtpModel.create({
+          mtp_candidate_id: mtpCandidateId,
+          talent_name: TalentName,
+          program_id:programId,
+          linked_profiles: [],
+          created_by: userId,
+          modified_by: userId,
+        }, { transaction });
+        
+        console.log(`New MTP created after unlink:`, newMtp);
+        await transaction.commit();
+        
+        return reply.send({
+          status_code: 200,
+          message: "MTP unlinked successfully!",
+          trace_id: traceId
+        });
+      }
+  
+    } catch (error: any) {
+      if (transaction) {
+        await transaction.rollback();
+      }
+      console.error(`Error during link/unlink:`, error);
+      return reply.status(500).send({
+        status_code: 500,
+        message: "An error occurred while processing MTP link/unlink",
+        trace_id: traceId,
+        error: error.message,
+      });
+    }
+  }
+  
+  
+  
+  
+  
+
+
