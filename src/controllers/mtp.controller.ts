@@ -20,7 +20,10 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         const mtpCandidateId = mtp.mtp_candidate_id;
         const getCandidateData=await mtpRepository.getCandidate(programId,mtpCandidateId)
         const TalentName=getCandidateData?.[0]?.candidate_name
-
+        const paylod={
+            ...mtp,
+            talent_name:TalentName 
+        }
         const talentData = await mtpRepository.getAllMtp(programId);
 
         const talentCandidateIds = talentData.reduce((acc: string[], row: any) => {
@@ -62,7 +65,7 @@ export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
         }
         if (candidateData.length > 1) {
 
-          findDuplicateCandidate(candidateData, programId, userId, token,mtpCandidateId);
+          findDuplicateCandidate(candidateData, programId, userId, token,mtpCandidateId,paylod);
             logger({
                 trace_id: traceId,
                 actor: {

@@ -17,7 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
-import  {uploadCandidateResume, searchSimilarProfiles} from "../utility/create-candidate";
+import  {searchSimilarProfiles} from "../utility/create-candidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -424,9 +424,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string,uniqueId:string) {
   const resumeText = user.resume_url;
 
-  uploadCandidateResume(candidateId, vendor_id, resumeText, authHeader, program_id,uniqueId);
-
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader,program_id, userId);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader,program_id, userId,uniqueId);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
