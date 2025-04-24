@@ -581,9 +581,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             include: [{
                 model: ExpenseTypeModel,
                 as: 'expense_type',
-                attributes: ['id', 'name', 'is_unit_based', 'is_msp_fees_applied',
-                    'is_tax_applied', 'max_unit_limit', 'category',
-                    'code',],
+                attributes: {exclude: ["program_id","created_on","updated_on","created_by","updated_by"],},
             }],
         });
 
@@ -591,14 +589,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
             ...configJSON,
             hierarchy_ids: hierarchies.map(h => ({ id: h.id, name: h.name })),
             expenseTypes: expenseTypes.map((e: any) => ({
-                id: e.expense_type?.id,
-                name: e.expense_type?.name,
-                is_unit_based: e.expense_type?.is_unit_based,
-                is_msp_fees_applied: e.expense_type?.is_msp_fees_applied,
-                is_tax_applied: e.expense_type?.is_tax_applied,
-                max_unit_limit: e.expense_type?.max_unit_limit,
-                category: e.expense_type?.category,
-                code: e.expense_type?.code,
+                ...(e.expense_type?.dataValues || e.expense_type || {}),
             })),
         };
 
