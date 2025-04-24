@@ -317,7 +317,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
         }
         else {
-            return await handleOtherModules(module, reply, traceId);
+            return await handleOtherModules(workflow_trigger_id , module, reply, traceId);
         }
     } catch (error) {
         console.log(error);
@@ -678,10 +678,19 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
         ];
     } else if (rehireReviewMethod || rehireApprovalMethod) {
         response = [
-            { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues }
+            { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues,
+                method_ids: [
+                    rehireReviewMethod.dataValues.id,
+                    shortlistReviewMethod.dataValues.id
+                ]
+             }
         ];
     } else if (shortlistReviewMethod) {
-        response = [{ ...shortlistReviewMethod.dataValues }];
+        response = [{ ...shortlistReviewMethod.dataValues,
+            method_ids: [
+                shortlistReviewMethod.dataValues.id
+            ]
+         }];
     }
     
     const workflows = await getWorkflows(workflowTriggerId);
@@ -708,55 +717,54 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
 }
 
 // Handle other modules logic
-async function handleOtherModules(module: string, reply: FastifyReply, traceId: string) {
-    let item;
-    
+async function handleOtherModules(workflowTriggerId: string | undefined, module: string, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug(module === 'submit_candidate_shortlist' ? "submission" : "candidates");
+
+    let eventId: string | undefined;
+
     if (module === 'submit_candidate_shortlist') {
-        const moduleId = await findModuleBySlug("submission");
-        const eventId = await findEvent(moduleId, "submit_candidate_shortlist");
-        
-        item = await WorkflowMethod.findAll({
-            where: {
-                module_id: moduleId,
-                event_id: eventId
-            }
-        });
+        eventId = await findEvent(moduleId, "submit_candidate_shortlist");
     } else if (module === 'candidate') {
-        const moduleId = await findModuleBySlug("candidates");
-        const eventId = await findEvent(moduleId, "locum_name_clear");
-        
-        item = await WorkflowMethod.findAll({
-            where: {
-                module_id: moduleId,
-                event_id: eventId
-            }
-        });
-    } else {
-        item = null;
+        eventId = await findEvent(moduleId, "locum_name_clear");
     }
-    
-    if (item && item.length > 0) {
-        const reviewItem = item.find(it =>
-            it.dataValues.name?.trim().toLowerCase() === "review"
-        );
-        const otherItems = item.filter(it =>
-            it.dataValues.name?.trim().toLowerCase() !== "review"
-        );
 
-        const sortedItems = reviewItem ? [reviewItem, ...otherItems] : otherItems;
-
-        return reply.status(200).send({
-            status_code: 200,
-            workflow_method: sortedItems,
-            trace_id: traceId
-        });
-    } else {
-        return reply.status(404).send({
-            status_code: 404,
-            message: 'Workflow Method Data Not Found',
-            workflow_method: [],
-            trace_id: traceId
+    if (!eventId) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: `No event found for module: ${module}`,
+            trace_id: traceId,
         });
     }
+
+    const item = await findWorkflowMethods(moduleId, [eventId]);
+    const reviewMethod = findMethod(item, eventId, "review");
+    let response: { [key: string]: any }[] = [];
+    if (reviewMethod) {
+        response = [
+            { ...reviewMethod.dataValues,
+                method_ids: [reviewMethod.dataValues.id]
+             }
+        ];
+    } else if (item && item.length > 0) {
+        response = item.map((i) => ({ ...i.dataValues ,   method_ids: [
+            i.dataValues.id
+        ] }));
+    }
+    const workflows = await getWorkflows(workflowTriggerId);
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID",
+            trace_id: traceId,
+        });
+    }
+    const workflowMethodIds = workflows.map((workflow) => workflow.method_id);
+    const responses = response.filter((i) => workflowMethodIds.includes(i.id));
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
+    return reply.status(200).send({
+        status_code: 200,
+        message: "Workflow methods fetched successfully",
+        workflow_method: sortedResponse,
+        trace_id: traceId,
+    });
 }
-
