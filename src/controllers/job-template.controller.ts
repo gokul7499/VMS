@@ -493,7 +493,7 @@ export async function updateJobTemplate(
       }
     }
 
-    const foundational_data= jobMasterData.foundational_data;
+    const foundational_data = jobMasterData.foundational_data;
     if (foundational_data && Array.isArray(foundational_data)) {
       await JobMasterDataModel.destroy({
         where: { job_temp_id: id },
@@ -588,9 +588,9 @@ export async function getJobTemplatesByHierarchies(request: FastifyRequest, repl
     }
 
     const data = await jobTempletRepositories.getJobTemplateByHierarchies(
-        program_id,
-        hierarchy_ids,
-        filter_by_hierarchy
+      program_id,
+      hierarchy_ids,
+      filter_by_hierarchy
     );
 
     return reply.status(200).send({
@@ -613,7 +613,7 @@ export async function getAllJobTemplateHierarchyById(request: FastifyRequest, re
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids, job_type, is_enabled,is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; is_enabled: string,is_shift_rate?: string; };
+    const { hierarchy_ids, job_type, is_enabled, is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; is_enabled: string, is_shift_rate?: string; };
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
@@ -643,7 +643,7 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
   const trace_id = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { hierarchy_ids, job_type, limit, offset, is_enabled,is_shift_rate} = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string,is_shift_rate?: string};
+    const { hierarchy_ids, job_type, limit, offset, is_enabled, is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string, is_shift_rate?: string };
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
@@ -909,8 +909,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       });
     }
 
-    const managerData = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
-    const managerHierarchyIds = managerData.length > 0 ? managerData[0].associate_hierarchy_ids : [];
+    const managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
 
     let templateHierarchyIds: string[] = [];
     let sowTemplateHierarchyIds: string[] = [];
@@ -1009,11 +1008,12 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
       trace_id: traceId,
       data: htmlResponse,
     });
-  } catch (error) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: "File upload failed",
       trace_id: traceId,
+      error: error.message,
     });
   }
 }
@@ -1031,10 +1031,11 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       labour_category,
       is_shift_rate,
       primary_hierarchy,
+      hierarchy_ids,
       category,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery;
+    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[] };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1075,6 +1076,18 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
+    if (hierarchy_ids && hierarchy_ids.length > 0) {
+      dynamicConditions.push(`
+        job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (:hierarchy_ids)
+          AND is_deleted = false
+        )
+      `);
+      replacements.hierarchy_ids = hierarchy_ids;
+    }
+
 
     const dynamicConditionsString =
       dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";

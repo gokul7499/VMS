@@ -16,6 +16,7 @@ import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
 import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import Hierarchies from '../models/hierarchies.model';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
@@ -248,7 +249,7 @@ export const createCustomField = async (data: any, user: any) => {
 
 export async function getAllCustomFields(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const {program_id} = request.params as { program_id: string };
+  const { program_id } = request.params as { program_id: string };
   const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
   const whereClause: any = {
@@ -285,7 +286,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   }
   if (hierarchy_ids) {
     const hierarchyArray = hierarchy_ids.split(',').map((id: any) => `'${id.trim()}'`);
-  
+
     if (hierarchyArray.length > 0) {
       whereClause[Op.or] = [
         {
@@ -303,7 +304,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       ];
     }
   }
-  
+
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 10;
   const offset = (pageNumber - 1) * limitNumber;
@@ -384,7 +385,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       message: 'Custom Fields Get Successfully',
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields',
@@ -743,11 +744,6 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
   }
 };
 
-
-
-
-
-
 export async function updateCustomFieldsIsdisable(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
@@ -876,8 +872,6 @@ export async function searchCustomFields(request: FastifyRequest, reply: Fastify
   }
 }
 
-
-
 export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
@@ -892,6 +886,7 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
     field_type?: string;
     is_required?: boolean;
     updated_on?: string;
+    hierarchies?: string;
   };
 
   const page = body.page ?? 1;
@@ -914,6 +909,25 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
 
     if (!isNaN(startDate) && !isNaN(endDate)) {
       whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+    }
+  }
+  if (body.hierarchies && body.hierarchies.length > 0) {
+    const hierarchyIds = Array.isArray(body.hierarchies)
+      ? body.hierarchies
+      : [body.hierarchies];
+
+    const fieldIdsWithHierarchy = await customFieldsHierarchie.findAll({
+      where: {
+        hierarchy_id: { [Op.in]: hierarchyIds }
+      },
+      attributes: ["custom_field_id"],
+    });
+
+    const customFieldIds = fieldIdsWithHierarchy.map(item => item.custom_field_id);
+    if (customFieldIds.length === 0) {
+      whereClause.id = null;
+    } else {
+      whereClause.id = { [Op.in]: customFieldIds };
     }
   }
 
@@ -939,7 +953,8 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
         "placeholder",
         "description",
         "can_edit",
-        "can_view"
+        "can_view",
+        "is_all_hierarchy"
       ],
       order: [["updated_on", "DESC"]],
       offset: (page - 1) * limit,
@@ -948,6 +963,8 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
 
     const customFieldsWithPicklistData = await Promise.all(
       result.rows.map(async (customField) => {
+        const customFieldId = customField.id;
+
         let picklistData: { picklist_name: string, picklist_values: { id: string, value: string }[] } | null = null;
 
         if (customField.meta_data?.picklist_id) {
@@ -974,12 +991,43 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
           }
         }
 
+        let transformedHierarchies: { id: string; name: string }[] = [];
+        if (customField.is_all_hierarchy) {
+          const allHierarchies = await Hierarchies.findAll({
+            where: { program_id, is_enabled: true },
+            attributes: ["id", "name"]
+          });
+
+          transformedHierarchies = allHierarchies.map(h => ({
+            id: h.id,
+            name: h.name,
+          }));
+        } else {
+          const hierarchies = await customFieldsHierarchie.findAll({
+            where: { custom_field_id: customFieldId },
+            attributes: ["hierarchy_id"],
+            include: [
+              {
+                model: Hierarchies,
+                as: "hierarchy",
+                attributes: ["id", "name"],
+              },
+            ],
+          });
+
+          transformedHierarchies = hierarchies.map(item => ({
+            id: item.hierarchy?.id ?? item.hierarchy_id,
+            name: item.hierarchy?.name ?? "",
+          }));
+        }
+
         return {
           ...customField.toJSON(),
           meta_data: {
             ...customField.meta_data,
             ...picklistData || {},
           },
+          hierarchies: transformedHierarchies
         };
       })
     );

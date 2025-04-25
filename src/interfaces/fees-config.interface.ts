@@ -12,6 +12,7 @@ export interface FeesConfigurationInterface {
   ref_id?: string;
   categorical_fees: Json;
   is_enabled: boolean;
+  is_all_labor_category: boolean;
   created_on?: bigint;
   updated_on?: bigint;
   is_deleted: boolean;
@@ -48,6 +49,7 @@ export const feesConfigurationSchema = {
     feeApplicableModules1: { type: 'array' },
     feeApplicableModules2: { type: 'array' },
     is_enabled: { type: 'boolean' },
+    is_all_labor_category: { type: 'boolean' },
     categorical_fees: {
       type: 'array',
       "items": {

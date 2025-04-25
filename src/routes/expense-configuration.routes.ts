@@ -1,11 +1,15 @@
 import { FastifyInstance } from "fastify";
 import * as ExpenseConfigurationController from "../controllers/expense-configuration.controller";
-import { validatePermissions } from "../middlewares/vaildate-permissions";
-import { Actions, Permissions } from "../constants/permissions";
+// import { validatePermissions } from "../middlewares/vaildate-permissions";
+// import { Actions, Permissions } from "../constants/permissions";
 import { createExpenseConfigurationAdvancedFilter, createExpenseConfigurationSchema, paramsSchema, querySchema } from "../interfaces/expense-configuration.interfaces";
+import { verifyToken } from "../middlewares/verifyToken";
 
 
 async function expenseConfigurationRoutes(fastify: FastifyInstance) {
+
+    fastify.addHook('preHandler', verifyToken);
+
     fastify.get('/program/:program_id/expense-config', {
         schema: {
             params: paramsSchema,
@@ -70,7 +74,7 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
     }, ExpenseConfigurationController.getExpenseTypesByProgramIdAndHierarchies);
 
 
-    fastify.get('/program/:program_id/get-expense-config', {
+    fastify.get('/program/:program_id/expense-configurations', {
         schema: {
             params: paramsSchema,
         },

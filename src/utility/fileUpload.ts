@@ -32,13 +32,18 @@ export const extractFileContent = async (file: UploadedFile): Promise<string> =>
 
     let htmlContent = '';
 
-    if (mimetype === 'application/pdf') {
+    if (mimetype === 'application/pdf' || mimetype === 'application/x-pdf' || mimetype.includes('pdf')) {
         const pdfData = await pdfParse(fileBuffer);
         htmlContent = textToHtmlParagraphs(pdfData.text);
-    } else if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    } else if (
+        mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        mimetype === 'application/msword' ||
+        mimetype.includes('word') ||
+        mimetype.includes('doc')
+    ) {
         const { value: text } = await mammoth.extractRawText({ buffer: fileBuffer });
         htmlContent = textToHtmlParagraphs(text);
-    } else if (mimetype === 'text/plain') {
+    } else if (mimetype === 'text/plain' || mimetype.includes('text')) {
         const text = fileBuffer.toString();
         htmlContent = textToHtmlParagraphs(text);
     } else {

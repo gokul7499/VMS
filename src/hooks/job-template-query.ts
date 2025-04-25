@@ -7,9 +7,9 @@ const config_db = databaseConfig.config.database;
 class JobTempletRepository {
 
   async getJobTemplateByHierarchies(
-      program_id: string,
-      hierarchy_ids?: string[],
-      filter_by_hierarchy?: boolean
+    program_id: string,
+    hierarchy_ids?: string[],
+    filter_by_hierarchy?: boolean
   ) {
     let query = `
       SELECT
@@ -622,13 +622,30 @@ COALESCE((
 
   async managerQuery(job_manager_id: string, program_id: string) {
     const managerData = await sequelize.query<{
+      is_all_hierarchy_associate: any;
       associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`, {
+    }>(`SELECT associate_hierarchy_ids, is_all_hierarchy_associate FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`, {
       replacements: { job_manager_id, program_id },
       type: QueryTypes.SELECT,
     });
 
-    return managerData;
+    if (!managerData || managerData.length === 0) {
+      return [];
+    }
+
+    const { is_all_hierarchy_associate, associate_hierarchy_ids } = managerData[0];
+
+    if (is_all_hierarchy_associate) {
+      const allHierarchies = await sequelize.query<{
+        id: string;
+      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
+        replacements: { program_id },
+        type: QueryTypes.SELECT,
+      });
+
+      return allHierarchies.map(h => h.id);
+    }
+    return associate_hierarchy_ids || [];
   }
 
   async templateQuery(job_template_id: string) {

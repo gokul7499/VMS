@@ -19,7 +19,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             name?: string;
             is_enabled?: string;
             updated_on?: string;
-            manager_id?: string;
+            manager_ids?: string;
             code?: string;
             foundational_data_type_id?: string;
             first_name: string;
@@ -50,7 +50,7 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             is_enabled: query.is_enabled !== undefined ? query.is_enabled === 'true' : null,
             updated_on_start,
             updated_on_end,
-            manager_id: query.manager_id ?? null,
+            manager_ids: query.manager_ids ?? null,
             code: query.code ? `%${query.code}%` : null,
             foundational_data_type_id: query.foundational_data_type_id ?? null,
             first_name: query.first_name ? `%${query.first_name}%` : null,
@@ -58,8 +58,6 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
             limit,
             offset
         };
-
-
 
         // if (query.is_billable !== undefined) {
         //     filters.is_billable = query.is_billable === 'true';
@@ -123,37 +121,42 @@ export async function getFoundationalData(request: FastifyRequest, reply: Fastif
 
 export async function getFoundationalDataById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
-        const foundational_data = await foundationalData.findOne(
-            {
-                where: { program_id, id },
-                include: [{
-                    model: User,
-                    as: 'owner',
-                    attributes: ['id', 'first_name', 'last_name']
-                }]
-            }
-        );
-        if (foundational_data) {
-            reply.status(200).send({
-                status_code: 200,
-                message: 'FoundationalData fetch Successfully.',
-                foundational_data: foundational_data,
-                trace_id: traceId,
-            });
-        } else {
-            reply.status(200).send({
+
+        const foundational_data = await foundationalData.findOne({ where: { program_id, id } });
+
+        if (!foundational_data) {
+            return reply.status(200).send({
                 status_code: 200,
                 message: 'FoundationalData Not Found.',
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+
+        const populatedManagers = foundational_data.manager_ids?.length
+            ? await User.findAll({
+                where: { id: foundational_data.manager_ids },
+                attributes: ['id', 'first_name', 'last_name'],
+            })
+            : [];
+
+        reply.status(200).send({
+            status_code: 200,
+            message: 'FoundationalData fetched successfully.',
+            foundational_data: {
+                ...foundational_data.toJSON(),
+                manager_ids: populatedManagers,
+            },
+            trace_id: traceId,
+        });
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while fetching FoundationalData.',
             trace_id: traceId,
+            error: error.message
         });
     }
 }
@@ -335,11 +338,12 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server error',
             trace_id: traceId,
+            error:error.message
         });
     }
 }
@@ -393,7 +397,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             name?: string;
             is_enabled?: boolean;
             updated_on?: string;
-            manager_id?: string;
+            manager_ids?: string;
             code?: string;
             first_name?: string;
             page?: number;
@@ -424,7 +428,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             is_enabled: body.is_enabled ?? null,
             updated_on_start,
             updated_on_end,
-            manager_id: body.manager_id ?? null,
+            manager_ids: body.manager_ids ?? null,
             code: body.code ? `%${body.code}%` : null,
             first_name: body.first_name ? `%${body.first_name}%` : null,
             is_billable: body.is_billable ?? null,

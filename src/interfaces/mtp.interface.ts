@@ -2,8 +2,9 @@ import { UUID } from "crypto";
 
 export interface MtpInterface{
     id:UUID,
-    progaram_id:UUID,
+    program_id:UUID,
     mtp_id:string,
     linked_profiles:JSON,
-    talent_name:string
+    talent_name:string,
+    mtp_candidate_id:UUID
 }

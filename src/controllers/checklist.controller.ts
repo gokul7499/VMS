@@ -190,7 +190,7 @@ export async function updateCheckList(
         const newVersion = existingChecklist ? existingChecklist.version + 1 : 1;
         if (existingChecklist) {
             await Checklist.update(
-                { latest: false, updated_on: new Date(), updated_by },
+                { latest: false, updated_on: BigInt(Date.now()), updated_by },
                 {
                     where: { version_id: existingChecklist.version_id },
                     transaction,
@@ -213,8 +213,8 @@ export async function updateCheckList(
                 created_by: userId,
                 
                 updated_by: userId,
-                created_on: new Date(),
-                updated_on: new Date(),
+                created_on: BigInt(Date.now()),
+                updated_on: BigInt(Date.now()),
             },
             { transaction }
         );
@@ -225,7 +225,7 @@ export async function updateCheckList(
             await ChecklistMapping.update(
                 {
                     is_deleted: true,
-                    updated_on: new Date(),
+                    updated_on: BigInt(Date.now()),
                     updated_by: userId,
                     
                 },
@@ -266,8 +266,8 @@ export async function updateCheckList(
             updated_by:userId,
             is_enabled: true,
             is_deleted: false,
-            created_on: new Date(),
-            updated_on: new Date(),
+            created_on: BigInt(Date.now()),
+            updated_on: BigInt(Date.now()),
         }));
 
         await ChecklistMapping.bulkCreate(taskCategoryMappings, { transaction });
@@ -287,6 +287,7 @@ export async function updateCheckList(
         });
     }
 }
+
 export async function deleteCheckList(
     request: FastifyRequest<{ Params: { entity_id: string } }>,
     reply: FastifyReply
@@ -318,7 +319,7 @@ export async function deleteCheckList(
         }
 
         await Checklist.update(
-            { is_deleted: true,updated_by:userId, updated_on: new Date() },
+            { is_deleted: true, updated_by:userId, updated_on: BigInt(Date.now()) },
             { where: { entity_id } }
         );
 
@@ -535,7 +536,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
         }
 
         await Checklist.update(
-            { is_enabled,  updated_on: new Date() },
+            { is_enabled,  updated_on: BigInt(Date.now()) },
             { where: { program_id, entity_id, latest: true, is_deleted: false } }
         );
 

@@ -23,6 +23,12 @@ class CandidateRepository {
             const workerTypeIds = replacements.worker_type_id.map((id: string) => `'${id.trim()}'`).join(',');
             whereClause += ` AND c.worker_type_id IN (${workerTypeIds})`;
         }
+        if (replacements.updated_on) {
+            whereClause += ` AND c.updated_on = :updated_on`;
+        }
+        if (replacements.availability_date) {
+            whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(c.preferences, '$.availability_date')) AS UNSIGNED) = :availability_date`;
+          }
         const countQuery = `
             SELECT COUNT(*) as count 
             FROM candidates c 
@@ -55,23 +61,22 @@ class CandidateRepository {
         c.do_not_rehire_notes, 
         c.do_not_rehire_reason, 
         c.do_not_rehire,
+        CAST(JSON_UNQUOTE(JSON_EXTRACT(c.contacts, '$[0].number')) AS CHAR) AS phone_number,
         JSON_OBJECT(
             'id', v.id,  
-            'tenant_id', v.tenant_id,   
             'vendor_name', v.max_vendor_name,
             'display_name', v.max_display_name                
         ) AS vendor
         FROM candidates c
         LEFT JOIN (
         SELECT 
-            tenant_id,
             MAX(id) AS id,
             MAX(vendor_name) AS max_vendor_name,
             MAX(display_name) AS max_display_name
         FROM program_vendors
-        GROUP BY tenant_id  
+        GROUP BY id  
         ) v 
-        ON c.vendor_id = v.tenant_id  
+        ON c.vendor_id = v.id  
         ${whereClause}
         ORDER BY c.updated_on DESC
         LIMIT :limit OFFSET :offset;

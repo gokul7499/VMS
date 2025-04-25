@@ -1,7 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-
 class MtpRepository {
+    
     async programQuery(program_id: string): Promise<{
         unique_id: string; name: string
       }[]> {
@@ -22,21 +22,147 @@ class MtpRepository {
       }
 
 
-      async getAllMtpData(programId: string): Promise<{
-      }[]> {
+      async getAllMtpData(
+        programId: string,
+        limit: number,
+        offset: number
+      ): Promise<{ data: any[]; count: number }> {
         const query = `
-               Select *
-               from mtp
-               where program_id=:program_id
-            `;
-    
-          const data = await sequelize.query(query, {
-          replacements: { program_id:programId },
+          SELECT mtp.*,c.do_not_rehire, COUNT(*) OVER() AS total_count
+          FROM mtp
+          LEFT JOIN 
+          candidates c ON mtp.mtp_candidate_id=c.user_id
+          WHERE mtp.program_id = :program_id
+          LIMIT :limit OFFSET :offset
+        `;
+      
+        const data = await sequelize.query(query, {
+          replacements: { program_id: programId, limit, offset },
           type: QueryTypes.SELECT,
         });
-        return data;
+        console.log("data",data)
+        const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
+      
+        return { data, count };
       }
-  
+      
+      async getPossibleDuplicateCandidate(programId: string): Promise<any> {    
+        const query = `
+            SELECT 
+                pdc.matching_profile AS candidate_id,
+                pdc.program_id AS program_id
+            FROM 
+                possible_duplicate_candidate pdc
+          
+            WHERE 
+                pdc.program_id = :program_id
+        `;
+    
+        const result = await sequelize.query(query, {
+            replacements: { program_id: programId},
+            type: QueryTypes.SELECT,
+            raw: true,
+        });
+    
+        return result;
+    }
+
+    async getMtpById(programId: any, id: any): Promise<any> {
+      console.log("programId", programId)
+      console.log("candidateId", id)
+      const query = `
+  SELECT 
+    m.id,
+    m.talent_name,
+    m.updated_on,
+    m.mtp_id,
+JSON_ARRAYAGG(JSON_OBJECT(
+          'program_id', c.program_id,
+          'vendor_id', c.vendor_id,
+          'candidate_id', c.candidate_id,
+          'birth_date', c.birth_date,
+          'address', c.addresses,
+          'email', c.email,
+          'contacts', c.contacts,
+          'do_not_rehire',c.do_not_rehire,
+          'do_not_rehire_notes',c.do_not_rehire_notes,
+          'do_not_rehire_reason',rc.name
+        )) AS linked_profiles
+  FROM 
+    mtp m
+  LEFT JOIN 
+    candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
+  LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
+  WHERE 
+    m.program_id = :program_id
+    AND m.id = :id;
+`;
+
+         const result = await sequelize.query(query, {
+           replacements: { program_id: programId,id },
+           type: QueryTypes.SELECT,
+          raw: true,
+         });
+        console.log("mtpDtata",result)
+      return result;
+  }
+
+  async getCandidate(programId: string,candidateId:any): Promise<any> {
+    const query =`
+        SELECT 
+            MIN(c.candidate_id) AS candidate_id,
+            MIN(c.program_id) AS program_id,
+            CONCAT(MIN(c.first_name), ' ', MIN(c.last_name)) AS candidate_name
+        FRom 
+            candidates c             
+        WHERE 
+            c.program_id = :program_id
+            AND c.id = :candidate_id;
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id:programId,candidate_id:candidateId},
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    return result;
+}
+
+async getAllMtp(programId: string): Promise<any> {
+    const query = `
+        SELECT 
+            s.mtp_candidate_id AS candidate_id
+        FROM 
+            mtp s
+        WHERE s.program_id = :program_id
+    `;
+
+    const result = await sequelize.query(query, {
+        replacements: { program_id: programId },
+        type: QueryTypes.SELECT,
+        raw: true,
+    });
+    return result; 
+}
+
+async getMtpByLinkedProfile(programId: string,linkedProfileId:any): Promise<any> {
+  const query = `
+      SELECT 
+          s.linked_profiles AS candidate_id
+      FROM 
+          mtp s
+      WHERE s.program_id = :program_id
+      AND s.linked_profiles=:linkedProfileId
+  `;
+
+  const result = await sequelize.query(query, {
+      replacements: { program_id: programId,linked_profiles:linkedProfileId },
+      type: QueryTypes.SELECT,
+      raw: true,
+  });
+  return result; 
+}
+
   }
 
   export default MtpRepository;

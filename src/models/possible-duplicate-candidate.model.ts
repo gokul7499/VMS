@@ -3,6 +3,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 
 class PossibleDuplicateCandidate extends Model {
+    id: any;
 }
 
 PossibleDuplicateCandidate.init(
@@ -15,7 +16,7 @@ PossibleDuplicateCandidate.init(
     },
     candidate_id:{
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     },
     matching_profile:{
       type: DataTypes.JSON,
