@@ -264,7 +264,7 @@ export async function linkUnlinkMtp(request: FastifyRequest, reply: FastifyReply
             where: { id, program_id: programId },
             transaction
         });
-        
+
         if (!mtp) {
             console.warn(`MTP not found for ID: ${id}`);
             await transaction.rollback();
@@ -371,6 +371,151 @@ export async function linkUnlinkMtp(request: FastifyRequest, reply: FastifyReply
         });
     }
 }
+
+
+export async function linkMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    let transaction;
+    
+    try {
+      const { program_id: programId, id } = request.params as { program_id: string, id: string };
+      const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+      
+      const mtp = await MtpModel.findOne({
+        where: { id, program_id: programId }
+      });
+      
+      if (!mtp) {
+        console.warn(`MTP not found for ID: ${id}`);
+        return reply.status(404).send({
+          status_code: 404,
+          message: "MTP not found",
+          trace_id: traceId
+        });
+      }
+      
+      const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
+      console.log(`Current linked_profiles:`, currentLinks);
+      
+      transaction = await sequelize.transaction();
+      
+      if (!currentLinks.includes(mtpCandidateId)) {
+        const updatedLinks = [...currentLinks, mtpCandidateId];
+        
+        await MtpModel.update(
+          { linked_profiles: updatedLinks },
+          { 
+            where: { id, program_id: programId },
+            transaction
+          }
+        );
+        
+        const deleteRes = await MtpModel.destroy({
+          where: {
+            mtp_candidate_id: mtpCandidateId,
+            program_id: programId
+          },
+          transaction
+        });
+      }
+      
+      await transaction.commit();
+      
+      return reply.send({
+        status_code: 200,
+        message: "MTP linked successfully!",
+        trace_id: traceId
+      });
+      
+    } catch (error: any) {
+      if (transaction) {
+        await transaction.rollback();
+      }
+      return reply.status(500).send({
+        status_code: 500,
+        message: "An error occurred while linking MTP",
+        trace_id: traceId,
+        error: error.message,
+      });
+    }
+  }
+
+  export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    let transaction;
+    
+    try {
+      const { program_id: programId, id } = request.params as { program_id: string, id: string };
+      const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+      const user = request.user;
+      const userId = user?.sub;
+      
+      const mtp = await MtpModel.findOne({
+        where: { id, program_id: programId }
+      });
+      
+      if (!mtp) {
+        return reply.status(404).send({
+          status_code: 404,
+          message: "MTP not found",
+          trace_id: traceId
+        });
+      }
+      
+      const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
+      
+      transaction = await sequelize.transaction();
+      
+      if (!currentLinks.includes(mtpCandidateId)) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Candidate ID not found in linked_profiles.",
+          trace_id: traceId
+        });
+      }
+      
+      const updatedLinks = currentLinks.filter(id => id !== mtpCandidateId);      
+      await MtpModel.update(
+        { linked_profiles: updatedLinks },
+        {
+          where: { id, program_id: programId },
+          transaction
+        }
+      );
+      
+      const getCandidateData = await mtpRepository.getCandidate(programId, mtpCandidateId);
+      const talentName = getCandidateData?.[0]?.candidate_name;
+      
+       await MtpModel.create({
+        mtp_candidate_id: mtpCandidateId,
+        talent_name: talentName,
+        program_id: programId,
+        linked_profiles: [],
+        created_by: userId,
+        modified_by: userId,
+      }, { transaction });
+        await transaction.commit();
+      
+      return reply.send({
+        status_code: 200,
+        message: "MTP unlinked successfully!",
+        trace_id: traceId
+      });
+      
+    } catch (error: any) {
+      if (transaction) {
+        await transaction.rollback();
+      }
+      return reply.status(500).send({
+        status_code: 500,
+        message: "An error occurred while unlinking MTP",
+        trace_id: traceId,
+        error: error.message,
+      });
+    }
+  }
+  
 
 
 
