@@ -21,31 +21,78 @@ class MtpRepository {
         return data;
       }
 
+async getAllMtpData(
+  programId: string,
+  limit: number,
+  offset: number,
+  talentName?: string,
+  mtpId?: string,
+  doNotRehire?: string,
+  updatedOn?: string,
+  linkedProfilesCount?: number
+): Promise<{ data: any[]; count: number }> {
+  const hasTalentName = talentName && talentName.trim() !== '';
+  const hasMtpId = mtpId && mtpId.trim() !== '';
+  const hasDoNotRehire = doNotRehire !== undefined;
+  const hasUpdatedOn = updatedOn && updatedOn.trim() !== '';
+  const hasLinkedProfilesCount = linkedProfilesCount !== undefined;
 
-      async getAllMtpData(
-        programId: string,
-        limit: number,
-        offset: number
-      ): Promise<{ data: any[]; count: number }> {
-        const query = `
-          SELECT mtp.*,c.do_not_rehire, COUNT(*) OVER() AS total_count
+  let query = `
+          SELECT 
+            mtp.*, 
+            c.do_not_rehire, 
+            JSON_LENGTH(mtp.linked_profiles) AS linked_profiles_count,
+            COUNT(*) OVER() AS total_count
           FROM mtp
-          LEFT JOIN 
-          candidates c ON mtp.mtp_candidate_id=c.user_id
+          LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.user_id
           WHERE mtp.program_id = :program_id
-          LIMIT :limit OFFSET :offset
         `;
-      
-        const data = await sequelize.query(query, {
-          replacements: { program_id: programId, limit, offset },
-          type: QueryTypes.SELECT,
-        });
-        console.log("data",data)
-        const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
-      
-        return { data, count };
-      }
-      
+
+  const replacements: any = {
+    program_id: programId,
+    limit,
+    offset,
+  };
+
+  if (hasTalentName) {
+    query += ` AND mtp.talent_name LIKE :talentNamePattern`;
+    replacements.talentNamePattern = `%${talentName}%`;
+  }
+
+  if (hasMtpId) {
+    query += ` AND mtp.mtp_id LIKE :mtpIdPattern`;
+    replacements.mtpIdPattern = `%${mtpId}%`;
+  }
+
+  if (hasDoNotRehire) {
+    query += ` AND c.do_not_rehire = :doNotRehire`;
+    replacements.doNotRehire = doNotRehire === 'true'; 
+  }
+
+  if (hasUpdatedOn) {
+    const dateInMilliseconds = new Date(updatedOn).getTime();
+    
+    query += ` AND mtp.updated_on = :updatedOn`;
+    replacements.updatedOn = dateInMilliseconds;
+  }
+
+  if (hasLinkedProfilesCount) {
+    query += ` AND JSON_LENGTH(mtp.linked_profiles) = :linkedProfilesCount`;
+    replacements.linkedProfilesCount = Number(linkedProfilesCount);
+  }
+
+  query += ` LIMIT :limit OFFSET :offset`;
+
+  const data = await sequelize.query(query, {
+    replacements,
+    type: QueryTypes.SELECT,
+  });
+
+  const count = data.length > 0 ? Number((data[0] as any).total_count) : 0;
+
+  return { data, count };
+}
+        
       async getPossibleDuplicateCandidate(programId: string): Promise<any> {    
         const query = `
             SELECT 
