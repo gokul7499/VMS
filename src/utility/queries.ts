@@ -948,7 +948,7 @@ SELECT
     md.code,
     md.foundational_data_type_id,
     md.depended_fields,
-    t.id AS manager_id,
+    t.id AS manager_ids,
     t.first_name AS first_name,
     t.last_name AS last_name,
     mdt.name AS foundational_data_type_name
@@ -956,7 +956,7 @@ FROM
     master_data AS md
 LEFT JOIN
     user AS t
-    ON md.manager_id = t.id
+    ON md.manager_ids = t.id
 LEFT JOIN
     master_data_type AS mdt
     ON md.foundational_data_type_id = mdt.id
@@ -967,7 +967,7 @@ WHERE
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
     AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
-    AND (:manager_id IS NULL OR md.manager_id = :manager_id)
+    AND (:manager_ids IS NULL OR md.manager_ids = :manager_ids)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
     AND (:first_name IS NULL OR t.first_name LIKE :first_name)
@@ -983,7 +983,7 @@ FROM
     master_data AS md
 LEFT JOIN
     user AS t
-    ON md.manager_id = t.id
+    ON md.manager_ids = t.id
 LEFT JOIN
     master_data_type AS mdt
     ON md.foundational_data_type_id = mdt.id
@@ -994,7 +994,7 @@ WHERE
     AND (:name IS NULL OR md.name LIKE :name)
     AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
     AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
-    AND (:manager_id IS NULL OR md.manager_id = :manager_id)
+    AND (:manager_ids IS NULL OR md.manager_ids = :manager_ids)
     AND (:code IS NULL OR md.code LIKE :code)
     AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
     AND (:first_name IS NULL OR t.first_name LIKE :first_name)
