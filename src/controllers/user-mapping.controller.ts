@@ -338,7 +338,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'supervisor', u.supervisor,
                     'max_limit', u.max_limit,
                     'is_enabled', u.is_enabled,
-                    'is_activated', u.is_activated,
+                    'is_active', u.is_active,
                     'is_deleted', u.is_deleted,
                     'created_on', u.created_on,
                     'updated_on', u.updated_on,
