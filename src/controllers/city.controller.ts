@@ -274,6 +274,5 @@ export const getCityById = async (
       trace_id: generateCustomUUID(),
     });
   } catch (error) {
-    handleError(error, reply);
   }
 };
