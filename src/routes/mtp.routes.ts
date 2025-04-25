@@ -13,8 +13,11 @@ async function mtpRoutes(fastify: FastifyInstance) {
     fastify.get('/program/:program_id/mtp/:id', {
     }, mtpController.getMtpById);
 
-
-
+    fastify.put('/program/:program_id/link-mtp/:id', {
+    }, mtpController.linkMtp);
+   
+    fastify.post('/program/:program_id/unlink-mtp/:id', {
+    }, mtpController.unlinkMtp);
 }
 
 export default mtpRoutes;
