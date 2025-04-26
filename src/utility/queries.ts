@@ -2810,19 +2810,20 @@ WHERE
             AND (
                 :allowed_hierarchy_ids IS NULL
                 OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                OR user.is_all_hierarchy_associate = true
             )
         )
         OR
         ( -- Non-super user case
             :is_super_user = false
             AND (
+                -- Include users with is_all_hierarchy_associate = true regardless of hierarchy filtering
+                user.is_all_hierarchy_associate = true
+                OR
                 (
-                    -- Users with all hierarchy access
+                    -- Users with all hierarchy access in the current user
                     :is_all_hierarchy_associate_param = true
-                    AND (
-                        user.is_all_hierarchy_associate = true
-                        OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
-                    )
+                    AND JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
                 )
                 OR
                 (
@@ -2834,6 +2835,7 @@ WHERE
         )
     )
 `;
+
 
 export const getUserContacts = `
 SELECT
