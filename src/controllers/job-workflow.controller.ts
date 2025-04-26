@@ -722,8 +722,6 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     }));
 }
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
-
-
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -739,9 +737,20 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         const moduleType = workflow.module_type?.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
+            
+            const getJob = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const jobResponse = await axios.get(getJob, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                }
+            });
+            const jobStatus= jobResponse.data.job.status == "PENDING_APPROVAL_SOURCING" ?
+                             "SOURCING" : "OPEN";
+                             
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
             const payload = {
-                status: "OPEN",
+                status: jobStatus,
             };
             console.log(apiUrl);
 

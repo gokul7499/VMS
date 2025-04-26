@@ -1,212 +1,177 @@
-import { MtpInterface } from "../interfaces/mtp.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
-import MtpModel from "../models/mtp.model"
 import generateCustomUUID from "../utility/genrateTraceId";
-import { logger } from "../utility/loggerService";
-import MtpRepository from "../repositories/mtp.repository";
-import { findDuplicateCandidate } from "../utility/create-candidate";
-const mtpRepository = new MtpRepository();
+import MtpService from "../service/mtp.service";
+import { sanitizeError } from "../utility/errorHandler";
+
+const mtpService = new MtpService();
+
 
 export async function createMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
 
     try {
         const { program_id: programId } = request.params as { program_id: string };
-        const mtp = request.body as MtpInterface;
         const user = request.user;
-        const token = request.headers.authorization;
-
+        const token = request.headers.authorization as any;
         const userId = user?.sub;
-        const mtpCandidateId = mtp.mtp_candidate_id;
-        const getCandidateData=await mtpRepository.getCandidate(programId,mtpCandidateId)
-        const TalentName=getCandidateData?.[0]?.candidate_name
-        const paylod={
-            ...mtp,
-            talent_name:TalentName 
-        }
-        const talentData = await mtpRepository.getAllMtp(programId);
+       const  mtp= request.body as any
 
-        const talentCandidateIds = talentData.reduce((acc: string[], row: any) => {
-            return acc.concat(row.candidate_id);
-        }, []);
-
-        const candidateData = [...talentCandidateIds, mtpCandidateId].flat();
-        if (!talentData || talentData.length === 0) {
-            console.log("No existing MTP data found, creating new MTP");
-            const mtpData = await MtpModel.create({
-                ...mtp,
-                talent_name: TalentName,
-                created_by: userId,
-                updatedby: userId,
-            });
-
-            logger({
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                data: request.body,
-                eventname: "create mtp",
-                status: "success",
-                description: `MTP created successfully: ${mtpData.id}`,
-                level: "success",
-                action: request.method,
-                url: request.url,
-                is_deleted: false,
-            }, MtpModel);
-
-            return reply.send({
-                status_code: 200,
-                message: "MTP created successfully",
-                data: mtpData,
-                trace_id: traceId,
-            });
-        }
-        if (candidateData.length > 1) {
-
-          findDuplicateCandidate(candidateData, programId, userId, token,mtpCandidateId,paylod);
-            logger({
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                data: request.body,
-                eventname: "create mtp",
-                status: "skipped",
-                description: `Duplicate detected. Added to possible duplicates. Candidate ID(s): ${candidateData.join(', ')}`,
-                level: "warn",
-                action: request.method,
-                url: request.url,
-                is_deleted: false,
-            }, MtpModel);
-
-            return reply.send({
-                message: "Duplicate detected. Added to possible duplicates." });
-        }
-        const mtpData = await MtpModel.create({
-            ...mtp,
-            talent_name: TalentName,
-            created_by: userId,
-            updatedby: userId,
-        });
-        logger({
-            trace_id: traceId,
-            actor: {
-                user_name: user?.preferred_username,
-                user_id: userId,
-            },
-            data: request.body,
-            eventname: "create mtp",
-            status: "success",
-            description: `MTP created successfully: ${mtpData.id}`,
-            level: "success",
-            action: request.method,
-            url: request.url,
-            is_deleted: false,
-        }, MtpModel);
-
-        return reply.send({
-            status_code: 200,
-            message: "MTP created successfully",
-            data: mtpData,
-            trace_id: traceId,
+        const result = await mtpService.createMtp({
+            programId,
+            mtp,
+            userId,
+            token,
+            request,
+            traceId,
+            user
         });
 
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            data: result.data,
+            trace_id: traceId
+        });
     } catch (error: any) {
-        logger({
-            trace_id: traceId,
-            data: request.body,
-            eventname: "create mtp",
-            status: "error",
-            description: `Error creating MTP: ${error.message}`,
-            level: "error",
-            action: request.method,
-            url: request.url,
-            is_deleted: false,
-        }, MtpModel);
-
         return reply.status(500).send({
             status_code: 500,
             message: "An error occurred while creating MTP",
             trace_id: traceId,
-            error: error.message,
+            error: sanitizeError(error)
         });
     }
 }
 
-export async function getAllMtp(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) {
+export async function getAllMtp(request: FastifyRequest, reply: FastifyReply) {
     const { program_id: programId } = request.params as { program_id: string };
-    
-    const { page = 1, limit = 10 } = request.query as { page?: number; limit?: number };
     const traceId = generateCustomUUID();
-  
+
+    const {
+        page = 1,
+        limit = 10,
+        talent_name: talentName,
+        mtp_id: mtpId,
+        do_not_rehire: doNotRehire,
+        updated_on: updatedOn,
+        linked_profiles: linkedProfiles
+    } = request.query as {
+        page?: number;
+        limit?: number;
+        talent_name?: string;
+        mtp_id?: string;
+        do_not_rehire?: string;
+        updated_on?: any;
+        linked_profiles?: number;
+    };
+
     try {
-      const offset = (Number(page) - 1) * Number(limit);
-      const { data: mtpData, count } = await mtpRepository.getAllMtpData(programId, Number(limit), offset);
-  
-      return reply.code(200).send({
-        status_code: 200,
-        message: mtpData.length > 0 
-        ? "Mtp data fetched successfully."
-         : "No matching records found.",
-        mtp_data: mtpData,
-        pagination: {
-          page: page,
-          limit: limit,
-          total_count: count,
-          total_pages: Math.ceil(count / Number(limit)),
-        },
-        trace_id: traceId,
-      });
+        const result = await mtpService.getAllMtp({
+            programId,
+            page: Number(page),
+            limit: Number(limit),
+            talentName,
+            mtpId,
+            doNotRehire,
+            updatedOn,
+            linkedProfiles
+        });
+
+        return reply.code(200).send({
+            status_code: 200,
+            message: result.message,
+            mtp_data: result.data,
+            pagination: result.pagination,
+            trace_id: traceId,
+        });
     } catch (error: any) {
-      return reply.code(500).send({
-        status_code: 500,
-        message: "Internal Server Error",
-        trace_id: traceId,
-        error: error.message,
-      });
+        return reply.code(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
     }
-  }
-  
+}
 
-export async function getMtpById(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
 
-    const { program_id:programId,id } = request.params as { program_id: string,id: string };
+export async function getMtpById(request: FastifyRequest, reply: FastifyReply) {
+    const { program_id: programId, id } = request.params as { program_id: string, id: string };
     const traceId = generateCustomUUID();
-    
+
     try {
+        const result = await mtpService.getMtpById(programId, id);
 
-        const [mtpData] = await mtpRepository.getMtpById(programId,id)
-
-        if (mtpData) {
-            return reply.code(200).send({
-                status_code: 200,
-                message: "Mtp data get successfully.",
-                mtp_data: mtpData,
-                trace_id: traceId
-            });
-        } else {
-            return reply.code(200).send({
-                status_code: 200,
-                message: "No matching records found.",
-                mtp_data: [],
-                trace_id: traceId
-            });
-        }
+        return reply.code(200).send({
+            status_code: 200,
+            message: result.message,
+            mtp_data: result.data,
+            trace_id: traceId
+        });
     } catch (error: any) {
         return reply.code(500).send({
             status_code: 500,
             message: "Internal Server Error",
             trace_id: traceId,
-            error: error.message
+            error: sanitizeError(error)
+        });
+    }
+}
+
+
+export async function linkMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    const { program_id: programId, id } = request.params as { program_id: string, id: string };
+    const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+    
+    try {
+        const result = await mtpService.linkMtp({
+            programId,
+            id,
+            mtpCandidateId,
+            traceId
+        });
+        
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while linking MTP",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}
+
+
+export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    const { program_id: programId, id } = request.params as { program_id: string, id: string };
+    const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+    
+    try {
+        const result = await mtpService.unlinkMtp({
+            programId,
+            id,
+            mtpCandidateId,
+            user: request.user,
+            traceId
+        });
+        
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while unlinking MTP",
+            trace_id: traceId,
+            error: sanitizeError(error)
         });
     }
 }

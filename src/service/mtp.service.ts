@@ -1,0 +1,362 @@
+import { FastifyRequest } from "fastify";
+import MtpModel from "../models/mtp.model";
+import { MtpInterface } from "../interfaces/mtp.interface";
+import MtpRepository from "../repositories/mtp.repository";
+import { findDuplicateCandidate } from "../utility/create-candidate";
+import { logger } from "../utility/loggerService";
+import { sequelize } from "../config/instance";
+
+class MtpService {
+    private mtpRepository: MtpRepository;
+
+    constructor() {
+        this.mtpRepository = new MtpRepository();
+    }
+
+
+    async createMtp({
+        programId,
+        mtp,
+        userId,
+        token,
+        request,
+        traceId,
+        user
+    }: {
+        programId: string;
+        mtp: MtpInterface;
+        userId: string;
+        token: string;
+        request: FastifyRequest;
+        traceId: string;
+        user: any;
+    }) {
+        const mtpCandidateId = mtp.mtp_candidate_id;
+
+        const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+        const talentName = getCandidateData?.[0]?.candidate_name;
+        
+        const payload = {
+            ...mtp,
+            talent_name: talentName
+        };
+        
+        const existingMtpData = await this.mtpRepository.getAllMtp(programId);
+        
+        if (!existingMtpData || existingMtpData.length === 0) {
+            return await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
+        }
+        
+        const talentCandidateIds = existingMtpData.reduce((acc: string[], row: any) => {
+            return acc.concat(row.candidate_id);
+        }, []);
+        
+        if (talentCandidateIds.includes(mtpCandidateId)) {
+            await findDuplicateCandidate(
+                [...talentCandidateIds, mtpCandidateId], 
+                programId, 
+                userId, 
+                token, 
+                mtpCandidateId, 
+                payload
+            );
+            
+            this.logEvent({
+                request,
+                traceId,
+                user,
+                userId,
+                eventName: "create mtp",
+                status: "skipped",
+                description: `Duplicate detected. Added to possible duplicates. Candidate ID: ${mtpCandidateId}`,
+                level: "warn"
+            });
+            
+            return {
+                statusCode: 200,
+                message: "Duplicate detected. Added to possible duplicates.",
+                data: null
+            };
+        }
+        
+        // No duplicates found, create new MTP
+        return await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
+    }
+
+    /**
+     * Helper method to create a new MTP
+     */
+    private async createNewMtp(
+        mtp: MtpInterface, 
+        talentName: string, 
+        userId: string, 
+        request: FastifyRequest,
+        traceId: string,
+        user: any
+    ) {
+        const mtpData = await MtpModel.create({
+            ...mtp,
+            talent_name: talentName,
+            created_by: userId,
+            updated_by: userId,
+        });
+        
+        this.logEvent({
+            request,
+            traceId,
+            user,
+            userId,
+            data: request.body,
+            eventName: "create mtp",
+            status: "success",
+            description: `MTP created successfully: ${mtpData.id}`,
+            level: "success"
+        });
+        
+        return {
+            statusCode: 200,
+            message: "MTP created successfully",
+            data: mtpData
+        };
+    }
+
+
+    async getAllMtp({
+        programId,
+        page = 1,
+        limit = 10,
+        talentName,
+        mtpId,
+        doNotRehire,
+        updatedOn,
+        linkedProfiles
+    }: {
+        programId: string;
+        page?: number;
+        limit?: number;
+        talentName?: string;
+        mtpId?: string;
+        doNotRehire?: string;
+        updatedOn?: any;
+        linkedProfiles?: number;
+    }) {
+        const offset = (page - 1) * limit;
+
+        const { data: mtpData, count } = await this.mtpRepository.getAllMtpData(
+            programId,
+            limit,
+            offset,
+            talentName,
+            mtpId,
+            doNotRehire,
+            updatedOn,
+            linkedProfiles
+        );
+
+        return {
+            message: mtpData.length > 0
+                ? 'MTP data fetched successfully.'
+                : 'No matching records found.',
+            data: mtpData,
+            pagination: {
+                page,
+                limit,
+                total_count: count,
+                total_pages: Math.ceil(count / limit),
+            }
+        };
+    }
+
+
+    async getMtpById(programId: string, id: string) {
+        const [mtpData] = await this.mtpRepository.getMtpById(programId, id);
+
+        return {
+            message: mtpData ? "MTP data retrieved successfully." : "No matching records found.",
+            data: mtpData ? [mtpData] : []
+        };
+    }
+
+
+    async linkMtp({
+        programId,
+        id,
+        mtpCandidateId,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        traceId: string;
+    }) {
+        let transaction;
+        
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId }
+            });
+            
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+            
+            const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
+            
+            if (currentLinks.includes(mtpCandidateId)) {
+                return {
+                    statusCode: 200,
+                    message: "MTP already linked"
+                };
+            }
+            
+            transaction = await sequelize.transaction();
+            
+            const updatedLinks = [...currentLinks, mtpCandidateId];
+            await MtpModel.update(
+                { linked_profiles: updatedLinks },
+                { 
+                    where: { id, program_id: programId },
+                    transaction
+                }
+            );
+            
+            await MtpModel.destroy({
+                where: {
+                    mtp_candidate_id: mtpCandidateId,
+                    program_id: programId
+                },
+                transaction
+            });
+            
+            await transaction.commit();
+            
+            return {
+                statusCode: 200,
+                message: "MTP linked successfully"
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
+    }
+
+    async unlinkMtp({
+        programId,
+        id,
+        mtpCandidateId,
+        user,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        user: any;
+        traceId: string;
+    }) {
+        const userId = user?.sub;
+        let transaction;
+        
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId }
+            });
+            console.log("mtp",mtp)
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+            
+            const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
+            
+            if (!currentLinks.includes(mtpCandidateId)) {
+                return {
+                    statusCode: 400,
+                    message: "Candidate ID not found in linked profiles"
+                };
+            }
+            
+            transaction = await sequelize.transaction();
+            
+            const updatedLinks = currentLinks.filter(id => id !== mtpCandidateId);
+            console.log("updatedLinks",updatedLinks)
+            await MtpModel.update(
+                { linked_profiles: updatedLinks },
+                {
+                    where: { id, program_id: programId },
+                    transaction
+                }
+            );
+            
+            const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+            const talentName = getCandidateData?.[0]?.candidate_name;
+            
+            await MtpModel.create({
+                mtp_candidate_id: mtpCandidateId,
+                talent_name: talentName,
+                program_id: programId,
+                linked_profiles: [],
+                created_by: userId,
+                updated_by: userId,
+            }, { transaction });
+            
+            await transaction.commit();
+            
+            return {
+                statusCode: 200,
+                message: "MTP unlinked successfully"
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
+    }
+
+    private logEvent({
+        request,
+        traceId,
+        user,
+        userId,
+        data,
+        eventName,
+        status,
+        description,
+        level
+    }: {
+        request: FastifyRequest;
+        traceId: string;
+        user?: any;
+        userId?: string;
+        data?: any;
+        eventName: string;
+        status: string;
+        description: string;
+        level: string;
+    }) {
+        logger({
+            trace_id: traceId,
+            actor: userId ? {
+                user_name: user?.preferred_username,
+                user_id: userId,
+            } : undefined,
+            data: data || request.body,
+            eventname: eventName,
+            status: status,
+            description: description,
+            level: level,
+            action: request.method,
+            url: request.url,
+            is_deleted: false,
+        }, MtpModel);
+    }
+}
+
+export default MtpService;

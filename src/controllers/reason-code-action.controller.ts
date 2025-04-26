@@ -850,7 +850,7 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         } = request.body as {
             page?: number;
             limit?: number;
-            module_name?: string;
+            module_name?:string[];
             reasons_count?: number;
             event_name?: string;
             updated_on?: string[];
@@ -863,11 +863,15 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         const whereClause: any = {
             is_deleted: false
         };
-
         if (module_name) {
-            whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
+            if (Array.isArray(module_name)) {
+                whereClause[Op.or] = module_name.map((name: string) => ({
+                    '$module.name$': { [Op.like]: `%${name}%` }
+                }));
+            } else {
+                whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
+            }
         }
-
         if (event_name) {
             whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
         }

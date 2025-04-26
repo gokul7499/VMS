@@ -8,6 +8,7 @@ class MtpModel extends Model {
     mtp_id: any;
     program_id: any;
     id: any;
+    linked_profiles: any;
 
 }
 
