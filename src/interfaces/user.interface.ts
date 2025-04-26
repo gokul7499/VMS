@@ -43,7 +43,7 @@ export interface UserInterface {
   min_limit?: number;
   max_limit?: number;
   is_enabled?: boolean;
-  is_activated?: boolean;
+  is_active?: boolean;
   is_deleted?: boolean;
   created_on?: bigint;
   updated_on?: bigint;

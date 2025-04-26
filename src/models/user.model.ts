@@ -224,7 +224,7 @@ User.init(
       allowNull: true,
       defaultValue: true
     },
-    is_activated: {
+    is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
