@@ -12,7 +12,7 @@ class UserMapping extends Model {
     time_zone_id: any;
     status: any;
     tenant_id: any;
-    is_activated: any;
+    is_active: any;
 }
 
 UserMapping.init({
@@ -61,7 +61,7 @@ UserMapping.init({
         type: DataTypes.STRING,
         allowNull: true
     },
-    is_activated: {
+    is_active: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
