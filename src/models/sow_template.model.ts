@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
+import { beforeSave } from '../hooks/timeFormatHook';
 
 class SowTemplateModel extends Model {
     id: any;
@@ -113,40 +114,39 @@ SowTemplateModel.init(
         hooks: {
             beforeValidate: async (instance) => {
                 if (!instance.code && instance.program_id) {
-                  const program = await Programs.findByPk(instance.program_id);
-                  if (program?.display_name) {
-                    const programPrefix = program.display_name.substring(0, 3).toUpperCase();
-                    const codePrefix = `${programPrefix}-SOW-`;
-                    const existingTemplates = await SowTemplateModel.findAll({
-                      where: {
-                        program_id: instance.program_id,
-                        code: {
-                          [Op.like]: `${codePrefix}%`,
-                        },
-                      },
-                      attributes: ['code'],
-                      order: [['created_on', 'DESC']],
-                    });
-                    let maxSequence = 0;
-                    for (const template of existingTemplates) {
-                      const match = template.code.match(/(\d+)$/); 
-                      if (match) {
-                        const num = parseInt(match[1], 10);
-                        if (num > maxSequence) {
-                          maxSequence = num;
+                    const program = await Programs.findByPk(instance.program_id);
+                    if (program?.display_name) {
+                        const programPrefix = program.display_name.substring(0, 3).toUpperCase();
+                        const codePrefix = `${programPrefix}-SOW-`;
+                        const existingTemplates = await SowTemplateModel.findAll({
+                            where: {
+                                program_id: instance.program_id,
+                                code: {
+                                    [Op.like]: `${codePrefix}%`,
+                                },
+                            },
+                            attributes: ['code'],
+                            order: [['created_on', 'DESC']],
+                        });
+                        let maxSequence = 0;
+                        for (const template of existingTemplates) {
+                            const match = template.code.match(/(\d+)$/);
+                            if (match) {
+                                const num = parseInt(match[1], 10);
+                                if (num > maxSequence) {
+                                    maxSequence = num;
+                                }
+                            }
                         }
-                      }
+                        const nextSequence = (maxSequence + 1).toString().padStart(3, '0');
+                        instance.code = `${codePrefix}${nextSequence}`;
                     }
-                    const nextSequence = (maxSequence + 1).toString().padStart(3, '0');
-                    instance.code = `${codePrefix}${nextSequence}`;
-                  }
                 }
-              },
-            beforeUpdate: (instance) => {
-                instance.updated_on = new Date();
             },
+            beforeSave: (instance) => {
+                beforeSave(instance);
+            }
         }
-
     });
 
 sequelize.sync();
