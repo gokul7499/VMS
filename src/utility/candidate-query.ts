@@ -28,7 +28,15 @@ class CandidateRepository {
         }
         if (replacements.availability_date) {
             whereClause += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(c.preferences, '$.availability_date')) AS UNSIGNED) = :availability_date`;
-          }
+        }
+        if (replacements.search) {
+            whereClause += ` AND (
+            c.first_name LIKE :search OR 
+            c.last_name LIKE :search OR 
+            c.email LIKE :search OR
+            CONCAT(c.first_name, ' ', c.last_name, c.email) LIKE :search
+          )`}
+
         const countQuery = `
             SELECT COUNT(*) as count 
             FROM candidates c 
