@@ -173,7 +173,7 @@ class MtpService {
 
         return {
             message: mtpData ? "MTP data retrieved successfully." : "No matching records found.",
-            data: mtpData ? [mtpData] : []
+            data: mtpData || []
         };
     }
 
