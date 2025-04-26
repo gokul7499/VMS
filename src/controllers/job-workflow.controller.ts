@@ -1070,7 +1070,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment" || events == "BUDGET_INCREASED1") {
         let response = {
 
             eventCode: NotificationEventCode.BUDGET_INCREASE_APPROVED,
