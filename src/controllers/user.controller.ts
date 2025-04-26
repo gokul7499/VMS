@@ -34,7 +34,7 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
       attributes: [
         "id", "name_prefix", "first_name", "middle_name", "last_name",
         "username", "name_suffix", "program_id", "status", "email",
-        "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
+        "avatar", "country_id", "is_enabled", "is_active", "is_deleted"
       ],
       order: [['updated_on', 'DESC']],
 
@@ -502,7 +502,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user_type: mapping.user_type,
         role_id: mapping.role_id,
         program_id: mapping.program_id,
-        is_activated: mapping.is_activated,
+        is_active: mapping.is_active,
         status: mapping.status,
         updated_on: Date.now(),
       }));

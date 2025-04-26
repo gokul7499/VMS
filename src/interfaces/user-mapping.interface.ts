@@ -6,7 +6,7 @@ export interface UserMappingAttributes {
     user_type: string;
     vendor_id: string;
     program_id: string;
-    is_activated: boolean;
+    is_active: boolean;
     is_deleted: boolean;
     created_on?: bigint;
     updated_on?: bigint;

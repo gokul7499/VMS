@@ -2300,7 +2300,7 @@ WITH user_data AS (
          u.language_id,
          u.is_enabled,
          u.is_deleted,
-         u.is_activated,
+         u.is_active,
          u.user_type,
          u.is_associated,
          u.supervisor,
@@ -2378,7 +2378,7 @@ WITH user_data AS (
     ${user_id ? 'AND u.user_id = :user_id' : ''}
     ${user_type ? 'AND u.user_type = :user_type' : ''}
     ${status ? 'AND u.status = :status' : ''}
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_active = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
@@ -2411,7 +2411,7 @@ WITH user_data AS (
          u.last_name,
          u.email,
          u.program_id,
-         u.is_activated,
+         u.is_active,
          u.created_on,
          u.updated_on as updated_on,
          (
