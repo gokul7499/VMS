@@ -746,6 +746,7 @@ export const updateWorkflowStatus = async (
             if (workflowStatus === "completed") {
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
+                
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
@@ -1108,8 +1109,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     userId: user.sub ?? "",
                 };
 
-                sendNotification(notificationPayload);
-
+                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete"){
+                    console.log("Enter in SendNotification IF");
+                    sendNotification(notificationPayload);
+                }
 
             } else {
                 console.log("No MSP users found or no email available for notification.");
