@@ -624,6 +624,8 @@ export const updateWorkflowStatus = async (
             if (workflowStatus === "completed") {
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
+                console.log("eventCode ##",eventCode);
+                
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
@@ -903,6 +905,8 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
     }
 }
 async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyReply, workflowStatus: any, workflow: any, updates: any, program_id: any, id: any, allPayload: any, eventCode: any) {
+    console.log("eventCode",eventCode);
+    
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -985,9 +989,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     payload,
                     userId: user.sub ?? "",
                 };
-
-                sendNotification(notificationPayload);
-
+                console.log("Notification Payload:", notificationPayload);
+                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete"){
+                    sendNotification(notificationPayload);
+                }
 
             } else {
                 console.log("No MSP users found or no email available for notification.");
