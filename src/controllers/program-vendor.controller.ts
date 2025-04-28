@@ -236,17 +236,14 @@ export async function getProgramVendors(
                     type: QueryTypes.SELECT,
                 }) as any;
 
-                if (vendorDetails.length > 0) {
-                    vendor.hierarchies = vendorDetails[0].hierarchies;
-                    vendor.work_locations = vendorDetails[0].work_locations;
-                    vendor.is_labour_category = vendorDetails[0].labour_category;
-                } else {
-                    vendor.hierarchies = [];
-                    vendor.work_locations = [];
-                    vendor.is_labour_category = [];
-                }
+                const transformedVendor = {
+                    ...vendor.toJSON(),
+                    hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
+                    work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
+                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : []
+                };
 
-                return vendor;
+                return transformedVendor;
             })
         );
 
