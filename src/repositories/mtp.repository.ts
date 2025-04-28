@@ -125,6 +125,7 @@ async getAllMtpData(
     m.mtp_id,
     m.mtp_candidate_id,
 JSON_ARRAYAGG(JSON_OBJECT(
+          'mtp_candidate_id', c.id,
           'program_id', c.program_id,
           'vendor_id', c.vendor_id,
           'candidate_id', c.candidate_id,
