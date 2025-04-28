@@ -267,9 +267,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   if (name) {
     whereClause.name = { [Op.like]: `%${name}%` };
   }
-  if (module_name) {
-    whereClause.module_name = { [Op.like]: `%${module_name}%` };
-  }
+
   if (label) {
     whereClause.label = { [Op.like]: `%${label}%` };
   }
@@ -284,25 +282,39 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     const modifiedOnPattern = `${updated_on}`;
     whereClause.updated_on = { [Op.like]: modifiedOnPattern };
   }
-  if (hierarchy_ids) {
-    const hierarchyArray = hierarchy_ids.split(',').map((id: any) => `'${id.trim()}'`);
+  const andConditions: any[] = [];
 
+  if (module_name) {
+    andConditions.push({
+      [Op.or]: [
+        { module_name: { [Op.like]: `%${module_name}%` } },
+        Sequelize.literal(`JSON_CONTAINS(linked_modules, '{"linked": true, "module_name": "${module_name}"}', '$')`)
+      ]
+    });
+  }
+  
+  if (hierarchy_ids) {
+    const hierarchyArray = hierarchy_ids.split(',').map((id: string) => `'${id.trim()}'`);
     if (hierarchyArray.length > 0) {
-      whereClause[Op.or] = [
-        {
-          id: {
-            [Op.in]: Sequelize.literal(`(
-              SELECT custom_field_id
-              FROM custom_fields_hierarchie
-              WHERE hierarchy_id IN (${hierarchyArray.join(',')})
-            )`)
-          }
-        },
-        {
-          is_all_hierarchy: true
-        }
-      ];
+      andConditions.push({
+        [Op.or]: [
+          {
+            id: {
+              [Op.in]: Sequelize.literal(`(
+                SELECT custom_field_id
+                FROM custom_fields_hierarchie
+                WHERE hierarchy_id IN (${hierarchyArray.join(',')})
+              )`)
+            }
+          },
+          { is_all_hierarchy: true }
+        ]
+      });
     }
+  }
+  
+  if (andConditions.length > 0) {
+    whereClause[Op.and] = andConditions;
   }
 
   const pageNumber = Number(page) || 1;
