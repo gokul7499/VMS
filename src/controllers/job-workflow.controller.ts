@@ -240,6 +240,58 @@ export const updateWorkflowStatus = async (
         });
     }
 
+    // Function to check if user is active
+    const isUserActive = async (userId: string) => {
+        if (!userId) return false;
+        
+        try {
+            const userQuery = `
+        SELECT  status FROM user WHERE user_id = :userId AND is_enabled = true;`;
+            const user: any = await sequelize.query(userQuery, {
+                replacements: { userId },
+                type: QueryTypes.SELECT,
+            });
+            console.log('user status check:', user);
+            return user && user?.[0]?.status.toLowerCase() === 'active';
+        } catch (error) {
+            console.error('Error checking user active status:', error);
+            return true; // Default to active if there's an error to prevent automatic approvals
+        }
+    };
+    
+    // Function to get user IDs from all recipients in a level
+    const getUserIdsFromLevel = (level: any) => {
+        const userIds: string[] = [];
+        
+        if (level && level.recipient_types) {
+            level.recipient_types.forEach((recipient: any) => {
+                let userId = recipient?.replaced_by;
+                if (!userId && recipient?.meta_data) {
+                    const metaValues = Object.values(recipient?.meta_data);
+                    const potentialId = metaValues.find((val: any) => typeof val === 'string');
+                    if (potentialId) userId = potentialId as string;
+                }
+                
+                if (userId) userIds.push(userId);
+            });
+        }
+        
+        return userIds;
+    };
+    
+    // Function to check all users' active status for a level
+    const checkAllUsersActiveStatus = async (level: any) => {
+        const userIds = getUserIdsFromLevel(level);
+        const activeStatus: Record<string, boolean> = {};
+        
+        // Get active status for all users in parallel
+        await Promise.all(userIds.map(async (userId) => {
+            activeStatus[userId] = await isUserActive(userId);
+        }));
+        
+        return activeStatus;
+    };
+
     try {
         const userResult = await getUsersStatus(sequelize, userId, program_id);
         let userData = userResult[0] as any
@@ -261,6 +313,15 @@ export const updateWorkflowStatus = async (
         let levels = workflow.levels || [];
         let updatedLevels = false;
 
+        // Check active status only for pending levels
+        const allLevelsActiveStatus: Record<number, Record<string, boolean>> = {};
+        
+        // First, collect active status for all users in pending levels only
+        await Promise.all(levels.filter((level:any) => level.status === 'pending').map(async (level: any) => {
+            const levelOrder = level.placement_order || 0;
+            allLevelsActiveStatus[levelOrder] = await checkAllUsersActiveStatus(level);
+            console.log(`Active status for pending level ${levelOrder}:`, allLevelsActiveStatus[levelOrder]);
+        }));
 
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
@@ -269,14 +330,23 @@ export const updateWorkflowStatus = async (
 
             if (bypass_duplicate_approver === true) {
                 workflow.levels = workflow.levels.map((level: any) => {
+                    // Skip inactive user checks for non-pending levels
+                    if (level.status !== 'pending') {
+                        return level;
+                    }
+                    
+                    const levelOrder = level.placement_order || 0;
+                    const levelActiveStatus = allLevelsActiveStatus[levelOrder] || {};
  
                     level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
                         updatedLevels = true;
                         levelFound = true
+                        const userId = recipient?.replaced_by || 
+                            (recipient?.meta_data ? Object.values(recipient?.meta_data).find((id: any) => typeof id === 'string') : null);
+                            
                         const matchesUser = recipient?.replaced_by
                         ? user_id === recipient?.replaced_by
                         : Object.values(recipient?.meta_data).includes(user_id);
-
 
                         const commonFields = {
                             ...recipient,
@@ -286,6 +356,22 @@ export const updateWorkflowStatus = async (
                             actor_last_name: userData.last_name,
                             actor_by_avtar: userData.avatar,
                         };
+                        
+                        // Check if user is inactive - use precomputed active status
+                        let userActive = true;
+                        if (userId && levelActiveStatus[userId] !== undefined) {
+                            userActive = levelActiveStatus[userId];
+                        }
+                        
+                        // Auto-approve for inactive users with pending status
+                        if (!userActive && recipient.status === 'pending') {
+                            return {
+                                ...commonFields,
+                                status: 'approved',
+                                auto_approved: true,
+                                notes: 'Auto-approved: User is inactive'
+                            };
+                        }
  
                         if (isSuperUser && level.placement_order === placement_order  && recipient?.status === 'pending') {
                             const updatedRecipient = {
@@ -379,7 +465,13 @@ export const updateWorkflowStatus = async (
 
             levels = await Promise.all( 
                 levels.map(async (level: any) => {
-
+                    // Skip inactive user checks for non-pending levels
+                    if (level.status !== 'pending' && level.placement_order !== placement_order) {
+                        return level;
+                    }
+                    
+                    const levelOrder = level.placement_order || 0;
+                    const levelActiveStatus = allLevelsActiveStatus[levelOrder] || {};
 
                     if (level.placement_order === placement_order) {
                         levelFound = true;
@@ -387,6 +479,46 @@ export const updateWorkflowStatus = async (
 
                         const updatedRecipientTypes = await Promise.all(
                             level.recipient_types.map(async (recipient: any) => {
+                                const userId = recipient?.replaced_by || 
+                                    (recipient?.meta_data ? Object.values(recipient?.meta_data).find((id: any) => typeof id === 'string') : null);
+                                
+                                // Check if user is inactive - use precomputed active status
+                                let userActive = true;
+                                if (userId && levelActiveStatus[userId] !== undefined) {
+                                    userActive = levelActiveStatus[userId];
+                                } else if (userId) {
+                                    // Fallback if not in precomputed map
+                                    userActive = await isUserActive(userId);
+                                }
+                                
+                                // Check for inactive users with pending status
+                                if (!userActive && recipient.status === 'pending') {
+                                    // Create history record for auto-approval
+                                    const history = await WorkflowStatusHistory.create({
+                                        job_workflow_id: id,
+                                        placement_order,
+                                        new_status: "approved",
+                                        program_id,
+                                        notes: "Auto-approved: User is inactive",
+                                        created_on: Date.now(),
+                                        user_id: userId,
+                                    });
+                                    
+                                    return {
+                                        ...recipient,
+                                        status: "approved",
+                                        status_id: history.dataValues?.id,
+                                        status_by: userId,
+                                        impersonate_by: impersonator_id,
+                                        updated_on: Date.now(),
+                                        actor_first_name: userData?.first_name,
+                                        actor_last_name: userData?.last_name,
+                                        actor_by_avatar: userData?.avatar,
+                                        auto_approved: true,
+                                        notes: "Auto-approved: User is inactive"
+                                    };
+                                }
+
                                 // Check user type - Fixed comparison operator
                                 const isSuperUser = user.userType === "super_user";
 
@@ -426,8 +558,6 @@ export const updateWorkflowStatus = async (
                                             status_by: userId, // Track who triggered this change
                                             impersonate_by: impersonator_id,
                                             updated_on: Date.now(),
-
-
                                         };
                                     }
                                 } else if (isSuperUser) {
@@ -582,14 +712,6 @@ export const updateWorkflowStatus = async (
             // Loop through levels and process
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
-
-                // Skip this level if recipient_types is empty or any recipient has meta_data with null values
-                // const isValidLevel = level.recipient_types &&
-                //     level.recipient_types.length > 0 && // Ensure recipient_types is not empty
-                //     level.recipient_types.every((recipient: any) => {
-                //         return recipient.meta_data !== null &&
-                //             Object.values(recipient.meta_data).every(value => value !== null);
-                //     });
                 const isValidLevel = level.recipient_types &&
     level.recipient_types.length > 0 && 
     level.recipient_types.every((recipient: any) => {
@@ -722,8 +844,6 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
     }));
 }
 export async function updatePendingApprovalStatus(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any, updates: any, user: any, userData: any) {
-
-
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -739,9 +859,20 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
         const moduleType = workflow.module_type?.toLowerCase();
         if (moduleType === "job".toLowerCase() || moduleType === "jobs".toLowerCase()) {
             const job_id = workflow.workflow_trigger_id;
+            
+            const getJob = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job/${job_id}`;
+            const jobResponse = await axios.get(getJob, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: authHeader
+                }
+            });
+            const jobStatus= jobResponse.data.job.status == "PENDING_APPROVAL_SOURCING" ?
+                             "SOURCING" : "OPEN";
+                             
             const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/job-status/${job_id}`;
             const payload = {
-                status: "OPEN",
+                status: jobStatus,
             };
             console.log(apiUrl);
 
@@ -1061,7 +1192,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp', 'vendor']
         }
         return response;
-    } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment") {
+    } else if (flow_type == "Approval" && events == "BUDGET_INCREASED" || events === "assignment_budget_adjustment" || events == "BUDGET_INCREASED1") {
         let response = {
 
             eventCode: NotificationEventCode.BUDGET_INCREASE_APPROVED,

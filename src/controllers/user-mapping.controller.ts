@@ -212,9 +212,9 @@ export async function updateStatus(
             });
         }
 
-        const newStatus = !userMapping.is_activated;
+        const newStatus = !userMapping.is_active;
         await UserMapping.update(
-            { is_activated: newStatus },
+            { is_active: newStatus },
             { where: { program_id, id } }
         );
         return reply.code(200).send({
@@ -289,7 +289,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 um.role_id, 
                 um.user_id, 
                 um.program_id, 
-                um.is_activated, 
+                um.is_active, 
                 um.is_deleted, 
                 um.created_on, 
                 um.updated_on, 
@@ -338,7 +338,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'supervisor', u.supervisor,
                     'max_limit', u.max_limit,
                     'is_enabled', u.is_enabled,
-                    'is_activated', u.is_activated,
+                    'is_active', u.is_active,
                     'is_deleted', u.is_deleted,
                     'created_on', u.created_on,
                     'updated_on', u.updated_on,

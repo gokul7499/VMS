@@ -900,7 +900,7 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
   if (body.is_enabled !== undefined) whereClause.is_enabled = body.is_enabled;
   if (body.slug) whereClause.slug = { [Op.like]: `%${body.slug}%` };
   if (body.name) whereClause.name = { [Op.like]: `%${body.name}%` };
-  if (body.module_name) whereClause.module_name = { [Op.like]: `%${body.module_name}%` };
+  if (body.module_name) whereClause.module_id = { [Op.like]: `%${body.module_name}%` };
   if (body.label) whereClause.label = { [Op.like]: `%${body.label}%` };
   if (body.field_type) whereClause.field_type = { [Op.like]: `%${body.field_type}%` };
   if (body.is_required !== undefined) whereClause.is_required = body.is_required;

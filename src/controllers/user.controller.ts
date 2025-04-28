@@ -17,7 +17,7 @@ import JobTempletRepository from "../hooks/job-template-query";
 import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
-import  {searchSimilarProfiles} from "../utility/create-candidate";
+import { searchSimilarProfiles } from "../utility/create-candidate";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -34,7 +34,7 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
       attributes: [
         "id", "name_prefix", "first_name", "middle_name", "last_name",
         "username", "name_suffix", "program_id", "status", "email",
-        "avatar", "country_id", "is_enabled", "is_activated", "is_deleted"
+        "avatar", "country_id", "is_enabled", "is_active", "is_deleted"
       ],
       order: [['updated_on', 'DESC']],
 
@@ -126,7 +126,7 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
 
     let associateHierarchyIds = user.is_all_hierarchy_associate
       ? (await Hierarchies.findAll({
-        where: { program_id, is_deleted: false },
+        where: { program_id, is_deleted: false, is_enabled: true },
         attributes: ['id'],
       })).map((h: any) => h.id)
       : user.associate_hierarchy_ids ?? [];
@@ -232,7 +232,7 @@ export async function getUserHierarchiesByProgram(request: FastifyRequest, reply
 
 export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
- 
+
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -320,7 +320,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       let candidateId = await CandidateCodeGenerate(vendor_id, program_id);
 
-    const candidateData=  await candidateModel.create({
+      const candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
         candidate_id: candidateId,
@@ -329,10 +329,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         created_by: userId,
         updated_by: userId,
       }, { transaction });
-       candidateId =candidateData.user_id
-       const uniqueId=candidateData.candidate_id
-      createCandidateInAi(user, candidateId , vendor_id, authHeader, program_id,userId,uniqueId);
-    
+      candidateId = candidateData.user_id
+      const uniqueId = candidateData.candidate_id
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId);
+
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
@@ -421,10 +421,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string,uniqueId:string) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader,program_id, userId,uniqueId);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -502,7 +502,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         user_type: mapping.user_type,
         role_id: mapping.role_id,
         program_id: mapping.program_id,
-        is_activated: mapping.is_activated,
+        is_active: mapping.is_active,
         status: mapping.status,
         updated_on: Date.now(),
       }));
@@ -848,19 +848,19 @@ export async function getUserAndHierarchieId(request: FastifyRequest, reply: Fas
 export async function getActiveUser(request: FastifyRequest, reply: FastifyReply) {
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-      return reply.status(401).send({
-          status_code: 401,
-          message: "Unauthorized - Token not found",
-      });
+    return reply.status(401).send({
+      status_code: 401,
+      message: "Unauthorized - Token not found",
+    });
   }
 
   const token = authHeader.split(" ")[1];
   const userTokenData: any = await decodeToken(token);
   if (!userTokenData) {
-      return reply.status(401).send({
-          status_code: 401,
-          message: "Unauthorized - Invalid token",
-      });
+    return reply.status(401).send({
+      status_code: 401,
+      message: "Unauthorized - Invalid token",
+    });
   }
 
   const { program_id } = request.params as { program_id: string };
@@ -870,75 +870,75 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
   const userType = userTokenData?.userType;
 
   try {
-      let isSuperUser = userType === "super_user";
-      let allowedHierarchyIds: string[] | null = null;
-      let isAllHierarchyAssociateParam = false;
+    let isSuperUser = userType === "super_user";
+    let allowedHierarchyIds: string[] | null = null;
+    let isAllHierarchyAssociateParam = false;
 
-      if (isSuperUser) {
-          if (hierarchy_id) {
-              allowedHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
-          }
-      } else {
-          const currentUser = await User.findOne({
-              where: { program_id, user_id: userId },
-              attributes: ["associate_hierarchy_ids", "is_all_hierarchy_associate"],
-          }) as any;
+    if (isSuperUser) {
+      if (hierarchy_id) {
+        allowedHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
+      }
+    } else {
+      const currentUser = await User.findOne({
+        where: { program_id, user_id: userId },
+        attributes: ["associate_hierarchy_ids", "is_all_hierarchy_associate"],
+      }) as any;
 
-          if (!currentUser) {
-              return reply.status(404).send({
-                  status_code: 404,
-                  message: "User not found",
-                  trace_id: traceId,
-              });
-          }
-
-          const isAllHierarchyAssociate = currentUser.dataValues.is_all_hierarchy_associate;
-          isAllHierarchyAssociateParam = isAllHierarchyAssociate;
-          const associateHierarchyIds: string[] = currentUser.dataValues.associate_hierarchy_ids || [];
-
-          let accessibleHierarchyIds: string[] = associateHierarchyIds.map(String);
-
-          if (hierarchy_id) {
-              const filterHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
-              allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
-              if (allowedHierarchyIds.length === 0 && !isAllHierarchyAssociate) {
-                  return reply.code(200).send({
-                      status_code: 200,
-                      message: "No matching records found.",
-                      users: [],
-                      trace_id: traceId,
-                  });
-              }
-          } else {
-              allowedHierarchyIds = accessibleHierarchyIds.length > 0 ? accessibleHierarchyIds : null;
-          }
+      if (!currentUser) {
+        return reply.status(404).send({
+          status_code: 404,
+          message: "User not found",
+          trace_id: traceId,
+        });
       }
 
-      const replacements = {
-          program_id,
-          is_super_user: isSuperUser,
-          is_all_hierarchy_associate_param: isAllHierarchyAssociateParam,
-          allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null
-      };
+      const isAllHierarchyAssociate = currentUser.dataValues.is_all_hierarchy_associate;
+      isAllHierarchyAssociateParam = isAllHierarchyAssociate;
+      const associateHierarchyIds: string[] = currentUser.dataValues.associate_hierarchy_ids || [];
 
-      const users = await sequelize.query(getActiveUsers, {
-          replacements,
-          type: QueryTypes.SELECT,
-      });
+      let accessibleHierarchyIds: string[] = associateHierarchyIds.map(String);
 
-      return reply.code(200).send({
-          status_code: 200,
-          message: users.length > 0 ? "Get active user data" : "No matching records found.",
-          users,
-          trace_id: traceId,
-      });
+      if (hierarchy_id) {
+        const filterHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
+        allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
+        if (allowedHierarchyIds.length === 0 && !isAllHierarchyAssociate) {
+          return reply.code(200).send({
+            status_code: 200,
+            message: "No matching records found.",
+            users: [],
+            trace_id: traceId,
+          });
+        }
+      } else {
+        allowedHierarchyIds = accessibleHierarchyIds.length > 0 ? accessibleHierarchyIds : null;
+      }
+    }
+
+    const replacements = {
+      program_id,
+      is_super_user: isSuperUser,
+      is_all_hierarchy_associate_param: isAllHierarchyAssociateParam,
+      allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null
+    };
+
+    const users = await sequelize.query(getActiveUsers, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    return reply.code(200).send({
+      status_code: 200,
+      message: users.length > 0 ? "Get active user data" : "No matching records found.",
+      users,
+      trace_id: traceId,
+    });
   } catch (error: any) {
-      return reply.code(500).send({
-          status_code: 500,
-          message: "Internal Server Error",
-          trace_id: traceId,
-          error: error.message,
-      });
+    return reply.code(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error: error.message,
+    });
   }
 }
 

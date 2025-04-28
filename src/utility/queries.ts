@@ -521,6 +521,7 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
+    AND h.is_enabled = true
   UNION ALL
 
   SELECT
@@ -544,6 +545,7 @@ WITH RECURSIVE hierarchy_cte AS (
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
+    AND h.is_enabled = true
 )
 SELECT *
 FROM hierarchy_cte;
@@ -2300,7 +2302,7 @@ WITH user_data AS (
          u.language_id,
          u.is_enabled,
          u.is_deleted,
-         u.is_activated,
+         u.is_active,
          u.user_type,
          u.is_associated,
          u.supervisor,
@@ -2376,9 +2378,9 @@ WITH user_data AS (
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.user_id = :user_id' : ''}
-    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${user_type ? `AND u.user_type IN (${user_type.split(',').map(t => `'${t.trim()}'`).join(',')})` : ''}
     ${status ? 'AND u.status = :status' : ''}
-    ${typeof is_activated === 'string' ? 'AND u.is_activated = :is_activated' : ''}
+    ${typeof is_activated === 'string' ? 'AND u.is_active = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
     ${tenant_id ? 'AND u.tenant_id = :tenant_id' : ''}
     ${email ? 'AND u.email = :email' : ''}
@@ -2411,7 +2413,7 @@ WITH user_data AS (
          u.last_name,
          u.email,
          u.program_id,
-         u.is_activated,
+         u.is_active,
          u.created_on,
          u.updated_on as updated_on,
          (
@@ -2808,19 +2810,20 @@ WHERE
             AND (
                 :allowed_hierarchy_ids IS NULL
                 OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                OR user.is_all_hierarchy_associate = true
             )
         )
         OR
         ( -- Non-super user case
             :is_super_user = false
             AND (
+                -- Include users with is_all_hierarchy_associate = true regardless of hierarchy filtering
+                user.is_all_hierarchy_associate = true
+                OR
                 (
-                    -- Users with all hierarchy access
+                    -- Users with all hierarchy access in the current user
                     :is_all_hierarchy_associate_param = true
-                    AND (
-                        user.is_all_hierarchy_associate = true
-                        OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
-                    )
+                    AND JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
                 )
                 OR
                 (
@@ -2832,6 +2835,7 @@ WHERE
         )
     )
 `;
+
 
 export const getUserContacts = `
 SELECT
