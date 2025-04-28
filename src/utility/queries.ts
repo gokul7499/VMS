@@ -2705,6 +2705,8 @@ export const rateCardMinRateMaxRate = `
     WHERE
       rc.labor_category_id = :labor_category_id
       AND rc.program_id = :program_id
+      AND rc.is_deleted = false
+      AND rc.is_enabled = true
   ),
   primary_matches AS (
     SELECT
@@ -2763,6 +2765,8 @@ WITH rate_card_matches AS (
   WHERE
       rc.labor_category_id = :labor_category_id
       AND rc.program_id = :program_id
+      AND rc.is_deleted = false
+      AND rc.is_enabled = true
 )
 SELECT
   rcdt.min_rate,
