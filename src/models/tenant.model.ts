@@ -68,8 +68,7 @@ Tenant.init({
   },
   is_enabled: {
     type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
+    allowNull: true
   },
   is_deleted: {
     type: DataTypes.BOOLEAN,
