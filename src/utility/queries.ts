@@ -2378,7 +2378,7 @@ WITH user_data AS (
   LEFT JOIN user_mappings um ON u.user_id = um.user_id
   WHERE u.is_deleted = false AND u.program_id = :program_id
     ${user_id ? 'AND u.user_id = :user_id' : ''}
-    ${user_type ? 'AND u.user_type = :user_type' : ''}
+    ${user_type ? `AND u.user_type IN (${user_type.split(',').map(t => `'${t.trim()}'`).join(',')})` : ''}
     ${status ? 'AND u.status = :status' : ''}
     ${typeof is_activated === 'string' ? 'AND u.is_active = :is_activated' : ''}
     ${role_id ? 'AND u.role_id = :role_id' : ''}
