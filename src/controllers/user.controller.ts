@@ -873,6 +873,7 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
     let isSuperUser = userType === "super_user";
     let allowedHierarchyIds: string[] | null = null;
     let isAllHierarchyAssociateParam = false;
+    let currentUserHierarchyIds: string[] = [];
 
     if (isSuperUser) {
       if (hierarchy_id) {
@@ -894,20 +895,26 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
 
       const isAllHierarchyAssociate = currentUser.dataValues.is_all_hierarchy_associate;
       isAllHierarchyAssociateParam = isAllHierarchyAssociate;
-      const associateHierarchyIds: string[] = currentUser.dataValues.associate_hierarchy_ids || [];
+      currentUserHierarchyIds = currentUser.dataValues.associate_hierarchy_ids || [];
 
-      let accessibleHierarchyIds: string[] = associateHierarchyIds.map(String);
+      let accessibleHierarchyIds: string[] = currentUserHierarchyIds.map(String);
 
       if (hierarchy_id) {
         const filterHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
-        allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
-        if (allowedHierarchyIds.length === 0 && !isAllHierarchyAssociate) {
-          return reply.code(200).send({
-            status_code: 200,
-            message: "No matching records found.",
-            users: [],
-            trace_id: traceId,
-          });
+        
+        if (isAllHierarchyAssociate) {
+          allowedHierarchyIds = filterHierarchyIds;
+        } else {
+          allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
+          
+          if (allowedHierarchyIds.length === 0) {
+            return reply.code(200).send({
+              status_code: 200,
+              message: "No matching records found.",
+              users: [],
+              trace_id: traceId,
+            });
+          }
         }
       } else {
         allowedHierarchyIds = accessibleHierarchyIds.length > 0 ? accessibleHierarchyIds : null;
@@ -918,8 +925,16 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
       program_id,
       is_super_user: isSuperUser,
       is_all_hierarchy_associate_param: isAllHierarchyAssociateParam,
-      allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null
+      allowed_hierarchy_ids: allowedHierarchyIds ? JSON.stringify(allowedHierarchyIds) : null,
+      current_user_hierarchy_ids: currentUserHierarchyIds.length > 0 ? JSON.stringify(currentUserHierarchyIds) : null
     };
+
+    console.log("Query parameters:", {
+      isSuperUser,
+      isAllHierarchyAssociateParam,
+      allowedHierarchyIds,
+      currentUserHierarchyIds
+    });
 
     const users = await sequelize.query(getActiveUsers, {
       replacements,

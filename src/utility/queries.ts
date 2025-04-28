@@ -2809,7 +2809,7 @@ WHERE
     AND LOWER(user.status) = 'active'
     AND user.user_type = 'client'
     AND (
-        ( -- Super user case: allow all or filter by hierarchy_ids
+        ( -- Super user case
             :is_super_user = true
             AND (
                 :allowed_hierarchy_ids IS NULL
@@ -2821,19 +2821,32 @@ WHERE
         ( -- Non-super user case
             :is_super_user = false
             AND (
-                -- Include users with is_all_hierarchy_associate = true regardless of hierarchy filtering
-                user.is_all_hierarchy_associate = true
-                OR
+                -- Case 1: Current user has all hierarchy access 
                 (
-                    -- Users with all hierarchy access in the current user
                     :is_all_hierarchy_associate_param = true
-                    AND JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                    AND (
+                        -- If filtering by specific hierarchies, only show users who have those hierarchies
+                        (:allowed_hierarchy_ids IS NOT NULL AND JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON)))
+                        OR
+                        -- If not filtering, show all users
+                        (:allowed_hierarchy_ids IS NULL)
+                    )
                 )
                 OR
+                -- Case 2: Current user has limited hierarchy access
                 (
-                    -- Users requiring exact hierarchy match
                     :is_all_hierarchy_associate_param = false
-                    AND JSON_CONTAINS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON))
+                    AND (
+                        -- Show users who have all hierarchy access
+                        user.is_all_hierarchy_associate = true
+                        OR
+                        -- OR show users whose hierarchies match the current user's hierarchies
+                        (
+                            JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:current_user_hierarchy_ids AS JSON))
+                            -- And if filtering by hierarchy, ensure those hierarchies match
+                            AND (:allowed_hierarchy_ids IS NULL OR JSON_OVERLAPS(user.associate_hierarchy_ids, CAST(:allowed_hierarchy_ids AS JSON)))
+                        )
+                    )
                 )
             )
         )
