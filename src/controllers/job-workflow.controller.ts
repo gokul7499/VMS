@@ -986,8 +986,8 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     payload,
                     userId: user.sub ?? "",
                 };
-
-                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete"){
+                
+                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete" || notificationPayload?.eventCode?.toLowerCase() !== "timesheet_submitted"){
                     console.log("Enter in SendNotification IF");
                     sendNotification(notificationPayload);
                 }
