@@ -138,47 +138,20 @@ export async function findDuplicateCandidate(
           });
 
           console.log(`[findDuplicateCandidate] - PossibleDuplicateCandidate created:`, possibleDuplicateData?.id);
-
           console.log("matchingProfile", matchingProfile);
 
-          if (matchingProfile.length > 0) {
-            const mtpsToUpdate = await MtpModel.findAll({
-              where: {
-                program_id: programId,
-                [Op.or]: matchingProfile.map((id) => {
-                  return Sequelize.where(
-                    Sequelize.fn('JSON_CONTAINS', Sequelize.col('linked_profiles'), JSON.stringify(id)),
-                    1
-                  );
-                })
-              }
-            });
-          
-            console.log(`[findDuplicateCandidate] - MTPs found to update: ${mtpsToUpdate.length}`);
-          
-            for (const mtp of mtpsToUpdate) {
-              const existingLinkedProfiles = mtp.linked_profiles || [];
-              const updatedLinkedProfilesSet = new Set([...existingLinkedProfiles, ...matchingProfile]);
-              const updatedLinkedProfiles = Array.from(updatedLinkedProfilesSet);
-          
-              await mtp.update({
-                linked_profiles: updatedLinkedProfiles,
-                updated_by: userId,
-              });
-          
-              console.log(`[findDuplicateCandidate] - MTP updated with new linked_profiles. MTP ID: ${mtp.id}`);
-            }
-          }
+          const updatedCount = await updateMtpWithMatchingProfiles(matchingProfile, programId);
+          console.log(`[findDuplicateCandidate] - Total MTPs updated: ${updatedCount}`);
         }                              
 
       } else {
         console.log(`[findDuplicateCandidate] - No duplicate matches found.`);
-      const data= await MtpModel.create({
+        const data = await MtpModel.create({
           ...paylod,
           created_by: userId,
           updated_by: userId,
         });
-        console.log(data,"create mtp....")
+        console.log(data, "create mtp....");
       }
 
       console.log(`[findDuplicateCandidate] - Successfully completed.`);
@@ -199,9 +172,41 @@ export async function findDuplicateCandidate(
   }
 }
 
+async function updateMtpWithMatchingProfiles(
+  matchingProfile: string[],
+  programId: string
+): Promise<number> {
+  if (!matchingProfile.length) {
+    console.log(`[updateMtpWithMatchingProfiles] - No matching profiles to update`);
+    return 0;
+  }
 
+  const mtpsToUpdate = await MtpModel.findAll({
+    where: {
+      program_id: programId,
+      [Op.or]: matchingProfile.map((id) => {
+        return Sequelize.where(
+          Sequelize.fn('JSON_CONTAINS', Sequelize.col('linked_profiles'), JSON.stringify(id)),
+          1
+        );
+      })
+    }
+  });
 
+  console.log(`[updateMtpWithMatchingProfiles] - MTPs found to update: ${mtpsToUpdate.length}`);
 
+  for (const mtp of mtpsToUpdate) {
+    const existingLinkedProfiles = mtp.linked_profiles || [];
+    const updatedLinkedProfilesSet = new Set([...existingLinkedProfiles, ...matchingProfile]);
+    const updatedLinkedProfiles = Array.from(updatedLinkedProfilesSet);
 
+    await mtp.update({
+      linked_profiles: updatedLinkedProfiles
+    });
 
+    console.log(`[updateMtpWithMatchingProfiles] - MTP updated with new linked_profiles. MTP ID: ${mtp.id}`);
+  }
+
+  return mtpsToUpdate.length;
+}
 
