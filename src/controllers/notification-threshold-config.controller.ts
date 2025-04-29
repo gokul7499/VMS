@@ -24,7 +24,7 @@ export const createThreshold = async (
         }
 
         const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
+        const user: any = await decodeToken(token);
 
         if (!user) {
             return reply.status(401).send({
@@ -33,54 +33,107 @@ export const createThreshold = async (
             });
         }
 
-        const body = request.body as any;
+        const body = request.body as Array<any>;
 
-        if (
-            typeof body?.module !== 'string' ||
-            body.module.trim() === '' ||
-            !Array.isArray(body?.config) ||
-            body.config.length === 0
-        ) {
+        if (!Array.isArray(body) || body.length === 0) {
             return reply.status(400).send({
                 status_code: 400,
                 trace_id: traceId,
-                message: "module must be a non-empty string and config must be a non-empty array",
+                message: 'Request body must be a non-empty array',
             });
         }
 
-        const { module, config } = body;
-
         const timestamp = Date.now();
+        const createdThresholds = [];
 
-        const newThreshold = await thresholdConfig.create(
-            {
-                program_id,
-                module,
-                config,
-                is_enabled: true,
-                is_deleted: false,
-                created_on: timestamp,
-                updated_on: timestamp,
-                created_by: user?.sub,
-                updated_by: user?.sub,
-            },
-            { transaction }
-        );
+        for (const moduleEntry of body) {
+            const { module, config } = moduleEntry;
+
+            if (typeof module !== 'string' || module.trim() === '') {
+                await transaction.rollback();
+                return reply.status(400).send({
+                    status_code: 400,
+                    trace_id: traceId,
+                    message: 'Each module entry must include a valid non-empty string "module"',
+                });
+            }
+
+            if (!Array.isArray(config) || config.length === 0) {
+                await transaction.rollback();
+                return reply.status(400).send({
+                    status_code: 400,
+                    trace_id: traceId,
+                    message: `Config for module "${module}" must be a non-empty array`,
+                });
+            }
+
+            for (const configItem of config) {
+                const { key, label, is_enable, threshold } = configItem;
+
+                if (
+                    typeof key !== 'string' ||
+                    typeof label !== 'string' ||
+                    typeof is_enable !== 'boolean' ||
+                    !Array.isArray(threshold)
+                ) {
+                    await transaction.rollback();
+                    return reply.status(400).send({
+                        status_code: 400,
+                        trace_id: traceId,
+                        message: `Invalid config structure for module "${module}"`,
+                    });
+                }
+
+                for (const thresholdItem of threshold) {
+                    if (
+                        typeof thresholdItem.supportsBeforeThresholds !== 'boolean' ||
+                        typeof thresholdItem.supportsAfterThresholds !== 'boolean' ||
+                        typeof thresholdItem.threshold_value !== 'number' ||
+                        (!['string', 'number'].includes(typeof thresholdItem.threshold_unit))
+                    ) {
+                        await transaction.rollback();
+                        return reply.status(400).send({
+                            status_code: 400,
+                            trace_id: traceId,
+                            message: `Invalid threshold object in module "${module}" config key "${key}"`,
+                        });
+                    }
+                }
+            }
+
+            const newThreshold = await thresholdConfig.create(
+                {
+                    program_id,
+                    module,
+                    config,
+                    is_enabled: true,
+                    is_deleted: false,
+                    created_on: timestamp,
+                    updated_on: timestamp,
+                    created_by: user?.sub,
+                    updated_by: user?.sub,
+                },
+                { transaction }
+            );
+
+            createdThresholds.push(newThreshold.id);
+        }
 
         await transaction.commit();
 
-        reply.status(201).send({
+        return reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
-            id: newThreshold.id,
-            message: 'Threshold configuration created successfully',
+            created_ids: createdThresholds,
+            message: 'Threshold configurations created successfully',
         });
     } catch (error: any) {
+        console.error('Threshold creation failed:', error);
         await transaction.rollback();
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            message: 'Internal server error',
             trace_id: traceId,
+            message: 'Internal server error',
         });
     }
 };
