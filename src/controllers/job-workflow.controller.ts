@@ -987,10 +987,11 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     userId: user.sub ?? "",
                 };
                 
-                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete" || notificationPayload?.eventCode?.toLowerCase() !== "submit_timesheet"){
+                if(notificationPayload?.eventCode?.toLowerCase() !== "counter_offer_approval_complete" || notificationPayload?.eventCode?.toLowerCase() !== "timesheet_submitted"){
                     console.log("Enter in SendNotification IF");
                     sendNotification(notificationPayload);
                 }
+
 
             } else {
                 console.log("No MSP users found or no email available for notification.");
