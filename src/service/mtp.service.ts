@@ -22,7 +22,7 @@ class MtpService {
         request,
         traceId,
         user
-    }: {
+      }: {
         programId: string;
         mtp: MtpInterface;
         userId: string;
@@ -30,58 +30,69 @@ class MtpService {
         request: FastifyRequest;
         traceId: string;
         user: any;
-    }) {
+      }) {
         const mtpCandidateId = mtp.mtp_candidate_id;
-
+      
         const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
         const talentName = getCandidateData?.[0]?.candidate_name;
-        
+      
         const payload = {
-            ...mtp,
-            talent_name: talentName
+          ...mtp,
+          talent_name: talentName
         };
-        
+      
         const existingMtpData = await this.mtpRepository.getAllMtp(programId);
-        
+        console.log("existingMtpData", existingMtpData);
+      
         if (!existingMtpData || existingMtpData.length === 0) {
-            return await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
+          const created = await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
+          return {
+            statusCode: 201,
+            message: "No existing MTP data found. New MTP created successfully.",
+            data: created
+          };
         }
-        
+      
         const talentCandidateIds = existingMtpData.reduce((acc: string[], row: any) => {
-            return acc.concat(row.candidate_id);
+          return acc.concat(row.candidate_id);
         }, []);
-        
+      
         if (talentCandidateIds.includes(mtpCandidateId)) {
-            await findDuplicateCandidate(
-                [...talentCandidateIds, mtpCandidateId], 
-                programId, 
-                userId, 
-                token, 
-                mtpCandidateId, 
-                payload
-            );
-            
-            this.logEvent({
-                request,
-                traceId,
-                user,
-                userId,
-                eventName: "create mtp",
-                status: "skipped",
-                description: `Duplicate detected. Added to possible duplicates. Candidate ID: ${mtpCandidateId}`,
-                level: "warn"
-            });
-            
-            return {
-                statusCode: 200,
-                message: "Duplicate detected. Added to possible duplicates.",
-                data: null
-            };
+          await findDuplicateCandidate(
+            [...talentCandidateIds, mtpCandidateId],
+            programId,
+            userId,
+            token,
+            mtpCandidateId,
+            payload
+          );
+      
+          this.logEvent({
+            request,
+            traceId,
+            user,
+            userId,
+            eventName: "create mtp",
+            status: "skipped",
+            description: `Duplicate detected. Added to possible duplicates. Candidate ID: ${mtpCandidateId}`,
+            level: "warn"
+          });
+      
+          return {
+            statusCode: 200,
+            message: "Duplicate detected. Added to possible duplicates.",
+            data: null
+          };
         }
-        
-        // No duplicates found, create new MTP
-        return await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
-    }
+      
+        const created = await this.createNewMtp(mtp, talentName, userId, request, traceId, user);
+        return {
+          statusCode: 201,
+          message: "New MTP created successfully.",
+          data: created
+        };
+      }
+      
 
     /**
      * Helper method to create a new MTP
