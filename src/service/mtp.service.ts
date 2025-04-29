@@ -193,7 +193,7 @@ class MtpService {
         
         try {
             const mtp = await MtpModel.findOne({
-                where: { id, program_id: programId }
+                where: { id, program_id: programId, is_deleted: false }
             });
             
             if (!mtp) {
@@ -222,14 +222,18 @@ class MtpService {
                     transaction
                 }
             );
-            
-            await MtpModel.destroy({
-                where: {
+            console.log("updatedLinks",updatedLinks)
+           const data= await MtpModel.update(
+                { is_deleted: true }, 
+                {
+                  where: {
                     mtp_candidate_id: mtpCandidateId,
-                    program_id: programId
-                },
-                transaction
-            });
+                    program_id: programId,
+                  },
+                  transaction,
+                }
+              );
+              
             
             await transaction.commit();
             
@@ -294,17 +298,16 @@ class MtpService {
                 }
             );
             
-            const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
-            const talentName = getCandidateData?.[0]?.candidate_name;
-            
-            await MtpModel.create({
-                mtp_candidate_id: mtpCandidateId,
-                talent_name: talentName,
-                program_id: programId,
-                linked_profiles: [],
-                created_by: userId,
-                updated_by: userId,
-            }, { transaction });
+            await MtpModel.update(
+                { is_deleted: false }, 
+                {
+                  where: {
+                    mtp_candidate_id: mtpCandidateId,
+                    program_id: programId,
+                  },
+                  transaction,
+                }
+              );
             
             await transaction.commit();
             

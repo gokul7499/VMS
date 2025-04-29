@@ -9,6 +9,8 @@ class MtpModel extends Model {
     program_id: any;
     id: any;
     linked_profiles: any;
+  static QueryTypes: any;
+  static query: any;
 
 }
 
@@ -59,6 +61,10 @@ MtpModel.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
+        is_deleted:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        }
     },
     {
         sequelize,
