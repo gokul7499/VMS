@@ -1024,7 +1024,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 const body = Array.isArray(updates) ? updates[0] : updates;
                 const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/rejection`;
                 const payload = {
-                    rejection_reason: body.reason,
+                    rejection_reason: body?.reason || '',
                 };
 
                 await axios.put(apiUrl, payload, {
