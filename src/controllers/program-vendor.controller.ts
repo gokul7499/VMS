@@ -508,19 +508,20 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                     program_id,
                     program_vendor_id: existingProgramVendor.id,
                     hierarchy: markup.hierarchy === 'all' ? null : markup.hierarchy,
-                    rate_model: markup.rate_model === 'any' ? null : markup.rate_model,
-                    program_industry: markup.program_industry === 'any' ? null : markup.program_industry,
-                    rate_type: markup.rate_type === 'any' ? null : markup.rate_type,
-                    worker_type: markup.worker_type === 'any' ? null : markup.worker_type,
-                    worker_classification: markup.worker_classification === 'any' ? null : markup.worker_classification,
-                    job_template: markup.job_template === 'any' ? null : markup.job_template
+                    rate_model: markup.rate_model === 'all' ? null : markup.rate_model,
+                    program_industry: markup.program_industry === 'all' ? null : markup.program_industry,
+                    rate_type: markup.rate_type === 'all' ? null : markup.rate_type,
+                    worker_type: markup.worker_type === 'all' ? null : markup.worker_type,
+                    worker_classification: markup.worker_classification === 'all' ? null : markup.worker_classification,
+                    job_template: markup.job_template === 'all' ? null : markup.job_template,
+                    markups: markup.markups,
                 };
 
                 if (markup.job_type !== undefined) {
-                    whereClause.job_type = markup.job_type === 'any' ? null : markup.job_type;
+                    whereClause.job_type = markup.job_type === 'all' ? null : markup.job_type;
                 }
                 if (markup.work_locations !== undefined) {
-                    whereClause.work_locations = markup.work_locations === 'any' ? null : markup.work_locations;
+                    whereClause.work_locations = markup.work_locations === 'all' ? null : markup.work_locations;
                 }
 
                 const existingRecord = await vendorMarkupConfig.findOne({
@@ -528,7 +529,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 });
 
                 if (existingRecord) {
-                    throw new Error(`A record with the same markup already exists: ${JSON.stringify(whereClause)}`);
+                    throw new Error("A record with the same markup already exists.");
                 }
                 await vendorMarkupConfig.create({
                     ...markupData,

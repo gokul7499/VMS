@@ -3,7 +3,7 @@ import { sequelize } from "../config/instance";
 
 class RateConfigurationsRepository {
 
-    static async getRateConfigurationsByProgramId(program_id: string, is_shift_rate: string, hierarchyIds: string[], jobTemplateIds: string[]){
+    static async getRateConfigurationsByProgramId(program_id: string, is_shift_rate: any, hierarchyIds: string[], jobTemplateIds: string[]){
         let result: any;
         let sql: any;
 

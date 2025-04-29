@@ -925,12 +925,29 @@ export async function getPicklistFilter(
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (picklist_id)
       whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
-    if (is_enabled !== undefined)
-      whereClause.is_enabled = is_enabled === "true";
+    if (is_enabled !== undefined) {
+      whereClause.is_enabled =
+        typeof is_enabled === "boolean"
+          ? is_enabled
+          : is_enabled === "true";
+    }
     if (defined_by) whereClause.defined_by = defined_by;
-    if (Array.isArray(updated_on) && updated_on.length === 2) {
-      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-      whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+
+    if (updated_on) {
+      let timestamps: number[] = [];
+
+      if (Array.isArray(updated_on)) {
+        timestamps = updated_on.map(ts => parseInt(ts, 10));
+      } else if (typeof updated_on === "string") {
+        timestamps = updated_on.split(",").map(ts => parseInt(ts.trim(), 10));
+      }
+
+      if (timestamps.length === 2 && !isNaN(timestamps[0]) && !isNaN(timestamps[1])) {
+        const [start, end] = timestamps.sort((a, b) => a - b);
+        whereClause.updated_on = { [Op.between]: [start, end] };
+      } else {
+        console.warn("Invalid or incomplete 'updated_on' filter range.");
+      }
     }
 
     whereClause[Op.or] = [
