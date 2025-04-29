@@ -932,8 +932,9 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     } else
                         if (moduleType === "Timesheet".toLowerCase()) {
                             const timesheet_id = workflow.workflow_trigger_id;
-                            const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/update-status`;
-                            const payload = { status: "approved" };
+                            let apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/approval`;
+                        //    status: "approved"
+                            const payload = {  };
                             await axios.put(apiUrl, payload, {
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1009,6 +1010,21 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 const payload = {
                     status: "rejected",
                     display_status: "rejected"
+                };
+
+                await axios.put(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+
+            }else if (moduleType === "timesheet".toLowerCase()) {
+                const timesheet_id = workflow.workflow_trigger_id;
+                const body = Array.isArray(updates) ? updates[0] : updates;
+                const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/rejection`;
+                const payload = {
+                    rejection_reason: body.reason,
                 };
 
                 await axios.put(apiUrl, payload, {
@@ -1602,8 +1618,9 @@ export const rejectLevel = async (
             program_id: program_id,
             user_type: eventCode.user_type
         }
+        
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
-        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates)
+        await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates )
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
