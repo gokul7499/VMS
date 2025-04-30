@@ -900,13 +900,31 @@ export const getVendorDocuments = async (
                 type: QueryTypes.SELECT,
             });
         } else if (user_id) {
-            const vendorRecord = await getVendorRecord();
-            const vendorId = vendorRecord[0]?.id;
-            replacements.vendor_id = vendorId;
-            documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId(replacements), {
-                replacements,
-                type: QueryTypes.SELECT,
-            });
+            try {
+                const vendorRecord = await getVendorRecord();
+                const vendorId = vendorRecord[0]?.id;
+        
+                if (!vendorId) {
+                    return reply.status(400).send({
+                        status_code: 400,
+                        message: 'Vendor record not found for the user.',
+                        trace_id: traceId,
+                    });
+                }
+        
+                replacements.vendor_id = vendorId;
+                documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId(replacements), {
+                    replacements,
+                    type: QueryTypes.SELECT,
+                });
+            } catch (error: any) {
+                return reply.status(500).send({
+                    status_code: 500,
+                    message: 'An error occurred while fetching vendor documents for the user.',
+                    trace_id: traceId,
+                    error: error.message,
+                });
+            }        
         } else {
             return reply.status(400).send({
                 status_code: 400,
