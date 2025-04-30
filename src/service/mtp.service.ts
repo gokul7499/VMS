@@ -56,9 +56,10 @@ class MtpService {
         const talentCandidateIds = existingMtpData.reduce((acc: string[], row: any) => {
           return acc.concat(row.candidate_id);
         }, []);
-      
+       console.log("talentCandidateIds",talentCandidateIds)
         if (talentCandidateIds.includes(mtpCandidateId)) {
-          await findDuplicateCandidate(
+            console.log("talentCandidateIds",talentCandidateIds)
+           findDuplicateCandidate(
             [...talentCandidateIds, mtpCandidateId],
             programId,
             userId,
