@@ -334,6 +334,15 @@ class MtpService {
         }
     }
 
+    async getLinkedProfiles(programId: string, mtpCandidateId: string) {
+        const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+
+        return {
+            message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
+            data: mtpData || []
+        };
+    }
+
     private logEvent({
         request,
         traceId,

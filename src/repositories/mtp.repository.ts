@@ -212,6 +212,46 @@ async getMtpByLinkedProfile(programId: string,linkedProfileId:any): Promise<any>
   return result; 
 }
 
+async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
+
+  const query = `
+SELECT 
+  m.id,
+  m.talent_name,
+  m.updated_on,
+  m.mtp_id,
+  m.mtp_candidate_id,
+  JSON_ARRAYAGG(JSON_OBJECT(
+    'mtp_candidate_id', c.id,
+    'first_name', c.first_name,
+    'last_name', c.last_name,
+    'middle_name', c.middle_name,
+    'program_id', c.program_id,
+    'candidate_id', c.candidate_id,
+    'birth_date', c.birth_date,
+    'email', c.email,
+    'contacts', c.contacts
+  )) AS linked_profiles
+FROM 
+  mtp m
+LEFT JOIN 
+  candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$') 
+               OR m.mtp_candidate_id = c.id  
+WHERE 
+  m.program_id = :program_id
+  AND m.mtp_candidate_id = :mtp_candidate_id
+GROUP BY 
+  m.id, m.talent_name, m.updated_on, m.mtp_id, m.mtp_candidate_id;
+
+`;
+     const result = await sequelize.query(query, {
+       replacements: { program_id: programId,mtp_candidate_id:mtpCandidateId },
+       type: QueryTypes.SELECT,
+      raw: true,
+     });
+  return result;
+}
+
   }
 
   export default MtpRepository;

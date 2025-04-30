@@ -176,4 +176,25 @@ export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
     }
 }
 
+export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
+    const { program_id: programId, mtp_candidate_id:mtpCandidateId } = request.params as { program_id: string, mtp_candidate_id: string };
+    const traceId = generateCustomUUID();
 
+    try {
+        const result = await mtpService.getLinkedProfiles(programId, mtpCandidateId);
+
+        return reply.code(200).send({
+            status_code: 200,
+            message: result.message,
+            mtp_data: result.data,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.code(500).send({
+            status_code: 500,
+            message: "Internal Server Error",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}
