@@ -184,79 +184,94 @@ WHERE
 
 export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
-      pv.program_id = :program_id
-      AND vcd.is_enabled = true
-      AND vcd.program_id = :program_id
-      AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
-      AND (pv.id IS NULL OR pv.id = :vendor_id)
-      AND (:name IS NULL OR vcd.name LIKE :name)
-      AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+    pv.program_id = :program_id
+    AND vcd.is_enabled = true
+    AND vcd.program_id = :program_id
+    AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
+    AND (pv.id IS NULL OR pv.id = :vendor_id)
+    AND (:name IS NULL OR vcd.name LIKE :name)
+    AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
   `;
 
   if (replacements.status && replacements.status.length > 0) {
-    const statusArray = replacements.status.map((id: string) => `'${id.trim()}'`).join(',');
-    whereClause += ` AND vcrm.status IN (${statusArray})`;
+    const statuses: string[] = replacements.status.map((s: string) => s.trim());
+    const hasPendingUpload = statuses.includes('pending upload');
+    const otherStatuses = statuses.filter((s) => s !== 'pending upload');
+    const conditions: string[] = [];
+
+    if (hasPendingUpload) {
+      conditions.push(`(vcrm.status IS NULL OR vcrm.status = 'pending upload')`);
+    }
+
+    if (otherStatuses.length > 0) {
+      const statusList = otherStatuses.map((s: string) => `'${s}'`).join(',');
+      conditions.push(`vcrm.status IN (${statusList})`);
+    }
+
+    if (conditions.length > 0) {
+      whereClause += ` AND (${conditions.join(' OR ')})`;
+    }
   }
 
   return `
-      SELECT
-          vcd.id,
-          vcd.program_id,
-          vcd.name,
-          vcd.act,
-          vcd.document_number,
-          vcd.upload_document_days,
-          vcd.attached_doc_url,
-          vcd.created_on,
-          vcd.updated_on,
-          vcd.is_enabled,
-          vcd.is_deleted,
-          vcd.to_uploaded,
-          vcd.no_of_days,
-          vcrm.id AS doc_id,
-          vcrm.next_expiry_on,
-          vcrm.status,
-          vcrm.file_name,
-          vcrm.expiry_on,
-          vcrm.url,
-          vcrm.audited_on,
-          vcrm.compliance_note,
-          vcrm.updated_on,
-          vcrm.created_on,
-          u.first_name,
-          u.last_name,
-          vcd.uploaded_document,
-          (
-              SELECT JSON_ARRAYAGG(
-                  JSON_OBJECT(
-                      'id', wl.id,
-                      'name', wl.name
-                  )
-              )
-              FROM work_locations wl
-              WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
-          ) AS work_location,
-          pv.display_name
-      FROM
-          program_vendors pv
-      JOIN
-          vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
-      LEFT JOIN
-          vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
-      LEFT JOIN
-          vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id = :vendor_id
-      LEFT JOIN
-          user u ON u.user_id = vcrm.audited_by
-      WHERE ${whereClause}
-      GROUP BY
-          vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number, vcrm.compliance_note,
-          vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name, vcrm.created_on,
-          vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded, vcrm.id,
-          vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
-          vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
-      ORDER BY
+    SELECT
+        vcd.id,
+        vcd.program_id,
+        vcd.name,
+        vcd.act,
+        vcd.document_number,
+        vcd.upload_document_days,
+        vcd.attached_doc_url,
+        vcd.created_on,
+        vcd.updated_on,
+        vcd.is_enabled,
+        vcd.is_deleted,
+        vcd.to_uploaded,
+        vcd.no_of_days,
+        vcrm.id AS doc_id,
+        vcrm.next_expiry_on,
+        vcrm.status,
+        vcrm.file_name,
+        vcrm.expiry_on,
+        vcrm.url,
+        vcrm.audited_on,
+        vcrm.compliance_note,
+        vcrm.updated_on,
+        vcrm.created_on,
+        u.first_name,
+        u.last_name,
+        vcd.uploaded_document,
+        (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', wl.id,
+                    'name', wl.name
+                )
+            )
+            FROM work_locations wl
+            WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
+        ) AS work_location,
+        pv.display_name
+    FROM
+        program_vendors pv
+    JOIN
+        vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
+    LEFT JOIN
+        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
+    LEFT JOIN
+        vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id AND vcrm.vendor_id = :vendor_id
+    LEFT JOIN
+        user u ON u.user_id = vcrm.audited_by
+    WHERE ${whereClause}
+    GROUP BY
+        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number, vcrm.compliance_note,
+        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name, vcrm.created_on,
+        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded, vcrm.id,
+        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
+        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
+    ORDER BY
         vcrm.updated_on DESC
-      LIMIT :limit OFFSET :offset
+    LIMIT :limit OFFSET :offset
   `;
 };
 
