@@ -6,7 +6,7 @@ import { Op, QueryTypes, Sequelize } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
-import { getAllRateTypes, rateTypeAdvanceFilter, rateTypeShiftAndRate, rateTypeTotalCount } from "../utility/queries";
+import { getAllRateTypes, rateTypeAdvanceFilter, rateTypeShiftAndRate } from "../utility/queries";
 
 export const saveRateType = async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as CreateRateTypeData;
@@ -192,24 +192,50 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
 
 export async function getAllRateType(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
-  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = request.query as RateTypeInterface;
+  const {
+    id,
+    name,
+    is_enabled,
+    updated_on,
+    is_shift_rate,
+    is_base_rate,
+    differential_on,
+    rate_type_category,
+    shift_type,
+    rate_type_category_label,
+    abbreviation,
+    page = "1",
+    limit = "10",
+    hierarchy_ids
+  } = request.query as RateTypeInterface;
   const traceId = generateCustomUUID();
 
   try {
-    const queryParams = getQueryParams({ id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page, limit });
-    const rateType = await fetchRateTypes(queryParams, program_id);
-    const totalCount = await sequelize.query<{ total_records: number }>(rateTypeTotalCount, {
-      replacements: { program_id },
-      type: QueryTypes.SELECT,
+    const queryParams = getQueryParams({
+      id,
+      name,
+      is_enabled,
+      updated_on,
+      is_shift_rate,
+      is_base_rate,
+      differential_on,
+      rate_type_category,
+      shift_type,
+      rate_type_category_label,
+      abbreviation,
+      page,
+      limit,
+      hierarchy_ids
     });
+    const rateType = await fetchRateTypes(queryParams, program_id);
+    const totalCount = rateType[0]?.total_records ?? 0;
 
-    const totalRecords = totalCount[0]?.total_records;
     if (rateType.length === 0) {
       return reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
         message: "No rate type found for the given program",
-        total_records: totalRecords,
+        total_records: totalCount,
         page: queryParams.pageNumber,
         limit: queryParams.pageSize,
         rate_type: [],
@@ -220,7 +246,7 @@ export async function getAllRateType(request: FastifyRequest, reply: FastifyRepl
       status_code: 200,
       trace_id: traceId,
       message: "Rate type fetched successfully.",
-      total_records: totalRecords,
+      total_records: totalCount,
       page: queryParams.pageNumber,
       limit: queryParams.pageSize,
       rate_type: rateType,
@@ -236,7 +262,22 @@ export async function getAllRateType(request: FastifyRequest, reply: FastifyRepl
 }
 
 function getQueryParams(query: any) {
-  const { id, name, is_enabled, updated_on, is_shift_rate, is_base_rate, differential_on, rate_type_category, shift_type, rate_type_category_label, abbreviation, page = "1", limit = "10" } = query;
+  const {
+    id,
+    name,
+    is_enabled,
+    updated_on,
+    is_shift_rate,
+    is_base_rate,
+    differential_on,
+    rate_type_category,
+    shift_type,
+    rate_type_category_label,
+    abbreviation,
+    page = "1",
+    limit = "10",
+    hierarchy_ids
+  } = query;
 
   const hasName = !!name;
   const hasId = !!id;
@@ -247,14 +288,40 @@ function getQueryParams(query: any) {
   const isEnabledValue = parseBoolean(is_enabled);
   const isShiftRateValue = parseBoolean(is_shift_rate);
   const isBaseRate = parseBoolean(is_base_rate);
-
+  const hasHierarchies = !!hierarchy_ids;
+  const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(',') : [];
   const { startDate, endDate } = parseDateRange(updated_on);
   const hasAbbreviation = !!abbreviation;
   const pageNumber = parseInt(page, 10);
   const pageSize = parseInt(limit, 10);
   const offset = (pageNumber - 1) * pageSize;
+  const hasHierarchyShiftFilter = hasHierarchies && differential_on === "shift";
 
-  return { id, name, differential_on, rate_type_category, shift_type, abbreviation, rateTypeCategoryLabels, hasName, hasId, isEnabledValue, isShiftRateValue, isBaseRate, hasDifferentialOn, hasRateTypeCategory, hasShiftType, hasAbbreviation, startDate, endDate, pageNumber, pageSize, offset };
+  return {
+    id,
+    name,
+    differential_on,
+    rate_type_category,
+    shift_type,
+    abbreviation,
+    rateTypeCategoryLabels,
+    hasName,
+    hasId,
+    isEnabledValue,
+    isShiftRateValue,
+    isBaseRate,
+    hasDifferentialOn,
+    hasRateTypeCategory,
+    hasShiftType,
+    hasAbbreviation,
+    startDate,
+    endDate,
+    pageNumber,
+    pageSize,
+    offset,
+    hasHierarchyShiftFilter,
+    hierarchyIdsArray
+  };
 }
 
 function parseBoolean(value: any): number | undefined {
@@ -295,7 +362,8 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
       queryParams.startDate,
       queryParams.endDate,
       queryParams.pageSize,
-      queryParams.offset
+      queryParams.offset,
+      queryParams.hasHierarchyShiftFilter
     ),
     {
       replacements: {
@@ -312,6 +380,7 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
         ...(queryParams.hasAbbreviation && { abbreviation: `%${queryParams.abbreviation}%` }),
         ...(queryParams.startDate !== undefined && { startDate: queryParams.startDate }),
         ...(queryParams.endDate !== undefined && { endDate: queryParams.endDate }),
+        ...(queryParams.hasHierarchyShiftFilter && { hierarchy_ids: queryParams.hierarchyIdsArray }),
         limit: queryParams.pageSize,
         offset: queryParams.offset,
       },
@@ -556,7 +625,7 @@ export async function getShiftAndRateType(request: FastifyRequest, reply: Fastif
   }
 }
 
-export async function rateTypeFilter(request: FastifyRequest,reply: FastifyReply) {
+export async function rateTypeFilter(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };

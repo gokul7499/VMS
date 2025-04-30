@@ -22,6 +22,7 @@ export interface RateTypeInterface {
     differential_type?: string;
     differential_value: number;
     rate_type_category_label?: string;
+    hierarchy_ids?:any;
 }
 export interface CreateRateTypeData {
     type: any;

@@ -5,11 +5,10 @@ import ShiftTypeModel from "../models/shift-type.model";
 import { ShiftTypeAttributes } from "../interfaces/shift-type.interface";
 import { sequelize } from '../config/instance';
 import { Op, QueryTypes } from 'sequelize';
-import { getShiftTypesByHierarchiesQuery } from "../utility/queries";
+import { getShiftTypesByHierarchiesQuery, shiftTypesQuery } from "../utility/queries";
 import { decodeToken } from "../middlewares/verifyToken";
 import logger from "../plugins/logger-plugin";
-
-
+import RateConfigurationsRepository from '../repositories/rate-configurations.repository';
 
 export async function getALLShiftType(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on'];
@@ -62,7 +61,7 @@ export async function createShiftType(
     const traceId = generateCustomUUID();
     const shiftType = request.body as ShiftTypeAttributes;
     const authHeader = request.headers.authorization;
-    
+
     logger.info({ traceId, shiftType }, 'Received request to create shift type');
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -122,7 +121,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
     const { id, program_id } = request.params as { id: string, program_id: string };
     const shiftTypeData = request.body as ShiftTypeAttributes;
     const authHeader = request.headers.authorization;
-    
+
     logger.info({ traceId, id, program_id, shiftTypeData }, 'Received request to update shift type');
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -134,7 +133,7 @@ export async function updateShiftType(request: FastifyRequest, reply: FastifyRep
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-   
+
     const userId = user?.sub;
 
     try {
@@ -241,48 +240,85 @@ export async function getShiftTypesByHierarchies(
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { shift_type_category, is_enabled, hierarchy_ids } = request.query as { shift_type_category: string, is_enabled: boolean, hierarchy_ids: string };
+        const { hierarchy_ids, job_template_ids } = request.query as { hierarchy_ids: string; job_template_ids?: string; };
         const { program_id } = request.params as { program_id: string };
-        const searchFields: any = { is_deleted: false };
-        let hierarchyArray;
-        if (hierarchy_ids) {
-            hierarchyArray = hierarchy_ids.split(",");
-            searchFields.hierarchies = { [Op.in]: hierarchyArray };
-        }
-        if (shift_type_category) {
-            searchFields.shift_type_category = shift_type_category;
-        }
-        if (is_enabled) {
-            searchFields.is_enabled = is_enabled;
+
+        if (!hierarchy_ids) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "hierarchy_ids is required",
+                trace_id: traceId
+            });
         }
 
-        if (program_id) {
-            searchFields.program_id = program_id;
+        const hierarchyIds = hierarchy_ids.split(',');
+        const jobTemplateIds = job_template_ids?.split(',') || [];
+        const is_shift_rate = true;
+
+        let result: any[] = [];
+
+        if (jobTemplateIds.length > 0) {
+            result = await getShiftTypesByJobTemplates(program_id, is_shift_rate, hierarchyIds, jobTemplateIds);
+        } else {
+            result = await getShiftTypesByHierarchiesOnly(program_id, hierarchyIds);
         }
 
-        const result = await sequelize.query(getShiftTypesByHierarchiesQuery, {
-            replacements: {
-                program_id,
-                hierarchy_ids: hierarchy_ids.split(','),
-            },
-            type: QueryTypes.SELECT,
-        });
-
-        if (result.length === 0) {
-            reply.status(200).send({ status_code: 200, trace_id: traceId, message: "Shift types not found", shift_types: [] });
-            return;
-        }
-
-        reply.status(200).send({
+        return reply.status(200).send({
             status_code: 200,
-            message: " Shift types found",
+            message: result.length > 0 ? "Shift types found" : "Shift types not found",
             trace_id: traceId,
             total_records: result.length,
             shift_types: result,
         });
     } catch (error: any) {
-        reply.status(500).send({ status_code: 500, trace_id: traceId, error: "Internal Server Error" });
+        return reply.status(500).send({
+            status_code: 500,
+            trace_id: traceId,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
+}
+
+async function getShiftTypesByJobTemplates(
+    program_id: string,
+    is_shift_rate: boolean,
+    hierarchyIds: string[],
+    jobTemplateIds: string[]
+): Promise<any[]> {
+    const matchingRateConfigurations = await RateConfigurationsRepository.getRateConfigurationsByProgramId(
+        program_id,
+        is_shift_rate,
+        hierarchyIds,
+        jobTemplateIds
+    );
+
+    if (!matchingRateConfigurations.length) {
+        return [];
+    }
+
+    const configIds = matchingRateConfigurations.map((c: { id: any }) => c.id);
+
+    return await sequelize.query(shiftTypesQuery, {
+        replacements: {
+            program_id,
+            configIds
+        },
+        type: QueryTypes.SELECT,
+    });
+}
+
+async function getShiftTypesByHierarchiesOnly(
+    program_id: string,
+    hierarchyIds: string[]
+): Promise<any[]> {
+    return await sequelize.query(getShiftTypesByHierarchiesQuery, {
+        replacements: {
+            program_id,
+            hierarchy_ids: hierarchyIds,
+        },
+        type: QueryTypes.SELECT,
+    });
 }
 
 export async function getShiftCategories(request: FastifyRequest, reply: FastifyReply) {
@@ -332,7 +368,7 @@ export const getShiftTypeFilter = async (request: FastifyRequest, reply: Fastify
         is_enabled?: boolean;
         shift_type_category?: string;
         updated_on?: string;
-        time_duration:string;
+        time_duration: string;
         page?: number;
         limit?: number;
     };
