@@ -186,7 +186,7 @@ export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(200).send({
             status_code: 200,
             message: result.message,
-            mtp_data: result.data,
+            data: result.data,
             trace_id: traceId
         });
     } catch (error: any) {
