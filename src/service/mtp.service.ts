@@ -57,8 +57,12 @@ class MtpService {
           return acc.concat(row.candidate_id);
         }, []);
        console.log("talentCandidateIds",talentCandidateIds)
+       console.log("mtpCandidateId",mtpCandidateId)
+
         if (talentCandidateIds.includes(mtpCandidateId)) {
-            console.log("talentCandidateIds",talentCandidateIds)
+            
+            console.log("new ntp candidate id",mtpCandidateId)
+            console.log("mtp candidate ids",talentCandidateIds)
            findDuplicateCandidate(
             [...talentCandidateIds, mtpCandidateId],
             programId,
