@@ -223,9 +223,13 @@ export const createPicklist = async (
       }
     }
 
-    if (picklist_data.slug === undefined) {
-      picklist_data.slug = picklist_data.name.toLowerCase();
-    }
+    if (picklist_data.slug === undefined && picklist_data.name) {
+      picklist_data.slug = picklist_data.name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')        
+        .replace(/[^\w_]/g, '');       
+    }    
 
     const typed_picklist_data: Omit<picklist, "picklist_items"> =
       picklist_data as Omit<picklist, "picklist_items">;
