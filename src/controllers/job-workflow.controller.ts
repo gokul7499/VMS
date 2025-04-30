@@ -1564,6 +1564,20 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now(),
                         };
                     }
+                    if(recipient.replaced_by && recipient.replaced_by !== user_id){
+                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                        return {
+                            ...recipient,
+                            status: status,
+                            replaced_by,
+                            meta_data: {
+                                ...recipient.meta_data,
+                                [metaDataKey]: recipient?.replaced_by
+                            },
+                            replaced_notes: notes,
+                            replaced_modified_on: Date.now()
+                        };
+                    }
                     if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
                         return {
                             ...recipient,
