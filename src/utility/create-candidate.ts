@@ -65,19 +65,19 @@ export async function searchSimilarProfiles(
 }
 
 export async function findDuplicateCandidate(
-  candidateId: string[],
+  candidateIds: string[],
   programId: string,
   userId: string,
   authHeader: any,
-  candidate: string,
-  paylod: any,
+  newCandidateId: string,
+  payload: any,
   maxRetries = 3,
   delayMs = 1000
 ) {
   const searchUrl = `${AI_SERVICE_URL}/candidates/cross-match`;
 
   const searchPayload = {
-    candidate_ids: candidateId,
+    candidate_ids: candidateIds,
   };
   console.log(`[findDuplicateCandidate] - Search Payload:`, JSON.stringify(searchPayload));
 
@@ -95,68 +95,47 @@ export async function findDuplicateCandidate(
         body: JSON.stringify(searchPayload),
       });
 
-      const result = await response.json();
+       const result = await response.json();
+    
       console.log(`[findDuplicateCandidate] - Response Received:`, JSON.stringify(result));
 
       if (!response.ok) {
         console.error(`[findDuplicateCandidate] - Response Not OK:`, response.statusText);
-        throw new Error(`Failed to fetch similar profiles: ${response.statusText}`);
+        return new Error(`Failed to fetch similar profiles: ${response.statusText}`);
       }
 
       const matches = result?.duplicate_matches;
 
       if (result?.success && Array.isArray(matches) && matches.length > 0) {
         console.log(`[findDuplicateCandidate] - Duplicate matches found:`, matches.length);
-
-        const matchingProfileSet = new Set<string>();
-        const candidateMatchingScore: { candidate1_id: string; candidate2_id: string; score: number }[] = [];
-
-        for (const match of matches) {
-          if (match.similarity_score && match.similarity_score > 0) {
-            if (match.candidate1_id) matchingProfileSet.add(match.candidate1_id);
-            if (match.candidate2_id) matchingProfileSet.add(match.candidate2_id);
-
-            candidateMatchingScore.push({
-              candidate1_id: match.candidate1_id,
-              candidate2_id: match.candidate2_id,
-              score: match.similarity_score,
-            });
-          }
+        
+        const matchResult = await processMatches(matches, newCandidateId, programId, userId);
+        
+        if (matchResult.hasDuplicates) {
+          console.log(`[findDuplicateCandidate] - Successfully completed duplicate handling.`);
+          return matchResult;
         }
-
-        const matchingProfile = Array.from(matchingProfileSet);
-        console.log(`[findDuplicateCandidate] - Matching Profiles after filtering:`, matchingProfile);
-        console.log(`[findDuplicateCandidate] - Candidate Matching Scores:`, candidateMatchingScore);
-
-        if (matchingProfile.length > 0) {
-          const possibleDuplicateData = await PossibleDuplicateCandidate.create({
-            candidate_id: candidate,
-            matching_profile: matchingProfile,
-            candidate_matching_score: candidateMatchingScore,
-            program_id: programId,
-            created_by: userId,
-            updated_by: userId,
-          });
-
-          console.log(`[findDuplicateCandidate] - PossibleDuplicateCandidate created:`, possibleDuplicateData?.id);
-          console.log("matchingProfile", matchingProfile);
-
-          const updatedCount = await updateMtpWithMatchingProfiles(matchingProfile, programId);
-          console.log(`[findDuplicateCandidate] - Total MTPs updated: ${updatedCount}`);
-        }                              
-
       } else {
-        console.log(`[findDuplicateCandidate] - No duplicate matches found.`);
+        console.log(`[findDuplicateCandidate] - No duplicate matches found in response.`);
+      }
+
+      try {
+        console.log(`[findDuplicateCandidate] - No duplicate matches found for candidate ${newCandidateId}. Creating MTP...`);
         const data = await MtpModel.create({
-          ...paylod,
+          ...payload,
           created_by: userId,
           updated_by: userId,
         });
-        console.log(data, "create mtp....");
+        console.log(`[findDuplicateCandidate] - MTP created for candidate ${newCandidateId}:`, data?.id);
+        console.log(`[findDuplicateCandidate] - Successfully completed MTP creation.`);
+        return {
+          hasDuplicates: false,
+          mtpData: data
+        };
+      } catch (err) {
+        console.error(`[findDuplicateCandidate] - Error creating MTP:`, err);
+        return err; 
       }
-
-      console.log(`[findDuplicateCandidate] - Successfully completed.`);
-      return;
 
     } catch (searchError) {
       attempt++;
@@ -164,13 +143,15 @@ export async function findDuplicateCandidate(
 
       if (attempt >= maxRetries) {
         console.error(`[findDuplicateCandidate] - Max retries reached. Search failed.`);
-        return searchError;
+        return searchError; 
       }
 
       console.log(`[findDuplicateCandidate] - Retrying after ${delayMs}ms...`);
       await new Promise((res) => setTimeout(res, delayMs));
     }
   }
+  
+  return new Error("Failed to complete duplicate check after maximum retries");
 }
 
 async function updateMtpWithMatchingProfiles(
@@ -225,5 +206,95 @@ async function updateMtpWithMatchingProfiles(
     console.error(`[updateMtpWithMatchingProfiles] - Error updating MTPs:`, error);
     throw error; 
   }
+}
+
+async function processMatches(
+  matches: Array<{ candidate1_id: string; candidate2_id: string; similarity_score: number }>,
+  newCandidateId: string,
+  programId: string,
+  userId: string
+) {
+  console.log(`[processMatches] - Processing ${matches.length} matches for candidate ${newCandidateId}`);
+  
+  const matchingProfileSet = new Set<string>();
+  const candidateMatchingScore: { candidate1_id: string; candidate2_id: string; score: number }[] = [];
+  const matchesForNewCandidate: any[] = [];
+
+  for (const match of matches) {
+    if (match.similarity_score && match.similarity_score > 0) {
+      if (match.candidate1_id) matchingProfileSet.add(match.candidate1_id);
+      if (match.candidate2_id) matchingProfileSet.add(match.candidate2_id);
+
+      candidateMatchingScore.push({
+        candidate1_id: match.candidate1_id,
+        candidate2_id: match.candidate2_id,
+        score: match.similarity_score,
+      });
+
+      if (match.candidate1_id === newCandidateId || match.candidate2_id === newCandidateId) {
+        matchesForNewCandidate.push(match);
+      }
+    }
+  }
+
+  const matchingProfile = Array.from(matchingProfileSet);
+  console.log(`[processMatches] - Matching Profiles after filtering:`, matchingProfile);
+  console.log(`[processMatches] - Candidate Matching Scores:`, candidateMatchingScore);
+
+  if (matchesForNewCandidate.length > 0) {
+    console.log(`[processMatches] - New candidate ${newCandidateId} has ${matchesForNewCandidate.length} matches.`);
+    
+    const matchingWithNewCandidate = new Set<string>();
+    const scoresWithNewCandidate: { candidate1_id: string; candidate2_id: string; score: number }[] = [];
+    
+    for (const match of matchesForNewCandidate) {
+      if (match.candidate1_id === newCandidateId) {
+        matchingWithNewCandidate.add(match.candidate2_id);
+      } else {
+        matchingWithNewCandidate.add(match.candidate1_id);
+      }
+      
+      scoresWithNewCandidate.push({
+        candidate1_id: match.candidate1_id,
+        candidate2_id: match.candidate2_id,
+        score: match.similarity_score,
+      });
+    }
+    
+    console.log(`[processMatches] - Scores with new candidate:`, scoresWithNewCandidate);
+    const matchingProfileForNewCandidate = Array.from(matchingWithNewCandidate);
+    
+    try {
+      const possibleDuplicateData = await PossibleDuplicateCandidate.create({
+        candidate_id: newCandidateId,
+        matching_profile: matchingProfileForNewCandidate,
+        candidate_matching_score: scoresWithNewCandidate,
+        program_id: programId,
+        created_by: userId,
+        updated_by: userId,
+      });
+
+      console.log(`[processMatches] - PossibleDuplicateCandidate created:`, possibleDuplicateData?.id);
+      console.log(`[processMatches] - Matching profiles for new candidate:`, matchingProfileForNewCandidate);
+
+      const updatedCount = await updateMtpWithMatchingProfiles(matchingProfileForNewCandidate, programId);
+      console.log(`[processMatches] - Total MTPs updated: ${updatedCount}`);
+      
+      return {
+        hasDuplicates: true,
+        duplicateData: possibleDuplicateData,
+        matchingProfiles: matchingProfileForNewCandidate
+      };
+    } catch (err) {
+      console.error(`[processMatches] - Error creating duplicate record:`, err);
+      throw err; 
+    }
+  }
+    console.log(`[processMatches] - No matches found for candidate ${newCandidateId}`);
+  return {
+    hasDuplicates: false,
+    allMatchingProfiles: matchingProfile,
+    allCandidateScores: candidateMatchingScore
+  };
 }
 
