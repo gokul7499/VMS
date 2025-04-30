@@ -4,6 +4,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { ProgramThresholdInput } from '../interfaces/notification-threshold.interface';
 import { sequelize } from '../config/instance';
+import NotificationThresholdConfigModel from '../models/notification-threshold-config.model';
 
 export const createThreshold = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -282,6 +283,18 @@ export const updateThreshold = async (request: FastifyRequest, reply: FastifyRep
 
         if (!Array.isArray(body)) {
             return reply.status(400).send({ message: 'Invalid request body format. Expected an array.', trace_id: traceId, });
+        }
+
+        const existingConfig = await NotificationThresholdConfigModel.findOne({
+            where: { program_id },
+        });
+
+        if (!existingConfig) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: 'Program ID not found in threshold configurations.',
+                trace_id: traceId,
+            });
         }
 
         await Promise.all(
