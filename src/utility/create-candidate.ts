@@ -63,7 +63,6 @@ export async function searchSimilarProfiles(
     }
   }
 }
-
 export async function findDuplicateCandidate(
   candidateId: string[],
   programId: string,
