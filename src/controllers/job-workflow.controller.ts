@@ -753,7 +753,7 @@ export const updateWorkflowStatus = async (
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
-                    user_type: eventCode.user_type
+                    user_type: eventCode.user_type || ''
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
@@ -879,13 +879,18 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                 status: jobStatus,
             };
             console.log(apiUrl);
+             try {
+                let a = await axios.put(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+             } catch (error) {
+                console.log('error is nowwww', error)
+                
+             }
 
-            let a = await axios.put(apiUrl, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    authorization: authHeader
-                },
-            });
 
 
         } else
@@ -934,16 +939,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         });
                     } else
                         if (moduleType === "Timesheet".toLowerCase()) {
-                            const timesheet_id = workflow.workflow_trigger_id;
-                            let apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/approval`;
-                        //    status: "approved"
-                            const payload = {  };
-                            await axios.put(apiUrl, payload, {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    authorization: authHeader
-                                },
-                            });
+                            try {
+                                const timesheet_id = workflow.workflow_trigger_id;
+                                let apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/approval`;
+                            //    status: "approved"
+                                const payload = {  };
+                                await axios.put(apiUrl, payload, {
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        authorization: authHeader
+                                    },
+                                });   
+                            } catch (error) {
+                                 console.log('errro is noowww', error);
+                            }
+             
                         }
 
     } catch (error) {
@@ -1104,7 +1114,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 console.log("Manager data is missing or email not found.");
             }
             let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
-            const vendorExistence = await isVendorRequired(eventCode.eventCode);
+            const vendorExistence = await isVendorRequired(eventCode?.eventCode);
             if (vendorExistence === true) {
                 program_id ? mspUserData.push(...(await getProgramVendorsEmail(program_id))) : null;
             }
@@ -1122,7 +1132,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     program_id: program_id ?? "",
                     token,
                     traceId,
-                    eventCode: eventCode.eventCode,
+                    eventCode: eventCode?.eventCode,
                     recipientEmail: recipientEmailArray,
                     payload,
                     userId: user.sub ?? "",
@@ -1238,6 +1248,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 }
 async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     let { flow_type, events } = workflow
+    console.log('event is niooww', events)
     if (flow_type == "Approval" && events === "create_job") {
         let response = {
 
@@ -1361,8 +1372,15 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
-    } else {
-        throw new Error(`events code not found for event: ${events}`);
+    } else if (flow_type == "Approval" && events === "submit_timesheet" )  {
+        let response = {
+            eventCode: NotificationEventCode.TIMESHEET_APPROVAL_REJECTED,
+            user_type: ['msp']
+        }
+        return response;
+
+    }else {
+        console.log(`events code not found for event: ${events}`);
     }
 
 }
@@ -1616,11 +1634,11 @@ export const rejectLevel = async (
         await workflow.update({ levels, is_updated: true, updated_on: Date.now(), status: "completed" });
 
         let workflowStatus = "completed"
-        let eventCode = await getRejectEventsCode(workflow)
+        let eventCode:any = await getRejectEventsCode(workflow)
         let allPayload = {
             hierarchy_ids: updates[0].hierarchy_ids,
             program_id: program_id,
-            user_type: eventCode.user_type
+            user_type: eventCode?.user_type
         }
         
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
