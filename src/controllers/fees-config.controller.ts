@@ -286,13 +286,20 @@ export async function getFeesConfig(
         Sequelize.where(
           Sequelize.fn('JSON_CONTAINS', Sequelize.col('labor_category'), JSON.stringify(labor_category)),
           true
-        ),
-        Sequelize.where(
-          Sequelize.fn('JSON_CONTAINS', Sequelize.col('source_model'), JSON.stringify(source_model?.toLowerCase())),
-          true
         )
       ]
     };
+
+    if (source_model) {
+      whereConditions[Op.and].push(
+        Sequelize.where(
+          Sequelize.fn('LOWER', Sequelize.fn('JSON_UNQUOTE', Sequelize.col('source_model'))),
+          {
+            [Op.like]: `%${source_model.toLowerCase()}%`
+          }
+        )
+      );
+    }
 
     if (vendors) {
       whereConditions[Op.or] = [
