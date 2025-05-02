@@ -172,13 +172,31 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
             });
         }
 
+        // Check if expense config with the same name already exists
+        const existingConfigWithName = await ExpenseConfigurationModel.findOne({
+            where: {
+                program_id,
+                name: expenseConfig.name,
+                is_deleted: false,
+                latest: true,
+            },
+        });
+
+        if (existingConfigWithName) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: "An expense configuration with the same name already exists",
+                trace_id: traceId,
+            });
+        }
+
         // Check if expense config with same hierarchy_ids already exists
         const existingConfigs = await ExpenseConfigurationModel.findAll({
             where: {
                 program_id,
                 is_deleted: false,
-                latest: true
-            }
+                latest: true,
+            },
         });
 
         for (const config of existingConfigs) {
