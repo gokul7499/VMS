@@ -696,7 +696,10 @@ export const updateWorkflowStatus = async (
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
                             }));
-                            level.status = "completed";
+                            if(level.status.toLowerCase() ==='pending') {
+                                level.status = "completed";
+                            }
+
                         });
                     }
                     return level;
