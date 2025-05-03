@@ -202,60 +202,61 @@ class MtpService {
     }: {
         programId: string;
         id: string;
-        mtpCandidateId: string;
+        mtpCandidateId: string[];
         traceId: string;
     }) {
         let transaction;
-        
+    
         try {
             const mtp = await MtpModel.findOne({
                 where: { id, program_id: programId, is_deleted: false }
             });
-            
+    
             if (!mtp) {
                 return {
                     statusCode: 404,
                     message: "MTP not found"
                 };
             }
-            
+    
             const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
-            
-            if (currentLinks.includes(mtpCandidateId)) {
+    
+            const newLinks = mtpCandidateId.filter(candidateId => !currentLinks.includes(candidateId));
+    
+            if (newLinks.length === 0) {
                 return {
                     statusCode: 200,
-                    message: "MTP already linked"
+                    message: "All MTP candidates already linked"
                 };
             }
-            
+    
             transaction = await sequelize.transaction();
-            
-            const updatedLinks = [...currentLinks, mtpCandidateId];
-            await MtpModel.update(
+    
+            const updatedLinks = [...currentLinks, ...newLinks];
+    
+          await MtpModel.update(
                 { linked_profiles: updatedLinks },
                 { 
                     where: { id, program_id: programId },
                     transaction
                 }
             );
-            console.log("updatedLinks",updatedLinks)
-           const data= await MtpModel.update(
+    
+            await MtpModel.update(
                 { is_deleted: true }, 
                 {
-                  where: {
-                    mtp_candidate_id: mtpCandidateId,
-                    program_id: programId,
-                  },
-                  transaction,
+                    where: {
+                        mtp_candidate_id: newLinks,
+                        program_id: programId
+                    },
+                    transaction
                 }
-              );
-              
-            
+            );    
             await transaction.commit();
-            
+    
             return {
                 statusCode: 200,
-                message: "MTP linked successfully"
+                message: "MTP candidates linked successfully"
             };
         } catch (error) {
             if (transaction) {
@@ -264,7 +265,7 @@ class MtpService {
             throw error;
         }
     }
-
+    
     async unlinkMtp({
         programId,
         id,
