@@ -288,8 +288,8 @@ export async function getFeesConfig(
           true
         ),
         Sequelize.where(
-          Sequelize.fn('JSON_CONTAINS', Sequelize.col('source_model'), JSON.stringify(source_model?.toLowerCase())),
-          true
+          Sequelize.fn('LOWER', Sequelize.fn('JSON_UNQUOTE', Sequelize.col('source_model'))),
+          { [Op.like]: `%${source_model.toLowerCase()}%` }
         )
       ]
     };
