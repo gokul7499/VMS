@@ -613,6 +613,7 @@ export async function getRateConfigurationById(
                     attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type', 'rate'],
                 },
             ],
+            attributes: ['id', 'seq_number']
         });
 
         const rateConfigurationDetails = await Promise.all(
@@ -676,6 +677,7 @@ export async function getRateConfigurationById(
                             rate_type_category: rateTypeCategory,
                         }
                         : null,
+                    seq_number: baseRate.get('seq_number'),
                     rate: rateDetails,
                 };
             })
