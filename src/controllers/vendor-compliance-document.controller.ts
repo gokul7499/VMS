@@ -152,7 +152,7 @@ export async function vendorComplianceDocumentById(
 
   try {
 
-    const searchFields = { program_id, id } ;
+    const searchFields = { program_id, id };
     const vendorCompDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
       request,
       searchFields
@@ -311,7 +311,7 @@ export async function getAllVendorCompDocummentByProgramId(
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const { page = 1, limit = 10, name, is_enabled, document_details, updated_on } = request.query as { page: string; limit: string; name: string; is_enabled: string; document_details: string; updated_on: string };
+  const { page, limit, name, is_enabled, document_details, updated_on } = request.query as { page: string; limit: string; name: string; is_enabled: string; document_details: string; updated_on: string };
 
   const query = {
     program_id,
@@ -324,28 +324,36 @@ export async function getAllVendorCompDocummentByProgramId(
   const responseFields = ['id', 'name', 'document_details', 'updated_on', 'is_enabled', 'program_id'];
   const traceId = generateCustomUUID();
   try {
+    const paginationOptions: any = {};
+    if (page) paginationOptions.page = Number(page);
+    if (limit) paginationOptions.limit = Number(limit);
+
     const result = await baseService.getAllByCriteriaPopulate(
       request,
       query,
-      { page: Number(page), limit: Number(limit) },
+      paginationOptions,
       responseFields
     );
 
     if (result.count > 0) {
       return reply.status(200).send({
         status_code: 200,
+        message: "Vendor Compliance Documents Retrieved Successfully",
+        trace_id: traceId,
         total_records: result.count,
-        page: Number(page),
-        limit: Number(limit),
-        compliance_documents: result.rows,
-        message: " Vendor Compliance Documents Retrieved Successfully",
-        trace_id: traceId
+        ...(page && limit && { page: Number(page), limit: Number(limit) }),
+        compliance_documents: result.rows
       });
     } else {
       return reply.status(200).send({ status_code: 200, message: "No records found", trace_id: traceId });
     }
-  } catch (error) {
-    return reply.status(500).send({ status_code: 500, message: "Internal Server Error", trace_id: traceId });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Internal Server Error",
+      trace_id: traceId,
+      error: error.message
+    });
   }
 }
 
@@ -356,7 +364,7 @@ export async function vendorComplianceDocumentFilter(
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string }
-    ;
+      ;
     const { id, name, act, document_number, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; act: string; document_number: string; is_enabled: string; updated_on: string; page: string; limit: string };
 
     const isEnabledFilter =
