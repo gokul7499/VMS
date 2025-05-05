@@ -59,7 +59,7 @@ class MtpService {
        console.log("talentCandidateIds",talentCandidateIds)
        console.log("mtpCandidateId",mtpCandidateId)
 
-        if (talentCandidateIds.includes(mtpCandidateId)) {
+        if (talentCandidateIds) {
             
             console.log("new ntp candidate id",mtpCandidateId)
             console.log("mtp candidate ids",talentCandidateIds)
