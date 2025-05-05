@@ -329,7 +329,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         created_by: userId,
         updated_by: userId,
       }, { transaction });
-      candidateId = candidateData.user_id
+      candidateId = candidateData.id
       const uniqueId = candidateData.candidate_id
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId);
 

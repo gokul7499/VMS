@@ -613,6 +613,7 @@ export async function getRateConfigurationById(
                     attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type', 'rate'],
                 },
             ],
+            attributes: ['id', 'seq_number']
         });
 
         const rateConfigurationDetails = await Promise.all(
@@ -676,6 +677,7 @@ export async function getRateConfigurationById(
                             rate_type_category: rateTypeCategory,
                         }
                         : null,
+                    seq_number: baseRate.get('seq_number'),
                     rate: rateDetails,
                 };
             })
@@ -855,22 +857,19 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
             return map;
         }, {});
 
-        // Get all base rate IDs for fetching rate types
         const baseRateIds = allBaseRates.map(baseRate => baseRate.id);
 
-        // Get all rate types at once
         const allRateTypes = await RateConfigurationRateTypes.findAll({
             where: { base_rate_type_id: baseRateIds },
             include: [{
                 model: rateType,
                 as: 'rate_type',
-                where: { is_base_rate: false },
+                where: { is_base_rate: false, is_enabled: true },
                 attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type']
             }],
             attributes: ['id', 'base_rate_type_id', 'seq_number']
         }) as unknown as RateType[];
 
-        // Add more category and shift type IDs from rate types
         allRateTypes.forEach(rate => {
             if (rate.rate_type?.rate_type_category) {
                 allRateTypeCategoryIds.add(rate.rate_type.rate_type_category);
@@ -894,7 +893,8 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
         const additionalShiftTypes = await ShiftType.findAll({
             where: {
-                id: Array.from(allShiftTypeIds).filter(id => !shiftTypesMap[id])
+                id: Array.from(allShiftTypeIds).filter(id => !shiftTypesMap[id]),
+                is_enabled: true
             },
             attributes: ['id', 'shift_type_name', 'shift_format', 'time_duration', 'shift_type_time']
         }) as unknown as ShiftTypeObj[];

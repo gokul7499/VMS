@@ -23,7 +23,7 @@ export class BaseService {
         }
 
         const updatedData = {
-            ...data,  
+            ...data,
             updated_on: Date.now()
         };
 
@@ -73,12 +73,12 @@ export class BaseService {
     }
 
     async getAllByCriteriaPopulate(request: FastifyRequest, query: { [key: string]: any },
-        pagination: { page: number; limit: number } = { page: 1, limit: 10 },
+        pagination?: { page?: number; limit?: number },
         responseFields?: string[], include?: any[]
     ) {
 
-        const offset = Number(pagination.limit) * (Number(pagination.page) - 1);
-        const limit = Number(pagination.limit);
+        // const offset = Number(pagination.limit) * (Number(pagination.page) - 1);
+        // const limit = Number(pagination.limit);
 
         const cleanedQuery: { [key: string]: any } = { is_deleted: false };
         Object.keys(query).forEach((key) => {
@@ -106,12 +106,17 @@ export class BaseService {
 
         const options: any = {
             where: cleanedQuery,
-            offset: offset,
-            limit: limit,
             distinct: true,
             order: [["updated_on", "DESC"], [finalSortField, finalSortDirection]],
             include: include,
         };
+
+        if (pagination?.page !== undefined && pagination?.limit !== undefined) {
+            const offset = Number(pagination.limit) * (Number(pagination.page) - 1);
+            const limit = Number(pagination.limit);
+            options.offset = offset;
+            options.limit = limit;
+        }
 
         if (query.info_level !== 'detail' && responseFields && responseFields.length > 0) {
             options.attributes = responseFields;
@@ -127,23 +132,23 @@ export class BaseService {
             filters?: Record<string, any>;
             pagination?: { page?: number; limit?: number };
         };
-    
+
         const whereCondition: { [key: string]: any } = {
             is_deleted: false,
             program_id
         };
-    
+
         Object.keys(filters).forEach((field) => {
             const value = filters[field];
-    
+
             if (field === 'updated_on' && Array.isArray(value) && value.length === 2) {
                 const startTimestamp = value[0];
-                const endTimestamp = value[1]; 
-    
+                const endTimestamp = value[1];
+
                 whereCondition.updated_on = {
                     [Op.between]: [startTimestamp, endTimestamp]
                 };
-    
+
                 console.log(`Modified On Date Range: ${new Date(startTimestamp).toISOString()} - ${new Date(endTimestamp).toISOString()}`);
             } else if (Array.isArray(value)) {
                 if (value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
@@ -165,7 +170,7 @@ export class BaseService {
             } else if (typeof value === "number") {
                 whereCondition[field] = value;
             } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-                const timestamp = value.updated_on; 
+                const timestamp = value.updated_on;
                 if (typeof timestamp === 'number') {
                     whereCondition[field] = {
                         [Op.eq]: timestamp
@@ -173,26 +178,26 @@ export class BaseService {
                 }
             }
         });
-    
+
         const offset = pagination?.page ? (pagination.page - 1) * (pagination.limit ?? 10) : undefined;
         const limit = pagination?.limit ?? undefined;
-    
+
         const options: any = {
             where: whereCondition,
             distinct: true,
             order: [["created_on", "DESC"]],
             include: include
         };
-    
+
         if (offset !== undefined && limit !== undefined) {
             options.offset = offset;
             options.limit = limit;
         }
-    
+
         const results = await this.model.findAndCountAll(options);
         return results;
     }
-      
+
 
 }
 
@@ -210,7 +215,7 @@ export async function baseSearch(
     const limit = parseInt(query.limit) || 10;
     const offset = (page - 1) * limit;
     const sortField = query.sortField || "updated_on";
-        const finalSortDirection = "DESC";
+    const finalSortDirection = "DESC";
 
     try {
         let searchConditions: any = {};
@@ -240,7 +245,7 @@ export async function baseSearch(
             limit: limit,
             offset: offset,
             attributes: attributes,
-            order: [[sortField, finalSortDirection]], 
+            order: [[sortField, finalSortDirection]],
         });
 
         return reply.status(200).send({
