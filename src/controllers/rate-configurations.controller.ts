@@ -540,7 +540,14 @@ function parseDateRange(dateRange: string | undefined): { startDate?: string; en
             endDate: dates[1],
         };
     }
-    return {};
+    if (dates.length === 1) {
+        const singleDate = dates[0];
+        return {
+            startDate: singleDate,
+            endDate: singleDate,
+        };
+    }
+    return {}; 
 }
 
 export async function getRateConfigurationById(
