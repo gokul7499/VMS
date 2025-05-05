@@ -392,112 +392,123 @@ export async function listChecklists(
 
 export async function filterChecklists(
     request: FastifyRequest<{
-        Querystring: {
-            task_ids?: string;
-            is_enabled?: boolean | string;
-            entity_id?: string;
-            name?: string;
-            limit?: number;
-            page?: number;
-        };
-        Params: { 
-            program_id: string 
-        };
+      Querystring: {
+        task_ids?: string;
+        is_enabled?: boolean | string;
+        entity_id?: string;
+        name?: string;
+        limit?: number | string;
+        page?: number | string;
+      };
+      Params: {
+        program_id: string;
+      };
     }>,
     reply: FastifyReply
-) {
-    const {is_enabled, name, limit = 10, page = 1 } = request.query;
+  ) {
+    const {
+      is_enabled,
+      name,
+      limit: rawLimit = '10',
+      page: rawPage = '1',
+    } = request.query;
+  
     const program_id = request.params.program_id;
     const traceId = generateCustomUUID();
-
+  
+    const limit = Number(rawLimit);
+    const page = Number(rawPage);
     const offset = (page - 1) * limit;
+  
     try {
-        const whereConditions: any = {
-            latest: true,
-            is_deleted: false,
-            program_id,
+      const whereConditions: any = {
+        latest: true,
+        is_deleted: false,
+        program_id,
+      };
+  
+      if (is_enabled !== undefined) {
+        if (typeof is_enabled === 'string') {
+          const lower = is_enabled.toLowerCase();
+          if (lower === 'true') whereConditions.is_enabled = true;
+          else if (lower === 'false') whereConditions.is_enabled = false;
+        } else {
+          whereConditions.is_enabled = is_enabled;
         }
-        if (is_enabled !== undefined) {
-            if (typeof is_enabled === 'string') {
-              if (is_enabled.toLowerCase() === 'true') whereConditions.is_enabled = true;
-              else if (is_enabled.toLowerCase() === 'false') whereConditions.is_enabled = false;
-            } else {
-              whereConditions.is_enabled = is_enabled;
-            }
-          }
-        if (name !== undefined) {
-            whereConditions.name = {
-                [Op.like]: `%${name}%`, 
-            };
-        }
-
-        const checklists = await Checklist.findAndCountAll({
-            attributes: [
-              'version_id',
-              'entity_id',
-              'name',
-              'description',
-              'version',
-              'program_id',
-              'is_enabled',
-              [fn('COUNT', col('checklistTasks.id')), 'task_count']
-            ],
-            include: [
-              {
-                model: ChecklistTaskMapping,
-                as: 'checklistTasks',
-                attributes: [],
-                where: {
-                  is_deleted: false,
-                  is_enabled: true
-                },
-                required: false
-              }
-            ],
-            where: whereConditions,
-            group: [
-              'Checklist.version_id',
-            ],
-            order: [['created_on', 'DESC']],
-            limit,
-            offset,
-            subQuery: false
-          });
-        console.log(checklists);
-        
-        if (!checklists.rows.length) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'No checklists found for the given filters.',
-                data: [],
-                total_count: 0,
-                current_page: page,
-                traceId: traceId,
-            });
-        }        
-
-        return reply.status(200).send({
-            status_code: 200,
-            message:  "Checklists fetched successfully",
-            data: checklists.rows.map((checklist: any) => ({...checklist.get()})),
-            total_count: checklists.count.length,
-            current_page: page,
-            traceId: traceId,
-        });
-    } catch (error) {
-        console.error('Error while filtering checklists:', error);
-
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'Internal Server Error',
-            traceId: traceId,
-            error: {
-                message: (error as Error).message || 'An unexpected error occurred.',
-                stack: (error as Error).stack || null,
+      }
+  
+      if (name !== undefined) {
+        whereConditions.name = {
+          [Op.like]: `%${name}%`,
+        };
+      }
+  
+      const checklists = await Checklist.findAndCountAll({
+        attributes: [
+          'version_id',
+          'entity_id',
+          'name',
+          'description',
+          'version',
+          'program_id',
+          'is_enabled',
+          [fn('COUNT', col('checklistTasks.id')), 'task_count'],
+        ],
+        include: [
+          {
+            model: ChecklistTaskMapping,
+            as: 'checklistTasks',
+            attributes: [],
+            where: {
+              is_deleted: false,
+              is_enabled: true,
             },
+            required: false,
+          },
+        ],
+        where: whereConditions,
+        group: ['Checklist.version_id'],
+        order: [['created_on', 'DESC']],
+        limit,
+        offset,
+        subQuery: false,
+      });
+  
+      if (!checklists.rows.length) {
+        return reply.status(200).send({
+          status_code: 200,
+          message: 'No checklists found for the given filters.',
+          data: [],
+          total_count: 0,
+          current_page: page,
+          traceId,
         });
+      }
+  
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Checklists fetched successfully',
+        data: checklists.rows.map((checklist: any) => ({
+          ...checklist.get(),
+        })),
+        total_count: checklists.count.length,
+        current_page: page,
+        traceId,
+      });
+    } catch (error) {
+      console.error('Error while filtering checklists:', error);
+  
+      return reply.status(500).send({
+        status_code: 500,
+        message: 'Internal Server Error',
+        traceId,
+        error: {
+          message: (error as Error).message || 'An unexpected error occurred.',
+          stack: (error as Error).stack || null,
+        },
+      });
     }
-}
+  }
 
 export async function enableDisableChecklist(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
