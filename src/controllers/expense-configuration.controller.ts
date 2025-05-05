@@ -25,8 +25,11 @@ export async function getExpenseConfigurations(request: FastifyRequest<{}>, repl
             is_deleted: false,
             latest: true,
         };
+
         if (name) whereCondition.name = name;
+
         if (is_enabled !== undefined) whereCondition.is_enabled = is_enabled === "true";
+
         if (updated_on) {
             const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
             if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
@@ -138,7 +141,7 @@ export async function getExpenseConfigurationById(request: FastifyRequest, reply
                 is_tax_applied: Boolean(et.is_tax_applied),
                 is_negative_expense_allowed: Boolean(et.is_negative_expense_allowed),
                 is_unit_based: Boolean(et.is_unit_based),
-              })),
+            })),
         };
         return reply.status(200).send({
             status_code: 200,
@@ -173,7 +176,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
         }
 
         // Check if expense config with the same name already exists
-        const existingConfigWithName = await ExpenseConfigurationModel.findOne({
+        const existingConfigWithName = await ExpenseConfigurationModel.findAll({
             where: {
                 program_id,
                 name: expenseConfig.name,
@@ -182,7 +185,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
             },
         });
 
-        if (existingConfigWithName) {
+        if (existingConfigWithName.length > 0) {
             return reply.status(409).send({
                 status_code: 409,
                 message: "An expense configuration with the same name already exists",
@@ -229,6 +232,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
             created_by: user.sub,
             updated_by: user.sub,
             is_enabled: true,
+            latest: true,
             is_deleted: false,
         });
 
@@ -258,38 +262,29 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
     }
 }
 
-export async function updateExpenseConfiguration(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
+export async function updateExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const { id, program_id } = request.params as { id: string; program_id: string };
-    const updatedData = request.body as ExpenseConfigurationAttributes;
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-        return reply.status(401).send({ message: "Unauthorized - Token not found" });
-    }
-    const token = authHeader.split(" ")[1];
-    const user = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
     try {
+        const user = request.user as { sub: string; preferred_username: string };
+        const { id, program_id } = request.params as { id: string; program_id: string };
+        const updatedData = request.body as ExpenseConfigurationAttributes;
+
         const existingConfig = await ExpenseConfigurationModel.findOne({
-            where: { id, program_id },
+            where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
             transaction,
         });
+
         if (!existingConfig) {
             await transaction.rollback();
-            return reply.status(404).send({
-                status_code: 404,
+            return reply.status(400).send({
+                status_code: 400,
                 trace_id: traceId,
                 message: "Expense configuration not found.",
             });
         }
 
-        await existingConfig.update({ latest: false }, { transaction });
+        await existingConfig.update({ latest: false, is_enabled: false }, { transaction });
         const oldRevision = Number(existingConfig.revision ?? 0);
         const newRevision = oldRevision + 1;
         const updated_on = Date.now();
@@ -297,6 +292,7 @@ export async function updateExpenseConfiguration(
             {
                 ...existingConfig.toJSON(),
                 ...updatedData,
+                entity_id: existingConfig.id,
                 revision: newRevision,
                 latest: true,
                 created_on: existingConfig.created_on,
@@ -307,42 +303,22 @@ export async function updateExpenseConfiguration(
             },
             { transaction }
         );
+
         if (Array.isArray(updatedData.expense_types)) {
-            await ExpenseTypeMapping.destroy({
-                where: { expense_config_id: existingConfig.id },
-                transaction,
-            });
             for (const expenseTypeId of updatedData.expense_types) {
                 await ExpenseTypeMapping.create(
                     {
-                    program_id,
-                    expense_config_id: newConfig.id,
-                    expense_type_id: expenseTypeId,
-                },
-                { transaction }
-            );
+                        program_id,
+                        expense_config_id: newConfig.id,
+                        expense_type_id: expenseTypeId,
+                    },
+                    { transaction }
+                );
             }
         }
+
         await transaction.commit();
-        logger(
-            {
-                traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: user?.sub,
-                },
-                eventname: "expense configuration version created",
-                status: "success",
-                description: `New version (rev ${newRevision}) created for expense configuration ${id}`,
-                level: "success",
-                action: request.method,
-                url: request.url,
-                entity_id: newConfig.id,
-                is_deleted: false,
-                updated_by: user.sub,
-            },
-            ExpenseConfigurationModel
-        );
+
         return reply.status(200).send({
             status_code: 200,
             message: "Expense configuration versioned update successful.",
@@ -359,7 +335,6 @@ export async function updateExpenseConfiguration(
         });
     }
 }
-
 
 export async function deleteExpenseConfiguration(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -651,7 +626,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
                 acc[category].push(expense);
                 return acc;
             }, {}),
-            
+
             projects: populatedProjects,
         };
 
