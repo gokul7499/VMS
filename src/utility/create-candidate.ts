@@ -74,7 +74,7 @@ export async function findDuplicateCandidate(
   delayMs = 1000
 ) {
   const searchUrl = `${AI_SERVICE_URL}/candidates/cross-match`;
-  const SIMILARITY_SCORE = 1;
+  const SIMILARITY_SCORE = 80;
 
   const searchPayload = { 
     candidate_ids: candidateId 
