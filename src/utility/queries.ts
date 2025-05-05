@@ -375,7 +375,7 @@ export const complianceDocumentGetByVendorId = `
     JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
     LEFT JOIN
-        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
+        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id)) AND vcd.is_enabled = true
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
