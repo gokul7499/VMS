@@ -18,6 +18,7 @@ import VendorDocumentGroupModel from "../models/vendor-document-group.model";
 import UserModel from "../models/user.model";
 import VendorCustomField from "../models/vendor-custom-field.model";
 interface VendorDetails {
+    document_details: any;
     doc_id: any;
     compliance_note: any;
     last_name: any;
@@ -962,6 +963,7 @@ export const getVendorDocuments = async (
                 name: doc.name,
                 act: doc.act,
                 document_number: doc.document_number,
+                document_details:doc.document_details,
                 upload_document_days: doc.upload_document_days,
                 regain_compliance_days: doc.regain_compliance_days,
                 attached_doc_url: doc.attached_doc_url,

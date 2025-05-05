@@ -228,6 +228,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcd.document_details,
         vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
@@ -290,6 +291,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcd.document_details,
         vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,
@@ -373,7 +375,7 @@ export const complianceDocumentGetByVendorId = `
     JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
     LEFT JOIN
-        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
+        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id)) AND vcd.is_enabled = true
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
@@ -424,6 +426,7 @@ export const complianceDocumentGetByVendorAndDocumentId = `
         vcd.is_deleted,
         vcd.to_uploaded,
         vcd.no_of_days,
+        vcd.document_details,
         vcrm.id AS doc_id,
         vcrm.next_expiry_on,
         vcrm.status,

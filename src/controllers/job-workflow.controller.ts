@@ -696,7 +696,10 @@ export const updateWorkflowStatus = async (
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
                             }));
-                            level.status = "completed";
+                            if(level.status.toLowerCase() ==='pending') {
+                                level.status = "completed";
+                            }
+
                         });
                     }
                     return level;
@@ -750,7 +753,7 @@ export const updateWorkflowStatus = async (
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
-                    user_type: eventCode.user_type
+                    user_type: eventCode.user_type || ''
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
@@ -876,13 +879,18 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                 status: jobStatus,
             };
             console.log(apiUrl);
+             try {
+                let a = await axios.put(apiUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        authorization: authHeader
+                    },
+                });
+             } catch (error) {
+                console.log('error is nowwww', error)
+                
+             }
 
-            let a = await axios.put(apiUrl, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    authorization: authHeader
-                },
-            });
 
 
         } else
@@ -931,16 +939,21 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         });
                     } else
                         if (moduleType === "Timesheet".toLowerCase()) {
-                            const timesheet_id = workflow.workflow_trigger_id;
-                            let apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/approval`;
-                        //    status: "approved"
-                            const payload = {  };
-                            await axios.put(apiUrl, payload, {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    authorization: authHeader
-                                },
-                            });
+                            try {
+                                const timesheet_id = workflow.workflow_trigger_id;
+                                let apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/approval`;
+                            //    status: "approved"
+                                const payload = {  };
+                                await axios.put(apiUrl, payload, {
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        authorization: authHeader
+                                    },
+                                });   
+                            } catch (error) {
+                                 console.log('errro is noowww', error);
+                            }
+             
                         }
 
     } catch (error) {
@@ -1101,7 +1114,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 console.log("Manager data is missing or email not found.");
             }
             let mspUserData: any = await FetchUsersBasedOnHierarchy(sequelize, allPayload);
-            const vendorExistence = await isVendorRequired(eventCode.eventCode);
+            const vendorExistence = await isVendorRequired(eventCode?.eventCode);
             if (vendorExistence === true) {
                 program_id ? mspUserData.push(...(await getProgramVendorsEmail(program_id))) : null;
             }
@@ -1119,7 +1132,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                     program_id: program_id ?? "",
                     token,
                     traceId,
-                    eventCode: eventCode.eventCode,
+                    eventCode: eventCode?.eventCode,
                     recipientEmail: recipientEmailArray,
                     payload,
                     userId: user.sub ?? "",
@@ -1235,6 +1248,7 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
 }
 async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
     let { flow_type, events } = workflow
+    console.log('event is niooww', events)
     if (flow_type == "Approval" && events === "create_job") {
         let response = {
 
@@ -1358,8 +1372,15 @@ async function getRejectEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
-    } else {
-        throw new Error(`events code not found for event: ${events}`);
+    } else if (flow_type == "Approval" && events === "submit_timesheet" )  {
+        let response = {
+            eventCode: NotificationEventCode.TIMESHEET_APPROVAL_REJECTED,
+            user_type: ['msp']
+        }
+        return response;
+
+    }else {
+        console.log(`events code not found for event: ${events}`);
     }
 
 }
@@ -1613,11 +1634,11 @@ export const rejectLevel = async (
         await workflow.update({ levels, is_updated: true, updated_on: Date.now(), status: "completed" });
 
         let workflowStatus = "completed"
-        let eventCode = await getRejectEventsCode(workflow)
+        let eventCode:any = await getRejectEventsCode(workflow)
         let allPayload = {
             hierarchy_ids: updates[0].hierarchy_ids,
             program_id: program_id,
-            user_type: eventCode.user_type
+            user_type: eventCode?.user_type
         }
         
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
@@ -3512,21 +3533,989 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
 //     return null;
 // };
 
+// export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
+//     const trace_id = generateCustomUUID();
+//     const { program_id } = request.params as { program_id: string };
+//     const authHeader = request.headers.authorization;
+
+//     if (!authHeader?.startsWith('Bearer ')) {
+//         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
+//     }
+//     const token = authHeader.split(' ')[1];
+//     const user = await decodeToken(token);
+
+
+//     if (!user) {
+//         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
+//     }
+//     try {
+//         const { workflow_action, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
+//             workflow_action: string;
+//             job_id: string;
+//             workflow_trigger_id: string;
+//             hierarchy_id: any
+//         };
+//         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
+//         const query = `
+//         SELECT
+//         w.id As job_workflow_id,
+//             w.workflow_id AS workflow_id,
+//              w.event_id AS event_id,
+//                w.event_title AS event_title,
+//             w.name AS workflow_name,
+//             w.flow_type AS workflow_type,
+//             w.levels,
+//             w.status,
+//             w.config,
+//             w.manager,
+//             l.id AS level_id,
+//             l.placement_order AS placement_order,
+//         r.recipient_type_id,
+//             r.meta_data,
+//             r.behaviour,
+//               e.name,
+//     e.slug AS event_slug,
+//             JSON_UNQUOTE(
+//                 JSON_EXTRACT(
+//                     w.levels,
+//                     CONCAT(
+//                         '$[',
+//                         l.placement_order,
+//                         '].status'
+//                     )
+//                 )
+//             ) AS level_status,
+
+//              JSON_UNQUOTE(
+//                 JSON_EXTRACT(
+//                     w.levels,
+//                     CONCAT(
+//                         '$[',
+//                         l.placement_order,
+//                         '].recipient_types'
+//                     )
+//                 )
+//             ) AS recipient_types,
+//             (
+//         SELECT JSON_UNQUOTE(
+//             JSON_EXTRACT(
+//                 recipient.value, '$.replaced_by'
+//             )
+//         )
+//         FROM JSON_TABLE(
+//             JSON_EXTRACT(
+//                 w.levels,
+//                 CONCAT(
+//                     '$[',
+//                     l.placement_order,
+//                     '].recipient_types'
+//                 )
+//             ),
+//             '$[*]' COLUMNS (
+//                 value JSON PATH '$'
+//             )
+//         ) AS recipient
+//         WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
+//         LIMIT 1
+//     ) AS replaced_by,
+
+//            JSON_UNQUOTE(
+//                 JSON_EXTRACT(
+//                     w.levels,
+//                     CONCAT(
+//                         '$[',
+//                         l.placement_order,
+//                         '].recipient_types'
+//                     )
+//                 )
+//             ) AS recipient_types,
+//             (
+//         SELECT JSON_UNQUOTE(
+//             JSON_EXTRACT(
+//                 recipient.value, '$.existing_replaced_user'
+//             )
+//         )
+//         FROM JSON_TABLE(
+//             JSON_EXTRACT(
+//                 w.levels,
+//                 CONCAT(
+//                     '$[',
+//                     l.placement_order,
+//                     '].recipient_types'
+//                 )
+//             ),
+//             '$[*]' COLUMNS (
+//                 value JSON PATH '$'
+//             )
+//         ) AS recipient
+//         WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
+//         LIMIT 1
+//     ) AS existing_replaced_user,
+
+
+
+
+// JSON_UNQUOTE(
+//                 JSON_EXTRACT(
+//                     w.levels,
+//                     CONCAT(
+//                         '$[',
+//                         l.placement_order,
+//                         '].recipient_types'
+//                     )
+//                 )
+//             ) AS recipient_types,
+//             (
+//         SELECT JSON_UNQUOTE(
+//             JSON_EXTRACT(
+//                 recipient.value, '$.imporsonate_by'
+//             )
+//         )
+//         FROM JSON_TABLE(
+//             JSON_EXTRACT(
+//                 w.levels,
+//                 CONCAT(
+//                     '$[',
+//                     l.placement_order,
+//                     '].recipient_types'
+//                 )
+//             ),
+//             '$[*]' COLUMNS (
+//                 value JSON PATH '$'
+//             )
+//         ) AS recipient
+//         WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
+//         LIMIT 1
+//     ) AS imporsonate_by,
+// (
+// SELECT JSON_OBJECT(
+//     'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
+//    'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
+//     'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
+//     'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+//       'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
+//           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
+//          'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
+//             'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
+
+//     'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+//      'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
+// )
+// FROM JSON_TABLE(
+//     JSON_EXTRACT(
+//         w.levels,
+//         CONCAT('$[', l.placement_order, '].recipient_types')
+//     ),
+//     '$[*]' COLUMNS (
+//         value JSON PATH '$'
+//     )
+// ) AS recipient
+// WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
+// LIMIT 1
+// ) AS recipient_details,
+
+//      (
+//         SELECT JSON_UNQUOTE(
+//             JSON_EXTRACT(
+//                 recipient.value, '$.status'
+//             )
+//         )
+//         FROM JSON_TABLE(
+//             JSON_EXTRACT(
+//                 w.levels,
+//                 CONCAT(
+//                     '$[',
+//                     l.placement_order,
+//                     '].recipient_types'
+//                 )
+//             ),
+//             '$[*]' COLUMNS (
+//                 value JSON PATH '$'
+//             )
+//         ) AS recipient
+//         WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
+//         LIMIT 1
+//     ) AS recipient_status
+//         FROM
+//             workflow  w
+//         INNER JOIN workflow_triggered_level l ON l.workflow_id = w.workflow_id AND l.workflow_trigger_id = w.workflow_trigger_id
+//         LEFT JOIN workflow_triggered_recepient r ON r.level_id = l.id
+//         LEFT JOIN event e
+//     ON w.event_id = e.id
+//      WHERE
+// w.program_id = :program_id
+//                 AND w.flow_type = :workflow_action
+//                 AND w.workflow_trigger_id = :workflow_trigger_id
+//                   AND w.is_updated = true
+// AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
+// ORDER BY
+// l.placement_order ASC;`;
+
+//         const rows: any[] = await sequelize.query(query, {
+//             replacements: { workflow_action, program_id, workflow_trigger_id },
+//             type: QueryTypes.SELECT,
+//         });
+
+//         if (rows.length === 0) {
+//             return reply.status(200).send({
+//                 statusCode: 200,
+//                 message: 'Workflow data not found',
+//                 workflow: [],
+//                 trace_id,
+//             });
+//         }
+//         const workflows: { [key: string]: Workflow } = {};  // Store workflows by job_id
+
+
+//         for (const row of rows) {
+//             const {
+//                 level_id,
+//                 level_status,
+//                 levels,
+//                 config,
+//                 recipient_status,
+//                 recipient_details,
+//                 placement_order,
+//                 recipient_type_id,
+//                 meta_data,
+//                 behaviour,
+//                 replaced_by,
+//                 existing_replaced_user,
+//                 imporsonate_by,
+//                 job_workflow_id,
+//             } = row;
+
+//             let manager = row?.manager
+//             // Initialize workflow for the job if not already initialized
+//             if (!workflows[job_workflow_id]) {
+//                 workflows[job_workflow_id] = {
+//                     program_id: program_id,
+//                     job_workflow_id: job_workflow_id,
+//                     workflow_id: row.workflow_id,
+//                     event_title: row.event_title,
+//                     workflow_name: row.workflow_name,
+//                     workflow_type: row.workflow_type,
+//                     event_slug: row.event_slug,
+//                     status: row.status,
+//                     config: row.config,
+//                     levels: [],
+//                     is_rejected_workflow: false
+//                 };
+//             }
+
+//             const workflow = workflows[job_workflow_id];
+//             if (row.status?.toLowerCase() === "rejected") {
+//                 workflow.is_rejected_workflow = true;
+//             }
+
+//             let previousLevelCompleted = false;
+//             // let levelStatusMap: { [key: number]: string } = {};
+
+//             if (meta_data && Object.keys(meta_data).length > 0) {
+//                 const recipientTypeQuery = `
+//                     SELECT id, name
+//                     FROM recipient_type
+//                     WHERE id = :recipient_type_id
+//                      AND is_enabled = true
+//                     LIMIT 1
+//                 `;
+//                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
+//                     type: QueryTypes.SELECT,
+//                     replacements: { recipient_type_id },
+//                 });
+
+
+//                 const recipientType = recipientTypeResult[0] as Recipient;
+
+//                 let input_value: any;
+//                 let meta_datas = JSON.stringify(meta_data)
+//                 const input_values: any = Object.values(meta_data);
+//                 let replaced_user_data: any
+//                 let imposonate_user_data: any
+//                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager") {
+//                     if (input_values.length > 0) {
+//                         const userQuery = `
+//                         SELECT user_id, first_name, last_name, avatar, role_id,email
+//                         FROM user
+//                         WHERE user_id = :user_id
+//                           AND program_id=:program_id
+//                          AND status = 'active'
+
+//                         LIMIT 1
+//                     `;
+//                         let userResult = null;
+//                         if (existing_replaced_user) {
+//                             userResult = await sequelize.query<Users>(userQuery, {
+//                                 type: QueryTypes.SELECT,
+//                                 replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
+//                             });
+//                         } else {
+//                             // If no `existing_replaced_user`, use the first `input_value`
+//                             userResult = await sequelize.query<Users>(userQuery, {
+//                                 type: QueryTypes.SELECT,
+//                                 replacements: { user_id: input_values[0], program_id: workflow.program_id },
+//                             });
+//                         }
+
+//                         let replacedUserResult = null;
+//                         let imporsonateUserResult = null;
+//                         if (userResult.length && replaced_by) {
+//                             replacedUserResult = await sequelize.query<Users>(userQuery, {
+//                                 type: QueryTypes.SELECT,
+//                                 replacements: { user_id: replaced_by, program_id: workflow.program_id },
+//                             });
+//                         }
+//                         if (userResult.length && imporsonate_by) {
+//                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+//                                 type: QueryTypes.SELECT,
+//                                 replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
+//                             });
+//                         }
+//                         input_value = userResult[0] ? {
+//                             id: userResult[0].user_id,
+//                             first_name: userResult[0].first_name,
+//                             last_name: userResult[0].last_name,
+//                             avatar: userResult[0].avatar,
+//                             role_id: userResult[0].role_id,
+//                             email: userResult[0].email,
+//                             updated_on: recipient_details?.updated_on,
+//                             notes: recipient_details?.notes,
+//                             reason: recipient_details?.reason,
+//                             replaced_notes: recipient_details?.replaced_notes
+//                         } : undefined;
+
+//                         replaced_user_data = replacedUserResult ? {
+//                             id: replacedUserResult[0].user_id,
+//                             first_name: replacedUserResult[0].first_name,
+//                             last_name: replacedUserResult[0].last_name,
+//                             avatar: replacedUserResult[0].avatar,
+//                             role_id: replacedUserResult[0].role_id,
+//                             email: replacedUserResult[0].email,
+//                             recipient_type: recipientType?.name || '',
+//                             replaced_date_time: recipient_details?.replaced_modified_on,
+//                             behaviour,
+//                         } : undefined;
+//                         imposonate_user_data = imporsonateUserResult ? {
+//                             id: imporsonateUserResult?.[0]?.user_id,
+//                             first_name: imporsonateUserResult?.[0]?.first_name,
+//                             last_name: imporsonateUserResult?.[0]?.last_name,
+//                             avatar: imporsonateUserResult?.[0]?.avatar,
+//                             role_id: imporsonateUserResult?.[0]?.role_id,
+//                             email: imporsonateUserResult?.[0]?.email,
+//                             updated_on: recipient_details?.updated_on,
+//                             recipient_type: recipientType?.name || '',
+//                             behaviour,
+//                         } : undefined;
+//                     }
+//                 }
+//                 if (recipientType?.name === "Manager of") {
+
+//                     const jobManagerQuery = `
+//                     SELECT user_id, first_name, last_name, email, avatar, supervisor
+//                     FROM user
+//                     WHERE user_id = :job_manager_id
+//                       AND program_id=:program_id
+//                       AND status = 'active'
+
+//                     LIMIT 1
+//                 `;
+//                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
+//                         type: QueryTypes.SELECT,
+//                         replacements: { job_manager_id: manager || manager, program_id: workflow.program_id },
+//                     });
+
+
+//                     if (jobManagerResult.length > 0) {
+//                         const manager: any = jobManagerResult[0];
+
+//                         let replacedUserResult = null;
+//                         let imporsonateUserResult = null;
+//                         let supervisorData = null;
+//                         if (manager.supervisor) {
+//                             const supervisorQuery = `
+//                             SELECT user_id, first_name, last_name, email, avatar
+//                             FROM user
+//                             WHERE user_id = :supervisor
+//                             AND is_enabled = true
+//                               AND program_id=:program_id
+//                                 AND status = 'active'
+//                             LIMIT 1
+//                         `;
+//                             let supervisorResult = null
+//                             // const supervisorResult = await sequelize.query(supervisorQuery, {
+//                             //     type: QueryTypes.SELECT,
+//                             //     replacements: { supervisor: manager.supervisor },
+//                             // });
+//                             if (existing_replaced_user) {
+//                                 supervisorResult = await sequelize.query(supervisorQuery, {
+//                                     type: QueryTypes.SELECT,
+//                                     replacements: { supervisor: existing_replaced_user, program_id: workflow.program_id },
+//                                 });
+//                             } else {
+//                                 // If no `existing_replaced_user`, use the first `input_value`
+//                                 supervisorResult = await sequelize.query(supervisorQuery, {
+//                                     type: QueryTypes.SELECT,
+//                                     replacements: { supervisor: manager.supervisor, program_id: workflow.program_id },
+//                                 });
+//                             }
+
+//                             if (supervisorResult.length && replaced_by) {
+//                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
+//                                     type: QueryTypes.SELECT,
+//                                     replacements: { supervisor: replaced_by, program_id: workflow.program_id },
+//                                 });
+//                             }
+//                             if (supervisorResult.length && imporsonate_by) {
+//                                 imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
+//                                     type: QueryTypes.SELECT,
+//                                     replacements: { supervisor: imporsonate_by, program_id: workflow.program_id },
+//                                 });
+//                             }
+
+//                             if (supervisorResult.length > 0) {
+//                                 const supervisor: any = supervisorResult[0];
+//                                 supervisorData = {
+//                                     id: supervisor.user_id,
+//                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
+//                                     email: supervisor.email,
+//                                     avatar: supervisor.avatar || null,
+//                                     updated_on: recipient_details?.updated_on,
+//                                     notes: recipient_details?.notes,
+//                                     reason: recipient_details?.reason,
+//                                     replaced_notes: recipient_details?.replaced_notes
+//                                 };
+//                             }
+//                         }
+
+
+//                         input_value = supervisorData ? supervisorData : null;
+//                         replaced_user_data = replacedUserResult ? {
+//                             id: replacedUserResult[0]?.user_id,
+//                             first_name: replacedUserResult[0]?.first_name,
+//                             last_name: replacedUserResult[0]?.last_name,
+//                             avatar: replacedUserResult[0]?.avatar || null,
+//                             email: replacedUserResult[0]?.email || null,
+//                             recipient_type: recipientType?.name || "",
+//                             replaced_date_time: recipient_details?.replaced_modified_on,
+//                             behaviour,
+//                         } : undefined;
+//                         imposonate_user_data = imporsonateUserResult ? {
+//                             id: imporsonateUserResult?.[0]?.user_id,
+//                             first_name: imporsonateUserResult?.[0]?.first_name,
+//                             last_name: imporsonateUserResult?.[0]?.last_name,
+//                             avatar: imporsonateUserResult?.[0]?.avatar,
+//                             role_id: imporsonateUserResult?.[0]?.role_id,
+//                             email: imporsonateUserResult?.[0]?.email,
+//                             updated_on: recipient_details?.updated_on,
+//                             recipient_type: recipientType?.name || '',
+//                             behaviour,
+//                         } : undefined;
+//                     }
+//                 }
+//                 let imporsonateUserResult = null;
+//                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
+//                     console.log(recipientType);
+
+//                     // Loop through each placement order
+//                     for (const level of levels) {
+
+//                         let replacedUserResult = null;
+//                         for (const recipients of level.recipient_types || []) {
+
+//                             if (recipients?.meta_data) {
+//                                 if (recipientType?.id == recipients.recipient_type_id) {
+//                                     const metaData = recipients.meta_data;
+//                                     // Get the first value from the meta_data (Assuming it is a user ID)
+//                                     let metaValue = Object.values(metaData)[0];
+//                                     const userQuery = `
+//                 SELECT user_id, first_name, last_name, email, avatar
+//                 FROM user
+//                 WHERE user_id = :user_id
+//                   AND program_id=:program_id
+//                   AND status = 'active'
+
+//                 LIMIT 1
+//             `;
+
+//                                     let userData: any = null
+//                                     if (recipients.existing_replaced_user) {
+//                                         userData = await sequelize.query(userQuery, {
+//                                             type: QueryTypes.SELECT,
+//                                             replacements: { user_id: recipients.existing_replaced_user, program_id: workflow.program_id },
+//                                         });
+//                                     } else {
+//                                         // If no `existing_replaced_user`, use the first `input_value`
+//                                         userData = await sequelize.query(userQuery, {
+//                                             type: QueryTypes.SELECT,
+//                                             replacements: { user_id: metaValue, program_id: workflow.program_id },
+//                                         });
+//                                     }
+
+//                                     if (userData.length && replaced_by) {
+//                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
+//                                             type: QueryTypes.SELECT,
+//                                             replacements: { user_id: replaced_by, program_id: workflow.program_id },
+//                                         });
+//                                     }
+//                                     if (userData.length && imporsonate_by) {
+//                                         imporsonateUserResult = await sequelize.query<Users>(userQuery, {
+//                                             type: QueryTypes.SELECT,
+//                                             replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
+//                                         });
+//                                     }
+//                                     if (userData.length > 0) {
+//                                         input_value = {
+//                                             id: userData[0].user_id,
+//                                             name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
+//                                             email: userData[0].email,
+//                                             avatar: userData[0].avatar,
+//                                             updated_on: recipient_details?.updated_on,
+//                                             notes: recipient_details?.notes,
+//                                             reason: recipient_details?.reason,
+//                                             replaced_notes: recipient_details?.replaced_notes
+//                                         };
+//                                     }
+//                                     replaced_user_data = replacedUserResult ? {
+//                                         id: replacedUserResult[0]?.user_id,
+//                                         first_name: replacedUserResult[0]?.first_name,
+//                                         last_name: replacedUserResult[0]?.last_name,
+//                                         avatar: replacedUserResult[0]?.avatar,
+//                                         role_id: replacedUserResult[0]?.role_id,
+//                                         email: replacedUserResult[0]?.email,
+//                                         replaced_date_time: recipient_details?.replaced_modified_on,
+//                                         recipient_type: recipientType?.name || '',
+//                                         behaviour,
+//                                     } : undefined;
+//                                     imposonate_user_data = imporsonateUserResult ? {
+//                                         id: imporsonateUserResult?.[0]?.user_id,
+//                                         first_name: imporsonateUserResult?.[0]?.first_name,
+//                                         last_name: imporsonateUserResult?.[0]?.last_name,
+//                                         avatar: imporsonateUserResult?.[0]?.avatar,
+//                                         role_id: imporsonateUserResult?.[0]?.role_id,
+//                                         email: imporsonateUserResult?.[0]?.email,
+//                                         updated_on: recipient_details?.updated_on,
+//                                         recipient_type: recipientType?.name || '',
+//                                         behaviour,
+//                                     } : undefined;
+
+//                                 }
+//                             }
+//                         }
+//                     }
+
+//                 }
+//                 let users: any[] = [];
+//                 let level_behaviour: any;
+//                 let receipentstatus: any
+//                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain"  || recipientType?.name === "Vendor Users") {                    
+//                     const recipientTypes = JSON.parse(row.recipient_types);
+
+//                     for (const recipient of recipientTypes) {
+//                         let receipentstatus = recipient.status;
+
+//                         if (recipient?.meta_data) {
+//                             const metaData = recipient.meta_data;
+//                             let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
+//                             const level_behaviour = Object.values(metaData)[1];
+
+//                             // If existing_replaced_user is present, use that as the userId for fetching the data
+//                             if (recipient.existing_replaced_user) {
+//                                 userId = recipient.existing_replaced_user; // If existing_replaced_user exists, use that ID
+//                             }
+
+//                             // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
+//                             const fetchUserData = async (userId: any) => {
+//                                 const user = await fetchLevelUserData(userId, workflow.program_id);
+//                                 return user;
+//                             };
+
+//                             const user = await fetchUserData(userId);
+
+//                             if (user) {
+//                                 const userData: any = {
+//                                     id: user.user_id,
+//                                     first_name: user.first_name,
+//                                     last_name: user.last_name,
+//                                     avatar: user.avatar,
+//                                     role_id: user.role_id,
+//                                     email: user.email,
+//                                     receipentstatus: receipentstatus,
+//                                     modifiedOn: recipient.updated_on,
+//                                     level_behaviour: level_behaviour,
+//                                     replaced_by: null, // Default value
+//                                     impersonate_by: null, // Default value
+//                                     // existing_replaced_user: null, // Default value
+//                                     updated_on: recipient.updated_on,
+//                                     notes: recipient.notes,
+//                                     reason: recipient.reason,
+//                                     actor_first_name: recipient.actor_first_name,
+//                                     actor_last_name: recipient.actor_last_name,
+//                                     actor_by_avatar: recipient.actor_by_avatar,
+//                                     is_admin_override: recipient.is_admin_override,
+//                                     replaced_notes: recipient.replaced_notes
+//                                 };
+
+//                                 // Fetch "replaced_by" user data if applicable
+//                                 let replacedByUser = null;
+//                                 if (recipient.replaced_by) {
+//                                     replacedByUser = await fetchUserData(recipient.replaced_by);
+//                                     if (replacedByUser) {
+//                                         userData.replaced_by = {
+//                                             id: replacedByUser.user_id,
+//                                             first_name: replacedByUser.first_name,
+//                                             last_name: replacedByUser.last_name,
+//                                             email: replacedByUser.email,
+//                                             avatar: replacedByUser.avatar,
+//                                             role_id: replacedByUser.role_id,
+//                                             replaced_notes: recipient.replaced_notes,
+//                                             replaced_date_time: recipient.replaced_modified_on,
+//                                             actor_first_name: recipient.actor_first_name,
+//                                             actor_last_name: recipient.actor_last_name,
+//                                             actor_by_avatar: recipient.actor_by_avatar,
+//                                             is_admin_override: recipient.is_admin_override,
+//                                         };
+//                                     }
+//                                 }
+
+//                                 // Fetch "impersonate_by" user data if applicable
+//                                 if (recipient.impersonate_by) {
+//                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
+
+
+//                                     if (impersonatedUser) {
+//                                         userData.impersonate_by = {
+//                                             id: impersonatedUser.user_id,
+//                                             first_name: impersonatedUser.first_name,
+//                                             last_name: impersonatedUser.last_name,
+//                                             email: impersonatedUser.email,
+//                                             avatar: impersonatedUser.avatar,
+//                                             role_id: impersonatedUser.role_id,
+//                                             updated_on: recipient_details?.updated_on,
+//                                             impersonate_notes: recipient.impersonate_notes,
+//                                             impersonate_date_time: recipient.impersonate_modified_on,
+//                                             actor_first_name: recipient.actor_first_name,
+//                                             actor_last_name: recipient.actor_last_name,
+//                                             actor_by_avatar: recipient.actor_by_avatar,
+//                                             is_admin_override: recipient.is_admin_override,
+//                                         };
+//                                     }
+//                                 }
+
+
+
+//                                 // Push the final user data to the users array
+//                                 users.push(userData);
+//                             }
+//                         }
+
+//                     }
+
+//                     // After processing all users, map them to the final input_value format
+//                     input_value = users.map(user => {
+//                         return {
+//                             id: user.id,
+//                             name: `${user.first_name} ${user.last_name}`.trim(),
+//                             email: user.email,
+//                             avatar: user.avatar || null,
+//                             level_behaviour: user.level_behaviour,
+//                             replaced_by: user.replaced_by,  // Attach replaced_by data
+//                             impersonate_by: user.impersonate_by,  // Attach impersonate_by data
+//                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
+//                             receipentStatus: user.receipentstatus,
+//                             actor_first_name: user.actor_first_name,
+//                             actor_last_name: user.actor_last_name,
+//                             actor_by_avatar: user.actor_by_avatar,
+//                             is_admin_override: user.is_admin_override,
+//                             reason: user.reason,
+//                             updated_on: user.updated_on,
+//                             notes: user.notes
+//                         };
+//                     });
+//                 }
+//                 if (input_value) {
+//                     let recipients = [];
+//                     if (Array.isArray(input_value)) {
+
+//                         recipients = input_value.map(user => {
+//                             return {
+//                                 name: getName(user),
+//                                 first_name: user.first_name,
+//                                 last_name: user.last_name,
+//                                 actor_first_name: user.actor_first_name,
+//                                 actor_last_name: user.actor_last_name,
+//                                 actor_by_avatar: user.actor_by_avatar,
+//                                 is_admin_override: user.is_admin_override,
+//                                 updated_on: user.updated_on,
+//                                 level_id,
+//                                 status: user.receipentStatus,
+//                                 // modified_on: user.modified_on,
+//                                 notes: user.notes,
+//                                 reason: user.reason,
+//                                 level_behaviour: user.level_behaviour,
+//                                 user_id: user.id,
+//                                 avatar: user.avatar?.url || '',
+//                                 role_id: user.role_id,
+//                                 email: user.email,
+//                                 replaced_by: user.replaced_by,
+//                                 recipient_type: recipientType?.name || '',
+//                                 behaviour,
+
+//                             };
+//                         });
+//                     } else {
+//                         // If input_value is a single object, create a single recipient
+//                         recipients = [{
+
+//                             name: getName(input_value),
+//                             first_name: input_value.first_name,
+//                             last_name: input_value.last_name,
+//                             level_id,
+//                             status: recipient_status,
+//                             updated_on: recipient_details?.updated_on,
+//                             notes: recipient_details?.notes,
+//                             reason: recipient_details?.reason,
+//                             replaced_date_time: recipient_details?.replaced_modified_on,
+//                             replaced_notes: recipient_details?.replaced_notes,
+//                             user_id: input_value?.id,
+//                             actor_first_name: recipient_details?.actor_first_name,
+//                             actor_last_name: recipient_details?.actor_last_name,
+//                             actor_by_avatar: recipient_details?.actor_by_avatar,
+//                             is_admin_override: recipient_details?.is_admin_override,
+//                             avatar: input_value.avatar?.url || '',
+//                             role_id: input_value.role_id,
+//                             email: input_value.email,
+//                             recipient_type: recipientType?.name || '',
+//                             behaviour,
+//                             replaced_by: replaced_user_data,
+//                             imporsonate_by: imposonate_user_data
+//                         }];
+//                     }
+                   
+//                     if (recipients.length > 0) {
+//                         const hasRejectedRecipient = recipients.some(recipient => recipient.status?.toLowerCase() === "rejected");
+//                         if (hasRejectedRecipient) {
+//                             workflow.is_rejected_workflow = true;
+//                         }
+//                     }
+//                     // Add the recipients to the workflow levels
+//                     recipients.forEach(recipient => {
+//                         const existingLevel = getExistingLevel(workflow, level_id);
+//                         if (existingLevel) {
+
+//                             const duplicateIndex = existingLevel.recipients.findIndex((r:any) => r.user_id === recipient.user_id);
+
+//                             if (duplicateIndex === -1) {
+
+//                                 existingLevel.recipients.push(recipient);
+//                             }
+
+//                         }
+//                         else {
+//                             workflow.levels.push({
+//                                 level_id,
+//                                 level_order: placement_order,
+//                                 placement_order,
+//                                 level_status,
+//                                 behaviour,
+//                                 recipients: [recipient],
+//                             });
+//                         }
+//                     });
+//                 }
+//                 // await applyBypassDublicateStatus(request, reply, workflow)
+//                 console.log('in getupdate workflow');
+                
+//                 let data = await statusHandling(request, reply, workflow)
+//             }
+//         }
+//         // Return the workflows object with all workflows aggregated by job_workflow_id
+//         return reply.status(200).send({
+//             statusCode: 200,
+//             workflows: Object.values(workflows),  // Return workflows as an array of objects
+//             trace_id,
+//         });
+
+//     } catch (error: any) {
+//         console.log(error);
+
+//         return reply.status(500).send({
+//             statusCode: 500,
+//             message: 'An error occurred while fetching workflow data.',
+//             trace_id,
+//         });
+//     }
+// }
+
+
+/**
+ * Helper function to extract user name from user object
+ */
+// function getName(user: any) {
+//     if (!user) return '';
+    
+//     if (user.name) return user.name;
+    
+//     if (user.first_name || user.last_name) {
+//         return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+//     }
+    
+//     return '';
+// }
+
+/**
+ * Fetch user data from the database
+ */
+async function fetchUserData(user_id: string, program_id: string) {
+    if (!user_id || !program_id) return null;
+    
+    const userQuery = `
+        SELECT user_id, first_name, last_name, avatar, role_id, email
+        FROM user
+        WHERE user_id = :user_id
+          AND program_id = :program_id
+          AND status = 'active'
+        LIMIT 1
+    `;
+    
+    return await sequelize.query(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { user_id, program_id },
+    });
+}
+
+/**
+ * Fetch job manager data from the database
+ */
+async function fetchJobManagerData(manager_id: string, program_id: string) {
+    if (!manager_id || !program_id) return null;
+    
+    const jobManagerQuery = `
+        SELECT user_id, first_name, last_name, email, avatar, supervisor
+        FROM user
+        WHERE user_id = :job_manager_id
+          AND program_id = :program_id
+          AND status = 'active'
+        LIMIT 1
+    `;
+    
+    return await sequelize.query(jobManagerQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { job_manager_id: manager_id, program_id },
+    });
+}
+
+/**
+ * Fetch supervisor data from the database
+ */
+async function fetchSupervisorData(supervisor_id: string, program_id: string) {
+    if (!supervisor_id || !program_id) return null;
+    
+    const supervisorQuery = `
+        SELECT user_id, first_name, last_name, email, avatar, role_id
+        FROM user
+        WHERE user_id = :supervisor
+          AND program_id = :program_id
+          AND status = 'active'
+        LIMIT 1
+    `;
+    
+    return await sequelize.query(supervisorQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { supervisor: supervisor_id, program_id },
+    });
+}
+
+/**
+ * Fetch level user data from the database
+ */
+// async function fetchLevelUserData(user_id: string, program_id: string) {
+//     if (!user_id || !program_id) return null;
+    
+//     const userQuery = `
+//         SELECT user_id, first_name, last_name, email, avatar, role_id
+//         FROM user
+//         WHERE user_id = :user_id
+//           AND program_id = :program_id
+//           AND status = 'active'
+//         LIMIT 1
+//     `;
+    
+//     const userResult = await sequelize.query(userQuery, {
+//         type: QueryTypes.SELECT,
+//         replacements: { user_id, program_id },
+//     });
+    
+//     return userResult.length > 0 ? userResult[0] : null;
+// }
+
+/**
+ * Map user data to standardized format
+ */
+function mapUserData(user: any, recipient_details: any) {
+    return {
+        id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar: user.avatar,
+        role_id: user.role_id,
+        email: user.email,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_notes: recipient_details?.replaced_notes
+    };
+}
+
+/**
+ * Map replaced user data to standardized format
+ */
+function mapReplacedUserData(user: any, recipient_type: string, recipient_details: any, behaviour: any) {
+    return {
+        id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar: user.avatar,
+        role_id: user.role_id,
+        email: user.email,
+        recipient_type: recipient_type || '',
+        replaced_date_time: recipient_details?.replaced_modified_on,
+        behaviour,
+    };
+}
+
+/**
+ * Map impersonated user data to standardized format
+ */
+function mapImporsonateUserData(user: any, recipient_type: string, recipient_details: any, behaviour: any) {
+    return {
+        id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar: user.avatar,
+        role_id: user.role_id,
+        email: user.email,
+        updated_on: recipient_details?.updated_on,
+        recipient_type: recipient_type || '',
+        behaviour,
+    };
+}
+
 export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply: FastifyReply) {
     const trace_id = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
+    
+    // Authentication check
     const authHeader = request.headers.authorization;
-
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
+    
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
-
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
     }
+    
     try {
         const { workflow_action, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
             workflow_action: string;
@@ -3534,204 +4523,21 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
             workflow_trigger_id: string;
             hierarchy_id: any
         };
-        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
-        const query = `
-        SELECT
-        w.id As job_workflow_id,
-            w.workflow_id AS workflow_id,
-             w.event_id AS event_id,
-               w.event_title AS event_title,
-            w.name AS workflow_name,
-            w.flow_type AS workflow_type,
-            w.levels,
-            w.status,
-            w.config,
-            w.manager,
-            l.id AS level_id,
-            l.placement_order AS placement_order,
-        r.recipient_type_id,
-            r.meta_data,
-            r.behaviour,
-              e.name,
-    e.slug AS event_slug,
-            JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].status'
-                    )
-                )
-            ) AS level_status,
-
-             JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                )
-            ) AS recipient_types,
-            (
-        SELECT JSON_UNQUOTE(
-            JSON_EXTRACT(
-                recipient.value, '$.replaced_by'
-            )
-        )
-        FROM JSON_TABLE(
-            JSON_EXTRACT(
-                w.levels,
-                CONCAT(
-                    '$[',
-                    l.placement_order,
-                    '].recipient_types'
-                )
-            ),
-            '$[*]' COLUMNS (
-                value JSON PATH '$'
-            )
-        ) AS recipient
-        WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
-        LIMIT 1
-    ) AS replaced_by,
-
-           JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                )
-            ) AS recipient_types,
-            (
-        SELECT JSON_UNQUOTE(
-            JSON_EXTRACT(
-                recipient.value, '$.existing_replaced_user'
-            )
-        )
-        FROM JSON_TABLE(
-            JSON_EXTRACT(
-                w.levels,
-                CONCAT(
-                    '$[',
-                    l.placement_order,
-                    '].recipient_types'
-                )
-            ),
-            '$[*]' COLUMNS (
-                value JSON PATH '$'
-            )
-        ) AS recipient
-        WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
-        LIMIT 1
-    ) AS existing_replaced_user,
-
-
-
-
-JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    w.levels,
-                    CONCAT(
-                        '$[',
-                        l.placement_order,
-                        '].recipient_types'
-                    )
-                )
-            ) AS recipient_types,
-            (
-        SELECT JSON_UNQUOTE(
-            JSON_EXTRACT(
-                recipient.value, '$.imporsonate_by'
-            )
-        )
-        FROM JSON_TABLE(
-            JSON_EXTRACT(
-                w.levels,
-                CONCAT(
-                    '$[',
-                    l.placement_order,
-                    '].recipient_types'
-                )
-            ),
-            '$[*]' COLUMNS (
-                value JSON PATH '$'
-            )
-        ) AS recipient
-        WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
-        LIMIT 1
-    ) AS imporsonate_by,
-(
-SELECT JSON_OBJECT(
-    'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-   'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
-    'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
-    'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
-      'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
-          'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-         'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
-            'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
-
-    'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-     'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
-)
-FROM JSON_TABLE(
-    JSON_EXTRACT(
-        w.levels,
-        CONCAT('$[', l.placement_order, '].recipient_types')
-    ),
-    '$[*]' COLUMNS (
-        value JSON PATH '$'
-    )
-) AS recipient
-WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
-LIMIT 1
-) AS recipient_details,
-
-     (
-        SELECT JSON_UNQUOTE(
-            JSON_EXTRACT(
-                recipient.value, '$.status'
-            )
-        )
-        FROM JSON_TABLE(
-            JSON_EXTRACT(
-                w.levels,
-                CONCAT(
-                    '$[',
-                    l.placement_order,
-                    '].recipient_types'
-                )
-            ),
-            '$[*]' COLUMNS (
-                value JSON PATH '$'
-            )
-        ) AS recipient
-        WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
-        LIMIT 1
-    ) AS recipient_status
-        FROM
-            workflow  w
-        INNER JOIN workflow_triggered_level l ON l.workflow_id = w.workflow_id AND l.workflow_trigger_id = w.workflow_trigger_id
-        LEFT JOIN workflow_triggered_recepient r ON r.level_id = l.id
-        LEFT JOIN event e
-    ON w.event_id = e.id
-     WHERE
-w.program_id = :program_id
-                AND w.flow_type = :workflow_action
-                AND w.workflow_trigger_id = :workflow_trigger_id
-                  AND w.is_updated = true
-AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
-ORDER BY
-l.placement_order ASC;`;
-
-        const rows: any[] = await sequelize.query(query, {
-            replacements: { workflow_action, program_id, workflow_trigger_id },
+        
+        // Properly format hierarchy IDs for SQL query
+        const hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
+        const hierarchyPlaceholders = hierarchy_ids.map((id:any) => `"${id}"`).join(',');
+        
+        // Base workflow data query
+        const workflowQuery = buildWorkflowQuery(hierarchyPlaceholders);
+        
+        const rows: any[] = await sequelize.query(workflowQuery, {
+            replacements: { 
+                workflow_action, 
+                program_id, 
+                workflow_trigger_id,
+                hierarchy_ids: hierarchyPlaceholders
+            },
             type: QueryTypes.SELECT,
         });
 
@@ -3743,586 +4549,876 @@ l.placement_order ASC;`;
                 trace_id,
             });
         }
-        const workflows: { [key: string]: Workflow } = {};  // Store workflows by job_id
-
-
+        
+        // Initialize workflows map to store unique workflows by job_workflow_id
+        const workflows: { [key: string]: Workflow } = {};
+        
+        // Process each row from the database
         for (const row of rows) {
-            const {
-                level_id,
-                level_status,
-                levels,
-                config,
-                recipient_status,
-                recipient_details,
-                placement_order,
-                recipient_type_id,
-                meta_data,
-                behaviour,
-                replaced_by,
-                existing_replaced_user,
-                imporsonate_by,
-                job_workflow_id,
-            } = row;
-
-            let manager = row?.manager
-            // Initialize workflow for the job if not already initialized
-            if (!workflows[job_workflow_id]) {
-                workflows[job_workflow_id] = {
-                    program_id: program_id,
-                    job_workflow_id: job_workflow_id,
-                    workflow_id: row.workflow_id,
-                    event_title: row.event_title,
-                    workflow_name: row.workflow_name,
-                    workflow_type: row.workflow_type,
-                    event_slug: row.event_slug,
-                    status: row.status,
-                    config: row.config,
-                    levels: [],
-                    is_rejected_workflow: false
-                };
-            }
-
-            const workflow = workflows[job_workflow_id];
-            if (row.status?.toLowerCase() === "rejected") {
-                workflow.is_rejected_workflow = true;
-            }
-
-            let previousLevelCompleted = false;
-            // let levelStatusMap: { [key: number]: string } = {};
-
-            if (meta_data && Object.keys(meta_data).length > 0) {
-                const recipientTypeQuery = `
-                    SELECT id, name
-                    FROM recipient_type
-                    WHERE id = :recipient_type_id
-                     AND is_enabled = true
-                    LIMIT 1
-                `;
-                const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
-                    type: QueryTypes.SELECT,
-                    replacements: { recipient_type_id },
-                });
-
-
-                const recipientType = recipientTypeResult[0] as Recipient;
-
-                let input_value: any;
-                let meta_datas = JSON.stringify(meta_data)
-                const input_values: any = Object.values(meta_data);
-                let replaced_user_data: any
-                let imposonate_user_data: any
-                if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager") {
-                    if (input_values.length > 0) {
-                        const userQuery = `
-                        SELECT user_id, first_name, last_name, avatar, role_id,email
-                        FROM user
-                        WHERE user_id = :user_id
-                          AND program_id=:program_id
-                         AND status = 'active'
-
-                        LIMIT 1
-                    `;
-                        let userResult = null;
-                        if (existing_replaced_user) {
-                            userResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
-                            });
-                        } else {
-                            // If no `existing_replaced_user`, use the first `input_value`
-                            userResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: input_values[0], program_id: workflow.program_id },
-                            });
-                        }
-
-                        let replacedUserResult = null;
-                        let imporsonateUserResult = null;
-                        if (userResult.length && replaced_by) {
-                            replacedUserResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: replaced_by, program_id: workflow.program_id },
-                            });
-                        }
-                        if (userResult.length && imporsonate_by) {
-                            imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-                                type: QueryTypes.SELECT,
-                                replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
-                            });
-                        }
-                        input_value = userResult[0] ? {
-                            id: userResult[0].user_id,
-                            first_name: userResult[0].first_name,
-                            last_name: userResult[0].last_name,
-                            avatar: userResult[0].avatar,
-                            role_id: userResult[0].role_id,
-                            email: userResult[0].email,
-                            updated_on: recipient_details?.updated_on,
-                            notes: recipient_details?.notes,
-                            reason: recipient_details?.reason,
-                            replaced_notes: recipient_details?.replaced_notes
-                        } : undefined;
-
-                        replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0].user_id,
-                            first_name: replacedUserResult[0].first_name,
-                            last_name: replacedUserResult[0].last_name,
-                            avatar: replacedUserResult[0].avatar,
-                            role_id: replacedUserResult[0].role_id,
-                            email: replacedUserResult[0].email,
-                            recipient_type: recipientType?.name || '',
-                            replaced_date_time: recipient_details?.replaced_modified_on,
-                            behaviour,
-                        } : undefined;
-                        imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult?.[0]?.user_id,
-                            first_name: imporsonateUserResult?.[0]?.first_name,
-                            last_name: imporsonateUserResult?.[0]?.last_name,
-                            avatar: imporsonateUserResult?.[0]?.avatar,
-                            role_id: imporsonateUserResult?.[0]?.role_id,
-                            email: imporsonateUserResult?.[0]?.email,
-                            updated_on: recipient_details?.updated_on,
-                            recipient_type: recipientType?.name || '',
-                            behaviour,
-                        } : undefined;
-                    }
-                }
-                if (recipientType?.name === "Manager of") {
-
-                    const jobManagerQuery = `
-                    SELECT user_id, first_name, last_name, email, avatar, supervisor
-                    FROM user
-                    WHERE user_id = :job_manager_id
-                      AND program_id=:program_id
-                      AND status = 'active'
-
-                    LIMIT 1
-                `;
-                    const jobManagerResult = await sequelize.query(jobManagerQuery, {
-                        type: QueryTypes.SELECT,
-                        replacements: { job_manager_id: manager || manager, program_id: workflow.program_id },
-                    });
-
-
-                    if (jobManagerResult.length > 0) {
-                        const manager: any = jobManagerResult[0];
-
-                        let replacedUserResult = null;
-                        let imporsonateUserResult = null;
-                        let supervisorData = null;
-                        if (manager.supervisor) {
-                            const supervisorQuery = `
-                            SELECT user_id, first_name, last_name, email, avatar
-                            FROM user
-                            WHERE user_id = :supervisor
-                            AND is_enabled = true
-                              AND program_id=:program_id
-                                AND status = 'active'
-                            LIMIT 1
-                        `;
-                            let supervisorResult = null
-                            // const supervisorResult = await sequelize.query(supervisorQuery, {
-                            //     type: QueryTypes.SELECT,
-                            //     replacements: { supervisor: manager.supervisor },
-                            // });
-                            if (existing_replaced_user) {
-                                supervisorResult = await sequelize.query(supervisorQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { supervisor: existing_replaced_user, program_id: workflow.program_id },
-                                });
-                            } else {
-                                // If no `existing_replaced_user`, use the first `input_value`
-                                supervisorResult = await sequelize.query(supervisorQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { supervisor: manager.supervisor, program_id: workflow.program_id },
-                                });
-                            }
-
-                            if (supervisorResult.length && replaced_by) {
-                                replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { supervisor: replaced_by, program_id: workflow.program_id },
-                                });
-                            }
-                            if (supervisorResult.length && imporsonate_by) {
-                                imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
-                                    type: QueryTypes.SELECT,
-                                    replacements: { supervisor: imporsonate_by, program_id: workflow.program_id },
-                                });
-                            }
-
-                            if (supervisorResult.length > 0) {
-                                const supervisor: any = supervisorResult[0];
-                                supervisorData = {
-                                    id: supervisor.user_id,
-                                    name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
-                                    email: supervisor.email,
-                                    avatar: supervisor.avatar || null,
-                                    updated_on: recipient_details?.updated_on,
-                                    notes: recipient_details?.notes,
-                                    reason: recipient_details?.reason,
-                                    replaced_notes: recipient_details?.replaced_notes
-                                };
-                            }
-                        }
-
-
-                        input_value = supervisorData ? supervisorData : null;
-                        replaced_user_data = replacedUserResult ? {
-                            id: replacedUserResult[0]?.user_id,
-                            first_name: replacedUserResult[0]?.first_name,
-                            last_name: replacedUserResult[0]?.last_name,
-                            avatar: replacedUserResult[0]?.avatar || null,
-                            email: replacedUserResult[0]?.email || null,
-                            recipient_type: recipientType?.name || "",
-                            replaced_date_time: recipient_details?.replaced_modified_on,
-                            behaviour,
-                        } : undefined;
-                        imposonate_user_data = imporsonateUserResult ? {
-                            id: imporsonateUserResult?.[0]?.user_id,
-                            first_name: imporsonateUserResult?.[0]?.first_name,
-                            last_name: imporsonateUserResult?.[0]?.last_name,
-                            avatar: imporsonateUserResult?.[0]?.avatar,
-                            role_id: imporsonateUserResult?.[0]?.role_id,
-                            email: imporsonateUserResult?.[0]?.email,
-                            updated_on: recipient_details?.updated_on,
-                            recipient_type: recipientType?.name || '',
-                            behaviour,
-                        } : undefined;
-                    }
-                }
-                let imporsonateUserResult = null;
-                if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
-                    console.log(recipientType);
-
-                    // Loop through each placement order
-                    for (const level of levels) {
-
-                        let replacedUserResult = null;
-                        for (const recipients of level.recipient_types || []) {
-
-                            if (recipients?.meta_data) {
-                                if (recipientType?.id == recipients.recipient_type_id) {
-                                    const metaData = recipients.meta_data;
-                                    // Get the first value from the meta_data (Assuming it is a user ID)
-                                    let metaValue = Object.values(metaData)[0];
-                                    const userQuery = `
-                SELECT user_id, first_name, last_name, email, avatar
-                FROM user
-                WHERE user_id = :user_id
-                  AND program_id=:program_id
-                  AND status = 'active'
-
-                LIMIT 1
-            `;
-
-                                    let userData: any = null
-                                    if (recipients.existing_replaced_user) {
-                                        userData = await sequelize.query(userQuery, {
-                                            type: QueryTypes.SELECT,
-                                            replacements: { user_id: recipients.existing_replaced_user, program_id: workflow.program_id },
-                                        });
-                                    } else {
-                                        // If no `existing_replaced_user`, use the first `input_value`
-                                        userData = await sequelize.query(userQuery, {
-                                            type: QueryTypes.SELECT,
-                                            replacements: { user_id: metaValue, program_id: workflow.program_id },
-                                        });
-                                    }
-
-                                    if (userData.length && replaced_by) {
-                                        replacedUserResult = await sequelize.query<Users>(userQuery, {
-                                            type: QueryTypes.SELECT,
-                                            replacements: { user_id: replaced_by, program_id: workflow.program_id },
-                                        });
-                                    }
-                                    if (userData.length && imporsonate_by) {
-                                        imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-                                            type: QueryTypes.SELECT,
-                                            replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
-                                        });
-                                    }
-                                    if (userData.length > 0) {
-                                        input_value = {
-                                            id: userData[0].user_id,
-                                            name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
-                                            email: userData[0].email,
-                                            avatar: userData[0].avatar,
-                                            updated_on: recipient_details?.updated_on,
-                                            notes: recipient_details?.notes,
-                                            reason: recipient_details?.reason,
-                                            replaced_notes: recipient_details?.replaced_notes
-                                        };
-                                    }
-                                    replaced_user_data = replacedUserResult ? {
-                                        id: replacedUserResult[0]?.user_id,
-                                        first_name: replacedUserResult[0]?.first_name,
-                                        last_name: replacedUserResult[0]?.last_name,
-                                        avatar: replacedUserResult[0]?.avatar,
-                                        role_id: replacedUserResult[0]?.role_id,
-                                        email: replacedUserResult[0]?.email,
-                                        replaced_date_time: recipient_details?.replaced_modified_on,
-                                        recipient_type: recipientType?.name || '',
-                                        behaviour,
-                                    } : undefined;
-                                    imposonate_user_data = imporsonateUserResult ? {
-                                        id: imporsonateUserResult?.[0]?.user_id,
-                                        first_name: imporsonateUserResult?.[0]?.first_name,
-                                        last_name: imporsonateUserResult?.[0]?.last_name,
-                                        avatar: imporsonateUserResult?.[0]?.avatar,
-                                        role_id: imporsonateUserResult?.[0]?.role_id,
-                                        email: imporsonateUserResult?.[0]?.email,
-                                        updated_on: recipient_details?.updated_on,
-                                        recipient_type: recipientType?.name || '',
-                                        behaviour,
-                                    } : undefined;
-
-                                }
-                            }
-                        }
-                    }
-
-                }
-                let users: any[] = [];
-                let level_behaviour: any;
-                let receipentstatus: any
-                if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain"  || recipientType?.name === "Vendor Users") {                    
-                    const recipientTypes = JSON.parse(row.recipient_types);
-
-                    for (const recipient of recipientTypes) {
-                        let receipentstatus = recipient.status;
-
-                        if (recipient?.meta_data) {
-                            const metaData = recipient.meta_data;
-                            let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
-                            const level_behaviour = Object.values(metaData)[1];
-
-                            // If existing_replaced_user is present, use that as the userId for fetching the data
-                            if (recipient.existing_replaced_user) {
-                                userId = recipient.existing_replaced_user; // If existing_replaced_user exists, use that ID
-                            }
-
-                            // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
-                            const fetchUserData = async (userId: any) => {
-                                const user = await fetchLevelUserData(userId, workflow.program_id);
-                                return user;
-                            };
-
-                            const user = await fetchUserData(userId);
-
-                            if (user) {
-                                const userData: any = {
-                                    id: user.user_id,
-                                    first_name: user.first_name,
-                                    last_name: user.last_name,
-                                    avatar: user.avatar,
-                                    role_id: user.role_id,
-                                    email: user.email,
-                                    receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.updated_on,
-                                    level_behaviour: level_behaviour,
-                                    replaced_by: null, // Default value
-                                    impersonate_by: null, // Default value
-                                    // existing_replaced_user: null, // Default value
-                                    updated_on: recipient.updated_on,
-                                    notes: recipient.notes,
-                                    reason: recipient.reason,
-                                    actor_first_name: recipient.actor_first_name,
-                                    actor_last_name: recipient.actor_last_name,
-                                    actor_by_avatar: recipient.actor_by_avatar,
-                                    is_admin_override: recipient.is_admin_override,
-                                    replaced_notes: recipient.replaced_notes
-                                };
-
-                                // Fetch "replaced_by" user data if applicable
-                                let replacedByUser = null;
-                                if (recipient.replaced_by) {
-                                    replacedByUser = await fetchUserData(recipient.replaced_by);
-                                    if (replacedByUser) {
-                                        userData.replaced_by = {
-                                            id: replacedByUser.user_id,
-                                            first_name: replacedByUser.first_name,
-                                            last_name: replacedByUser.last_name,
-                                            email: replacedByUser.email,
-                                            avatar: replacedByUser.avatar,
-                                            role_id: replacedByUser.role_id,
-                                            replaced_notes: recipient.replaced_notes,
-                                            replaced_date_time: recipient.replaced_modified_on,
-                                            actor_first_name: recipient.actor_first_name,
-                                            actor_last_name: recipient.actor_last_name,
-                                            actor_by_avatar: recipient.actor_by_avatar,
-                                            is_admin_override: recipient.is_admin_override,
-                                        };
-                                    }
-                                }
-
-                                // Fetch "impersonate_by" user data if applicable
-                                if (recipient.impersonate_by) {
-                                    const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-
-
-                                    if (impersonatedUser) {
-                                        userData.impersonate_by = {
-                                            id: impersonatedUser.user_id,
-                                            first_name: impersonatedUser.first_name,
-                                            last_name: impersonatedUser.last_name,
-                                            email: impersonatedUser.email,
-                                            avatar: impersonatedUser.avatar,
-                                            role_id: impersonatedUser.role_id,
-                                            updated_on: recipient_details?.updated_on,
-                                            impersonate_notes: recipient.impersonate_notes,
-                                            impersonate_date_time: recipient.impersonate_modified_on,
-                                            actor_first_name: recipient.actor_first_name,
-                                            actor_last_name: recipient.actor_last_name,
-                                            actor_by_avatar: recipient.actor_by_avatar,
-                                            is_admin_override: recipient.is_admin_override,
-                                        };
-                                    }
-                                }
-
-
-
-                                // Push the final user data to the users array
-                                users.push(userData);
-                            }
-                        }
-
-                    }
-
-                    // After processing all users, map them to the final input_value format
-                    input_value = users.map(user => {
-                        return {
-                            id: user.id,
-                            name: `${user.first_name} ${user.last_name}`.trim(),
-                            email: user.email,
-                            avatar: user.avatar || null,
-                            level_behaviour: user.level_behaviour,
-                            replaced_by: user.replaced_by,  // Attach replaced_by data
-                            impersonate_by: user.impersonate_by,  // Attach impersonate_by data
-                            // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
-                            receipentStatus: user.receipentstatus,
-                            actor_first_name: user.actor_first_name,
-                            actor_last_name: user.actor_last_name,
-                            actor_by_avatar: user.actor_by_avatar,
-                            is_admin_override: user.is_admin_override,
-                            reason: user.reason,
-                            updated_on: user.updated_on,
-                            notes: user.notes
-                        };
-                    });
-                }
-                if (input_value) {
-                    let recipients = [];
-                    if (Array.isArray(input_value)) {
-
-                        recipients = input_value.map(user => {
-                            return {
-                                name: getName(user),
-                                first_name: user.first_name,
-                                last_name: user.last_name,
-                                actor_first_name: user.actor_first_name,
-                                actor_last_name: user.actor_last_name,
-                                actor_by_avatar: user.actor_by_avatar,
-                                is_admin_override: user.is_admin_override,
-                                updated_on: user.updated_on,
-                                level_id,
-                                status: user.receipentStatus,
-                                // modified_on: user.modified_on,
-                                notes: user.notes,
-                                reason: user.reason,
-                                level_behaviour: user.level_behaviour,
-                                user_id: user.id,
-                                avatar: user.avatar?.url || '',
-                                role_id: user.role_id,
-                                email: user.email,
-                                replaced_by: user.replaced_by,
-                                recipient_type: recipientType?.name || '',
-                                behaviour,
-
-                            };
-                        });
-                    } else {
-                        // If input_value is a single object, create a single recipient
-                        recipients = [{
-
-                            name: getName(input_value),
-                            first_name: input_value.first_name,
-                            last_name: input_value.last_name,
-                            level_id,
-                            status: recipient_status,
-                            updated_on: recipient_details?.updated_on,
-                            notes: recipient_details?.notes,
-                            reason: recipient_details?.reason,
-                            replaced_date_time: recipient_details?.replaced_modified_on,
-                            replaced_notes: recipient_details?.replaced_notes,
-                            user_id: input_value?.id,
-                            actor_first_name: recipient_details?.actor_first_name,
-                            actor_last_name: recipient_details?.actor_last_name,
-                            actor_by_avatar: recipient_details?.actor_by_avatar,
-                            is_admin_override: recipient_details?.is_admin_override,
-                            avatar: input_value.avatar?.url || '',
-                            role_id: input_value.role_id,
-                            email: input_value.email,
-                            recipient_type: recipientType?.name || '',
-                            behaviour,
-                            replaced_by: replaced_user_data,
-                            imporsonate_by: imposonate_user_data
-                        }];
-                    }
-                   
-                    if (recipients.length > 0) {
-                        const hasRejectedRecipient = recipients.some(recipient => recipient.status?.toLowerCase() === "rejected");
-                        if (hasRejectedRecipient) {
-                            workflow.is_rejected_workflow = true;
-                        }
-                    }
-                    // Add the recipients to the workflow levels
-                    recipients.forEach(recipient => {
-                        const existingLevel = getExistingLevel(workflow, level_id);
-                        if (existingLevel) {
-
-                            const duplicateIndex = existingLevel.recipients.findIndex((r:any) => r.user_id === recipient.user_id);
-
-                            if (duplicateIndex === -1) {
-
-                                existingLevel.recipients.push(recipient);
-                            }
-
-                        }
-                        else {
-                            workflow.levels.push({
-                                level_id,
-                                level_order: placement_order,
-                                placement_order,
-                                level_status,
-                                behaviour,
-                                recipients: [recipient],
-                            });
-                        }
-                    });
-                }
-                // await applyBypassDublicateStatus(request, reply, workflow)
-                console.log('in getupdate workflow');
-                
-                let data = await statusHandling(request, reply, workflow)
-            }
+            await processWorkflowRow(row, workflows, program_id);
         }
-        // Return the workflows object with all workflows aggregated by job_workflow_id
+        
+        // Process workflows for status handling
+        for (const workflowId in workflows) {
+            // Ensure there are no duplicate levels with the same placement_order
+            workflows[workflowId].levels = deduplicateLevels(workflows[workflowId].levels);
+            
+            // Perform status handling
+            await statusHandling(request, reply, workflows[workflowId]);
+        }
+        
+        // Return the processed workflows
         return reply.status(200).send({
             statusCode: 200,
-            workflows: Object.values(workflows),  // Return workflows as an array of objects
+            workflows: Object.values(workflows),
             trace_id,
         });
-
     } catch (error: any) {
-        console.log(error);
-
+        console.error('Error in getUpdateWorkflowApprovals:', error);
         return reply.status(500).send({
             statusCode: 500,
             message: 'An error occurred while fetching workflow data.',
             trace_id,
         });
     }
+}
+
+/**
+ * Final deduplication of levels to ensure there are no duplicates with the same placement_order
+ * This is a last resort safety measure to prevent duplicate levels in the response
+ */
+function deduplicateLevels(levels: Level[]): Level[] {
+    // Group levels by placement_order
+    const levelsByPlacementOrder: { [key: number]: Level[] } = {};
+    
+    for (const level of levels) {
+        if (!levelsByPlacementOrder[level.placement_order]) {
+            levelsByPlacementOrder[level.placement_order] = [];
+        }
+        levelsByPlacementOrder[level.placement_order].push(level);
+    }
+    
+    // For each placement_order, merge duplicate levels
+    const result: Level[] = [];
+    
+    for (const placementOrder in levelsByPlacementOrder) {
+        const levelsForOrder = levelsByPlacementOrder[placementOrder];
+        
+        if (levelsForOrder.length === 1) {
+            // No duplicates for this placement_order
+            result.push(levelsForOrder[0]);
+        } else {
+            // Merge all levels with the same placement_order
+            const mergedLevel: Level = { ...levelsForOrder[0] };
+            mergedLevel.recipients = [];
+            
+            // Collect all unique recipients by user_id
+            const recipientsByUserId:any = {};
+            
+            for (const level of levelsForOrder) {
+                for (const recipient of level.recipients) {
+                    // Take the recipient with the most recent updated_on timestamp
+                    if (!recipientsByUserId[recipient.user_id] || 
+                        (recipient.updated_on && (!recipientsByUserId[recipient.user_id].updated_on || 
+                         recipient.updated_on > recipientsByUserId[recipient.user_id].updated_on))) {
+                        recipientsByUserId[recipient.user_id] = recipient;
+                    }
+                }
+            }
+            
+            // Add unique recipients to the merged level
+            mergedLevel.recipients = Object.values(recipientsByUserId);
+            
+            // Add the merged level to the result
+            result.push(mergedLevel);
+        }
+    }
+    
+    // Sort levels by placement_order
+    result.sort((a, b) => a.placement_order - b.placement_order);
+    
+    return result;
+}
+
+/**
+ * Build the SQL query for getting workflow data
+ * This extracts the complex SQL query to a separate function for better readability
+ */
+function buildWorkflowQuery(hierarchyPlaceholders:string) {
+    return `
+        SELECT
+            w.id AS job_workflow_id,
+            w.workflow_id AS workflow_id,
+            w.event_id AS event_id,
+            w.event_title AS event_title,
+            w.name AS workflow_name,
+            w.flow_type AS workflow_type,
+            w.levels,
+            w.status,
+            w.config,
+            w.manager,
+            l.id AS level_id,
+            l.placement_order AS placement_order,
+            r.recipient_type_id,
+            r.meta_data,
+            r.behaviour,
+            e.name,
+            e.slug AS event_slug,
+            JSON_UNQUOTE(JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].status'))) AS level_status,
+            JSON_UNQUOTE(JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types'))) AS recipient_types,
+            
+            /* Get replaced_by user */
+            (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_by'))
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types')),
+                    '$[*]' COLUMNS (value JSON PATH '$')
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
+                LIMIT 1
+            ) AS replaced_by,
+            
+            /* Get existing_replaced_user */
+            (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.existing_replaced_user'))
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types')),
+                    '$[*]' COLUMNS (value JSON PATH '$')
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
+                LIMIT 1
+            ) AS existing_replaced_user,
+            
+            /* Get impersonate_by user */
+            (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.imporsonate_by'))
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types')),
+                    '$[*]' COLUMNS (value JSON PATH '$')
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
+                LIMIT 1
+            ) AS imporsonate_by,
+            
+            /* Get recipient details */
+            (
+                SELECT JSON_OBJECT(
+                    'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
+                    'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
+                    'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
+                    'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
+                    'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
+                    'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
+                    'actor_by_avatar', NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
+                    'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
+                    'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
+                    'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
+                )
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types')),
+                    '$[*]' COLUMNS (value JSON PATH '$')
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
+                LIMIT 1
+            ) AS recipient_details,
+            
+            /* Get recipient status */
+            (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status'))
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(w.levels, CONCAT('$[', l.placement_order, '].recipient_types')),
+                    '$[*]' COLUMNS (value JSON PATH '$')
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
+                LIMIT 1
+            ) AS recipient_status
+            
+        FROM workflow w
+        INNER JOIN workflow_triggered_level l 
+            ON l.workflow_id = w.workflow_id 
+            AND l.workflow_trigger_id = w.workflow_trigger_id
+        LEFT JOIN workflow_triggered_recepient r 
+            ON r.level_id = l.id
+        LEFT JOIN event e
+            ON w.event_id = e.id
+        WHERE
+            w.program_id = :program_id
+            AND w.flow_type = :workflow_action
+            AND w.workflow_trigger_id = :workflow_trigger_id
+            AND w.is_updated = true
+            AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchyPlaceholders}))
+        ORDER BY
+            l.placement_order ASC;
+    `;
+}
+
+/**
+ * Process a workflow row from the database and add it to the workflows map
+ */
+async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow }, program_id: string): Promise<void> {
+    const {
+        level_id,
+        level_status,
+        levels,
+        config,
+        recipient_status,
+        recipient_details,
+        placement_order,
+        recipient_type_id,
+        meta_data,
+        behaviour,
+        replaced_by,
+        existing_replaced_user,
+        imporsonate_by,
+        job_workflow_id,
+    } = row;
+
+    let manager = row?.manager;
+    
+    // Initialize workflow if not already exists
+    if (!workflows[job_workflow_id]) {
+        workflows[job_workflow_id] = {
+            program_id: program_id,
+            job_workflow_id: job_workflow_id,
+            workflow_id: row.workflow_id,
+            event_title: row.event_title,
+            workflow_name: row.workflow_name,
+            workflow_type: row.workflow_type,
+            event_slug: row.event_slug,
+            status: row.status,
+            config: row.config,
+            levels: [],
+            is_rejected_workflow: row.status?.toLowerCase() === "rejected"
+        };
+    }
+
+    const workflow = workflows[job_workflow_id];
+    
+    // Skip processing if no meta_data present
+    if (!meta_data || Object.keys(meta_data).length === 0) {
+        return;
+    }
+    
+    // Get recipient type information
+    const recipientType = await getRecipientTypeInfo(recipient_type_id);
+    if (!recipientType) {
+        return;
+    }
+    
+    try {
+        // Process recipients based on recipient type
+        let recipients:any= [];
+        
+        if (recipientType.name === 'Specific User' || recipientType.name === 'Multiple users' || 
+            recipientType.name === "Job Manager" || recipientType.name === "Assignment Manager") {
+            recipients = await processSpecificUserRecipients(
+                recipientType, meta_data, existing_replaced_user, replaced_by, 
+                imporsonate_by, program_id, recipient_details, level_id, 
+                recipient_status, behaviour
+            );
+        } 
+        else if (recipientType.name === "Manager of") {
+            recipients = await processManagerOfRecipients(
+                manager, existing_replaced_user, replaced_by, imporsonate_by, 
+                program_id, recipient_details, level_id, recipient_status, 
+                recipientType, behaviour, workflow
+            );
+        }
+        else if (recipientType.name === "Custom Field Supplied User" || recipientType.name === "Manager of") {
+            recipients = await processCustomFieldRecipients(
+                levels, recipientType, replaced_by, imporsonate_by, program_id, 
+                recipient_details, level_id, recipient_status, behaviour, workflow
+            );
+        }
+        else if (["Users in Program Role", "Master Data Owner", "Managerial Chain", 
+                "Financial Authority Chain", "Top of Financial Authority Chain", 
+                "Vendor Users"].includes(recipientType.name)) {
+            recipients = await processRoleBasedRecipients(
+                row.recipient_types, level_id, behaviour, recipientType, program_id,
+                recipient_details, workflow
+            );
+        }
+        
+        // Skip if no recipients were processed
+        if (!recipients || recipients.length === 0) {
+            return;
+        }
+        
+        // Check for rejected recipients to update workflow status
+        const hasRejectedRecipient = recipients.some((recipient:any) => 
+            recipient.status?.toLowerCase() === "rejected"
+        );
+        
+        if (hasRejectedRecipient) {
+            workflow.is_rejected_workflow = true;
+        }
+        
+        // Add recipients to the workflow levels using our improved deduplication logic
+        addRecipientsToWorkflow(workflow, recipients, level_id, placement_order, level_status, behaviour);
+    } catch (error) {
+        console.error(`Error processing workflow row for job_workflow_id ${job_workflow_id}, level_id ${level_id}:`, error);
+        // Continue processing other rows rather than failing the entire operation
+    }
+}
+
+/**
+ * Get recipient type information
+ */
+async function getRecipientTypeInfo(recipient_type_id: string) {
+    if (!recipient_type_id) return null;
+    
+    const recipientTypeQuery = `
+        SELECT id, name
+        FROM recipient_type
+        WHERE id = :recipient_type_id
+        AND is_enabled = true
+        LIMIT 1
+    `;
+    
+    const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { recipient_type_id },
+    });
+    
+    return recipientTypeResult[0] as Recipient;
+}
+
+/**
+ * TypeScript interfaces for workflow objects
+ */
+// interface Recipient {
+//     name: string;
+//     first_name: string;
+//     last_name: string;
+//     level_id: string;
+//     status: string;
+//     updated_on?: number;
+//     notes?: string;
+//     reason?: string;
+//     replaced_date_time?: number;
+//     replaced_notes?: string;
+//     user_id: string;
+//     actor_first_name?: string;
+//     actor_last_name?: string;
+//     actor_by_avatar?: string;
+//     is_admin_override?: boolean;
+//     avatar: string;
+//     role_id: string;
+//     email: string;
+//     recipient_type: string;
+//     behaviour: any;
+//     replaced_by?: any;
+//     imporsonate_by?: any;
+// }
+
+interface Level {
+    level_id: string;
+    level_order: number;
+    placement_order: number;
+    level_status: string;
+    behaviour: any;
+    recipients:any;
+}
+
+// interface Workflow {
+//     program_id: string;
+//     job_workflow_id: string;
+//     workflow_id: string;
+//     event_title: string;
+//     workflow_name: string;
+//     workflow_type: string;
+//     event_slug?: string;
+//     status: string;
+//     config: any;
+//     levels: Level[];
+//     is_rejected_workflow: boolean;
+//     action_allowed?: any;
+// }
+
+/**
+ * Find an existing level in the workflow by placement_order and recipient's user_id
+ * This is a replacement for the original getExistingLevel function
+ * It now checks for duplicate levels based on placement_order rather than level_id
+ */
+function getPreviousExistingLevel(workflow: Workflow, level_id: string, placement_order: number, recipient_user_id?: string): Level | null {
+    // First try to match by level_id (for backward compatibility)
+    const levelById = workflow.levels.find(level => level.level_id === level_id);
+    if (levelById) return levelById;
+    
+    // If level_id not found and we have a user_id, try to find by placement_order and recipient user_id
+    if (recipient_user_id) {
+        const levelByPlacementOrder = workflow.levels.find(level => 
+            level.placement_order === placement_order && 
+            level.recipients.some(recipient => recipient.user_id === recipient_user_id)
+        );
+        if (levelByPlacementOrder) return levelByPlacementOrder;
+    }
+    
+    // If no matching level found by either method
+    return null;
+}
+
+/**
+ * Add recipients to workflow, avoiding duplicates
+ * This is the key function to fix the duplicate levels issue
+ * Now uses placement_order and user_id to detect duplicates instead of just level_id
+ */
+function addRecipientsToWorkflow(
+    workflow: Workflow, 
+    recipients:any, 
+    level_id: string, 
+    placement_order: number, 
+    level_status: string, 
+    behaviour: any
+): void {
+    // Skip if no recipients
+    if (!recipients.length) return;
+    
+    // First see if we can find a matching level for the first recipient
+    // We use the first recipient's user_id to check for existing levels
+    const firstRecipient = recipients[0];
+    const existingLevel = getPreviousExistingLevel(workflow, level_id, placement_order, firstRecipient.user_id);
+    
+    if (existingLevel) {
+        // Level exists - add recipients to existing level (avoiding duplicates)
+        for (const recipient of recipients) {
+            // Check if recipient already exists in this level by user_id
+            const duplicateIndex = existingLevel.recipients.findIndex((r:any) => r.user_id === recipient.user_id);
+            
+            if (duplicateIndex === -1) {
+                // Not a duplicate, add to level
+                existingLevel.recipients.push(recipient);
+            } else {
+                // If this is a newer record (has a higher updated_on timestamp), update the existing one
+                const existingRecipient:any = existingLevel.recipients[duplicateIndex];
+                if (recipient.updated_on && (!existingRecipient.updated_on || recipient.updated_on > existingRecipient.updated_on)) {
+                    existingLevel.recipients[duplicateIndex] = recipient;
+                }
+            }
+        }
+    } else {
+        // Level doesn't exist - create new level with recipients
+        workflow.levels.push({
+            level_id,
+            level_order: placement_order,
+            placement_order,
+            level_status,
+            behaviour,
+            recipients: [...recipients] // Create a new array to avoid reference issues
+        });
+    }
+    
+    // Sort levels by placement_order to ensure consistent display
+    workflow.levels.sort((a, b) => a.placement_order - b.placement_order);
+}
+
+/**
+ * Process recipients for Specific User, Multiple Users, Job Manager, Assignment Manager types
+ */
+async function processSpecificUserRecipients(
+    recipientType: any, 
+    meta_data: any, 
+    existing_replaced_user: string, 
+    replaced_by: string, 
+    imporsonate_by: string, 
+    program_id: string, 
+    recipient_details: any, 
+    level_id: string, 
+    recipient_status: string, 
+    behaviour: any
+) {
+    const input_values: any = Object.values(meta_data);
+    if (!input_values.length) return [];
+    
+    // Fetch primary user data
+    let userResult = null;
+    if (existing_replaced_user) {
+        userResult = await fetchUserData(existing_replaced_user, program_id);
+    } else {
+        userResult = await fetchUserData(input_values[0], program_id);
+    }
+    
+    if (!userResult?.length) return [];
+    
+    // Fetch replaced user data if applicable
+    let replaced_user_data = null;
+    if (replaced_by) {
+        const replacedUserResult = await fetchUserData(replaced_by, program_id);
+        if (replacedUserResult?.length) {
+            replaced_user_data = mapReplacedUserData(replacedUserResult[0], recipientType.name, recipient_details, behaviour);
+        }
+    }
+    
+    // Fetch impersonated user data if applicable
+    let imposonate_user_data = null;
+    if (imporsonate_by) {
+        const imporsonateUserResult = await fetchUserData(imporsonate_by, program_id);
+        if (imporsonateUserResult?.length) {
+            imposonate_user_data = mapImporsonateUserData(imporsonateUserResult[0], recipientType.name, recipient_details, behaviour);
+        }
+    }
+    
+    // Map user data to recipient format
+    const user = userResult[0];
+    const input_value = mapUserData(user, recipient_details);
+    
+    return [{
+        name: getName(input_value),
+        first_name: input_value.first_name,
+        last_name: input_value.last_name,
+        level_id,
+        status: recipient_status,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_date_time: recipient_details?.replaced_modified_on,
+        replaced_notes: recipient_details?.replaced_notes,
+        user_id: input_value.id,
+        actor_first_name: recipient_details?.actor_first_name,
+        actor_last_name: recipient_details?.actor_last_name,
+        actor_by_avatar: recipient_details?.actor_by_avatar,
+        is_admin_override: recipient_details?.is_admin_override,
+        avatar: input_value.avatar?.url || '',
+        role_id: input_value.role_id,
+        email: input_value.email,
+        recipient_type: recipientType?.name || '',
+        behaviour,
+        replaced_by: replaced_user_data,
+        imporsonate_by: imposonate_user_data
+    }];
+}
+
+/**
+ * Process recipients for Manager of type
+ */
+async function processManagerOfRecipients(
+    manager: string, 
+    existing_replaced_user: string, 
+    replaced_by: string, 
+    imporsonate_by: string, 
+    program_id: string, 
+    recipient_details: any, 
+    level_id: string, 
+    recipient_status: string, 
+    recipientType: any, 
+    behaviour: any,
+    workflow: any
+) {
+    // Skip if no manager
+    if (!manager) return [];
+    
+    // Get job manager data
+    const jobManagerResult = await fetchJobManagerData(manager, program_id);
+    if (!jobManagerResult?.length) return [];
+    
+    const managerData:any = jobManagerResult[0];
+    if (!managerData.supervisor) return [];
+    
+    // Get supervisor data
+    let supervisorResult = null;
+    if (existing_replaced_user) {
+        supervisorResult = await fetchSupervisorData(existing_replaced_user, program_id);
+    } else {
+        supervisorResult = await fetchSupervisorData(managerData.supervisor, program_id);
+    }
+    
+    if (!supervisorResult?.length) return [];
+    
+    // Get replaced user data if applicable
+    let replaced_user_data = null;
+    if (replaced_by) {
+        const replacedUserResult = await fetchSupervisorData(replaced_by, program_id);
+        if (replacedUserResult?.length) {
+            replaced_user_data = mapReplacedUserData(replacedUserResult[0], recipientType.name, recipient_details, behaviour);
+        }
+    }
+    
+    // Get impersonated user data if applicable
+    let imposonate_user_data = null;
+    if (imporsonate_by) {
+        const imporsonateUserResult = await fetchSupervisorData(imporsonate_by, program_id);
+        if (imporsonateUserResult?.length) {
+            imposonate_user_data = mapImporsonateUserData(imporsonateUserResult[0], recipientType.name, recipient_details, behaviour);
+        }
+    }
+    
+    // Map supervisor data to input value
+    const supervisor:any = supervisorResult[0];
+    const supervisorData = {
+        id: supervisor.user_id,
+        name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
+        email: supervisor.email,
+        avatar: supervisor.avatar || null,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_notes: recipient_details?.replaced_notes
+    };
+    
+    // Create recipient
+    return [{
+        name: getName(supervisorData),
+        first_name: supervisor.first_name,
+        last_name: supervisor.last_name,
+        level_id,
+        status: recipient_status,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_date_time: recipient_details?.replaced_modified_on,
+        replaced_notes: recipient_details?.replaced_notes,
+        user_id: supervisor.user_id,
+        actor_first_name: recipient_details?.actor_first_name,
+        actor_last_name: recipient_details?.actor_last_name,
+        actor_by_avatar: recipient_details?.actor_by_avatar,
+        is_admin_override: recipient_details?.is_admin_override,
+        avatar: supervisor.avatar || '',
+        role_id: supervisor.role_id,
+        email: supervisor.email,
+        recipient_type: recipientType?.name || '',
+        behaviour,
+        replaced_by: replaced_user_data,
+        imporsonate_by: imposonate_user_data
+    }];
+}
+
+/**
+ * Process recipients for Custom Field Supplied User type
+ */
+async function processCustomFieldRecipients(
+    levels: any, 
+    recipientType: any, 
+    replaced_by: string, 
+    imporsonate_by: string, 
+    program_id: string, 
+    recipient_details: any, 
+    level_id: string, 
+    recipient_status: string, 
+    behaviour: any,
+    workflow: any
+) {
+    let userFound = false;
+    let userData = null;
+    let replacedUserResult = null;
+    let imporsonateUserResult = null;
+    
+    // Loop through each level to find matching recipient
+    for (const level of levels || []) {
+        for (const recipient of level.recipient_types || []) {
+            if (recipient?.meta_data && recipientType?.id == recipient.recipient_type_id) {
+                const metaData = recipient.meta_data;
+                let userId:any = Object.values(metaData)[0];
+                
+                // Use existing_replaced_user if available
+                if (recipient.existing_replaced_user) {
+                    userId = recipient.existing_replaced_user;
+                }
+                
+                // Fetch user data
+                const userResult = await fetchUserData(userId, program_id);
+                if (!userResult?.length) continue;
+                
+                userFound = true;
+                const user:any = userResult[0];
+                
+                // Fetch replaced user data if applicable
+                if (replaced_by) {
+                    replacedUserResult = await fetchUserData(replaced_by, program_id);
+                }
+                
+                // Fetch impersonated user data if applicable
+                if (imporsonate_by) {
+                    imporsonateUserResult = await fetchUserData(imporsonate_by, program_id);
+                }
+                
+                // Map user data
+                userData = {
+                    id: user.user_id,
+                    name: `${user.first_name}${" "}${user.last_name}`,
+                    email: user.email,
+                    avatar: user.avatar,
+                    updated_on: recipient_details?.updated_on,
+                    notes: recipient_details?.notes,
+                    reason: recipient_details?.reason,
+                    replaced_notes: recipient_details?.replaced_notes
+                };
+                
+                // Exit early once we found a matching user
+                break;
+            }
+        }
+        if (userFound) break;
+    }
+    
+    if (!userData) return [];
+    
+    // Process replaced user data
+    let replaced_user_data = null;
+    if (replacedUserResult?.length) {
+        replaced_user_data = mapReplacedUserData(replacedUserResult[0], recipientType.name, recipient_details, behaviour);
+    }
+    
+    // Process impersonated user data
+    let imposonate_user_data = null;
+    if (imporsonateUserResult?.length) {
+        imposonate_user_data = mapImporsonateUserData(imporsonateUserResult[0], recipientType.name, recipient_details, behaviour);
+    }
+    
+    // Create recipient
+    return [{
+        name: getName(userData),
+        first_name: userData.name.split(' ')[0],
+        last_name: userData.name.split(' ').slice(1).join(' '),
+        level_id,
+        status: recipient_status,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_date_time: recipient_details?.replaced_modified_on,
+        replaced_notes: recipient_details?.replaced_notes,
+        user_id: userData.id,
+        actor_first_name: recipient_details?.actor_first_name,
+        actor_last_name: recipient_details?.actor_last_name,
+        actor_by_avatar: recipient_details?.actor_by_avatar,
+        is_admin_override: recipient_details?.is_admin_override,
+        avatar: userData.avatar || '',
+        email: userData.email,
+        recipient_type: recipientType?.name || '',
+        behaviour,
+        replaced_by: replaced_user_data,
+        imporsonate_by: imposonate_user_data
+    }];
+}
+
+/**
+ * Process recipients for role-based recipient types
+ */
+async function processRoleBasedRecipients(
+    recipient_types: string,
+    level_id: string,
+    behaviour: any,
+    recipientType: any,
+    program_id: string,
+    recipient_details: any,
+    workflow: any
+) {
+    if (!recipient_types) return [];
+    
+    const recipientTypes = JSON.parse(recipient_types);
+    const users = [];
+    
+    // Process each recipient type
+    for (const recipient of recipientTypes) {
+        if (!recipient?.meta_data) continue;
+        
+        const metaData = recipient.meta_data;
+        let userId:any = Object.values(metaData)[0];
+        const level_behaviour = Object.values(metaData)[1];
+        
+        // Use existing_replaced_user if available
+        if (recipient.existing_replaced_user) {
+            userId = recipient.existing_replaced_user;
+        }
+        
+        // Fetch user data
+        const user:any = await fetchLevelUserData(userId, program_id);
+        if (!user) continue;
+        
+        // Build user data object
+        const userData: any = {
+            id: user.user_id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            avatar: user.avatar,
+            role_id: user.role_id,
+            email: user.email,
+            receipentstatus: recipient.status,
+            modifiedOn: recipient.updated_on,
+            level_behaviour: level_behaviour,
+            replaced_by: null,
+            impersonate_by: null,
+            updated_on: recipient.updated_on,
+            notes: recipient.notes,
+            reason: recipient.reason,
+            actor_first_name: recipient.actor_first_name,
+            actor_last_name: recipient.actor_last_name,
+            actor_by_avatar: recipient.actor_by_avatar,
+            is_admin_override: recipient.is_admin_override,
+            replaced_notes: recipient.replaced_notes
+        };
+        
+        // Process replaced_by user if applicable
+        if (recipient.replaced_by) {
+            const replacedByUser:any = await fetchLevelUserData(recipient.replaced_by, program_id);
+            if (replacedByUser) {
+                userData.replaced_by = {
+                    id: replacedByUser.user_id,
+                    first_name: replacedByUser.first_name,
+                    last_name: replacedByUser.last_name,
+                    email: replacedByUser.email,
+                    avatar: replacedByUser.avatar,
+                    role_id: replacedByUser.role_id,
+                    replaced_notes: recipient.replaced_notes,
+                    replaced_date_time: recipient.replaced_modified_on,
+                    actor_first_name: recipient.actor_first_name,
+                    actor_last_name: recipient.actor_last_name,
+                    actor_by_avatar: recipient.actor_by_avatar,
+                    is_admin_override: recipient.is_admin_override,
+                };
+            }
+        }
+        
+        // Process impersonate_by user if applicable
+        if (recipient.impersonate_by) {
+            const impersonatedUser:any = await fetchLevelUserData(recipient.impersonate_by, program_id);
+            if (impersonatedUser) {
+                userData.impersonate_by = {
+                    id: impersonatedUser.user_id,
+                    first_name: impersonatedUser.first_name,
+                    last_name: impersonatedUser.last_name,
+                    email: impersonatedUser.email,
+                    avatar: impersonatedUser.avatar,
+                    role_id: impersonatedUser.role_id,
+                    updated_on: recipient_details?.updated_on,
+                    impersonate_notes: recipient.impersonate_notes,
+                    impersonate_date_time: recipient.impersonate_modified_on,
+                    actor_first_name: recipient.actor_first_name,
+                    actor_last_name: recipient.actor_last_name,
+                    actor_by_avatar: recipient.actor_by_avatar,
+                    is_admin_override: recipient.is_admin_override,
+                };
+            }
+        }
+        
+        users.push(userData);
+    }
+    
+    // Map users to the final recipients format
+    return users.map(user => {
+        return {
+            name: `${user.first_name} ${user.last_name}`.trim(),
+            first_name: user.first_name,
+            last_name: user.last_name,
+            level_id,
+            status: user.receipentstatus,
+            updated_on: user.updated_on,
+            notes: user.notes,
+            reason: user.reason,
+            actor_first_name: user.actor_first_name,
+            actor_last_name: user.actor_last_name,
+            actor_by_avatar: user.actor_by_avatar,
+            is_admin_override: user.is_admin_override,
+            user_id: user.id,
+            avatar: user.avatar?.url || '',
+            role_id: user.role_id,
+            email: user.email,
+            level_behaviour: user.level_behaviour,
+            replaced_by: user.replaced_by,
+            impersonate_by: user.impersonate_by,
+            recipient_type: recipientType?.name || '',
+            behaviour,
+        };
+    });
 }
 
 export const getModuleEvent = async (

@@ -190,7 +190,7 @@ export async function FetchUsersBasedOnHierarchy(
             type: QueryTypes.SELECT,
             replacements: {
                 program_id: program_id,
-                user_type: user_type,
+                user_type: user_type || '',
                 hierarchy_ids: hierarchy_ids,
             },
         });

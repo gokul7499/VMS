@@ -29,7 +29,6 @@ ExpenseConfigurationModel.init(
     },
     entity_id: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
       allowNull: true,
     },
     slug: {
@@ -122,7 +121,7 @@ ExpenseConfigurationModel.init(
     },
     latest: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      allowNull: false
     },
     program_id: {
       type: DataTypes.UUID,

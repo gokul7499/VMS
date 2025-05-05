@@ -109,6 +109,7 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
   }
 };
 
+
 export const getHierarchies = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
   const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query as {
@@ -169,7 +170,10 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         hierarchies: [],
       });
     }
-    const formattedHierarchies = hierarchies.map((hierarchy) => ({
+
+    const sortedHierarchies = hierarchies.sort((a, b) => a.created_on - b.created_on);
+
+    const formattedHierarchies = sortedHierarchies.map((hierarchy) => ({
       ...hierarchy,
       is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
     }));
