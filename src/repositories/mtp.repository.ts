@@ -221,8 +221,11 @@ SELECT
   m.updated_on,
   m.mtp_id,
   m.mtp_candidate_id,
-  JSON_LENGTH(m.linked_profiles) AS linked_profiles_count,
-  JSON_ARRAYAGG(JSON_OBJECT(
+  (
+    JSON_LENGTH(IFNULL(m.linked_profiles, '[]')) -
+    IF(JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(m.mtp_candidate_id), '$'), 1, 0)
+  ) AS linked_profiles_count,
+    JSON_ARRAYAGG(JSON_OBJECT(
     'mtp_candidate_id', c.id,
     'first_name', c.first_name,
     'last_name', c.last_name,
