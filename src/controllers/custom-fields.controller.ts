@@ -39,10 +39,6 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
 
   generateSlugIfNeeded(name, customFieldData);
 
-  if (!validateLabelLength(label, reply, traceId)) return;
-
-  if (!validateNameLength(name, reply, traceId)) return;
-
   try {
     const existingField = await CustomField.findOne({
       where: {
