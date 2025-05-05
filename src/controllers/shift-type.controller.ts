@@ -12,7 +12,7 @@ import RateConfigurationsRepository from '../repositories/rate-configurations.re
 
 export async function getALLShiftType(request: FastifyRequest, reply: FastifyReply) {
     const searchFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on'];
-    const responseFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on', 'shift_type_time', 'time_duration'];
+    const responseFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on', 'shift_type_time', 'time_duration','shift_format'];
     return baseSearch(request, reply, ShiftTypeModel, searchFields, responseFields);
 }
 
