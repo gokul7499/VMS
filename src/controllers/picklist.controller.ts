@@ -923,6 +923,7 @@ export async function getPicklistFilter(
 
     let whereClause: any = {
       is_deleted: false,
+      is_visible: true
     };
 
     // Filters
