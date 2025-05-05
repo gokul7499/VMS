@@ -453,7 +453,7 @@ export async function updateCandidateByIdAndProgramId(
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id, } = request.params as { program_id: string, id: string; };
+        const { program_id, id, } = request.params as { program_id: string, id: string };
         const updates = request.body as candidateInterface;
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -466,13 +466,34 @@ export async function updateCandidateByIdAndProgramId(
         }
         const userId = user?.sub;
 
-        const [updatedRows] = await candidateModel.update({ ...updates, updated_by: userId, updated_on: Date.now() }, {
-            where: {
-                program_id,
-                id,
-                is_deleted: false
+        if (updates.email) {
+            const existingCandidate = await candidateModel.findOne({
+                where: {
+                    program_id,
+                    email: updates.email,
+                    id: { [Op.ne]: id },
+                    is_deleted: false,
+                },
+            });
+
+            if (existingCandidate) {
+                return reply.status(200).send({
+                    status_code: 200,
+                    message: "Candidate with the same email already exists in this program",
+                    candidate: {},
+                    trace_id: traceId,
+                });
             }
-        });
+        }
+        const [updatedRows] = await candidateModel.update(
+            { ...updates, updated_by: userId, updated_on: Date.now() },
+            {
+                where: {
+                    program_id,
+                    id,
+                    is_deleted: false
+                }
+            });
         if (updatedRows === 0) {
             return reply.status(404).send({
                 status_code: 404,
@@ -489,7 +510,7 @@ export async function updateCandidateByIdAndProgramId(
         });
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate update successfully",
+            message: "Candidate updated successfully",
             record: updatedRecord,
             trace_id: traceId,
         });
