@@ -542,20 +542,20 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.custom_fields && programVendorData.custom_fields.length > 0) {
+        if (programVendorData.custom_fields) {
             await VendorCustomField.destroy({
                 where: { vendor_id: programVendorData.id }
             });
-        }
 
-        if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
-            const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
-                program_id,
-                custom_field_id: field.id,
-                value: field.value,
-                vendor_id: programVendorData.id,
-            }));
-            await VendorCustomField.bulkCreate(customFields);
+            if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
+                const customFields = programVendorData.custom_fields.map((field: { id: any; value: any; }) => ({
+                    program_id,
+                    custom_field_id: field.id,
+                    value: field.value,
+                    vendor_id: programVendorData.id,
+                }));
+                await VendorCustomField.bulkCreate(customFields);
+            }
         }
         reply.status(200).send({
             status_code: 200,
@@ -632,7 +632,7 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
         if (vendorData.length === 0) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'ProgramVendor not found.',
+                message: 'Program vendor not found.',
                 trace_id: traceId,
                 program_vendor: null,
             });
@@ -642,14 +642,14 @@ export const getProgramVendorById = async (request: FastifyRequest, reply: Fasti
 
         return reply.status(200).send({
             status_code: 200,
-            message: 'ProgramVendor data fetched successfully.',
+            message: 'Program vendor data fetched successfully.',
             trace_id: traceId,
             program_vendor: programVendor,
         });
     } catch (error: any) {
         return reply.status(500).send({
             status_code: 500,
-            message: 'An error occurred while retrieving ProgramVendor data.',
+            message: 'An error occurred while retrieving program vendor data.',
             trace_id: traceId,
             error: error.message
         });
@@ -905,7 +905,7 @@ export const getVendorDocuments = async (
             try {
                 const vendorRecord = await getVendorRecord();
                 const vendorId = vendorRecord[0]?.id;
-        
+
                 if (!vendorId) {
                     return reply.status(400).send({
                         status_code: 400,
@@ -913,7 +913,7 @@ export const getVendorDocuments = async (
                         trace_id: traceId,
                     });
                 }
-        
+
                 replacements.vendor_id = vendorId;
                 documents = await sequelize.query<VendorDetails>(complianceDocumentGetByUserId(replacements), {
                     replacements,
@@ -926,7 +926,7 @@ export const getVendorDocuments = async (
                     trace_id: traceId,
                     error: error.message,
                 });
-            }        
+            }
         } else {
             return reply.status(400).send({
                 status_code: 400,
@@ -963,7 +963,7 @@ export const getVendorDocuments = async (
                 name: doc.name,
                 act: doc.act,
                 document_number: doc.document_number,
-                document_details:doc.document_details,
+                document_details: doc.document_details,
                 upload_document_days: doc.upload_document_days,
                 regain_compliance_days: doc.regain_compliance_days,
                 attached_doc_url: doc.attached_doc_url,
