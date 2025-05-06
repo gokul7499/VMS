@@ -11,6 +11,7 @@ class PicklistItemModel extends Model {
   disabled_program: any;
   label_program: any;
   meta_data: any;
+  defined_by: any;
 }
 
 PicklistItemModel.init({
