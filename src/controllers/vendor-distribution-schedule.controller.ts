@@ -17,6 +17,7 @@ export const createVendorDistributionSchedule = async (
 ) => {
     const { program_id } = request.params as { program_id: string };
     const vendorDistributionScheduleData = request.body as VendorDistributionSchedule;
+    const transaction = await sequelize.transaction();
 
     const authHeader = request.headers.authorization;
 
@@ -59,10 +60,12 @@ export const createVendorDistributionSchedule = async (
             where: {
                 name: scheduleData.name,
                 program_id: program_id,
+                transaction
             },
         });
 
         if (existingSchedule) {
+            await transaction.rollback();
             return reply.status(409).send({
                 status_code: 409,
                 message: 'A vendor distribution schedule with this name already exists in the program.',
@@ -75,7 +78,7 @@ export const createVendorDistributionSchedule = async (
             program_id,
             created_by: userId,
             updated_by: userId,
-        });
+        }, { transaction });
 
         if (Array.isArray(schedules)) {
             const schedulePromises = schedules.map((schedule) => {
@@ -84,9 +87,11 @@ export const createVendorDistributionSchedule = async (
                     measure_unit: schedule.measure_unit,
                     vendors: schedule.vendors || [],
                     distribution_id: newVendorSchedule.id,
-                    condition:schedule.condition
+                    condition:schedule.condition,
+                    created_by :userId,
+                    updated_by:userId
                 });
-            });
+            }, { transaction });
 
             await Promise.all(schedulePromises);
         }
@@ -109,6 +114,7 @@ export const createVendorDistributionSchedule = async (
             },
             vendorDistributionScheduleModel
         );
+        await transaction.commit();
 
         reply.status(201).send({
             status_code: 201,
@@ -136,6 +142,7 @@ export const createVendorDistributionSchedule = async (
             },
             vendorDistributionScheduleModel
         );
+        await transaction.rollback();
 
         reply.status(500).send({
             status_code: 500,
@@ -286,6 +293,8 @@ export const updateVendorDistributionSchedule = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const transaction = await sequelize.transaction();
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -302,9 +311,12 @@ export const updateVendorDistributionSchedule = async (
 
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
             where: { program_id, id, is_deleted: false },
+            transaction,
         });
 
         if (!vendorDistributionSchedule) {
+            await transaction.rollback();
+
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
@@ -319,10 +331,12 @@ export const updateVendorDistributionSchedule = async (
                     program_id,
                     name: updateData.name,
                     is_deleted: false,
+                    transaction
                 },
             });
 
             if (existingSchedule) {
+                await transaction.rollback();
                 return reply.status(409).send({
                     status_code: 409,
                     message: 'A vendor distribution schedule with this name already exists.',
@@ -336,11 +350,12 @@ export const updateVendorDistributionSchedule = async (
             ...(updateData.description && { description: updateData.description }),
             ...(updateData.is_enabled !== undefined && { is_enabled: updateData.is_enabled }),
             updated_by: userId
-        });
+        }, { transaction });
 
         if (updateData.schedules && Array.isArray(updateData.schedules)) {
             const existingSchedules = await DistScheduleDetail.findAll({
                 where: { vendor_distrubution_id: id },
+                transaction
             });
 
             const incomingScheduleIds = updateData.schedules
@@ -367,6 +382,7 @@ export const updateVendorDistributionSchedule = async (
                         },
                         {
                             where: { id: schedule.id, vendor_distrubution_id: id, updated_by: userId },
+                             transaction 
                         }
                     );
                 } else {
@@ -374,10 +390,11 @@ export const updateVendorDistributionSchedule = async (
                     await DistScheduleDetail.create({
                         ...scheduleData,
                         vendor_distrubution_id: vendorDistributionSchedule.id,
-                    });
+                    } ,{ transaction });
                 }
             }
         }
+        await transaction.commit();
 
         reply.status(200).send({
             status_code: 200,
@@ -385,6 +402,7 @@ export const updateVendorDistributionSchedule = async (
             trace_id: traceId,
         });
     } catch (error) {
+        await transaction.rollback();
         console.error(error);
         reply.status(500).send({
             status_code: 500,
