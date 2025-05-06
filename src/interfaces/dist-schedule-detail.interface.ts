@@ -1,7 +1,7 @@
 export interface DistScheduleDetailInterface {
     id: string;
     duration: number;
-    vendor_distrubution_id:any;
+    distrubution_id:any;
     measure_unit: string;
     vendors: any;
     is_enabled: boolean;

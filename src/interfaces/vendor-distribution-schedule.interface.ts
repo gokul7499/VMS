@@ -8,6 +8,7 @@ export interface VendorDistributionSchedule {
     created_on?: bigint;
     updated_on?: bigint;
     schedules: {
+        condition: any;
         duration: number;
         measure_unit: string;
         vendors: string[];
