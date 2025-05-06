@@ -60,8 +60,8 @@ export const createVendorDistributionSchedule = async (
             where: {
                 name: scheduleData.name,
                 program_id: program_id,
-                transaction
-            },
+            }, transaction
+
         });
 
         if (existingSchedule) {
@@ -143,6 +143,7 @@ export const createVendorDistributionSchedule = async (
             vendorDistributionScheduleModel
         );
         await transaction.rollback();
+        console.log(error);
 
         reply.status(500).send({
             status_code: 500,
@@ -331,8 +332,9 @@ export const updateVendorDistributionSchedule = async (
                     program_id,
                     name: updateData.name,
                     is_deleted: false,
-                    transaction
+                    
                 },
+                transaction
             });
 
             if (existingSchedule) {
@@ -369,6 +371,7 @@ export const updateVendorDistributionSchedule = async (
             for (const scheduleToDelete of schedulesToDelete) {
                 await DistScheduleDetail.destroy({
                     where: { id: scheduleToDelete.id },
+                    transaction
                 });
             }
 
