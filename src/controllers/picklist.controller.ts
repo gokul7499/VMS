@@ -5,7 +5,7 @@ import { Programs } from "../models/programs.model"
 import picklist_item_model from '../models/picklist-item.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { sequelize } from '../config/instance';
-import { Op } from 'sequelize';
+import { Op, WhereOptions } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
@@ -1060,9 +1060,10 @@ export const clonePredefinedPicklistsForProgram = async (
   const predefinedPicklists = await picklist_model.findAll({
     where: {
       name: { [Op.in]: requiredSlugs },
+      program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
-    },
+    } as WhereOptions<any>, 
     transaction,
   });
     
