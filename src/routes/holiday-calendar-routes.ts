@@ -13,7 +13,7 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarById);
 
-  fastify.post('/holiday-calendar', {
+  fastify.post('/program/:program_id/holiday-calendar', {
     // preHandler: validatePermissions(Actions.CREATE, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.createHolidayCalendar);
 
