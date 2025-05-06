@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
+import picklistItemModel from '../models/picklist-item.model';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -415,6 +416,8 @@ export async function deletePredefinedPicklist(
   });
 }
 
+
+
 export const updatePicklistAndItem = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -434,64 +437,78 @@ export const updatePicklistAndItem = async (
   const userId = user?.sub;
   try {
     let picklist;
+    if (picklist_data.defined_by === "PREDEFINED") {
+      const existingPicklistWithSameName = await picklist_model.findOne({
+        where: {
+          [Op.and]: [
+            sequelize.where(
+              sequelize.fn("lower", sequelize.col("name")),
+              sequelize.fn("lower", picklist_data.name)
+            ),
+            { id: { [Op.ne]: id } },
+            { is_deleted: false },
+          ],
+        },
+      });
 
-    const isPredefined = picklist_data.defined_by?.toUpperCase() === "PREDEFINED";
-    const nameCheckWhere: any = {
-      [Op.and]: [
-        sequelize.where(
-          sequelize.fn("lower", sequelize.col("name")),
-          sequelize.fn("lower", picklist_data.name)
-        ),
-        { id: { [Op.ne]: id } },
-        { is_deleted: false },
-      ],
-    };
-    if (!isPredefined) {
-      nameCheckWhere[Op.and].push({ program_id });
-    }
+      if (existingPicklistWithSameName) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Picklist with the same name already exists.",
+          trace_id: traceId,
+        });
+      }
 
-    const existingPicklist = await picklist_model.findOne({ where: nameCheckWhere });
+      picklist = await picklist_model.findOne({
+        where: { id },
+      });
+    } else {
+      const existingPicklistWithSameName = await picklist_model.findOne({
+        where: {
+          [Op.and]: [
+            sequelize.where(
+              sequelize.fn("lower", sequelize.col("name")),
+              sequelize.fn("lower", picklist_data.name)
+            ),
+            { id: { [Op.ne]: id } },
+            { program_id },
+            { is_deleted: false },
+          ],
+        },
+      });
 
-    if (existingPicklist) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Picklist with the same name already exists.",
-        trace_id: traceId,
+      if (existingPicklistWithSameName) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Picklist with the same name already exists.",
+          trace_id: traceId,
+        });
+      }
+
+      picklist = await picklist_model.findOne({
+        where: { id, program_id },
       });
     }
 
-    picklist = await picklist_model.findOne({
-      where: isPredefined ? { id } : { id, program_id },
-    });
-
-    console.log("Fetched Picklist:", picklist);
-
     if (!picklist) {
-      return reply.status(404).send({
-        status_code: 404,
+      return reply.status(200).send({
+        status_code: 200,
         message: `Picklist with ID ${id} not found`,
         trace_id: traceId,
       });
     }
-  
+
     const transaction = await sequelize.transaction();
 
     try {
-     const pickListData=  await picklist.update(
-        {
-          ...picklist_data,
-          program_id: isPredefined ? null : program_id,
-          updated_by: userId,
-        } as Partial<picklist>,
-        { transaction }
-      );
-     console.log("pickListData",pickListData)
+      await picklist.update({ ...picklist_data, updated_by: userId }, { transaction });
+
       if (picklist_items && picklist_items.length > 0) {
         await picklist_item_model.destroy({ where: { picklist_id: id }, transaction });
         const newPicklistItems = picklist_items.map((item) => ({
           ...item,
           picklist_id: id,
-          program_id: isPredefined ? null : program_id,
+          program_id,
           created_by: userId,
           updated_by: userId,
         }));
@@ -1025,3 +1042,96 @@ export async function getPicklistFilter(
     });
   }
 }
+
+
+export const clonePredefinedPicklistsForProgram = async (
+  programId: string,
+  userId: string,
+  transaction?: any
+) => {
+  console.log("Cloning predefined picklists for program:", programId);
+  
+  const requiredSlugs = [
+    "Job Type",
+    "Worker Types",
+    "Worker Source Type",
+    "Worker Classification",
+  ];
+  
+  console.log("requiredSlugs", requiredSlugs);
+  
+  // First, find all predefined picklists
+  const predefinedPicklists = await picklist_model.findAll({
+    where: {
+      name: { [Op.in]: requiredSlugs },
+      defined_by: "predefined",
+      is_deleted: false,
+    },
+    transaction,
+  });
+  
+  console.log(`Found ${predefinedPicklists.length} predefined picklists to clone`);
+  
+  // Clone each picklist and its items
+  for (const picklist of predefinedPicklists) {
+    try {
+      // 1. Create the new program-specific picklist
+      const newPicklist = await picklist_model.create(
+        {
+          name: picklist.name,
+          slug: picklist.slug || null,
+          description: picklist.description || null,
+          program_id: programId,
+          is_enabled: picklist.is_enabled,
+          is_visible: picklist.is_visible,
+          is_deleted: false,
+          defined_by: "PROGRAM",
+          created_by: userId,
+          updated_by: userId,
+          multiselect: picklist.multiselect || false,
+          disabled_program: picklist.disabled_program || null
+        },
+        { transaction }
+      );
+      
+      console.log(`Created new program picklist: ${newPicklist.id} for ${picklist.name}`);
+      
+      const picklistItems = await picklistItemModel.findAll({
+        where: {
+          picklist_id: picklist.id,
+          is_deleted: false
+        },
+        transaction
+      });
+      
+      console.log(`Found ${picklistItems.length} items to clone for picklist ${picklist.name}`);
+      
+      // 3. Create the cloned items with the NEW picklist ID
+      if (picklistItems.length > 0) {
+        const newItems = picklistItems.map((item) => ({
+          picklist_id: newPicklist.id, // Use the NEW picklist ID here
+          label: item.label,
+          value: item.value,
+          slug: item.slug || null,
+          program_id: programId,
+          is_enabled: item.is_enabled,
+          is_deleted: false,
+          defined_by: "PROGRAM",
+          disabled_program: item.disabled_program || null,
+          label_program: item.label_program || null,
+          meta_data: item.meta_data || null,
+          created_by: userId,
+          updated_by: userId,
+        }));
+        
+        await picklistItemModel.bulkCreate(newItems, { transaction });
+        console.log(`Created ${newItems.length} items for new picklist ${newPicklist.id}`);
+      }
+    } catch (error) {
+      console.error(`Error cloning picklist ${picklist.name}:`, error);
+      throw error; // Re-throw to be caught by the transaction
+    }
+  }
+  
+  console.log("Completed cloning predefined picklists for program:", programId);
+};

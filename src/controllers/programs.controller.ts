@@ -15,6 +15,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
+import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -28,6 +29,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
+  const userId=user?.sub;
 
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
@@ -75,6 +77,8 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       message: "Program Created Successfully",
       trace_id: traceId,
     });
+    const programId = item.id;
+    await clonePredefinedPicklistsForProgram(programId,userId,transaction);
 
     logger(
       {
