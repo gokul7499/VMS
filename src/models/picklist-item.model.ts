@@ -5,6 +5,12 @@ import { Programs } from './programs.model';
 class PicklistItemModel extends Model {
   id: any;
   value: any;
+  label: any;
+  slug: any;
+  is_enabled: any;
+  disabled_program: any;
+  label_program: any;
+  meta_data: any;
 }
 
 PicklistItemModel.init({

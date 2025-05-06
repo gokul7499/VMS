@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
+import picklistItemModel from '../models/picklist-item.model';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -1041,3 +1042,80 @@ export async function getPicklistFilter(
     });
   }
 }
+
+
+export const clonePredefinedPicklistsForProgram = async (
+  programId: string,
+  userId: string,
+  transaction?: any
+) => {
+  
+  const requiredSlugs = [
+    "Job Type",
+    "Worker Types",
+    "Worker Source Type",
+    "Worker Classification",
+  ];
+    
+  const predefinedPicklists = await picklist_model.findAll({
+    where: {
+      name: { [Op.in]: requiredSlugs },
+      defined_by: "predefined",
+      is_deleted: false,
+    },
+    transaction,
+  });
+    
+  for (const picklist of predefinedPicklists) {
+    try {
+      const newPicklist = await picklist_model.create(
+        {
+          name: picklist.name,
+          slug: picklist.slug || null,
+          description: picklist.description || null,
+          program_id: programId,
+          is_enabled: picklist.is_enabled,
+          is_visible: picklist.is_visible,
+          is_deleted: false,
+          defined_by: "PROGRAM",
+          created_by: userId,
+          updated_by: userId,
+          multiselect: picklist.multiselect || false,
+          disabled_program: picklist.disabled_program || null
+        },
+        { transaction }
+      );
+            
+      const picklistItems = await picklistItemModel.findAll({
+        where: {
+          picklist_id: picklist.id,
+          is_deleted: false
+        },
+        transaction
+      });
+            
+      if (picklistItems.length > 0) {
+        const newItems = picklistItems.map((item) => ({
+          picklist_id: newPicklist.id,
+          label: item.label,
+          value: item.value,
+          slug: item.slug || null,
+          program_id: programId,
+          is_enabled: item.is_enabled,
+          is_deleted: false,
+          defined_by: "PROGRAM",
+          disabled_program: item.disabled_program || null,
+          label_program: item.label_program || null,
+          meta_data: item.meta_data || null,
+          created_by: userId,
+          updated_by: userId,
+        }));
+        
+        await picklistItemModel.bulkCreate(newItems, { transaction });
+      }
+    } catch (error) {
+      console.error(`Error cloning picklist ${picklist.name}:`, error);
+      throw error; 
+    }
+  }
+  };
