@@ -1049,7 +1049,6 @@ export const clonePredefinedPicklistsForProgram = async (
   userId: string,
   transaction?: any
 ) => {
-  console.log("Cloning predefined picklists for program:", programId);
   
   const requiredSlugs = [
     "Job Type",
@@ -1057,10 +1056,7 @@ export const clonePredefinedPicklistsForProgram = async (
     "Worker Source Type",
     "Worker Classification",
   ];
-  
-  console.log("requiredSlugs", requiredSlugs);
-  
-  // First, find all predefined picklists
+    
   const predefinedPicklists = await picklist_model.findAll({
     where: {
       name: { [Op.in]: requiredSlugs },
@@ -1069,13 +1065,9 @@ export const clonePredefinedPicklistsForProgram = async (
     },
     transaction,
   });
-  
-  console.log(`Found ${predefinedPicklists.length} predefined picklists to clone`);
-  
-  // Clone each picklist and its items
+    
   for (const picklist of predefinedPicklists) {
     try {
-      // 1. Create the new program-specific picklist
       const newPicklist = await picklist_model.create(
         {
           name: picklist.name,
@@ -1093,9 +1085,7 @@ export const clonePredefinedPicklistsForProgram = async (
         },
         { transaction }
       );
-      
-      console.log(`Created new program picklist: ${newPicklist.id} for ${picklist.name}`);
-      
+            
       const picklistItems = await picklistItemModel.findAll({
         where: {
           picklist_id: picklist.id,
@@ -1103,13 +1093,10 @@ export const clonePredefinedPicklistsForProgram = async (
         },
         transaction
       });
-      
-      console.log(`Found ${picklistItems.length} items to clone for picklist ${picklist.name}`);
-      
-      // 3. Create the cloned items with the NEW picklist ID
+            
       if (picklistItems.length > 0) {
         const newItems = picklistItems.map((item) => ({
-          picklist_id: newPicklist.id, // Use the NEW picklist ID here
+          picklist_id: newPicklist.id,
           label: item.label,
           value: item.value,
           slug: item.slug || null,
@@ -1125,13 +1112,10 @@ export const clonePredefinedPicklistsForProgram = async (
         }));
         
         await picklistItemModel.bulkCreate(newItems, { transaction });
-        console.log(`Created ${newItems.length} items for new picklist ${newPicklist.id}`);
       }
     } catch (error) {
       console.error(`Error cloning picklist ${picklist.name}:`, error);
-      throw error; // Re-throw to be caught by the transaction
+      throw error; 
     }
   }
-  
-  console.log("Completed cloning predefined picklists for program:", programId);
-};
+  };
