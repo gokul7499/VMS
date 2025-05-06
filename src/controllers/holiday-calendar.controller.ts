@@ -132,8 +132,8 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
 
 export const createHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
   const holiday_calendar = request.body as holidayCalendarData;
-  const program_id = holiday_calendar.program_id;
   const authHeader = request.headers.authorization;
+  const { program_id } = request.params as { program_id: string };
 
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -205,22 +205,24 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
   }
   try {
     const existingHolidayCalendar = await holidayCalendar.findOne({
-      where: {
-        program_id: holiday_calendar.program_id,
+      where: { program_id, 
         name: holiday_calendar.name,
-        is_deleted: false
-      }
+         is_deleted: false 
+        },
     });
 
     if (existingHolidayCalendar) {
-      reply.status(409).send({
+      return reply.status(409).send({
         status_code: 409,
         trace_id: traceId,
         message: 'Holiday calendar already exists.',
       });
     }
+
     await holidayCalendar.create({
-      ...holiday_calendar, created_by: userId,
+      ...holiday_calendar,
+      program_id,
+      created_by: userId,
       updated_by: userId,
     });
 
@@ -248,7 +250,6 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       status_code: 201,
       trace_id: traceId,
       message: 'HolidayCalendar created successfully.',
-
     });
   } catch (error) {
     logger(
