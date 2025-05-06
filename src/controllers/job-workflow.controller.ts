@@ -21,6 +21,7 @@ import { NotificationEventCode } from '../utility/notification-event-code';
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 let TEAI_BASE_URL = databaseConfig.config.teai_url
+let ui_base_url = databaseConfig.config.ui_base_url;
 
 export const createJobWorkFlow = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -1094,7 +1095,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 fullName: managerData?.data?.first_name,
                 job_id: workflow?.event_title,
                 job_url: jobDatas
-                    ? `${SOURCE_BASE_URL}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    ? `${ui_base_url}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
                 status_reason: updates[0]?.reason
             };
@@ -3462,7 +3463,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
             payload = {
                 job_id: jobDatas?.data?.job?.job_id,
                 job_url: jobDatas?.data?.job?.job_id
-                    ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    ? `${ui_base_url}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
