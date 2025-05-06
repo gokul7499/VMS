@@ -415,8 +415,6 @@ export async function deletePredefinedPicklist(
   });
 }
 
-
-
 export const updatePicklistAndItem = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -436,78 +434,64 @@ export const updatePicklistAndItem = async (
   const userId = user?.sub;
   try {
     let picklist;
-    if (picklist_data.defined_by === "PREDEFINED") {
-      const existingPicklistWithSameName = await picklist_model.findOne({
-        where: {
-          [Op.and]: [
-            sequelize.where(
-              sequelize.fn("lower", sequelize.col("name")),
-              sequelize.fn("lower", picklist_data.name)
-            ),
-            { id: { [Op.ne]: id } },
-            { is_deleted: false },
-          ],
-        },
-      });
 
-      if (existingPicklistWithSameName) {
-        return reply.status(400).send({
-          status_code: 400,
-          message: "Picklist with the same name already exists.",
-          trace_id: traceId,
-        });
-      }
-
-      picklist = await picklist_model.findOne({
-        where: { id },
-      });
-    } else {
-      const existingPicklistWithSameName = await picklist_model.findOne({
-        where: {
-          [Op.and]: [
-            sequelize.where(
-              sequelize.fn("lower", sequelize.col("name")),
-              sequelize.fn("lower", picklist_data.name)
-            ),
-            { id: { [Op.ne]: id } },
-            { program_id },
-            { is_deleted: false },
-          ],
-        },
-      });
-
-      if (existingPicklistWithSameName) {
-        return reply.status(400).send({
-          status_code: 400,
-          message: "Picklist with the same name already exists.",
-          trace_id: traceId,
-        });
-      }
-
-      picklist = await picklist_model.findOne({
-        where: { id, program_id },
-      });
+    const isPredefined = picklist_data.defined_by?.toUpperCase() === "PREDEFINED";
+    const nameCheckWhere: any = {
+      [Op.and]: [
+        sequelize.where(
+          sequelize.fn("lower", sequelize.col("name")),
+          sequelize.fn("lower", picklist_data.name)
+        ),
+        { id: { [Op.ne]: id } },
+        { is_deleted: false },
+      ],
+    };
+    if (!isPredefined) {
+      nameCheckWhere[Op.and].push({ program_id });
     }
 
-    if (!picklist) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: `Picklist with ID ${id} not found`,
+    const existingPicklist = await picklist_model.findOne({ where: nameCheckWhere });
+
+    if (existingPicklist) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "Picklist with the same name already exists.",
         trace_id: traceId,
       });
     }
 
+    picklist = await picklist_model.findOne({
+      where: isPredefined ? { id } : { id, program_id },
+    });
+
+    console.log("Fetched Picklist:", picklist);
+
+    if (!picklist) {
+      return reply.status(404).send({
+        status_code: 404,
+        message: `Picklist with ID ${id} not found`,
+        trace_id: traceId,
+      });
+    }
+  
     const transaction = await sequelize.transaction();
 
     try {
-      await picklist.update({ ...picklist_data, updated_by: userId }, { transaction });
-
+     const pickListData=  await picklist.update(
+        {
+          ...picklist_data,
+          program_id: isPredefined ? null : program_id,
+          updated_by: userId,
+        } as Partial<picklist>,
+        { transaction }
+      );
+     console.log("pickListData",pickListData)
       if (picklist_items && picklist_items.length > 0) {
         await picklist_item_model.destroy({ where: { picklist_id: id }, transaction });
         const newPicklistItems = picklist_items.map((item) => ({
           ...item,
           picklist_id: id,
-          program_id,
+          program_id: isPredefined ? null : program_id,
           created_by: userId,
           updated_by: userId,
         }));
