@@ -83,13 +83,13 @@ export const createVendorDistributionSchedule = async (
                     duration: schedule.duration,
                     measure_unit: schedule.measure_unit,
                     vendors: schedule.vendors || [],
-                    vendor_distrubution_id: newVendorSchedule.id,
+                    distribution_id: newVendorSchedule.id,
+                    condition:schedule.condition
                 });
             });
 
             await Promise.all(schedulePromises);
         }
-
         logger(
             {
                 trace_id: traceId,
