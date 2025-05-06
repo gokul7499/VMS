@@ -162,133 +162,132 @@ export async function getAllvendorDistributionSchedules(request: FastifyRequest,
 
 export const getVendorDistributionScheduleById = async (
     request: FastifyRequest,reply: FastifyReply
-) => {
+  ) => {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id } = request.params as { program_id: string; id: string };
-
-        const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
-            where: { program_id, id, is_deleted: false },
-            attributes: ['id', 'name', 'description', 'is_enabled'],
-        });
-
-        if (!vendorDistributionSchedule) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'Vendor Distribution Schedule not found.',
-                vendor_schedule: [],
-                trace_id: traceId
-            });
-        }
-
-        const distScheduleDetails = await DistScheduleDetail.findAll({
-            where: { vendor_distrubution_id: id },
-            attributes: ['id', 'duration', 'measure_unit', 'vendors'],
-        });
-
-        const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
-            hours: 1,
-            days: 2,
-            weeks: 3,
-        };
-
-        const sortedDistScheduleDetails = distScheduleDetails.sort((a, b) => {
-            const unitA = a.measure_unit as keyof typeof unitOrder;
-            const unitB = b.measure_unit as keyof typeof unitOrder;
-
-            if (unitOrder[unitA] !== unitOrder[unitB]) {
-                return unitOrder[unitA] - unitOrder[unitB];
-            }
-
-            return a.duration - b.duration;
-        });
-
-        const responseData = {
-            id: vendorDistributionSchedule.id,
-            name: vendorDistributionSchedule.name,
-            description: vendorDistributionSchedule.description,
-            is_enabled: vendorDistributionSchedule.is_enabled,
-            dist_schedule_detail: sortedDistScheduleDetails.map(detail => ({
-                id: detail.id,
-                duration: detail.duration,
-                measure_unit: detail.measure_unit,
-                vendors: detail.vendors || [],
-            })),
-        };
-
-        reply.status(200).send({
+      const { program_id, id } = request.params as { program_id: string; id: string };
+      
+      const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
+        where: { program_id, id, is_deleted: false },
+        attributes: ['id', 'name', 'description', 'is_enabled'],
+      });
+      
+      if (!vendorDistributionSchedule) {
+        return reply.status(200).send({
             status_code: 200,
-            message: 'Vendor Distribution Schedule fetched successfully.',
-            vendor_schedule: responseData,
-            trace_id: traceId,
+            message: 'Vendor Distribution Schedule not found.',
+            vendor_schedule: [],
+            trace_id: traceId
         });
+      }
+      
+      const distScheduleDetails = await DistScheduleDetail.findAll({
+        where: { distribution_id: id },
+        attributes: ['id', 'duration', 'measure_unit', 'vendors'],
+      });
+      
+      const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
+        hours: 1,
+        days: 2,
+        weeks: 3,
+      };
+      
+      const sortedDistScheduleDetails = distScheduleDetails.sort((a, b) => {
+        const unitA = a.measure_unit as keyof typeof unitOrder;
+        const unitB = b.measure_unit as keyof typeof unitOrder;
+        
+        if (unitOrder[unitA] !== unitOrder[unitB]) {
+          return unitOrder[unitA] - unitOrder[unitB];
+        }
+        
+        return a.duration - b.duration;
+      });
+      
+      const responseData = {
+        id: vendorDistributionSchedule.id,
+        name: vendorDistributionSchedule.name,
+        description: vendorDistributionSchedule.description,
+        is_enabled: vendorDistributionSchedule.is_enabled,
+        dist_schedule_detail: sortedDistScheduleDetails.map(detail => ({
+          id: detail.id,
+          duration: detail.duration,
+          measure_unit: detail.measure_unit,
+          vendors: detail.vendors || [],
+        })),
+      };
+      
+       reply.status(200).send({
+        status_code: 200,
+        message: 'Vendor Distribution Schedule fetched successfully.',
+        vendor_schedule: responseData,
+        trace_id: traceId,
+      });
     } catch (error) {
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Internal Server Error',
-            trace_id: traceId,
-        });
+       reply.status(500).send({
+        status_code: 500,
+        message: 'Internal Server Error',
+        trace_id: traceId,
+      });
     }
-};
-
-export const deleteVendorDistributionSchedule = async (
-    request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
-    try {
-        const { id, program_id } = request.params as { id: string; program_id: string };
-        const [vendorSchedule] = await vendorDistributionScheduleModel.update(
+    };
+    export const deleteVendorDistributionSchedule = async (
+        request: FastifyRequest, reply: FastifyReply) => {
+        const traceId = generateCustomUUID();
+        const authHeader = request.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+          return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+        if (!user) {
+          return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        } 
+        const userId = user?.sub; 
+        try {
+          const { id, program_id } = request.params as { id: string; program_id: string };  
+          const [vendorSchedule] = await vendorDistributionScheduleModel.update(
             {
-                is_deleted: true,
-                is_enabled: false,
-                updated_on: Date.now(),
+              is_deleted: true,
+              is_enabled: false,
+              updated_on: Date.now(),
+              updated_by: userId 
             },
-            { where: { id, program_id, is_deleted: false, updated_by: userId } }
-        );
-        const [distSchedule] = await DistScheduleDetail.update(
+            { where: { id, program_id, is_deleted: false } } 
+          );
+          const [distSchedule] = await DistScheduleDetail.update(
             {
-                is_deleted: true,
-                is_enabled: false,
-                updated_on: Date.now(),
-                updated_by: userId
+              is_deleted: true,
+              is_enabled: false,
+              updated_on: Date.now(),
+              updated_by: userId
             },
-            { where: { vendor_distrubution_id: id, is_deleted: false } }
-        );
-
-        if (vendorSchedule > 0 && distSchedule > 0) {
+            { where: { distribution_id: id, is_deleted: false } } 
+          );
+          
+          if (vendorSchedule > 0 && distSchedule > 0) {
             reply.status(200).send({
-                status_code: 200,
-                message: "Vendor Distribution Schedule deleted successfully.",
-                trace_id: traceId,
+              status_code: 200,
+              message: "Vendor Distribution Schedule deleted successfully.",
+              trace_id: traceId,
             });
-        } else {
+          } else {
             reply.status(204).send({
                 status_code: 204,
                 message: "Vendor Distribution Schedule not found.",
                 trace_id: traceId,
                 vendor_schedule: [],
             });
-        }
-    } catch (error) {
-        console.error("Error deleting Vendor Distribution Schedule:", error);
-        reply.status(500).send({
+          }
+        } catch (error) {
+          console.error("Error deleting Vendor Distribution Schedule:", error);
+          reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error.",
             trace_id: traceId,
-            error,
-        });
-    }
-};
-
+            error: error ,
+          });
+        }
+      };
 export const updateVendorDistributionSchedule = async (
     request: FastifyRequest,
     reply: FastifyReply
@@ -307,7 +306,7 @@ export const updateVendorDistributionSchedule = async (
     }
     const userId = user?.sub;
     try {
-    const { program_id, id } = request.params as { program_id: string; id: string };
+        const { program_id, id } = request.params as { program_id: string; id: string };
         const updateData = request.body as updateVendorDistributionScheduleDetail;
 
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
@@ -317,7 +316,6 @@ export const updateVendorDistributionSchedule = async (
 
         if (!vendorDistributionSchedule) {
             await transaction.rollback();
-
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
@@ -332,7 +330,6 @@ export const updateVendorDistributionSchedule = async (
                     program_id,
                     name: updateData.name,
                     is_deleted: false,
-                    
                 },
                 transaction
             });
@@ -356,7 +353,7 @@ export const updateVendorDistributionSchedule = async (
 
         if (updateData.schedules && Array.isArray(updateData.schedules)) {
             const existingSchedules = await DistScheduleDetail.findAll({
-                where: { vendor_distrubution_id: id },
+                where: { distribution_id: id },
                 transaction
             });
 
@@ -382,18 +379,24 @@ export const updateVendorDistributionSchedule = async (
                             ...(schedule.duration !== undefined && { duration: schedule.duration }),
                             ...(schedule.measure_unit !== undefined && { measure_unit: schedule.measure_unit }),
                             ...(schedule.vendors !== undefined && { vendors: schedule.vendors }),
+                            updated_by: userId  
                         },
                         {
-                            where: { id: schedule.id, vendor_distrubution_id: id, updated_by: userId },
-                             transaction 
+                            where: { 
+                                id: schedule.id, 
+                                distribution_id: id
+                            },
+                            transaction 
                         }
                     );
                 } else {
-                    const { id, ...scheduleData } = schedule;
+                    const { id: scheduleId, ...scheduleData } = schedule;
                     await DistScheduleDetail.create({
                         ...scheduleData,
-                        vendor_distrubution_id: vendorDistributionSchedule.id,
-                    } ,{ transaction });
+                        distribution_id: vendorDistributionSchedule.id,
+                        created_by: userId, 
+                        updated_by: userId   
+                    }, { transaction });
                 }
             }
         }
@@ -411,13 +414,10 @@ export const updateVendorDistributionSchedule = async (
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error
         });
     }
 };
-
-
-
-
 export const getVendorDistributionScheduleByIds = async (
     request: FastifyRequest,
     reply: FastifyReply
@@ -470,7 +470,7 @@ export const getVendorDistributionScheduleByIds = async (
         // Step 4: Fetch distribution schedule details
         const distScheduleDetails = await DistScheduleDetail.findAll({
             where: {
-                vendor_distrubution_id: id,
+                distrubution_id: id,
             },
             attributes: ['id', 'duration', 'measure_unit', 'vendors'],
         });
