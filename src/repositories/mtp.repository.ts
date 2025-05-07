@@ -46,6 +46,7 @@ async getAllMtpData(
           FROM mtp
           LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.user_id
           WHERE mtp.program_id = :program_id
+          AND mtp.is_deleted = false
         `;
 
   const replacements: any = {
