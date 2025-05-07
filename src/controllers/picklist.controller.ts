@@ -1065,12 +1065,12 @@ export const clonePredefinedPicklistsForProgram = async (
       program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
-      is_visible: true,
     } as WhereOptions<any>, 
     transaction,
   });
-    
+    console.log("predefinedPicklists",predefinedPicklists)
   for (const picklist of predefinedPicklists) {
+    console.log("hhhhhhhhhhhhh")
     try {
       const newPicklist = await picklist_model.create(
         {
@@ -1079,7 +1079,7 @@ export const clonePredefinedPicklistsForProgram = async (
           description: picklist.description || null,
           program_id: programId,
           is_enabled: picklist.is_enabled,
-          is_visible: picklist.is_visible,
+          is_visible: true,
           is_deleted: false,
           defined_by:picklist.defined_by,
           created_by: userId,
