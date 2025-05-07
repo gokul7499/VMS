@@ -1798,8 +1798,7 @@ export const updateReplaceLevel = async (
                 user_id: user.sub,
             });
         }
-        let workflow_level_update = await JobWorkFlowModel.update({ levels, updated_on: Date.now() },{ where: { id, program_id } });
-        console.log("workflow_level_update", workflow_level_update);
+        await workflow.update({ levels, updated_on: Date.now() });
         
         return reply.status(200).send({
             status_code: 200,
