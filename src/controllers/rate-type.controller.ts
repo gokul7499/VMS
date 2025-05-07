@@ -528,6 +528,7 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
   try {
     const whereConditions: any = {
       program_id,
+      is_enabled: true,
       is_deleted: false,
     };
 
