@@ -468,7 +468,7 @@ export async function filterChecklists(
         ],
         where: whereConditions,
         group: ['Checklist.version_id'],
-        order: [['created_on', 'DESC']],
+        order: [['updated_on', 'DESC']],
         limit,
         offset,
         subQuery: false,
