@@ -1,17 +1,16 @@
-export interface holidayCalendarData {
-    id: string;
-    name: string;
-    is_enabled: boolean;
-    year: number;
-    is_all_hierarchies: boolean;
-    hierarchy_units_ids: any;
-    is_all_work_locations: boolean;
-    work_locations_ids: any;
-    holidays: any;
-    is_deleted: boolean;
-    created_on?: bigint;
-    updated_on?: bigint;
-    created_by: string;
-    updated_by: string;
-    program_id: string;
+export interface HolidayCalendarData {
+  id: string;
+  program_id: string;
+  name: string;
+  is_enabled: boolean;
+  is_deleted: boolean;
+  year: number;
+  is_all_hierarchy_associated: boolean;
+  is_all_worklocation_associated: boolean;
+  hierarchy_units_ids?: string;
+  work_locations_ids?: string; 
+  created_on?: number; 
+  created_by?: string;
+  updated_on?: number;
+  updated_by?: string;
 }
