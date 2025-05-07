@@ -1051,10 +1051,11 @@ export const clonePredefinedPicklistsForProgram = async (
 ) => {
   
   const requiredSlugs = [
+    "Worker Classification",
     "Job Type",
     "Worker Types",
-    "Worker Source Type",
-    "Worker Classification",
+    "Worker Source Type"
+    ,
   ];
     
   const predefinedPicklists = await picklist_model.findAll({
@@ -1095,7 +1096,7 @@ export const clonePredefinedPicklistsForProgram = async (
         transaction
       });
             
-      if (picklistItems.length > 0) {
+      if (picklist.name === "Worker Classification" && picklistItems.length > 0 ) {
         const newItems = picklistItems.map((item) => ({
           picklist_id: newPicklist.id,
           label: item.label,
