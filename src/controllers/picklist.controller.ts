@@ -1052,10 +1052,11 @@ export const clonePredefinedPicklistsForProgram = async (
 ) => {
   
   const requiredSlugs = [
+    "Worker Classification",
     "Job Type",
     "Worker Types",
-    "Worker Source Type",
-    "Worker Classification",
+    "Worker Source Type"
+    ,
   ];
     
   const predefinedPicklists = await picklist_model.findAll({
@@ -1089,16 +1090,15 @@ export const clonePredefinedPicklistsForProgram = async (
         { transaction }
       );
             
-      if (picklist.name === "Worker Classification") {
-        const picklistItems = await picklistItemModel.findAll({
-          where: {
-            picklist_id: picklist.id,
-            is_deleted: false
-          },
-          transaction
-        });
-          
-      if (picklistItems.length > 0) {
+      const picklistItems = await picklistItemModel.findAll({
+        where: {
+          picklist_id: picklist.id,
+          is_deleted: false
+        },
+        transaction
+      });
+            
+      if (picklist.name === "Worker Classification" && picklistItems.length > 0 ) {
         const newItems = picklistItems.map((item) => ({
           picklist_id: newPicklist.id,
           label: item.label,
@@ -1116,7 +1116,7 @@ export const clonePredefinedPicklistsForProgram = async (
         }));
       
         await picklistItemModel.bulkCreate(newItems, { transaction });
-      }}
+      }
     } catch (error) {
       console.error(`Error cloning picklist ${picklist.name}:`, error);
       throw error; 
