@@ -1064,6 +1064,7 @@ export const clonePredefinedPicklistsForProgram = async (
       program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
+      is_visible: true,
     } as WhereOptions<any>, 
     transaction,
   });
