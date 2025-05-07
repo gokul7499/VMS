@@ -437,3 +437,57 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
     });
   }
 }
+
+export async function getHolidayCalendarByDateRange(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { start_date, end_date } = request.query as { start_date: string, end_date: string };
+
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "Invalid date format. Please use YYYY-MM-DD format.",
+        trace_id: traceId,
+      });
+    }
+
+    const holidays = await HolidayCalendarDetails.findAll({
+      where: {
+        date: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+      },
+      attributes: ['date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable'],
+      order: [['date', 'ASC']],
+    });
+
+    if (holidays.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'No holidays found within the specified date range.',
+        trace_id: traceId,
+        holidays: [],
+      });
+    }
+
+    reply.status(200).send({
+      status_code: 200,
+      message: 'Holiday details fetched successfully.',
+      trace_id: traceId,
+      holidays,
+    });
+  } catch (error) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'An error occurred while fetching holiday details.',
+      trace_id: traceId,
+      error: error,
+    });
+  }
+}
+
