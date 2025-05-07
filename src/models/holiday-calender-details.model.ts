@@ -1,51 +1,47 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import ProgramModule from './program-module.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
+import HolidayCalendar from './holiday-calendar.model';
 
-class HolidayCalendar extends Model {
-  hierarchy_units_ids: any;
-  work_locations_ids: any;
-  id: any;
+class HolidayCalendarDetails extends Model {
 }
 
-HolidayCalendar.init({
+HolidayCalendarDetails.init({
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
-    program_id: {
-        type: DataTypes.STRING, 
-        allowNull: false,
+    holiday_calendar_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
         references: {
-            model: 'programs',
-            key: 'id',
-        },
+            model: 'holiday_calendar',
+            key: 'id', 
+        }
+    },
+    date: {
+        type: DataTypes.DATE,
+        allowNull: false,
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: true,
-    },
-    is_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true,
-    },
-    is_deleted: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-    },
-    year: {
-        type: DataTypes.INTEGER,
         allowNull: false,
     },
-    is_all_hierarchy_associated: {
+    is_time_entry_allowed: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
     },
-    is_all_worklocation_associated: {
+    is_paid: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
+    is_tax_applicable: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
     },
     created_on: {
@@ -66,8 +62,8 @@ HolidayCalendar.init({
     },
 }, {
     sequelize,
-    modelName: 'holiday_calendar',
-    tableName: 'holiday_calendar',
+    modelName: 'holiday_calendar_details',
+    tableName: 'holiday_calendar_details', 
     timestamps: false,
     hooks: {
         beforeValidate: (instance) => {
@@ -79,9 +75,10 @@ HolidayCalendar.init({
     },
 });
 
-HolidayCalendar.belongsTo(ProgramModule, {
-    foreignKey: 'program_id',
-    as: 'programs',
+HolidayCalendarDetails.belongsTo(HolidayCalendar, {
+    foreignKey: 'holiday_calendar_id',
+    as: 'holiday_calendar',
 });
+sequelize.sync();
 
-export default HolidayCalendar;
+export default HolidayCalendarDetails;
