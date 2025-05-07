@@ -21,7 +21,7 @@ DistScheduleDetail.init({
         type: DataTypes.INTEGER,
         allowNull: false,
     },
-    vendor_distrubution_id: {
+    distribution_id: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
@@ -34,6 +34,10 @@ DistScheduleDetail.init({
         allowNull: false,
     },
     vendors: {
+        type: DataTypes.JSON,
+        allowNull: true,
+    },
+    condition: {
         type: DataTypes.JSON,
         allowNull: true,
     },
@@ -66,8 +70,8 @@ DistScheduleDetail.init({
 
 }, {
     sequelize,
-    modelName: 'dist_schedule_detail',
+    modelName: 'vendor_dist_schedule_detail',
     timestamps: false,
 });
-DistScheduleDetail.belongsTo(VendorDistributionSchedule, { foreignKey: 'vendor_distrubution_id', as: 'vendor_distrubution' });
+DistScheduleDetail.belongsTo(VendorDistributionSchedule, { foreignKey: 'distribution_id', as: 'vendor_distrubution' });
 export default DistScheduleDetail;

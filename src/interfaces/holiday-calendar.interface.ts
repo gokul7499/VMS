@@ -1,4 +1,6 @@
 export interface HolidayCalendarData {
+  holidays(holidays: any): unknown;
+  hierarchy_id(hierarchy_id: any): unknown;
   id: string;
   program_id: string;
   name: string;

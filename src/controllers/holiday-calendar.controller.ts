@@ -229,14 +229,14 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
           user_id: userId,
         },
         data: request.body,
-        eventname: "create holiday calendar",
-        status: "success",
-        description: `HolidayCalendar created successfully.`,
+        eventname: 'create holiday calendar',
+        status: 'success',
+        description: 'HolidayCalendar created successfully.',
         level: 'success',
         action: request.method,
         url: request.url,
         entity_id: program_id,
-        is_deleted: false
+        is_deleted: false,
       },
       holidayCalendar
     );
@@ -269,6 +269,8 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       },
       holidayCalendar
     );
+
+    console.error(error);
 
     return reply.status(500).send({
       status_code: 500,
