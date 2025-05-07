@@ -924,6 +924,7 @@ export async function getPicklistFilter(
 
     let whereClause: any = {
       is_deleted: false,
+      program_id: program_id,
       is_visible: true
     };
 
@@ -1064,6 +1065,7 @@ export const clonePredefinedPicklistsForProgram = async (
       program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
+      is_visible: true,
     } as WhereOptions<any>, 
     transaction,
   });
@@ -1112,7 +1114,7 @@ export const clonePredefinedPicklistsForProgram = async (
           created_by: userId,
           updated_by: userId,
         }));
-        
+      
         await picklistItemModel.bulkCreate(newItems, { transaction });
       }
     } catch (error) {

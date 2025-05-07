@@ -46,6 +46,7 @@ async getAllMtpData(
           FROM mtp
           LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.user_id
           WHERE mtp.program_id = :program_id
+          AND mtp.is_deleted = false
         `;
 
   const replacements: any = {
@@ -243,8 +244,11 @@ LEFT JOIN
                OR m.mtp_candidate_id = c.id  
 WHERE 
   m.program_id = :program_id
-  AND m.mtp_candidate_id = :mtp_candidate_id
-GROUP BY 
+AND (
+    m.mtp_candidate_id = :mtp_candidate_id OR
+    JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(:mtp_candidate_id), '$')
+  )
+  GROUP BY 
   m.id, m.talent_name, m.updated_on, m.mtp_id, m.mtp_candidate_id;
 
 `;

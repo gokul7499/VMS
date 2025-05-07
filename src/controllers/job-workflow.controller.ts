@@ -3,7 +3,7 @@ import JobWorkFlowModel from '../models/job-workflow.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import WorkflowStatusHistory from '../models/workflow-status-history.model';
 import { Module } from '../models/module.model';
 import Event from '../models/event.model';
@@ -17,6 +17,8 @@ import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
+import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
+import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -1695,7 +1697,7 @@ export const updateReplaceLevel = async (
         });
     }
     try {
-        const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        const workflow:any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1705,30 +1707,44 @@ export const updateReplaceLevel = async (
         }
         let levels = workflow.levels || [];
         let levelFound = false;
-        // Update the matching level
-        levels = levels.map((level: any) => {
+        levels = await Promise.all((levels || []).map(async (level: any) => {
             if (level.placement_order === placement_order) {
-                console.log(level.placement_order, placement_order);
                 levelFound = true;
-                const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    if (recipient.replaced_by === user_id) {
+        
+                const updatedRecipientTypes = await Promise.all(level.recipient_types.map(async (recipient: any) => {
+                    if (recipient.replaced_by && recipient.replaced_by === user_id) {
                         const metaDataKey = Object.keys(recipient.meta_data)[0];
-                        return {
-                            ...recipient,
-                            status: status,
-                            meta_data: {
-                                ...recipient.meta_data,
+                        const metaDataValue = Object.values(recipient.meta_data)[0];
+                        const levelDb: any = await WorkflowTriggeredLevel.findOne({
+                            where: {
+                                workflow_trigger_id: workflow?.workflow_trigger_id,
+                                workflow_id: workflow?.workflow_id,
+                                placement_order,
                             },
-                            replaced_by,
-                            replaced_notes: notes,
-                            replaced_modified_on: Date.now(),
-                        };
-                    }
-                    if(recipient.replaced_by && recipient.replaced_by !== user_id){
-                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                            attributes: ['id']
+                        });
+        
+                        await WorkflowTriggeredRecipientType.update(
+                            {
+                                meta_data: {
+                                    ...recipient.meta_data,
+                                    [metaDataKey]: recipient?.replaced_by,
+                                },
+                            },
+                            {
+                                where: {
+                                    level_id: levelDb?.id,
+                                    program_id,
+                                    workflow_trigger_id: workflow?.workflow_trigger_id,
+                                    workflow_id: workflow?.workflow_id,
+                                    [Op.and]: sequelize.literal(`JSON_SEARCH(meta_data, 'one', '${metaDataValue}') IS NOT NULL`),
+                                },
+                            }
+                        );
+        
                         return {
                             ...recipient,
-                            status: status,
+                            status,
                             replaced_by,
                             meta_data: {
                                 ...recipient.meta_data,
@@ -1738,10 +1754,11 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now()
                         };
                     }
+        
                     if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
                         return {
                             ...recipient,
-                            status: status,
+                            status,
                             replaced_by,
                             meta_data: {
                                 ...recipient.meta_data,
@@ -1750,15 +1767,19 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now()
                         };
                     }
+        
                     return recipient;
-                });
+                }));
+        
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
                 };
             }
+        
             return level;
-        });
+        }));
+        
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1778,6 +1799,7 @@ export const updateReplaceLevel = async (
             });
         }
         await workflow.update({ levels, updated_on: Date.now() });
+        
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",

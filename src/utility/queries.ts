@@ -2070,6 +2070,14 @@ export const sameRateConfiguration = `
     AND rjt.job_template_id IN (:job_templates)
     `;
 
+export const sameShiftConfiguration = `
+    SELECT sc.id
+    FROM shift_configurations sc
+    JOIN shift_configuration_hierarchies sch ON sc.id = sch.shift_config_id
+    WHERE sc.program_id = :program_id
+    AND sch.hierarchy_id IN (:hierarchies)
+    `;
+
 export const rateConfigHierarchiesAndJobTemplates = `
     WITH RateConfigurations AS (
       SELECT
@@ -2846,7 +2854,7 @@ WHERE
         ( -- Non-super user case
             :is_super_user = false
             AND (
-                -- Case 1: Current user has all hierarchy access 
+                -- Case 1: Current user has all hierarchy access
                 (
                     :is_all_hierarchy_associate_param = true
                     AND (
@@ -3307,13 +3315,13 @@ export const shiftTypesQuery = `
     st.time_duration
   FROM
     shift_types st
-    JOIN rate_type rt 
+    JOIN rate_type rt
       ON rt.shift_type = st.id
-    JOIN rate_configuration_rate_types rcrt 
+    JOIN rate_configuration_rate_types rcrt
       ON rcrt.rate_type_id = rt.id
-    JOIN rate_configuration_base_rate_types rcbrt 
+    JOIN rate_configuration_base_rate_types rcbrt
       ON rcrt.base_rate_type_id = rcbrt.id
-    JOIN rate_configurations rc 
+    JOIN rate_configurations rc
       ON rcbrt.rate_configuration_id = rc.id
   WHERE
     rc.is_enabled = true

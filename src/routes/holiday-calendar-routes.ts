@@ -13,7 +13,7 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarById);
 
-  fastify.post('/holiday-calendar', {
+  fastify.post('/program/:program_id/holiday-calendar', {
     // preHandler: validatePermissions(Actions.CREATE, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.createHolidayCalendar);
 
@@ -28,6 +28,10 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
   fastify.post('/program/:program_id/holiday-calendar-advanced-filter', {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarAdvancedFilter);
+
+  fastify.get('/program/:program_id/holiday-calendar/by-date-range', {
+    // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
+  }, HolidayCalendarController.getHolidayCalendarByDateRange);
 }
 
 
