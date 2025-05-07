@@ -269,12 +269,12 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
         const user = request.user as { sub: string; preferred_username: string };
         const { id, program_id } = request.params as { id: string; program_id: string };
         const updatedData = request.body as ExpenseConfigurationAttributes;
-
+ 
         const existingConfig = await ExpenseConfigurationModel.findOne({
             where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
             transaction,
         });
-
+ 
         if (!existingConfig) {
             await transaction.rollback();
             return reply.status(400).send({
@@ -283,7 +283,72 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
                 message: "Expense configuration not found.",
             });
         }
-
+        const newHierarchyIds = updatedData.hierarchy_ids ?? [];
+        const hierarchyConditions = newHierarchyIds.map((id: any) =>
+            Sequelize.where(
+                Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                true
+            )
+        );
+ 
+        const potentialConflicts = await ExpenseConfigurationModel.findAll({
+            where: {
+                program_id,
+                is_deleted: false,
+                latest: true,
+                id: { [Op.ne]: id },
+                [Op.and]: hierarchyConditions,
+            },
+            transaction,
+        });
+ 
+        const matchingConflict = potentialConflicts.find((conflict: any) => {
+            const conflictHierarchyIds = conflict.hierarchy_ids ?? [];
+            return (
+                conflictHierarchyIds.length === newHierarchyIds.length &&
+                conflictHierarchyIds.every((id: any) => newHierarchyIds.includes(id))
+            );
+        });
+ 
+        if (matchingConflict) {
+            await transaction.commit();
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Expense configuration updated successfully.",
+                trace_id: traceId,
+                data: matchingConflict,
+            });
+        }
+ 
+        const addedHierarchyIds = newHierarchyIds.filter(
+            (id: any) => !(existingConfig.hierarchy_ids ?? []).includes(id)
+        );
+ 
+        if (addedHierarchyIds.length > 0) {
+            const conflictingConfigs = await ExpenseConfigurationModel.findAll({
+                where: {
+                    program_id,
+                    latest: false,
+                    [Op.and]: addedHierarchyIds.map((hierarchyId: any) =>
+                        Sequelize.where(
+                            Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${hierarchyId}"]')`),
+                            true
+                        )
+                    ),
+                },
+                transaction,
+            });
+ 
+            if (conflictingConfigs.length > 0) {
+                await transaction.rollback();
+                return reply.status(409).send({
+                    status_code: 409,
+                    trace_id: traceId,
+                    message: "An expense configuration with the same hierarchy IDs already exists",
+                });
+            }
+        }
+ 
         await existingConfig.update({ latest: false, is_enabled: false }, { transaction });
         const oldRevision = Number(existingConfig.revision ?? 0);
         const newRevision = oldRevision + 1;
@@ -303,7 +368,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
             },
             { transaction }
         );
-
+ 
         if (Array.isArray(updatedData.expense_types)) {
             for (const expenseTypeId of updatedData.expense_types) {
                 await ExpenseTypeMapping.create(
@@ -316,9 +381,9 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
                 );
             }
         }
-
+ 
         await transaction.commit();
-
+ 
         return reply.status(200).send({
             status_code: 200,
             message: "Expense configuration versioned update successful.",
