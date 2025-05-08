@@ -549,10 +549,9 @@ export const getPicklistAndPicklistItem = async (
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id, picklist_id } = request.params as { program_id: string; picklist_id: string };
-
-  // Validate that the parameters are not undefined or null
-  if (!program_id || !picklist_id) {
+  const { program_id, id } = request.params as { program_id: string; id: string };
+  
+  if (!program_id || !id) {
     return reply.status(400).send({
       status_code: 400,
       message: "Program ID and Picklist ID are required",
@@ -563,6 +562,7 @@ export const getPicklistAndPicklistItem = async (
     const picklists = await picklist_model.findAll({
       where: {
         program_id,
+        id
       },
       attributes: {
         exclude: ["is_deleted", "created_on", "created_by", "updated_by"],
@@ -571,7 +571,7 @@ export const getPicklistAndPicklistItem = async (
         {
           model: picklist_item_model,
           as: "picklistItems",
-          where: { picklist_id, program_id, is_deleted: false },
+          where: { picklist_id:id, program_id, is_deleted: false },
           required: false,
           attributes: {
             exclude: [
