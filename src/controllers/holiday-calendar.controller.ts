@@ -122,7 +122,7 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         trace_id: traceId,
         holiday_calendar: {
           ...holiday_calendar.toJSON(),
-          hierarchy_units_ids: hierarchiesdata,
+          hierarchy_id: hierarchiesdata,
           work_locations_ids: workLocationdata,
           holidays:holiday
         }
