@@ -454,7 +454,11 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
   const traceId = generateCustomUUID();
 
   try {
-    const { start_date, end_date } = request.query as { start_date: string, end_date: string };
+    const { start_date, end_date, hierarchy_id } = request.query as {
+      start_date: string;
+      end_date: string;
+      hierarchy_id: string;
+    };
 
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
@@ -487,18 +491,44 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
       });
     }
 
+    const hierarchies = await HolidayCalendarHierarchies.findAll({
+      where: {
+        hierarchy_id,
+      },
+      attributes: ['hierarchy_id'],
+    });
+
+    if (hierarchies.length === 0) {
+      const responseHolidays = holidays.map((holiday: any) => ({
+        ...holiday.get(),
+        hierarchy_id: null, 
+      }));
+
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Holiday details fetched successfully, but no matching hierarchy found.',
+        trace_id: traceId,
+        holidays: responseHolidays,
+      });
+    }
+
+    const responseHolidays = holidays.map((holiday: any) => ({
+      ...holiday.get(),
+      hierarchy_id: hierarchies[0].hierarchy_id, 
+    }));
+
     reply.status(200).send({
       status_code: 200,
       message: 'Holiday details fetched successfully.',
       trace_id: traceId,
-      holidays,
+      holidays: responseHolidays,
     });
   } catch (error) {
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching holiday details.',
       trace_id: traceId,
-      error: error,
+      error: error instanceof Error ? error.message : error,
     });
   }
 }
