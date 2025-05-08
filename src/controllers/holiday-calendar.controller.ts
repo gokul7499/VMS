@@ -80,32 +80,41 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
 
     if (holiday_calendar) {
       let hierarchiesdata: object[] = [];
-      const hierarchyIds = holiday_calendar.hierarchy_units_ids || [];
+      const hierarchyIds = await HolidayCalendarHierarchies.findAll({ where: { holiday_calendar_id:id } });
       if (hierarchyIds.length > 0) {
+        const hierarchyIdsArray = hierarchyIds.map(item => item.hierarchy_id);
+
         const hierarchiesQuery = `
           SELECT id, name
           FROM hierarchies
           WHERE id IN (:hierarchyIds)
         `;
         hierarchiesdata = await sequelize.query(hierarchiesQuery, {
-          replacements: { hierarchyIds },
+          replacements: { hierarchyIds: hierarchyIdsArray },
           type: QueryTypes.SELECT
         });
       }
 
       let workLocationdata: object[] = [];
-      const workLocationIds = holiday_calendar.work_locations_ids || [];
+      const workLocationIds = await HolidayCalendarWorkLocation.findAll({ where: { holiday_calendar_id:id } });
       if (workLocationIds.length > 0) {
+        const workLocationIdsArray = workLocationIds.map(item => item.work_location_id);
+
         const workLocationQuery = `
           SELECT id, name
           FROM work_locations
           WHERE id IN (:workLocationIds)
         `;
         workLocationdata = await sequelize.query(workLocationQuery, {
-          replacements: { workLocationIds },
+          replacements: { workLocationIds: workLocationIdsArray },
           type: QueryTypes.SELECT
         });
       }
+      
+      const holiday = await HolidayCalendarDetails.findAll({
+        where: { holiday_calendar_id: id },
+        attributes: ['id', 'holiday_calendar_id', 'date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable']
+      });
 
       reply.status(200).send({
         status_code: 200,
@@ -114,7 +123,8 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         holiday_calendar: {
           ...holiday_calendar.toJSON(),
           hierarchy_units_ids: hierarchiesdata,
-          work_locations_ids: workLocationdata
+          work_locations_ids: workLocationdata,
+          holidays:holiday
         }
       });
     } else {
@@ -124,11 +134,13 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         holidayCalendar: []
       });
     }
-  } catch (error) {
+  } catch (error:any){
+    console.log(error)
+    
     reply.status(500).send({
       message: 'An error occurred while fetching holidayCalendar.',
       trace_id: traceId,
-      error: error,
+      error: error.message
     });
   }
 }
