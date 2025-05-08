@@ -5,6 +5,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import HolidayCalendar from './holiday-calendar.model';
 
 class HolidayCalendarWorkLocation extends Model {
+  work_location_id: any;
 }
 
 HolidayCalendarWorkLocation.init({
