@@ -54,7 +54,7 @@ export async function getHolidayCalendar(request: FastifyRequest, reply: Fastify
       status_code: 200,
       message: holiday_calendars.length > 0 ? 'HolidayCalendars fetched successfully.' : 'No holidayCalendars found.',
       trace_id: traceId,
-      holiday_calendars,
+      data: holiday_calendars,
       pagination: {
         totalRecords,
         totalPages: Math.ceil(totalRecords / limitNum),
@@ -80,7 +80,7 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
 
     if (holiday_calendar) {
       let hierarchiesdata: object[] = [];
-      const hierarchyIds = await HolidayCalendarHierarchies.findAll({ where: { holiday_calendar_id:id } });
+      const hierarchyIds = await HolidayCalendarHierarchies.findAll({ where: { holiday_calendar_id: id } });
       if (hierarchyIds.length > 0) {
         const hierarchyIdsArray = hierarchyIds.map(item => item.hierarchy_id);
 
@@ -96,7 +96,7 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
       }
 
       let workLocationdata: object[] = [];
-      const workLocationIds = await HolidayCalendarWorkLocation.findAll({ where: { holiday_calendar_id:id } });
+      const workLocationIds = await HolidayCalendarWorkLocation.findAll({ where: { holiday_calendar_id: id } });
       if (workLocationIds.length > 0) {
         const workLocationIdsArray = workLocationIds.map(item => item.work_location_id);
 
@@ -110,7 +110,7 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
           type: QueryTypes.SELECT
         });
       }
-      
+
       const holiday = await HolidayCalendarDetails.findAll({
         where: { holiday_calendar_id: id },
         attributes: ['id', 'holiday_calendar_id', 'date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable']
@@ -120,18 +120,18 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         status_code: 200,
         message: 'HolidayCalendar fetched successfully.',
         trace_id: traceId,
-        holiday_calendar: {
+        data: {
           ...holiday_calendar.toJSON(),
           hierarchy_units_ids: hierarchiesdata,
           work_locations_ids: workLocationdata,
-          holidays:holiday
+          holidays: holiday
         }
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'HolidayCalendar not found.',
-        holidayCalendar: []
+        data: []
       });
     }
   } catch (error:any){
