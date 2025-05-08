@@ -183,7 +183,7 @@ export const getVendorDistributionScheduleById = async (
       
       const distScheduleDetails = await DistScheduleDetail.findAll({
         where: { distribution_id: id },
-        attributes: ['id', 'duration', 'measure_unit', 'vendors'],
+        attributes: ['id', 'duration', 'measure_unit', 'vendors','condition'],
       });
       
       const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
@@ -213,6 +213,7 @@ export const getVendorDistributionScheduleById = async (
           duration: detail.duration,
           measure_unit: detail.measure_unit,
           vendors: detail.vendors || [],
+            condition: detail.condition || [],
         })),
       };
       
