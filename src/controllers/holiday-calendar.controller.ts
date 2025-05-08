@@ -134,9 +134,9 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         data: []
       });
     }
-  } catch (error:any){
+  } catch (error: any) {
     console.log(error)
-    
+
     reply.status(500).send({
       message: 'An error occurred while fetching holidayCalendar.',
       trace_id: traceId,
@@ -480,15 +480,6 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
 
-    // if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    //   return reply.status(400).send({
-    //     status_code: 400,
-    //     message: "Invalid date format. Please use YYYY-MM-DD format.",
-    //     trace_id: traceId,
-    //   });
-    // }
-
-    // ✅ Hardcoded holiday
     const hardcodedHoliday = {
       date: "2024-01-02",
       name: "sunday",
@@ -514,7 +505,7 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
         status_code: 200,
         message: 'No holidays found within the specified date range.',
         trace_id: traceId,
-        holidays: [],
+        data: [],
       });
     }
 
@@ -522,7 +513,7 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
       status_code: 200,
       message: 'Holiday details fetched successfully.',
       trace_id: traceId,
-      holidays: combinedHolidays,
+      data: combinedHolidays,
     });
   } catch (error) {
     return reply.status(500).send({
