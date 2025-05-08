@@ -202,6 +202,53 @@ export const getJobWorkFlowById = async (
     }
 };
 
+async function handleBypassForUser(levels: any[], userId: string): Promise<any[]> {
+    return await Promise.all(levels.map(async (level) => {
+        const levelOrder = level.placement_order || 0;
+
+        if (level.status !== 'pending') return level;
+
+        const behaviorOfLevel = (level.recipient_types[0]?.behavior || level.recipient_types[0]?.behaviour || '').toLowerCase();
+
+        level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
+            const recipientUserId = recipient?.replaced_by ||
+                (recipient?.meta_data ? Object.values(recipient.meta_data).find((id: any) => typeof id === 'string') : null);
+
+            const matchesUser = recipientUserId === userId;
+            const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
+            const updatedRecipient = { ...recipient };
+
+            if (behavior === 'any') {
+                if (matchesUser) {
+                    updatedRecipient.status = 'bypassed';
+                } else {
+                    updatedRecipient.status = 'Not Needed';
+                }
+            } else if (behavior === 'all') {
+                if (matchesUser && recipient.status === 'pending') {
+                    updatedRecipient.status = 'bypassed';
+                }
+            } else {
+                if (matchesUser && recipient.status === 'pending') {
+                    updatedRecipient.status = 'bypassed';
+                }
+            }
+
+            return updatedRecipient;
+        });
+
+        if (behaviorOfLevel === 'any') {
+            const anyBypassed = level.recipient_types.some((r: any) => r.status === 'bypassed');
+            level.status = anyBypassed ? 'bypassed' : 'pending';
+        } else {
+            const allBypassed = level.recipient_types.every((r: any) => r.status === 'bypassed');
+            level.status = allBypassed ? 'bypassed' : 'pending';
+        }
+
+        return level;
+    }));
+}
+
 export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -434,13 +481,6 @@ export const updateWorkflowStatus = async (
                                         status: commonFields?.status,
                                     };
                                 }
-                            } else {
-                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' && level.recipient_types.length === 1) {
-                                    updatedRecipient = {
-                                        ...recipient,
-                                        status: matchesUser ? 'bypassed' : commonFields?.status,
-                                    };
-                                }
                             }
                         }
                         return updatedRecipient;
@@ -462,7 +502,11 @@ export const updateWorkflowStatus = async (
                     }
                     return level;
                 });
- 
+                if (!user_id) {
+                    return { massege: "User ID is undefined" };
+                }
+                let bypass = await handleBypassForUser(workflow.levels, user_id);
+                workflow.levels = bypass;
             }
 
             levels = await Promise.all( 

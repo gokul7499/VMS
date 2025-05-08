@@ -5,6 +5,7 @@ import { beforeSave } from '../hooks/timeFormatHook';
 import HolidayCalendar from './holiday-calendar.model';
 
 class HolidayCalendarHierarchies extends Model {
+  hierarchy_id: any;
 }
 
 HolidayCalendarHierarchies.init({
