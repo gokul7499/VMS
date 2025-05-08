@@ -296,7 +296,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
 export const updateHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
-  const updateData = request.body as Partial<HolidayCalendarData>; // allows partial update
+  const updateData = request.body as Partial<HolidayCalendarData>;
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
