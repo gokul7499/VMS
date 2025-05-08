@@ -22,7 +22,7 @@ HolidayCalendarDetails.init({
         }
     },
     date: {
-        type: DataTypes.DATE,
+        type: DataTypes.DATEONLY,
         allowNull: false,
     },
     name: {
