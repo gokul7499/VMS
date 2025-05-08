@@ -550,8 +550,7 @@ export const getPicklistAndPicklistItem = async (
 ) => {
   const traceId = generateCustomUUID();
   const { program_id, id } = request.params as { program_id: string; id: string };
- console.log("request.params", request.params);
-  // Validate that the parameters are not undefined or null
+  
   if (!program_id || !id) {
     return reply.status(400).send({
       status_code: 400,
@@ -586,7 +585,6 @@ export const getPicklistAndPicklistItem = async (
         },
       ],
     });
-    console.log("picklists",picklists)
 
     if (picklists.length > 0) {
       const picklist = picklists[0];
