@@ -572,7 +572,7 @@ export const getPicklistAndPicklistItem = async (
           model: picklist_item_model,
           as: "picklistItems",
           where: { picklist_id, program_id, is_deleted: false },
-          required: true,
+          required: false,
           attributes: {
             exclude: [
               "is_deleted",
@@ -587,7 +587,6 @@ export const getPicklistAndPicklistItem = async (
     });
 
     if (picklists.length > 0) {
-      // Assuming you want to return the first picklist as an object
       const picklist = picklists[0];
       const response = {
         status_code: 200,
