@@ -8,6 +8,7 @@ class DistScheduleDetail extends Model {
     duration: any;
     measure_unit: any;
     vendors: never[] | undefined;
+    condition: never[] | undefined
 }
 
 DistScheduleDetail.init({

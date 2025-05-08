@@ -11,10 +11,72 @@ import logger from "../plugins/logger-plugin";
 import RateConfigurationsRepository from '../repositories/rate-configurations.repository';
 
 export async function getALLShiftType(request: FastifyRequest, reply: FastifyReply) {
-    const searchFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on'];
-    const responseFields = ['program_id', 'id', 'shift_type_name', 'is_enabled', 'shift_type_category', 'updated_on', 'shift_type_time', 'time_duration','shift_format'];
-    return baseSearch(request, reply, ShiftTypeModel, searchFields, responseFields);
+    try {
+        const query = request.query as Record<string, string>;
+
+        const page = parseInt(query.page) || 1;
+        const limit = parseInt(query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const sortField = query.sortField || 'updated_on';
+        const finalSortDirection = 'DESC';
+
+        const whereClause: any = { is_deleted: false };
+
+       
+        if (query.shift_type_name) {
+            whereClause.shift_type_name = {
+                [Op.like]: `%${query.shift_type_name.trim()}%`
+            };
+        }
+
+        if (query.is_enabled !== undefined) {
+            whereClause.is_enabled = query.is_enabled === 'true' ? 1 : 0;
+        }
+
+        if (query.updated_on) {
+            const dateRange = query.updated_on.split(',');
+            if (dateRange.length === 2) {
+                const startDate = parseFloat(dateRange[0].trim());
+                const endDate = parseFloat(dateRange[1].trim());
+                whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+            }
+        }
+
+        const responseFields = [
+            'program_id',
+            'id',
+            'shift_type_name',
+            'is_enabled',
+            'shift_type_category',
+            'updated_on',
+            'shift_type_time',
+            'time_duration',
+            'shift_format'
+        ];
+
+        const { rows: results, count } = await ShiftTypeModel.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
+            attributes: responseFields,
+            order: [[sortField, finalSortDirection]]
+        });
+
+        return reply.status(200).send({
+            status_code: 200,
+            total_records: count,
+            items: results
+        });
+
+    } catch (error) {
+        console.error('Error in getALLShiftType:', error);
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error'
+        });
+    }
 }
+
 
 export async function getShiftTypeById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
