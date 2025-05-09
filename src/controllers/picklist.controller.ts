@@ -1121,3 +1121,141 @@ export const clonePredefinedPicklistsForProgram = async (
     }
   }
   };
+
+  export async function getPicklists(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const traceId = generateCustomUUID();
+  
+    const { program_id } = request.params as { program_id: string };
+    const {
+      name,
+      picklist_id,
+      is_enabled,
+      defined_by,
+      updated_on,
+      picklist_items_count,
+      search,
+      page = 1,
+      limit,
+    } = request.query as {
+      name?: string;
+      picklist_id?: string;
+      is_enabled?: string;
+      defined_by?: string;
+      updated_on?: string;
+      picklist_items_count?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    };
+  
+    try {
+      const pageNumber = parseInt(String(page), 10) || 1;
+      const limitNumber = limit !== undefined ? parseInt(String(limit), 10) : undefined;
+      const offset = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
+  
+      let whereClause: any = {
+        is_deleted: false,
+        program_id
+      };
+  
+      // Filters
+      if (name) whereClause.name = { [Op.like]: `%${name}%` };
+      if (picklist_id)
+        whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
+      if (is_enabled !== undefined)
+        whereClause.is_enabled = is_enabled === "true";
+      if (defined_by) whereClause.defined_by = defined_by;
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+        whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+      }
+  
+      whereClause[Op.or] = [
+        { defined_by: "predefined" },
+        { program_id: program_id },
+      ];
+  
+      if (search) {
+        const searchFields = [
+          "name",
+          "picklist_id",
+          "is_enabled",
+          "defined_by",
+          "updated_on",
+        ];
+        const [searchField, searchValue] = search.includes(":")
+          ? search.split(":")
+          : ["", search];
+        if (searchField && searchFields.includes(searchField)) {
+          whereClause[searchField] = {
+            [Op.like]: `%${searchValue}%`,
+          };
+        } else {
+          whereClause[Op.or] = searchFields.map((field) => ({
+            [field]: { [Op.like]: `%${search}%` },
+          }));
+        }
+      }
+  
+      const picklists = await picklist_model.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: picklist_item_model,
+            as: "picklistItems",
+            where: { is_deleted: false },
+            required: false,
+          },
+        ],
+        order: [["updated_on", "DESC"]],
+        offset,
+        ...(limitNumber !== undefined && { offset, limit: limitNumber }),
+        distinct: true,
+      });
+  
+      let filteredPicklists = picklists.rows;
+      if (picklist_items_count) {
+        const countFilter = parseInt(picklist_items_count, 10);
+        filteredPicklists = filteredPicklists.filter(
+          (picklist) => picklist.picklistItems.length === countFilter
+        );
+      }
+  
+      const picklistsData = filteredPicklists.map((picklist: any) => ({
+        id: picklist.id,
+        name: picklist.name,
+        picklist_id: picklist.picklist_id,
+        description: picklist.description,
+        slug: picklist.slug,
+        is_enabled: picklist.is_enabled,
+        updated_on: picklist.updated_on,
+        disabled_program: picklist.disabled_program,
+        is_visible: picklist.is_visible,
+        program_id: picklist.program_id,
+        defined_by: picklist.defined_by,
+        picklist_items_count: picklist.picklistItems.length,
+      }));
+  
+      reply.status(200).send({
+        status_code: 200,
+        message: "Picklists retrieved successfully",
+        trace_id: traceId,
+        picklist_data: picklistsData,
+        total_records: picklist_items_count
+          ? picklistsData.length
+          : picklists.count,
+        page: pageNumber,
+        limit: limitNumber,
+      });
+    } catch (error) {
+      console.error("Error fetching picklists:", error);
+      reply.status(500).send({
+        status_code: 500,
+        message: "Internal Server Error. Unable to fetch picklists.",
+        trace_id: traceId,
+      });
+    }
+  }
