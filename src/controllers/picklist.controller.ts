@@ -47,6 +47,7 @@ export async function getPicklistById(
 
     let whereClause: any = {
       is_deleted: false,
+      program_id
     };
 
     // Filters

@@ -77,9 +77,10 @@ export async function getProgramVendors(
             is_enabled,
             status,
             updated_on,
+            hierarchy_ids,
             page: pageStr = "1",
             limit: limitStr = "10"
-        } = request.query as programVendorQueryInterface & { page?: string; limit?: string };
+        } = request.query as programVendorQueryInterface & { page?: string; limit?: string;hierarchy_ids?:any };
 
         const page = parseInt(pageStr, 10) || 1;
         const limit = parseInt(limitStr, 10) || 10;
@@ -94,6 +95,28 @@ export async function getProgramVendors(
             filters.is_enabled = is_enabled;
         }
 
+        if (hierarchy_ids) {
+            const hierarchyArray = hierarchy_ids.split(',')
+                .map((id: string) => parseInt(id.trim(), 10))
+                .filter((id: number) => !isNaN(id));
+                
+            if (hierarchyArray.length > 0) {
+                filters[Op.or] = [
+                    { all_hierarchy: true },
+                    ...hierarchyArray.map((id: unknown) => 
+                        sequelize.where(
+                            sequelize.fn('JSON_CONTAINS',
+                                sequelize.col('hierarchies'),
+                                sequelize.cast(id, 'JSON')
+                            ),
+                            true
+                        )
+                    )
+                ];
+            }
+        }
+          
+          
         if (user_id !== undefined) {
             const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
             if (!userRecord) {
