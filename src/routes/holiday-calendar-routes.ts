@@ -29,7 +29,7 @@ async function holidayCalendarRoutes(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarAdvancedFilter);
 
-  fastify.get('/program/:program_id/holiday-calendar-get_holiday', {
+  fastify.get('/program/:program_id/holiday-calendar/get-holiday', {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendarByDateRange);
 }

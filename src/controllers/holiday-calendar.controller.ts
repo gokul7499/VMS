@@ -134,9 +134,9 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
         data: []
       });
     }
-  } catch (error:any){
+  } catch (error: any) {
     console.log(error)
-    
+
     reply.status(500).send({
       message: 'An error occurred while fetching holidayCalendar.',
       trace_id: traceId,
@@ -472,77 +472,51 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
   const traceId = generateCustomUUID();
 
   try {
-    const { start_date, end_date, hierarchy_id } = request.query as {
+    const { start_date, end_date } = request.query as {
       start_date: string;
       end_date: string;
-      hierarchy_id: string;
     };
 
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Invalid date format. Please use YYYY-MM-DD format.",
-        trace_id: traceId,
-      });
-    }
+    const hardcodedHoliday = {
+      date: "2024-01-02",
+      name: "sunday",
+      is_time_entry_allowed: false,
+      is_paid: false,
+      is_tax_applicable: false,
+    };
 
     const holidays = await HolidayCalendarDetails.findAll({
-      where: {
-        date: {
-          [Op.gte]: startDate,
-          [Op.lte]: endDate,
-        },
-      },
+      // where: {
+      //   date: {
+      //     [Op.gte]: startDate,
+      //     [Op.lte]: endDate,
+      //   },
+      // },
       attributes: ['date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable'],
       order: [['date', 'ASC']],
     });
 
-    if (holidays.length === 0) {
+    const combinedHolidays = [...holidays.map(h => h.get()), hardcodedHoliday];
+    if (combinedHolidays.length === 0) {
       return reply.status(200).send({
         status_code: 200,
         message: 'No holidays found within the specified date range.',
         trace_id: traceId,
-        holidays: [],
+        data: [],
       });
     }
 
-    const hierarchies = await HolidayCalendarHierarchies.findAll({
-      where: {
-        hierarchy_id,
-      },
-      attributes: ['hierarchy_id'],
-    });
-
-    if (hierarchies.length === 0) {
-      const responseHolidays = holidays.map((holiday: any) => ({
-        ...holiday.get(),
-        hierarchy_id: null, 
-      }));
-
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Holiday details fetched successfully, but no matching hierarchy found.',
-        trace_id: traceId,
-        holidays: responseHolidays,
-      });
-    }
-
-    const responseHolidays = holidays.map((holiday: any) => ({
-      ...holiday.get(),
-      hierarchy_id: hierarchies[0].hierarchy_id, 
-    }));
-
-    reply.status(200).send({
+    return reply.status(200).send({
       status_code: 200,
       message: 'Holiday details fetched successfully.',
       trace_id: traceId,
-      holidays: responseHolidays,
+      data: combinedHolidays,
     });
   } catch (error) {
-    reply.status(500).send({
+    return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching holiday details.',
       trace_id: traceId,
