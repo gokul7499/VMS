@@ -13,14 +13,14 @@ import RateConfigurationsRepository from '../repositories/rate-configurations.re
 export async function getALLShiftType(request: FastifyRequest, reply: FastifyReply) {
     try {
         const query = request.query as Record<string, string>;
-
+        const { program_id } = request.params as { program_id: string };
         const page = parseInt(query.page) || 1;
         const limit = parseInt(query.limit) || 10;
         const offset = (page - 1) * limit;
         const sortField = query.sortField || 'updated_on';
         const finalSortDirection = 'DESC';
 
-        const whereClause: any = { is_deleted: false };
+        const whereClause: any = { is_deleted: false,program_id};
 
        
         if (query.shift_type_name) {
@@ -39,6 +39,15 @@ export async function getALLShiftType(request: FastifyRequest, reply: FastifyRep
                 const startDate = parseFloat(dateRange[0].trim());
                 const endDate = parseFloat(dateRange[1].trim());
                 whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+            } else if (dateRange.length === 1) {
+                const date = new Date(parseFloat(dateRange[0].trim()));
+                const startOfDay = new Date(date);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(date);
+                endOfDay.setHours(23, 59, 59, 999);
+                whereClause.updated_on = {
+                    [Op.between]: [startOfDay.getTime(), endOfDay.getTime()],
+                };
             }
         }
 
