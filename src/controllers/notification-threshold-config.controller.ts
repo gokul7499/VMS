@@ -4,6 +4,8 @@ import { decodeToken } from '../middlewares/verifyToken';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { ProgramThresholdInput } from '../interfaces/notification-threshold.interface';
 import { sequelize } from '../config/instance';
+import NotificationThresholdConfigModel from '../models/notification-threshold-config.model';
+import { createThresholdRecords, validateThresholdInput } from '../service/notification-threshold.service';
 
 export const createThreshold = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -33,98 +35,42 @@ export const createThreshold = async (
             });
         }
 
-        const body = request.body as Array<any>;
+        const body = request.body as ProgramThresholdInput[];
 
-        if (!Array.isArray(body) || body.length === 0) {
+        const existingThreshold = await thresholdConfig.findOne({ where: { program_id } });
+        if (existingThreshold) {
             return reply.status(400).send({
                 status_code: 400,
                 trace_id: traceId,
-                message: 'Request body must be a non-empty array',
+                message: `A record with program_id ${program_id} already exists.`,
             });
         }
 
-        const timestamp = Date.now();
-        const createdThresholds = [];
-
-        for (const moduleEntry of body) {
-            const { module, config } = moduleEntry;
-
-            if (typeof module !== 'string' || module.trim() === '') {
-                await transaction.rollback();
-                return reply.status(400).send({
-                    status_code: 400,
-                    trace_id: traceId,
-                    message: 'Each module entry must include a valid non-empty string "module"',
-                });
-            }
-
-            if (!Array.isArray(config) || config.length === 0) {
-                await transaction.rollback();
-                return reply.status(400).send({
-                    status_code: 400,
-                    trace_id: traceId,
-                    message: `Config for module "${module}" must be a non-empty array`,
-                });
-            }
-
-            for (const configItem of config) {
-                const { key, label, is_enable, threshold } = configItem;
-
-                if (
-                    typeof key !== 'string' ||
-                    typeof label !== 'string' ||
-                    typeof is_enable !== 'boolean' ||
-                    !Array.isArray(threshold)
-                ) {
-                    await transaction.rollback();
-                    return reply.status(400).send({
-                        status_code: 400,
-                        trace_id: traceId,
-                        message: `Invalid config structure for module "${module}"`,
-                    });
-                }
-
-                for (const thresholdItem of threshold) {
-                    if (
-                        typeof thresholdItem.supportsBeforeThresholds !== 'boolean' ||
-                        typeof thresholdItem.supportsAfterThresholds !== 'boolean' ||
-                        typeof thresholdItem.threshold_value !== 'number' ||
-                        (!['string', 'number'].includes(typeof thresholdItem.threshold_unit))
-                    ) {
-                        await transaction.rollback();
-                        return reply.status(400).send({
-                            status_code: 400,
-                            trace_id: traceId,
-                            message: `Invalid threshold object in module "${module}" config key "${key}"`,
-                        });
-                    }
-                }
-            }
-
-            const newThreshold = await thresholdConfig.create(
-                {
-                    program_id,
-                    module,
-                    config,
-                    is_enabled: true,
-                    is_deleted: false,
-                    created_on: timestamp,
-                    updated_on: timestamp,
-                    created_by: user?.sub,
-                    updated_by: user?.sub,
-                },
-                { transaction }
-            );
-
-            createdThresholds.push(newThreshold.id);
+        const validationResult = validateThresholdInput(body, traceId);
+        if (!validationResult.valid) {
+            await transaction.rollback();
+            return reply.status(400).send({
+                status_code: 400,
+                trace_id: traceId,
+                message: validationResult.message,
+            });
         }
+
+        // Create threshold records
+        const createdIds = await createThresholdRecords(
+            body,
+            program_id,
+            user?.sub,
+            Date.now(),
+            transaction
+        );
 
         await transaction.commit();
 
         return reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
-            created_ids: createdThresholds,
+            created_ids: createdIds,
             message: 'Threshold configurations created successfully',
         });
     } catch (error: any) {
@@ -137,7 +83,6 @@ export const createThreshold = async (
         });
     }
 };
-
 
 export const getAllThresholds = async (
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -241,19 +186,11 @@ export const getThresholdById = async (
     }
 };
 
-
-export const updateThreshold = async (
-    request: FastifyRequest<{
-        Params: { program_id: string; id: string };
-        Body: ProgramThresholdInput;
-    }>,
-    reply: FastifyReply
-) => {
+export const updateThreshold = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
 
     try {
-        const { program_id, id } = request.params;
         const authHeader = request.headers.authorization;
 
         if (!authHeader?.startsWith('Bearer ')) {
@@ -264,7 +201,8 @@ export const updateThreshold = async (
         }
 
         const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
+        const user: any = await decodeToken(token);
+
         if (!user) {
             return reply.status(401).send({
                 status_code: 401,
@@ -272,49 +210,50 @@ export const updateThreshold = async (
             });
         }
 
-        const existing = await thresholdConfig.findOne({
-            where: {
-                id,
-                program_id,
-                is_deleted: false,
-            },
-            transaction,
+        const body = request.body as Array<{ module: string; config: any }>;
+        const { program_id } = request.params as { program_id: string };
+
+        if (!Array.isArray(body)) {
+            return reply.status(400).send({ message: 'Invalid request body format. Expected an array.', trace_id: traceId, });
+        }
+
+        const existingConfig = await NotificationThresholdConfigModel.findOne({
+            where: { program_id },
         });
 
-        if (!existing) {
+        if (!existingConfig) {
             return reply.status(404).send({
                 status_code: 404,
-                message: 'Threshold not found',
+                message: 'Program ID not found in threshold configurations.',
                 trace_id: traceId,
             });
         }
 
-        const { module, config, is_enabled } = request.body;
-
-        await existing.update(
-            {
-                module,
-                config,
-                is_enabled,
-                updated_on: Date.now(),
-                updated_by: user?.sub,
-            },
-            { transaction }
+        await Promise.all(
+            body.map((data) =>
+                thresholdConfig.update(
+                    { config: data.config },
+                    {
+                        where: {
+                            program_id,
+                            module: data.module,
+                        },
+                        transaction,
+                    }
+                )
+            )
         );
 
         await transaction.commit();
 
-        reply.send({
-            status_code: 200,
-            message: 'Threshold updated successfully',
+        return reply.status(200).send({
+            message: 'Thresholds updated successfully.',
             trace_id: traceId,
-            data: existing,
         });
-    } catch (error: any) {
+    } catch (error) {
         await transaction.rollback();
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Update failed',
+        return reply.status(500).send({
+            message: 'Internal Server Error',
             trace_id: traceId,
         });
     }

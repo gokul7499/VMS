@@ -166,6 +166,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
         const { program_id } = request.params as { program_id: string };
         const user = request.user as { sub: string; preferred_username: string };
         const expenseConfig = request.body as ExpenseConfigurationAttributes;
+        const entityId = generateCustomUUID();
 
         if (!expenseConfig.hierarchy_ids || !Array.isArray(expenseConfig.hierarchy_ids) || expenseConfig.hierarchy_ids.length === 0) {
             return reply.status(400).send({
@@ -227,6 +228,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
 
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
+            entity_id: entityId,
             program_id,
             slug,
             created_by: user.sub,
@@ -292,7 +294,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
             {
                 ...existingConfig.toJSON(),
                 ...updatedData,
-                entity_id: existingConfig.id,
+                entity_id: existingConfig.entity_id,
                 revision: newRevision,
                 latest: true,
                 created_on: existingConfig.created_on,

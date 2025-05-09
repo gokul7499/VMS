@@ -1,11 +1,14 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import holidayCalendar from "../models/holiday-calendar.model";
-import { holidayCalendarData } from "../interfaces/holiday-calendar.interface";
+import { HolidayCalendarData } from "../interfaces/holiday-calendar.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { Op, QueryTypes } from "sequelize";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
+import HolidayCalendarHierarchies from "../models/holiday-calender-hierarchie.model";
+import HolidayCalendarWorkLocation from "../models/holiday-calender-work-location.model";
+import HolidayCalendarDetails from "../models/holiday-calender-details.model";
 
 export async function getHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
@@ -51,7 +54,7 @@ export async function getHolidayCalendar(request: FastifyRequest, reply: Fastify
       status_code: 200,
       message: holiday_calendars.length > 0 ? 'HolidayCalendars fetched successfully.' : 'No holidayCalendars found.',
       trace_id: traceId,
-      holiday_calendars,
+      data: holiday_calendars,
       pagination: {
         totalRecords,
         totalPages: Math.ceil(totalRecords / limitNum),
@@ -77,141 +80,102 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
 
     if (holiday_calendar) {
       let hierarchiesdata: object[] = [];
-      const hierarchyIds = holiday_calendar.hierarchy_units_ids || [];
+      const hierarchyIds = await HolidayCalendarHierarchies.findAll({ where: { holiday_calendar_id: id } });
       if (hierarchyIds.length > 0) {
+        const hierarchyIdsArray = hierarchyIds.map(item => item.hierarchy_id);
+
         const hierarchiesQuery = `
           SELECT id, name
           FROM hierarchies
           WHERE id IN (:hierarchyIds)
         `;
         hierarchiesdata = await sequelize.query(hierarchiesQuery, {
-          replacements: { hierarchyIds },
+          replacements: { hierarchyIds: hierarchyIdsArray },
           type: QueryTypes.SELECT
         });
       }
 
       let workLocationdata: object[] = [];
-      const workLocationIds = holiday_calendar.work_locations_ids || [];
+      const workLocationIds = await HolidayCalendarWorkLocation.findAll({ where: { holiday_calendar_id: id } });
       if (workLocationIds.length > 0) {
+        const workLocationIdsArray = workLocationIds.map(item => item.work_location_id);
+
         const workLocationQuery = `
           SELECT id, name
           FROM work_locations
           WHERE id IN (:workLocationIds)
         `;
         workLocationdata = await sequelize.query(workLocationQuery, {
-          replacements: { workLocationIds },
+          replacements: { workLocationIds: workLocationIdsArray },
           type: QueryTypes.SELECT
         });
       }
+
+      const holiday = await HolidayCalendarDetails.findAll({
+        where: { holiday_calendar_id: id },
+        attributes: ['id', 'holiday_calendar_id', 'date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable']
+      });
 
       reply.status(200).send({
         status_code: 200,
         message: 'HolidayCalendar fetched successfully.',
         trace_id: traceId,
-        holiday_calendar: {
+        data: {
           ...holiday_calendar.toJSON(),
-          hierarchy_units_ids: hierarchiesdata,
-          work_locations_ids: workLocationdata
+          hierarchy_id: hierarchiesdata,
+          work_locations_ids: workLocationdata,
+          holidays: holiday
         }
       });
     } else {
       reply.status(200).send({
         status_code: 200,
         message: 'HolidayCalendar not found.',
-        holidayCalendar: []
+        data: []
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    console.log(error)
+
     reply.status(500).send({
       message: 'An error occurred while fetching holidayCalendar.',
       trace_id: traceId,
-      error: error,
+      error: error.message
     });
   }
 }
 
 export const createHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
-  const holiday_calendar = request.body as holidayCalendarData;
-  const authHeader = request.headers.authorization;
+  const holiday_calendar = request.body as any;
   const { program_id } = request.params as { program_id: string };
+  const authHeader = request.headers.authorization;
+  const transaction = await sequelize.transaction();
 
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
 
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
 
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+
+  const userId = user?.sub;
   const traceId = generateCustomUUID();
 
-  if (!holiday_calendar.is_all_hierarchies && (!holiday_calendar.hierarchy_units_ids || holiday_calendar.hierarchy_units_ids.length === 0)) {
-    logger(
-      {
-        trace_id: traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: userId,
-        },
-        data: request.body,
-        eventname: "create holiday calendar",
-        status: "error",
-        description: 'hierarchy_units is required when is_all_hierarchies is false.',
-        level: 'error',
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false
-      },
-      holidayCalendar
-    );
-
-    return reply.status(400).send({
-      status_code: 400,
-      trace_id: traceId,
-      message: 'hierarchy_units is required when is_all_hierarchies is false.',
-    });
-  }
-
-  if (!holiday_calendar.is_all_work_locations && (!holiday_calendar.work_locations_ids || holiday_calendar.work_locations_ids.length === 0)) {
-    logger(
-      {
-        trace_id: traceId,
-        actor: {
-          user_name: user?.preferred_username,
-          user_id: userId,
-        },
-        data: request.body,
-        eventname: "create holiday calendar",
-        status: "error",
-        description: 'work_locations is required when is_all_work_locations is false.',
-        level: 'error',
-        action: request.method,
-        url: request.url,
-        entity_id: program_id,
-        is_deleted: false
-      },
-      holidayCalendar
-    );
-
-    return reply.status(400).send({
-      status_code: 400,
-      trace_id: traceId,
-      message: 'work_locations is required when is_all_work_locations is false.',
-    });
-  }
   try {
     const existingHolidayCalendar = await holidayCalendar.findOne({
-      where: { program_id, 
+      where: {
+        program_id,
         name: holiday_calendar.name,
-         is_deleted: false 
-        },
+        is_deleted: false,
+      },
     });
 
     if (existingHolidayCalendar) {
+      await transaction.rollback();
       return reply.status(409).send({
         status_code: 409,
         trace_id: traceId,
@@ -219,12 +183,55 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       });
     }
 
-    await holidayCalendar.create({
+    const data = await holidayCalendar.create({
       ...holiday_calendar,
-      program_id,
       created_by: userId,
       updated_by: userId,
-    });
+      program_id,
+    }, { transaction });
+
+    if (Array.isArray(holiday_calendar.hierarchy_id)) {
+      for (const hierarchyId of holiday_calendar.hierarchy_id) {
+        if (hierarchyId) {
+          await HolidayCalendarHierarchies.create({
+            holiday_calendar_id: data.id,
+            hierarchy_id: hierarchyId,
+            created_by: userId,
+            updated_by: userId,
+          }, { transaction });
+        }
+      }
+    }
+
+    if (Array.isArray(holiday_calendar.work_locations_ids)) {
+      for (const workLocationId of holiday_calendar.work_locations_ids) {
+        if (workLocationId) {
+          await HolidayCalendarWorkLocation.create({
+            holiday_calendar_id: data.id,
+            work_location_id: workLocationId,
+            created_by: userId,
+            updated_by: userId,
+          }, { transaction });
+        }
+      }
+    }
+
+    if (Array.isArray(holiday_calendar.holidays)) {
+      for (const details of holiday_calendar.holidays) {
+        await HolidayCalendarDetails.create({
+          holiday_calendar_id: data.id,
+          date: details.date,
+          name: details.name,
+          is_time_entry_allowed: details.is_time_entry_allowed,
+          is_paid: details.is_paid,
+          is_tax_applicable: details.is_tax_applicable,
+          created_by: userId,
+          updated_by: userId,
+        }, { transaction });
+      }
+    }
+
+    await transaction.commit();
 
     logger(
       {
@@ -234,24 +241,27 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
           user_id: userId,
         },
         data: request.body,
-        eventname: "create holiday calendar",
-        status: "success",
-        description: `HolidayCalendar created successfully.`,
+        eventname: 'create holiday calendar',
+        status: 'success',
+        description: 'HolidayCalendar created successfully.',
         level: 'success',
         action: request.method,
         url: request.url,
         entity_id: program_id,
-        is_deleted: false
+        is_deleted: false,
       },
       holidayCalendar
     );
 
-    reply.status(201).send({
+    return reply.status(201).send({
       status_code: 201,
       trace_id: traceId,
       message: 'HolidayCalendar created successfully.',
+      id: data.id
     });
   } catch (error) {
+    await transaction.rollback();
+
     logger(
       {
         trace_id: traceId,
@@ -260,19 +270,21 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
           user_id: userId,
         },
         data: request.body,
-        eventname: "create holiday calendar",
-        status: "error",
-        description: `An error occurred while creating holidayCalendar.`,
+        eventname: 'create holiday calendar',
+        status: 'error',
+        description: 'An error occurred while creating holidayCalendar.',
         level: 'error',
         action: request.method,
         url: request.url,
         entity_id: program_id,
-        is_deleted: false
+        is_deleted: false,
       },
       holidayCalendar
     );
 
-    reply.status(500).send({
+    console.error(error);
+
+    return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while creating holidayCalendar.',
       trace_id: traceId,
@@ -284,57 +296,75 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
 export const updateHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
-  const holiday_calendar = request.body as holidayCalendarData;
+  const updateData = request.body as Partial<HolidayCalendarData>;
   const authHeader = request.headers.authorization;
+
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
+
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
 
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+
+  const userId = user?.sub;
 
   try {
-    const existingHolidayCalendar = await holidayCalendar.findOne({
-      where: {
-        program_id: holiday_calendar.program_id ,
-        name: holiday_calendar.name,
-        is_deleted: false,
-        id: { [Op.ne]: id }
-      }
-    });
-
-    if (existingHolidayCalendar) {
-      reply.status(409).send({
-        status_code: 409,
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return reply.status(400).send({
+        status_code: 400,
         trace_id: traceId,
-        message: 'Holiday calendar name already exists.',
-
+        message: 'No data provided to update.',
       });
     }
-    const [updatedCount] = await holidayCalendar.update({ ...request.body as holidayCalendarData, updated_by: userId, updated_on: Date.now() }, { where: { program_id, id } });
+    if (updateData.name) {
+      const existingHolidayCalendar = await holidayCalendar.findOne({
+        where: {
+          program_id,
+          name: updateData.name,
+          is_deleted: false,
+          id: { [Op.ne]: id }
+        }
+      });
+
+      if (existingHolidayCalendar) {
+        return reply.status(409).send({
+          status_code: 409,
+          trace_id: traceId,
+          message: 'Holiday calendar name already exists.'
+        });
+      }
+    }
+
+    updateData.updated_by = userId;
+    updateData.updated_on = Date.now();
+
+    const [updatedCount] = await holidayCalendar.update(updateData, { where: { program_id, id } });
+
     if (updatedCount > 0) {
-      reply.status(201).send({
-        status_code: 201,
+      return reply.status(200).send({
+        status_code: 200,
         message: 'HolidayCalendar updated successfully.',
         id,
         trace_id: traceId,
       });
     } else {
-      reply.status(200).send({
-        status_code: 200,
+      return reply.status(404).send({
+        status_code: 404,
         message: 'HolidayCalendar not found.',
+        trace_id: traceId,
       });
     }
-  } catch (error) {
-    reply.status(500).send({
+  } catch (error: any) {
+    console.error(error);
+    return reply.status(500).send({
       status_code: 500,
-      message: 'Internal Server error',
+      message: 'Internal Server Error',
       trace_id: traceId,
-      error
+      error: error.message || error,
     });
   }
 };
@@ -437,3 +467,61 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
     });
   }
 }
+
+export async function getHolidayCalendarByDateRange(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { start_date, end_date } = request.query as {
+      start_date: string;
+      end_date: string;
+    };
+
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    const hardcodedHoliday = {
+      date: "2024-01-02",
+      name: "sunday",
+      is_time_entry_allowed: false,
+      is_paid: false,
+      is_tax_applicable: false,
+    };
+
+    const holidays = await HolidayCalendarDetails.findAll({
+      // where: {
+      //   date: {
+      //     [Op.gte]: startDate,
+      //     [Op.lte]: endDate,
+      //   },
+      // },
+      attributes: ['date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable'],
+      order: [['date', 'ASC']],
+    });
+
+    const combinedHolidays = [...holidays.map(h => h.get()), hardcodedHoliday];
+    if (combinedHolidays.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'No holidays found within the specified date range.',
+        trace_id: traceId,
+        data: [],
+      });
+    }
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: 'Holiday details fetched successfully.',
+      trace_id: traceId,
+      data: combinedHolidays,
+    });
+  } catch (error) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'An error occurred while fetching holiday details.',
+      trace_id: traceId,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
