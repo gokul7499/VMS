@@ -470,50 +470,77 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
 
 export async function getHolidayCalendarByDateRange(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-
+ 
   try {
-    const { start_date, end_date } = request.query as {
-      start_date: string;
-      end_date: string;
+    const { start_date, end_date, hierarchy_id } = request.query as {
+      start_date?: string;
+      end_date?: string;
+      hierarchy_id?: string;
     };
-
-    const startDate = new Date(start_date);
-    const endDate = new Date(end_date);
-
-    const hardcodedHoliday = {
-      date: "2024-01-02",
-      name: "sunday",
-      is_time_entry_allowed: false,
-      is_paid: false,
-      is_tax_applicable: false,
-    };
-
+ 
+    const onlyOneDateProvided = (start_date && !end_date) || (!start_date && end_date);
+    if (onlyOneDateProvided) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "Please provide both start_date and end_date together.",
+        trace_id: traceId,
+      });
+    }
+ 
+    const whereClause: any = {};
+    let calendarIds: number[] = [];
+ 
+    if (hierarchy_id) {
+      const calendarHierarchyMappings = await HolidayCalendarHierarchies.findAll({
+        where: { hierarchy_id },
+        attributes: ['holiday_calendar_id'],
+      });
+ 
+      calendarIds = calendarHierarchyMappings.map(m => m.holiday_calendar_id);
+ 
+      if (calendarIds.length === 0) {
+        return reply.status(200).send({
+          status_code: 200,
+          message: 'No holiday calendar associated with the provided hierarchy.',
+          trace_id: traceId,
+          holidays: [],
+        });
+      }
+ 
+      whereClause.holiday_calendar_id = { [Op.in]: calendarIds };
+    }
+ 
+    if (start_date && end_date) {
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+ 
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Invalid date format. Please use YYYY-MM-DD for both start_date and end_date.",
+          trace_id: traceId,
+        });
+      }
+ 
+      whereClause.date = {
+        [Op.gte]: startDate,
+        [Op.lte]: endDate,
+      };
+    }
+ 
     const holidays = await HolidayCalendarDetails.findAll({
-      // where: {
-      //   date: {
-      //     [Op.gte]: startDate,
-      //     [Op.lte]: endDate,
-      //   },
-      // },
+      where: whereClause,
       attributes: ['date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable'],
       order: [['date', 'ASC']],
     });
-
-    const combinedHolidays = [...holidays.map(h => h.get()), hardcodedHoliday];
-    if (combinedHolidays.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'No holidays found within the specified date range.',
-        trace_id: traceId,
-        data: [],
-      });
-    }
-
+ 
     return reply.status(200).send({
       status_code: 200,
-      message: 'Holiday details fetched successfully.',
+      message: holidays.length
+        ? 'Holiday details fetched successfully.'
+        : 'No holidays found with the specified criteria.',
       trace_id: traceId,
-      data: combinedHolidays,
+      holidays: holidays.map(h => h.get()),
     });
   } catch (error) {
     return reply.status(500).send({
