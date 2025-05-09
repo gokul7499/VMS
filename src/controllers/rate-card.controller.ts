@@ -282,7 +282,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
             decisionTables.map(async (dt) => {
                 const currencyDetails = dt.currency
                     ? await Currencies.findOne({
-                        where: { name: dt.currency },
+                        where: { code: dt.currency },
                         attributes: ["id", "name", "label", "symbol"],
                     })
                     : null;

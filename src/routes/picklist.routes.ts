@@ -43,7 +43,7 @@ async function picklistRoutes(fastify: FastifyInstance) {
     }
   }, pickListController.deletePicklist);
 
-  fastify.get('/program/:program_id/picklist/:picklist_id', {
+  fastify.get('/program/:program_id/picklist/:id', {
     // preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
       params: paramsSchema,

@@ -549,10 +549,9 @@ export const getPicklistAndPicklistItem = async (
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id, picklist_id } = request.params as { program_id: string; picklist_id: string };
-
-  // Validate that the parameters are not undefined or null
-  if (!program_id || !picklist_id) {
+  const { program_id, id } = request.params as { program_id: string; id: string };
+  
+  if (!program_id || !id) {
     return reply.status(400).send({
       status_code: 400,
       message: "Program ID and Picklist ID are required",
@@ -563,6 +562,7 @@ export const getPicklistAndPicklistItem = async (
     const picklists = await picklist_model.findAll({
       where: {
         program_id,
+        id
       },
       attributes: {
         exclude: ["is_deleted", "created_on", "created_by", "updated_by"],
@@ -571,8 +571,8 @@ export const getPicklistAndPicklistItem = async (
         {
           model: picklist_item_model,
           as: "picklistItems",
-          where: { picklist_id, program_id, is_deleted: false },
-          required: true,
+          where: { picklist_id:id, program_id, is_deleted: false },
+          required: false,
           attributes: {
             exclude: [
               "is_deleted",
@@ -587,7 +587,6 @@ export const getPicklistAndPicklistItem = async (
     });
 
     if (picklists.length > 0) {
-      // Assuming you want to return the first picklist as an object
       const picklist = picklists[0];
       const response = {
         status_code: 200,
@@ -924,6 +923,7 @@ export async function getPicklistFilter(
 
     let whereClause: any = {
       is_deleted: false,
+      program_id: program_id,
       is_visible: true
     };
 
@@ -1051,10 +1051,11 @@ export const clonePredefinedPicklistsForProgram = async (
 ) => {
   
   const requiredSlugs = [
+    "Worker Classification",
     "Job Type",
     "Worker Types",
-    "Worker Source Type",
-    "Worker Classification",
+    "Worker Source Type"
+    ,
   ];
     
   const predefinedPicklists = await picklist_model.findAll({
@@ -1066,8 +1067,9 @@ export const clonePredefinedPicklistsForProgram = async (
     } as WhereOptions<any>, 
     transaction,
   });
-    
+    console.log("predefinedPicklists",predefinedPicklists)
   for (const picklist of predefinedPicklists) {
+    console.log("hhhhhhhhhhhhh")
     try {
       const newPicklist = await picklist_model.create(
         {
@@ -1076,7 +1078,7 @@ export const clonePredefinedPicklistsForProgram = async (
           description: picklist.description || null,
           program_id: programId,
           is_enabled: picklist.is_enabled,
-          is_visible: picklist.is_visible,
+          is_visible: true,
           is_deleted: false,
           defined_by:picklist.defined_by,
           created_by: userId,
@@ -1087,16 +1089,15 @@ export const clonePredefinedPicklistsForProgram = async (
         { transaction }
       );
             
-      if (picklist.name === "Worker Classification") {
-        const picklistItems = await picklistItemModel.findAll({
-          where: {
-            picklist_id: picklist.id,
-            is_deleted: false
-          },
-          transaction
-        });
-          
-      if (picklistItems.length > 0) {
+      const picklistItems = await picklistItemModel.findAll({
+        where: {
+          picklist_id: picklist.id,
+          is_deleted: false
+        },
+        transaction
+      });
+            
+      if (picklist.name === "Worker Classification" && picklistItems.length > 0 ) {
         const newItems = picklistItems.map((item) => ({
           picklist_id: newPicklist.id,
           label: item.label,
@@ -1114,7 +1115,7 @@ export const clonePredefinedPicklistsForProgram = async (
         }));
       
         await picklistItemModel.bulkCreate(newItems, { transaction });
-      }}
+      }
     } catch (error) {
       console.error(`Error cloning picklist ${picklist.name}:`, error);
       throw error; 

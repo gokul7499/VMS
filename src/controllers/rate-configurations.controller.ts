@@ -531,25 +531,33 @@ function parseBoolean(value: any): number | undefined {
     return undefined;
 }
 
-function parseDateRange(dateRange: string | undefined): { startDate?: string; endDate?: string } {
+function parseDateRange(dateRange: string | undefined): { startDate?: number; endDate?: number } {
     if (!dateRange) return {};
-    const dates = dateRange.split(",");
-    if (dates.length === 2) {
-        return {
-            startDate: dates[0],
-            endDate: dates[1],
-        };
-    }
-    if (dates.length === 1) {
-        const singleDate = dates[0];
-        return {
-            startDate: singleDate,
-            endDate: singleDate,
-        };
-    }
-    return {}; 
-}
 
+    const parseTimestamp = (ts: string, isStart: boolean): number | undefined => {
+        const num = Number(ts.trim());
+        if (isNaN(num)) return undefined;
+        const date = new Date(num);
+        date.setHours(isStart ? 0 : 23, isStart ? 0 : 59, isStart ? 0 : 59, isStart ? 0 : 999);
+        return date.getTime();
+    };
+
+    const dates = dateRange.split(",").filter(Boolean);
+
+    if (dates.length === 1) {
+        const ts = dates[0];
+        const startDate = parseTimestamp(ts, true);
+        const endDate = parseTimestamp(ts, false);
+        return startDate !== undefined && endDate !== undefined ? { startDate, endDate } : {};
+    }
+
+    if (dates.length === 2) {
+        const startDate = parseTimestamp(dates[0], true);
+        const endDate = parseTimestamp(dates[1], false);
+        return startDate !== undefined && endDate !== undefined ? { startDate, endDate } : {};
+    }
+    return {};
+}
 export async function getRateConfigurationById(
     request: FastifyRequest,
     reply: FastifyReply

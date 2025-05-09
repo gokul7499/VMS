@@ -24,6 +24,10 @@ IndustriesModel.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    code: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },    
     is_enabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
