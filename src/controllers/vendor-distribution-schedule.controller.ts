@@ -591,59 +591,92 @@ export const getVendorDistributionScheduleByIds = async (
 export async function vendorDistributionScheduleFilter(
     request: FastifyRequest,
     reply: FastifyReply
-) {
+  ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params as { program_id: string };
-        const { id, name, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; is_enabled: string; updated_on: string[]; page: string; limit: string };
-
-        const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
-
-        const pageNumber = parseInt(page ?? '1', 10);
-        const limitNumber = parseInt(limit ?? '10', 10);
-        const offset = (pageNumber - 1) * limitNumber;
-
-        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
-
-        const query = vendorDistributionScheduleFilterQuery(
-            Boolean(id),
-            Boolean(name),
-            isEnabledFilter !== undefined,
-            hasUpdatedOnFilter
-        );
-
-        const replacements: Record<string, any> = {
-            program_id,
-            id,
-            name: name ? `%${name}%` : undefined,
-            limit: limitNumber,
-            offset,
-            is_enabled: isEnabledFilter,
-            updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
-            updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
-        };
-        const data = await sequelize.query<{ total_count: any }>(query, {
-            replacements,
-            type: QueryTypes.SELECT,
-        });
-
-        const totalRecords = data.length > 0 ? data[0].total_count : 0;
-
-        return reply.status(200).send({
-            status_code: 200,
-            trace_id: traceId,
-            message: data.length > 0 ? 'Vendor distribution schedules fetched successfully.' : 'No records found.',
-            total_records: totalRecords,
-            page: pageNumber,
-            limit: limitNumber,
-            items: data,
-        });
+      const { program_id } = request.params as { program_id: string };
+      const {
+        id,
+        name,
+        is_enabled,
+        updated_on,
+        page,
+        limit,
+        description,
+      } = request.body as {
+        id: string;
+        name: string;
+        is_enabled: string;
+        updated_on: string[];
+        page: string;
+        limit: string;
+        description: string;
+      };
+  
+      const isEnabledFilter =
+        typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
+  
+      const pageNumber = parseInt(page ?? '1', 10);
+      const limitNumber = parseInt(limit ?? '10', 10);
+      const offset = (pageNumber - 1) * limitNumber;
+  
+      const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+  
+      const { dataQuery, countQuery } = vendorDistributionScheduleFilterQuery(
+        Boolean(id),
+        Boolean(name),
+        isEnabledFilter !== undefined,
+        hasUpdatedOnFilter,
+        Boolean(description)
+      );
+  
+      const replacements: Record<string, any> = {
+        program_id,
+        id,
+        name: name ? `%${name}%` : undefined,
+        description: description ? `%${description}%` : undefined,
+        limit: limitNumber,
+        offset,
+        is_enabled: isEnabledFilter,
+        updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
+        updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+      };
+  
+      const data = await sequelize.query<any>(dataQuery, {
+        replacements,
+        type: QueryTypes.SELECT,
+      });
+  
+      const totalRecords = await sequelize.query<{ total_count: number }>(countQuery, {
+        replacements,
+        type: QueryTypes.SELECT,
+      });
+  
+      const totalRecordsCount = totalRecords[0]?.total_count || 0;
+      const totalPages = Math.ceil(totalRecordsCount / limitNumber);
+  
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Vendor Distribution Schedule fetched successfully.',
+        total_records: totalRecordsCount,
+        current_page: pageNumber,
+        page_size: limitNumber,
+        total_pages: totalPages,
+        items: data.map((item) => ({
+          program_id: item.program_id,
+          id: item.id,
+          name: item.name,
+          is_enabled: item.is_enabled,
+          description: item.description,
+          updated_on: item.updated_on,
+        })),
+      });
     } catch (error: any) {
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'Internal Server Error',
-            trace_id: traceId,
-            error: error.message,
-        });
+      return reply.status(500).send({
+        status_code: 500,
+        message: 'Internal Server Error',
+        trace_id: traceId,
+        error: error.message,
+      });
     }
-}
+  }
