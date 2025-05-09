@@ -100,7 +100,7 @@ const start = async () => {
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
 
-    const port = 8006;
+    const port = 8000;
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
