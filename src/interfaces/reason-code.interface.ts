@@ -28,6 +28,7 @@ export interface ReasonCodeResponse {
     reason_codes: ReasonCode[];
     updated_on: number;
     trace_id: string;
+    sq_number:number
 }
 export const paramsSchema = {
     type: 'object',

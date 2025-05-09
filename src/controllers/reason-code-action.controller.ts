@@ -38,7 +38,8 @@ export async function createReasoncode(
             reason_codes: Array<{
                 name: string;
                 category: string;
-                is_enabled: boolean
+                is_enabled: boolean;
+                sq_number:number
             }>;
         };
         if (reasoncode.event_id) {
@@ -68,6 +69,7 @@ export async function createReasoncode(
                 name: reason.name,
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
+                sq_number:reason.sq_number,
                 is_enabled: reason.is_enabled,
                 program_id: reasoncode.program_id,
                 created_by: userId,
@@ -89,6 +91,7 @@ export async function createReasoncode(
         });
     }
 }
+
 export async function createReasonCodes(
     request: FastifyRequest,
     reply: FastifyReply
@@ -124,6 +127,7 @@ export async function createReasonCodes(
           name: string;
           category: string;
           is_enabled: boolean;
+          sq_number:number
         }>;
       };
       
@@ -163,6 +167,7 @@ export async function createReasonCodes(
           name: reason.name,
           category: reason.category,
           is_enabled: reason.is_enabled,
+          sq_number:reason.sq_number,
           program_id: null, 
           reason_code_id: reason_code_action_id,
           created_by: userId,
@@ -205,7 +210,7 @@ export async function createReasonCodes(
         error: error.message,
       });
     }
-  }
+}
   
 
 
@@ -314,13 +319,15 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
             const reasonCodes = await ReasonCodeModel.findAll({
                 where: { reason_code_id: id, program_id ,is_deleted:false},
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                order: [['sq_number', 'ASC']],
                 transaction,
             });
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
                     where: { reason_code_id: id, program_id: null,is_deleted:false },
-                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled','sq_number'],
+                    order: [['sq_number', 'ASC']],
                     transaction,
                 });
                 if (reasonCodesWithoutProgram.length > 0) {
@@ -359,6 +366,8 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                             created_on: reasonCode.created_on,
                             category: reasonCode.category,
                             is_enabled: reasonCode.is_enabled,
+                            sq_number: reasonCode.sq_number, 
+
                         })),
                     };
 
@@ -405,6 +414,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                         created_on: reasonCode.created_on,
                         category: reasonCode.category,
                         is_enabled: reasonCode.is_enabled,
+                        sq_number:reasonCode.sq_number
                     })),
                 };
 
@@ -442,7 +452,8 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
         if (reasonCodeAction) {
             const reasonCodes  = await ReasonCodeModel.findAll({
                 where: { reason_code_id: id ,is_deleted:false},
-                attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
+                attributes: ['id', 'name', 'created_on', 'category', 'is_enabled', 'sq_number'],
+                order: [['sq_number', 'ASC']],
                 transaction,
             });     
             const { supporting_text_event, module,} = reasonCodeAction.toJSON();
@@ -750,7 +761,8 @@ export const getReasonCodeBySlug = async (
                 program_id: program_id,
                 is_deleted: false
             },
-            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
+            order: [['sq_number', 'ASC']],
+            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id','sq_number']
         });
 
         if (!reason_codes.length) {
@@ -759,7 +771,8 @@ export const getReasonCodeBySlug = async (
                     reason_code_id: data.map((d) => d.id),
                     is_deleted: false
                 },
-                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id']
+                order: [['sq_number', 'ASC']],
+                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id','sq_number']
             });
             return reply.status(200).send({
                 status_code: 200,
@@ -807,7 +820,8 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
             where: {
                 reason_code_id: reasonCodeAction.id,
             },
-            attributes: ['id', 'name', 'category', 'reason_code_id'],
+            order: [['sq_number', 'ASC']],
+            attributes: ['id', 'name', 'category', 'reason_code_id','sq_number'],
         });
 
         if (!reasonCodes.length) {
