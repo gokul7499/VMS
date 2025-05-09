@@ -39,6 +39,15 @@ export async function getALLShiftType(request: FastifyRequest, reply: FastifyRep
                 const startDate = parseFloat(dateRange[0].trim());
                 const endDate = parseFloat(dateRange[1].trim());
                 whereClause.updated_on = { [Op.between]: [startDate, endDate] };
+            } else if (dateRange.length === 1) {
+                const date = new Date(parseFloat(dateRange[0].trim()));
+                const startOfDay = new Date(date);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(date);
+                endOfDay.setHours(23, 59, 59, 999);
+                whereClause.updated_on = {
+                    [Op.between]: [startOfDay.getTime(), endOfDay.getTime()],
+                };
             }
         }
 

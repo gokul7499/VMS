@@ -6,6 +6,7 @@ import HolidayCalendar from './holiday-calendar.model';
 
 class HolidayCalendarHierarchies extends Model {
   hierarchy_id: any;
+  holiday_calendar_id: any;
 }
 
 HolidayCalendarHierarchies.init({

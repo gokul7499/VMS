@@ -409,13 +409,23 @@ export const filterTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const dateRange = updated_on.map(timestamp => Number(timestamp));
-
-            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
-                whereCondition.updated_on = { [Op.between]: dateRange };
-            }
-        }
+        if (Array.isArray(updated_on)) {
+            if (updated_on.length === 2) {
+                const dateRange = updated_on.map(timestamp => Number(timestamp));
+                if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
+                    whereCondition.updated_on = { [Op.between]: dateRange };
+                }
+            } else if (updated_on.length === 1) {
+                const timestamp = Number(updated_on[0]);
+                if (!isNaN(timestamp)) {
+                    const date = new Date(timestamp);
+                    date.setHours(0, 0, 0, 0);
+                    const startOfDay = date.getTime();
+                    date.setHours(23, 59, 59, 999);
+                    const endOfDay = date.getTime();
+                    whereCondition.updated_on = { [Op.between]: [startOfDay, endOfDay] };
+                }}}
+        
         const defaultFields = [
             'id',
             'rule_name',

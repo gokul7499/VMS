@@ -692,7 +692,7 @@ export async function getRateConfigurationById(
                             rate_type_category: rateTypeCategory,
                         }
                         : null,
-                    seq_number: baseRate.get('seq_number'),
+                    seq_number: Number(baseRate.get('seq_number')),
                     rate: rateDetails,
                 };
             })
