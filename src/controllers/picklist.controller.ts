@@ -1135,6 +1135,7 @@ export const clonePredefinedPicklistsForProgram = async (
       is_enabled,
       defined_by,
       updated_on,
+      slug,
       picklist_items_count,
       search,
       page = 1,
@@ -1146,6 +1147,7 @@ export const clonePredefinedPicklistsForProgram = async (
       defined_by?: string;
       updated_on?: string;
       picklist_items_count?: string;
+      slug?: string;
       search?: string;
       page?: number;
       limit?: number;
@@ -1163,6 +1165,7 @@ export const clonePredefinedPicklistsForProgram = async (
   
       // Filters
       if (name) whereClause.name = { [Op.like]: `%${name}%` };
+      if (slug) whereClause.slug = { [Op.like]: `%${slug}%` };
       if (picklist_id)
         whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
       if (is_enabled !== undefined)
@@ -1185,6 +1188,7 @@ export const clonePredefinedPicklistsForProgram = async (
           "is_enabled",
           "defined_by",
           "updated_on",
+          "slug"
         ];
         const [searchField, searchValue] = search.includes(":")
           ? search.split(":")
