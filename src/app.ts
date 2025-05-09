@@ -62,7 +62,7 @@ const start = async () => {
       },
     };
     try {
-      app.register(keycloak, opts);
+      // app.register(keycloak, opts);
       console.log("Keycloak plugin registered successfully");
     } catch (error) {
       console.error("Failed to register Keycloak plugin:", error);
@@ -100,7 +100,7 @@ const start = async () => {
     const registerRoutes = require("./routes").default;
     app.register(registerRoutes);
 
-    const port = 8000;
+    const port = 8006;
     app.listen({ port, host: "0.0.0.0" }, (err) => {
       if (err) throw err;
       app.log.info(`🚀 Server is running on http://localhost:${port}`);
