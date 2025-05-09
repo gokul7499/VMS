@@ -3079,26 +3079,42 @@ export const vendorDistributionScheduleFilterQuery = (
   hasId: boolean,
   hasName: boolean,
   hasIsEnabled: boolean,
-  hasUpdatedOn: boolean
+  hasUpdatedOn: boolean,
+  hasDescription: boolean
 ) => {
-  return `
-          SELECT
-            vendor_distribution_schedules.*,
-            COUNT(vendor_distribution_schedules.id) OVER () AS total_count
-          FROM
-            vendor_distribution_schedules
-          WHERE
-            vendor_distribution_schedules.is_deleted = false
-            AND vendor_distribution_schedules.program_id = :program_id
-            ${hasId ? 'AND vendor_distribution_schedules.id = :id' : ''}
-            ${hasName ? 'AND vendor_distribution_schedules.name LIKE :name' : ''}
-            ${hasIsEnabled ? 'AND vendor_distribution_schedules.is_enabled = :is_enabled' : ''}
-            ${hasUpdatedOn ? 'AND vendor_distribution_schedules.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
-          ORDER BY
-            vendor_distribution_schedules.created_on DESCk
-          LIMIT :limit
-          OFFSET :offset;
-      `;
+  const baseWhereClause = `
+    vendor_distribution_schedules.is_deleted = false
+    AND vendor_distribution_schedules.program_id = :program_id
+    ${hasId ? 'AND vendor_distribution_schedules.id = :id' : ''}
+    ${hasName ? 'AND vendor_distribution_schedules.name LIKE :name' : ''}
+    ${hasDescription ? 'AND vendor_distribution_schedules.description LIKE :description' : ''}
+    ${hasIsEnabled ? 'AND vendor_distribution_schedules.is_enabled = :is_enabled' : ''}
+    ${hasUpdatedOn ? 'AND vendor_distribution_schedules.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+  `;
+
+  const dataQuery = `
+    SELECT
+      vendor_distribution_schedules.*
+    FROM
+      vendor_distribution_schedules
+    WHERE
+      ${baseWhereClause}
+    ORDER BY
+      vendor_distribution_schedules.created_on DESC
+    LIMIT :limit
+    OFFSET :offset;
+  `;
+
+  const countQuery = `
+    SELECT
+      COUNT(*) AS total_count
+    FROM
+      vendor_distribution_schedules
+    WHERE
+      ${baseWhereClause};
+  `;
+
+  return { dataQuery, countQuery };
 };
 
 export const vendorDocumentGroupFilterQuery = (
