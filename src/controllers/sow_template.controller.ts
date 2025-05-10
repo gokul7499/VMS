@@ -33,11 +33,11 @@ export async function createSowTemplate(
         const existingSowTemplate = await SowTemplateModel.findOne({
             where: {
                 program_id: program_id,
-                template_title: sowTemplate.template_title,  
+                template_title: sowTemplate.template_title,
                 is_deleted: false,
             }
         });
-        
+
         if (existingSowTemplate) {
             return reply.status(400).send({
                 status_code: 400,
@@ -45,7 +45,7 @@ export async function createSowTemplate(
                 message: "SOW Template Title already exists",
             });
         }
-        
+
         const item = await SowTemplateModel.create({
             ...sowTemplate,
             program_id,
@@ -62,8 +62,8 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
-       
-        await transaction.commit(); 
+
+        await transaction.commit();
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -71,7 +71,7 @@ export async function createSowTemplate(
             sowTemplate: item.id,
         });
     } catch (error: any) {
-        await transaction.rollback(); 
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -127,7 +127,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         if (code) {
             whereClause += ` AND t.code LIKE :code`;
-            replacements.code = `%${code}%`;  
+            replacements.code = `%${code}%`;
         }
 
         if (hierarchy_id) {
@@ -146,11 +146,11 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                 const startTimestamp = isNaN(Number(startDate))
                     ? new Date(startDate).getTime()
                     : Number(startDate);
-        
+
                 const endTimestamp = isNaN(Number(endDate))
                     ? new Date(endDate).getTime()
                     : Number(endDate);
-        
+
                 if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
                     const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
                     whereClause += ` AND t.updated_on BETWEEN :updatedStartDate AND :updatedEndDate`;
@@ -160,10 +160,10 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                     console.warn('Invalid updated_on date format provided');
                 }
             }
-        
-        
+
+
         }
-      
+
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -174,7 +174,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: QueryTypes.SELECT,
         });
         const totalRecords = totalResult[0]?.total || 0;
-        
+
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
@@ -241,20 +241,21 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-            if (sowTemplateRecord[field] !== undefined) {
-                sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
-            }
+            
+            sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
         });
 
         sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
         sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
         sowTemplateRecord.master_data = JSON.parse(sowTemplateRecord.master_data || '[]');
-
+ 
         return reply.status(200).send({
+
             status_code: 200,
             message: 'SOW Template retrieved successfully.',
             data: sowTemplateRecord,
             trace_id: traceId
+
         });
 
     } catch (error: any) {
@@ -286,7 +287,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
         }
         await template.update(sowTemplate);
         await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-      
+
 
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
@@ -299,7 +300,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             }
         }
 
-       
+
         reply.status(200).send({
             status_code: 200,
             message: 'SOW template updated successfully.',
@@ -344,7 +345,7 @@ export const getSowTemplateHierarchiesByProgram = async (
         const { program_id } = request.params;
         const sowTemplates = await SowTemplateModel.findAll({
             where: { program_id, is_deleted: false },
-            attributes: ['id'], 
+            attributes: ['id'],
         });
 
         const sowTemplateIds = sowTemplates.map(template => template.id);
