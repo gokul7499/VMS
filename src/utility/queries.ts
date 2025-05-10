@@ -589,6 +589,7 @@ WITH hierarchy_cte AS (
     h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
+    h.default_currency,
     ph.name AS parent_hierarchy_name
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
