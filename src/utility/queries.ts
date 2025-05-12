@@ -3134,24 +3134,34 @@ export const vendorDocumentGroupFilterQuery = (
   hasUpdatedOn: boolean
 ) => {
   return `
-          SELECT
-            vendor_document_groups.*,
-            COUNT(vendor_document_groups.id) OVER () AS total_count
-          FROM
-            vendor_document_groups
-          WHERE
-            vendor_document_groups.is_deleted = false
-            AND vendor_document_groups.program_id = :program_id
-            ${hasId ? 'AND vendor_document_groups.id = :id' : ''}
-            ${hasName ? 'AND vendor_document_groups.name LIKE :name' : ''}
-            ${hasDescription ? 'AND vendor_document_groups.description LIKE :description' : ''}
-            ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
-            ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
-          ORDER BY
-            vendor_document_groups.created_on DESC
-          LIMIT :limit
-          OFFSET :offset;
-      `;
+    SELECT
+      vendor_document_groups.*,
+      COUNT(vendor_document_groups.id) OVER () AS total_count,
+      (
+        SELECT 
+          COUNT(*)
+        FROM 
+          vendor_compliance_documents vcd
+        WHERE 
+          JSON_CONTAINS(vendor_document_groups.required_documents, JSON_QUOTE(vcd.id))
+          AND vcd.is_deleted = false
+          AND vcd.is_enabled = true
+      ) AS total_documents
+    FROM
+      vendor_document_groups
+    WHERE
+      vendor_document_groups.is_deleted = false
+      AND vendor_document_groups.program_id = :program_id
+      ${hasId ? 'AND vendor_document_groups.id = :id' : ''}
+      ${hasName ? 'AND vendor_document_groups.name LIKE :name' : ''}
+      ${hasDescription ? 'AND vendor_document_groups.description LIKE :description' : ''}
+      ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
+      ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
+    ORDER BY
+      vendor_document_groups.created_on DESC
+    LIMIT :limit
+    OFFSET :offset;
+  `;
 };
 
 export const vendorGroupFilterQuery = (
