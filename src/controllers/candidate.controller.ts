@@ -453,26 +453,64 @@ export async function updateCandidateByIdAndProgramId(
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id, id, } = request.params as { program_id: string, id: string; };
+        const { program_id, id } = request.params as { program_id: string, id: string };
         const updates = request.body as candidateInterface;
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
         }
         const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
+        const user: any = await decodeToken(token);
         if (!user) {
             return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
         }
         const userId = user?.sub;
+        let existingRecord: any;
+        if (updates.email) {
+            const records = await candidateModel.findAll({
+                where: {
+                    program_id,
+                    is_deleted: false,
+                    [Op.or]: [
+                        { id },
+                        { email: updates.email }
+                    ]
+                }
+            });
 
-        const [updatedRows] = await candidateModel.update({ ...updates, updated_by: userId, updated_on: Date.now() }, {
-            where: {
-                program_id,
-                id,
-                is_deleted: false
+            existingRecord = records.find((r: any) => r.id === id);
+
+            if (!existingRecord) {
+                return reply.status(404).send({
+                    status_code: 404,
+                    trace_id: traceId,
+                    message: "Candidate not found"
+                });
             }
-        });
+
+            const duplicateCandidate = records.find((r: any) =>
+                r.email === updates.email &&
+                r.id !== id &&
+                r.vendor_id === existingRecord.vendor_id
+            );
+
+            if (duplicateCandidate) {
+                return reply.status(409).send({
+                    status_code: 409,
+                    trace_id: traceId,
+                    message: "Email already exists for another candidate in the same vendor.",
+                });
+            }
+        }
+        const [updatedRows] = await candidateModel.update(
+            { ...updates, updated_by: userId, updated_on: Date.now() },
+            {
+                where: {
+                    program_id,
+                    id,
+                    is_deleted: false
+                }
+            });
         if (updatedRows === 0) {
             return reply.status(404).send({
                 status_code: 404,
@@ -489,7 +527,7 @@ export async function updateCandidateByIdAndProgramId(
         });
         return reply.status(200).send({
             status_code: 200,
-            message: "Candidate update successfully",
+            message: "Candidate updated successfully",
             record: updatedRecord,
             trace_id: traceId,
         });
