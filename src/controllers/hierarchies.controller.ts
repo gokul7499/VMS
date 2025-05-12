@@ -159,7 +159,9 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       }
     );
 
-    if (hierarchies.length === 0) {
+    const total_count = hierarchies[0]?.total_count || 0;
+
+    if (total_count === 0) {
       return reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
@@ -171,13 +173,11 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
-    const sortedHierarchies = hierarchies.sort((a, b) => a.created_on - b.created_on);
-
-    const formattedHierarchies = sortedHierarchies.map((hierarchy) => ({
-      ...hierarchy,
-      is_vendor_neutral_program: Boolean(hierarchy.is_vendor_neutral_program),
+    const formattedHierarchies = hierarchies.map(({ default_currency, total_count, ...rest }) => ({
+      ...rest,
+      currency: default_currency ?? null,
+      is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
     }));
-    const total_count = hierarchies[0]?.total_count || 0;
 
     return reply.status(200).send({
       status_code: 200,
