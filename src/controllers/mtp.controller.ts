@@ -198,3 +198,35 @@ export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
+
+
+export async function disableMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id: programId, id: mtpId } = request.params as {
+            program_id: string;
+            id: string;
+        };
+
+        const result = await mtpService.disableMtp({
+            programId,
+            mtpId,
+            traceId
+        });
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            data: result.data,
+            trace_id: traceId
+        });
+
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while disabling MTP",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}

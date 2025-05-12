@@ -5,6 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
+import DisebleMtp from "../models/diseble_mtp.model";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -341,7 +342,7 @@ class MtpService {
     }
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
-        const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+        const mtpData = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
 
         return {
             message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
@@ -349,6 +350,31 @@ class MtpService {
         };
     }
 
+
+    async  disableMtp({
+        mtpId,
+        programId,
+        traceId
+    }:{
+        mtpId: string;
+        programId: string;
+        traceId: string;
+    }) {
+    
+    
+        const disableData = await DisebleMtp.create({
+            mtp_id:mtpId,
+            program_id: programId
+        });
+        console.log("disableData",disableData)
+        return {
+            statusCode: 200,
+            message: "MTP disabled and logged successfully",
+            trace_id: traceId,
+            data: disableData
+    
+        };
+    }
     private logEvent({
         request,
         traceId,
@@ -386,6 +412,11 @@ class MtpService {
             is_deleted: false,
         }, MtpModel);
     }
+
+
+
 }
+
+
 
 export default MtpService;
