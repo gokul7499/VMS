@@ -23,6 +23,14 @@ DisebleMtp.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        submission_id:{
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        candidate_id:{
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
     },
     {
         sequelize,

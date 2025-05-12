@@ -374,17 +374,23 @@ class MtpService {
     async  disableMtp({
         mtpId,
         programId,
+        submission_id,
+        candidate_id,
         traceId
     }:{
         mtpId: string;
         programId: string;
+        submission_id:string;
+        candidate_id:string;
         traceId: string;
     }) {
     
-    
         const disableData = await DisebleMtp.create({
             mtp_id:mtpId,
-            program_id: programId
+            program_id: programId,
+            submission_id,
+            candidate_id
+
         });
         console.log("disableData",disableData)
         return {
