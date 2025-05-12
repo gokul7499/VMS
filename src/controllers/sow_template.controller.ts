@@ -245,8 +245,9 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-
-            sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
+           if (sowTemplateRecord[field] !== undefined) {
+                sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
+            }
         });
 
         sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
