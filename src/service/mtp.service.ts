@@ -282,6 +282,9 @@ class MtpService {
     }) {
         const userId = user?.sub;
         let transaction;
+
+        const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+        const talentName = getCandidateData?.[0]?.candidate_name;
         
         try {
             const mtp = await MtpModel.findOne({
@@ -316,7 +319,7 @@ class MtpService {
                 }
             );
             
-            await MtpModel.update(
+            const [updatedCount]= await MtpModel.update(
                 { is_deleted: false }, 
                 {
                   where: {
@@ -326,6 +329,23 @@ class MtpService {
                   transaction,
                 }
               );
+
+              if (updatedCount === 0) {
+                console.log("No matching records found for mtp_candidate_id:", mtpCandidateId);
+              await MtpModel.create(
+                    {
+                        program_id: programId,
+                        mtp_candidate_id: mtpCandidateId,
+                        is_deleted: false,
+                        linked_profiles: [],
+                        talent_name:talentName,
+                        created_by: userId,
+                        updated_by: userId,
+                        trace_id: traceId
+                    },
+                    { transaction }
+                );
+            }
             
             await transaction.commit();
             
