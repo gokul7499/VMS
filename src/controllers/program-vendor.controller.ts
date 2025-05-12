@@ -95,27 +95,23 @@ export async function getProgramVendors(
             filters.is_enabled = is_enabled;
         }
 
-        if (hierarchy_ids) {
-            const hierarchyArray = hierarchy_ids.split(',')
-                .map((id: string) => parseInt(id.trim(), 10))
-                .filter((id: number) => !isNaN(id));
-                
-            if (hierarchyArray.length > 0) {
-                filters[Op.or] = [
-                    { all_hierarchy: true },
-                    ...hierarchyArray.map((id: unknown) => 
-                        sequelize.where(
-                            sequelize.fn('JSON_CONTAINS',
-                                sequelize.col('hierarchies'),
-                                sequelize.cast(id, 'JSON')
-                            ),
-                            true
-                        )
+        const hierarchyArray = hierarchy_ids.split(',').map((id: string) => id.trim());
+        if (hierarchyArray.length > 0) {
+            filters[Op.or] = [
+                { all_hierarchy: true },
+                ...hierarchyArray.map((id: string) =>
+                    sequelize.where(
+                        sequelize.fn(
+                            'JSON_CONTAINS',
+                            sequelize.col('hierarchies'),
+                            JSON.stringify(id)
+                        ),
+                        true
                     )
-                ];
-            }
+                )
+            ];
         }
-          
+        
           
         if (user_id !== undefined) {
             const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
