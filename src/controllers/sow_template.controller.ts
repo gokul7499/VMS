@@ -160,8 +160,6 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                     console.warn('Invalid updated_on date format provided');
                 }
             }
-
-
         }
 
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
@@ -189,7 +187,13 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             hierarchy: template.hierarchy,
             picklist_items: template.picklist_items,
             created_on: template.created_on,
-            updated_on: template.updated_on
+            updated_on: template.updated_on,
+            is_sow_assignment: template.is_sow_assignment,
+            is_sow_expense: template.is_sow_assignment,
+            is_sow_milestones: template.is_sow_milestones,
+            is_sow_payment_req: template.is_sow_payment_req,
+            is_sow_schedule_payments: template.is_sow_schedule_payments,
+            is_sow_desc_mandatory: template.is_sow_desc_mandatory,
         }));
 
         reply.status(200).send({
@@ -241,14 +245,15 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-            
-            sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
+           if (sowTemplateRecord[field] !== undefined) {
+                sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
+            }
         });
 
         sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
         sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
         sowTemplateRecord.master_data = JSON.parse(sowTemplateRecord.master_data || '[]');
- 
+
         return reply.status(200).send({
 
             status_code: 200,

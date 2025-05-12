@@ -8,6 +8,12 @@ SELECT
     t.code,
     t.created_on,
     t.updated_on,
+     t.is_sow_assignment,
+    t.is_sow_expense,
+    t.is_sow_milestones,
+    t.is_sow_payment_req,
+    t.is_sow_schedule_payments,
+    t.is_sow_desc_mandatory,
     COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
             'id', h.hierarchy_id,
