@@ -25,16 +25,16 @@ DisebleMtp.init(
         },
         submission_id:{
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         candidate_id:{
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
     },
     {
         sequelize,
-        tableName: "diseble_mtp",
+        tableName: "submitted_candidate_disabled_mtp",
         timestamps: false,
        
     }
