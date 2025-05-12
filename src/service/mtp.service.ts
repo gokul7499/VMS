@@ -385,19 +385,19 @@ class MtpService {
         traceId: string;
     }) {
     
-        const disableData = await DisebleMtp.create({
+        const DisableMtp = await DisebleMtp.create({
             mtp_id:mtpId,
             program_id: programId,
             submission_id,
             candidate_id
 
         });
-        console.log("disableData",disableData)
+        console.log("disableData",DisableMtp)
         return {
             statusCode: 200,
             message: "MTP disabled and logged successfully",
             trace_id: traceId,
-            data: disableData
+            data: DisableMtp
     
         };
     }

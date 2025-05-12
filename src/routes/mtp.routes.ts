@@ -23,7 +23,7 @@ async function mtpRoutes(fastify: FastifyInstance) {
     }, mtpController.getMtp);
 
     
-    fastify.post('/program/:program_id/disable_mtp/:id', {
+    fastify.post('/program/:program_id/submitted-candidate-disabled-mtp/:id', {
     }, mtpController.disableMtp);
 }
 
