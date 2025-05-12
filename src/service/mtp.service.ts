@@ -5,7 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
-import DisebleMtp from "../models/diseble_mtp.model";
+import DisebleMtp from "../models/disable_mtp.model";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -438,9 +438,6 @@ class MtpService {
             is_deleted: false,
         }, MtpModel);
     }
-
-
-
 }
 
 

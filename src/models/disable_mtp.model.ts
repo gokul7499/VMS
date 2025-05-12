@@ -2,11 +2,11 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from '../config/instance';
 
 
-class DisebleMtp extends Model {
+class DisableMtp extends Model {
 
 }
 
-DisebleMtp.init(
+DisableMtp.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -42,4 +42,4 @@ DisebleMtp.init(
 );
 
 sequelize.sync();
-export default DisebleMtp;
+export default DisableMtp;
