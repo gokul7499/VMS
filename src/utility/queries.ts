@@ -2265,18 +2265,26 @@ export const hierarchie = `
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure,
-        COALESCE((
-            SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', custom_fields.id,
-                    'name', custom_fields.name,
-                    'value', JSON_UNQUOTE(JSON_EXTRACT(hierarchies_custom_field.value, '$'))
-                )
-            )
+           COALESCE((
+                 SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                   'id', hierarchies_custom_field.id,
+                    'custom_field_id', hierarchies_custom_field.customfield_id,
+                    'value', hierarchies_custom_field.value,
+                  'manager_name', 
+                      CASE 
+                        WHEN user.user_id IS NOT NULL 
+                      THEN CONCAT(user.first_name, ' ', user.last_name)
+                      ELSE NULL
+                      END,
+                   'name', custom_fields.name,
+                   'field_type', custom_fields.field_type
+               ))
             FROM hierarchies_custom_field
-            LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
-            WHERE hierarchies_custom_field.hierarchy_id = h.id
-        ), JSON_ARRAY()) AS custom_fields
+              LEFT JOIN custom_fields ON hierarchies_custom_field.customfield_id = custom_fields.id
+              LEFT JOIN user ON TRIM(BOTH '"' FROM hierarchies_custom_field.value) = user.user_id
+              AND user.program_id = hierarchies_custom_field.program_id
+              WHERE hierarchies_custom_field.hierarchy_id = h.id
+    ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
     LEFT JOIN

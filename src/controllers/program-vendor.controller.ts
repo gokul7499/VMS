@@ -96,7 +96,6 @@ export async function getProgramVendors(
         }
 
         const hierarchyArray = hierarchy_ids.split(',').map((id: string) => id.trim());
-
         if (hierarchyArray.length > 0) {
             filters[Op.or] = [
                 { all_hierarchy: true },
@@ -112,6 +111,7 @@ export async function getProgramVendors(
                 )
             ];
         }
+        
           
         if (user_id !== undefined) {
             const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
