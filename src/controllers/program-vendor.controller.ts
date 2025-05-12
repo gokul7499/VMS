@@ -113,7 +113,6 @@ export async function getProgramVendors(
             ];
         }
           
-          
         if (user_id !== undefined) {
             const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
             if (!userRecord) {
