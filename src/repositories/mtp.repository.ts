@@ -292,38 +292,41 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
       'email', sc.email,
       'contacts', sc.contacts
     ) AS submission_candidate,
-  
-    JSON_OBJECT(
-      'mtp_id', mc.mtp_id,
-      'mtp_candidate_id', mc.mtp_candidate_id,
-      'first_name', mc.first_name,
-      'last_name', mc.last_name,
-      'middle_name', mc.middle_name,
-      'program_id', mc.program_id,
-      'candidate_id', mc.candidate_id,
-      'birth_date', mc.birth_date,
-      'email', mc.email,
-      'contacts', mc.contacts,
-      'linked_profiles_count', mc.linked_profiles_count,
-      'match_count', mc.match_count
-    ) AS mtp_candidate
-  
+
+    CASE 
+      WHEN scd.candidate_id IS NULL THEN JSON_OBJECT(
+        'mtp_id', mc.mtp_id,
+        'mtp_candidate_id', mc.mtp_candidate_id,
+        'first_name', mc.first_name,
+        'last_name', mc.last_name,
+        'middle_name', mc.middle_name,
+        'program_id', mc.program_id,
+        'candidate_id', mc.candidate_id,
+        'birth_date', mc.birth_date,
+        'email', mc.email,
+        'contacts', mc.contacts,
+        'linked_profiles_count', mc.linked_profiles_count,
+        'match_count', mc.match_count
+      )
+      ELSE NULL
+    END AS mtp_candidate
+
   FROM submission_candidate sc
   LEFT JOIN (
     SELECT * FROM matching_candidates WHERE candidate_rank = 1
   ) mc ON TRUE
-  LEFT JOIN submitted_candidate_disabled_mtp scd ON scd.candidate_id = mc.mtp_candidate_id
-  WHERE scd.candidate_id IS NULL OR scd.candidate_id IS NULL;
+  LEFT JOIN submitted_candidate_disabled_mtp scd ON scd.candidate_id = mc.mtp_candidate_id;
   `;
-  
+
   const result = await sequelize.query(query, {
     replacements: { program_id: programId, mtp_candidate_id: mtpCandidateId },
     type: QueryTypes.SELECT,
     raw: true,
   });
-  
+
   return result;
-}  
+}
+ 
 
   }
 
