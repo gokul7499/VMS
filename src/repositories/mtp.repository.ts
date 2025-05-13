@@ -332,8 +332,6 @@ WHERE mc.candidate_rank = 1
   return result;
 }
 
-
-
   }
 
   export default MtpRepository;
