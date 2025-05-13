@@ -9,6 +9,7 @@ import { sequelize } from "../config/instance";
 import HolidayCalendarHierarchies from "../models/holiday-calender-hierarchie.model";
 import HolidayCalendarWorkLocation from "../models/holiday-calender-work-location.model";
 import HolidayCalendarDetails from "../models/holiday-calender-details.model";
+import HolidayCalendar from "../models/holiday-calendar.model";
 
 export async function getHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
@@ -470,75 +471,83 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
 
 export async function getHolidayCalendarByDateRange(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
- 
+
   try {
     const { start_date, end_date, hierarchy_id } = request.query as {
       start_date?: string;
       end_date?: string;
       hierarchy_id?: string;
     };
- 
-    const onlyOneDateProvided = (start_date && !end_date) || (!start_date && end_date);
-    if (onlyOneDateProvided) {
+    const { program_id } = request.params as { program_id?: string };
+    if ((start_date && !end_date) || (!start_date && end_date)) {
       return reply.status(400).send({
         status_code: 400,
         message: "Please provide both start_date and end_date together.",
         trace_id: traceId,
       });
     }
- 
+
     const whereClause: any = {};
     let calendarIds: number[] = [];
- 
+
     if (hierarchy_id) {
       const calendarHierarchyMappings = await HolidayCalendarHierarchies.findAll({
         where: { hierarchy_id },
         attributes: ['holiday_calendar_id'],
       });
- 
-      calendarIds = calendarHierarchyMappings.map(m => m.holiday_calendar_id);
- 
-      if (calendarIds.length === 0) {
+    
+      const directlyAssociatedIds = calendarHierarchyMappings.map(m => m.holiday_calendar_id);
+    
+      const fullyAssociatedCalendars = await HolidayCalendar.findAll({
+        where: {
+          is_all_hierarchy_associated: true,
+          program_id: program_id,
+        },
+        attributes: ['id'],
+      });
+      const fullyAssociatedIds = fullyAssociatedCalendars.map(c => c.id);
+      const allCalendarIds = Array.from(new Set([...directlyAssociatedIds, ...fullyAssociatedIds]));
+      if (allCalendarIds.length === 0) {
         return reply.status(200).send({
           status_code: 200,
-          message: 'No holiday calendar associated with the provided hierarchy.',
+          message: 'No holiday calendar associated with the provided hierarchy and program ID.',
           trace_id: traceId,
           holidays: [],
         });
       }
- 
-      whereClause.holiday_calendar_id = { [Op.in]: calendarIds };
+    
+      whereClause.holiday_calendar_id = { [Op.in]: allCalendarIds };
     }
- 
+
     if (start_date && end_date) {
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
- 
+
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         return reply.status(400).send({
           status_code: 400,
-          message: "Invalid date format. Please use YYYY-MM-DD for both start_date and end_date.",
+          message: "Invalid date format. Please use YYYY-MM-DD.",
           trace_id: traceId,
         });
       }
- 
+
       whereClause.date = {
         [Op.gte]: startDate,
         [Op.lte]: endDate,
       };
     }
- 
+
     const holidays = await HolidayCalendarDetails.findAll({
       where: whereClause,
       attributes: ['date', 'name', 'is_time_entry_allowed', 'is_paid', 'is_tax_applicable'],
       order: [['date', 'ASC']],
     });
- 
+
     return reply.status(200).send({
       status_code: 200,
       message: holidays.length
         ? 'Holiday details fetched successfully.'
-        : 'No holidays found with the specified criteria.',
+        : 'No holidays found for the given criteria.',
       trace_id: traceId,
       holidays: holidays.map(h => h.get()),
     });
