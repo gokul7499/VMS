@@ -718,7 +718,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
+                            (recipient: any) => recipient.status.toLowerCase() === "approved" || recipient.status.toLowerCase() === "not needed" ||  recipient.status.toLowerCase() === "bypassed"
                         );
                         return {
                             ...level,
