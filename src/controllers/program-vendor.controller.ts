@@ -95,21 +95,23 @@ export async function getProgramVendors(
             filters.is_enabled = is_enabled;
         }
 
-        const hierarchyArray = hierarchy_ids.split(',').map((id: string) => id.trim());
-        if (hierarchyArray.length > 0) {
-            filters[Op.or] = [
-                { all_hierarchy: true },
-                ...hierarchyArray.map((id: string) =>
-                    sequelize.where(
-                        sequelize.fn(
-                            'JSON_CONTAINS',
-                            sequelize.col('hierarchies'),
-                            JSON.stringify(id)
-                        ),
-                        true
+        if (hierarchy_ids && typeof hierarchy_ids === 'string') {
+            const hierarchyArray = hierarchy_ids.split(',').map(id => id.trim());
+            if (hierarchyArray.length > 0) {
+                filters[Op.or] = [
+                    { all_hierarchy: true },
+                    ...hierarchyArray.map(id =>
+                        sequelize.where(
+                            sequelize.fn(
+                                'JSON_CONTAINS',
+                                sequelize.col('hierarchies'),
+                                JSON.stringify(id)
+                            ),
+                            true
+                        )
                     )
-                )
-            ];
+                ];
+            }
         }
         
           

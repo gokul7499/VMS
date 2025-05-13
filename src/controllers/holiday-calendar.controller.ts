@@ -283,8 +283,6 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       holidayCalendar
     );
 
-    console.error(error);
-
     return reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while creating holidayCalendar.',
@@ -300,42 +298,50 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
   const updateData = request.body as Partial<HolidayCalendarData>;
   const authHeader = request.headers.authorization;
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Token not found" });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(" ")[1];
   const user: any = await decodeToken(token);
 
   if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
   }
 
   const userId = user?.sub;
+  const transaction = await sequelize.transaction();
 
   try {
-    if (!updateData || Object.keys(updateData).length === 0) {
-      return reply.status(400).send({
-        status_code: 400,
+    const existingCalendar = await holidayCalendar.findOne({
+      where: { program_id, id, is_deleted: false },
+    });
+
+    if (!existingCalendar) {
+      await transaction.rollback();
+      return reply.status(404).send({
+        status_code: 404,
         trace_id: traceId,
-        message: 'No data provided to update.',
+        message: "Holiday calendar not found.",
       });
     }
+
     if (updateData.name) {
-      const existingHolidayCalendar = await holidayCalendar.findOne({
+      const duplicateName = await holidayCalendar.findOne({
         where: {
           program_id,
           name: updateData.name,
           is_deleted: false,
-          id: { [Op.ne]: id }
-        }
+          id: { [Op.ne]: id },
+        },
       });
 
-      if (existingHolidayCalendar) {
+      if (duplicateName) {
+        await transaction.rollback();
         return reply.status(409).send({
           status_code: 409,
           trace_id: traceId,
-          message: 'Holiday calendar name already exists.'
+          message: "Holiday calendar name already exists.",
         });
       }
     }
@@ -343,29 +349,77 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
     updateData.updated_by = userId;
     updateData.updated_on = Date.now();
 
-    const [updatedCount] = await holidayCalendar.update(updateData, { where: { program_id, id } });
+    await holidayCalendar.update(updateData, {
+      where: { program_id, id },
+      transaction,
+    });
 
-    if (updatedCount > 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'HolidayCalendar updated successfully.',
-        id,
-        trace_id: traceId,
-      });
-    } else {
-      return reply.status(404).send({
-        status_code: 404,
-        message: 'HolidayCalendar not found.',
-        trace_id: traceId,
-      });
+    await HolidayCalendarHierarchies.destroy({ where: { holiday_calendar_id: id }, transaction });
+    await HolidayCalendarWorkLocation.destroy({ where: { holiday_calendar_id: id }, transaction });
+    await HolidayCalendarDetails.destroy({ where: { holiday_calendar_id: id }, transaction });
+
+    if (Array.isArray(updateData.hierarchy_id)) {
+      for (const hierarchyId of updateData.hierarchy_id) {
+        await HolidayCalendarHierarchies.create(
+          {
+            holiday_calendar_id: id,
+            hierarchy_id: hierarchyId,
+            created_by: userId,
+            updated_by: userId,
+          },
+          { transaction }
+        );
+      }
     }
+
+    if (Array.isArray(updateData.work_locations_ids)) {
+      for (const workLocationId of updateData.work_locations_ids) {
+        await HolidayCalendarWorkLocation.create(
+          {
+            holiday_calendar_id: id,
+            work_location_id: workLocationId,
+            created_by: userId,
+            updated_by: userId,
+          },
+          { transaction }
+        );
+      }
+    }
+
+    if (Array.isArray(updateData.holidays)) {
+      for (const details of updateData.holidays) {
+        await HolidayCalendarDetails.create(
+          {
+            holiday_calendar_id: id,
+            date: details.date,
+            name: details.name,
+            is_time_entry_allowed: details.is_time_entry_allowed,
+            is_paid: details.is_paid,
+            is_tax_applicable: details.is_tax_applicable,
+            created_by: userId,
+            updated_by: userId,
+          },
+          { transaction }
+        );
+      }
+    }
+
+    await transaction.commit();
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "Holiday calendar updated successfully.",
+      id,
+      trace_id: traceId,
+    });
   } catch (error: any) {
     console.error(error);
+    await transaction.rollback();
     return reply.status(500).send({
       status_code: 500,
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
       trace_id: traceId,
-      error: error.message || error,
+      error: error.message ?? error,
     });
   }
 };
