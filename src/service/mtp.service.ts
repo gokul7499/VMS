@@ -5,6 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
+import DisebleMtp from "../models/disable_mtp.model";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -281,6 +282,9 @@ class MtpService {
     }) {
         const userId = user?.sub;
         let transaction;
+
+        const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+        const talentName = getCandidateData?.[0]?.candidate_name;
         
         try {
             const mtp = await MtpModel.findOne({
@@ -315,7 +319,7 @@ class MtpService {
                 }
             );
             
-            await MtpModel.update(
+            const [updatedCount]= await MtpModel.update(
                 { is_deleted: false }, 
                 {
                   where: {
@@ -325,6 +329,23 @@ class MtpService {
                   transaction,
                 }
               );
+
+              if (updatedCount === 0) {
+                console.log("No matching records found for mtp_candidate_id:", mtpCandidateId);
+              await MtpModel.create(
+                    {
+                        program_id: programId,
+                        mtp_candidate_id: mtpCandidateId,
+                        is_deleted: false,
+                        linked_profiles: [],
+                        talent_name:talentName,
+                        created_by: userId,
+                        updated_by: userId,
+                        trace_id: traceId
+                    },
+                    { transaction }
+                );
+            }
             
             await transaction.commit();
             
@@ -341,14 +362,101 @@ class MtpService {
     }
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
-        const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
-
+        const mtpData = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+        console.log("mtpDAta",mtpData)
         return {
             message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
             data: mtpData || []
         };
     }
 
+
+    async  disableMtp({
+        mtpId,
+        programId,
+        candidateId,
+        traceId
+    }:{
+        mtpId: string;
+        programId: string;
+        candidateId:string;
+        traceId: string;
+    }) {
+    
+        const DisableMtp = await DisebleMtp.create({
+            mtp_id:mtpId,
+            program_id: programId,
+            candidate_id:candidateId
+
+        });
+        console.log("disableData",DisableMtp)
+        return {
+            statusCode: 200,
+            message: "MTP disabled and logged successfully",
+            trace_id: traceId,
+            data: DisableMtp
+    
+        };
+    }
+
+    async masterProfile({
+        programId,
+        id,
+        mtpCandidateId,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        traceId: string;
+    }) {
+        let transaction;
+    
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId, is_deleted: false }
+            });
+    
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+    
+            transaction = await sequelize.transaction();
+    
+           await MtpModel.update(
+                {
+                    mtp_candidate_id: mtpCandidateId,
+                    is_master_profile: true
+                },
+                {
+                    where: {
+                        id,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await transaction.commit();
+    
+            return {
+                statusCode: 200,
+                message: "Master profile created successfully! ",
+                traceId
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
+    }
+    
+    
     private logEvent({
         request,
         traceId,
@@ -387,5 +495,7 @@ class MtpService {
         }, MtpModel);
     }
 }
+
+
 
 export default MtpService;
