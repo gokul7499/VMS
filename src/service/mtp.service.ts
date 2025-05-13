@@ -363,7 +363,7 @@ class MtpService {
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const mtpData = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
-
+        console.log("mtpDAta",mtpData)
         return {
             message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
             data: mtpData || []
@@ -401,6 +401,65 @@ class MtpService {
     
         };
     }
+
+    async masterProfile({
+        programId,
+        id,
+        mtpCandidateId,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        traceId: string;
+    }) {
+        let transaction;
+    
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId, is_deleted: false }
+            });
+    
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+    
+            transaction = await sequelize.transaction();
+    
+           await MtpModel.update(
+                {
+                    mtp_candidate_id: mtpCandidateId,
+                    is_master_profile: true
+                },
+                {
+                    where: {
+                        id,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await transaction.commit();
+    
+            return {
+                statusCode: 200,
+                message: "Master profile created successfully! ",
+                traceId
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
+    }
+    
+    
     private logEvent({
         request,
         traceId,

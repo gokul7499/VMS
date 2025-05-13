@@ -182,7 +182,7 @@ export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
 
     try {
         const result = await mtpService.getLinkedProfiles(programId, mtpCandidateId);
-
+        console.log("result", result)
         return reply.code(200).send({
             status_code: 200,
             message: result.message,
@@ -232,3 +232,33 @@ export async function disableMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
+
+export async function masterProfile(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id: programId, id } = request.params as { program_id: string, id: string };
+        const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+
+        const result = await mtpService.masterProfile({
+            programId,
+            id,
+            mtpCandidateId,
+            traceId
+        });
+
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while making MTP a master profile",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}
+

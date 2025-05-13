@@ -25,6 +25,10 @@ async function mtpRoutes(fastify: FastifyInstance) {
     
     fastify.post('/program/:program_id/submitted-candidate-disabled-mtp/:id', {
     }, mtpController.disableMtp);
+
+    fastify.put('/program/:program_id/make-master-profile/:id', {
+    }, mtpController.masterProfile);
+   
 }
 
 export default mtpRoutes;
