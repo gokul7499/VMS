@@ -218,7 +218,7 @@ async function handleBypassForUser(levels: any[], userId: string): Promise<any[]
             const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
             const updatedRecipient = { ...recipient };
 
-            if (behavior === 'any') {
+            if (behavior === 'any' && matchesUser) {
                 if (matchesUser) {
                     updatedRecipient.status = 'bypassed';
                 } else {
