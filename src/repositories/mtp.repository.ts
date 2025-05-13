@@ -216,76 +216,111 @@ async getMtpByLinkedProfile(programId: string,linkedProfileId:any): Promise<any>
 
 async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
   const query = `
-    WITH target_candidate AS (
-      SELECT * FROM candidates WHERE id = :mtp_candidate_id
-    ),
-    matched_mtp AS (
-      SELECT 
-        m.id,
-        m.talent_name,
-        m.updated_on,
-        m.mtp_id,
-        m.mtp_candidate_id,
-        m.linked_profiles,
-        (
-          JSON_LENGTH(IFNULL(m.linked_profiles, '[]')) - 
-          IF(JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(m.mtp_candidate_id), '$'), 1, 0)
-        ) AS linked_profiles_count
-      FROM mtp m
-      WHERE 
-        m.program_id = :program_id
-        AND (
-          m.mtp_candidate_id = :mtp_candidate_id
-          OR JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(:mtp_candidate_id), '$')
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM submitted_candidate_disabled_mtp dm 
-          WHERE dm.candidate_id = m.mtp_candidate_id
-        )
-    ),
-    candidate_matches AS (
-      SELECT 
-        m.id AS mtp_id,
-        c.*,
-        (
-          IF(c.first_name = t.first_name, 1, 0) +
-          IF(c.last_name = t.last_name, 1, 0) +
-          IF(c.middle_name = t.middle_name, 1, 0) +
-          IF(CAST(c.birth_date AS CHAR) = CAST(t.birth_date AS CHAR), 1, 0) +
-          IF(c.email = t.email, 1, 0)
-        ) AS match_score
-      FROM matched_mtp m
-      JOIN candidates c 
-        ON JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(c.id), '$')
-      JOIN target_candidate t
-    ),
-    ranked_matches AS (
-      SELECT *, ROW_NUMBER() OVER (PARTITION BY mtp_id ORDER BY match_score DESC) AS rn
-      FROM candidate_matches
-    ),
-    best_match AS (
-      SELECT * FROM ranked_matches WHERE rn = 1 AND match_score > 0
+   WITH submission_candidate AS (
+  SELECT 
+    c.id AS mtp_candidate_id,
+    c.first_name,
+    c.last_name,
+    c.middle_name,
+    c.program_id,
+    c.candidate_id,
+    c.birth_date,
+    c.email,
+    c.contacts
+  FROM mtp m
+  JOIN candidates c ON c.id = m.mtp_candidate_id
+  WHERE m.mtp_candidate_id = :mtp_candidate_id
+    AND m.program_id = :program_id
+),
+
+matching_candidates AS (
+  SELECT
+    m.id AS mtp_id,
+    m.mtp_candidate_id,
+    ca.first_name,
+    ca.last_name,
+    ca.middle_name,
+    ca.program_id,
+    ca.candidate_id,
+    ca.birth_date,
+    ca.email,
+    ca.contacts,
+    JSON_LENGTH(IFNULL(m.linked_profiles, '[]')) - 
+    IF(JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(m.mtp_candidate_id), '$'), 1, 0) AS linked_profiles_count,
+    -- Calculate match count
+    (
+      IF(ca.first_name = sc.first_name, 1, 0) +
+      IF(ca.last_name = sc.last_name, 1, 0) +
+      IF(ca.middle_name = sc.middle_name, 1, 0) +
+      IF(ca.email = sc.email, 1, 0) +
+      IF(ca.birth_date = sc.birth_date, 1, 0) +
+      IF(JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$'), 1, 0)
+    ) AS match_count,
+    ROW_NUMBER() OVER (PARTITION BY m.program_id ORDER BY 
+      -- Ranking candidates based on match_count
+      (
+        IF(ca.first_name = sc.first_name, 1, 0) +
+        IF(ca.last_name = sc.last_name, 1, 0) +
+        IF(ca.middle_name = sc.middle_name, 1, 0) +
+        IF(ca.email = sc.email, 1, 0) +
+        IF(ca.birth_date = sc.birth_date, 1, 0) +
+        IF(JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$'), 1, 0)
+      ) DESC
+    ) AS candidate_rank
+  FROM mtp m
+  JOIN candidates ca ON ca.id = m.mtp_candidate_id
+  JOIN submission_candidate sc ON TRUE
+  WHERE m.program_id = sc.program_id
+    AND m.mtp_candidate_id != sc.mtp_candidate_id
+    AND (
+      ca.first_name = sc.first_name OR
+      ca.last_name = sc.last_name OR
+      ca.middle_name = sc.middle_name OR
+      ca.email = sc.email OR
+      ca.birth_date = sc.birth_date OR
+      JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$')
     )
-    SELECT 
-      m.id,
-      m.talent_name,
-      m.updated_on,
-      m.mtp_id,
-      m.mtp_candidate_id,
-      m.linked_profiles_count,
-      JSON_OBJECT(
-        'mtp_candidate_id', bm.id,
-        'first_name', bm.first_name,
-        'last_name', bm.last_name,
-        'middle_name', bm.middle_name,
-        'program_id', bm.program_id,
-        'candidate_id', bm.candidate_id,
-        'birth_date', bm.birth_date,
-        'email', bm.email,
-        'contacts', bm.contacts
-      ) AS linked_profile
-    FROM matched_mtp m
-    LEFT JOIN best_match bm ON bm.mtp_id = m.id;
+)
+
+SELECT
+  -- submission candidate
+  (
+    SELECT JSON_OBJECT(
+      'mtp_candidate_id', sc.mtp_candidate_id,
+      'first_name', sc.first_name,
+      'last_name', sc.last_name,
+      'middle_name', sc.middle_name,
+      'program_id', sc.program_id,
+      'candidate_id', sc.candidate_id,
+      'birth_date', sc.birth_date,
+      'email', sc.email,
+      'contacts', sc.contacts
+    )
+    FROM submission_candidate sc
+  ) AS submission_candidate,
+
+  -- only the highest ranked (best matched) mtp_candidate
+  JSON_OBJECT(
+    'mtp_id', mc.mtp_id,
+    'mtp_candidate_id', mc.mtp_candidate_id,
+    'first_name', mc.first_name,
+    'last_name', mc.last_name,
+    'middle_name', mc.middle_name,
+    'program_id', mc.program_id,
+    'candidate_id', mc.candidate_id,
+    'birth_date', mc.birth_date,
+    'email', mc.email,
+    'contacts', mc.contacts,
+    'linked_profiles_count', mc.linked_profiles_count,
+    'match_count', mc.match_count
+  ) AS mtp_candidate
+
+FROM matching_candidates mc
+LEFT JOIN submitted_candidate_disabled_mtp scd
+  ON scd.candidate_id = mc.mtp_candidate_id
+WHERE mc.candidate_rank = 1
+  AND scd.candidate_id IS NULL;
+
   `;
 
   const result = await sequelize.query(query, {
