@@ -58,7 +58,6 @@ export const createTimesheetExpenseRuleSchema = {
         break_type: { type: 'string' },
         is_paid_break: { type: 'boolean' },
         rule_category: { type: 'string' },
-        weekend_days: { type: 'array' },
         conditions: { type: 'array' },
         penalty_rules: {
             type: 'object',
