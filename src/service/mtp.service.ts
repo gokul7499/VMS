@@ -363,42 +363,80 @@ class MtpService {
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const mtpData = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
-        console.log("mtpDAta",mtpData)
-        return {
-            message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
+      
+        if (!mtpData || mtpData.length === 0) {
+          return {
+            message: "No matching records found.",
+            data: {},
+          };
+        }
+      
+        const submissionCandidate = {
+          mtp_candidate_id: mtpCandidateId,
+          first_name: mtpData[0]?.linked_profile?.first_name || null,
+          last_name: mtpData[0]?.linked_profile?.last_name || null,
+          middle_name: mtpData[0]?.linked_profile?.middle_name || null,
+          program_id: mtpData[0]?.linked_profile?.program_id || null,
+          candidate_id: mtpData[0]?.linked_profile?.candidate_id || null,
+          birth_date: mtpData[0]?.linked_profile?.birth_date || null,
+          email: mtpData[0]?.linked_profile?.email || null,
+          contacts: mtpData[0]?.linked_profile?.contacts || [],
         };
-    }
-
-
-    async  disableMtp({
-        mtpId,
+      
+        const mtpCandidates = mtpData.map((item: any) => ({
+          id: item.id,
+          talent_name: item.talent_name,
+          updated_on: item.updated_on,
+          mtp_id: item.mtp_id,
+          mtp_candidate_id: item.mtp_candidate_id,
+          linked_profiles_count: item.linked_profiles_count,
+          first_name: item.linked_profile?.first_name || null,
+          last_name: item.linked_profile?.last_name || null,
+          middle_name: item.linked_profile?.middle_name || null,
+          program_id: item.linked_profile?.program_id || null,
+          candidate_id: item.linked_profile?.candidate_id || null,
+          birth_date: item.linked_profile?.birth_date || null,
+          email: item.linked_profile?.email || null,
+          contacts: item.linked_profile?.contacts || [],
+        }));
+      
+        return {
+          message: "Linked profile data retrieved successfully.",
+          data: {
+            submission_candidate: submissionCandidate,
+            mtp_candidate: mtpCandidates,
+          },
+        };
+      }
+      
+      async disableMtp({
+        mtpId,  
         programId,
         candidateId,
-        traceId
-    }:{
-        mtpId: string;
+        traceId,
+      }: {
+        mtpId: string[];
         programId: string;
-        candidateId:string;
+        candidateId: string;
         traceId: string;
-    }) {
-    
-        const DisableMtp = await DisebleMtp.create({
-            mtp_id:mtpId,
-            program_id: programId,
-            candidate_id:candidateId
+      }) {
+        
+        const disableRecords = await DisebleMtp.bulkCreate(
+            mtpId.map((id) => ({
+              mtp_id: id,
+              program_id: programId,
+              candidate_id: candidateId,
+            }))
+        );
 
-        });
-        console.log("disableData",DisableMtp)
         return {
-            statusCode: 200,
-            message: "MTP disabled and logged successfully",
-            trace_id: traceId,
-            data: DisableMtp
-    
+          statusCode: 200,
+          message: "selected MTPs disabled successfully.",
+          trace_id: traceId,
+          data: disableRecords,
         };
-    }
-
+      }
+      
     async masterProfile({
         programId,
         id,
