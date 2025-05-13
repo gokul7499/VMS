@@ -204,16 +204,15 @@ export async function disableMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
 
     try {
-        const { program_id: programId, id: mtpId } = request.params as {
+        const { program_id: programId,candidate_id:candidateId, mtp_id: mtpId } = request.params as {
             program_id: string;
-            id: string;
+            mtp_id: string;
+            candidate_id:string
         };
-        const { submission_id, candidate_id } = request.body as any
         const result = await mtpService.disableMtp({
             programId,
             mtpId,
-            submission_id,
-            candidate_id,
+            candidateId,
             traceId
         });
         return reply.code(result.statusCode).send({

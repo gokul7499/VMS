@@ -23,10 +23,6 @@ DisableMtp.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
-        submission_id:{
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
         candidate_id:{
             type: DataTypes.STRING,
             allowNull: true,

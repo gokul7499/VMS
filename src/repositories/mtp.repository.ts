@@ -251,7 +251,7 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
       AND NOT EXISTS (
         SELECT 1
         FROM submitted_candidate_disabled_mtp dm
-        WHERE dm.submission_id = m.mtp_candidate_id
+        WHERE dm.candidate_id = m.mtp_candidate_id
       )
       AND EXISTS (
         SELECT 1
