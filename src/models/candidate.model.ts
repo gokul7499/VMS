@@ -3,10 +3,7 @@ import { sequelize } from "../config/instance";
 import { beforeSave } from '../hooks/timeFormatHook';
 import { Programs } from "./programs.model"
 import countriesModel from "./countries.model";
-import { ProgramVendor } from "./program-vendor.model";
 import Tenant from "./tenant.model";
-import IndustriesModel from "./labour-category.model";
-import JobTemplateModel from "./job-template.model";
 import JobCategoryModel from "./job-category.model";
 class Candidate extends Model {
     id: any;
@@ -14,7 +11,7 @@ class Candidate extends Model {
     tenant_id: any;
     vendor_id: any;
     candidate_id!: string;
-  user_id: any;
+    user_id: any;
 }
 
 Candidate.init(
@@ -184,6 +181,10 @@ Candidate.init(
         },
         state_national_id: {
             type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        unique_id: {
+            type: DataTypes.STRING,
             allowNull: true,
         },
         created_on: {
