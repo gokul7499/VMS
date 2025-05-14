@@ -69,6 +69,7 @@ class CandidateRepository {
         c.do_not_rehire_notes, 
         c.do_not_rehire_reason, 
         c.do_not_rehire,
+        c.is_per_identified,
         CAST(JSON_UNQUOTE(JSON_EXTRACT(c.contacts, '$[0].number')) AS CHAR) AS phone_number,
         JSON_OBJECT(
             'id', v.id,  
