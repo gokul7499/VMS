@@ -36,6 +36,7 @@ export default interface CandidateInterface {
     updated_on?: bigint;
     created_by?:string;
     updated_by?:string;
+    is_per_identified?: boolean;
 }
 
 export interface TenantInterface{

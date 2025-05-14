@@ -218,7 +218,7 @@ async function handleBypassForUser(levels: any[], userId: string): Promise<any[]
             const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
             const updatedRecipient = { ...recipient };
 
-            if (behavior === 'any') {
+            if (behavior === 'any' && matchesUser) {
                 if (matchesUser) {
                     updatedRecipient.status = 'bypassed';
                 } else {
@@ -3510,10 +3510,9 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         let jobDatas: any = null;
         let offerData: any = null;
         let assignmentData: any = null;
-        const isJobEvent = events?.includes('job');
         const isOfferEvent = events?.includes('offer');
         const isAssignmentEvent = events?.includes('assignment')
-        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
+        if (jobUUID) {
             jobDatas = await getJobDetails(jobUUID, program_id, token);
         }
         if (isOfferEvent && workflowTriggerId) {
@@ -3533,7 +3532,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
-                submission_id: workflowDetails?.unique_key,
+                submission_id: workflowDetails?.code,
                 offer_id: offerData?.data?.offer?.offer_code ?? "",
                 offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
                     : '',
