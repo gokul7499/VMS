@@ -142,6 +142,10 @@ Candidate.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        is_per_identified: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,      
+        },
         contacts: {
             type: DataTypes.JSON,
             allowNull: true,
@@ -203,6 +207,7 @@ Candidate.init(
             type: DataTypes.STRING(50),
             allowNull: false,
         },
+        
     },
     {
         sequelize: sequelize,
