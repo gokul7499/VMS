@@ -17,7 +17,7 @@ export async function createSowTemplate(
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-
+    const entityId = generateCustomUUID();
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
@@ -32,6 +32,7 @@ export async function createSowTemplate(
     try {
         const existingSowTemplate = await SowTemplateModel.findOne({
             where: {
+                latest: true,
                 program_id: program_id,
                 template_title: sowTemplate.template_title,
                 is_deleted: false,
@@ -48,7 +49,9 @@ export async function createSowTemplate(
 
         const item = await SowTemplateModel.create({
             ...sowTemplate,
+            entity_id: entityId,
             program_id,
+            latest: true, 
             created_by: userId,
             updated_by: userId,
         }, { transaction });
@@ -80,6 +83,7 @@ export async function createSowTemplate(
         });
     }
 }
+
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
 
@@ -274,53 +278,87 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 };
 
 
+
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { id, program_id } = request.params as { id: string; program_id: string };
-    const sowTemplate = request.body as SowTemplate;
-    const userId = request.headers['user_id'];
+    const transaction = await sequelize.transaction();
 
     try {
-        const template = await SowTemplateModel.findOne({ where: { id, program_id, is_deleted: false } });
+        const { id, program_id } = request.params as { id: string; program_id: string };
+        const sowTemplate = request.body as SowTemplate;
+        const userId = request.headers['user_id'];
 
-        if (!template) {
+        const existingTemplate = await SowTemplateModel.findOne({
+            where: {
+                id,
+                program_id,
+                is_deleted: false,
+                latest: true,
+            },
+            transaction,
+        });
+
+        if (!existingTemplate) {
+            await transaction.rollback();
             return reply.status(200).send({
                 status_code: 200,
                 message: 'SOW Template not found.',
-                trace_id: traceId
+                trace_id: traceId,
             });
         }
-        await template.update(sowTemplate);
-        await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-
-
+        await existingTemplate.update(
+            { latest: false },
+            { transaction }
+        );
+        const oldRevision = Number(existingTemplate.revision ?? 0);
+        const newRevision = oldRevision + 1;
+        const newTemplate = await SowTemplateModel.create(
+            {
+                ...existingTemplate.toJSON(),
+                ...sowTemplate,
+                id: undefined, 
+                revision: newRevision,
+                latest: true,
+                created_on: userId,
+                created_by:userId,
+                updated_on: Date.now(),
+                updated_by: userId,
+            },
+            { transaction }
+        );
+        await SowTemplateHierarchyModel.destroy({
+            where: { sow_template_id: existingTemplate.id },
+            transaction,
+        });
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
-                    sow_template_id: id,
-                    hierarchy_id: hierarchyId,
-                    created_by: userId,
-                    updated_by: userId,
-                });
+                        sow_template_id: newTemplate.id,
+                        hierarchy_id: hierarchyId,
+                        created_by: userId,
+                        updated_by: userId,
+                    },
+                    { transaction }
+                );
             }
         }
-
-
-        reply.status(200).send({
+        await transaction.commit();
+        return reply.status(200).send({
             status_code: 200,
-            message: 'SOW template updated successfully.',
-            trace_id: traceId
+            message: 'SOW template versioned update successful.',
+            trace_id: traceId,
+            data: newTemplate,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        await transaction.rollback();
+        return reply.status(500).send({
             status_code: 500,
             message: 'Error updating SOW template.',
             error: error.message,
-            trace_id: traceId
+            trace_id: traceId,
         });
     }
 };
-
 
 export const deleteSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
