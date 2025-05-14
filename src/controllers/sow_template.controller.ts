@@ -278,57 +278,6 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 };
 
 
-// export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-//     const traceId = generateCustomUUID();
-//     const { id, program_id } = request.params as { id: string; program_id: string };
-//     const sowTemplate = request.body as SowTemplate;
-//     const userId = request.headers['user_id'];
-
-//     try {
-//         const template = await SowTemplateModel.findOne({ where: { 
-//              id,
-//              program_id,
-//              is_deleted: false,
-//              latest: true,
-//          } });
-
-//         if (!template) {
-//             return reply.status(200).send({
-//                 status_code: 200,
-//                 message: 'SOW Template not found.',
-//                 trace_id: traceId
-//             });
-//         }
-//         await template.update(sowTemplate);
-//         await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-
-
-//         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
-//             for (const hierarchyId of sowTemplate.hierarchy) {
-//                 await SowTemplateHierarchyModel.create({
-//                     sow_template_id: id,
-//                     hierarchy_id: hierarchyId,
-//                     created_by: userId,
-//                     updated_by: userId,
-//                 });
-//             }
-//         }
-
-
-//         reply.status(200).send({
-//             status_code: 200,
-//             message: 'SOW template updated successfully.',
-//             trace_id: traceId
-//         });
-//     } catch (error: any) {
-//         reply.status(500).send({
-//             status_code: 500,
-//             message: 'Error updating SOW template.',
-//             error: error.message,
-//             trace_id: traceId
-//         });
-//     }
-// };
 
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
