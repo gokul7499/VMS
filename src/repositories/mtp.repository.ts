@@ -232,10 +232,11 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
     WHERE m.mtp_candidate_id = :mtp_candidate_id
       AND m.program_id = :program_id
   ),
-  
+
   matching_candidates AS (
     SELECT
-      m.id AS mtp_id,
+      m.id AS linked_profile_id,
+      m.mtp_id,
       m.mtp_candidate_id,
       ca.first_name,
       ca.last_name,
@@ -254,22 +255,14 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         IF(ca.email = sc.email, 1, 0) +
         IF(ca.birth_date = sc.birth_date, 1, 0) +
         IF(JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$'), 1, 0)
-      ) AS match_count,
-      ROW_NUMBER() OVER (PARTITION BY m.program_id ORDER BY 
-        (
-          IF(ca.first_name = sc.first_name, 1, 0) +
-          IF(ca.last_name = sc.last_name, 1, 0) +
-          IF(ca.middle_name = sc.middle_name, 1, 0) +
-          IF(ca.email = sc.email, 1, 0) +
-          IF(ca.birth_date = sc.birth_date, 1, 0) +
-          IF(JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$'), 1, 0)
-        ) DESC
-      ) AS candidate_rank
+      ) AS match_count
     FROM mtp m
     JOIN candidates ca ON ca.id = m.mtp_candidate_id
     JOIN submission_candidate sc ON TRUE
+    LEFT JOIN submitted_candidate_disabled_mtp scd ON m.mtp_id = scd.mtp_id  -- Join to check if the mtp_id is disabled
     WHERE m.program_id = sc.program_id
       AND m.mtp_candidate_id != sc.mtp_candidate_id
+      AND scd.mtp_id IS NULL  -- Exclude records where mtp_id is found in submitted_candidate_disabled_mtp
       AND (
         ca.first_name = sc.first_name OR
         ca.last_name = sc.last_name OR
@@ -279,7 +272,7 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         JSON_CONTAINS(sc.contacts, JSON_EXTRACT(ca.contacts, '$[0]'), '$')
       )
   )
-  
+
   SELECT
     JSON_OBJECT(
       'mtp_candidate_id', sc.mtp_candidate_id,
@@ -293,9 +286,11 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
       'contacts', sc.contacts
     ) AS submission_candidate,
 
-    CASE 
-      WHEN scd.candidate_id IS NULL THEN JSON_ARRAY(JSON_OBJECT(
+    JSON_ARRAYAGG(
+      JSON_OBJECT(
         'mtp_id', mc.mtp_id,
+        'submission_candidate_id', sc.mtp_candidate_id,
+        'linked_profile_id', mc.linked_profile_id,
         'mtp_candidate_id', mc.mtp_candidate_id,
         'first_name', mc.first_name,
         'last_name', mc.last_name,
@@ -307,15 +302,12 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         'contacts', mc.contacts,
         'linked_profiles_count', mc.linked_profiles_count,
         'match_count', mc.match_count
-))
-      ELSE NULL
-    END AS mtp_candidate
+      )
+    ) AS mtp_candidates
 
   FROM submission_candidate sc
-  LEFT JOIN (
-    SELECT * FROM matching_candidates WHERE candidate_rank = 1
-  ) mc ON TRUE
-  LEFT JOIN submitted_candidate_disabled_mtp scd ON scd.candidate_id = mc.mtp_candidate_id;
+  LEFT JOIN matching_candidates mc ON TRUE
+  GROUP BY sc.mtp_candidate_id;
   `;
 
   const result = await sequelize.query(query, {
@@ -326,6 +318,8 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
 
   return result;
 }
+
+
  
 
   }
