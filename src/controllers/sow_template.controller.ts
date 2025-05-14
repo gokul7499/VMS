@@ -17,7 +17,7 @@ export async function createSowTemplate(
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-    const entityId = generateCustomUUID();
+   const entityId = generateCustomUUID();
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
@@ -45,7 +45,7 @@ export async function createSowTemplate(
                 trace_id: traceId,
                 message: "SOW Template Title already exists",
             });
-        }
+        } 
 
         const item = await SowTemplateModel.create({
             ...sowTemplate,
@@ -111,7 +111,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         const limitNumber = parseInt(limit as unknown as string, 10);
         const offset = (pageNumber - 1) * limitNumber;
 
-        let whereClause = `t.program_id = :program_id AND t.is_deleted = false`;
+        let whereClause = `t.program_id = :program_id AND t.is_deleted = false AND t.latest = true`;
         const replacements: any = { program_id, limit: limitNumber, offset };
 
         if (type) {
@@ -326,10 +326,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             },
             { transaction }
         );
-        await SowTemplateHierarchyModel.destroy({
-            where: { sow_template_id: existingTemplate.id },
-            transaction,
-        });
+       
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
