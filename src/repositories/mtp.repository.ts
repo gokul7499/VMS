@@ -285,7 +285,9 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
       'email', sc.email,
       'contacts', sc.contacts
     ) AS submission_candidate,
-
+    IF(
+    COUNT(mc.mtp_id) = 0,
+    JSON_ARRAY(),
     JSON_ARRAYAGG(
       JSON_OBJECT(
         'mtp_id', mc.mtp_id,
@@ -302,6 +304,7 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         'contacts', mc.contacts,
         'linked_profiles_count', mc.linked_profiles_count,
         'match_count', mc.match_count
+      )
       )
     ) AS mtp_candidates
 
