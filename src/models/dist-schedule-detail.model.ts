@@ -42,6 +42,10 @@ DistScheduleDetail.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
+    vendor_group_ids: {
+        type: DataTypes.JSON,
+        allowNull: true,
+    },
     is_enabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
