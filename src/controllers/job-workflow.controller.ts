@@ -404,6 +404,7 @@ export const updateWorkflowStatus = async (
                             actor_first_name: userData.first_name,
                             actor_last_name: userData.last_name,
                             actor_by_avtar: userData.avatar,
+                            notes: notes || ''
                         };
                         
                         // Check if user is inactive - use precomputed active status
