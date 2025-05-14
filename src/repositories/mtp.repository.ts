@@ -294,7 +294,7 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
     ) AS submission_candidate,
 
     CASE 
-      WHEN scd.candidate_id IS NULL THEN JSON_OBJECT(
+      WHEN scd.candidate_id IS NULL THEN JSON_ARRAY(JSON_OBJECT(
         'mtp_id', mc.mtp_id,
         'mtp_candidate_id', mc.mtp_candidate_id,
         'first_name', mc.first_name,
@@ -307,7 +307,7 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         'contacts', mc.contacts,
         'linked_profiles_count', mc.linked_profiles_count,
         'match_count', mc.match_count
-      )
+))
       ELSE NULL
     END AS mtp_candidate
 
