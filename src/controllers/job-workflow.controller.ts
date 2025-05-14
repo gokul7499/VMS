@@ -218,7 +218,7 @@ async function handleBypassForUser(levels: any[], userId: string): Promise<any[]
             const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
             const updatedRecipient = { ...recipient };
 
-            if (behavior === 'any') {
+            if (behavior === 'any' && matchesUser) {
                 if (matchesUser) {
                     updatedRecipient.status = 'bypassed';
                 } else {
@@ -404,6 +404,7 @@ export const updateWorkflowStatus = async (
                             actor_first_name: userData.first_name,
                             actor_last_name: userData.last_name,
                             actor_by_avtar: userData.avatar,
+                            notes: notes || ''
                         };
                         
                         // Check if user is inactive - use precomputed active status

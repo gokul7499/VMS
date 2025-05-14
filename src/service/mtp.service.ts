@@ -362,43 +362,42 @@ class MtpService {
     }
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
-        const mtpData = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+        const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
         console.log("mtpDAta",mtpData)
         return {
             message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
             data: mtpData || []
         };
     }
-
-
-    async  disableMtp({
-        mtpId,
+      
+      async disableMtp({
+        mtpId,  
         programId,
         candidateId,
-        traceId
-    }:{
-        mtpId: string;
+        traceId,
+      }: {
+        mtpId: string[];
         programId: string;
-        candidateId:string;
+        candidateId: string;
         traceId: string;
-    }) {
-    
-        const DisableMtp = await DisebleMtp.create({
-            mtp_id:mtpId,
-            program_id: programId,
-            candidate_id:candidateId
+      }) {
+        
+        const disableRecords = await DisebleMtp.bulkCreate(
+            mtpId.map((id) => ({
+              mtp_id: id,
+              program_id: programId,
+              candidate_id: candidateId,
+            }))
+        );
 
-        });
-        console.log("disableData",DisableMtp)
         return {
-            statusCode: 200,
-            message: "MTP disabled and logged successfully",
-            trace_id: traceId,
-            data: DisableMtp
-    
+          statusCode: 200,
+          message: "selected MTPs disabled successfully.",
+          trace_id: traceId,
+          data: disableRecords,
         };
-    }
-
+      }
+      
     async masterProfile({
         programId,
         id,
