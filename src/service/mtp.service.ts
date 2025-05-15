@@ -270,47 +270,41 @@ class MtpService {
     async unlinkMtp({
         programId,
         id,
-        mtpCandidateId,
+        mtpCandidateIds,
         user,
         traceId
     }: {
         programId: string;
         id: string;
-        mtpCandidateId: string;
+        mtpCandidateIds: string[]; 
         user: any;
         traceId: string;
     }) {
         const userId = user?.sub;
         let transaction;
-
-        const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
-        const talentName = getCandidateData?.[0]?.candidate_name;
-        
+    
         try {
             const mtp = await MtpModel.findOne({
                 where: { id, program_id: programId }
             });
-            console.log("mtp",mtp)
+           console.log("mtp",mtp)
             if (!mtp) {
                 return {
                     statusCode: 404,
                     message: "MTP not found"
                 };
             }
-            
+    
             const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
-            
-            if (!currentLinks.includes(mtpCandidateId)) {
+            const notLinked = mtpCandidateIds.filter(cid => !currentLinks.includes(cid));
+            if (notLinked.length > 0) {
                 return {
                     statusCode: 400,
-                    message: "Candidate ID not found in linked profiles"
+                    message: `Candidate IDs not found in linked profiles: ${notLinked.join(', ')}`
                 };
             }
-            
             transaction = await sequelize.transaction();
-            
-            const updatedLinks = currentLinks.filter(id => id !== mtpCandidateId);
-            console.log("updatedLinks",updatedLinks)
+            const updatedLinks = currentLinks.filter(cid => !mtpCandidateIds.includes(cid));
             await MtpModel.update(
                 { linked_profiles: updatedLinks },
                 {
@@ -318,40 +312,37 @@ class MtpService {
                     transaction
                 }
             );
-            
-            const [updatedCount]= await MtpModel.update(
-                { is_deleted: false }, 
-                {
-                  where: {
-                    mtp_candidate_id: mtpCandidateId,
-                    program_id: programId,
-                  },
-                  transaction,
-                }
-              );
-
-              if (updatedCount === 0) {
-                console.log("No matching records found for mtp_candidate_id:", mtpCandidateId);
-              await MtpModel.create(
-                    {
+    
+            for (const candidateId of mtpCandidateIds) {
+                const existing = await MtpModel.findOne({
+                    where: { mtp_candidate_id: candidateId, program_id: programId },
+                    transaction
+                });
+    
+                if (existing) {
+                    await existing.update({ is_deleted: false }, { transaction });
+                } else {
+                    const candidateData = await this.mtpRepository.getCandidate(programId, candidateId);
+                    const talentName = candidateData?.[0]?.candidate_name;
+                    
+                    await MtpModel.create({
                         program_id: programId,
-                        mtp_candidate_id: mtpCandidateId,
+                        mtp_candidate_id: candidateId,
                         is_deleted: false,
-                        linked_profiles: [],
-                        talent_name:talentName,
+                        linked_profiles: [candidateId],
+                        talent_name: talentName,
                         created_by: userId,
                         updated_by: userId,
                         trace_id: traceId
-                    },
-                    { transaction }
-                );
+                    }, { transaction });
+                }
             }
-            
+    
             await transaction.commit();
-            
+    
             return {
                 statusCode: 200,
-                message: "MTP unlinked successfully"
+                message: "MTP candidates unlinked and created successfully"
             };
         } catch (error) {
             if (transaction) {
@@ -360,6 +351,7 @@ class MtpService {
             throw error;
         }
     }
+    
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
