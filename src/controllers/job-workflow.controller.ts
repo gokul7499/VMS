@@ -1139,10 +1139,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             const payload = {
                 user_type: user?.userType,
                 fullName: managerData?.data?.first_name,
-                job_id: workflow?.event_title,
+                job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
-                    ? `${SOURCE_BASE_URL}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
-                    : '',
+                ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                : "",         
                 status_reason: updates[0]?.reason
             };
 
