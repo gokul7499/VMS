@@ -363,12 +363,34 @@ class MtpService {
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
-        console.log("mtpDAta",mtpData)
-        return {
-            message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
+        console.log("mtpData", mtpData);
+      
+        if (!mtpData) {
+          return {
+            message: "No matching records found.",
+            data: []
+          };
+        }
+      
+        const uniqueMtpCandidates = Array.isArray(mtpData.mtp_candidates)
+          ? Object.values(
+              mtpData.mtp_candidates.reduce((acc: { [x: string]: any; }, candidate: { mtp_id: string | number; }) => {
+                acc[candidate.mtp_id] = candidate;
+                return acc;
+              }, {} as Record<string, typeof mtpData.mtp_candidates[0]>)
+            )
+          : [];
+      
+        const resultData = {
+          ...mtpData,
+          mtp_candidates: uniqueMtpCandidates
         };
-    }
+      
+        return {
+          message: "Linked profile data retrieved successfully.",
+          data: resultData
+        };
+      }
       
       async disableMtp({
         mtpId,  
