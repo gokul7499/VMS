@@ -252,7 +252,16 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.display_name
+        pv.display_name,
+        (SELECT COUNT(DISTINCT vcd_sub.id)
+         FROM vendor_compliance_documents vcd_sub
+         JOIN vendor_document_groups vdg_sub ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id))
+         WHERE vcd_sub.program_id = :program_id
+           AND vcd_sub.is_enabled = true
+           AND (pv.id IS NULL OR pv.id = :vendor_id)
+           AND (:name IS NULL OR vcd_sub.name LIKE :name)
+           AND (:is_enabled IS NULL OR vcd_sub.is_enabled LIKE :is_enabled)
+        ) AS total_count
     FROM
         program_vendors pv
     JOIN
@@ -369,7 +378,17 @@ export const complianceDocumentGetByVendorId = `
             FROM work_locations wl
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
-        pv.display_name
+        pv.display_name,
+        (
+        SELECT COUNT(DISTINCT vcd_sub.id)
+        FROM program_vendors pv_sub
+        JOIN vendor_document_groups vdg_sub ON JSON_CONTAINS(pv_sub.com_doc_group, JSON_QUOTE(vdg_sub.id))
+        LEFT JOIN vendor_compliance_documents vcd_sub ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id)) AND vcd_sub.is_enabled = true
+        WHERE pv_sub.program_id = :program_id
+          AND (pv_sub.id IS NULL OR pv_sub.id = :vendor_id)
+          AND (:name IS NULL OR vcd_sub.name LIKE :name)
+          AND (:is_enabled IS NULL OR vcd_sub.is_enabled LIKE :is_enabled)
+    ) AS total_count
     FROM
         program_vendors pv
     JOIN
