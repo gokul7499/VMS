@@ -191,6 +191,10 @@ Candidate.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
+        ssn_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
