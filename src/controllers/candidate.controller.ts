@@ -715,7 +715,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire"
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_per_identified",
             ],
             limit: limitNum,
             offset,
@@ -757,7 +757,8 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 do_not_rehire_notes: cand.do_not_rehire_notes,
                 do_not_rehire_reason: cand.do_not_rehire_reason,
                 do_not_rehire: cand.do_not_rehire,
-                phone_number: cand.contacts[0]?.number
+                phone_number: cand.contacts[0]?.number,
+                is_per_identified: cand.is_per_identified
             };
         });
 
