@@ -67,7 +67,7 @@ MtpModel.init(
         },
         is_master_profile:{
             type: DataTypes.BOOLEAN,
-            defaultValue: false,
+            defaultValue: true,
         }
     },
     {
