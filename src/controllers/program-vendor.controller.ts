@@ -956,18 +956,17 @@ export const getVendorDocuments = async (
             });
         }
 
-        const uniqueDocuments = documents.filter((doc, index, self) =>
-            index === self.findIndex((d) => d.id === doc.id)
-        );
-        const totalCount = uniqueDocuments.length;
-
-        if (!totalCount) {
+        const totalCount = documents.length > 0 ? documents[0].total_count : 0;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        if (!documents) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
                 trace_id: traceId,
                 total_count: totalCount,
-                page_size: pageSize,
+                page: pageNumber,
+                limit: pageSize,
+                total_pages: totalPages,
                 uploaded_documents: [],
             });
         }
@@ -977,8 +976,10 @@ export const getVendorDocuments = async (
             message: 'Vendor documents fetched successfully.',
             trace_id: traceId,
             total_count: totalCount,
-            page_size: pageSize,
-            uploaded_documents: uniqueDocuments.map(doc => ({
+            page: pageNumber,
+            limit: pageSize,
+            total_pages: totalPages,
+            uploaded_documents: documents.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
                 name: doc.name,
