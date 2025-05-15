@@ -58,8 +58,14 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
         ? String(birthDate.getDate()).padStart(2, '0')
         : 'XX';
 
-    const stateNationalId = getFirstNDigits(user?.state_national_id, 3);
-    const ssnId = getFirstNDigits(user?.ssn_id, 4);
+    // Extract last N digits
+    const getLastNDigits = (value: string | number, n: number) => {
+        const str = value?.toString() || '';
+        return str.length > n ? str.slice(-n) : str.padStart(n, '0');
+    };
+
+    const stateNationalId = getLastNDigits(user?.state_national_id, 3);
+    const ssnId = getLastNDigits(user?.ssn_id, 4);
 
     // Format combinations
     switch (uniqueIdFormat) {
