@@ -150,17 +150,17 @@ export async function linkMtp(request: FastifyRequest, reply: FastifyReply) {
 export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id: programId, id } = request.params as { program_id: string, id: string };
-    const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+    const { mtp_candidate_id } = request.body as { mtp_candidate_id: string[] }; 
     
     try {
         const result = await mtpService.unlinkMtp({
             programId,
             id,
-            mtpCandidateId,
+            mtpCandidateIds: mtp_candidate_id,
             user: request.user,
             traceId
         });
-        
+
         return reply.code(result.statusCode).send({
             status_code: result.statusCode,
             message: result.message,
@@ -175,6 +175,7 @@ export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
         });
     }
 }
+
 
 export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
     const { program_id: programId, mtp_candidate_id:mtpCandidateId } = request.params as { program_id: string, mtp_candidate_id: string };
