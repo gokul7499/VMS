@@ -41,10 +41,6 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
     const getSubstring = (str: string, length: number) =>
         str?.substring(0, length)?.toUpperCase() || '';
 
-    // Extract digits
-    const getFirstNDigits = (value: string | number, n: number) =>
-        value?.toString().substring(0, n) ?? '';
-
     // Parse and format birthdate
     const birthDate = user?.birth_date
         ? new Date(Number(user.birth_date))
@@ -57,6 +53,15 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
     const formattedDay = birthDate
         ? String(birthDate.getDate()).padStart(2, '0')
         : 'XX';
+
+    // Check if required fields exist
+    if ((uniqueIdFormat === 'FF-MM-DD-XXX' || uniqueIdFormat === 'LL-MM-DD-XXX') && !user?.state_national_id) {
+        throw new Error('State/National ID is required for this format.');
+    }
+
+    if ((uniqueIdFormat === 'FF-MM-DD-XXXX' || uniqueIdFormat === 'LL-MM-DD-XXXX') && !user?.ssn_id) {
+        throw new Error('SSN ID is required for this format.');
+    }
 
     // Extract last N digits
     const getLastNDigits = (value: string | number, n: number) => {
