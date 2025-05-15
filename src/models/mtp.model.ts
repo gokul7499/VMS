@@ -64,6 +64,10 @@ MtpModel.init(
         is_deleted:{
             type: DataTypes.BOOLEAN,
             defaultValue: false,
+        },
+        is_master_profile:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
         }
     },
     {

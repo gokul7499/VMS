@@ -21,6 +21,14 @@ async function mtpRoutes(fastify: FastifyInstance) {
 
     fastify.get('/program/:program_id/get-profile-matches/:mtp_candidate_id', {
     }, mtpController.getMtp);
+
+    
+    fastify.post('/program/:program_id/submitted-candidate/:candidate_id/mtp', {
+    }, mtpController.disableMtp);
+
+    fastify.put('/program/:program_id/make-master-profile/:id', {
+    }, mtpController.masterProfile);
+   
 }
 
 export default mtpRoutes;

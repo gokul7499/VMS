@@ -218,7 +218,7 @@ async function handleBypassForUser(levels: any[], userId: string): Promise<any[]
             const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
             const updatedRecipient = { ...recipient };
 
-            if (behavior === 'any') {
+            if (behavior === 'any' && matchesUser) {
                 if (matchesUser) {
                     updatedRecipient.status = 'bypassed';
                 } else {
@@ -404,6 +404,7 @@ export const updateWorkflowStatus = async (
                             actor_first_name: userData.first_name,
                             actor_last_name: userData.last_name,
                             actor_by_avtar: userData.avatar,
+                            notes: notes || ''
                         };
                         
                         // Check if user is inactive - use precomputed active status
@@ -718,7 +719,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
+                            (recipient: any) => recipient.status.toLowerCase() === "approved" || recipient.status.toLowerCase() === "not needed" ||  recipient.status.toLowerCase() === "bypassed"
                         );
                         return {
                             ...level,
@@ -1138,10 +1139,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             const payload = {
                 user_type: user?.userType,
                 fullName: managerData?.data?.first_name,
-                job_id: workflow?.event_title,
+                job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
-                    ? `${SOURCE_BASE_URL}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
-                    : '',
+                ? `${SOURCE_BASE_URL}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                : "",         
                 status_reason: updates[0]?.reason
             };
 
@@ -3510,10 +3511,9 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         let jobDatas: any = null;
         let offerData: any = null;
         let assignmentData: any = null;
-        const isJobEvent = events?.includes('job');
         const isOfferEvent = events?.includes('offer');
         const isAssignmentEvent = events?.includes('assignment')
-        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
+        if (jobUUID) {
             jobDatas = await getJobDetails(jobUUID, program_id, token);
         }
         if (isOfferEvent && workflowTriggerId) {
@@ -3533,7 +3533,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
-                submission_id: workflowDetails?.unique_key,
+                submission_id: workflowDetails?.code,
                 offer_id: offerData?.data?.offer?.offer_code ?? "",
                 offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
                     : '',
