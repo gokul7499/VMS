@@ -121,14 +121,14 @@ export async function getMtpById(request: FastifyRequest, reply: FastifyReply) {
 export async function linkMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id: programId, id } = request.params as { program_id: string, id: string };
-    const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string[] };
+    const { mtp_candidate_id: mtpCandidateId,unlink_mtp_id:unlinkMtpId } = request.body as { mtp_candidate_id: string[],unlink_mtp_id:string };
     
     try {
         const result = await mtpService.linkMtp({
             programId,
             id,
             mtpCandidateId,
-            traceId
+            unlinkMtpId
         });
         
         return reply.code(result.statusCode).send({
