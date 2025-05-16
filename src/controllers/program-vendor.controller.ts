@@ -1312,8 +1312,8 @@ export async function advanceFilter(
             page: string;
             limit: string;
         };
-
-        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status ? false : null;
+        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status === 'Non-Compliant' ? false : null;
+        const hasComplianceStatus = finalComplianceStatus !== null;
         const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
         const hasPage = !!page;
@@ -1337,7 +1337,8 @@ export async function advanceFilter(
             hasStatus,
             hasEmail,
             hasFullName,
-            finalComplianceStatus !== null,
+            hasComplianceStatus,
+            finalComplianceStatus,
             hasAudited,
             hierarchyIdsArray,
             laborCategoryIdsArray,
@@ -1352,7 +1353,7 @@ export async function advanceFilter(
             status: status ?? null,
             contact_email: contact_email ? `${contact_email}%` : null,
             full_name: full_name ? `${full_name.trim()}%` : null,
-            compliance_status: finalComplianceStatus,
+            compliance_status: hasComplianceStatus,
             is_audited: is_audited ?? null,
             limit: limitNumber,
             offset: offset,
