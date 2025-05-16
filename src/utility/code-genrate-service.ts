@@ -31,68 +31,77 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
         attributes: ['value']
     });
 
-    if (!programConfig) {
-        return '--';
-    }
-    const uniqueId = programConfig.value?.value;
+    if (!programConfig) return '--';
+    const uniqueIdFormat = programConfig.value?.value;
 
     const firstName = user?.first_name ?? '';
     const lastName = user?.last_name ?? '';
 
-    const getFirstNDigits = (value: string, n: number) =>
-        value ? value.slice(0, n) : '';
-    const stateNationalId = getFirstNDigits(user?.state_national_id?.toString() ?? '', 3);
-    const ssnId = getFirstNDigits(user?.ssn_id?.toString() ?? '', 4);
+    // Get first N characters and uppercase
+    const getSubstring = (str: string, length: number) =>
+        str?.substring(0, length)?.toUpperCase() || '';
 
-    const birthDate = user?.birth_date ? new Date(parseInt(user.birth_date, 10)) : null;
-    const formattedMonth = birthDate ? (birthDate.getMonth() + 1).toString().padStart(2, '0') : 'XX';
-    const formattedDay = birthDate ? birthDate.getDate().toString().padStart(2, '0') : 'XX';
-    const birthYear = birthDate ? birthDate.getFullYear().toString() : 'XXXX';
-    const getSubstring = (name: string, length: number) => name?.substring(0, length)?.toUpperCase();
+    // Parse and format birthdate
+    const birthDate = user?.birth_date
+        ? new Date(Number(user.birth_date))
+        : null;
 
-    console.log('Formatted Month:', formattedMonth, 'Formatted Day:', formattedDay);
+    const formattedMonth = birthDate
+        ? String(birthDate.getMonth() + 1).padStart(2, '0')
+        : 'XX';
 
-    switch (uniqueId) {
-        case 'FL-MM-DD': {
-            const firstLetter = getSubstring(firstName, 1);
-            const firstLetterLastName = getSubstring(lastName, 1);
-            return `${firstLetter}${firstLetterLastName}${formattedMonth}${formattedDay}`;
-        }
-        case 'FF-MM-DD': {
-            const firstTwoLetters = getSubstring(firstName, 2);
-            return `${firstTwoLetters}${formattedMonth}${formattedDay}`;
-        }
-        case 'LL-MM-DD': {
-            const firstTwoLettersLastName = getSubstring(lastName, 2);
-            return `${firstTwoLettersLastName}${formattedMonth}${formattedDay}`;
-        }
-        case 'FF-MM-DD-XXX': {
-            const firstTwoLetters = getSubstring(firstName, 2);
-            return `${firstTwoLetters}${formattedMonth}${formattedDay}${stateNationalId}`;
-        }
-        case 'FF-MM-DD-XXXX': {
-            const firstTwoLetters = getSubstring(firstName, 2);
-            return `${firstTwoLetters}${formattedMonth}${formattedDay}${ssnId}`;
-        }
-        case 'LL-MM-DD-XXXX': {
-            const firstTwoLettersLastName = getSubstring(lastName, 2);
-            return `${firstTwoLettersLastName}${formattedMonth}${formattedDay}${ssnId}`;
-        }
-        case 'LL-MM-DD-XXX': {
-            const firstTwoLettersLastName = getSubstring(lastName, 2);
-            return `${firstTwoLettersLastName}${formattedMonth}${formattedDay}${stateNationalId}`;
-        }
-        case 'FF-DD-MM': {
-            const firstTwoLetters = getSubstring(firstName, 2);
-            return `${firstTwoLetters}${formattedDay}${formattedMonth}`;
-        }
-        case 'FFF-LLL-MM-DD': {
-            const firstThreeLetters = getSubstring(firstName, 3);
-            const firstThreeLettersLastName = getSubstring(lastName, 3);
-            return `${firstThreeLetters}${firstThreeLettersLastName}${formattedMonth}${formattedDay}`;
-        }
-        default: {
+    const formattedDay = birthDate
+        ? String(birthDate.getDate()).padStart(2, '0')
+        : 'XX';
+
+    // Check if required fields exist
+    if ((uniqueIdFormat === 'FF-MM-DD-XXX' || uniqueIdFormat === 'LL-MM-DD-XXX') && !user?.state_national_id) {
+        throw new Error('State/National ID is required for this format.');
+    }
+
+    if ((uniqueIdFormat === 'FF-MM-DD-XXXX' || uniqueIdFormat === 'LL-MM-DD-XXXX') && !user?.ssn_id) {
+        throw new Error('SSN ID is required for this format.');
+    }
+
+    // Extract last N digits
+    const getLastNDigits = (value: string | number, n: number) => {
+        const str = value?.toString() || '';
+        return str.length > n ? str.slice(-n) : str.padStart(n, '0');
+    };
+
+    const stateNationalId = getLastNDigits(user?.state_national_id, 3);
+    const ssnId = getLastNDigits(user?.ssn_id, 4);
+
+    // Format combinations
+    switch (uniqueIdFormat) {
+        case 'FF-DD-MM':
+            return `${getSubstring(firstName, 2)}${formattedDay}${formattedMonth}`;
+
+        case 'FF-MM-DD':
+            return `${getSubstring(firstName, 2)}${formattedMonth}${formattedDay}`;
+
+        case 'FF-MM-DD-XXX':
+            return `${getSubstring(firstName, 2)}${formattedMonth}${formattedDay}${stateNationalId}`;
+
+        case 'FF-MM-DD-XXXX':
+            return `${getSubstring(firstName, 2)}${formattedMonth}${formattedDay}${ssnId}`;
+
+        case 'FFF-LLL-MM-DD':
+            return `${getSubstring(firstName, 3)}${getSubstring(lastName, 3)}${formattedMonth}${formattedDay}`;
+
+        case 'FL-MM-DD':
+            return `${getSubstring(firstName, 1)}${getSubstring(lastName, 1)}${formattedMonth}${formattedDay}`;
+
+        case 'LL-MM-DD':
+            return `${getSubstring(lastName, 2)}${formattedMonth}${formattedDay}`;
+
+        case 'LL-MM-DD-XXX':
+            return `${getSubstring(lastName, 2)}${formattedMonth}${formattedDay}${stateNationalId}`;
+
+        case 'LL-MM-DD-XXXX':
+            return `${getSubstring(lastName, 2)}${formattedMonth}${formattedDay}${ssnId}`;
+
+        default:
             return '--';
-        }
     }
 };
