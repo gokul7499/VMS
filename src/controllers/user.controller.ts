@@ -298,7 +298,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
           tenant_id: user.tenant_id
         },
       });
-      const vendor_id = vendor?.id || null;
+      let vendor_id = vendor?.id || null;
 
       const existingCandidate = await candidateModel.findOne({
         where: {
@@ -333,6 +333,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }, { transaction });
 
       candidateId = candidateData.id
+      vendor_id=user.tenant_id
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId);
 
     } else if (userType === "vendor") {
