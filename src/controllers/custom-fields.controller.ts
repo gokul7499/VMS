@@ -910,7 +910,13 @@ export const advanceFilterCustomFiled = async (request: FastifyRequest, reply: F
   if (body.name) whereClause.name = { [Op.like]: `%${body.name}%` };
   if (body.module_name) whereClause.module_id = { [Op.like]: `%${body.module_name}%` };
   if (body.label) whereClause.label = { [Op.like]: `%${body.label}%` };
-  if (body.field_type) whereClause.field_type = { [Op.like]: `%${body.field_type}%` };
+  if (body.field_type) {
+    if (Array.isArray(body.field_type)) {
+      whereClause.field_type = { [Op.in]: body.field_type };
+    } else {
+      whereClause.field_type = { [Op.like]: `%${body.field_type}%` };
+    }
+  }
   if (body.is_required !== undefined) whereClause.is_required = body.is_required;
   if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
     const [startDate, endDate] = body.updated_on.map(date => new Date(date).getTime());

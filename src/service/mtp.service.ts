@@ -5,7 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
-import { where } from "sequelize";
+import DisebleMtp from "../models/disable_mtp.model";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -350,13 +350,121 @@ class MtpService {
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+        console.log("mtpData", mtpData);
+      
+        if (!mtpData) {
+          return {
+            message: "No matching records found.",
+            data: []
+          };
+        }
+      
+        const uniqueMtpCandidates = Array.isArray(mtpData.mtp_candidates)
+          ? Object.values(
+              mtpData.mtp_candidates.reduce((acc: { [x: string]: any; }, candidate: { mtp_id: string | number; }) => {
+                acc[candidate.mtp_id] = candidate;
+                return acc;
+              }, {} as Record<string, typeof mtpData.mtp_candidates[0]>)
+            )
+          : [];
+      
+        const resultData = {
+          ...mtpData,
+          mtp_candidates: uniqueMtpCandidates
+        };
+      
+        return {
+          message: "Linked profile data retrieved successfully.",
+          data: resultData
+        };
+      }
+      
+      async disableMtp({
+        mtpId,  
+        programId,
+        candidateId,
+        traceId,
+      }: {
+        mtpId: string[];
+        programId: string;
+        candidateId: string;
+        traceId: string;
+      }) {
+        
+        const disableRecords = await DisebleMtp.bulkCreate(
+            mtpId.map((id) => ({
+              mtp_id: id,
+              program_id: programId,
+              candidate_id: candidateId,
+            }))
+        );
 
         return {
-            message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
+          statusCode: 200,
+          message: "selected MTPs disabled successfully.",
+          trace_id: traceId,
+          data: disableRecords,
         };
+      }
+      
+    async masterProfile({
+        programId,
+        id,
+        mtpCandidateId,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        traceId: string;
+    }) {
+        let transaction;
+    
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId, is_deleted: false }
+            });
+    
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+    
+            transaction = await sequelize.transaction();
+    
+           await MtpModel.update(
+                {
+                    mtp_candidate_id: mtpCandidateId,
+                    is_master_profile: true
+                },
+                {
+                    where: {
+                        id,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await transaction.commit();
+    
+            return {
+                statusCode: 200,
+                message: "Master profile created successfully! ",
+                traceId
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
     }
-
+    
+    
     private logEvent({
         request,
         traceId,
@@ -395,5 +503,7 @@ class MtpService {
         }, MtpModel);
     }
 }
+
+
 
 export default MtpService;

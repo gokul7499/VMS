@@ -1159,12 +1159,8 @@ async function calculateMinMaxRates(rateCardDecisionRecords: RateCardDecisionRec
     );
 
     if (matchingDecisionRecords.length === 0) {
-        const STrateType = await rateType.findOne({
-            where: { program_id: program_id, abbreviation: 'ST', is_base_rate: true },
-            attributes: ['id'],
-        })
         matchingDecisionRecords = rateCardDecisionRecords.filter((record: any) =>
-            record.hierarchy_id === null || STrateType?.id === record.rate_type_id
+            record.hierarchy_id === null
         );
     }
 
