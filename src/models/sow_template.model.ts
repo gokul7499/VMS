@@ -13,6 +13,8 @@ class SowTemplateModel extends Model {
     masterData: any;
     code: any;
     program_id: any;
+    entity_id: string | undefined;
+    revision: number | undefined;
 }
 
 SowTemplateModel.init(
@@ -22,6 +24,10 @@ SowTemplateModel.init(
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
             // autoIncrement: true
+        },
+         entity_id: {
+              type: DataTypes.UUID,
+              allowNull: true,
         },
         program_id: {
             type: DataTypes.UUID,
@@ -43,6 +49,14 @@ SowTemplateModel.init(
         template_title: {
             type: DataTypes.STRING,
             allowNull: false,
+        },
+        revision: {
+              type: DataTypes.INTEGER,
+              defaultValue: 1,
+            },
+         latest: {
+              type: DataTypes.BOOLEAN,
+              allowNull: false
         },
         description: {
             type: DataTypes.STRING,

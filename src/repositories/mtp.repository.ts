@@ -125,6 +125,7 @@ async getAllMtpData(
     m.updated_on,
     m.mtp_id,
     m.mtp_candidate_id,
+    m.is_master_profile,
 JSON_ARRAYAGG(JSON_OBJECT(
           'mtp_candidate_id', c.id,
           'program_id', c.program_id,
@@ -274,6 +275,9 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
 
   return result;
 }
+
+
+ 
 
   }
 

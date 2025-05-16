@@ -80,7 +80,7 @@ export async function getProgramVendors(
             hierarchy_ids,
             page: pageStr = "1",
             limit: limitStr = "10"
-        } = request.query as programVendorQueryInterface & { page?: string; limit?: string;hierarchy_ids?:any };
+        } = request.query as programVendorQueryInterface & { page?: string; limit?: string; hierarchy_ids?: any };
 
         const page = parseInt(pageStr, 10) || 1;
         const limit = parseInt(limitStr, 10) || 10;
@@ -113,8 +113,8 @@ export async function getProgramVendors(
                 ];
             }
         }
-        
-          
+
+
         if (user_id !== undefined) {
             const userRecord = await UserModel.findOne({ where: { user_id: user_id } });
             if (!userRecord) {
@@ -956,18 +956,17 @@ export const getVendorDocuments = async (
             });
         }
 
-        const uniqueDocuments = documents.filter((doc, index, self) =>
-            index === self.findIndex((d) => d.id === doc.id)
-        );
-        const totalCount = uniqueDocuments.length;
-
-        if (!totalCount) {
+        const totalCount = documents.length > 0 ? documents[0].total_count : 0;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        if (!documents) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
                 trace_id: traceId,
                 total_count: totalCount,
-                page_size: pageSize,
+                page: pageNumber,
+                limit: pageSize,
+                total_pages: totalPages,
                 uploaded_documents: [],
             });
         }
@@ -977,8 +976,10 @@ export const getVendorDocuments = async (
             message: 'Vendor documents fetched successfully.',
             trace_id: traceId,
             total_count: totalCount,
-            page_size: pageSize,
-            uploaded_documents: uniqueDocuments.map(doc => ({
+            page: pageNumber,
+            limit: pageSize,
+            total_pages: totalPages,
+            uploaded_documents: documents.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
                 name: doc.name,
@@ -1312,6 +1313,7 @@ export async function advanceFilter(
             limit: string;
         };
 
+        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status ? false : null;
         const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
         const hasPage = !!page;
@@ -1319,7 +1321,6 @@ export async function advanceFilter(
         const hasStatus = !!status;
         const hasEmail = !!contact_email;
         const hasFullName = !!full_name;
-        const hasComplianceStatus = !!compliance_status;
         const hasAudited = !!is_audited;
         const hierarchyIdsArray = hierarchy_ids || [];
         const laborCategoryIdsArray = labor_category_id || [];
@@ -1336,7 +1337,7 @@ export async function advanceFilter(
             hasStatus,
             hasEmail,
             hasFullName,
-            hasComplianceStatus,
+            finalComplianceStatus !== null,
             hasAudited,
             hierarchyIdsArray,
             laborCategoryIdsArray,
@@ -1346,12 +1347,12 @@ export async function advanceFilter(
 
         const replacements: Record<string, any> = {
             program_id,
-            display_name: display_name ? `${display_name}%` : null,
+            display_name: display_name ? `%${display_name}%` : null,
             country_id: country_id ?? null,
             status: status ?? null,
             contact_email: contact_email ? `${contact_email}%` : null,
             full_name: full_name ? `${full_name.trim()}%` : null,
-            compliance_status: compliance_status ?? null,
+            compliance_status: finalComplianceStatus,
             is_audited: is_audited ?? null,
             limit: limitNumber,
             offset: offset,
@@ -1376,13 +1377,25 @@ export async function advanceFilter(
         });
         const totalRecords = data[0]?.total_count ? data[0].total_count : 0;;
 
+        const transformedData = data.map((vendor: any) => {
+            const isCompliant = !!vendor.compliance_status;
+            return {
+                ...vendor,
+                compliance_status: {
+                    status: isCompliant ? 'Compliant' : 'Non-Compliant',
+                    is_audited: isCompliant,
+                    is_compliant: isCompliant,
+                },
+            };
+        });
+
         if (data.length > 0) {
             return reply.status(201).send({
                 status_code: 201,
                 message: 'Program vendors fetched successfully.',
                 trace_id: traceId,
                 total_records: totalRecords,
-                program_vendors: data,
+                program_vendors: transformedData,
                 pagination: {
                     page: pageNumber,
                     limit: limitNumber,
@@ -1404,6 +1417,7 @@ export async function advanceFilter(
             });
         }
     } catch (error: any) {
+        console.log(error);
         return reply.status(500).send({
             status_code: 500,
             message: "Internal Server Error",
