@@ -16,7 +16,6 @@ class JobTemplateModel extends Model {
     is_automatic_distribute_submit: any;
     labour_category: any;
     is_tiered_distribute_schedule: any;
-
 }
 
 JobTemplateModel.init(
@@ -230,6 +229,10 @@ JobTemplateModel.init(
         },
         submit_type: {
             type: DataTypes.STRING
+        },
+        distribution_schedule: {
+            type: DataTypes.UUID,
+            allowNull: true
         },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,

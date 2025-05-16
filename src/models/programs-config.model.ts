@@ -7,6 +7,7 @@ import { convertEmptyStringsToNull } from "../hooks/convertEmptyStringsToNull";
 class ProgramsConfig extends Model {
   id: any;
   configuration_id: any;
+  value: any;
 }
 
 ProgramsConfig.init(

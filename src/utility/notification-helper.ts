@@ -223,6 +223,7 @@ interface WorkflowDetails {
     candidate_id?: string;
     events?: string;
     workflow_trigger_id?: string;
+    code?:string
 }
 
 export async function getWorkflowDetails(
@@ -240,6 +241,7 @@ export async function getWorkflowDetails(
                 c.last_name, 
                 c.email, 
                 w.unique_key,
+                w.code,
                 w.candidate_id,
                 w.events,
                 w.workflow_trigger_id

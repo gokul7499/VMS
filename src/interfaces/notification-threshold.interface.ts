@@ -13,6 +13,7 @@ export interface ConfigItem {
 }
 
 export interface ProgramThresholdInput {
+    map: any;
     program_id: string;
     module: string;
     config: ConfigItem[];

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import vendorDistributionScheduleModel from "../models/vendor-distribution-schedule.model";
-import { updateVendorDistributionScheduleDetail, VendorDistributionSchedule } from "../interfaces/vendor-distribution-schedule.interface"
+import { UpdateVendorDistributionScheduleDetail, VendorDistributionSchedule } from "../interfaces/vendor-distribution-schedule.interface"
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import DistScheduleDetail from "../models/dist-schedule-detail.model";
@@ -17,6 +17,7 @@ export const createVendorDistributionSchedule = async (
 ) => {
     const { program_id } = request.params as { program_id: string };
     const vendorDistributionScheduleData = request.body as VendorDistributionSchedule;
+    const transaction = await sequelize.transaction();
 
     const authHeader = request.headers.authorization;
 
@@ -59,10 +60,12 @@ export const createVendorDistributionSchedule = async (
             where: {
                 name: scheduleData.name,
                 program_id: program_id,
-            },
+            }, transaction
+
         });
 
         if (existingSchedule) {
+            await transaction.rollback();
             return reply.status(409).send({
                 status_code: 409,
                 message: 'A vendor distribution schedule with this name already exists in the program.',
@@ -75,7 +78,7 @@ export const createVendorDistributionSchedule = async (
             program_id,
             created_by: userId,
             updated_by: userId,
-        });
+        }, { transaction });
 
         if (Array.isArray(schedules)) {
             const schedulePromises = schedules.map((schedule) => {
@@ -83,13 +86,16 @@ export const createVendorDistributionSchedule = async (
                     duration: schedule.duration,
                     measure_unit: schedule.measure_unit,
                     vendors: schedule.vendors || [],
-                    vendor_distrubution_id: newVendorSchedule.id,
+                    distribution_id: newVendorSchedule.id,
+                    condition: schedule.condition,
+                    vendor_group_ids: schedule.vendor_group_ids,
+                    created_by: userId,
+                    updated_by: userId
                 });
-            });
+            }, { transaction });
 
             await Promise.all(schedulePromises);
         }
-
         logger(
             {
                 trace_id: traceId,
@@ -109,6 +115,7 @@ export const createVendorDistributionSchedule = async (
             },
             vendorDistributionScheduleModel
         );
+        await transaction.commit();
 
         reply.status(201).send({
             status_code: 201,
@@ -136,6 +143,8 @@ export const createVendorDistributionSchedule = async (
             },
             vendorDistributionScheduleModel
         );
+        await transaction.rollback();
+        console.log(error);
 
         reply.status(500).send({
             status_code: 500,
@@ -153,7 +162,7 @@ export async function getAllvendorDistributionSchedules(request: FastifyRequest,
 }
 
 export const getVendorDistributionScheduleById = async (
-    request: FastifyRequest,reply: FastifyReply
+    request: FastifyRequest, reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
     try {
@@ -174,8 +183,8 @@ export const getVendorDistributionScheduleById = async (
         }
 
         const distScheduleDetails = await DistScheduleDetail.findAll({
-            where: { vendor_distrubution_id: id },
-            attributes: ['id', 'duration', 'measure_unit', 'vendors'],
+            where: { distribution_id: id },
+            attributes: ['id', 'duration', 'measure_unit', 'vendors', 'condition'],
         });
 
         const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
@@ -205,6 +214,7 @@ export const getVendorDistributionScheduleById = async (
                 duration: detail.duration,
                 measure_unit: detail.measure_unit,
                 vendors: detail.vendors || [],
+                condition: detail.condition || [],
             })),
         };
 
@@ -243,8 +253,9 @@ export const deleteVendorDistributionSchedule = async (
                 is_deleted: true,
                 is_enabled: false,
                 updated_on: Date.now(),
+                updated_by: userId
             },
-            { where: { id, program_id, is_deleted: false, updated_by: userId } }
+            { where: { id, program_id, is_deleted: false } }
         );
         const [distSchedule] = await DistScheduleDetail.update(
             {
@@ -253,7 +264,7 @@ export const deleteVendorDistributionSchedule = async (
                 updated_on: Date.now(),
                 updated_by: userId
             },
-            { where: { vendor_distrubution_id: id, is_deleted: false } }
+            { where: { distribution_id: id, is_deleted: false } }
         );
 
         if (vendorSchedule > 0 && distSchedule > 0) {
@@ -276,7 +287,7 @@ export const deleteVendorDistributionSchedule = async (
             status_code: 500,
             message: "Internal Server Error.",
             trace_id: traceId,
-            error,
+            error: error,
         });
     }
 };
@@ -286,6 +297,8 @@ export const updateVendorDistributionSchedule = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+    const transaction = await sequelize.transaction();
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -297,14 +310,16 @@ export const updateVendorDistributionSchedule = async (
     }
     const userId = user?.sub;
     try {
-    const { program_id, id } = request.params as { program_id: string; id: string };
-        const updateData = request.body as updateVendorDistributionScheduleDetail;
+        const { program_id, id } = request.params as { program_id: string; id: string };
+        const updateData = request.body as UpdateVendorDistributionScheduleDetail;
 
         const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
             where: { program_id, id, is_deleted: false },
+            transaction,
         });
 
         if (!vendorDistributionSchedule) {
+            await transaction.rollback();
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
@@ -320,9 +335,11 @@ export const updateVendorDistributionSchedule = async (
                     name: updateData.name,
                     is_deleted: false,
                 },
+                transaction
             });
 
             if (existingSchedule) {
+                await transaction.rollback();
                 return reply.status(409).send({
                     status_code: 409,
                     message: 'A vendor distribution schedule with this name already exists.',
@@ -336,48 +353,30 @@ export const updateVendorDistributionSchedule = async (
             ...(updateData.description && { description: updateData.description }),
             ...(updateData.is_enabled !== undefined && { is_enabled: updateData.is_enabled }),
             updated_by: userId
-        });
+        }, { transaction });
 
         if (updateData.schedules && Array.isArray(updateData.schedules)) {
-            const existingSchedules = await DistScheduleDetail.findAll({
-                where: { vendor_distrubution_id: id },
+
+            await DistScheduleDetail.destroy({
+                where: { distribution_id: id },
+                transaction
             });
 
-            const incomingScheduleIds = updateData.schedules
-                .filter((schedule) => schedule.id && schedule.id !== "null")
-                .map((schedule) => schedule.id);
-
-            const schedulesToDelete = existingSchedules.filter(
-                (existingSchedule) => !incomingScheduleIds.includes(existingSchedule.id)
-            );
-
-            for (const scheduleToDelete of schedulesToDelete) {
-                await DistScheduleDetail.destroy({
-                    where: { id: scheduleToDelete.id },
-                });
-            }
-
             for (const schedule of updateData.schedules) {
-                if (schedule.id && schedule.id !== "null") {
-                    await DistScheduleDetail.update(
-                        {
-                            ...(schedule.duration !== undefined && { duration: schedule.duration }),
-                            ...(schedule.measure_unit !== undefined && { measure_unit: schedule.measure_unit }),
-                            ...(schedule.vendors !== undefined && { vendors: schedule.vendors }),
-                        },
-                        {
-                            where: { id: schedule.id, vendor_distrubution_id: id, updated_by: userId },
-                        }
-                    );
-                } else {
-                    const { id, ...scheduleData } = schedule;
-                    await DistScheduleDetail.create({
-                        ...scheduleData,
-                        vendor_distrubution_id: vendorDistributionSchedule.id,
-                    });
-                }
+                await DistScheduleDetail.upsert({
+                    id: schedule.id,
+                    distribution_id: vendorDistributionSchedule.id,
+                    duration: schedule.duration,
+                    measure_unit: schedule.measure_unit,
+                    vendors: schedule.vendors,
+                    vendor_group_ids: schedule.vendor_group_ids,
+                    condition: schedule.condition,
+                    created_by: userId,
+                    updated_by: userId
+                }, { transaction });
             }
         }
+        await transaction.commit();
 
         reply.status(200).send({
             status_code: 200,
@@ -385,17 +384,16 @@ export const updateVendorDistributionSchedule = async (
             trace_id: traceId,
         });
     } catch (error) {
+        await transaction.rollback();
         console.error(error);
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error
         });
     }
 };
-
-
-
 
 export const getVendorDistributionScheduleByIds = async (
     request: FastifyRequest,
@@ -449,7 +447,7 @@ export const getVendorDistributionScheduleByIds = async (
         // Step 4: Fetch distribution schedule details
         const distScheduleDetails = await DistScheduleDetail.findAll({
             where: {
-                vendor_distrubution_id: id,
+                distrubution_id: id,
             },
             attributes: ['id', 'duration', 'measure_unit', 'vendors'],
         });
@@ -573,9 +571,26 @@ export async function vendorDistributionScheduleFilter(
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { id, name, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; is_enabled: string; updated_on: string[]; page: string; limit: string };
+        const {
+            id,
+            name,
+            is_enabled,
+            updated_on,
+            page,
+            limit,
+            description,
+        } = request.body as {
+            id: string;
+            name: string;
+            is_enabled: string;
+            updated_on: string[];
+            page: string;
+            limit: string;
+            description: string;
+        };
 
-        const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
+        const isEnabledFilter =
+            typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
 
         const pageNumber = parseInt(page ?? '1', 10);
         const limitNumber = parseInt(limit ?? '10', 10);
@@ -583,38 +598,54 @@ export async function vendorDistributionScheduleFilter(
 
         const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
 
-        const query = vendorDistributionScheduleFilterQuery(
+        const { dataQuery, countQuery } = vendorDistributionScheduleFilterQuery(
             Boolean(id),
             Boolean(name),
             isEnabledFilter !== undefined,
-            hasUpdatedOnFilter
+            hasUpdatedOnFilter,
+            Boolean(description)
         );
 
         const replacements: Record<string, any> = {
             program_id,
             id,
             name: name ? `%${name}%` : undefined,
+            description: description ? `%${description}%` : undefined,
             limit: limitNumber,
             offset,
             is_enabled: isEnabledFilter,
             updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
             updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
         };
-        const data = await sequelize.query<{ total_count: any }>(query, {
+
+        const data = await sequelize.query<any>(dataQuery, {
             replacements,
             type: QueryTypes.SELECT,
         });
 
-        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+        const totalRecords = await sequelize.query<{ total_count: number }>(countQuery, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        const totalRecordsCount = totalRecords[0]?.total_count || 0;
+        const totalPages = Math.ceil(totalRecordsCount / limitNumber);
 
         return reply.status(200).send({
             status_code: 200,
-            trace_id: traceId,
-            message: data.length > 0 ? 'Vendor distribution schedules fetched successfully.' : 'No records found.',
-            total_records: totalRecords,
-            page: pageNumber,
-            limit: limitNumber,
-            items: data,
+            message: 'Vendor Distribution Schedule fetched successfully.',
+            total_records: totalRecordsCount,
+            current_page: pageNumber,
+            page_size: limitNumber,
+            total_pages: totalPages,
+            items: data.map((item) => ({
+                program_id: item.program_id,
+                id: item.id,
+                name: item.name,
+                is_enabled: item.is_enabled,
+                description: item.description,
+                updated_on: item.updated_on,
+            })),
         });
     } catch (error: any) {
         return reply.status(500).send({

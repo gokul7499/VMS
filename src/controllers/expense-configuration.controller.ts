@@ -166,6 +166,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
         const { program_id } = request.params as { program_id: string };
         const user = request.user as { sub: string; preferred_username: string };
         const expenseConfig = request.body as ExpenseConfigurationAttributes;
+        const entityId = generateCustomUUID();
 
         if (!expenseConfig.hierarchy_ids || !Array.isArray(expenseConfig.hierarchy_ids) || expenseConfig.hierarchy_ids.length === 0) {
             return reply.status(400).send({
@@ -199,8 +200,22 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 program_id,
                 is_deleted: false,
                 latest: true,
+                [Op.or]: expenseConfig.hierarchy_ids.map((id: any) =>
+                    Sequelize.where(
+                    Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                    true
+                    )
+                ),
             },
         });
+
+        if (existingConfigs.length > 0) {
+            return reply.status(409).send({
+            status_code: 409,
+            message: 'An expense configuration with the same hierarchy IDs already exists',
+            trace_id: traceId,
+            });
+        }
 
         for (const config of existingConfigs) {
             const configHierarchyIds = config.hierarchy_ids ?? [];
@@ -227,6 +242,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
 
         const expenseConfigData = await ExpenseConfigurationModel.create({
             ...expenseConfig,
+            entity_id: entityId,
             program_id,
             slug,
             created_by: user.sub,
@@ -283,6 +299,71 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
                 message: "Expense configuration not found.",
             });
         }
+        const newHierarchyIds = updatedData.hierarchy_ids ?? [];
+        const hierarchyConditions = newHierarchyIds.map((id: any) =>
+            Sequelize.where(
+                Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                true
+            )
+        );
+
+        const potentialConflicts = await ExpenseConfigurationModel.findAll({
+            where: {
+                program_id,
+                is_deleted: false,
+                latest: true,
+                id: { [Op.ne]: id },
+                [Op.and]: hierarchyConditions,
+            },
+            transaction,
+        });
+
+        const matchingConflict = potentialConflicts.find((conflict: any) => {
+            const conflictHierarchyIds = conflict.hierarchy_ids ?? [];
+            return (
+                conflictHierarchyIds.length === newHierarchyIds.length &&
+                conflictHierarchyIds.every((id: any) => newHierarchyIds.includes(id))
+            );
+        });
+
+        if (matchingConflict) {
+            await transaction.commit();
+            return reply.status(200).send({
+                status_code: 200,
+                message: "Expense configuration updated successfully.",
+                trace_id: traceId,
+                data: matchingConflict,
+            });
+        }
+
+        const addedHierarchyIds = newHierarchyIds.filter(
+            (id: any) => !(existingConfig.hierarchy_ids ?? []).includes(id)
+        );
+
+        if (addedHierarchyIds.length > 0) {
+            const conflictingConfigs = await ExpenseConfigurationModel.findAll({
+                where: {
+                    program_id,
+                    latest: true,
+                    [Op.and]: addedHierarchyIds.map((hierarchyId: any) =>
+                        Sequelize.where(
+                            Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${hierarchyId}"]')`),
+                            true
+                        )
+                    ),
+                },
+                transaction,
+            });
+
+            if (conflictingConfigs.length > 0) {
+                await transaction.rollback();
+                return reply.status(409).send({
+                    status_code: 409,
+                    trace_id: traceId,
+                    message: "An expense configuration with the same hierarchy IDs already exists",
+                });
+            }
+        }
 
         await existingConfig.update({ latest: false, is_enabled: false }, { transaction });
         const oldRevision = Number(existingConfig.revision ?? 0);
@@ -292,7 +373,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
             {
                 ...existingConfig.toJSON(),
                 ...updatedData,
-                entity_id: existingConfig.id,
+                entity_id: existingConfig.entity_id,
                 revision: newRevision,
                 latest: true,
                 created_on: existingConfig.created_on,
@@ -520,6 +601,7 @@ export async function getExpenseConfigByExpenseType(request: FastifyRequest, rep
         const whereCondition: any = {
             program_id,
             is_deleted: false,
+            is_enabled: true,
             latest: true
         };
 

@@ -5,10 +5,11 @@ import { Programs } from "../models/programs.model"
 import picklist_item_model from '../models/picklist-item.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { sequelize } from '../config/instance';
-import { Op } from 'sequelize';
+import { Op, WhereOptions } from 'sequelize';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
+import picklistItemModel from '../models/picklist-item.model';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -46,6 +47,7 @@ export async function getPicklistById(
 
     let whereClause: any = {
       is_deleted: false,
+      program_id
     };
 
     // Filters
@@ -548,10 +550,9 @@ export const getPicklistAndPicklistItem = async (
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { program_id, picklist_id } = request.params as { program_id: string; picklist_id: string };
-
-  // Validate that the parameters are not undefined or null
-  if (!program_id || !picklist_id) {
+  const { program_id, id } = request.params as { program_id: string; id: string };
+  
+  if (!program_id || !id) {
     return reply.status(400).send({
       status_code: 400,
       message: "Program ID and Picklist ID are required",
@@ -562,6 +563,7 @@ export const getPicklistAndPicklistItem = async (
     const picklists = await picklist_model.findAll({
       where: {
         program_id,
+        id
       },
       attributes: {
         exclude: ["is_deleted", "created_on", "created_by", "updated_by"],
@@ -570,8 +572,8 @@ export const getPicklistAndPicklistItem = async (
         {
           model: picklist_item_model,
           as: "picklistItems",
-          where: { picklist_id, program_id, is_deleted: false },
-          required: true,
+          where: { picklist_id:id, program_id, is_deleted: false },
+          required: false,
           attributes: {
             exclude: [
               "is_deleted",
@@ -586,7 +588,6 @@ export const getPicklistAndPicklistItem = async (
     });
 
     if (picklists.length > 0) {
-      // Assuming you want to return the first picklist as an object
       const picklist = picklists[0];
       const response = {
         status_code: 200,
@@ -923,6 +924,7 @@ export async function getPicklistFilter(
 
     let whereClause: any = {
       is_deleted: false,
+      program_id: program_id,
       is_visible: true
     };
 
@@ -1041,3 +1043,225 @@ export async function getPicklistFilter(
     });
   }
 }
+
+
+export const clonePredefinedPicklistsForProgram = async (
+  programId: string,
+  userId: string,
+  transaction?: any
+) => {
+  
+  const requiredSlugs = [
+    "Worker Classification",
+    "Job Type",
+    "Worker Types",
+    "Worker Source Type"
+    ,
+  ];
+    
+  const predefinedPicklists = await picklist_model.findAll({
+    where: {
+      name: { [Op.in]: requiredSlugs },
+      program_id: { [Op.is]: null },
+      defined_by: "predefined",
+      is_deleted: false,
+    } as WhereOptions<any>, 
+    transaction,
+  });
+    console.log("predefinedPicklists",predefinedPicklists)
+  for (const picklist of predefinedPicklists) {
+    console.log("hhhhhhhhhhhhh")
+    try {
+      const newPicklist = await picklist_model.create(
+        {
+          name: picklist.name,
+          slug: picklist.slug || null,
+          description: picklist.description || null,
+          program_id: programId,
+          is_enabled: picklist.is_enabled,
+          is_visible: true,
+          is_deleted: false,
+          defined_by:picklist.defined_by,
+          created_by: userId,
+          updated_by: userId,
+          multiselect: picklist.multiselect || false,
+          disabled_program: picklist.disabled_program || null
+        },
+        { transaction }
+      );
+            
+      const picklistItems = await picklistItemModel.findAll({
+        where: {
+          picklist_id: picklist.id,
+          is_deleted: false
+        },
+        transaction
+      });
+            
+      if (picklist.name === "Worker Classification" && picklistItems.length > 0 ) {
+        const newItems = picklistItems.map((item) => ({
+          picklist_id: newPicklist.id,
+          label: item.label,
+          value: item.value,
+          slug: item.slug || null,
+          program_id: programId,
+          is_enabled: item.is_enabled,
+          is_deleted: false,
+          defined_by: item.defined_by,
+          disabled_program: item.disabled_program || null,
+          label_program: item.label_program || null,
+          meta_data: item.meta_data || null,
+          created_by: userId,
+          updated_by: userId,
+        }));
+      
+        await picklistItemModel.bulkCreate(newItems, { transaction });
+      }
+    } catch (error) {
+      console.error(`Error cloning picklist ${picklist.name}:`, error);
+      throw error; 
+    }
+  }
+  };
+
+  export async function getPicklists(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const traceId = generateCustomUUID();
+  
+    const { program_id } = request.params as { program_id: string };
+    const {
+      name,
+      picklist_id,
+      is_enabled,
+      defined_by,
+      updated_on,
+      slug,
+      picklist_items_count,
+      search,
+      page = 1,
+      limit,
+    } = request.query as {
+      name?: string;
+      picklist_id?: string;
+      is_enabled?: string;
+      defined_by?: string;
+      updated_on?: string;
+      picklist_items_count?: string;
+      slug?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    };
+  
+    try {
+      const pageNumber = parseInt(String(page), 10) || 1;
+      const limitNumber = limit !== undefined ? parseInt(String(limit), 10) : undefined;
+      const offset = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
+  
+      let whereClause: any = {
+        is_deleted: false,
+        program_id
+      };
+  
+      // Filters
+      if (name) whereClause.name = { [Op.like]: `%${name}%` };
+      if (slug) whereClause.slug = { [Op.like]: `%${slug}%` };
+      if (picklist_id)
+        whereClause.picklist_id = { [Op.like]: `%${picklist_id}%` };
+      if (is_enabled !== undefined)
+        whereClause.is_enabled = is_enabled === "true";
+      if (defined_by) whereClause.defined_by = defined_by;
+      if (Array.isArray(updated_on) && updated_on.length === 2) {
+        const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+        whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+      }
+  
+      whereClause[Op.or] = [
+        { defined_by: "predefined" },
+        { program_id: program_id },
+      ];
+  
+      if (search) {
+        const searchFields = [
+          "name",
+          "picklist_id",
+          "is_enabled",
+          "defined_by",
+          "updated_on",
+          "slug"
+        ];
+        const [searchField, searchValue] = search.includes(":")
+          ? search.split(":")
+          : ["", search];
+        if (searchField && searchFields.includes(searchField)) {
+          whereClause[searchField] = {
+            [Op.like]: `%${searchValue}%`,
+          };
+        } else {
+          whereClause[Op.or] = searchFields.map((field) => ({
+            [field]: { [Op.like]: `%${search}%` },
+          }));
+        }
+      }
+  
+      const picklists = await picklist_model.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: picklist_item_model,
+            as: "picklistItems",
+            where: { is_deleted: false },
+            required: false,
+          },
+        ],
+        order: [["updated_on", "DESC"]],
+        offset,
+        ...(limitNumber !== undefined && { offset, limit: limitNumber }),
+        distinct: true,
+      });
+  
+      let filteredPicklists = picklists.rows;
+      if (picklist_items_count) {
+        const countFilter = parseInt(picklist_items_count, 10);
+        filteredPicklists = filteredPicklists.filter(
+          (picklist) => picklist.picklistItems.length === countFilter
+        );
+      }
+  
+      const picklistsData = filteredPicklists.map((picklist: any) => ({
+        id: picklist.id,
+        name: picklist.name,
+        picklist_id: picklist.picklist_id,
+        description: picklist.description,
+        slug: picklist.slug,
+        is_enabled: picklist.is_enabled,
+        updated_on: picklist.updated_on,
+        disabled_program: picklist.disabled_program,
+        is_visible: picklist.is_visible,
+        program_id: picklist.program_id,
+        defined_by: picklist.defined_by,
+        picklist_items_count: picklist.picklistItems.length,
+      }));
+  
+      reply.status(200).send({
+        status_code: 200,
+        message: "Picklists retrieved successfully",
+        trace_id: traceId,
+        picklist_data: picklistsData,
+        total_records: picklist_items_count
+          ? picklistsData.length
+          : picklists.count,
+        page: pageNumber,
+        limit: limitNumber,
+      });
+    } catch (error) {
+      console.error("Error fetching picklists:", error);
+      reply.status(500).send({
+        status_code: 500,
+        message: "Internal Server Error. Unable to fetch picklists.",
+        trace_id: traceId,
+      });
+    }
+  }

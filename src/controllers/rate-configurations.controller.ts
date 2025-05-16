@@ -531,25 +531,33 @@ function parseBoolean(value: any): number | undefined {
     return undefined;
 }
 
-function parseDateRange(dateRange: string | undefined): { startDate?: string; endDate?: string } {
+function parseDateRange(dateRange: string | undefined): { startDate?: number; endDate?: number } {
     if (!dateRange) return {};
-    const dates = dateRange.split(",");
-    if (dates.length === 2) {
-        return {
-            startDate: dates[0],
-            endDate: dates[1],
-        };
-    }
-    if (dates.length === 1) {
-        const singleDate = dates[0];
-        return {
-            startDate: singleDate,
-            endDate: singleDate,
-        };
-    }
-    return {}; 
-}
 
+    const parseTimestamp = (ts: string, isStart: boolean): number | undefined => {
+        const num = Number(ts.trim());
+        if (isNaN(num)) return undefined;
+        const date = new Date(num);
+        date.setHours(isStart ? 0 : 23, isStart ? 0 : 59, isStart ? 0 : 59, isStart ? 0 : 999);
+        return date.getTime();
+    };
+
+    const dates = dateRange.split(",").filter(Boolean);
+
+    if (dates.length === 1) {
+        const ts = dates[0];
+        const startDate = parseTimestamp(ts, true);
+        const endDate = parseTimestamp(ts, false);
+        return startDate !== undefined && endDate !== undefined ? { startDate, endDate } : {};
+    }
+
+    if (dates.length === 2) {
+        const startDate = parseTimestamp(dates[0], true);
+        const endDate = parseTimestamp(dates[1], false);
+        return startDate !== undefined && endDate !== undefined ? { startDate, endDate } : {};
+    }
+    return {};
+}
 export async function getRateConfigurationById(
     request: FastifyRequest,
     reply: FastifyReply
@@ -684,7 +692,7 @@ export async function getRateConfigurationById(
                             rate_type_category: rateTypeCategory,
                         }
                         : null,
-                    seq_number: baseRate.get('seq_number'),
+                    seq_number: Number(baseRate.get('seq_number')),
                     rate: rateDetails,
                 };
             })
@@ -968,148 +976,156 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
             // Calculate min/max rates once per configuration
             const extractedHierarchyIds = hierarchiesForConfig.map(h => h.id);
-            const matchingDecisionRecord = calculateMinMaxRates(
-                rateCardDecisionRecords,
-                extractedHierarchyIds
-            );
 
             // Process base rates
-            const rateConfigurationDetails = baseRatesForConfig.map(baseRate => {
-                const rateTypeCategory = baseRate.rate_type?.rate_type_category
-                    ? rateTypeCategoriesMap[baseRate.rate_type.rate_type_category]
-                    : null;
+            const rateConfigurationDetails = await Promise.all(
+                baseRatesForConfig.map(async (baseRate) => {
 
-                const shiftType = baseRate.rate_type?.shift_type
-                    ? shiftTypesMap[baseRate.rate_type.shift_type]
-                    : null;
+                    const baseRateTypeId = baseRate.rate_type?.id;
 
-                // Get rates for this base rate
-                const ratesForBaseRate = rateTypesByBaseRateId[baseRate.id] || [];
+                    const matchingDecisionRecord = await calculateMinMaxRates(
+                        rateCardDecisionRecords,
+                        extractedHierarchyIds,
+                        baseRateTypeId,
+                        program_id
+                    );
 
-                // Process rates
-                const rateDetails = ratesForBaseRate.map(rate => {
-                    const rateTypeCategory = rate.rate_type?.rate_type_category
-                        ? rateTypeCategoriesMap[rate.rate_type.rate_type_category]
+                    const rateTypeCategory = baseRate.rate_type?.rate_type_category
+                        ? rateTypeCategoriesMap[baseRate.rate_type.rate_type_category]
                         : null;
 
-                    const shiftType = rate.rate_type?.shift_type
-                        ? shiftTypesMap[rate.rate_type.shift_type]
+                    const shiftType = baseRate.rate_type?.shift_type
+                        ? shiftTypesMap[baseRate.rate_type.shift_type]
                         : null;
 
-                    // Get differentials
-                    const billRates = (billRatesByRateId[rate.id] || []).map(billRate => {
-                        let differential_value
-                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
-                            differential_value = billRate.differential_value;
-                        }
-                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
-                            differential_value = billRate.differential_value;
-                        } else {
-                            differential_value = ot_exempt == "true" ? 1 : billRate.differential_value;
-                        }
+                    // Get rates for this base rate
+                    const ratesForBaseRate = rateTypesByBaseRateId[baseRate.id] || [];
+
+                    // Process rates
+                    const rateDetails = ratesForBaseRate.map(rate => {
+                        const rateTypeCategory = rate.rate_type?.rate_type_category
+                            ? rateTypeCategoriesMap[rate.rate_type.rate_type_category]
+                            : null;
+
+                        const shiftType = rate.rate_type?.shift_type
+                            ? shiftTypesMap[rate.rate_type.shift_type]
+                            : null;
+
+                        // Get differentials
+                        const billRates = (billRatesByRateId[rate.id] || []).map(billRate => {
+                            let differential_value
+                            if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                                differential_value = billRate.differential_value;
+                            }
+                            else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                                differential_value = billRate.differential_value;
+                            } else {
+                                differential_value = ot_exempt == "true" ? 1 : billRate.differential_value;
+                            }
+
+                            return {
+                                ...billRate.get(),
+                                differential_value,
+                                min_rate: formatWithAccuracy(
+                                    billRate.differential_type === "Factor Differential"
+                                        ? matchingDecisionRecord.min_rate.amount * differential_value
+                                        : matchingDecisionRecord.min_rate.amount + differential_value,
+                                    accuracyType.RATE
+                                ),
+                                max_rate: formatWithAccuracy(
+                                    billRate.differential_type === "Factor Differential"
+                                        ? matchingDecisionRecord.max_rate.amount * differential_value
+                                        : matchingDecisionRecord.max_rate.amount + differential_value,
+                                    accuracyType.RATE
+                                )
+                            };
+                        });
+
+                        const payRates = (payRatesByRateId[rate.id] || []).map(payRate => {
+                            let differential_value
+                            if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
+                                differential_value = payRate.differential_value;
+                            }
+                            else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
+                                differential_value = payRate.differential_value;
+                            } else {
+                                differential_value = ot_exempt == "true" ? 1 : payRate.differential_value;
+                            }
+
+                            return {
+                                ...payRate.get(),
+                                differential_value,
+                                min_rate: formatWithAccuracy(
+                                    payRate.differential_type === "Factor Differential"
+                                        ? matchingDecisionRecord.min_rate.amount * differential_value
+                                        : matchingDecisionRecord.min_rate.amount + differential_value,
+                                    accuracyType.RATE
+                                ),
+                                max_rate: formatWithAccuracy(
+                                    payRate.differential_type === "Factor Differential"
+                                        ? matchingDecisionRecord.max_rate.amount * differential_value
+                                        : matchingDecisionRecord.max_rate.amount + differential_value,
+                                    accuracyType.RATE
+                                )
+                            };
+                        });
 
                         return {
-                            ...billRate.get(),
-                            differential_value,
-                            min_rate: formatWithAccuracy(
-                                billRate.differential_type === "Factor Differential"
-                                    ? matchingDecisionRecord.min_rate.amount * differential_value
-                                    : matchingDecisionRecord.min_rate.amount + differential_value,
-                                accuracyType.RATE
-                            ),
-                            max_rate: formatWithAccuracy(
-                                billRate.differential_type === "Factor Differential"
-                                    ? matchingDecisionRecord.max_rate.amount * differential_value
-                                    : matchingDecisionRecord.max_rate.amount + differential_value,
-                                accuracyType.RATE
-                            )
+                            rate_type: {
+                                ...rate.rate_type?.get(),
+                                rate_type_category: rateTypeCategory,
+                                shift_type: shiftType,
+                            },
+                            seq_number: rate.seq_number,
+                            bill_rate: billRates,
+                            pay_rate: payRates
                         };
                     });
 
-                    const payRates = (payRatesByRateId[rate.id] || []).map(payRate => {
-                        let differential_value
-                        if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
-                            differential_value = payRate.differential_value;
-                        }
-                        else if (ot_exempt == "true" && rateTypeCategory?.value === "shift") {
-                            differential_value = payRate.differential_value;
-                        } else {
-                            differential_value = ot_exempt == "true" ? 1 : payRate.differential_value;
-                        }
+                    // Filter rate details once
+                    const filteredRateType = rateDetails.filter(rate =>
+                        rate.rate_type?.rate_type_category?.value !== 'shift' &&
+                        rate.bill_rate.some(billRate => billRate.differential_on === rateTypeCategory?.value)
+                    );
 
-                        return {
-                            ...payRate.get(),
-                            differential_value,
-                            min_rate: formatWithAccuracy(
-                                payRate.differential_type === "Factor Differential"
-                                    ? matchingDecisionRecord.min_rate.amount * differential_value
-                                    : matchingDecisionRecord.min_rate.amount + differential_value,
-                                accuracyType.RATE
-                            ),
-                            max_rate: formatWithAccuracy(
-                                payRate.differential_type === "Factor Differential"
-                                    ? matchingDecisionRecord.max_rate.amount * differential_value
-                                    : matchingDecisionRecord.max_rate.amount + differential_value,
-                                accuracyType.RATE
-                            )
-                        };
-                    });
+                    const filteredRate = rateDetails
+                        .filter(rate =>
+                            rate.rate_type?.is_base_rate === false &&
+                            rate.rate_type?.rate_type_category?.value === 'shift'
+                        )
+                        .map(rate => ({
+                            ...rate,
+                            rates: filteredRateType
+                                .filter(filteredRate =>
+                                    filteredRate.bill_rate[0]?.differential_on === 'shift' &&
+                                    filteredRate.pay_rate[0]?.differential_on === 'shift'
+                                )
+                        }));
 
                     return {
-                        rate_type: {
-                            ...rate.rate_type?.get(),
-                            rate_type_category: rateTypeCategory,
-                            shift_type: shiftType,
+                        base_rate: {
+                            rate_type: {
+                                ...baseRate.rate_type?.get(),
+                                shift_type: shiftType,
+                                rate_type_category: rateTypeCategory,
+                                min_rate: {
+                                    amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
+                                    is_changeable: matchingDecisionRecord.min_rate.is_changeable,
+                                    is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
+                                },
+                                max_rate: {
+                                    amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
+                                    is_changeable: matchingDecisionRecord.max_rate.is_changeable,
+                                    is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
+                                },
+                            },
+                            seq_number: baseRate.seq_number,
+                            rates: filteredRateType,
                         },
-                        seq_number: rate.seq_number,
-                        bill_rate: billRates,
-                        pay_rate: payRates
+                        rate: filteredRate
                     };
-                });
-
-                // Filter rate details once
-                const filteredRateType = rateDetails.filter(rate =>
-                    rate.rate_type?.rate_type_category?.value !== 'shift' &&
-                    rate.bill_rate.some(billRate => billRate.differential_on === rateTypeCategory?.value)
-                );
-
-                const filteredRate = rateDetails
-                    .filter(rate =>
-                        rate.rate_type?.is_base_rate === false &&
-                        rate.rate_type?.rate_type_category?.value === 'shift'
-                    )
-                    .map(rate => ({
-                        ...rate,
-                        rates: filteredRateType
-                            .filter(filteredRate =>
-                                filteredRate.bill_rate[0]?.differential_on === 'shift' &&
-                                filteredRate.pay_rate[0]?.differential_on === 'shift'
-                            )
-                    }));
-
-                return {
-                    base_rate: {
-                        rate_type: {
-                            ...baseRate.rate_type?.get(),
-                            shift_type: shiftType,
-                            rate_type_category: rateTypeCategory,
-                            min_rate: {
-                                amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
-                                is_changeable: matchingDecisionRecord.min_rate.is_changeable,
-                                is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
-                            },
-                            max_rate: {
-                                amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
-                                is_changeable: matchingDecisionRecord.max_rate.is_changeable,
-                                is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
-                            },
-                        },
-                        seq_number: baseRate.seq_number,
-                        rates: filteredRateType,
-                    },
-                    rate: filteredRate
-                };
-            });
+                })
+            );
 
             return {
                 name: rateConfiguration.name,
@@ -1137,16 +1153,13 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 }
 
 // Helper function to calculate min/max rates
-function calculateMinMaxRates(
-    rateCardDecisionRecords: RateCardDecisionRecord[],
-    hierarchyIds: string[]
-): MinMaxRate {
+async function calculateMinMaxRates(rateCardDecisionRecords: RateCardDecisionRecord[], hierarchyIds: string[], baseRateTypeId: any, program_id: string): Promise<MinMaxRate> {
     let matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
-        hierarchyIds.includes(record.hierarchy_id as string)
+        hierarchyIds.includes(record.hierarchy_id as string) && baseRateTypeId.includes(record.rate_type_id)
     );
 
     if (matchingDecisionRecords.length === 0) {
-        matchingDecisionRecords = rateCardDecisionRecords.filter(record =>
+        matchingDecisionRecords = rateCardDecisionRecords.filter((record: any) =>
             record.hierarchy_id === null
         );
     }
@@ -1236,9 +1249,11 @@ async function handleStandardBaseRateCase({
         throw new Error("Hierarchies not found.");
     }
 
-    const matchingDecisionRecord = calculateMinMaxRates(
+    const matchingDecisionRecord = await calculateMinMaxRates(
         rateCardDecisionRecords,
-        hierarchyIds
+        hierarchyIds,
+        standardBaseRate.map(rate => rate.id),
+        program_id
     );
 
     // Prefetch rate type categories and shift types

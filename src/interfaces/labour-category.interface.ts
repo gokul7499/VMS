@@ -1,6 +1,7 @@
 interface IndustriesInterface {
   id: string;
   name: string;
+   code: string;
   ref_id: string;
   program_id: string;
   is_enabled: boolean | string;

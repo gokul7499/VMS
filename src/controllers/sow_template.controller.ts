@@ -17,7 +17,7 @@ export async function createSowTemplate(
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-
+   const entityId = generateCustomUUID();
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
@@ -32,23 +32,26 @@ export async function createSowTemplate(
     try {
         const existingSowTemplate = await SowTemplateModel.findOne({
             where: {
+                latest: true,
                 program_id: program_id,
-                template_title: sowTemplate.template_title,  
+                template_title: sowTemplate.template_title,
                 is_deleted: false,
             }
         });
-        
+
         if (existingSowTemplate) {
             return reply.status(400).send({
                 status_code: 400,
                 trace_id: traceId,
                 message: "SOW Template Title already exists",
             });
-        }
-        
+        } 
+
         const item = await SowTemplateModel.create({
             ...sowTemplate,
+            entity_id: entityId,
             program_id,
+            latest: true, 
             created_by: userId,
             updated_by: userId,
         }, { transaction });
@@ -62,8 +65,8 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
-       
-        await transaction.commit(); 
+
+        await transaction.commit();
         reply.status(201).send({
             status_code: 201,
             trace_id: traceId,
@@ -71,7 +74,7 @@ export async function createSowTemplate(
             sowTemplate: item.id,
         });
     } catch (error: any) {
-        await transaction.rollback(); 
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
@@ -80,6 +83,7 @@ export async function createSowTemplate(
         });
     }
 }
+
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
 
@@ -107,7 +111,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         const limitNumber = parseInt(limit as unknown as string, 10);
         const offset = (pageNumber - 1) * limitNumber;
 
-        let whereClause = `t.program_id = :program_id AND t.is_deleted = false`;
+        let whereClause = `t.program_id = :program_id AND t.is_deleted = false AND t.latest = true`;
         const replacements: any = { program_id, limit: limitNumber, offset };
 
         if (type) {
@@ -127,7 +131,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         if (code) {
             whereClause += ` AND t.code LIKE :code`;
-            replacements.code = `%${code}%`;  
+            replacements.code = `%${code}%`;
         }
 
         if (hierarchy_id) {
@@ -146,11 +150,11 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                 const startTimestamp = isNaN(Number(startDate))
                     ? new Date(startDate).getTime()
                     : Number(startDate);
-        
+
                 const endTimestamp = isNaN(Number(endDate))
                     ? new Date(endDate).getTime()
                     : Number(endDate);
-        
+
                 if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
                     const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
                     whereClause += ` AND t.updated_on BETWEEN :updatedStartDate AND :updatedEndDate`;
@@ -160,10 +164,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                     console.warn('Invalid updated_on date format provided');
                 }
             }
-        
-        
         }
-      
+
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
             type: QueryTypes.SELECT,
@@ -174,7 +176,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             type: QueryTypes.SELECT,
         });
         const totalRecords = totalResult[0]?.total || 0;
-        
+
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
@@ -189,7 +191,13 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             hierarchy: template.hierarchy,
             picklist_items: template.picklist_items,
             created_on: template.created_on,
-            updated_on: template.updated_on
+            updated_on: template.updated_on,
+            is_sow_assignment: template.is_sow_assignment,
+            is_sow_expense: template.is_sow_assignment,
+            is_sow_milestones: template.is_sow_milestones,
+            is_sow_payment_req: template.is_sow_payment_req,
+            is_sow_schedule_payments: template.is_sow_schedule_payments,
+            is_sow_desc_mandatory: template.is_sow_desc_mandatory,
         }));
 
         reply.status(200).send({
@@ -241,7 +249,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-            if (sowTemplateRecord[field] !== undefined) {
+           if (sowTemplateRecord[field] !== undefined) {
                 sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
             }
         });
@@ -251,10 +259,12 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         sowTemplateRecord.master_data = JSON.parse(sowTemplateRecord.master_data || '[]');
 
         return reply.status(200).send({
+
             status_code: 200,
             message: 'SOW Template retrieved successfully.',
             data: sowTemplateRecord,
             trace_id: traceId
+
         });
 
     } catch (error: any) {
@@ -268,53 +278,84 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 };
 
 
+
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { id, program_id } = request.params as { id: string; program_id: string };
-    const sowTemplate = request.body as SowTemplate;
-    const userId = request.headers['user_id'];
+    const transaction = await sequelize.transaction();
 
     try {
-        const template = await SowTemplateModel.findOne({ where: { id, program_id, is_deleted: false } });
+        const { id, program_id } = request.params as { id: string; program_id: string };
+        const sowTemplate = request.body as SowTemplate;
+        const userId = request.headers['user_id'];
 
-        if (!template) {
+        const existingTemplate = await SowTemplateModel.findOne({
+            where: {
+                id,
+                program_id,
+                is_deleted: false,
+                latest: true,
+            },
+            transaction,
+        });
+
+        if (!existingTemplate) {
+            await transaction.rollback();
             return reply.status(200).send({
                 status_code: 200,
                 message: 'SOW Template not found.',
-                trace_id: traceId
+                trace_id: traceId,
             });
         }
-        await template.update(sowTemplate);
-        await SowTemplateHierarchyModel.destroy({ where: { sow_template_id: id } });
-      
-
+        await existingTemplate.update(
+            { latest: false },
+            { transaction }
+        );
+        const oldRevision = Number(existingTemplate.revision ?? 0);
+        const newRevision = oldRevision + 1;
+        const newTemplate = await SowTemplateModel.create(
+            {
+                ...existingTemplate.toJSON(),
+                ...sowTemplate,
+                id: undefined, 
+                revision: newRevision,
+                latest: true,
+                created_on: userId,
+                created_by:userId,
+                updated_on: Date.now(),
+                updated_by: userId,
+            },
+            { transaction }
+        );
+       
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
-                    sow_template_id: id,
-                    hierarchy_id: hierarchyId,
-                    created_by: userId,
-                    updated_by: userId,
-                });
+                        sow_template_id: newTemplate.id,
+                        hierarchy_id: hierarchyId,
+                        created_by: userId,
+                        updated_by: userId,
+                    },
+                    { transaction }
+                );
             }
         }
-
-       
-        reply.status(200).send({
+        await transaction.commit();
+        return reply.status(200).send({
             status_code: 200,
-            message: 'SOW template updated successfully.',
-            trace_id: traceId
+            message: 'SOW template versioned update successful.',
+            trace_id: traceId,
+            data: newTemplate,
         });
     } catch (error: any) {
-        reply.status(500).send({
+        await transaction.rollback();
+        return reply.status(500).send({
             status_code: 500,
             message: 'Error updating SOW template.',
             error: error.message,
-            trace_id: traceId
+            trace_id: traceId,
         });
     }
 };
-
 
 export const deleteSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -344,7 +385,7 @@ export const getSowTemplateHierarchiesByProgram = async (
         const { program_id } = request.params;
         const sowTemplates = await SowTemplateModel.findAll({
             where: { program_id, is_deleted: false },
-            attributes: ['id'], 
+            attributes: ['id'],
         });
 
         const sowTemplateIds = sowTemplates.map(template => template.id);

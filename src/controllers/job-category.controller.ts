@@ -5,12 +5,51 @@ import { JobCategoryInterface } from '../interfaces/job-category.interface';
 import generateCustomUUID from "../utility/genrateTraceId";
 import { baseSearch } from "../utility/baseService";
 import { decodeToken } from '../middlewares/verifyToken';
+import { Op } from 'sequelize';
 
 export async function getAllJobCategory(request: FastifyRequest, reply: FastifyReply) {
-  const searchFields = ['id'];
-  const responseFields = ['id', 'category', 'title'];
-  let categoryData = await baseSearch(request, reply, jobCategoryModel, searchFields, responseFields);
-  reply.status(200).send(categoryData);
+  try {
+    const query = request.query as Record<string, any>;
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const sortField = query.sortField || 'updated_on';
+    const sortDirection = 'DESC';
+
+    const searchConditions: any = { is_deleted: false };
+
+    if (query.id) {
+      searchConditions.id = { [Op.like]: `%${query.id.trim()}%` };
+    }
+
+    let attributes: string[] | undefined = ['id', 'category', 'title'];
+    if (query.info_level === 'detail') {
+      attributes = undefined;
+    }
+
+    const { rows, count } = await jobCategoryModel.findAndCountAll({
+      where: searchConditions,
+      limit,
+      offset,
+      attributes,
+      order: [[sortField, sortDirection]],
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      total_records: count,
+      page,
+      limit,
+      items: rows,
+    });
+
+  } catch (error) {
+    console.error('Error in getAllJobCategory:', error);
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal Server Error',
+    });
+  }
 }
 
 export async function getJobCategoryById(

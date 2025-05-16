@@ -9,6 +9,7 @@ class ReasonCodeModel extends Model {
     created_on: any;
     category: any;
     is_enabled: any;
+    sq_number:any
 }
 
 ReasonCodeModel.init(
@@ -50,6 +51,10 @@ ReasonCodeModel.init(
                 key: 'id',
             },
         },
+        sq_number: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },        
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),

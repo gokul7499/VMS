@@ -3,7 +3,7 @@ import JobWorkFlowModel from '../models/job-workflow.model';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { JobWorkFlow, Recipient, Users, Workflow } from '../interfaces/job-workflow.interface';
 import { sequelize } from '../config/instance';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import WorkflowStatusHistory from '../models/workflow-status-history.model';
 import { Module } from '../models/module.model';
 import Event from '../models/event.model';
@@ -17,6 +17,8 @@ import sendNotificationModel from '../models/send-notifications-log.model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
+import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
+import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -201,6 +203,53 @@ export const getJobWorkFlowById = async (
     }
 };
 
+async function handleBypassForUser(levels: any[], userId: string): Promise<any[]> {
+    return await Promise.all(levels.map(async (level) => {
+        const levelOrder = level.placement_order || 0;
+
+        if (level.status !== 'pending') return level;
+
+        const behaviorOfLevel = (level.recipient_types[0]?.behavior || level.recipient_types[0]?.behaviour || '').toLowerCase();
+
+        level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
+            const recipientUserId = recipient?.replaced_by ||
+                (recipient?.meta_data ? Object.values(recipient.meta_data).find((id: any) => typeof id === 'string') : null);
+
+            const matchesUser = recipientUserId === userId;
+            const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
+            const updatedRecipient = { ...recipient };
+
+            if (behavior === 'any' && matchesUser) {
+                if (matchesUser) {
+                    updatedRecipient.status = 'bypassed';
+                } else {
+                    updatedRecipient.status = 'Not Needed';
+                }
+            } else if (behavior === 'all') {
+                if (matchesUser && recipient.status === 'pending') {
+                    updatedRecipient.status = 'bypassed';
+                }
+            } else {
+                if (matchesUser && recipient.status === 'pending') {
+                    updatedRecipient.status = 'bypassed';
+                }
+            }
+
+            return updatedRecipient;
+        });
+
+        if (behaviorOfLevel === 'any') {
+            const anyBypassed = level.recipient_types.some((r: any) => r.status === 'bypassed');
+            level.status = anyBypassed ? 'bypassed' : 'pending';
+        } else {
+            const allBypassed = level.recipient_types.every((r: any) => r.status === 'bypassed');
+            level.status = allBypassed ? 'bypassed' : 'pending';
+        }
+
+        return level;
+    }));
+}
+
 export const updateWorkflowStatus = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -356,6 +405,7 @@ export const updateWorkflowStatus = async (
                             actor_first_name: userData.first_name,
                             actor_last_name: userData.last_name,
                             actor_by_avtar: userData.avatar,
+                            notes: notes || ''
                         };
                         
                         // Check if user is inactive - use precomputed active status
@@ -433,13 +483,6 @@ export const updateWorkflowStatus = async (
                                         status: commonFields?.status,
                                     };
                                 }
-                            } else {
-                                if (!commonFields.behaviour && matchesUser && recipient?.status === 'pending' && level.recipient_types.length === 1) {
-                                    updatedRecipient = {
-                                        ...recipient,
-                                        status: matchesUser ? 'bypassed' : commonFields?.status,
-                                    };
-                                }
                             }
                         }
                         return updatedRecipient;
@@ -461,7 +504,11 @@ export const updateWorkflowStatus = async (
                     }
                     return level;
                 });
- 
+                if (!user_id) {
+                    return { massege: "User ID is undefined" };
+                }
+                let bypass = await handleBypassForUser(workflow.levels, user_id);
+                workflow.levels = bypass;
             }
 
             levels = await Promise.all( 
@@ -673,7 +720,7 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status === "approved" || recipient.status === "Not needed"
+                            (recipient: any) => recipient.status.toLowerCase() === "approved" || recipient.status.toLowerCase() === "not needed" ||  recipient.status.toLowerCase() === "bypassed"
                         );
                         return {
                             ...level,
@@ -1093,7 +1140,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             const payload = {
                 user_type: user?.userType,
                 fullName: managerData?.data?.first_name,
-                job_id: workflow?.event_title,
+                job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
                     ? `${ui_base_url}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
@@ -1696,7 +1743,7 @@ export const updateReplaceLevel = async (
         });
     }
     try {
-        const workflow = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        const workflow:any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
         if (!workflow) {
             return reply.status(404).send({
                 status_code: 404,
@@ -1706,30 +1753,44 @@ export const updateReplaceLevel = async (
         }
         let levels = workflow.levels || [];
         let levelFound = false;
-        // Update the matching level
-        levels = levels.map((level: any) => {
+        levels = await Promise.all((levels || []).map(async (level: any) => {
             if (level.placement_order === placement_order) {
-                console.log(level.placement_order, placement_order);
                 levelFound = true;
-                const updatedRecipientTypes = level.recipient_types.map((recipient: any) => {
-                    if (recipient.replaced_by === user_id) {
+        
+                const updatedRecipientTypes = await Promise.all(level.recipient_types.map(async (recipient: any) => {
+                    if (recipient.replaced_by && recipient.replaced_by === user_id) {
                         const metaDataKey = Object.keys(recipient.meta_data)[0];
-                        return {
-                            ...recipient,
-                            status: status,
-                            meta_data: {
-                                ...recipient.meta_data,
+                        const metaDataValue = Object.values(recipient.meta_data)[0];
+                        const levelDb: any = await WorkflowTriggeredLevel.findOne({
+                            where: {
+                                workflow_trigger_id: workflow?.workflow_trigger_id,
+                                workflow_id: workflow?.workflow_id,
+                                placement_order,
                             },
-                            replaced_by,
-                            replaced_notes: notes,
-                            replaced_modified_on: Date.now(),
-                        };
-                    }
-                    if(recipient.replaced_by && recipient.replaced_by !== user_id){
-                        const metaDataKey = Object.keys(recipient.meta_data)[0];
+                            attributes: ['id']
+                        });
+        
+                        await WorkflowTriggeredRecipientType.update(
+                            {
+                                meta_data: {
+                                    ...recipient.meta_data,
+                                    [metaDataKey]: recipient?.replaced_by,
+                                },
+                            },
+                            {
+                                where: {
+                                    level_id: levelDb?.id,
+                                    program_id,
+                                    workflow_trigger_id: workflow?.workflow_trigger_id,
+                                    workflow_id: workflow?.workflow_id,
+                                    [Op.and]: sequelize.literal(`JSON_SEARCH(meta_data, 'one', '${metaDataValue}') IS NOT NULL`),
+                                },
+                            }
+                        );
+        
                         return {
                             ...recipient,
-                            status: status,
+                            status,
                             replaced_by,
                             meta_data: {
                                 ...recipient.meta_data,
@@ -1739,10 +1800,11 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now()
                         };
                     }
+        
                     if (!recipient.replaced_by && Object.values(recipient.meta_data).includes(user_id)) {
                         return {
                             ...recipient,
-                            status: status,
+                            status,
                             replaced_by,
                             meta_data: {
                                 ...recipient.meta_data,
@@ -1751,15 +1813,19 @@ export const updateReplaceLevel = async (
                             replaced_modified_on: Date.now()
                         };
                     }
+        
                     return recipient;
-                });
+                }));
+        
                 return {
                     ...level,
                     recipient_types: updatedRecipientTypes
                 };
             }
+        
             return level;
-        });
+        }));
+        
         if (!levelFound) {
             return reply.status(400).send({
                 status_code: 400,
@@ -1779,6 +1845,7 @@ export const updateReplaceLevel = async (
             });
         }
         await workflow.update({ levels, updated_on: Date.now() });
+        
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
@@ -3445,10 +3512,9 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         let jobDatas: any = null;
         let offerData: any = null;
         let assignmentData: any = null;
-        const isJobEvent = events?.includes('job');
         const isOfferEvent = events?.includes('offer');
         const isAssignmentEvent = events?.includes('assignment')
-        if (jobUUID && isJobEvent || jobUUID && isOfferEvent) {
+        if (jobUUID) {
             jobDatas = await getJobDetails(jobUUID, program_id, token);
         }
         if (isOfferEvent && workflowTriggerId) {
@@ -3468,7 +3534,7 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
                 candidate_last_name: workflowDetails?.last_name,
-                submission_id: workflowDetails?.unique_key,
+                submission_id: workflowDetails?.code,
                 offer_id: offerData?.data?.offer?.offer_code ?? "",
                 offer_url: offerData?.data?.offer.candidate_id ? `${SOURCE_BASE_URL}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.offer?.id}&detail=offer`
                     : '',

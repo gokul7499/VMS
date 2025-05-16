@@ -150,17 +150,17 @@ export async function linkMtp(request: FastifyRequest, reply: FastifyReply) {
 export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id: programId, id } = request.params as { program_id: string, id: string };
-    const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+    const { mtp_candidate_id } = request.body as { mtp_candidate_id: string[] }; 
     
     try {
         const result = await mtpService.unlinkMtp({
             programId,
             id,
-            mtpCandidateId,
+            mtpCandidateIds: mtp_candidate_id,
             user: request.user,
             traceId
         });
-        
+
         return reply.code(result.statusCode).send({
             status_code: result.statusCode,
             message: result.message,
@@ -176,25 +176,86 @@ export async function unlinkMtp(request: FastifyRequest, reply: FastifyReply) {
     }
 }
 
+
 export async function getMtp(request: FastifyRequest, reply: FastifyReply) {
-    const { program_id: programId, mtp_candidate_id:mtpCandidateId } = request.params as { program_id: string, mtp_candidate_id: string };
+    const { program_id: programId, mtp_candidate_id: mtpCandidateId } = request.params as { program_id: string, mtp_candidate_id: string };
+    const traceId = generateCustomUUID();
+    try {
+      const result = await mtpService.getLinkedProfiles(programId, mtpCandidateId);  
+      return reply.code(200).send({
+        status_code: 200,
+        message: result.message,
+        data: result.data,
+        trace_id: traceId
+      });
+    } catch (error: any) {
+      return reply.code(500).send({
+        status_code: 500,
+        message: "Internal Server Error",
+        trace_id: traceId,
+        error: sanitizeError(error)
+      });
+    }
+  }
+  
+export async function disableMtp(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
 
     try {
-        const result = await mtpService.getLinkedProfiles(programId, mtpCandidateId);
-
-        return reply.code(200).send({
-            status_code: 200,
+        const { program_id: programId,candidate_id:candidateId} = request.params as {
+            program_id: string;
+            candidate_id:string
+        };
+        const { mtp_id: mtpId } = request.body as { mtp_id: string[] };
+        const result = await mtpService.disableMtp({
+            programId,
+            mtpId,
+            candidateId,
+            traceId
+        });
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
             message: result.message,
             data: result.data,
             trace_id: traceId
         });
+
     } catch (error: any) {
-        return reply.code(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            message: "Internal Server Error",
+            message: "An error occurred while disabling MTP",
             trace_id: traceId,
             error: sanitizeError(error)
         });
     }
 }
+
+export async function masterProfile(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+
+    try {
+        const { program_id: programId, id } = request.params as { program_id: string, id: string };
+        const { mtp_candidate_id: mtpCandidateId } = request.body as { mtp_candidate_id: string };
+
+        const result = await mtpService.masterProfile({
+            programId,
+            id,
+            mtpCandidateId,
+            traceId
+        });
+
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while making MTP a master profile",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}
+

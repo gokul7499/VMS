@@ -6,17 +6,15 @@ import ShiftConfiguration from "../models/shift-configuration.model";
 import shiftConfigurationHierarchies from "../models/shift-configuration-hierarchies.model";
 import hierarchies from "../models/hierarchies.model"
 import { sequelize } from '../config/instance';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import shiftTypeConfiguration from "../models/shift-type-configuration.model";
 import { decodeToken } from "../middlewares/verifyToken";
+import { sameShiftConfiguration } from "../utility/queries";
 
-export const getAllshiftConfiguration = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
+export const getAllshiftConfiguration = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query as { name?: string; is_enabled?:boolean | string; start_date?: string; end_date?: string; hierarchy_names?: string; shift_type_name?: string; page?: string; limit?: string };
+  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query as { name?: string; is_enabled?: boolean | string; start_date?: string; end_date?: string; hierarchy_names?: string; shift_type_name?: string; page?: string; limit?: string };
 
   if (!program_id) {
     reply.status(400).send({
@@ -283,6 +281,27 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
         message: `Shift configuration with the name ${name} already exists`,
       });
     }
+
+    if (!shiftTypeData.hierarchy_ids) {
+      const existingConfigurations = await sequelize.query(sameShiftConfiguration, {
+        replacements: {
+          program_id: shiftTypeData.program_id,
+          hierarchies: shiftTypeData.hierarchy_ids || []
+        },
+        type: QueryTypes.SELECT,
+        transaction
+      });
+
+      if (existingConfigurations.length > 0) {
+        await transaction.rollback();
+        return reply.status(409).send({
+          status_code: 409,
+          message: 'Shift configurations with the same hierarchy already exist.',
+          trace_id: traceId,
+        });
+      }
+    }
+
     const shiftType = await ShiftConfiguration.create({
       name, ...rest, created_by: userId,
       updated_by: userId,
@@ -547,7 +566,7 @@ export const getFilteredShiftConfiguration = async (
     if (Array.isArray(updated_on) && updated_on.length === 2) {
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       searchFilters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-  }
+    }
 
     let shiftConfigIds: string[] = [];
     if (hierarchy_names) {

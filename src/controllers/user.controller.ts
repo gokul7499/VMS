@@ -8,7 +8,7 @@ import UserMapping from "../models/user-mapping.model";
 import { sequelize } from "../config/instance";
 import WorkLocationModel from "../models/work-location.model";
 import candidateModel from "../models/candidate.model";
-import { CandidateCodeGenerate } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate, CandidateUniqueIdGenerate } from "../utility/code-genrate-service";
 import { getHierarchieWithChildren, getMasterData, getWorkLocationTimeZoneByUserId, userQuery, getPendingUserQuery, userHierarchiesQuery, getUserContacts, getUserPrograms, getActiveUsers } from "../utility/queries";
 import { QueryTypes } from "sequelize";
 import UserMasterDataModel from "../models/user-master-data.model";
@@ -319,6 +319,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }
 
       let candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
 
       const candidateData = await candidateModel.create({
         ...userWithoutId,
@@ -328,9 +329,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         user_type: userType,
         created_by: userId,
         updated_by: userId,
+        unique_id: uniqueId
       }, { transaction });
+
       candidateId = candidateData.id
-      const uniqueId = candidateData.candidate_id
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId);
 
     } else if (userType === "vendor") {
@@ -901,12 +903,12 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
 
       if (hierarchy_id) {
         const filterHierarchyIds = hierarchy_id.split(',').map(id => id.trim());
-        
+
         if (isAllHierarchyAssociate) {
           allowedHierarchyIds = filterHierarchyIds;
         } else {
           allowedHierarchyIds = filterHierarchyIds.filter(id => accessibleHierarchyIds.includes(id));
-          
+
           if (allowedHierarchyIds.length === 0) {
             return reply.code(200).send({
               status_code: 200,

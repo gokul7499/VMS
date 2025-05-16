@@ -28,7 +28,7 @@ async function vendorDistributionScheduleRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.getVendorDistributionScheduleByIds);
 
-    fastify.post('/program/:program_id/vendor-distribution/advance-filter', {
+    fastify.post('/program/:program_id/vendor-distribution-schedule/advance-filter', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.vendorDistributionScheduleFilter);
 

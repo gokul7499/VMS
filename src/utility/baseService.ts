@@ -218,7 +218,7 @@ export async function baseSearch(
     const finalSortDirection = "DESC";
 
     try {
-        let searchConditions: any = {};
+        let searchConditions: any = params.program_id ? { program_id: params.program_id } : {};
 
         const combinedSearch = { ...params, ...query };
 

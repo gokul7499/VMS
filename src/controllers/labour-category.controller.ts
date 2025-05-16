@@ -159,7 +159,7 @@ export const getIndustries = async (request: FastifyRequest, reply: FastifyReply
 
     const { rows: labour_categories, count } = await IndustriesModel.findAndCountAll({
       where: whereCondition,
-      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
+      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on','code'],
       limit: pageSize,
       offset,
       order: [['updated_on', 'DESC']]
@@ -199,7 +199,7 @@ export async function getIndustriesById(request: FastifyRequest, reply: FastifyR
     const { id, program_id } = request.params as { id: string, program_id: string };
     const item = await IndustriesModel.findOne({
       where: { id, program_id, is_deleted: false },
-      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on'],
+      attributes: ['id', 'name', 'is_enabled', 'created_on', 'updated_on','code'],
     });
     if (item) {
       reply.status(200).send({

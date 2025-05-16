@@ -46,6 +46,7 @@ async getAllMtpData(
           FROM mtp
           LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.user_id
           WHERE mtp.program_id = :program_id
+          AND mtp.is_deleted = false
         `;
 
   const replacements: any = {
@@ -124,6 +125,7 @@ async getAllMtpData(
     m.updated_on,
     m.mtp_id,
     m.mtp_candidate_id,
+    m.is_master_profile,
 JSON_ARRAYAGG(JSON_OBJECT(
           'mtp_candidate_id', c.id,
           'program_id', c.program_id,
@@ -213,48 +215,69 @@ async getMtpByLinkedProfile(programId: string,linkedProfileId:any): Promise<any>
 }
 
 async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
-
   const query = `
-SELECT 
-  m.id,
-  m.talent_name,
-  m.updated_on,
-  m.mtp_id,
-  m.mtp_candidate_id,
-  (
-    JSON_LENGTH(IFNULL(m.linked_profiles, '[]')) -
-    IF(JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(m.mtp_candidate_id), '$'), 1, 0)
-  ) AS linked_profiles_count,
-    JSON_ARRAYAGG(JSON_OBJECT(
-    'mtp_candidate_id', c.id,
-    'first_name', c.first_name,
-    'last_name', c.last_name,
-    'middle_name', c.middle_name,
-    'program_id', c.program_id,
-    'candidate_id', c.candidate_id,
-    'birth_date', c.birth_date,
-    'email', c.email,
-    'contacts', c.contacts
-  )) AS linked_profiles
-FROM 
-  mtp m
-LEFT JOIN 
-  candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$') 
-               OR m.mtp_candidate_id = c.id  
-WHERE 
-  m.program_id = :program_id
-  AND m.mtp_candidate_id = :mtp_candidate_id
-GROUP BY 
-  m.id, m.talent_name, m.updated_on, m.mtp_id, m.mtp_candidate_id;
+    SELECT 
+      m.id,
+      m.talent_name,
+      m.updated_on,
+      m.mtp_id,
+      m.mtp_candidate_id,
+      JSON_OBJECT(
+        'id', sc.id,
+        'first_name', sc.first_name,
+        'last_name', sc.last_name,
+        'middle_name', sc.middle_name,
+        'birth_date', sc.birth_date,
+        'email', sc.email,
+        'contacts', sc.contacts,
+        'candidate_id', sc.candidate_id
+      ) AS submission_candidate,
 
-`;
-     const result = await sequelize.query(query, {
-       replacements: { program_id: programId,mtp_candidate_id:mtpCandidateId },
-       type: QueryTypes.SELECT,
-      raw: true,
-     });
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'mtp_candidate_id', c.id,
+          'first_name', c.first_name,
+          'last_name', c.last_name,
+          'middle_name', c.middle_name,
+          'program_id', c.program_id,
+          'candidate_id', c.candidate_id,
+          'birth_date', c.birth_date,
+          'email', c.email,
+          'contacts', c.contacts
+        )
+      ) AS linked_profiles
+
+    FROM mtp m
+
+    LEFT JOIN candidates c 
+      ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
+      AND c.id != m.mtp_candidate_id
+
+    LEFT JOIN candidates sc 
+      ON sc.id = m.mtp_candidate_id
+
+    WHERE 
+      m.program_id = :program_id
+      AND (
+        m.mtp_candidate_id = :mtp_candidate_id
+        OR JSON_CONTAINS(IFNULL(m.linked_profiles, '[]'), JSON_QUOTE(:mtp_candidate_id), '$')
+      )
+
+    GROUP BY 
+      m.id, m.talent_name, m.updated_on, m.mtp_id, m.mtp_candidate_id, sc.id;
+  `;
+
+  const result = await sequelize.query(query, {
+    replacements: { program_id: programId, mtp_candidate_id: mtpCandidateId },
+    type: QueryTypes.SELECT,
+    raw: true,
+  });
+
   return result;
 }
+
+
+ 
 
   }
 

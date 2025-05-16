@@ -5,6 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
+import DisebleMtp from "../models/disable_mtp.model";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -269,44 +270,41 @@ class MtpService {
     async unlinkMtp({
         programId,
         id,
-        mtpCandidateId,
+        mtpCandidateIds,
         user,
         traceId
     }: {
         programId: string;
         id: string;
-        mtpCandidateId: string;
+        mtpCandidateIds: string[]; 
         user: any;
         traceId: string;
     }) {
         const userId = user?.sub;
         let transaction;
-        
+    
         try {
             const mtp = await MtpModel.findOne({
                 where: { id, program_id: programId }
             });
-            console.log("mtp",mtp)
+           console.log("mtp",mtp)
             if (!mtp) {
                 return {
                     statusCode: 404,
                     message: "MTP not found"
                 };
             }
-            
+    
             const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
-            
-            if (!currentLinks.includes(mtpCandidateId)) {
+            const notLinked = mtpCandidateIds.filter(cid => !currentLinks.includes(cid));
+            if (notLinked.length > 0) {
                 return {
                     statusCode: 400,
-                    message: "Candidate ID not found in linked profiles"
+                    message: `Candidate IDs not found in linked profiles: ${notLinked.join(', ')}`
                 };
             }
-            
             transaction = await sequelize.transaction();
-            
-            const updatedLinks = currentLinks.filter(id => id !== mtpCandidateId);
-            console.log("updatedLinks",updatedLinks)
+            const updatedLinks = currentLinks.filter(cid => !mtpCandidateIds.includes(cid));
             await MtpModel.update(
                 { linked_profiles: updatedLinks },
                 {
@@ -314,23 +312,37 @@ class MtpService {
                     transaction
                 }
             );
-            
-            await MtpModel.update(
-                { is_deleted: false }, 
-                {
-                  where: {
-                    mtp_candidate_id: mtpCandidateId,
-                    program_id: programId,
-                  },
-                  transaction,
+    
+            for (const candidateId of mtpCandidateIds) {
+                const existing = await MtpModel.findOne({
+                    where: { mtp_candidate_id: candidateId, program_id: programId },
+                    transaction
+                });
+    
+                if (existing) {
+                    await existing.update({ is_deleted: false }, { transaction });
+                } else {
+                    const candidateData = await this.mtpRepository.getCandidate(programId, candidateId);
+                    const talentName = candidateData?.[0]?.candidate_name;
+                    
+                    await MtpModel.create({
+                        program_id: programId,
+                        mtp_candidate_id: candidateId,
+                        is_deleted: false,
+                        linked_profiles: [candidateId],
+                        talent_name: talentName,
+                        created_by: userId,
+                        updated_by: userId,
+                        trace_id: traceId
+                    }, { transaction });
                 }
-              );
-            
+            }
+    
             await transaction.commit();
-            
+    
             return {
                 statusCode: 200,
-                message: "MTP unlinked successfully"
+                message: "MTP candidates unlinked and created successfully"
             };
         } catch (error) {
             if (transaction) {
@@ -339,16 +351,125 @@ class MtpService {
             throw error;
         }
     }
+    
 
     async getLinkedProfiles(programId: string, mtpCandidateId: string) {
         const [mtpData] = await this.mtpRepository.getLinkProfiles(programId, mtpCandidateId);
+        console.log("mtpData", mtpData);
+      
+        if (!mtpData) {
+          return {
+            message: "No matching records found.",
+            data: []
+          };
+        }
+      
+        const uniqueMtpCandidates = Array.isArray(mtpData.mtp_candidates)
+          ? Object.values(
+              mtpData.mtp_candidates.reduce((acc: { [x: string]: any; }, candidate: { mtp_id: string | number; }) => {
+                acc[candidate.mtp_id] = candidate;
+                return acc;
+              }, {} as Record<string, typeof mtpData.mtp_candidates[0]>)
+            )
+          : [];
+      
+        const resultData = {
+          ...mtpData,
+          mtp_candidates: uniqueMtpCandidates
+        };
+      
+        return {
+          message: "Linked profile data retrieved successfully.",
+          data: resultData
+        };
+      }
+      
+      async disableMtp({
+        mtpId,  
+        programId,
+        candidateId,
+        traceId,
+      }: {
+        mtpId: string[];
+        programId: string;
+        candidateId: string;
+        traceId: string;
+      }) {
+        
+        const disableRecords = await DisebleMtp.bulkCreate(
+            mtpId.map((id) => ({
+              mtp_id: id,
+              program_id: programId,
+              candidate_id: candidateId,
+            }))
+        );
 
         return {
-            message: mtpData ? " linked profile data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
+          statusCode: 200,
+          message: "selected MTPs disabled successfully.",
+          trace_id: traceId,
+          data: disableRecords,
         };
+      }
+      
+    async masterProfile({
+        programId,
+        id,
+        mtpCandidateId,
+        traceId
+    }: {
+        programId: string;
+        id: string;
+        mtpCandidateId: string;
+        traceId: string;
+    }) {
+        let transaction;
+    
+        try {
+            const mtp = await MtpModel.findOne({
+                where: { id, program_id: programId, is_deleted: false }
+            });
+    
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found"
+                };
+            }
+    
+            transaction = await sequelize.transaction();
+    
+           await MtpModel.update(
+                {
+                    mtp_candidate_id: mtpCandidateId,
+                    is_master_profile: true
+                },
+                {
+                    where: {
+                        id,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await transaction.commit();
+    
+            return {
+                statusCode: 200,
+                message: "Master profile created successfully! ",
+                traceId
+            };
+        } catch (error) {
+            if (transaction) {
+                await transaction.rollback();
+            }
+            throw error;
+        }
     }
-
+    
+    
     private logEvent({
         request,
         traceId,
@@ -387,5 +508,7 @@ class MtpService {
         }, MtpModel);
     }
 }
+
+
 
 export default MtpService;

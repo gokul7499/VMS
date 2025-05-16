@@ -334,14 +334,29 @@ function parseBoolean(value: any): number | undefined {
   return undefined;
 }
 
-function parseDateRange(dateRange: string): { startDate?: number, endDate?: number } {
+function parseDateRange(dateRange: string): { startDate?: number; endDate?: number } {
   if (!dateRange) return {};
+
+  const parseTimestamp = (ts: string, isStart: boolean): number | undefined => {
+    const num = Number(ts.trim());
+    if (isNaN(num)) return undefined;
+    const date = new Date(num);
+    date.setHours(isStart ? 0 : 23, isStart ? 0 : 59, isStart ? 0 : 59, isStart ? 0 : 999);
+    return date.getTime();
+  };
+
   const dates = dateRange.split(",");
+
+  if (dates.length === 1) {
+    const startDate = parseTimestamp(dates[0], true);
+    const endDate = parseTimestamp(dates[0], false);
+    return startDate && endDate ? { startDate, endDate } : {};
+  }
+
   if (dates.length === 2) {
-    return {
-      startDate: parseInt(dates[0], 10),
-      endDate: parseInt(dates[1], 10),
-    };
+    const startDate = parseTimestamp(dates[0], true);
+    const endDate = parseTimestamp(dates[1], false);
+    return startDate && endDate ? { startDate, endDate } : {};
   }
   return {};
 }
@@ -528,6 +543,7 @@ export async function getDifferentialOnForRateType(request: FastifyRequest, repl
   try {
     const whereConditions: any = {
       program_id,
+      is_enabled: true,
       is_deleted: false,
     };
 

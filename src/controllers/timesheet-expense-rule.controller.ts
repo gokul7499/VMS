@@ -390,12 +390,16 @@ export const filterTimesheetExpenseRule = async (
     reply: FastifyReply
 ) => {
     const { program_id } = request.params as { program_id: string };
-    const { rule_name, rule_type, rule_category, is_enabled, updated_on, fields, page = 1, limit = 10 } = request.body as { rule_name: string, rule_type: string, rule_category: string, is_enabled: boolean | string, updated_on: string, fields: string[], page: number, limit: number };
+    const { rule_name, rule_type, rule_category, rule_duration, is_enabled, updated_on, fields, page = 1, limit = 10 } = request.body as { rule_name: string, rule_type: string, rule_category: string, is_enabled: boolean | string, updated_on: string, fields: string[], page: number, limit: number, rule_duration: string };
     const traceId = generateCustomUUID();
 
     try {
         const offset = (page - 1) * limit;
         const whereCondition: any = { is_deleted: false, program_id };
+
+        if (rule_duration) {
+            whereCondition.rule_duration = { [Op.in]: rule_duration.split(',').map((d: string) => d.trim()) };
+        }
 
         if (rule_name) {
             whereCondition.rule_name = { [Op.like]: `%${rule_name}%` };
@@ -409,13 +413,23 @@ export const filterTimesheetExpenseRule = async (
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === 'true' || is_enabled === true;
         }
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const dateRange = updated_on.map(timestamp => Number(timestamp));
+        if (Array.isArray(updated_on)) {
+            if (updated_on.length === 2) {
+                const dateRange = updated_on.map(timestamp => Number(timestamp));
+                if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
+                    whereCondition.updated_on = { [Op.between]: dateRange };
+                }
+            } else if (updated_on.length === 1) {
+                const timestamp = Number(updated_on[0]);
+                if (!isNaN(timestamp)) {
+                    const date = new Date(timestamp);
+                    date.setHours(0, 0, 0, 0);
+                    const startOfDay = date.getTime();
+                    date.setHours(23, 59, 59, 999);
+                    const endOfDay = date.getTime();
+                    whereCondition.updated_on = { [Op.between]: [startOfDay, endOfDay] };
+                }}}
 
-            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
-                whereCondition.updated_on = { [Op.between]: dateRange };
-            }
-        }
         const defaultFields = [
             'id',
             'rule_name',
@@ -435,7 +449,7 @@ export const filterTimesheetExpenseRule = async (
 
         const selectedFields = fields && fields.length > 0 ? fields : defaultFields;
 
-        const timesheetRuleData = await TimesheetExpenseRuleModel.findAll({
+        const { count, rows: timesheetRuleData } = await TimesheetExpenseRuleModel.findAndCountAll({
             where: whereCondition,
             attributes: selectedFields,
             limit,
@@ -495,7 +509,7 @@ export const filterTimesheetExpenseRule = async (
             message: 'Timesheet expense rule retrieved successfully.',
             items_per_page: limit,
             current_page: page,
-            total_records: timesheetRuleData.length,
+            total_records: count,
             timesheet_expense_rule: mergedRules,
         });
     } catch (error: any) {
