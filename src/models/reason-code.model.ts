@@ -10,6 +10,9 @@ class ReasonCodeModel extends Model {
     category: any;
     is_enabled: any;
     sq_number:any
+    reason_code_id: any;
+    program_id: string | undefined;
+   usage_count?: any;
 }
 
 ReasonCodeModel.init(
