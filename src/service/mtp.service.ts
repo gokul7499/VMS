@@ -5,6 +5,7 @@ import MtpRepository from "../repositories/mtp.repository";
 import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
+import { where } from "sequelize";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -198,73 +199,68 @@ class MtpService {
         programId,
         id,
         mtpCandidateId,
-        traceId
+        unlinkMtpId,
     }: {
         programId: string;
         id: string;
         mtpCandidateId: string[];
-        traceId: string;
+        unlinkMtpId?: string;
     }) {
         let transaction;
     
         try {
-            const mtp = await MtpModel.findOne({
-                where: { id, program_id: programId, is_deleted: false }
-            });
-    
-            if (!mtp) {
-                return {
-                    statusCode: 404,
-                    message: "MTP not found"
-                };
-            }
-    
-            const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
-    
-            const newLinks = mtpCandidateId.filter(candidateId => !currentLinks.includes(candidateId));
-    
-            if (newLinks.length === 0) {
-                return {
-                    statusCode: 200,
-                    message: "All MTP candidates already linked"
-                };
-            }
-    
             transaction = await sequelize.transaction();
     
-            const updatedLinks = [...currentLinks, ...newLinks];
+            const targetMtp = await MtpModel.findOne({
+                where: { id, program_id: programId, is_deleted: false },
+                transaction
+            });
     
-          await MtpModel.update(
-                { linked_profiles: updatedLinks },
-                { 
-                    where: { id, program_id: programId },
-                    transaction
-                }
-            );
+            if (!targetMtp) {
+                return { statusCode: 404, message: "Target MTP not found" };
+            }
+    
+            const currentLinks = Array.isArray(targetMtp.linked_profiles) ? targetMtp.linked_profiles : [];
+    
+            const newLinks = mtpCandidateId.filter(candidateId => !currentLinks.includes(candidateId));
+            const updatedTargetLinks = [...currentLinks, ...newLinks];
     
             await MtpModel.update(
-                { is_deleted: true }, 
-                {
-                    where: {
-                        mtp_candidate_id: newLinks,
-                        program_id: programId
-                    },
+                { linked_profiles: updatedTargetLinks },
+                { where: { id, program_id: programId }, transaction }
+            );
+    
+            if (unlinkMtpId) {
+                const unlinkMtp = await MtpModel.findOne({
+                    where: { id: unlinkMtpId, program_id: programId, is_deleted: false },
                     transaction
+                });
+    
+                if (unlinkMtp) {
+                    const oldLinks = Array.isArray(unlinkMtp.linked_profiles) ? unlinkMtp.linked_profiles : [];
+                    const updatedOldLinks = oldLinks.filter(id => !mtpCandidateId.includes(id));
+    
+                  const data=  await MtpModel.update(
+                        { linked_profiles: updatedOldLinks },
+                        { where: { id: unlinkMtpId, program_id: programId }, transaction }
+                    );
+                    console.log("data",data)
                 }
-            );    
+            }
+    
             await transaction.commit();
     
             return {
                 statusCode: 200,
                 message: "MTP candidates linked successfully"
             };
+    
         } catch (error) {
-            if (transaction) {
-                await transaction.rollback();
-            }
+            if (transaction) await transaction.rollback();
             throw error;
         }
     }
+    
     
     async unlinkMtp({
         programId,

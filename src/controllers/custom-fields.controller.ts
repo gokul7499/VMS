@@ -427,7 +427,7 @@ export const getCustomFieldById = async (request: FastifyRequest, reply: Fastify
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
         "supporting_text", "linked_modules", "meta_data", "job_type",
-        "range_applicable", "is_sensitive_data"
+        "range_applicable", "is_sensitive_data","organization_category"
       ],
     });
 
