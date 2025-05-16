@@ -759,7 +759,8 @@ export const getReasonCodeBySlug = async (
             where: {
                 reason_code_id: data.map((d) => d.id),
                 program_id: program_id,
-                is_deleted: false
+                is_deleted: false,
+                is_enabled: true
             },
             order: [['sq_number', 'ASC']],
             attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number']
@@ -769,7 +770,8 @@ export const getReasonCodeBySlug = async (
             const reason_codes = await ReasonCodeModel.findAll({
                 where: {
                     reason_code_id: data.map((d) => d.id),
-                    is_deleted: false
+                    is_deleted: false,
+                    is_enabled: true
                 },
                 order: [['sq_number', 'ASC']],
                 attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number']
