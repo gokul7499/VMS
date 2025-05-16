@@ -973,7 +973,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                 const offer_id = workflow.workflow_trigger_id;
                 const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
                 const payload = {
-                    status: "Released",
+                    status: "Pending Acceptance",
                 };
                 await axios.put(apiUrl, payload, {
                     headers: {
