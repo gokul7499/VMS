@@ -202,51 +202,74 @@ export const getJobWorkFlowById = async (
     }
 };
 
-async function handleBypassForUser(levels: any[], userId: string): Promise<any[]> {
-    return await Promise.all(levels.map(async (level) => {
-        const levelOrder = level.placement_order || 0;
+async function findMatchingUsers(levels: any, userId: string) {
+    const match_user: any = [];
 
-        if (level.status !== 'pending') return level;
+    (levels || []).forEach((level: any) => {
+        const placementOrder = level.placement_order;
 
-        const behaviorOfLevel = (level.recipient_types[0]?.behavior || level.recipient_types[0]?.behaviour || '').toLowerCase();
-
-        level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
-            const recipientUserId = recipient?.replaced_by ||
-                (recipient?.meta_data ? Object.values(recipient.meta_data).find((id: any) => typeof id === 'string') : null);
-
-            const matchesUser = recipientUserId === userId;
-            const behavior = recipient.behavior?.toLowerCase() || recipient.behaviour?.toLowerCase();
-            const updatedRecipient = { ...recipient };
-
-            if (behavior === 'any' && matchesUser) {
-                if (matchesUser) {
-                    updatedRecipient.status = 'bypassed';
-                } else {
-                    updatedRecipient.status = 'Not Needed';
-                }
-            } else if (behavior === 'all') {
-                if (matchesUser && recipient.status === 'pending') {
-                    updatedRecipient.status = 'bypassed';
-                }
-            } else {
-                if (matchesUser && recipient.status === 'pending') {
-                    updatedRecipient.status = 'bypassed';
+        (level.recipient_types || []).forEach((recipient: any) => {
+            if (recipient.status === 'pending') {
+                const metaValues = Object.values(recipient.meta_data || {});
+                if (metaValues.includes(userId)) {
+                    match_user.push({
+                        user_id: userId,
+                        placement_order: placementOrder
+                    });
                 }
             }
-
-            return updatedRecipient;
         });
+    });
 
-        if (behaviorOfLevel === 'any') {
-            const anyBypassed = level.recipient_types.some((r: any) => r.status === 'bypassed');
-            level.status = anyBypassed ? 'bypassed' : 'pending';
-        } else {
-            const allBypassed = level.recipient_types.every((r: any) => r.status === 'bypassed');
-            level.status = allBypassed ? 'bypassed' : 'pending';
+    return match_user;
+}
+
+async function handleBypassForUser(levels: any[], userId: string) {
+    const matchedUsers = await findMatchingUsers(levels, userId);
+    for (const { user_id, placement_order } of matchedUsers) {
+        const level = levels.find(l => l.placement_order === placement_order);
+        if (!level || !level.recipient_types) continue;
+
+        for (const recipient of level.recipient_types) {
+            const metaValues = Object.values(recipient.meta_data || {});
+            if (metaValues.includes(user_id) && recipient.status === 'pending') {
+                if (recipient.behaviour?.toLowerCase() === 'any') {
+                    for (const r of level.recipient_types) {
+                        r.status = 'bypassed';
+                    }
+                    break;
+                } else {
+                    recipient.status = 'bypassed';
+                }
+            }
+        }
+    }
+
+    for (const level of levels) {
+        if (!level.recipient_types || level.recipient_types.length === 0) {
+            level.status = 'completed';
+            continue;
         }
 
-        return level;
-    }));
+        const behaviorOfLevel = level.recipient_types[0]?.behaviour?.toLowerCase();
+
+        if (behaviorOfLevel === 'any' && level.status === 'pending') {
+            const anyBypassed = level.recipient_types.some(
+                (r: any) => r.status === 'bypassed'
+            );
+            level.status = anyBypassed ? 'bypassed' : level.status;
+        } else if (level.status === 'pending') {
+            const allBypassed = level.recipient_types.every(
+                (r: any) => r.status === 'bypassed' ||
+                    r.status === 'approved'
+            );
+            level.status = allBypassed ? 'completed' : level.status;
+        } else {
+            level.status = level.status
+        }
+    }
+    
+    return levels;
 }
 
 export const updateWorkflowStatus = async (
