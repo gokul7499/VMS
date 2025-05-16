@@ -235,7 +235,12 @@ async function handleBypassForUser(levels: any[], userId: string) {
             if (metaValues.includes(user_id) && recipient.status === 'pending') {
                 if (recipient.behaviour?.toLowerCase() === 'any') {
                     for (const r of level.recipient_types) {
-                        r.status = 'bypassed';
+                        const metaValues = Object.values(r.meta_data || {});
+                        if (metaValues.includes(user_id)) {
+                            r.status = 'bypassed';
+                        }else {
+                            r.status = 'Not needed';
+                        }
                     }
                     break;
                 } else {
@@ -7304,7 +7309,7 @@ const statusHandling = async (request: FastifyRequest, reply: FastifyReply, work
                 currentLevel.recipients.forEach((recipient: any) => {
                     if (currentLevel.level_status === "bypassed") {
                         // If the level is bypassed, set recipient's status to "bypassed"
-                        recipient.status = "bypassed";
+                        recipient.status = recipient.status;
 
                         // Set actor fields to null when the level is bypassed
                         recipient.actor_first_name = null;
