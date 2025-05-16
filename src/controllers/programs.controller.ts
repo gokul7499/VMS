@@ -16,9 +16,10 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
+import programMspAssociationModel from "../models/program-msp-association.model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { ...programData } = request.body as CreateProgramData;
+const { msp_ids = [], ...programData } = request.body as CreateProgramData & { msp_ids?: string[] };
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -78,6 +79,16 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       trace_id: traceId,
     });
     const programId = item.id;
+   if (Array.isArray(msp_ids) && msp_ids.length > 0) {
+      const mspAssociations = msp_ids.map((mspId: string) => ({
+      program_id: programId,
+      msp_id: mspId,
+      created_by: userId,
+      updated_by: userId,
+     is_enabled: true,
+  }));
+    await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
+}
     await clonePredefinedPicklistsForProgram(programId,userId,transaction);
 
     logger(
