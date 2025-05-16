@@ -1340,6 +1340,7 @@ export const programVendorAdvancedFilter = (
   hasEmail: boolean,
   hasFullName: boolean,
   hasComplianceStatus: boolean,
+  complianceStatusValue: any,
   hasAudited: boolean,
   hierarchyIdsArray: string[],
   laborCategoryIdsArray: string[],
@@ -1365,6 +1366,15 @@ export const programVendorAdvancedFilter = (
   const countryClause = hasCountry
     ? `AND JSON_UNQUOTE(JSON_EXTRACT(pv.addresses, '$[0].country')) = :country_id`
     : '';
+
+  let complianceStatusClause = '';
+    if (hasComplianceStatus) {
+      if (complianceStatusValue === true) {
+        complianceStatusClause = `AND vcc.compliance_status = 1`;
+      } else if (complianceStatusValue === false) {
+        complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
+      }
+    }
 
   return `
     WITH document_data AS (
@@ -1422,7 +1432,7 @@ export const programVendorAdvancedFilter = (
       pv.updated_on,
       pv.status,
       pv.contact,
-      IFNULL(vcc.compliance_status, FALSE) AS compliance_status,
+      vcc.compliance_status,
       COUNT(*) OVER() AS total_count
     FROM program_vendors AS pv
     LEFT JOIN vendor_doc_groups vdg
@@ -1453,7 +1463,7 @@ export const programVendorAdvancedFilter = (
       ${workLocationIdsClause}
       ${jobTypeIdsClause}
       ${countryClause}
-      ${hasComplianceStatus ? `AND vcc.compliance_status = :compliance_status` : ''}
+      ${complianceStatusClause}
       ${hasAudited ? `AND vcc.compliance_status = :is_audited` : ''}
     GROUP BY pv.id
     ORDER BY pv.updated_on DESC
