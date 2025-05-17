@@ -235,22 +235,29 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         'contacts', sc.contacts,
         'candidate_id', sc.candidate_id
       ) AS submission_candidate,
+COALESCE(
+  (
+    SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'mtp_candidate_id', c2.id,
+        'first_name', c2.first_name,
+        'last_name', c2.last_name,
+        'middle_name', c2.middle_name,
+        'program_id', c2.program_id,
+        'candidate_id', c2.candidate_id,
+        'birth_date', c2.birth_date,
+        'email', c2.email,
+        'contacts', c2.contacts
+      )
+    )
+    FROM candidates c2
+    WHERE JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c2.id), '$')
+      AND c2.id != m.mtp_candidate_id
+  ),
+  JSON_ARRAY()
+) AS linked_profiles
 
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'mtp_candidate_id', c.id,
-          'first_name', c.first_name,
-          'last_name', c.last_name,
-          'middle_name', c.middle_name,
-          'program_id', c.program_id,
-          'candidate_id', c.candidate_id,
-          'birth_date', c.birth_date,
-          'email', c.email,
-          'contacts', c.contacts
-        )
-      ) AS linked_profiles
-
-    FROM mtp m
+FROM mtp m
 
     LEFT JOIN candidates c 
       ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
@@ -269,7 +276,6 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
     GROUP BY 
       m.id, m.talent_name, m.updated_on, m.mtp_id, m.mtp_candidate_id, sc.id;
   `;
-
   const result = await sequelize.query(query, {
     replacements: { program_id: programId, mtp_candidate_id: mtpCandidateId },
     type: QueryTypes.SELECT,
@@ -278,10 +284,6 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
 
   return result;
 }
-
-
- 
-
   }
 
   export default MtpRepository;
