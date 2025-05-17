@@ -584,3 +584,29 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
     });
   }
 }
+
+export async function updateMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+  try {
+    const { program_id, msp_id } = request.params as { program_id: string; msp_id: string };
+    const updateData = request.body as Partial<{ is_enabled: boolean }>;
+
+    await programMspAssociationModel.update(updateData, {
+      where: { program_id, msp_id },
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: 'MSP association updated successfully',
+      msp_id: msp_id,
+      trace_id: traceId
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      error: error.message,
+      trace_id: traceId
+    });
+  }
+}
