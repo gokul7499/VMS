@@ -72,12 +72,6 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     }
     const item: any = await Programs.create({ ...programData }, { transaction });
 
-    reply.status(201).send({
-      status_code: 201,
-      id: item.id,
-      message: "Program Created Successfully",
-      trace_id: traceId,
-    });
     const programId = item.id;
     if (Array.isArray(msp_ids) && msp_ids.length > 0) {
       const mspAssociations = msp_ids.map((mspId: string) => ({
@@ -89,7 +83,15 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
       }));
       await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
     }
-    await clonePredefinedPicklistsForProgram(programId,userId,transaction);
+
+    reply.status(201).send({
+      status_code: 201,
+      id: programId,
+      message: "Program Created Successfully",
+      trace_id: traceId,
+    });
+
+    await clonePredefinedPicklistsForProgram(programId, userId, transaction);
 
     logger(
       {
@@ -320,7 +322,7 @@ WHERE programs.id = :id;
         replacements: { id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
     const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
@@ -392,44 +394,46 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
         where: { program_id: id }
       });
     }
-if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length > 0)) {
-  const mspIds: string[] = Array.isArray(updates.msp_ids)
-    ? updates.msp_ids
-    : updates.msp_id
-    ? [updates.msp_id]
-    : [];
+    if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length > 0)) {
+      const mspIds: string[] = Array.isArray(updates.msp_ids)
+        ? updates.msp_ids
+        : updates.msp_id
+          ? [updates.msp_id]
+          : [];
 
-  if (mspIds.length > 0) {
-    const validMspIds = (
-      await Tenant.findAll({
-        where: { id: mspIds },
-        attributes: ['id'],
-        raw: true,
-      })
-    ).map((tenant) => tenant.id);
-    if (validMspIds.length > 0) {
-      const existingMspIds = (
-        await programMspAssociationModel.findAll({
-          where: {
-            program_id: id,
-            msp_id: validMspIds,
-          },
-          attributes: ['msp_id'],
-          raw: true,
-        })
-      ).map((record) => record.msp_id);
-      const newMspIds = validMspIds.filter((mspId) => !existingMspIds.includes(mspId));
-      if (newMspIds.length > 0) {
-        const newAssociations = newMspIds.map((mspId) => ({
-          program_id: id,
-          msp_id: mspId,
-          created_by: userId,
-          updated_by: userId,
-          is_enabled: true,
-        }));
-        await programMspAssociationModel.bulkCreate(newAssociations);
+      if (mspIds.length > 0) {
+        const validMspIds = (
+          await Tenant.findAll({
+            where: { id: mspIds },
+            attributes: ['id'],
+            raw: true,
+          })
+        ).map((tenant) => tenant.id);
+        if (validMspIds.length > 0) {
+          const existingMspIds = (
+            await programMspAssociationModel.findAll({
+              where: {
+                program_id: id,
+                msp_id: validMspIds,
+              },
+              attributes: ['msp_id'],
+              raw: true,
+            })
+          ).map((record) => record.msp_id);
+          const newMspIds = validMspIds.filter((mspId) => !existingMspIds.includes(mspId));
+          if (newMspIds.length > 0) {
+            const newAssociations = newMspIds.map((mspId) => ({
+              program_id: id,
+              msp_id: mspId,
+              created_by: userId,
+              updated_by: userId,
+              is_enabled: true,
+            }));
+            await programMspAssociationModel.bulkCreate(newAssociations);
+          }
+        }
       }
-    }}}
+    }
 
     const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
@@ -445,7 +449,7 @@ if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length 
 
     if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
       const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
-        program_id:updates.id,
+        program_id: updates.id,
         custom_field_id: field.id,
         value: field.value,
       }));
@@ -458,12 +462,12 @@ if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length 
       message: "Program configuration updated successfully",
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error:error.message,
+      error: error.message,
     });
   }
 };
