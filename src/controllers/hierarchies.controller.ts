@@ -112,10 +112,11 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
 
 export const getHierarchies = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query as {
+  const { name, is_enabled, updated_on, msp, page = 1, limit = 10 } = request.query as {
     name?: string;
     is_enabled?: boolean | string;
     updated_on?: string;
+     msp?: string;
     page?: number;
     limit?: number;
   };
@@ -123,7 +124,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
 
   try {
     const hasName = !!name;
-
+    const hasMsp = !!msp;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
     let startDate: number | undefined;
@@ -147,12 +148,13 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
       ...(startDate && endDate && { startDate, endDate }),
+      ...(hasMsp && { msp }),
       limit: Number(limit),
       offset: Number(offset),
     };
 
     const hierarchies: any[] = await sequelize.query(
-      getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
+     getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
       {
         replacements,
         type: QueryTypes.SELECT,
