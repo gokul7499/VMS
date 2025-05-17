@@ -101,7 +101,7 @@ CustomField.init(
       allowNull: false,
     },
     organization_category:{
-      type: DataTypes.JSON,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     is_enabled: {
