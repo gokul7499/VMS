@@ -476,11 +476,17 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
 
   try {
     const { program_id } = request.params as { program_id: string };
+    const { is_enabled } = request.query as { is_enabled?: string };
+
+    const whereCondition:any={ 
+      program_id,
+    }
+    if (is_enabled !== undefined) {
+      whereCondition.is_enabled = is_enabled === 'true';
+    }
 
     const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
-      where: {
-        program_id,
-      },
+      where:whereCondition,
       attributes: {
         exclude: ['created_by', 'updated_by'],
       },
