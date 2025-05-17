@@ -488,7 +488,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
         {
           model: Tenant,
           as: 'msp',
-          attributes: ['id', 'name'],
+          attributes: ['id', 'name', 'display_name'],
           required: false,
         }
       ]
