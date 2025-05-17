@@ -502,6 +502,7 @@ export async function getMspByProgramId(request: FastifyRequest, reply: FastifyR
         msp: {
           id: msp.msp?.id || null,
           name: msp.msp?.name || null,
+          display_name: msp.msp?.display_name || null,
         },
         is_enabled: msp.is_enabled,
         created_on: msp.created_on,
