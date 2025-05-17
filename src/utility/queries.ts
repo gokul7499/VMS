@@ -592,7 +592,8 @@ export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
   startDate?: number,
-  endDate?: number
+  endDate?: number,
+  hasMsp?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -609,17 +610,16 @@ WITH hierarchy_cte AS (
     h.is_vendor_neutral_program,
     h.is_not_editable,
     h.default_currency,
-    ph.name AS parent_hierarchy_name
+    ph.name AS parent_hierarchy_name,
+    h.managed_by
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''}
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-    : ''
-  }
+    ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
+    ${hasMsp ? 'AND h.managed_by = :msp' : ''}
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -630,12 +630,12 @@ SELECT
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-h.created_on DESC,
- CASE
+  h.created_on DESC,
+  CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
-  END, -- Keep parent hierarchies first
-h.id
+  END,
+  h.id
 LIMIT :limit OFFSET :offset;
 `;
 

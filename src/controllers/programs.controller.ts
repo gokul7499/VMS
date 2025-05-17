@@ -322,7 +322,7 @@ WHERE programs.id = :id;
         replacements: { id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
     const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
@@ -519,4 +519,68 @@ export async function advancedFilter(request: FastifyRequest, reply: FastifyRepl
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);
+}
+
+export async function getMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { is_enabled } = request.query as { is_enabled?: string };
+
+    const whereCondition:any={ 
+      program_id,
+    }
+    if (is_enabled !== undefined) {
+      whereCondition.is_enabled = is_enabled === 'true';
+    }
+
+    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
+      where:whereCondition,
+      attributes: {
+        exclude: ['created_by', 'updated_by'],
+      },
+      include: [
+        {
+          model: Tenant,
+          as: 'msp',
+          attributes: ['id', 'name', 'display_name'],
+          required: false,
+        }
+      ]
+    });
+
+    const responseData = mspAssociations.map((item: any) => {
+      const msp = item.toJSON();
+      return {
+        id: msp.id,
+        program_id: msp.program_id,
+        msp: {
+          id: msp.msp?.id || null,
+          name: msp.msp?.name || null,
+          display_name: msp.msp?.display_name || null,
+        },
+        is_enabled: msp.is_enabled,
+        created_on: msp.created_on,
+        updated_on: msp.updated_on,
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: responseData.length
+        ? 'MSP(s) retrieved successfully'
+        : 'No MSP(s) found for the given program ID',
+      total_records: totalRecords,
+      msp_associations: responseData,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
 }
