@@ -609,9 +609,12 @@ WITH hierarchy_cte AS (
     h.is_vendor_neutral_program,
     h.is_not_editable,
     h.default_currency,
+    t.name AS managed_by_name,
+    t.display_name AS managed_by_display_name,
     ph.name AS parent_hierarchy_name
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
+  LEFT JOIN tenant t ON h.managed_by = t.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''}
