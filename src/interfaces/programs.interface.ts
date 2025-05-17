@@ -1,4 +1,5 @@
 export interface CreateProgramData {
+  msp_ids: any;
   id: string;
   name: string;
   display_name: string;

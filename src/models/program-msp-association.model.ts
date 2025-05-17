@@ -1,8 +1,10 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
+import Tenant from './tenant.model';
 
 class programMspAssociationModel extends Model {
+  msp_id: any;
 }
 programMspAssociationModel.init(
   {
@@ -22,6 +24,10 @@ programMspAssociationModel.init(
     msp_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: Tenant,
+        key: 'id',
+      },
     },
      is_enabled: {
             type: DataTypes.BOOLEAN,
@@ -54,5 +60,6 @@ programMspAssociationModel.init(
   }
 );
 
+programMspAssociationModel.belongsTo(Tenant, { foreignKey: "msp_id", as: "msp" });
 
 export default programMspAssociationModel;

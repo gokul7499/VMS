@@ -19,7 +19,7 @@ import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
-const { msp_ids = [], ...programData } = request.body as CreateProgramData & { msp_ids?: string[] };
+  const { msp_ids = [], ...programData } = request.body as CreateProgramData & { msp_ids?: string[] };
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -79,16 +79,16 @@ const { msp_ids = [], ...programData } = request.body as CreateProgramData & { m
       trace_id: traceId,
     });
     const programId = item.id;
-   if (Array.isArray(msp_ids) && msp_ids.length > 0) {
+    if (Array.isArray(msp_ids) && msp_ids.length > 0) {
       const mspAssociations = msp_ids.map((mspId: string) => ({
-      program_id: programId,
-      msp_id: mspId,
-      created_by: userId,
-      updated_by: userId,
-     is_enabled: true,
-  }));
-    await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
-}
+        program_id: programId,
+        msp_id: mspId,
+        created_by: userId,
+        updated_by: userId,
+        is_enabled: true,
+      }));
+      await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
+    }
     await clonePredefinedPicklistsForProgram(programId,userId,transaction);
 
     logger(
@@ -392,28 +392,66 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
         where: { program_id: id }
       });
     }
+if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length > 0)) {
+  const mspIds: string[] = Array.isArray(updates.msp_ids)
+    ? updates.msp_ids
+    : updates.msp_id
+    ? [updates.msp_id]
+    : [];
+
+  if (mspIds.length > 0) {
+    const validMspIds = (
+      await Tenant.findAll({
+        where: { id: mspIds },
+        attributes: ['id'],
+        raw: true,
+      })
+    ).map((tenant) => tenant.id);
+    if (validMspIds.length > 0) {
+      const existingMspIds = (
+        await programMspAssociationModel.findAll({
+          where: {
+            program_id: id,
+            msp_id: validMspIds,
+          },
+          attributes: ['msp_id'],
+          raw: true,
+        })
+      ).map((record) => record.msp_id);
+      const newMspIds = validMspIds.filter((mspId) => !existingMspIds.includes(mspId));
+      if (newMspIds.length > 0) {
+        const newAssociations = newMspIds.map((mspId) => ({
+          program_id: id,
+          msp_id: mspId,
+          created_by: userId,
+          updated_by: userId,
+          is_enabled: true,
+        }));
+        await programMspAssociationModel.bulkCreate(newAssociations);
+      }
+    }}}
 
     const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
     });
 
-     if (updates.custom_fields && updates.custom_fields.length > 0) {
-           await ProgramCustomField.destroy({
-              where: { program_id: id }
-              
-            });    
-          }
+    if (updates.custom_fields && updates.custom_fields.length > 0) {
+      await ProgramCustomField.destroy({
+        where: { program_id: id }
 
-          
-          if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
-            const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
-              program_id:updates.id,
-              custom_field_id: field.id,
-              value: field.value,
-            }));
-            await ProgramCustomField.bulkCreate(customFields);
-          }
-  
+      });
+    }
+
+
+    if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
+      const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
+        program_id:updates.id,
+        custom_field_id: field.id,
+        value: field.value,
+      }));
+      await ProgramCustomField.bulkCreate(customFields);
+    }
+
     reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
@@ -477,4 +515,61 @@ export async function advancedFilter(request: FastifyRequest, reply: FastifyRepl
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);
+}
+
+export async function getMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+
+    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
+      where: {
+        program_id,
+      },
+      attributes: {
+        exclude: ['created_by', 'updated_by'],
+      },
+      include: [
+        {
+          model: Tenant,
+          as: 'msp',
+          attributes: ['id', 'name'],
+          required: false,
+        }
+      ]
+    });
+
+    const responseData = mspAssociations.map((item: any) => {
+      const msp = item.toJSON();
+      return {
+        id: msp.id,
+        program_id: msp.program_id,
+        msp: {
+          id: msp.msp?.id || null,
+          name: msp.msp?.name || null,
+        },
+        is_enabled: msp.is_enabled,
+        created_on: msp.created_on,
+        updated_on: msp.updated_on,
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: responseData.length
+        ? 'MSP(s) retrieved successfully'
+        : 'No MSP(s) found for the given program ID',
+      total_records: totalRecords,
+      msp_associations: responseData,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
 }
