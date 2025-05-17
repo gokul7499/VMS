@@ -71,10 +71,10 @@ async getAllMtpData(
   }
 
   if (hasUpdatedOn) {
-    const dateInMilliseconds = new Date(updatedOn).getTime();
-    
-    query += ` AND mtp.updated_on = :updatedOn`;
-    replacements.updatedOn = dateInMilliseconds;
+    const updatedDate = new Date(Number(updatedOn));
+    const formattedDate = updatedDate.toISOString().split('T')[0]; 
+    query += ` AND DATE(FROM_UNIXTIME(mtp.updated_on / 1000)) = :updatedOn`;
+    replacements.updatedOn = formattedDate;
   }
 
   if (hasLinkedProfilesCount) {
