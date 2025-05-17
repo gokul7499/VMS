@@ -6,6 +6,7 @@ import {
   updateProgramById,
   deleteProgramById,
   advancedFilter,
+  getMspByProgramId
 } from "../controllers/programs.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
@@ -23,5 +24,6 @@ async function programsRoutes(fastify: FastifyInstance) {
     // },
   }, deleteProgramById);
   fastify.get("/program/advanced-filters", advancedFilter);
+  fastify.get("/program/:program_id/get-msp", getMspByProgramId);
 }
 export default programsRoutes;

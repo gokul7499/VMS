@@ -16,6 +16,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
+import programMspAssociationModel from "../models/program-msp-association.model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { ...programData } = request.body as CreateProgramData;
@@ -174,6 +175,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   }
 };
 
+
 export const getAllProgram = async (request: FastifyRequest<{ Querystring: ProgramQuery }>, reply: FastifyReply) => {
   const { name, is_activated, start_date, tenant_id } = request.query as Partial<ProgramQuery>;
   const traceId = generateCustomUUID();
@@ -309,7 +311,7 @@ WHERE programs.id = :id;
         replacements: { id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
     const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
@@ -419,6 +421,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
   }
 };
 
+
 export async function deleteProgramById(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
@@ -466,4 +469,61 @@ export async function advancedFilter(request: FastifyRequest, reply: FastifyRepl
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);
+}
+
+export async function getMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+
+    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
+      where: {
+        program_id,
+      },
+      attributes: {
+        exclude: ['created_by', 'updated_by'],
+      },
+      include: [
+        {
+          model: Tenant,
+          as: 'msp',
+          attributes: ['id', 'name'],
+          required: false,
+        }
+      ]
+    });
+
+    const responseData = mspAssociations.map((item: any) => {
+      const msp = item.toJSON();
+      return {
+        id: msp.id,
+        program_id: msp.program_id,
+        msp: {
+          id: msp.msp?.id || null,
+          name: msp.msp?.name || null,
+        },
+        is_enabled: msp.is_enabled,
+        created_on: msp.created_on,
+        updated_on: msp.updated_on,
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: responseData.length
+        ? 'MSP(s) retrieved successfully'
+        : 'No MSP(s) found for the given program ID',
+      total_records: totalRecords,
+      msp_associations: responseData,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
 }
