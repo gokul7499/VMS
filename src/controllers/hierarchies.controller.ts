@@ -112,26 +112,27 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
 
 export const getHierarchies = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, updated_on, page = 1, limit = 10 } = request.query as {
+  const { name, is_enabled, updated_on, msp, page = 1, limit = 10 } = request.query as {
     name?: string;
     is_enabled?: boolean | string;
     updated_on?: string;
+    msp?: string;
     page?: number;
     limit?: number;
   };
   const traceId = generateCustomUUID();
-
+ 
   try {
     const hasName = !!name;
-
+    const hasMsp = !!msp;
     const isEnabledValue =
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
     let startDate: number | undefined;
     let endDate: number | undefined;
-
+ 
     if (updated_on) {
       const dateRange = updated_on.split(",").map(date => date.trim());
-
+ 
       if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
         startDate = Number(dateRange[0]);
       }
@@ -139,26 +140,27 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         endDate = Number(dateRange[1]);
       }
     }
-
+ 
     const offset = (page - 1) * limit;
-
+ 
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
       ...(startDate && endDate && { startDate, endDate }),
+      ...(hasMsp && { msp }),
       limit: Number(limit),
       offset: Number(offset),
     };
-
+ 
     const hierarchies: any[] = await sequelize.query(
-      getAllHierarchies(hasName, !!is_enabled, startDate, endDate),
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
       {
         replacements,
         type: QueryTypes.SELECT,
       }
     );
-
+ 
     const total_count = hierarchies[0]?.total_count || 0;
  
     if (total_count === 0) {
@@ -172,8 +174,8 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         hierarchies: [],
       });
     }
-
-  const formattedHierarchies = hierarchies.map(
+ 
+   const formattedHierarchies = hierarchies.map(
   ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
     ...rest,
     currency: default_currency ?? null,
