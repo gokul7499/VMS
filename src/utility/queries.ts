@@ -611,7 +611,7 @@ WITH hierarchy_cte AS (
     h.is_not_editable,
     h.default_currency,
     ph.name AS parent_hierarchy_name,
-    h.managed_by
+    h.managed_by,
     t.name AS managed_by_name,
     t.display_name AS managed_by_display_name,
     ph.name AS parent_hierarchy_name
