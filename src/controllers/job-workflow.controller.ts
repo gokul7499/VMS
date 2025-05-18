@@ -266,11 +266,20 @@ async function handleBypassForUser(levels: any[], userId: string) {
             level.status = anyBypassed ? 'bypassed' : level.status;
         } else if (level.status === 'pending') {
             const allBypassed = level.recipient_types.every(
-                (r: any) => r.status === 'bypassed' ||
-                    r.status === 'approved'
+                (r: any) => r.status === 'bypassed'
             );
-            level.status = allBypassed ? 'completed' : level.status;
-        } else {
+
+            const allBypassedOrApproved = level.recipient_types.every(
+                (r: any) => r.status === 'bypassed' || r.status === 'approved'
+            );
+
+            if (allBypassed) {
+                level.status = 'bypassed';
+            } else if (allBypassedOrApproved) {
+                level.status = 'completed';
+            }
+        }
+        else {
             level.status = level.status
         }
     }
@@ -302,7 +311,7 @@ export const updateWorkflowStatus = async (
     }
     const userId = user?.sub
     const { program_id, id } = request.params;
-    let updates = request.body;
+    let updates = request.body as any;
 
     // Convert to array if not already
     if (!Array.isArray(updates)) {
@@ -403,141 +412,6 @@ export const updateWorkflowStatus = async (
 
         for (const { placement_order, new_status, user_id, notes, behavior, job_id, hierarchy_ids, is_admin_override } of updates) {
             let levelFound = false;
-            const bypass_duplicate_approver = workflow.config?.bypass_duplicate_approver ?? false;
-            const isSuperUser = user.userType === "super_user";
-
-            if (bypass_duplicate_approver === true) {
-                workflow.levels = workflow.levels.map((level: any) => {
-                    // Skip inactive user checks for non-pending levels
-                    if (level.status !== 'pending') {
-                        return level;
-                    }
-                    
-                    const levelOrder = level.placement_order || 0;
-                    const levelActiveStatus = allLevelsActiveStatus[levelOrder] || {};
- 
-                    level.recipient_types = (level.recipient_types || []).map((recipient: any) => {
-                        updatedLevels = true;
-                        levelFound = true
-                        const userId = recipient?.replaced_by || 
-                            (recipient?.meta_data ? Object.values(recipient?.meta_data).find((id: any) => typeof id === 'string') : null);
-                            
-                        const matchesUser = recipient?.replaced_by
-                        ? user_id === recipient?.replaced_by
-                        : Object.values(recipient?.meta_data).includes(user_id);
-
-                        const commonFields = {
-                            ...recipient,
-                            impersonate_by: impersonator_id,
-                            updated_on: Date.now(),
-                            actor_first_name: userData.first_name,
-                            actor_last_name: userData.last_name,
-                            actor_by_avtar: userData.avatar,
-                            notes: notes || ''
-                        };
-                        
-                        // Check if user is inactive - use precomputed active status
-                        let userActive = true;
-                        if (userId && levelActiveStatus[userId] !== undefined) {
-                            userActive = levelActiveStatus[userId];
-                        }
-                        
-                        // Auto-approve for inactive users with pending status
-                        if (!userActive && recipient.status === 'pending') {
-                            return {
-                                ...commonFields,
-                                status: 'approved',
-                                auto_approved: true,
-                                notes: 'Auto-approved: User is inactive'
-                            };
-                        }
- 
-                        if (isSuperUser && level.placement_order === placement_order  && recipient?.status === 'pending') {
-                            const updatedRecipient = {
-                                ...recipient,
-                                impersonate_by: impersonator_id,
-                                updated_on: Date.now(),
-                                actor_first_name: userData.first_name,
-                                actor_last_name: userData.last_name,
-                                actor_by_avtar: userData.avatar,
-                                status: new_status,
-                            };
-                            return updatedRecipient;
-                        }
-                        let updatedRecipient = recipient;
-
-                        if (recipient.behaviour?.toLowerCase() === 'any') {
-                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
-                                if (matchesUser) {
-                                    updatedRecipient = {
-                                        ...commonFields,
-                                        status: 'approved',
-                                    };
-                                }
-                                else {
-                                    updatedRecipient = {
-                                        ...updatedRecipient,
-                                        status: 'Not needed',
-                                    };
-                                }
-                            }
-                        } else if (recipient.behaviour?.toLowerCase() === 'all') {
-                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
-                                if (matchesUser) {
-                                    updatedRecipient = {
-                                        ...commonFields,
-                                        status: 'approved',
-                                    };
-                                }
-                                else {
-                                    updatedRecipient = {
-                                        ...updatedRecipient,
-                                        status: commonFields?.status,
-                                    };
-                                }
-                            }
-                        }
-                        else if (!recipient.behaviour) {
-                            if (level.placement_order === placement_order && recipient?.status === 'pending') {
-                                if(!commonFields.behaviour && matchesUser && recipient?.status === 'pending' ){
-                                    updatedRecipient = {
-                                        ...commonFields,
-                                        status:'approved',
-                                    };
-                                }
-                                else{
-                                    updatedRecipient = {
-                                        ...recipient,
-                                        status: commonFields?.status,
-                                    };
-                                }
-                            }
-                        }
-                        return updatedRecipient;
-                    });
- 
-                    const anyBypassed = level.recipient_types.some(
-                        (recipient: any) => recipient.status === 'bypassed'
-                    );
-                    if (anyBypassed) {
-                        level.status = 'bypassed';
-                    } else {
-                        const allApproved = level.recipient_types.every(
-                            (recipient: any) =>
-                                recipient.status === 'approved' ||
-                                recipient.status === 'Not needed' ||
-                                recipient.status === 'bypassed'
-                        );
-                        level.status = allApproved ? 'completed' : 'pending';
-                    }
-                    return level;
-                });
-                if (!user_id) {
-                    return { massege: "User ID is undefined" };
-                }
-                let bypass = await handleBypassForUser(workflow.levels, user_id);
-                workflow.levels = bypass;
-            }
 
             levels = await Promise.all( 
                 levels.map(async (level: any) => {
@@ -748,7 +622,9 @@ export const updateWorkflowStatus = async (
 
                         // Determine the level status
                         const allApproved = updatedRecipientTypes.every(
-                            (recipient: any) => recipient.status.toLowerCase() === "approved" || recipient.status.toLowerCase() === "not needed" ||  recipient.status.toLowerCase() === "bypassed"
+                            (recipient: any) => recipient.status.toLowerCase() === "approved" || 
+                            recipient.status.toLowerCase() === "not needed" ||  
+                            recipient.status.toLowerCase() === "bypassed"
                         );
                         return {
                             ...level,
@@ -782,9 +658,16 @@ export const updateWorkflowStatus = async (
                 })
             );
 
+            const bypass_duplicate_approver = workflow.config?.bypass_duplicate_approver ?? false;
+            if (bypass_duplicate_approver) {
+                let levels = await handleBypassForUser(workflow.levels, user_id);
+                workflow.levels = levels;
+            };
+
             if (!levelFound) {
                 throw new Error(`Placement order ${placement_order} not found in levels.`);
             }
+
             let allLevelsAfterFirstCompleted = true;
             let workflowStatus = "completed";
 
@@ -835,6 +718,7 @@ export const updateWorkflowStatus = async (
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
             }
         }
+        
 
         if (!updatedLevels) {
             return reply.status(400).send({
