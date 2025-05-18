@@ -612,8 +612,12 @@ WITH hierarchy_cte AS (
     h.default_currency,
     ph.name AS parent_hierarchy_name,
     h.managed_by
+    t.name AS managed_by_name,
+    t.display_name AS managed_by_display_name,
+    ph.name AS parent_hierarchy_name
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
+  LEFT JOIN tenant t ON h.managed_by = t.id
   WHERE h.program_id = :program_id
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''}
@@ -1347,18 +1351,17 @@ export const programVendorAdvancedFilter = (
   workLocationIdsArray: string[],
   jobTypeIdsArray: string[]
 ) => {
-  const formatClause = (array: string[], field: string, paramPrefix: string) =>
-    array.length
-      ? `AND (
-          ${array
-            .map((_, index) =>
-              `JSON_CONTAINS(pv.${field}, JSON_QUOTE(:${paramPrefix}${index}), '$')`
-            )
-            .join(' OR ')}
-        )`
-      : '';
+  const formatClause = (array: string[], field: string, paramPrefix: string, includeAllHierarchy = false) => {
+    if (!array.length) return '';
+    const filters = array
+      .map((_, index) =>
+        `JSON_CONTAINS(pv.${field}, JSON_QUOTE(:${paramPrefix}${index}), '$')`
+      )
+      .join(' OR ');
+    return `AND (${filters} ${includeAllHierarchy ? 'OR pv.all_hierarchy = true' : ''})`;
+  };
 
-  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids');
+  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids',true);
   const laborCategoryIdsClause = formatClause(laborCategoryIdsArray, 'program_industry', 'labor_category_id');
   const workLocationIdsClause = formatClause(workLocationIdsArray, 'work_locations', 'work_location_id');
   const jobTypeIdsClause = formatClause(jobTypeIdsArray, 'job_type', 'job_type');

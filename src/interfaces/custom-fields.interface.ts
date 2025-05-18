@@ -30,6 +30,7 @@ export interface CustomFields {
   linked_module: JSON;
   decimal_place: string;
   is_sensitive_data: boolean;
+  organization_category: string;
 }
 
 export interface GetQueryInterface {
@@ -80,7 +81,7 @@ export const createCustomFieldsSchema = {
     can_edit_vendor: { type: 'array', items: { type: 'string' } },
     program_id: { type: 'string' },
     module_name: { type: 'string' },
-    organization_category:{ type: 'array', items: { type: 'string' } },
+    organization_category:{ type: 'string'},
     module_id: { type: 'string' },
     name: { type: 'string' },
     is_enabled: { type: 'boolean' },
