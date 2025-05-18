@@ -1067,10 +1067,8 @@ export const clonePredefinedPicklistsForProgram = async (
       is_deleted: false,
     } as WhereOptions<any>, 
     transaction,
-  });
-    console.log("predefinedPicklists",predefinedPicklists)
-  for (const picklist of predefinedPicklists) {
-    console.log("hhhhhhhhhhhhh")
+  });    
+  for (const picklist of predefinedPicklists) {    
     try {
       const newPicklist = await picklist_model.create(
         {
@@ -1098,22 +1096,24 @@ export const clonePredefinedPicklistsForProgram = async (
         transaction
       });
             
-      if (picklist.name === "Worker Classification" && picklistItems.length > 0 ) {
-        const newItems = picklistItems.map((item) => ({
-          picklist_id: newPicklist.id,
-          label: item.label,
-          value: item.value,
-          slug: item.slug || null,
-          program_id: programId,
-          is_enabled: item.is_enabled,
-          is_deleted: false,
-          defined_by: item.defined_by,
-          disabled_program: item.disabled_program || null,
-          label_program: item.label_program || null,
-          meta_data: item.meta_data || null,
-          created_by: userId,
-          updated_by: userId,
-        }));
+      const allowedSlugs = ["worker_classification", "worker_source_type"];
+
+    if (allowedSlugs.includes(picklist.slug ?? '') && picklistItems.length > 0) {
+      const newItems = picklistItems.map((item) => ({
+        picklist_id: newPicklist.id,
+        label: item.label,
+        value: item.value,
+        slug: item.slug || null,
+        program_id: programId,
+        is_enabled: item.is_enabled,
+        is_deleted: false,
+        defined_by: item.defined_by,
+        disabled_program: item.disabled_program || null,
+        label_program: item.label_program || null,
+        meta_data: item.meta_data || null,
+        created_by: userId,
+        updated_by: userId,
+      }));
       
         await picklistItemModel.bulkCreate(newItems, { transaction });
       }
