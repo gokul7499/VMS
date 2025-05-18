@@ -1360,7 +1360,7 @@ export const programVendorAdvancedFilter = (
     return `AND (${filters} ${includeAllHierarchy ? 'OR pv.all_hierarchy = true' : ''})`;
   };
 
-  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids',true);
+  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids', true);
   const laborCategoryIdsClause = formatClause(laborCategoryIdsArray, 'program_industry', 'labor_category_id');
   const workLocationIdsClause = formatClause(workLocationIdsArray, 'work_locations', 'work_location_id');
   const jobTypeIdsClause = formatClause(jobTypeIdsArray, 'job_type', 'job_type');
@@ -1370,13 +1370,13 @@ export const programVendorAdvancedFilter = (
     : '';
 
   let complianceStatusClause = '';
-    if (hasComplianceStatus) {
-      if (complianceStatusValue === true) {
-        complianceStatusClause = `AND vcc.compliance_status = 1`;
-      } else if (complianceStatusValue === false) {
-        complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
-      }
+  if (hasComplianceStatus) {
+    if (complianceStatusValue === true) {
+      complianceStatusClause = `AND vcc.compliance_status = 1`;
+    } else if (complianceStatusValue === false) {
+      complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
     }
+  }
 
   return `
     WITH document_data AS (
@@ -1447,9 +1447,8 @@ export const programVendorAdvancedFilter = (
       ${hasQueryName ? 'AND pv.display_name LIKE :display_name' : ''}
       ${hasStatus ? 'AND pv.status = :status' : ''}
       ${hasEmail ? `AND JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].email')) LIKE :contact_email` : ''}
-      ${
-        hasFullName
-          ? `AND (
+      ${hasFullName
+      ? `AND (
               LOWER(TRIM(CONCAT(
                 IFNULL(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name')), ''),
                 ' ',
@@ -1458,8 +1457,8 @@ export const programVendorAdvancedFilter = (
               OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name'))) LIKE LOWER(TRIM(:full_name))
               OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].last_name'))) LIKE LOWER(TRIM(:full_name))
             )`
-          : ''
-      }
+      : ''
+    }
       ${hierarchyIdsClause}
       ${laborCategoryIdsClause}
       ${workLocationIdsClause}
@@ -2284,6 +2283,11 @@ export const hierarchie = `
         h.is_not_editable,
         h.address,
         JSON_OBJECT(
+          'id', t.id,
+          'name', t.name,
+          'display_name', t.display_name
+        ) AS managed_by,
+        JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
         ) AS default_unit_of_measure,
@@ -2312,6 +2316,7 @@ export const hierarchie = `
     LEFT JOIN
         picklistitems uom
         ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+    LEFT JOIN tenant as t on h.managed_by = t.id
     WHERE
         h.id = :hierarchy_id
     LIMIT 0, 1000;
