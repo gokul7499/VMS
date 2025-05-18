@@ -72,17 +72,17 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     }
     const item: any = await Programs.create({ ...programData }, { transaction });
  
-    const programId = item.id;
-    if (Array.isArray(msp_ids) && msp_ids.length > 0) {
-      const mspAssociations = msp_ids.map((mspId: string) => ({
-        program_id: programId,
-        msp_id: mspId,
-        created_by: userId,
-        updated_by: userId,
-        is_enabled: true,
-      }));
-      await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
-    }
+    const programId= item.id;
+   if (Array.isArray(msp_ids) && msp_ids.length > 0) {
+  const mspAssociations = msp_ids.map((msp: { id: string; is_enabled: boolean }) => ({
+    program_id: programId,
+    msp_id: msp.id,
+    is_enabled: msp.is_enabled ?? true,
+    created_by: userId,
+    updated_by: userId,
+  }));
+  await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
+}
  
     reply.status(201).send({
       status_code: 201,
