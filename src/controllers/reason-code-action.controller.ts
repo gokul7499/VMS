@@ -39,7 +39,7 @@ export async function createReasoncode(
                 name: string;
                 category: string;
                 is_enabled: boolean;
-                sq_number:number
+                sq_number: number
             }>;
         };
         if (reasoncode.event_id) {
@@ -69,7 +69,7 @@ export async function createReasoncode(
                 name: reason.name,
                 category: reason.category,
                 reason_code_id: reason_code_action.id,
-                sq_number:reason.sq_number,
+                sq_number: reason.sq_number,
                 is_enabled: reason.is_enabled,
                 program_id: reasoncode.program_id,
                 created_by: userId,
@@ -95,123 +95,123 @@ export async function createReasoncode(
 export async function createReasonCodes(
     request: FastifyRequest,
     reply: FastifyReply
-  ) {
+) {
     const traceId = generateCustomUUID();
-    
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer')) {
-      return reply.status(401).send({
-        status_code: 401,
-        message: 'Unauthorized - Token not found',
-        trace_id: traceId,
-      });
+        return reply.status(401).send({
+            status_code: 401,
+            message: 'Unauthorized - Token not found',
+            trace_id: traceId,
+        });
     }
-    
+
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
     if (!user) {
-      return reply.status(401).send({
-        status_code: 401,
-        message: 'Unauthorized - Invalid token',
-        trace_id: traceId,
-      });
+        return reply.status(401).send({
+            status_code: 401,
+            message: 'Unauthorized - Invalid token',
+            trace_id: traceId,
+        });
     }
     const userId = user.sub;
-    
+
     const transaction = await sequelize.transaction();
-    
+
     try {
-      const reasoncodes = request.body as {
-        reason_code_action_id: string;
-        reason_codes: Array<{
-          name: string;
-          category: string;
-          is_enabled: boolean;
-          sq_number:number
-        }>;
-      };
-      
-      const { reason_code_action_id, reason_codes } = reasoncodes;
-      const program_id = null; 
-      
-      if (!reason_code_action_id) {
-        await transaction.rollback();
-        return reply.status(400).send({
-          status_code: 400,
-          message: 'reason_code_action_id is required',
-          trace_id: traceId,
-        });
-      }
-      
-      if (!reason_codes || reason_codes.length === 0) {
-        await transaction.rollback();
-        return reply.status(400).send({
-          status_code: 400,
-          message: 'reason_codes array cannot be empty',
-          trace_id: traceId,
-        });
-      }
-      
-      const existingAction = await ReasonCodeActionModel.findByPk(reason_code_action_id, { transaction });
-      if (!existingAction) {
-        await transaction.rollback();
-        return reply.status(404).send({
-          status_code: 404,
-          message: 'Reason code action not found',
-          trace_id: traceId,
-        });
-      }
-            
-      const createdCodes = await ReasonCodeModel.bulkCreate(
-        reason_codes.map((reason) => ({
-          name: reason.name,
-          category: reason.category,
-          is_enabled: reason.is_enabled,
-          sq_number:reason.sq_number,
-          program_id: null, 
-          reason_code_id: reason_code_action_id,
-          created_by: userId,
-          updated_by: userId,
-          created_on: Date.now(), 
-          updated_on: Date.now(), 
-          is_deleted: false,
-        })),
-        { transaction }
-      );
-      
-      await ReasonCodeActionModel.update(
-        {
-          reasons_count: sequelize.literal(`reasons_count + ${reason_codes.length}`),
-          updated_by: userId,
-          updated_on: Date.now(), 
-        },
-        {
-          where: { id: reason_code_action_id },
-          transaction,
+        const reasoncodes = request.body as {
+            reason_code_action_id: string;
+            reason_codes: Array<{
+                name: string;
+                category: string;
+                is_enabled: boolean;
+                sq_number: number
+            }>;
+        };
+
+        const { reason_code_action_id, reason_codes } = reasoncodes;
+        const program_id = null;
+
+        if (!reason_code_action_id) {
+            await transaction.rollback();
+            return reply.status(400).send({
+                status_code: 400,
+                message: 'reason_code_action_id is required',
+                trace_id: traceId,
+            });
         }
-      );
-      
-      await transaction.commit();
-      
-      return reply.status(201).send({
-        status_code: 201,
-        message: 'Reason codes created successfully',
-        reason_code_action_id,
-        trace_id: traceId,
-      });
+
+        if (!reason_codes || reason_codes.length === 0) {
+            await transaction.rollback();
+            return reply.status(400).send({
+                status_code: 400,
+                message: 'reason_codes array cannot be empty',
+                trace_id: traceId,
+            });
+        }
+
+        const existingAction = await ReasonCodeActionModel.findByPk(reason_code_action_id, { transaction });
+        if (!existingAction) {
+            await transaction.rollback();
+            return reply.status(404).send({
+                status_code: 404,
+                message: 'Reason code action not found',
+                trace_id: traceId,
+            });
+        }
+
+        const createdCodes = await ReasonCodeModel.bulkCreate(
+            reason_codes.map((reason) => ({
+                name: reason.name,
+                category: reason.category,
+                is_enabled: reason.is_enabled,
+                sq_number: reason.sq_number,
+                program_id: null,
+                reason_code_id: reason_code_action_id,
+                created_by: userId,
+                updated_by: userId,
+                created_on: Date.now(),
+                updated_on: Date.now(),
+                is_deleted: false,
+            })),
+            { transaction }
+        );
+
+        await ReasonCodeActionModel.update(
+            {
+                reasons_count: sequelize.literal(`reasons_count + ${reason_codes.length}`),
+                updated_by: userId,
+                updated_on: Date.now(),
+            },
+            {
+                where: { id: reason_code_action_id },
+                transaction,
+            }
+        );
+
+        await transaction.commit();
+
+        return reply.status(201).send({
+            status_code: 201,
+            message: 'Reason codes created successfully',
+            reason_code_action_id,
+            trace_id: traceId,
+        });
     } catch (error: any) {
-      await transaction.rollback();
-      console.error('Error creating reason codes:', error);
-      
-      return reply.status(500).send({
-        status_code: 500,
-        message: 'Internal Server Error',
-        trace_id: traceId,
-        error: error.message,
-      });
+        await transaction.rollback();
+        console.error('Error creating reason codes:', error);
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
     }
 }
-  
+
 
 
 export async function getAllReasoncode(request: FastifyRequest, reply: FastifyReply) {
@@ -317,7 +317,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (program_id) {
             const reasonCodes = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id, program_id ,is_deleted:false},
+                where: { reason_code_id: id, program_id, is_deleted: false },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 order: [['sq_number', 'ASC']],
                 transaction,
@@ -325,8 +325,8 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id, program_id: null,is_deleted:false },
-                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled','sq_number'],
+                    where: { reason_code_id: id, program_id: null, is_deleted: false },
+                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled', 'sq_number'],
                     order: [['sq_number', 'ASC']],
                     transaction,
                 });
@@ -366,7 +366,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                             created_on: reasonCode.created_on,
                             category: reasonCode.category,
                             is_enabled: reasonCode.is_enabled,
-                            sq_number: reasonCode.sq_number, 
+                            sq_number: reasonCode.sq_number,
 
                         })),
                     };
@@ -414,7 +414,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                         created_on: reasonCode.created_on,
                         category: reasonCode.category,
                         is_enabled: reasonCode.is_enabled,
-                        sq_number:reasonCode.sq_number
+                        sq_number: reasonCode.sq_number
                     })),
                 };
 
@@ -450,18 +450,18 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
         });
 
         if (reasonCodeAction) {
-            const reasonCodes  = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id ,is_deleted:false},
+            const reasonCodes = await ReasonCodeModel.findAll({
+                where: { reason_code_id: id, is_deleted: false },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled', 'sq_number'],
                 order: [['sq_number', 'ASC']],
                 transaction,
-            });     
-            const { supporting_text_event, module,} = reasonCodeAction.toJSON();
+            });
+            const { supporting_text_event, module, } = reasonCodeAction.toJSON();
 
             reasonCodeResponse = {
                 id: reasonCodeAction.id,
-                module_name: module?.name ,
-                module_id: module?.id ,
+                module_name: module?.name,
+                module_id: module?.id,
                 event_name: supporting_text_event?.name,
                 event_id: supporting_text_event?.id,
                 reason_codes: reasonCodes || [],
@@ -677,7 +677,7 @@ export async function deleteReasoncode(
             is_deleted: true,
             updated_on: Date.now(),
         },
-            { where: { id,is_deleted:false } }
+            { where: { id, is_deleted: false } }
         );
 
         if (numRowsDeleted[0] > 0) {
@@ -709,97 +709,79 @@ export const getReasonCodeBySlug = async (
     request: FastifyRequest,
     reply: FastifyReply
 ) => {
-
     const { program_id } = request.params as { program_id: string };
     const { event_slug, module_slug } = request.query as { event_slug: string; module_slug: string };
-    const traceId = generateCustomUUID();
+    const trace_id = generateCustomUUID();
+
     try {
-        const event = await Event.findOne({
-            where: { slug: event_slug },
-            attributes: ['id'],
-        });
+        const [event, module] = await Promise.all([
+            Event.findOne({ where: { slug: event_slug }, attributes: ['id'] }),
+            Module.findOne({ where: { slug: module_slug }, attributes: ['id'] }),
+        ]);
 
-        if (!event) {
+        if (!event || !module) {
             return reply.status(200).send({
                 status_code: 200,
-                message: `Event with slug '${event_slug}' not found`,
-                trace_id: traceId,
+                message: "Event or Module not found",
+                trace_id,
             });
         }
 
-        const module = await Module.findOne({
-            where: { slug: module_slug },
-            attributes: ['id'],
+        const actions = await ReasonCodeActionModel.findAll({
+            where: { event_id: event.id, module_id: module.id, is_deleted: false },
         });
 
-        if (!module) {
+        if (!actions.length) {
             return reply.status(200).send({
                 status_code: 200,
-                message: `Module with slug '${module_slug}' not found`,
-                trace_id: traceId,
+                message: "Reason code actions not found",
+                trace_id,
             });
         }
 
-        const event_id = event.id;
-        const module_id = module.id;
+        const reason_code_ids = actions.map(a => a.id);
+        const commonWhere = {
+            reason_code_id: reason_code_ids,
+            is_deleted: false,
+             is_enabled: true
 
-        const data = await ReasonCodeActionModel.findAll({
-            where: { event_id, module_id, is_deleted: false },
-        });
+        };
 
-        if (!data.length) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: "Reason codes action not found for the given event and module",
-                trace_id: traceId,
-            });
-        }
-
-        const reason_codes = await ReasonCodeModel.findAll({
+        let reasonCodes = await ReasonCodeModel.findAll({
             where: {
-                reason_code_id: data.map((d) => d.id),
-                program_id: program_id,
-                is_deleted: false,
-                is_enabled: true
+                ...commonWhere, program_id,
             },
             order: [['sq_number', 'ASC']],
-            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id','sq_number']
+            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
         });
 
-        if (!reason_codes.length) {
-            const reason_codes = await ReasonCodeModel.findAll({
+        if (!reasonCodes.length) {
+            reasonCodes = await ReasonCodeModel.findAll({
                 where: {
-                    reason_code_id: data.map((d) => d.id),
-                    is_deleted: false,
-                    is_enabled: true
+                    ...commonWhere, program_id: null,
                 },
                 order: [['sq_number', 'ASC']],
-                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id','sq_number']
-            });
-            return reply.status(200).send({
-                status_code: 200,
-                message: "Reason codes retrieved successfully",
-                reason_code_action: reason_codes,
-                trace_id: traceId,
+                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
             });
         }
 
-        reply.status(200).send({
+        return reply.status(200).send({
             status_code: 200,
             message: "Reason codes retrieved successfully",
-            trace_id: traceId,
-            reason_code_action: reason_codes,
+            reason_code_action: reasonCodes,
+            trace_id,
         });
 
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            trace_id: traceId,
             message: "Internal Server Error",
+            trace_id,
             error: error.message,
         });
     }
 };
+
 
 export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -823,7 +805,7 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
                 reason_code_id: reasonCodeAction.id,
             },
             order: [['sq_number', 'ASC']],
-            attributes: ['id', 'name', 'category', 'reason_code_id','sq_number'],
+            attributes: ['id', 'name', 'category', 'reason_code_id', 'sq_number'],
         });
 
         if (!reasonCodes.length) {
@@ -854,6 +836,7 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
 
 export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+    const { program_id } = request.params as { program_id: string };
 
     try {
         const {
@@ -866,23 +849,23 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         } = request.body as {
             page?: number;
             limit?: number;
-            module_name?:string[];
+            module_name?: string[];
             reasons_count?: number;
             event_name?: string;
             updated_on?: string[];
         };
 
-        const pageNumber = parseInt(String(page), 10) || 1;
-        const limitNumber = parseInt(String(limit), 10) || 10;
+        const pageNumber = Math.max(parseInt(String(page), 10) || 1, 1);
+        const limitNumber = Math.max(parseInt(String(limit), 10) || 10, 1);
         const offset = (pageNumber - 1) * limitNumber;
 
         const whereClause: any = {
-            is_deleted: false
+            is_deleted: false,
         };
         if (module_name) {
             if (Array.isArray(module_name)) {
                 whereClause[Op.or] = module_name.map((name: string) => ({
-                    '$module.name$': { [Op.like]: `%${name}%` }
+                    '$module.name$': { [Op.like]: `%${name}%` },
                 }));
             } else {
                 whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
@@ -900,10 +883,21 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
 
-        const { rows: reasoncodes, count: totalRecords } = await ReasonCodeActionModel.findAndCountAll({
+
+        const { count: totalRecords, rows: reasoncodes } = await ReasonCodeActionModel.findAndCountAll({
             where: whereClause,
             attributes: {
-                exclude: ['ref_id', 'updated_by', 'created_by', 'event_id', 'module_id', 'created_on', 'is_deleted', 'reason_code_limit', 'slug']
+                exclude: [
+                    'ref_id',
+                    'updated_by',
+                    'created_by',
+                    'event_id',
+                    'module_id',
+                    'created_on',
+                    'is_deleted',
+                    'reason_code_limit',
+                    'slug',
+                ],
             },
             include: [
                 {
@@ -929,17 +923,20 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             distinct: true,
         });
 
-        const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
-            const { supporting_text_event, module, ...reasoncodeWithoutReason } = reasoncode.toJSON();
-            const enabledReasonsCount = reasoncode.reasons_count || 0;
+        const reasonCodeIds = reasoncodes.map(rc => rc.id);
 
+        const usageCountMap = await updateReasonCounts(program_id, reasonCodeIds);
+
+        const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
+            const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
             return {
-                ...reasoncodeWithoutReason,
-                reasons_count: enabledReasonsCount,
-                module_name: module?.name  ,
-                module_id: module?.id ,
-                event_name: supporting_text_event?.name ,
-                event_id: supporting_text_event?.id ,
+                ...reasoncodeData,
+                reasons_count: usageCountMap[reasoncodeData.id] || 0,
+                module_name: module?.name,
+                module_id: module?.id,
+                event_name: supporting_text_event?.name,
+                event_id: supporting_text_event?.id,
+                reason_codes: null,
             };
         });
         reply.status(200).send({
@@ -960,4 +957,35 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             error: error.message,
         });
     }
+}
+async function updateReasonCounts(program_id: string, reasonCodeActionIds: string[]) {
+    const usageCounts = await ReasonCodeModel.findAll({
+        where: {
+            reason_code_id: {
+                [Op.in]: reasonCodeActionIds,
+            },
+        },
+        attributes: [
+            'reason_code_id',
+            'program_id',
+            [Sequelize.fn('COUNT', Sequelize.col('reason_code_id')), 'usage_count'],
+        ],
+        group: ['reason_code_id', 'program_id'],
+        raw: true,
+    });
+    const usageMap: Record<string, number> = {};
+    usageCounts.forEach(({ reason_code_id, program_id: recordProgramId, usage_count }) => {
+        const count = parseInt(usage_count || '0', 10);
+        if (recordProgramId === null || recordProgramId === program_id) {
+            usageMap[reason_code_id] = (usageMap[reason_code_id] || 0) + count;
+        }
+    });
+    const updatePromises = Object.entries(usageMap).map(([reason_code_id, totalCount]) => {
+        return ReasonCodeActionModel.update(
+            { reasons_count: totalCount },
+            { where: { id: reason_code_id } }
+        );
+    });
+    await Promise.all(updatePromises);
+    return usageMap;
 }

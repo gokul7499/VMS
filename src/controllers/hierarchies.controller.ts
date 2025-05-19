@@ -160,7 +160,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     );
 
     const total_count = hierarchies[0]?.total_count || 0;
-
+ 
     if (total_count === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -173,11 +173,20 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
-    const formattedHierarchies = hierarchies.map(({ default_currency, total_count, ...rest }) => ({
-      ...rest,
-      currency: default_currency ?? null,
-      is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
-    }));
+  const formattedHierarchies = hierarchies.map(
+  ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
+    ...rest,
+    currency: default_currency ?? null,
+    is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
+    managed_by: managed_by
+      ? {
+          id: managed_by,
+          name: managed_by_name ?? null,
+          display_name: managed_by_display_name ?? null,
+        }
+      : null,
+  })
+);
 
     return reply.status(200).send({
       status_code: 200,
