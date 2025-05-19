@@ -3394,3 +3394,50 @@ export const shiftTypesQuery = `
     AND st.is_enabled = true
     AND st.is_deleted = false
 `;
+
+export const getVendorDistributionSchedule = `
+  SELECT 
+    ds.id,
+    ds.name,
+    ds.description,
+    ds.is_enabled,
+    dsd.id AS detail_id,
+    dsd.duration,
+    dsd.measure_unit,
+    dsd.condition,
+    (
+      SELECT 
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'name', pv.display_name
+          )
+        )
+        FROM program_vendors pv
+        WHERE JSON_OVERLAPS(dsd.vendors, JSON_ARRAY(pv.id))
+    ) AS vendors,
+    (
+      SELECT 
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', vg.id,
+            'name', vg.vendor_group_name
+          )
+        )
+        FROM vendor_groups vg
+        WHERE JSON_OVERLAPS(dsd.vendor_group_ids, JSON_ARRAY(vg.id))
+    ) AS vendor_groups
+    FROM vendor_distribution_schedules ds
+    INNER JOIN vendor_dist_schedule_details dsd ON dsd.distribution_id = ds.id
+    WHERE ds.id = :id
+      AND ds.program_id = :program_id
+      AND ds.is_deleted = FALSE
+    ORDER BY
+      CASE dsd.measure_unit
+        WHEN 'hours' THEN 1
+        WHEN 'days' THEN 2
+        WHEN 'weeks' THEN 3
+        ELSE 4
+      END,
+    dsd.duration ASC;
+`;
