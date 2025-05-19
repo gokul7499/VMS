@@ -1114,11 +1114,18 @@ export async function updateComplianceDocument(
 
         const documentData = complianceDocuments[0];
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
-        const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
-        if (!expiryDate) return;
+        let nextUpdateDueDate;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+        if (uploadedDocument?.expiry_on) {
+            const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
+            if (!expiryDate) return;
 
+            const nextUpdateDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+            nextUpdateDueDate = nextUpdateDate.getTime();
+        } else {
+            nextUpdateDueDate = null;
+        }
+        
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
 
@@ -1147,7 +1154,7 @@ export async function updateComplianceDocument(
                 created_on: uploadedDocument?.id ? undefined : Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
-                next_expiry_on: nextUpdateDueDate.getTime(),
+                next_expiry_on: nextUpdateDueDate,
                 expiry_on: uploadedDocument.expiry_on,
                 audited_on: finalAudited_on,
                 audited_by: finalAudited_by,
