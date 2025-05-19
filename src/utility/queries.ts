@@ -1360,7 +1360,7 @@ export const programVendorAdvancedFilter = (
     return `AND (${filters} ${includeAllHierarchy ? 'OR pv.all_hierarchy = true' : ''})`;
   };
 
-  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids',true);
+  const hierarchyIdsClause = formatClause(hierarchyIdsArray, 'hierarchies', 'hierarchy_ids', true);
   const laborCategoryIdsClause = formatClause(laborCategoryIdsArray, 'program_industry', 'labor_category_id');
   const workLocationIdsClause = formatClause(workLocationIdsArray, 'work_locations', 'work_location_id');
   const jobTypeIdsClause = formatClause(jobTypeIdsArray, 'job_type', 'job_type');
@@ -1370,13 +1370,13 @@ export const programVendorAdvancedFilter = (
     : '';
 
   let complianceStatusClause = '';
-    if (hasComplianceStatus) {
-      if (complianceStatusValue === true) {
-        complianceStatusClause = `AND vcc.compliance_status = 1`;
-      } else if (complianceStatusValue === false) {
-        complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
-      }
+  if (hasComplianceStatus) {
+    if (complianceStatusValue === true) {
+      complianceStatusClause = `AND vcc.compliance_status = 1`;
+    } else if (complianceStatusValue === false) {
+      complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
     }
+  }
 
   return `
     WITH document_data AS (
@@ -1447,9 +1447,8 @@ export const programVendorAdvancedFilter = (
       ${hasQueryName ? 'AND pv.display_name LIKE :display_name' : ''}
       ${hasStatus ? 'AND pv.status = :status' : ''}
       ${hasEmail ? `AND JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].email')) LIKE :contact_email` : ''}
-      ${
-        hasFullName
-          ? `AND (
+      ${hasFullName
+      ? `AND (
               LOWER(TRIM(CONCAT(
                 IFNULL(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name')), ''),
                 ' ',
@@ -1458,8 +1457,8 @@ export const programVendorAdvancedFilter = (
               OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].first_name'))) LIKE LOWER(TRIM(:full_name))
               OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(pv.contact, '$[0].last_name'))) LIKE LOWER(TRIM(:full_name))
             )`
-          : ''
-      }
+      : ''
+    }
       ${hierarchyIdsClause}
       ${laborCategoryIdsClause}
       ${workLocationIdsClause}
@@ -3388,4 +3387,51 @@ export const shiftTypesQuery = `
     AND rc.id IN (:configIds)
     AND st.is_enabled = true
     AND st.is_deleted = false
+`;
+
+export const getVendorDistributionSchedule = `
+  SELECT 
+    ds.id,
+    ds.name,
+    ds.description,
+    ds.is_enabled,
+    dsd.id AS detail_id,
+    dsd.duration,
+    dsd.measure_unit,
+    dsd.condition,
+    (
+      SELECT 
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'name', pv.display_name
+          )
+        )
+        FROM program_vendors pv
+        WHERE JSON_OVERLAPS(dsd.vendors, JSON_ARRAY(pv.id))
+    ) AS vendors,
+    (
+      SELECT 
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', vg.id,
+            'name', vg.vendor_group_name
+          )
+        )
+        FROM vendor_groups vg
+        WHERE JSON_OVERLAPS(dsd.vendor_group_ids, JSON_ARRAY(vg.id))
+    ) AS vendor_groups
+    FROM vendor_distribution_schedules ds
+    INNER JOIN vendor_dist_schedule_details dsd ON dsd.distribution_id = ds.id
+    WHERE ds.id = :id
+      AND ds.program_id = :program_id
+      AND ds.is_deleted = FALSE
+    ORDER BY
+      CASE dsd.measure_unit
+        WHEN 'hours' THEN 1
+        WHEN 'days' THEN 2
+        WHEN 'weeks' THEN 3
+        ELSE 4
+      END,
+    dsd.duration ASC;
 `;

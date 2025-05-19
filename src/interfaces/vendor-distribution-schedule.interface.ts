@@ -1,4 +1,5 @@
 export interface VendorDistributionSchedule {
+    id: string;
     name: string;
     description: string;
     is_enabled: boolean;

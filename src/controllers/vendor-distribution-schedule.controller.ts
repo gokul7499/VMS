@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { sequelize } from "../config/instance";
 import { QueryTypes } from "sequelize";
-import { vendorDistributionScheduleFilterQuery } from "../utility/queries";
+import { vendorDistributionScheduleFilterQuery,getVendorDistributionSchedule} from "../utility/queries";
 
 export const createVendorDistributionSchedule = async (
     request: FastifyRequest,
@@ -162,18 +162,20 @@ export async function getAllvendorDistributionSchedules(request: FastifyRequest,
 }
 
 export const getVendorDistributionScheduleById = async (
-    request: FastifyRequest, reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
+
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
 
-        const vendorDistributionSchedule = await vendorDistributionScheduleModel.findOne({
-            where: { program_id, id, is_deleted: false },
-            attributes: ['id', 'name', 'description', 'is_enabled'],
+        const result = await sequelize.query<VendorDistributionSchedule>(getVendorDistributionSchedule, {
+            replacements: { program_id, id },
+            type: QueryTypes.SELECT
         });
 
-        if (!vendorDistributionSchedule) {
+        if (!result.length) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'Vendor Distribution Schedule not found.',
@@ -182,53 +184,36 @@ export const getVendorDistributionScheduleById = async (
             });
         }
 
-        const distScheduleDetails = await DistScheduleDetail.findAll({
-            where: { distribution_id: id },
-            attributes: ['id', 'duration', 'measure_unit', 'vendors', 'condition'],
-        });
-
-        const unitOrder: { [key in 'weeks' | 'hours' | 'days']: number } = {
-            hours: 1,
-            days: 2,
-            weeks: 3,
-        };
-
-        const sortedDistScheduleDetails = distScheduleDetails.sort((a, b) => {
-            const unitA = a.measure_unit as keyof typeof unitOrder;
-            const unitB = b.measure_unit as keyof typeof unitOrder;
-
-            if (unitOrder[unitA] !== unitOrder[unitB]) {
-                return unitOrder[unitA] - unitOrder[unitB];
-            }
-
-            return a.duration - b.duration;
-        });
-
         const responseData = {
-            id: vendorDistributionSchedule.id,
-            name: vendorDistributionSchedule.name,
-            description: vendorDistributionSchedule.description,
-            is_enabled: vendorDistributionSchedule.is_enabled,
-            dist_schedule_detail: sortedDistScheduleDetails.map(detail => ({
-                id: detail.id,
-                duration: detail.duration,
-                measure_unit: detail.measure_unit,
-                vendors: detail.vendors || [],
-                condition: detail.condition || [],
-            })),
+            id: result[0].id,
+            name: result[0].name,
+            description: result[0].description,
+            is_enabled: result[0].is_enabled,
+            dist_schedule_detail: result.map((row: any) => ({
+                id: row.detail_id,
+                duration: row.duration,
+                measure_unit: row.measure_unit,
+                condition: row.condition,
+                vendors: Array.from(new Set([
+                    ...(row.vendors ?? []),
+                    ...(row.vendor_groups ?? [])
+                ]))
+            }))
         };
 
         reply.status(200).send({
             status_code: 200,
-            message: 'Vendor Distribution Schedule fetched successfully.',
-            vendor_schedule: responseData,
+            message: 'Vendor distribution schedule fetched successfully.',
             trace_id: traceId,
+            vendor_schedule: responseData
         });
-    } catch (error) {
+
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error: error.message
         });
     }
 };
