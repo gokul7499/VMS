@@ -609,11 +609,11 @@ WITH hierarchy_cte AS (
     h.default_date_format,
     h.is_vendor_neutral_program,
     h.is_not_editable,
-    h.default_currency,   
+    h.default_currency,
+    ph.name AS parent_hierarchy_name,
     h.managed_by,
     t.name AS managed_by_name,
-    t.display_name AS managed_by_display_name,
-    ph.name AS parent_hierarchy_name
+    t.display_name AS managed_by_display_name
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   LEFT JOIN tenant t ON h.managed_by = t.id
@@ -627,7 +627,7 @@ WITH hierarchy_cte AS (
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
-
+ 
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
