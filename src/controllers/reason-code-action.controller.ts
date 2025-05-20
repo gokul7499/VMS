@@ -39,7 +39,7 @@ export async function createReasoncode(
                 name: string;
                 category: string;
                 is_enabled: boolean;
-                sq_number:number
+                sq_number: number
             }>;
         };
         if (reasoncode.event_id) {
@@ -317,7 +317,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (program_id) {
             const reasonCodes = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id, program_id,is_deleted:false},
+                where: { reason_code_id: id, program_id, is_deleted: false },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 order: [['sq_number', 'ASC']],
                 transaction,
@@ -325,8 +325,8 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id, program_id: null, is_deleted:false },
-                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled','sq_number'],
+                    where: { reason_code_id: id, program_id: null, is_deleted: false },
+                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled', 'sq_number'],
                     order: [['sq_number', 'ASC']],
                     transaction,
                 });
@@ -414,7 +414,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                         created_on: reasonCode.created_on,
                         category: reasonCode.category,
                         is_enabled: reasonCode.is_enabled,
-                        sq_number:reasonCode.sq_number
+                        sq_number: reasonCode.sq_number
                     })),
                 };
 
@@ -709,97 +709,79 @@ export const getReasonCodeBySlug = async (
     request: FastifyRequest,
     reply: FastifyReply
 ) => {
-
     const { program_id } = request.params as { program_id: string };
     const { event_slug, module_slug } = request.query as { event_slug: string; module_slug: string };
-    const traceId = generateCustomUUID();
+    const trace_id = generateCustomUUID();
+
     try {
-        const event = await Event.findOne({
-            where: { slug: event_slug },
-            attributes: ['id'],
-        });
+        const [event, module] = await Promise.all([
+            Event.findOne({ where: { slug: event_slug }, attributes: ['id'] }),
+            Module.findOne({ where: { slug: module_slug }, attributes: ['id'] }),
+        ]);
 
-        if (!event) {
+        if (!event || !module) {
             return reply.status(200).send({
                 status_code: 200,
-                message: `Event with slug '${event_slug}' not found`,
-                trace_id: traceId,
+                message: "Event or Module not found",
+                trace_id,
             });
         }
 
-        const module = await Module.findOne({
-            where: { slug: module_slug },
-            attributes: ['id'],
+        const actions = await ReasonCodeActionModel.findAll({
+            where: { event_id: event.id, module_id: module.id, is_deleted: false },
         });
 
-        if (!module) {
+        if (!actions.length) {
             return reply.status(200).send({
                 status_code: 200,
-                message: `Module with slug '${module_slug}' not found`,
-                trace_id: traceId,
+                message: "Reason code actions not found",
+                trace_id,
             });
         }
 
-        const event_id = event.id;
-        const module_id = module.id;
+        const reason_code_ids = actions.map(a => a.id);
+        const commonWhere = {
+            reason_code_id: reason_code_ids,
+            is_deleted: false,
+             is_enabled: true
 
-        const data = await ReasonCodeActionModel.findAll({
-            where: { event_id, module_id, is_deleted: false },
-        });
+        };
 
-        if (!data.length) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: "Reason codes action not found for the given event and module",
-                trace_id: traceId,
-            });
-        }
-
-        const reason_codes = await ReasonCodeModel.findAll({
+        let reasonCodes = await ReasonCodeModel.findAll({
             where: {
-                reason_code_id: data.map((d) => d.id),
-                program_id: program_id,
-                is_deleted: false,
-                is_enabled: true
+                ...commonWhere, program_id,
             },
             order: [['sq_number', 'ASC']],
-            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number']
+            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
         });
 
-        if (!reason_codes.length) {
-            const reason_codes = await ReasonCodeModel.findAll({
+        if (!reasonCodes.length) {
+            reasonCodes = await ReasonCodeModel.findAll({
                 where: {
-                    reason_code_id: data.map((d) => d.id),
-                    is_deleted: false,
-                    is_enabled: true
+                    ...commonWhere, program_id: null,
                 },
                 order: [['sq_number', 'ASC']],
-                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number']
-            });
-            return reply.status(200).send({
-                status_code: 200,
-                message: "Reason codes retrieved successfully",
-                reason_code_action: reason_codes,
-                trace_id: traceId,
+                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
             });
         }
 
-        reply.status(200).send({
+        return reply.status(200).send({
             status_code: 200,
             message: "Reason codes retrieved successfully",
-            trace_id: traceId,
-            reason_code_action: reason_codes,
+            reason_code_action: reasonCodes,
+            trace_id,
         });
 
     } catch (error: any) {
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            trace_id: traceId,
             message: "Internal Server Error",
+            trace_id,
             error: error.message,
         });
     }
 };
+
 
 export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -867,7 +849,7 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         } = request.body as {
             page?: number;
             limit?: number;
-            module_name?:string[];
+            module_name?: string[];
             reasons_count?: number;
             event_name?: string;
             updated_on?: string[];
@@ -892,11 +874,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
         if (event_name) {
             whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
         }
-  
+
         if (reasons_count !== undefined) {
             whereClause.reasons_count = reasons_count;
         }
-   if (Array.isArray(updated_on) && updated_on.length === 2) {
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
             const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
             whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
@@ -949,11 +931,11 @@ export async function advancedFilterReasoncode(request: FastifyRequest, reply: F
             const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
             return {
                 ...reasoncodeData,
-               reasons_count:usageCountMap[reasoncodeData.id] || 0,
-                module_name: module?.name ,
-                module_id: module?.id ,
-                event_name: supporting_text_event?.name ,
-                event_id: supporting_text_event?.id ,
+                reasons_count: usageCountMap[reasoncodeData.id] || 0,
+                module_name: module?.name,
+                module_id: module?.id,
+                event_name: supporting_text_event?.name,
+                event_id: supporting_text_event?.id,
                 reason_codes: null,
             };
         });
@@ -990,7 +972,7 @@ async function updateReasonCounts(program_id: string, reasonCodeActionIds: strin
         ],
         group: ['reason_code_id', 'program_id'],
         raw: true,
-    }); 
+    });
     const usageMap: Record<string, number> = {};
     usageCounts.forEach(({ reason_code_id, program_id: recordProgramId, usage_count }) => {
         const count = parseInt(usage_count || '0', 10);

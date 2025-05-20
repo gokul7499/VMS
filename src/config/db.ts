@@ -34,6 +34,7 @@ export const databaseConfig = {
       app_origin: config.app_origin,
       keycloak_subdomain: config.keycloak_subdomain,
       client_id: config.client_id,
+      ui_base_url: config.ui_base_url,
       client_secret: config.client_secret,
       keycloak_realm: config.keycloak_realm,
       ai_url:config.ai_url,

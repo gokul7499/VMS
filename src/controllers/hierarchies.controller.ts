@@ -116,12 +116,12 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     name?: string;
     is_enabled?: boolean | string;
     updated_on?: string;
-     msp?: string;
+    msp?: string;
     page?: number;
     limit?: number;
   };
   const traceId = generateCustomUUID();
-
+ 
   try {
     const hasName = !!name;
     const hasMsp = !!msp;
@@ -129,10 +129,10 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
     let startDate: number | undefined;
     let endDate: number | undefined;
-
+ 
     if (updated_on) {
       const dateRange = updated_on.split(",").map(date => date.trim());
-
+ 
       if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
         startDate = Number(dateRange[0]);
       }
@@ -140,9 +140,9 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         endDate = Number(dateRange[1]);
       }
     }
-
+ 
     const offset = (page - 1) * limit;
-
+ 
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
@@ -152,17 +152,17 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       limit: Number(limit),
       offset: Number(offset),
     };
-
+ 
     const hierarchies: any[] = await sequelize.query(
-     getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
       {
         replacements,
         type: QueryTypes.SELECT,
       }
     );
-
+ 
     const total_count = hierarchies[0]?.total_count || 0;
-
+ 
     if (total_count === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -174,12 +174,21 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         hierarchies: [],
       });
     }
-
-    const formattedHierarchies = hierarchies.map(({ default_currency, total_count, ...rest }) => ({
-      ...rest,
-      currency: default_currency ?? null,
-      is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
-    }));
+ 
+   const formattedHierarchies = hierarchies.map(
+  ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
+    ...rest,
+    currency: default_currency ?? null,
+    is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
+    managed_by: managed_by
+      ? {
+          id: managed_by,
+          name: managed_by_name ?? null,
+          display_name: managed_by_display_name ?? null,
+        }
+      : null,
+  })
+);
 
     return reply.status(200).send({
       status_code: 200,
