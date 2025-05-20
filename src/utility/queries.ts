@@ -191,25 +191,50 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
     AND (pv.id IS NULL OR pv.id = :vendor_id)
     AND (:name IS NULL OR vcd.name LIKE :name)
     AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+    AND (:next_expiry_on IS NULL OR vcrm.next_expiry_on = :next_expiry_on)
   `;
+
+  let countWhereClause = `
+    pv_sub.program_id = :program_id
+    AND vcd_sub.is_enabled = true
+    AND vcd_sub.program_id = :program_id
+    AND (vcrm_sub.program_id IS NULL OR vcrm_sub.program_id = :program_id)
+    AND (pv_sub.id IS NULL OR pv_sub.id = :vendor_id)
+    AND (:name IS NULL OR vcd_sub.name LIKE :name)
+    AND (:is_enabled IS NULL OR vcd_sub.is_enabled LIKE :is_enabled)
+    AND (:next_expiry_on IS NULL OR vcrm_sub.next_expiry_on = :next_expiry_on)
+  `;
+
+  if (replacements.updated_on) {
+    whereClause += `
+      AND (DATE(FROM_UNIXTIME(vcrm.updated_on / 1000)) = DATE(:updated_on))
+    `;
+    countWhereClause += `
+      AND (DATE(FROM_UNIXTIME(vcrm_sub.updated_on / 1000)) = DATE(:updated_on))
+    `;
+  }
 
   if (replacements.status && replacements.status.length > 0) {
     const statuses: string[] = replacements.status.map((s: string) => s.trim());
-    const hasPendingUpload = statuses.includes('pending upload');
-    const otherStatuses = statuses.filter((s) => s !== 'pending upload');
+    const hasPendingUpload = statuses.includes('Pending Upload');
+    const otherStatuses = statuses.filter((s) => s !== 'Pending Upload');
     const conditions: string[] = [];
+    const countConditions: string[] = [];
 
     if (hasPendingUpload) {
-      conditions.push(`(vcrm.status IS NULL OR vcrm.status = 'pending upload')`);
+      conditions.push(`(vcrm.status IS NULL OR vcrm.status = 'Pending Upload')`);
+      countConditions.push(`(vcrm_sub.status IS NULL OR vcrm_sub.status = 'Pending Upload')`);
     }
 
     if (otherStatuses.length > 0) {
       const statusList = otherStatuses.map((s: string) => `'${s}'`).join(',');
       conditions.push(`vcrm.status IN (${statusList})`);
+      countConditions.push(`vcrm_sub.status IN (${statusList})`);
     }
 
     if (conditions.length > 0) {
       whereClause += ` AND (${conditions.join(' OR ')})`;
+      countWhereClause += ` AND (${countConditions.join(' OR ')})`;
     }
   }
 
@@ -253,14 +278,16 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
             WHERE JSON_CONTAINS(vcd.work_locations, JSON_QUOTE(wl.id))
         ) AS work_location,
         pv.display_name,
-        (SELECT COUNT(DISTINCT vcd_sub.id)
-         FROM vendor_compliance_documents vcd_sub
-         JOIN vendor_document_groups vdg_sub ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id))
-         WHERE vcd_sub.program_id = :program_id
-           AND vcd_sub.is_enabled = true
-           AND (pv.id IS NULL OR pv.id = :vendor_id)
-           AND (:name IS NULL OR vcd_sub.name LIKE :name)
-           AND (:is_enabled IS NULL OR vcd_sub.is_enabled LIKE :is_enabled)
+        (
+          SELECT COUNT(DISTINCT vcd_sub.id)
+          FROM vendor_document_groups vdg_sub
+          JOIN vendor_compliance_documents vcd_sub 
+            ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id))
+          JOIN program_vendors pv_sub
+            ON JSON_CONTAINS(pv_sub.com_doc_group, JSON_QUOTE(vdg_sub.id))
+          LEFT JOIN vendor_compliance_req_doc_mappings vcrm_sub
+            ON vcd_sub.id = vcrm_sub.required_document_id AND vcrm_sub.vendor_id = :vendor_id
+          WHERE ${countWhereClause}
         ) AS total_count
     FROM
         program_vendors pv
