@@ -894,10 +894,11 @@ export async function findJobTemplatesByLabourCategories(request: FastifyRequest
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id, sow_template_id } = request.query as {
+    const { job_manager_id, job_template_id, sow_template_id, msp_id } = request.query as {
       job_manager_id: string;
       job_template_id?: string;
       sow_template_id?: string;
+      msp_id?: string;
     };
     const { program_id } = request.params as { program_id: string };
 
@@ -913,6 +914,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
 
     let templateHierarchyIds: string[] = [];
     let sowTemplateHierarchyIds: string[] = [];
+    let mspHierarchyIds: string[] = [];
 
     if (job_template_id) {
       const templateData = await jobTempletRepositories.templateQuery(job_template_id);
@@ -924,6 +926,10 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       sowTemplateHierarchyIds = sowTemplateData.map((row) => row.hierarchy_id);
     }
 
+    if (msp_id) {
+      mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
+    }
+
     let commonHierarchyIds = managerHierarchyIds;
 
     if (templateHierarchyIds.length > 0) {
@@ -932,6 +938,10 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
 
     if (sowTemplateHierarchyIds.length > 0) {
       commonHierarchyIds = commonHierarchyIds.filter((id) => sowTemplateHierarchyIds.includes(id));
+    }
+
+    if (mspHierarchyIds.length > 0) {
+      commonHierarchyIds = commonHierarchyIds.filter((id) => mspHierarchyIds.includes(id));
     }
 
     if (commonHierarchyIds.length === 0) {
