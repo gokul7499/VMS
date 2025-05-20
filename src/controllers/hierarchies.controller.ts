@@ -10,7 +10,7 @@ import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getParentHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 import User from '../models/user.model';
-import { ProgramVendor } from '../models/program-vendor.model';
+import TenantModel from '../models/tenant.model';
 import CountryModel from '../models/countries.model';
 
 interface HierarchyItem {
@@ -162,7 +162,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     );
  
     const total_count = hierarchies[0]?.total_count || 0;
- 
+
     if (total_count === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -174,21 +174,21 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         hierarchies: [],
       });
     }
- 
-   const formattedHierarchies = hierarchies.map(
-  ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
-    ...rest,
-    currency: default_currency ?? null,
-    is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
-    managed_by: managed_by
-      ? {
-          id: managed_by,
-          name: managed_by_name ?? null,
-          display_name: managed_by_display_name ?? null,
-        }
-      : null,
-  })
-);
+
+    const formattedHierarchies = hierarchies.map(
+      ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
+        ...rest,
+        currency: default_currency ?? null,
+        is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
+        managed_by: managed_by
+          ? {
+            id: managed_by,
+            name: managed_by_name ?? null,
+            display_name: managed_by_display_name ?? null,
+          }
+          : null,
+      })
+    );
 
     return reply.status(200).send({
       status_code: 200,
@@ -971,3 +971,96 @@ export async function getParentHierarchies(
     });
   }
 }
+
+export const getMspByClient = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { program_id } = request.params as { program_id: string };
+  const { client_id } = request.query as { client_id?: string };
+  const traceId = generateCustomUUID();
+
+  try {
+    if (!client_id) {
+      return reply.status(400).send({
+        status_code: 400,
+        trace_id: traceId,
+        message: "client_id is required in query parameters",
+      });
+    }
+
+    const user = await User.findOne({
+      where: {
+        program_id,
+        user_id: client_id,
+      },
+    });
+
+    if (!user) {
+      return reply.status(404).send({
+        status_code: 404,
+        trace_id: traceId,
+        message: "User not found for given program_id and client_id",
+      });
+    }
+
+    const { associate_hierarchy_ids, is_all_hierarchy_associate } = user;
+
+    let managedByIds: string[] = [];
+
+    if (is_all_hierarchy_associate) {
+      const hierarchies = await HierarchiesModel.findAll({
+        where: {
+          program_id
+        },
+        attributes: ['managed_by'],
+        raw: true
+      });
+
+      managedByIds = [
+        ...new Set(hierarchies.map((h: any) => h.managed_by)),
+      ];
+    } else {
+      const hierarchies = await HierarchiesModel.findAll({
+        where: {
+          id: associate_hierarchy_ids,
+        },
+        attributes: ['managed_by'],
+        raw: true
+      });
+
+      managedByIds = [
+        ...new Set(hierarchies.map((h: any) => h.managed_by)),
+      ];
+    }
+
+    if (!managedByIds.length) {
+      return reply.status(200).send({
+        status_code: 200,
+        trace_id: traceId,
+        message: "No MSP found for the given program",
+        data: [],
+      });
+    }
+
+    const tenants = await TenantModel.findAll({
+      where: {
+        id: managedByIds,
+      },
+      attributes: ['id', 'name', 'display_name'],
+    });
+
+    return reply.status(200).send({
+      status_code: 200,
+      trace_id: traceId,
+      message: "MSP fetched successfully.",
+      data: tenants
+    });
+
+  } catch (error: any) {
+    console.error(error);
+    return reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "An error occurred while fetching MSP",
+      error: error.message,
+    });
+  }
+};
