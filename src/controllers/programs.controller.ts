@@ -19,7 +19,7 @@ import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
 
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { msp_ids = [], ...programData } = request.body as CreateProgramData & { msp_ids?: string[] };
+  const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
  
   const authHeader = request.headers.authorization;
@@ -73,8 +73,8 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     const item: any = await Programs.create({ ...programData }, { transaction });
  
     const programId = item.id;
-    if (Array.isArray(msp_ids) && msp_ids.length > 0) {
-      const mspAssociations = msp_ids.map((mspId: string) => ({
+    if (Array.isArray(msps) && msps.length > 0) {
+      const mspAssociations = msps.map((mspId: string) => ({
         program_id: programId,
         msp_id: mspId,
         created_by: userId,
@@ -394,9 +394,9 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
         where: { program_id: id }
       });
     }
-    if (updates.msp_id || (Array.isArray(updates.msp_ids) && updates.msp_ids.length > 0)) {
-      const mspIds: string[] = Array.isArray(updates.msp_ids)
-        ? updates.msp_ids
+    if (updates.msp_id || (Array.isArray(updates.msps) && updates.msps.length > 0)) {
+      const mspIds: string[] = Array.isArray(updates.msps)
+        ? updates.msps
         : updates.msp_id
           ? [updates.msp_id]
           : [];
