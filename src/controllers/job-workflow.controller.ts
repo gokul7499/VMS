@@ -1773,32 +1773,32 @@ export const updateReplaceLevel = async (
     }
 };
 
-async function fetchUserById(user_id: any) {
-    const userQuery = `
-        SELECT user_id, first_name, last_name, avatar, role_id,email
-        FROM user
-        WHERE user_id = :user_id
-          AND is_enabled = true
-        LIMIT 1;
-    `;
+// async function fetchUserById(user_id: any) {
+//     const userQuery = `
+//         SELECT user_id, first_name, last_name, avatar, role_id,email
+//         FROM user
+//         WHERE user_id = :user_id
+//           AND is_enabled = true
+//         LIMIT 1;
+//     `;
 
-    try {
-        const userResult = await sequelize.query(userQuery, {
-            type: QueryTypes.SELECT,
-            replacements: { user_id },
-        });
+//     try {
+//         const userResult = await sequelize.query(userQuery, {
+//             type: QueryTypes.SELECT,
+//             replacements: { user_id },
+//         });
 
-        if (userResult.length > 0) {
-            return userResult[0]; // Return the first user found
-        } else {
-            console.warn(`User with ID ${user_id} not found.`);
-            return null; // Return null if no user is found
-        }
-    } catch (error) {
-        console.error(`Error fetching user with ID ${user_id}:`, error);
-        throw new Error("Failed to fetch user details.");
-    }
-}
+//         if (userResult.length > 0) {
+//             return userResult[0]; // Return the first user found
+//         } else {
+//             console.warn(`User with ID ${user_id} not found.`);
+//             return null; // Return null if no user is found
+//         }
+//     } catch (error) {
+//         console.error(`Error fetching user with ID ${user_id}:`, error);
+//         throw new Error("Failed to fetch user details.");
+//     }
+// }
 export const imporsonateLevel = async (
     request: FastifyRequest<{
         Params: { program_id: string; id: string };
@@ -2109,359 +2109,7 @@ export const updateWorkflowStatusData = async (
     }
 };
 
-// export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyReply) {
-//     const trace_id = generateCustomUUID();
-//     const { program_id } = request.params as { program_id: string };
-//     const authHeader = request.headers.authorization;
 
-//     if (!authHeader?.startsWith('Bearer ')) {
-//         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-//     }
-//     const token = authHeader.split(' ')[1];
-//     const user = await decodeToken(token);
-//     if (!user) {
-//         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
-//     }
-//     const initialJobData = request.body as JobWorkFlow;
-//     logger({
-//         actor: {
-//             user_name: user?.preferred_username,
-//             user_id: user?.sub,
-//         },
-//         data: initialJobData,
-//         eventname: "creating job",
-//         status: "info",
-//         description: `Creating job for ${program_id}`,
-//         level: 'info',
-//         action: request.method,
-//         url: request.url,
-//         entity_id: program_id,
-//         is_deleted: false
-//     }, JobWorkFlowModel);
-//     try {
-//         const { method_id, job_id, workflow_trigger_id, hierarchy_id , workflow_id } = request.query as {
-//             method_id: string;
-//             job_id?: string;
-//             workflow_trigger_id: string;
-//             hierarchy_id: any, 
-//             workflow_id:string;
-//         };
-//         let workflowIdCondition = '';
-// if (workflow_id) {
-//     workflowIdCondition = 'AND id = :workflow_id';
-// }
-// console.log('workflowIdCondition', workflowIdCondition)
-//         let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
-//         const methodIds = method_id.split(',');
-//         const query = `
-//             SELECT
-//             w.id As job_workflow_id,
-//                 w.workflow_id AS workflow_id,
-//                  w.event_id AS event_id,
-//                    w.event_title AS event_title,
-//                 w.name AS workflow_name,
-//                 w.flow_type AS workflow_type,
-//                 w.levels,
-//                 w.status,
-//                 w.config,
-//                 w.manager,
-//                 l.id AS level_id,
-//                 l.placement_order AS placement_order,
-//             r.recipient_type_id,
-//                 r.meta_data,
-//                 r.behaviour,
-//                   e.name,
-//         e.slug AS event_slug,
-//                 JSON_UNQUOTE(
-//                     JSON_EXTRACT(
-//                         w.levels,
-//                         CONCAT(
-//                             '$[',
-//                             l.placement_order,
-//                             '].status'
-//                         )
-//                     )
-//                 ) AS level_status,
-
-//                  JSON_UNQUOTE(
-//                     JSON_EXTRACT(
-//                         w.levels,
-//                         CONCAT(
-//                             '$[',
-//                             l.placement_order,
-//                             '].recipient_types'
-//                         )
-//                     )
-//                 ) AS recipient_types,
-//                 (
-//             SELECT JSON_UNQUOTE(
-//                 JSON_EXTRACT(
-//                     recipient.value, '$.replaced_by'
-//                 )
-//             )
-//             FROM JSON_TABLE(
-//                 JSON_EXTRACT(
-//                     w.levels,
-//                     CONCAT(
-//                         '$[',
-//                         l.placement_order,
-//                         '].recipient_types'
-//                     )
-//                 ),
-//                 '$[*]' COLUMNS (
-//                     value JSON PATH '$'
-//                 )
-//             ) AS recipient
-//             WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
-//             LIMIT 1
-//         ) AS replaced_by,
-
-//                JSON_UNQUOTE(
-//                     JSON_EXTRACT(
-//                         w.levels,
-//                         CONCAT(
-//                             '$[',
-//                             l.placement_order,
-//                             '].recipient_types'
-//                         )
-//                     )
-//                 ) AS recipient_types,
-//                 (
-//             SELECT JSON_UNQUOTE(
-//                 JSON_EXTRACT(
-//                     recipient.value, '$.existing_replaced_user'
-//                 )
-//             )
-//             FROM JSON_TABLE(
-//                 JSON_EXTRACT(
-//                     w.levels,
-//                     CONCAT(
-//                         '$[',
-//                         l.placement_order,
-//                         '].recipient_types'
-//                     )
-//                 ),
-//                 '$[*]' COLUMNS (
-//                     value JSON PATH '$'
-//                 )
-//             ) AS recipient
-//             WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
-//             LIMIT 1
-//         ) AS existing_replaced_user,
-
-
-
-
-//  JSON_UNQUOTE(
-//                     JSON_EXTRACT(
-//                         w.levels,
-//                         CONCAT(
-//                             '$[',
-//                             l.placement_order,
-//                             '].recipient_types'
-//                         )
-//                     )
-//                 ) AS recipient_types,
-//                 (
-//             SELECT JSON_UNQUOTE(
-//                 JSON_EXTRACT(
-//                     recipient.value, '$.imporsonate_by'
-//                 )
-//             )
-//             FROM JSON_TABLE(
-//                 JSON_EXTRACT(
-//                     w.levels,
-//                     CONCAT(
-//                         '$[',
-//                         l.placement_order,
-//                         '].recipient_types'
-//                     )
-//                 ),
-//                 '$[*]' COLUMNS (
-//                     value JSON PATH '$'
-//                 )
-//             ) AS recipient
-//             WHERE JSON_EXTRACT(recipient.value, '$.imporsonate_by') IS NOT NULL
-//             LIMIT 1
-//         ) AS imporsonate_by,
-// (
-//     SELECT JSON_OBJECT(
-//         'status', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.status')), NULL),
-//         'updated_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.updated_on')) AS UNSIGNED), NULL),
-//         'notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.notes')), NULL),
-//         'reason', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.reason')), NULL),
-//          'actor_first_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_first_name')), NULL),
-//           'actor_last_name', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_last_name')), NULL),
-//          'actor_by_avatar',NULLIF(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.actor_by_avatar')), 'null'),
-//          'is_admin_override', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.is_admin_override')), NULL),
-//         'replaced_notes', IFNULL(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_notes')), NULL),
-//          'replaced_modified_on', IFNULL(CAST(JSON_UNQUOTE(JSON_EXTRACT(recipient.value, '$.replaced_modified_on')) AS UNSIGNED), NULL)
-//     )
-//     FROM JSON_TABLE(
-//         JSON_EXTRACT(
-//             w.levels,
-//             CONCAT('$[', l.placement_order, '].recipient_types')
-//         ),
-//         '$[*]' COLUMNS (
-//             value JSON PATH '$'
-//         )
-//     ) AS recipient
-//     WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
-//     LIMIT 1
-// ) AS recipient_details,
-
-//          (
-//             SELECT JSON_UNQUOTE(
-//                 JSON_EXTRACT(
-//                     recipient.value, '$.status'
-//                 )
-//             )
-//             FROM JSON_TABLE(
-//                 JSON_EXTRACT(
-//                     w.levels,
-//                     CONCAT(
-//                         '$[',
-//                         l.placement_order,
-//                         '].recipient_types'
-//                     )
-//                 ),
-//                 '$[*]' COLUMNS (
-//                     value JSON PATH '$'
-//                 )
-//             ) AS recipient
-//             WHERE JSON_EXTRACT(recipient.value, '$.status') IS NOT NULL
-//             LIMIT 1
-//         ) AS recipient_status
-//             FROM
-//                 workflow  w
-//             INNER JOIN workflow_triggered_level l ON l.workflow_id = w.workflow_id AND l.workflow_trigger_id = w.workflow_trigger_id
-//             LEFT JOIN workflow_triggered_recepient r ON r.level_id = l.id
-//             LEFT JOIN event e
-//         ON w.event_id = e.id
-//          WHERE
-//     w.program_id = :program_id
-//     AND w.workflow_trigger_id = :workflow_trigger_id
-//     AND w.is_updated = false
-//     AND FIND_IN_SET(w.method_id, :method_ids) > 0
-//     AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
-//     AND w.method_id = (
-//         SELECT method_id
-//         FROM (
-//             SELECT method_id
-//             FROM workflow
-//             WHERE
-//                 program_id = :program_id
-//                 AND FIND_IN_SET(method_id, :method_ids) > 0
-//                 AND workflow_trigger_id = :workflow_trigger_id
-//                 AND is_updated = false
-//                  ${workflowIdCondition}
-//                 AND is_enabled = true
-//                 AND status='pending'
-//                 AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
-//             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
-//             LIMIT 1
-//         ) AS prioritized_method
-//     )
-// ORDER BY
-//     FIELD(w.method_id, ${methodIds.map((id) => `'${id}'`).join(',')}),
-//     l.placement_order ASC;`;
-//     console.log('Hitting the query hereee');
-//         const rows: any[] = await sequelize.query(query, {
-//             replacements: {
-//                 method_ids: methodIds.join(','),
-//                 program_id,
-//                 workflow_trigger_id,
-//                 workflow_id,
-//             },
-//             type: QueryTypes.SELECT,
-//         });
-//         console.log('Workflow result',rows?.length);
-
-//         let programData = await sequelize.query(
-//             `SELECT * FROM workflow WHERE workflow_trigger_id = :workflow_trigger_id AND (status = "pending" OR status = "completed")`,
-//             {
-//                 replacements: { workflow_trigger_id },
-//                 type: QueryTypes.SELECT,
-//             }
-//         );
-
-//         const flowTypeStatusMap = new Map<string, boolean>();
-        
-//         for (const program of programData) {
-//             const { flow_type, status } = program as JobWorkFlow;
-        
-//             if (!flowTypeStatusMap.has(flow_type)) {
-//                 flowTypeStatusMap.set(flow_type, status === "completed");
-//             } else {
-//                 const currentStatus = flowTypeStatusMap.get(flow_type);
-//                 if (status === "pending") {
-//                     flowTypeStatusMap.set(flow_type, false);
-//                 } else if (status === "completed" && currentStatus !== false) {
-//                     flowTypeStatusMap.set(flow_type, true);
-//                 }
-//             }
-//         }
-//         console.log('outside the  floe type for')
-        
-//         const flowTypes = Array.from(flowTypeStatusMap.entries())
-//             .map(([flow_type, is_completed]) => ({ flow_type, is_completed }))
-//             .sort((a, b) => {
-//                 if (a.flow_type === "Review") return -1;
-//                 if (b.flow_type === "Review") return 1;
-//                 return 0;
-//             });
-    
-//         let manager = rows[0]?.manager
-//         console.log('checked flow typess')
-//         if (rows.length === 0) {
-//             return reply.status(200).send({
-//                 statusCode: 200,
-//                 flowTypes: flowTypes,
-//                 message: 'Workflow data not found',
-//                 workflow: [],
-//                 trace_id,
-//             });
-//         }
-//         const workflow: Workflow = {
-//             program_id: program_id,
-//             job_workflow_id: rows[0].job_workflow_id,
-//             workflow_id: rows[0].workflow_id,
-//             workflow_name: rows[0].workflow_name,
-//             workflow_type: rows[0].workflow_type,
-//             event_title: rows[0].event_title,
-//             event_slug: rows[0].event_slug,
-//             status: rows[0].status,
-//             config: rows[0].config,
-//             levels: [],
-//         };
-//         let previousLevelCompleted = false;
-//         let levelStatusMap: { [key: number]: string } = {};
-//        let updatedWOrkflow=  [rows[0]];
-//         await getLevelData(request, reply,rows, workflow, manager);
-//         console.log('waited for level data');
-
-
-//         (async () => {
-//             console.log('hete calling the notificationsss')
-//             let notifyUser =  sendNotificationSequencially(request, reply, workflow)
-
-//         })();
-//         console.log('retuning response from here')
-//         return reply.status(200).send({
-//             statusCode: 200,
-//             flowTypes: flowTypes,
-//             workflow,
-//             trace_id,
-//         });
-//     } catch (error: any) {
-//         console.log(error);
-//         return reply.status(500).send({
-//             statusCode: 500,
-//             message: 'An error occurred while fetching workflow data.',
-//             trace_id,
-//         });
-//     }
-// }
 function getName(input_value: any): string {
     if ('first_name' in input_value && 'last_name' in input_value) {
         const firstName = (input_value as { first_name: string; last_name?: string }).first_name;
@@ -2472,664 +2120,7 @@ function getName(input_value: any): string {
     }
     return '';
 }
-// function getExistingLevel(workflow: Workflow, level_id: string) {
-//     return workflow.levels.find(level => level.level_id === level_id);
-// }
-// const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: any, workflow: any, manager: any): Promise<any> => {
 
-//     const traceId = generateCustomUUID();
-//     const authHeader = request.headers.authorization;
-
-//     if (!authHeader?.startsWith('Bearer ')) {
-//         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-//     }
-//     const token = authHeader.split(' ')[1];
-//     const user = await decodeToken(token);
-
-
-//     if (!user) {
-//         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
-//     }
-//     try {
-//         for (const row of rows) {
-//             const { level_id, level_status, levels, config, recipient_status, recipient_details, placement_order, recipient_type_id, meta_data, behaviour, replaced_by, existing_replaced_user, imporsonate_by, event_slug } = row;
-
-//             if (meta_data && Object.keys(meta_data).length > 0) {
-//                 const recipientTypeQuery = `
-//                 SELECT id ,name
-//                 FROM recipient_type
-//                 WHERE id = :recipient_type_id
-//                 AND is_enabled = true
-//                 LIMIT 1
-//             `;
-//                 const recipientTypeResult = await sequelize.query(recipientTypeQuery, {
-//                     type: QueryTypes.SELECT,
-//                     replacements: { recipient_type_id },
-//                 });
-//                 const recipientType = recipientTypeResult[0] as Recipient;
-//                 let input_value: any;
-//                 let meta_datas = JSON.stringify(meta_data)
-//                 const input_values = Object.values(meta_data);
-
-
-//                 let replaced_user_data: any
-//                 let imposonate_user_data: any
-//                 if (recipientType?.name === 'Specific User' || recipientType?.name === 'Multiple users' || recipientType?.name === "Job Manager" || recipientType?.name === "Assignment Manager" ||  recipientType?.name === "Timesheet Managers") {
-//                     if (input_values.length > 0) {
-//                         const userQuery = `
-//                         SELECT user_id,first_name, last_name, avatar, role_id,email
-//                         FROM user
-//                         WHERE user_id = :user_id
-//                            AND program_id=:program_id
-//                           AND status = 'active'
-//                         LIMIT 1
-//                     `;
-//                         let userResult = null;
-//                         if (existing_replaced_user) {
-//                             userResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
-//                             });
-//                         } else {
-//                             // If no `existing_replaced_user`, use the first `input_value`
-//                             userResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: input_values[0], program_id: workflow.program_id },
-//                             });
-//                         }
-//                         let replacedUserResult = null;
-//                         let imporsonateUserResult = null;
-//                         if (userResult.length && replaced_by) {
-//                             replacedUserResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: replaced_by, program_id: workflow.program_id },
-//                             });
-//                         }
-//                         if (userResult.length && imporsonate_by) {
-//                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
-//                             });
-//                         }
-
-
-//                         input_value = userResult[0] ? {
-//                             id: userResult[0]?.user_id,
-//                             first_name: userResult[0]?.first_name,
-//                             last_name: userResult[0]?.last_name,
-//                             avatar: userResult[0]?.avatar,
-//                             role_id: userResult[0].role_id,
-//                             email: userResult[0]?.email,
-//                             updated_on: recipient_details?.updated_on,
-//                             notes: recipient_details?.notes,
-//                             reason: recipient_details?.reason,
-//                             replaced_notes: recipient_details?.replaced_notes
-
-//                         } : undefined;
-
-//                         replaced_user_data = replacedUserResult ? {
-//                             id: replacedUserResult[0]?.user_id,
-//                             first_name: replacedUserResult[0]?.first_name,
-//                             last_name: replacedUserResult[0]?.last_name,
-//                             avatar: replacedUserResult[0]?.avatar,
-//                             role_id: replacedUserResult[0]?.role_id,
-//                             email: replacedUserResult[0]?.email,
-//                             recipient_type: recipientType?.name || '',
-//                             behaviour,
-//                             replaced_date_time: recipient_details?.replaced_modified_on
-//                         } : undefined;
-//                         imposonate_user_data = imporsonateUserResult ? {
-//                             id: imporsonateUserResult?.[0]?.user_id,
-//                             first_name: imporsonateUserResult?.[0]?.first_name,
-//                             last_name: imporsonateUserResult?.[0]?.last_name,
-//                             avatar: imporsonateUserResult?.[0]?.avatar,
-//                             role_id: imporsonateUserResult?.[0]?.role_id,
-//                             email: imporsonateUserResult?.[0]?.email,
-//                             updated_on: recipient_details?.updated_on,
-//                             recipient_type: recipientType?.name || '',
-//                             behaviour,
-
-//                         } : undefined;
-//                     }
-//                 }
-
-//                 if (recipientType?.name === "Job Manager") {
-//                     if (input_values.length > 0) {
-//                         const userQuery = `
-//                         SELECT user_id, first_name, last_name, avatar, role_id,email
-//                         FROM user
-//                         WHERE user_id = :user_id
-//                           AND program_id=:program_id
-//                             AND status = 'active'
-//                         LIMIT 1
-//                     `;
-//                         let userResult = null;
-//                         if (existing_replaced_user) {
-//                             userResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: existing_replaced_user, program_id: workflow.program_id },
-//                             });
-//                         } else {
-//                             // If no `existing_replaced_user`, use the first `input_value`
-//                             userResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: manager, program_id: workflow.program_id },
-//                             });
-//                         }
-
-//                         let replacedUserResult = null;
-//                         let imporsonateUserResult = null;
-//                         if (userResult.length && replaced_by) {
-//                             replacedUserResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: replaced_by, program_id: workflow.program_id },
-//                             });
-//                         }
-//                         if (userResult.length && imporsonate_by) {
-//                             imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-//                                 type: QueryTypes.SELECT,
-//                                 replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
-//                             });
-//                         }
-//                         input_value = userResult[0] ? {
-//                             id: userResult[0]?.user_id,
-//                             first_name: userResult[0]?.first_name,
-//                             last_name: userResult[0]?.last_name,
-//                             avatar: userResult[0]?.avatar,
-//                             role_id: userResult[0]?.role_id,
-//                             email: userResult[0]?.email,
-//                             updated_on: recipient_details?.updated_on,
-//                             notes: recipient_details?.notes,
-//                             reason: recipient_details?.reason,
-//                             replaced_notes: recipient_details?.replaced_notes
-//                         } : undefined;
-
-//                         replaced_user_data = replacedUserResult ? {
-//                             id: replacedUserResult[0]?.user_id,
-//                             first_name: replacedUserResult[0]?.first_name,
-//                             last_name: replacedUserResult[0]?.last_name,
-//                             avatar: replacedUserResult[0]?.avatar,
-//                             role_id: replacedUserResult[0]?.role_id,
-//                             email: replacedUserResult[0]?.email,
-//                             recipient_type: recipientType?.name || '',
-//                             behaviour,
-//                             replaced_date_time: recipient_details?.replaced_modified_on
-//                         } : undefined;
-//                         imposonate_user_data = imporsonateUserResult ? {
-//                             id: imporsonateUserResult?.[0]?.user_id,
-//                             first_name: imporsonateUserResult?.[0]?.first_name,
-//                             last_name: imporsonateUserResult?.[0]?.last_name,
-//                             avatar: imporsonateUserResult?.[0]?.avatar,
-//                             role_id: imporsonateUserResult?.[0]?.role_id,
-//                             email: imporsonateUserResult?.[0]?.email,
-//                             updated_on: recipient_details?.updated_on,
-//                             recipient_type: recipientType?.name || '',
-//                             behaviour,
-//                         } : undefined;
-//                     }
-//                 }
-
-//                 if (recipientType?.name === "Manager of") {
-
-//                     const jobManagerQuery = `
-//                     SELECT user_id, first_name, last_name, email, avatar, supervisor
-//                     FROM user
-//                     WHERE user_id = :job_manager_id
-//                       AND program_id=:program_id
-//                         AND status = 'active'
-//                     LIMIT 1
-//                 `;
-
-
-//                     const jobManagerResult = await sequelize.query(jobManagerQuery, {
-//                         type: QueryTypes.SELECT,
-//                         replacements: { job_manager_id: manager || manager, program_id: workflow.program_id },
-//                     });
-
-
-//                     if (jobManagerResult.length > 0) {
-//                         const manager: any = jobManagerResult[0];
-
-//                         let replacedUserResult = null;
-//                         let imporsonateUserResult = null;
-//                         let supervisorData = null;
-//                         if (manager.supervisor) {
-//                             const supervisorQuery = `
-//                             SELECT user_id, first_name, last_name, email, avatar
-//                             FROM user
-//                             WHERE user_id = :supervisor
-//                               AND program_id=:program_id
-//                              AND status = 'active'
-//                             LIMIT 1
-//                         `;
-//                             let supervisorResult = null
-//                             // const supervisorResult = await sequelize.query(supervisorQuery, {
-//                             //     type: QueryTypes.SELECT,
-//                             //     replacements: { supervisor: manager.supervisor },
-//                             // });
-//                             if (existing_replaced_user) {
-//                                 supervisorResult = await sequelize.query(supervisorQuery, {
-//                                     type: QueryTypes.SELECT,
-//                                     replacements: { supervisor: existing_replaced_user, program_id: workflow.program_id },
-//                                 });
-//                             } else {
-//                                 // If no `existing_replaced_user`, use the first `input_value`
-//                                 supervisorResult = await sequelize.query(supervisorQuery, {
-//                                     type: QueryTypes.SELECT,
-//                                     replacements: { supervisor: manager.supervisor, program_id: workflow.program_id },
-//                                 });
-//                             }
-
-//                             if (supervisorResult.length && replaced_by) {
-//                                 replacedUserResult = await sequelize.query<Users>(supervisorQuery, {
-//                                     type: QueryTypes.SELECT,
-//                                     replacements: { supervisor: replaced_by, program_id: workflow.program_id },
-//                                 });
-//                             }
-//                             if (supervisorResult.length && imporsonate_by) {
-//                                 imporsonateUserResult = await sequelize.query<Users>(supervisorQuery, {
-//                                     type: QueryTypes.SELECT,
-//                                     replacements: { supervisor: imporsonate_by, program_id: workflow.program_id },
-//                                 });
-//                             }
-
-//                             if (supervisorResult.length > 0) {
-//                                 const supervisor: any = supervisorResult[0];
-//                                 supervisorData = {
-//                                     id: supervisor?.user_id,
-//                                     first_name: supervisor?.first_name,
-//                                     last_name: supervisor?.last_name,
-//                                     name: `${supervisor.first_name} ${supervisor.last_name}`.trim(),
-//                                     email: supervisor?.email,
-//                                     avatar: supervisor?.avatar || null,
-//                                     updated_on: recipient_details?.updated_on,
-//                                     notes: recipient_details?.notes,
-//                                     reason: recipient_details?.reason,
-//                                     replaced_notes: recipient_details?.replaced_notes
-//                                 };
-//                             }
-//                         }
-
-
-//                         input_value = supervisorData ? [supervisorData] : [];
-//                         replaced_user_data = replacedUserResult ? {
-//                             id: replacedUserResult[0].user_id,
-//                             first_name: replacedUserResult[0].first_name,
-//                             last_name: replacedUserResult[0].last_name,
-//                             avatar: replacedUserResult[0].avatar || null,
-//                             email: replacedUserResult[0].email || null,
-//                             recipient_type: recipientType?.name || "",
-//                             behaviour,
-//                             replaced_date_time: recipient_details?.replaced_modified_on,
-//                             replaced_notes: recipient_details?.replaced_notes,
-
-//                         } : undefined;
-//                         imposonate_user_data = imporsonateUserResult ? {
-//                             id: imporsonateUserResult?.[0]?.user_id,
-//                             first_name: imporsonateUserResult?.[0]?.first_name,
-//                             last_name: imporsonateUserResult?.[0]?.last_name,
-//                             avatar: imporsonateUserResult?.[0]?.avatar,
-//                             role_id: imporsonateUserResult?.[0]?.role_id,
-//                             email: imporsonateUserResult?.[0]?.email,
-//                             updated_on: recipient_details?.updated_on,
-//                             recipient_type: recipientType?.name || '',
-//                             replaced_notes: recipient_details?.replaced_notes,
-
-//                             behaviour,
-//                         } : undefined;
-//                     }
-//                 }
-//                 let imporsonateUserResult = null;
-//                 if (recipientType?.name === "Custom Field Supplied User" || recipientType?.name === "Manager of") {
-//                     console.log("Manager of,,,,,,,,,,,,,,,,,,,,");
-//                     for (const level of levels) {
-//                         let replacedUserResult = null;
-//                         for (const recipients of level.recipient_types || []) {
-
-//                             if (recipients?.meta_data) {
-//                                 if (recipientType?.id == recipients.recipient_type_id) {
-//                                     const metaData = recipients.meta_data;
-//                                     // Get the first value from the meta_data (Assuming it is a user ID)
-//                                     let metaValue = Object.values(metaData)[0];
-//                                     const userQuery = `
-//                 SELECT user_id, first_name, last_name, email, avatar
-//                 FROM user
-//                 WHERE user_id = :user_id
-//                  AND program_id=:program_id
-//                     AND status = 'active'
-//                 LIMIT 1
-//             `;
-//                                     // const userData: any = await sequelize.query<Users>(userQuery, {
-//                                     //     type: QueryTypes.SELECT,
-//                                     //     replacements: { user_id: metaValue },
-//                                     // });
-//                                     let userData: any = null
-//                                     if (recipients.existing_replaced_user) {
-//                                         userData = await sequelize.query(userQuery, {
-//                                             type: QueryTypes.SELECT,
-//                                             replacements: { user_id: recipients.existing_replaced_user, program_id: workflow.program_id },
-//                                         });
-//                                     } else {
-//                                         // If no `existing_replaced_user`, use the first `input_value`
-//                                         userData = await sequelize.query(userQuery, {
-//                                             type: QueryTypes.SELECT,
-//                                             replacements: { user_id: metaValue, program_id: workflow.program_id },
-//                                         });
-//                                     }
-
-//                                     if (userData.length && replaced_by) {
-//                                         replacedUserResult = await sequelize.query<Users>(userQuery, {
-//                                             type: QueryTypes.SELECT,
-//                                             replacements: { user_id: replaced_by, program_id: workflow.program_id },
-//                                         });
-//                                     }
-//                                     if (userData.length && imporsonate_by) {
-//                                         imporsonateUserResult = await sequelize.query<Users>(userQuery, {
-//                                             type: QueryTypes.SELECT,
-//                                             replacements: { user_id: imporsonate_by, program_id: workflow.program_id },
-//                                         });
-//                                     }
-//                                     if (userData.length > 0) {
-//                                         input_value = {
-//                                             id: userData[0].user_id,
-//                                             name: `${userData[0].first_name}${" "}${userData[0].last_name}`,
-//                                             email: userData[0].email,
-//                                             avatar: userData[0].avatar,
-//                                             updated_on: recipient_details?.updated_on,
-//                                             notes: recipient_details?.notes,
-//                                             reason: recipient_details?.reason,
-//                                             replaced_notes: recipient_details?.replaced_notes
-//                                         };
-//                                     }
-//                                     replaced_user_data = replacedUserResult ? {
-//                                         id: replacedUserResult[0].user_id,
-//                                         first_name: replacedUserResult[0].first_name,
-//                                         last_name: replacedUserResult[0].last_name,
-//                                         avatar: replacedUserResult[0].avatar,
-//                                         role_id: replacedUserResult[0].role_id,
-//                                         email: replacedUserResult[0].email,
-//                                         recipient_type: recipientType?.name || '',
-//                                         behaviour,
-//                                         replaced_date_time: recipient_details?.replaced_modified_on,
-//                                         replaced_notes: recipient_details?.replaced_notes,
-
-//                                     } : undefined;
-//                                     imposonate_user_data = imporsonateUserResult ? {
-//                                         id: imporsonateUserResult?.[0]?.user_id,
-//                                         first_name: imporsonateUserResult?.[0]?.first_name,
-//                                         last_name: imporsonateUserResult?.[0]?.last_name,
-//                                         avatar: imporsonateUserResult?.[0]?.avatar,
-//                                         role_id: imporsonateUserResult?.[0]?.role_id,
-//                                         email: imporsonateUserResult?.[0]?.email,
-//                                         updated_on: recipient_details?.updated_on,
-//                                         recipient_type: recipientType?.name || '',
-//                                         replaced_notes: recipient_details?.replaced_notes,
-
-//                                         behaviour,
-//                                     } : undefined;
-
-//                                 }
-//                             }
-//                         }
-//                     }
-
-//                 }
-//                 let users: any[] = [];
-//                 let level_behaviour: any;
-//                 let receipentstatus: any
-//                 if (recipientType?.name === "Users in Program Role" || recipientType?.name === "Master Data Owner" || recipientType?.name === "Managerial Chain" || recipientType?.name === "Financial Authority Chain"|| recipientType?.name === "Top of Financial Authority Chain" ) {
-//                     const recipientTypes = JSON.parse(row.recipient_types) || [];
-
-//                     for (const recipient of recipientTypes) {
-//                         let receipentstatus = recipient.status;
-
-//                         if (recipient?.meta_data) {
-//                             const metaData = recipient.meta_data;
-//                             let userId = Object.values(metaData)[0]; // Default value to userId from meta_data
-//                             const level_behaviour = Object.values(metaData)[1];
-
-//                             // If existing_replaced_user is present, use that as the userId for fetching the data
-//                             if (recipient.existing_replaced_user) {
-//                                 userId = recipient.existing_replaced_user; // If existing_replaced_user exists, use that ID
-//                             }
-
-//                             // Fetch the relevant user data (either from meta_data or from existing_replaced_user)
-//                             const fetchUserData = async (userId: any) => {
-//                                 const user = await fetchLevelUserData(userId, workflow.program_id);
-//                                 return user;
-//                             };
-
-//                             const user = await fetchUserData(userId);
-
-//                             if (user) {
-//                                 const userData: any = {
-//                                     id: user.user_id,
-//                                     first_name: user.first_name,
-//                                     last_name: user.last_name,
-//                                     avatar: user.avatar,
-//                                     role_id: user.role_id,
-//                                     email: user.email,
-//                                     receipentstatus: receipentstatus,
-//                                     modifiedOn: recipient.updated_on,
-//                                     level_behaviour: level_behaviour,
-//                                     replaced_by: null, // Default value
-//                                     impersonate_by: null, // Default value
-//                                     // existing_replaced_user: null, // Default value
-//                                     updated_on: recipient.updated_on,
-//                                     notes: recipient.notes,
-//                                     reason: recipient.reason,
-//                                     actor_first_name: recipient.actor_first_name,
-//                                     actor_last_name: recipient.actor_last_name,
-//                                     actor_by_avatar: recipient.actor_by_avatar,
-//                                     is_admin_override: recipient.is_admin_override,
-//                                     replaced_notes: recipient.replaced_notes
-//                                 };
-
-//                                 // Fetch "replaced_by" user data if applicable
-//                                 let replacedByUser = null;
-//                                 if (recipient.replaced_by) {
-//                                     replacedByUser = await fetchUserData(recipient.replaced_by);
-//                                     if (replacedByUser) {
-//                                         userData.replaced_by = {
-//                                             id: replacedByUser.user_id,
-//                                             first_name: replacedByUser.first_name,
-//                                             last_name: replacedByUser.last_name,
-//                                             email: replacedByUser.email,
-//                                             avatar: replacedByUser.avatar,
-//                                             role_id: replacedByUser.role_id,
-//                                             replaced_notes: recipient.replaced_notes,
-//                                             replaced_date_time: recipient.replaced_modified_on,
-//                                             actor_first_name: recipient.actor_first_name,
-//                                             actor_last_name: recipient.actor_last_name,
-//                                             actor_by_avatar: recipient.actor_by_avatar,
-//                                             is_admin_override: recipient.is_admin_override,
-//                                         };
-//                                     }
-//                                 }
-
-//                                 // Fetch "impersonate_by" user data if applicable
-//                                 if (recipient.impersonate_by) {
-//                                     const impersonatedUser = await fetchUserData(recipient.impersonate_by);
-
-
-//                                     if (impersonatedUser) {
-//                                         userData.impersonate_by = {
-//                                             id: impersonatedUser.user_id,
-//                                             first_name: impersonatedUser.first_name,
-//                                             last_name: impersonatedUser.last_name,
-//                                             email: impersonatedUser.email,
-//                                             avatar: impersonatedUser.avatar,
-//                                             role_id: impersonatedUser.role_id,
-//                                             updated_on: recipient_details?.updated_on,
-//                                             impersonate_notes: recipient.impersonate_notes,
-//                                             impersonate_date_time: recipient.impersonate_modified_on,
-//                                             actor_first_name: recipient.actor_first_name,
-//                                             actor_last_name: recipient.actor_last_name,
-//                                             actor_by_avatar: recipient.actor_by_avatar,
-//                                             is_admin_override: recipient.is_admin_override,
-//                                         };
-//                                     }
-//                                 }
-
-
-
-//                                 // Push the final user data to the users array
-//                                 users.push(userData);
-//                             }
-//                         }
-
-//                     }
-
-//                     // After processing all users, map them to the final input_value format
-//                     input_value = users.map(user => {
-//                         return {
-//                             id: user.id,
-//                             name: `${user.first_name} ${user.last_name}`.trim(),
-//                             email: user.email,
-//                             avatar: user.avatar || null,
-//                             level_behaviour: user.level_behaviour,
-//                             replaced_by: user.replaced_by,  // Attach replaced_by data
-//                             impersonate_by: user.impersonate_by,  // Attach impersonate_by data
-//                             // existing_replaced_user: user.existing_replaced_user,  // Attach existing_replaced_by data
-//                             receipentStatus: user.receipentstatus,
-//                             actor_first_name: user.actor_first_name,
-//                             actor_last_name: user.actor_last_name,
-//                             actor_by_avatar: user.actor_by_avatar,
-//                             is_admin_override: user.is_admin_override,
-//                             reason: user.reason,
-//                             updated_on: user.updated_on,
-//                             notes: user.notes
-//                         };
-//                     });
-//                 }
-//                 if (input_value) {
-//                     let recipients = [];
-//                     if (Array.isArray(input_value)) {
-//                         recipients = input_value.map(user => {
-//                             return {
-//                                 name: getName(user),
-//                                 first_name: user.first_name,
-//                                 last_name: user.last_name,
-//                                 level_id,
-//                                 actor_first_name: user.actor_first_name,
-//                                 actor_last_name: user.actor_last_name,
-//                                 actor_by_avatar: user.actor_by_avatar,
-//                                 is_admin_override: user.is_admin_override,
-//                                 status: user.receipentStatus,
-//                                 updated_on: user.updated_on,
-//                                 notes: user.notes,
-//                                 reason: user.reason,
-//                                 level_behaviour: user.level_behaviour,
-//                                 user_id: user.id,
-//                                 avatar: user.avatar?.url || '',
-//                                 role_id: user.role_id,
-//                                 email: user.email,
-//                                 replaced_by: user.replaced_by,
-//                                 imporsonate_by: imposonate_user_data,
-//                                 // imporsonate_by: user.imposonate_user_data,
-//                                 recipient_type: recipientType?.name || '',
-//                                 behaviour,
-
-//                             };
-//                         });
-//                     } else {
-//                         // If input_value is a single object, create a single recipient
-//                         recipients = [{
-//                             name: getName(input_value),
-//                             first_name: input_value.first_name,
-//                             last_name: input_value.last_name,
-//                             level_id,
-//                             status: recipient_status,
-//                             updated_on: recipient_details?.updated_on,
-//                             notes: recipient_details?.notes,
-//                             reason: recipient_details?.reason,
-//                             replaced_date_time: recipient_details?.replaced_modified_on,
-//                             replaced_notes: recipient_details?.replaced_notes,
-//                             actor_first_name: recipient_details?.actor_first_name,
-//                             actor_last_name: recipient_details?.actor_last_name,
-//                             actor_by_avatar: recipient_details?.actor_by_avatar,
-//                             is_admin_override: recipient_details?.is_admin_override,
-//                             user_id: input_value?.id,
-//                             avatar: input_value.avatar?.url || '',
-//                             role_id: input_value.role_id,
-//                             email: input_value.email,
-//                             recipient_type: recipientType?.name || '',
-//                             behaviour,
-//                             replaced_by: replaced_user_data,
-//                             imporsonate_by: imposonate_user_data
-//                         }];
-//                     }
-
-//                     // Add the recipients to the workflow levels
-//                     recipients.forEach(recipient => {
-//                         const existingLevel = getExistingLevel(workflow, level_id);
-//                         if (existingLevel) {
-
-//                             const duplicateIndex = existingLevel.recipients.findIndex(r => r.user_id === recipient.user_id);
-
-//                             if (duplicateIndex === -1) {
-
-//                                 existingLevel.recipients.push(recipient);
-//                             }
-
-//                         }
-//                         else {
-//                             workflow.levels.push({
-//                                 level_id,
-//                                 level_order: placement_order,
-//                                 placement_order,
-//                                 level_status,
-//                                 behaviour,
-//                                 recipients: [recipient],
-//                             });
-//                         }
-//                     });
-//                 }
-//                 // await applyBypassDublicateStatus(request, reply, workflow)                
-//                 let data = await statusHandling(request, reply, workflow)
-//                 await updateMissingLevels(levels, workflow)
-//                 // const levelsWithRoles = await getRolesForRecipients(request, reply, workflow.levels, workflow.program_id);
-//                 // workflow.levels = "msp user";
-
-
-
-//             }
-//         }
-//     } catch (error) {
-//         console.log(error);
-
-//         return reply.status(500).send({
-//             statusCode: 500,
-//             message: 'An error occurred while fetching workflow data.',
-
-//         });
-//     }
-// };
-// async function updateMissingLevels(levels: any[], workflow: any) {
-//     // Extract all placement orders from workflow.levels into a Set
-//     const workflowPlacementOrders = new Set(workflow.levels.map((level: any) => level.placement_order));
-
-//     // Update status for levels where placement_order is NOT in workflowPlacementOrders
-//     const updatedLevels = levels.map((level: any) => {
-//         if (!workflowPlacementOrders.has(level.placement_order)) {
-//             return { ...level, status: "completed" };
-//         }
-//         return level;
-//     });
-//     for (const updatedLevel of updatedLevels) {
-//         await JobWorkFlowModel.update(
-//             { levels: updatedLevels },
-//             {
-//                 where: {
-//                     placement_order: updatedLevel.placement_order,
-//                     id: workflow.job_workflow_id
-//                 }
-//             }
-//         );
-//     }
-//     // Optionally, return the updated levels or any other information
-//     return updatedLevels;
-// }
 
 
 async function getRolesForRecipients(request: FastifyRequest, reply: FastifyReply, levels: any[], program_id: string) {
@@ -3558,7 +2549,28 @@ async function fetchSupervisorData(supervisor_id: string, program_id: string) {
     });
 }
 
-
+/**
+ * Fetch level user data from the database
+ */
+// async function fetchLevelUserData(user_id: string, program_id: string) {
+//     if (!user_id || !program_id) return null;
+    
+//     const userQuery = `
+//         SELECT user_id, first_name, last_name, email, avatar, role_id
+//         FROM user
+//         WHERE user_id = :user_id
+//           AND program_id = :program_id
+//           AND status = 'active'
+//         LIMIT 1
+//     `;
+    
+//     const userResult = await sequelize.query(userQuery, {
+//         type: QueryTypes.SELECT,
+//         replacements: { user_id, program_id },
+//     });
+    
+//     return userResult.length > 0 ? userResult[0] : null;
+// }
 
 /**
  * Map user data to standardized format
@@ -3663,13 +2675,7 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         }
         
         // Initialize workflows map to store unique workflows by job_workflow_id
-            const workflows: { [key: string]: Workflow } = {};
-        
-        console.log('Total rows from DB:', rows.length);
-        
-        // Debug step: Print all distinct job_workflow_id values
-        const distinctWorkflowIds = [...new Set(rows.map(row => row.job_workflow_id))];
-        console.log('Distinct workflow IDs:', distinctWorkflowIds);
+        const workflows: { [key: string]: Workflow } = {};
         
         // Process each row from the database
         for (const row of rows) {
@@ -3677,69 +2683,13 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         }
         
         // Process workflows for status handling
-        console.log('workflow is noowwww', workflows);
-        console.log('Workflows after processing:', Object.keys(workflows).length);
-        console.log('Workflow levels:', Object.values(workflows).map(w => w.levels.length));
-   for (const workflowId in workflows) {
-    console.log(`Processing workflow ${workflowId}, has ${workflows[workflowId].levels.length} levels`);
-    
-    // Get distinct level_ids for this workflow
-    const levelIds = new Set(rows
-        .filter(r => r.job_workflow_id === workflowId)
-        .map(r => r.level_id));
-    console.log(`Expected level_ids for workflow ${workflowId}:`, Array.from(levelIds));
-    
-    // Store original levels before deduplication
-    const levelsBeforeDedup = [...workflows[workflowId].levels];
-    
-    // Ensure there are no duplicate levels with the same placement_order
-    workflows[workflowId].levels = deduplicateLevels(workflows[workflowId].levels);
-    console.log(`After deduplication, workflow ${workflowId} has ${workflows[workflowId].levels.length} levels`);
-    
-    // If levels were lost during deduplication, log a warning
-    if (levelsBeforeDedup.length > workflows[workflowId].levels.length) {
-        console.log(`WARNING: Lost levels during deduplication. Before: ${levelsBeforeDedup.length}, After: ${workflows[workflowId].levels.length}`);
-        
-        // Check which levels were lost
-        const beforeIds = new Set(levelsBeforeDedup.map(l => l.level_id));
-        const afterIds = new Set(workflows[workflowId].levels.map(l => l.level_id));
-        const lostIds = [...beforeIds].filter(id => !afterIds.has(id));
-        
-        console.log(`Lost level_ids:`, lostIds);
-    }
-    
-    // Store levels before status handling
-    const levelsBeforeStatus = [...workflows[workflowId].levels];
-    
-    // Perform status handling
-    await statusHandling(request, reply, workflows[workflowId]);
-    console.log(`After status handling, workflow ${workflowId} has ${workflows[workflowId].levels.length} levels`);
-    
-    // If levels were lost during status handling, restore them
-    if (levelsBeforeStatus.length > workflows[workflowId].levels.length) {
-        console.log(`WARNING: Lost levels during status handling. Before: ${levelsBeforeStatus.length}, After: ${workflows[workflowId].levels.length}`);
-        
-        // Check which levels were lost
-        const beforeIds = new Set(levelsBeforeStatus.map(l => l.level_id));
-        const afterIds = new Set(workflows[workflowId].levels.map(l => l.level_id));
-        const lostIds = [...beforeIds].filter(id => !afterIds.has(id));
-        
-        console.log(`Lost level_ids during status handling:`, lostIds);
-        
-        // Restore lost levels
-        for (const level of levelsBeforeStatus) {
-            if (!workflows[workflowId].levels.some(l => l.level_id === level.level_id)) {
-                console.log(`Restoring lost level ${level.level_id}`);
-                workflows[workflowId].levels.push(level);
-            }
+        for (const workflowId in workflows) {
+            // Ensure there are no duplicate levels with the same placement_order
+            workflows[workflowId].levels = deduplicateLevels(workflows[workflowId].levels);
+            
+            // Perform status handling
+            await statusHandling(request, reply, workflows[workflowId]);
         }
-        
-        // Sort levels again
-        workflows[workflowId].levels.sort((a, b) => a.placement_order - b.placement_order);
-        
-        console.log(`After restoration, workflow ${workflowId} has ${workflows[workflowId].levels.length} levels`);
-    }
-}
         
         // Return the processed workflows
         return reply.status(200).send({
@@ -3762,32 +2712,66 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
  * This is a last resort safety measure to prevent duplicate levels in the response
  */
 function deduplicateLevels(levels: Level[]): Level[] {
-    console.log(`Deduplicating ${levels.length} levels with IDs: ${levels.map(l => l.level_id).join(', ')}`);
-    
     if (!levels || !Array.isArray(levels) || levels.length === 0) {
-        console.log('No levels to deduplicate');
         return [];
     }
     
-    // First, ensure we have unique levels by level_id
-    // This is to avoid losing levels with the same placement_order but different level_ids
-    const levelsByLevelId: { [key: string]: Level } = {};
+    // Group levels by placement_order
+    const levelsByPlacementOrder: { [key: number]: Level[] } = {};
     
     for (const level of levels) {
-        if (!level.level_id) continue;
-        
-        // Create a deep copy of the level
-        levelsByLevelId[level.level_id] = {
-            ...level,
-            recipients: Array.isArray(level.recipients) ? level.recipients.map(r => ({...r})) : []
-        };
+        if (!levelsByPlacementOrder[level.placement_order]) {
+            levelsByPlacementOrder[level.placement_order] = [];
+        }
+        levelsByPlacementOrder[level.placement_order].push(level);
     }
     
-    // Convert back to array and sort by placement_order
-    const result = Object.values(levelsByLevelId);
-    result.sort((a, b) => a.placement_order - b.placement_order);
+    // For each placement_order, merge duplicate levels
+    const result: Level[] = [];
     
-    console.log(`After deduplication, have ${result.length} levels with IDs: ${result.map(l => l.level_id).join(', ')}`);
+    for (const placementOrder in levelsByPlacementOrder) {
+        const levelsForOrder = levelsByPlacementOrder[placementOrder];
+        
+        if (levelsForOrder.length === 1) {
+            // No duplicates for this placement_order - always include the level, even if it has no recipients
+            result.push({
+                ...levelsForOrder[0],
+                recipients: Array.isArray(levelsForOrder[0].recipients) ? 
+                    [...levelsForOrder[0].recipients] : []
+            });
+        } else {
+            // Merge all levels with the same placement_order
+            const mergedLevel: Level = { ...levelsForOrder[0] };
+            mergedLevel.recipients = [];
+            
+            // Collect all unique recipients by user_id
+            const recipientsByUserId: any = {};
+            
+            for (const level of levelsForOrder) {
+                if (Array.isArray(level.recipients)) {
+                    for (const recipient of level.recipients) {
+                        if (recipient && recipient.user_id) {
+                            // Take the recipient with the most recent updated_on timestamp
+                            if (!recipientsByUserId[recipient.user_id] || 
+                                (recipient.updated_on && (!recipientsByUserId[recipient.user_id].updated_on || 
+                                 recipient.updated_on > recipientsByUserId[recipient.user_id].updated_on))) {
+                                recipientsByUserId[recipient.user_id] = { ...recipient };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Add unique recipients to the merged level
+            mergedLevel.recipients = Object.values(recipientsByUserId);
+            
+            // Add the merged level to the result
+            result.push(mergedLevel);
+        }
+    }
+    
+    // Sort levels by placement_order
+    result.sort((a, b) => a.placement_order - b.placement_order);
     
     return result;
 }
@@ -3908,214 +2892,304 @@ function buildWorkflowQuery(hierarchyPlaceholders:string) {
  * Process a workflow row from the database and add it to the workflows map
  */
 async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow }, program_id: string): Promise<void> {
-    try {
-        const {
+    const {
+        level_id,
+        level_status,
+        levels: rowLevels,
+        config,
+        recipient_status,
+        recipient_details,
+        placement_order,
+        recipient_type_id,
+        meta_data,
+        behaviour,
+        replaced_by,
+        existing_replaced_user,
+        imporsonate_by,
+        job_workflow_id,
+        recipient_types
+    } = row;
+
+    let manager = row?.manager;
+    
+    // Initialize workflow if not already exists
+    if (!workflows[job_workflow_id]) {
+        workflows[job_workflow_id] = {
+            program_id: program_id,
+            job_workflow_id: job_workflow_id,
+            workflow_id: row.workflow_id,
+            event_title: row.event_title,
+            workflow_name: row.workflow_name,
+            workflow_type: row.workflow_type,
+            event_slug: row.event_slug,
+            status: row.status,
+            config: row.config,
+            levels: [],
+            is_rejected_workflow: row.status?.toLowerCase() === "rejected"
+        };
+    }
+
+    const workflow = workflows[job_workflow_id];
+    
+    // Always add the level to the workflow, even if there's no meta_data
+    const existingLevelIndex = workflow.levels.findIndex(lvl => lvl.level_id === level_id);
+    
+    if (existingLevelIndex === -1) {
+        // Level doesn't exist yet - add it
+        workflow.levels.push({
             level_id,
-            level_status,
-            levels,
-            config,
-            recipient_status,
-            recipient_details,
+            level_order: placement_order,
             placement_order,
-            recipient_type_id,
-            meta_data,
+            level_status,
             behaviour,
-            replaced_by,
-            existing_replaced_user,
-            imporsonate_by,
-            job_workflow_id,
-            recipient_types
-        } = row;
-
-        console.log(`Processing row for workflow ${job_workflow_id}, level ${level_id}, placement_order ${placement_order}`);
-        
-        let manager = row?.manager;
-        
-        // Initialize workflow if not already exists
-        if (!workflows[job_workflow_id]) {
-            console.log(`Initializing new workflow ${job_workflow_id}`);
+            recipients: [] // Start with empty recipients array
+        });
+    }
+    
+    // Extract recipients - Try multiple approaches to get complete recipient data
+    
+    // 1. First try to extract from recipient_types if it's available
+    let recipients: any[] = [];
+    
+    if (recipient_types) {
+        try {
+            let parsedTypes;
+            if (typeof recipient_types === 'string') {
+                parsedTypes = JSON.parse(recipient_types);
+            } else {
+                parsedTypes = recipient_types;
+            }
             
-            workflows[job_workflow_id] = {
-                program_id: program_id,
-                job_workflow_id: job_workflow_id,
-                workflow_id: row.workflow_id,
-                event_title: row.event_title,
-                workflow_name: row.workflow_name,
-                workflow_type: row.workflow_type,
-                event_slug: row.event_slug,
-                status: row.status,
-                config: row.config,
-                levels: [],
-                is_rejected_workflow: row.status?.toLowerCase() === "rejected"
-            };
-        }
-
-        const workflow = workflows[job_workflow_id];
-        
-        // EXTRACT RECIPIENTS
-        // Try several different approaches to extract recipients
-        let recipients: any[] = [];
-        
-        // Try to extract from recipient_types first
-        if (recipient_types) {
-            try {
-                let parsedTypes;
-                if (typeof recipient_types === 'string') {
-                    parsedTypes = JSON.parse(recipient_types);
-                } else {
-                    parsedTypes = recipient_types;
+            if (Array.isArray(parsedTypes)) {
+                for (const rt of parsedTypes) {
+                    // Skip if no meta_data
+                    if (!rt.meta_data) continue;
+                    
+                    const userId:any = rt.meta_data ? Object.values(rt.meta_data)[0] : null;
+                    if (!userId) continue;
+                    
+                    // Fetch user data
+                    const userData = await fetchUserById(userId, program_id);
+                    if (!userData) continue;
+                    
+                    // Get recipient type info if available (without using getRecipientTypeNameById)
+                    let recipientTypeName = ""; // Default empty string
+                    if (rt.recipient_type_id) {
+                        const rtInfo = await getRecipientTypeInfo(rt.recipient_type_id);
+                        if (rtInfo) {
+                            recipientTypeName = rtInfo.name || "";
+                        }
+                    }
+                    
+                    // Create recipient object
+                    const recipient = {
+                        user_id: userId,
+                        name: `${userData.first_name} ${userData.last_name}`.trim(),
+                        first_name: userData.first_name,
+                        last_name: userData.last_name,
+                        level_id,
+                        status: rt.status,
+                        updated_on: rt.updated_on,
+                        notes: rt.notes,
+                        reason: rt.reason,
+                        actor_first_name: rt.actor_first_name,
+                        actor_last_name: rt.actor_last_name,
+                        actor_by_avatar: rt.actor_by_avatar,
+                        is_admin_override: rt.is_admin_override,
+                        avatar: userData.avatar?.url || '',
+                        role_id: userData.role_id,
+                        email: userData.email,
+                        recipient_type: recipientTypeName,
+                        behaviour: rt.behaviour || behaviour
+                    };
+                    
+                    recipients.push(recipient);
                 }
-                
-                if (Array.isArray(parsedTypes)) {
-                    recipients = parsedTypes.map((rt: any) => {
-                        const userId = rt.meta_data ? Object.values(rt.meta_data)[0] : null;
-                        return {
-                            user_id: userId,
-                            status: rt.status,
-                            reason: rt.reason,
-                            notes: rt.notes,
-                            updated_on: rt.updated_on,
-                            actor_first_name: rt.actor_first_name,
-                            actor_last_name: rt.actor_last_name,
-                            actor_by_avatar: rt.actor_by_avatar,
-                            recipient_type_id: rt.recipient_type_id,
-                            meta_data: rt.meta_data,
-                            behaviour: rt.behaviour
-                        };
-                    }).filter((r: any) => r.user_id);
+            }
+        } catch (error) {
+            console.error(`Error parsing recipient_types for level ${level_id}:`, error);
+        }
+    }
+    
+    // 2. If no recipients from recipient_types, try standard processing based on meta_data and recipient_type
+    if (recipients.length === 0 && meta_data && Object.keys(meta_data).length > 0 && recipient_type_id) {
+        // Get recipient type information
+        const recipientType = await getRecipientTypeInfo(recipient_type_id);
+        if (recipientType) {
+            try {
+                if (recipientType.name === 'Specific User' || recipientType.name === 'Multiple users' || 
+                    recipientType.name === "Job Manager" || recipientType.name === "Assignment Manager") {
+                    recipients = await processSpecificUserRecipients(
+                        recipientType, meta_data, existing_replaced_user, replaced_by, 
+                        imporsonate_by, program_id, recipient_details, level_id, 
+                        recipient_status, behaviour
+                    );
+                } 
+                else if (recipientType.name === "Manager of") {
+                    recipients = await processManagerOfRecipients(
+                        manager, existing_replaced_user, replaced_by, imporsonate_by, 
+                        program_id, recipient_details, level_id, recipient_status, 
+                        recipientType, behaviour, workflow
+                    );
+                }
+                else if (recipientType.name === "Custom Field Supplied User" || recipientType.name === "Manager of") {
+                    recipients = await processCustomFieldRecipients(
+                        rowLevels, recipientType, replaced_by, imporsonate_by, program_id, 
+                        recipient_details, level_id, recipient_status, behaviour, workflow
+                    );
+                }
+                else if (["Users in Program Role", "Master Data Owner", "Managerial Chain", 
+                        "Financial Authority Chain", "Top of Financial Authority Chain", 
+                        "Vendor Users"].includes(recipientType.name)) {
+                    recipients = await processRoleBasedRecipients(
+                        recipient_types, level_id, behaviour, recipientType, program_id,
+                        recipient_details, workflow
+                    );
                 }
             } catch (error) {
-                console.error(`Error parsing recipient_types:`, error);
+                console.error(`Error processing recipients for level ${level_id}:`, error);
             }
         }
-        
-        // If no recipients from recipient_types, try other methods
-        if (recipients.length === 0 && meta_data && Object.keys(meta_data).length > 0) {
-            // Try to process based on recipient_type
-            try {
-                // Get recipient type information
-                const recipientType = await getRecipientTypeInfo(recipient_type_id);
-                if (recipientType) {
-                    if (recipientType.name === 'Specific User' || recipientType.name === 'Multiple users' || 
-                        recipientType.name === "Job Manager" || recipientType.name === "Assignment Manager") {
-                        recipients = await processSpecificUserRecipients(
-                            recipientType, meta_data, existing_replaced_user, replaced_by, 
-                            imporsonate_by, program_id, recipient_details, level_id, 
-                            recipient_status, behaviour
-                        );
-                    } 
-                    else if (recipientType.name === "Manager of") {
-                        recipients = await processManagerOfRecipients(
-                            manager, existing_replaced_user, replaced_by, imporsonate_by, 
-                            program_id, recipient_details, level_id, recipient_status, 
-                            recipientType, behaviour, workflow
-                        );
+    }
+    
+    // 3. If still no recipients and we have row.levels data, extract recipient information from there
+    if (recipients.length === 0 && rowLevels) {
+        try {
+            let levelsData;
+            if (typeof rowLevels === 'string') {
+                levelsData = JSON.parse(rowLevels);
+            } else {
+                levelsData = rowLevels;
+            }
+            
+            if (Array.isArray(levelsData)) {
+                // Find the level with matching placement_order
+                const matchingLevel = levelsData.find((lvl: any) => lvl.placement_order === placement_order);
+                if (matchingLevel && matchingLevel.recipient_types) {
+                    let recipientTypesData;
+                    if (typeof matchingLevel.recipient_types === 'string') {
+                        recipientTypesData = JSON.parse(matchingLevel.recipient_types);
+                    } else {
+                        recipientTypesData = matchingLevel.recipient_types;
                     }
-                    else if (recipientType.name === "Custom Field Supplied User" || recipientType.name === "Manager of") {
-                        recipients = await processCustomFieldRecipients(
-                            levels, recipientType, replaced_by, imporsonate_by, program_id, 
-                            recipient_details, level_id, recipient_status, behaviour, workflow
-                        );
-                    }
-                    else if (["Users in Program Role", "Master Data Owner", "Managerial Chain", 
-                            "Financial Authority Chain", "Top of Financial Authority Chain", 
-                            "Vendor Users"].includes(recipientType.name)) {
-                        recipients = await processRoleBasedRecipients(
-                            row.recipient_types, level_id, behaviour, recipientType, program_id,
-                            recipient_details, workflow
-                        );
+                    
+                    if (Array.isArray(recipientTypesData)) {
+                        const recipientTypePromises = recipientTypesData.map(async (rt: any) => {
+                            if (!rt.meta_data) return null;
+                            
+                            const userId:any = Object.values(rt.meta_data)[0];
+                            if (!userId) return null;
+                            
+                            // Fetch user data
+                            const userData = await fetchUserById(userId, program_id);
+                            if (!userData) return null;
+                            
+                            // Get recipient type info
+                            let recipientTypeName = "";
+                            if (rt.recipient_type_id) {
+                                const rtInfo = await getRecipientTypeInfo(rt.recipient_type_id);
+                                if (rtInfo) {
+                                    recipientTypeName = rtInfo.name || "";
+                                }
+                            }
+                            
+                            // Create recipient object
+                            return {
+                                user_id: userId,
+                                name: `${userData.first_name} ${userData.last_name}`.trim(),
+                                first_name: userData.first_name,
+                                last_name: userData.last_name,
+                                level_id,
+                                status: rt.status,
+                                updated_on: rt.updated_on,
+                                notes: rt.notes,
+                                reason: rt.reason,
+                                actor_first_name: rt.actor_first_name,
+                                actor_last_name: rt.actor_last_name,
+                                actor_by_avatar: rt.actor_by_avatar,
+                                is_admin_override: rt.is_admin_override,
+                                avatar: userData.avatar?.url || '',
+                                role_id: userData.role_id,
+                                email: userData.email,
+                                recipient_type: recipientTypeName,
+                                behaviour: rt.behaviour || behaviour
+                            };
+                        });
+                        
+                        // Wait for all promises to resolve
+                        const recipientResults = await Promise.all(recipientTypePromises);
+                        
+                        // Filter out null values and add to recipients
+                        recipients = recipientResults.filter(r => r !== null);
                     }
                 }
-            } catch (error) {
-                console.error(`Error processing recipients:`, error);
             }
+        } catch (error) {
+            console.error(`Error processing row.levels for level ${level_id}:`, error);
         }
-        
-        // Ensure recipients is an array
-        if (!Array.isArray(recipients)) {
-            recipients = [];
-        }
-        
-        console.log(`Extracted ${recipients.length} recipients for level ${level_id}`);
-        
-        // Check for rejection status
-        const hasRejectedRecipient = recipients.some((recipient:any) => 
+    }
+    
+    // Check for rejected recipients to update workflow status
+    if (recipients && recipients.length > 0) {
+        const hasRejectedRecipient = recipients.some((recipient: any) => 
             recipient.status?.toLowerCase() === "rejected"
         );
         
         if (hasRejectedRecipient) {
             workflow.is_rejected_workflow = true;
-            console.log(`Workflow ${job_workflow_id} marked as rejected due to rejected recipient in level ${level_id}`);
         }
         
-        // ADD LEVEL TO WORKFLOW
-        // This is the critical part - we need to ensure this always happens
-        // Find existing level by level_id
-        const existingLevelIndex = workflow.levels.findIndex(level => level.level_id === level_id);
-        
-        if (existingLevelIndex !== -1) {
-            // Level exists - update it
-            console.log(`Level ${level_id} already exists at index ${existingLevelIndex}, updating it`);
+        // Add recipients to the workflow level
+        const levelIndex = workflow.levels.findIndex(lvl => lvl.level_id === level_id);
+        if (levelIndex !== -1) {
+            const level = workflow.levels[levelIndex];
             
-            const existingLevel = workflow.levels[existingLevelIndex];
-            
-            // Make sure recipients is an array
-            if (!Array.isArray(existingLevel.recipients)) {
-                existingLevel.recipients = [];
-            }
-            
-            // Add new recipients
+            // Add new recipients, avoiding duplicates
             for (const recipient of recipients) {
-                if (!recipient || !recipient.user_id) continue;
-                
-                const duplicateIndex = existingLevel.recipients.findIndex((r: any) => 
-                    r && r.user_id === recipient.user_id
+                const duplicateIndex = level.recipients.findIndex((r: any) => 
+                    r.user_id === recipient.user_id
                 );
                 
                 if (duplicateIndex === -1) {
-                    existingLevel.recipients.push({...recipient});
+                    // Not a duplicate, add to level
+                    level.recipients.push(recipient);
                 } else {
-                    const existingRecipient:any = existingLevel.recipients[duplicateIndex];
+                    // If this is a newer record, update the existing one
+                    const existingRecipient:any = level.recipients[duplicateIndex];
                     if (recipient.updated_on && (!existingRecipient.updated_on || 
                                                recipient.updated_on > existingRecipient.updated_on)) {
-                        existingLevel.recipients[duplicateIndex] = {...recipient};
+                        level.recipients[duplicateIndex] = recipient;
                     }
                 }
             }
-            
-            // Update level properties
-            if (level_status) {
-                existingLevel.level_status = level_status;
-            }
-            
-            if (behaviour) {
-                existingLevel.behaviour = behaviour;
-            }
-            
-            console.log(`Updated level ${level_id}, now has ${existingLevel.recipients.length} recipients`);
-        } else {
-            // Level doesn't exist - create new one
-            console.log(`Creating new level ${level_id} with placement_order ${placement_order}`);
-            
-            const newLevel = {
-                level_id,
-                level_order: placement_order,
-                placement_order,
-                level_status,
-                behaviour,
-                recipients: recipients.map(r => ({...r}))
-            };
-            
-            workflow.levels.push(newLevel);
-            console.log(`Added new level ${level_id}, workflow now has ${workflow.levels.length} levels`);
         }
+    }
+    
+    // Make sure levels are sorted by placement_order
+    workflow.levels.sort((a, b) => a.placement_order - b.placement_order);
+}
+
+
+async function fetchUserById(userId: string, programId: string): Promise<any> {
+    try {
+        const userQuery = `
+            SELECT user_id, first_name, last_name, avatar, role_id, email
+            FROM user
+            WHERE user_id = :userId
+              AND program_id = :programId
+              AND status = 'active'
+            LIMIT 1;
+        `;
         
-        // Sort levels by placement_order
-        workflow.levels.sort((a, b) => a.placement_order - b.placement_order);
+        const userResult = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { userId, programId },
+        });
         
-        console.log(`Workflow ${job_workflow_id} now has ${workflow.levels.length} levels with IDs: ${workflow.levels.map(l => l.level_id).join(', ')}`);
+        return userResult.length > 0 ? userResult[0] : null;
     } catch (error) {
-        console.error(`Error in processWorkflowRow:`, error);
+        console.error(`Error fetching user ${userId}:`, error);
+        return null;
     }
 }
 
@@ -4141,6 +3215,9 @@ async function getRecipientTypeInfo(recipient_type_id: string) {
     return recipientTypeResult[0] as Recipient;
 }
 
+/**
+ * TypeScript interfaces for workflow objects
+ */
 
 
 interface Level {
@@ -4152,7 +3229,20 @@ interface Level {
     recipients:any;
 }
 
-
+// interface Workflow {
+//     program_id: string;
+//     job_workflow_id: string;
+//     workflow_id: string;
+//     event_title: string;
+//     workflow_name: string;
+//     workflow_type: string;
+//     event_slug?: string;
+//     status: string;
+//     config: any;
+//     levels: Level[];
+//     is_rejected_workflow: boolean;
+//     action_allowed?: any;
+// }
 
 /**
  * Find an existing level in the workflow by placement_order and recipient's user_id
@@ -4184,89 +3274,53 @@ function getPreviousExistingLevel(workflow: Workflow, level_id: string, placemen
  */
 function addRecipientsToWorkflow(
     workflow: Workflow, 
-    recipients: any[], 
+    recipients:any, 
     level_id: string, 
     placement_order: number, 
     level_status: string, 
     behaviour: any
 ): void {
-    // Make sure recipients is an array
-    if (!Array.isArray(recipients)) {
-        recipients = [];
-    }
+    // Skip if no recipients
+    if (!recipients.length) return;
     
-    // Log before processing
-    console.log(`Adding level ${level_id} with ${recipients.length} recipients to workflow ${workflow.job_workflow_id}`);
-    console.log(`Workflow has ${workflow.levels.length} levels before adding`);
+    // First see if we can find a matching level for the first recipient
+    // We use the first recipient's user_id to check for existing levels
+    const firstRecipient = recipients[0];
+    const existingLevel = getPreviousExistingLevel(workflow, level_id, placement_order, firstRecipient.user_id);
     
-    // Find existing level by level_id
-    const existingLevelIndex = workflow.levels.findIndex(level => level.level_id === level_id);
-    
-    if (existingLevelIndex !== -1) {
-        // Level exists - update it and add recipients
-        console.log(`Level ${level_id} already exists at index ${existingLevelIndex}, updating it`);
-        
-        const existingLevel = workflow.levels[existingLevelIndex];
-        
-        // Make sure the level has a recipients array
-        if (!Array.isArray(existingLevel.recipients)) {
-            existingLevel.recipients = [];
-        }
-        
-        // Add recipients, avoiding duplicates
+    if (existingLevel) {
+        // Level exists - add recipients to existing level (avoiding duplicates)
         for (const recipient of recipients) {
-            if (!recipient || !recipient.user_id) continue;
-            
-            // Check if recipient already exists by user_id
-            const duplicateIndex = existingLevel.recipients.findIndex((r: any) => 
-                r && r.user_id === recipient.user_id
-            );
+            // Check if recipient already exists in this level by user_id
+            const duplicateIndex = existingLevel.recipients.findIndex((r:any) => r.user_id === recipient.user_id);
             
             if (duplicateIndex === -1) {
                 // Not a duplicate, add to level
                 existingLevel.recipients.push(recipient);
             } else {
-                // If this is a newer record, update the existing one
-                const existingRecipient: any = existingLevel.recipients[duplicateIndex];
-                if (recipient.updated_on && (!existingRecipient.updated_on || 
-                                             recipient.updated_on > existingRecipient.updated_on)) {
+                // If this is a newer record (has a higher updated_on timestamp), update the existing one
+                const existingRecipient:any = existingLevel.recipients[duplicateIndex];
+                if (recipient.updated_on && (!existingRecipient.updated_on || recipient.updated_on > existingRecipient.updated_on)) {
                     existingLevel.recipients[duplicateIndex] = recipient;
                 }
             }
         }
-        
-        // Update level status if provided
-        if (level_status) {
-            existingLevel.level_status = level_status;
-        }
-        
-        // Update behaviour if provided
-        if (behaviour) {
-            existingLevel.behaviour = behaviour;
-        }
     } else {
         // Level doesn't exist - create new level with recipients
-        console.log(`Creating new level ${level_id} with placement_order ${placement_order}`);
-        
-        const newLevel = {
+        workflow.levels.push({
             level_id,
             level_order: placement_order,
             placement_order,
             level_status,
             behaviour,
-            recipients: Array.isArray(recipients) ? [...recipients] : [] // Create a new array
-        };
-        
-        workflow.levels.push(newLevel);
-        console.log(`Added new level, workflow now has ${workflow.levels.length} levels`);
+            recipients: [...recipients] // Create a new array to avoid reference issues
+        });
     }
     
-    // Sort levels by placement_order
+    // Sort levels by placement_order to ensure consistent display
     workflow.levels.sort((a, b) => a.placement_order - b.placement_order);
-    
-    // Log after processing
-    console.log(`Workflow has ${workflow.levels.length} levels after adding, with level_ids: ${workflow.levels.map(l => l.level_id).join(', ')}`);
 }
+
 /**
  * Process recipients for Specific User, Multiple Users, Job Manager, Assignment Manager types
  */
@@ -6398,16 +5452,6 @@ function getRecipientName(user: any): string {
     return `${firstName} ${lastName}`.trim();
 }
 
-// Helper function to get name
-// function getName(user: any) {
-//     if (user.name) {
-//         return user.name;
-//     }
-    
-//     const firstName = user.first_name || '';
-//     const lastName = user.last_name || '';
-//     return `${firstName} ${lastName}`.trim();
-// }
 
 const statusHandling = async (request: FastifyRequest, reply: FastifyReply, workflow: any) => {
     const traceId = generateCustomUUID();
@@ -6545,13 +5589,3 @@ function getExistingLevel(workflow: any, level_id: string) {
     return workflow.levels.find((level: any) => level.level_id === level_id);
 }
 
-// Helper function to format name
-// function getName(user: any) {
-//     if (user.name) {
-//         return user.name;
-//     }
-    
-//     const firstName = user.first_name || '';
-//     const lastName = user.last_name || '';
-//     return `${firstName} ${lastName}`.trim();
-// }
