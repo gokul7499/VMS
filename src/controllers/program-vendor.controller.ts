@@ -845,6 +845,8 @@ export const getVendorDocuments = async (
         is_enabled = null,
         status = null,
         updated_on = null,
+        next_expiry_on = null,
+        compliance_verified = null
     } = request.query as {
         vendor_id?: string;
         document_id?: string;
@@ -853,7 +855,9 @@ export const getVendorDocuments = async (
         name?: string;
         is_enabled?: string;
         status?: string;
-        updated_on?: any
+        updated_on?: any;
+        next_expiry_on?: any;
+        compliance_verified?: string;
     };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -901,7 +905,9 @@ export const getVendorDocuments = async (
             limit: pageSize,
             offset,
             status: statusArray,
-            updated_on
+            updated_on,
+            next_expiry_on,
+            compliance_verified : compliance_verified ? `%${compliance_verified}` : null
         };
 
         if (vendor_id && document_id) {
