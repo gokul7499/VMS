@@ -998,7 +998,12 @@ export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
       });
     }
 
-    const htmlContent = await extractFileContent(data);
+    const uploadedFile = {
+      mimetype: data.mimetype,
+      originalname: data.filename,
+      file: data.file
+    };
+    const htmlContent = await extractFileContent(uploadedFile);
 
     const htmlResponse = `<html><body>${htmlContent}</body></html>`;
 
