@@ -1,11 +1,9 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { Readable } from 'stream';
-import WordExtractor from 'word-extractor';
 
 interface UploadedFile {
     mimetype: string;
-    originalname: string;
     file: Readable;
 }
 
@@ -25,7 +23,7 @@ export const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
 };
 
 export const extractFileContent = async (file: UploadedFile): Promise<string> => {
-    const { mimetype, originalname, file: fileStream } = file;
+    const { mimetype, file: fileStream } = file;
     const fileBuffer = await streamToBuffer(fileStream);
 
     if (!fileBuffer.length) {
@@ -34,35 +32,22 @@ export const extractFileContent = async (file: UploadedFile): Promise<string> =>
 
     let htmlContent = '';
 
-    try {
-        const isPdf = mimetype === 'application/pdf' || originalname.toLowerCase().endsWith('.pdf');
-        const isDocx = mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-            originalname.toLowerCase().endsWith('.docx');
-        const isDoc = mimetype === 'application/msword' ||
-            originalname.toLowerCase().endsWith('.doc');
-        const isTxt = mimetype === 'text/plain' ||
-            originalname.toLowerCase().endsWith('.txt');
-
-        if (isPdf) {
-            const pdfData = await pdfParse(fileBuffer);
-            htmlContent = textToHtmlParagraphs(pdfData.text);
-        } else if (isDocx) {
-            const { value: text } = await mammoth.extractRawText({ buffer: fileBuffer });
-            htmlContent = textToHtmlParagraphs(text);
-        } else if (isDoc) {
-            const extractor = new WordExtractor();
-            const doc = await extractor.extract(fileBuffer);
-            const text = doc.getBody();
-            htmlContent = textToHtmlParagraphs(text);
-        } else if (isTxt) {
-            const text = fileBuffer.toString('utf-8');
-            htmlContent = textToHtmlParagraphs(text);
-        } else {
-            throw new Error('Unsupported file type! Please upload a PDF, DOCX, DOC, or TXT file.');
-        }
-    } catch (error) {
-        console.error('File processing error:', error);
-        throw new Error(`Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (mimetype === 'application/pdf' || mimetype === 'application/x-pdf' || mimetype.includes('pdf')) {
+        const pdfData = await pdfParse(fileBuffer);
+        htmlContent = textToHtmlParagraphs(pdfData.text);
+    } else if (
+        mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        mimetype === 'application/msword' ||
+        mimetype.includes('word') ||
+        mimetype.includes('doc')
+    ) {
+        const { value: text } = await mammoth.extractRawText({ buffer: fileBuffer });
+        htmlContent = textToHtmlParagraphs(text);
+    } else if (mimetype === 'text/plain' || mimetype.includes('text')) {
+        const text = fileBuffer.toString();
+        htmlContent = textToHtmlParagraphs(text);
+    } else {
+        throw new Error('Unsupported file type! Please upload a PDF, DOCX, or TXT file.');
     }
 
     return htmlContent;
