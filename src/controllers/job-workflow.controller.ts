@@ -498,7 +498,8 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
-                                            by: `${userData?.first_name} ${userData?.last_name}`
+                                            by: `${userData?.first_name} ${userData?.last_name}`,
+                                            notes: notes || "",
                                         };
                                     } else {
                                         // For non-matching users, mark as "Not needed" without creating history
@@ -533,7 +534,8 @@ export const updateWorkflowStatus = async (
                                             status_id: history.dataValues?.id,
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
-                                            actor_by_avatar: userData?.avatar
+                                            actor_by_avatar: userData?.avatar,
+                                            notes: notes || "",
                                         };
                                     }
                                 }
@@ -561,6 +563,7 @@ export const updateWorkflowStatus = async (
                                                 actor_last_name: userData?.last_name,
                                                 actor_by_avatar: userData?.avatar,
                                                 updated_on: Date.now(),
+                                                notes: notes || "",
                                             };
                                         }
 
@@ -588,6 +591,7 @@ export const updateWorkflowStatus = async (
                                                     actor_last_name: userData?.last_name,
                                                     actor_by_avatar: userData?.avatar,
                                                     updated_on: Date.now(),
+                                                    notes: notes || "",
                                                 };
                                             }
                                         }
@@ -612,6 +616,7 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
                                         updated_on: Date.now(),
+                                        notes: notes || "",
                                     };
                                 }
 
@@ -647,6 +652,7 @@ export const updateWorkflowStatus = async (
                                 actor_by_avatar: userData?.avatar,
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
+                                notes: notes || "",
                             }));
                             if(level.status.toLowerCase() ==='pending') {
                                 level.status = "completed";
