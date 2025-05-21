@@ -704,7 +704,6 @@ export async function deleteReasoncode(
         });
     }
 }
-
 export const getReasonCodeBySlug = async (
     request: FastifyRequest,
     reply: FastifyReply
@@ -726,9 +725,8 @@ export const getReasonCodeBySlug = async (
                 trace_id,
             });
         }
-
         const actions = await ReasonCodeActionModel.findAll({
-            where: { event_id: event.id, module_id: module.id, is_deleted: false },
+            where: { event_id: event.id, module_id: module.id,is_deleted: false, },
         });
 
         if (!actions.length) {
@@ -740,29 +738,51 @@ export const getReasonCodeBySlug = async (
         }
 
         const reason_code_ids = actions.map(a => a.id);
-        const commonWhere = {
+        const baseWhere = {
             reason_code_id: reason_code_ids,
             is_deleted: false,
         };
-
-        let reasonCodes = await ReasonCodeModel.findAll({
-            where: { ...commonWhere, program_id },
+        const programSpecificCodes = await ReasonCodeModel.findAll({
+            where: { ...baseWhere, program_id },
             order: [['sq_number', 'ASC']],
-            attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
+            attributes: [
+                'id', 'name', 'category', 'created_on', 'updated_on',
+                'reason_code_id', 'program_id', 'sq_number', 'is_enabled'
+            ],
         });
 
-        if (!reasonCodes.length) {
-            reasonCodes = await ReasonCodeModel.findAll({
-                where: { ...commonWhere, program_id: null },
-                order: [['sq_number', 'ASC']],
-                attributes: ['id', 'name', 'category', 'created_on', 'updated_on', 'reason_code_id', 'program_id', 'sq_number'],
+        if (programSpecificCodes.length > 0) {
+            const enabledProgramCodes = programSpecificCodes.filter(rc => rc.is_enabled);
+
+            return reply.status(200).send({
+                status_code: 200,
+                message: enabledProgramCodes.length
+                    ? "Reason codes retrieved successfully"
+                    : "No enabled reason codes for this program",
+                reason_code_action: enabledProgramCodes,
+                trace_id,
             });
         }
 
+        const predefinedCodes = await ReasonCodeModel.findAll({
+            where: {
+                ...baseWhere,
+                program_id: null,
+                is_enabled: true,
+            },
+            order: [['sq_number', 'ASC']],
+            attributes: [
+                'id', 'name', 'category', 'created_on', 'updated_on',
+                'reason_code_id', 'program_id', 'sq_number', 'is_enabled'
+            ],
+        });
+
         return reply.status(200).send({
             status_code: 200,
-            message: "Reason codes retrieved successfully",
-            reason_code_action: reasonCodes,
+            message: predefinedCodes.length
+                ? "Predefined reason codes retrieved successfully"
+                : "No reason codes available",
+            reason_code_action: predefinedCodes,
             trace_id,
         });
 
@@ -828,135 +848,139 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
     }
 };
 
-export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
-    const traceId = generateCustomUUID();
-    const { program_id } = request.params as { program_id: string };
+    export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
+        const traceId = generateCustomUUID();
+        const { program_id } = request.params as { program_id: string };
 
-    try {
-        const {
-            page = 1,
-            limit = 10,
-            module_name,
-            reasons_count,
-            event_name,
-            updated_on,
-        } = request.body as {
-            page?: number;
-            limit?: number;
-            module_name?:string[];
-            reasons_count?: number;
-            event_name?: string;
-            updated_on?: string[];
-        };
-
-        const pageNumber = Math.max(parseInt(String(page), 10) || 1, 1);
-        const limitNumber = Math.max(parseInt(String(limit), 10) || 10, 1);
-        const offset = (pageNumber - 1) * limitNumber;
-
-        const whereClause: any = {
-            is_deleted: false,
-        };
-        if (module_name) {
-            if (Array.isArray(module_name)) {
-                whereClause[Op.or] = module_name.map((name: string) => ({
-                    '$module.name$': { [Op.like]: `%${name}%` },
-                }));
-            } else {
-                whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
-            }
-        }
-        if (event_name) {
-            whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
-        }
-  
-        if (reasons_count !== undefined) {
-            whereClause.reasons_count = reasons_count;
-        }
-   if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-        }
-
-
-        const { count: totalRecords, rows: reasoncodes } = await ReasonCodeActionModel.findAndCountAll({
-            where: whereClause,
-            attributes: {
-                exclude: [
-                    'ref_id',
-                    'updated_by',
-                    'created_by',
-                    'event_id',
-                    'module_id',
-                    'created_on',
-                    'is_deleted',
-                    'reason_code_limit',
-                    'slug',
-                ],
-            },
-            include: [
-                {
-                    model: Event,
-                    as: 'supporting_text_event',
-                    attributes: ['id', 'name'],
-                    required: false,
-                },
-                {
-                    model: Module,
-                    as: 'module',
-                    attributes: ['id', 'name'],
-                    required: false,
-                },
-            ],
-            order: [
-                [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'],
-                [{ model: Module, as: 'module' }, 'name', 'ASC'],
-                ['updated_on', 'DESC'],
-            ],
-            offset,
-            limit: limitNumber,
-            distinct: true,
-        });
-
-        const reasonCodeIds = reasoncodes.map(rc => rc.id);
-
-        const usageCountMap = await updateReasonCounts(program_id, reasonCodeIds);
-
-        const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
-            const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
-            return {
-                ...reasoncodeData,
-               reasons_count:usageCountMap[reasoncodeData.id] || 0,
-                module_name: module?.name ,
-                module_id: module?.id ,
-                event_name: supporting_text_event?.name ,
-                event_id: supporting_text_event?.id ,
-                reason_codes: null,
+        try {
+            const {
+                page = 1,
+                limit = 10,
+                module_name,
+                reasons_count,
+                event_name,
+                updated_on,
+            } = request.body as {
+                page?: number;
+                limit?: number;
+                module_name?:string[];
+                reasons_count?: number;
+                event_name?: string;
+                updated_on?: string[];
             };
-        });
-        reply.status(200).send({
-            status_code: 200,
-            message: reasoncodesWithDetails.length
-                ? 'Reasoncode retrieved successfully'
-                : 'Reasoncode not found',
-            items_per_page: limitNumber,
-            total_records: totalRecords,
-            reason_code_action: reasoncodesWithDetails,
-            trace_id: traceId,
-        });
-    } catch (error: any) {
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Internal server error',
-            trace_id: traceId,
-            error: error.message,
-        });
+
+            const pageNumber = Math.max(parseInt(String(page), 10) || 1, 1);
+            const limitNumber = Math.max(parseInt(String(limit), 10) || 10, 1);
+            const offset = (pageNumber - 1) * limitNumber;
+
+            const whereClause: any = {
+                is_deleted: false,
+            };
+            if (module_name) {
+                if (Array.isArray(module_name)) {
+                    whereClause[Op.or] = module_name.map((name: string) => ({
+                        '$module.name$': { [Op.like]: `%${name}%` },
+                    }));
+                } else {
+                    whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
+                }
+            }
+            if (event_name) {
+                whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
+            }
+    
+            if (reasons_count !== undefined) {
+                whereClause.reasons_count = reasons_count;
+            }
+          if (Array.isArray(updated_on) && updated_on.length === 2) {
+                const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+                whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+            }
+
+
+            const { count: totalRecords, rows: reasoncodes } = await ReasonCodeActionModel.findAndCountAll({
+                where: whereClause,
+                attributes: {
+                    exclude: [
+                        'ref_id',
+                        'updated_by',
+                        'created_by',
+                        'event_id',
+                        'module_id',
+                        'created_on',
+                        'is_deleted',
+                        'reason_code_limit',
+                        'slug',
+                    ],
+                },
+                include: [
+                    {
+                        model: Event,
+                        as: 'supporting_text_event',
+                        attributes: ['id', 'name'],
+                        required: false,
+                    },
+                    {
+                        model: Module,
+                        as: 'module',
+                        attributes: ['id', 'name'],
+                        required: false,
+                    },
+                ],
+                order: [
+                    [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'],
+                    [{ model: Module, as: 'module' }, 'name', 'ASC'],
+                    ['updated_on', 'DESC'],
+                ],
+                offset,
+                limit: limitNumber,
+                distinct: true,
+            });
+
+            const reasonCodeIds = reasoncodes.map(rc => rc.id);
+
+            const usageCountMap = await updateReasonCounts(program_id, reasonCodeIds);
+
+            const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
+                const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
+                return {
+                    ...reasoncodeData,
+                reasons_count:usageCountMap[reasoncodeData.id] || 0,
+                    module_name: module?.name ,
+                    module_id: module?.id ,
+                    event_name: supporting_text_event?.name ,
+                    event_id: supporting_text_event?.id ,
+                    reason_codes: null,
+                };
+            });
+            reply.status(200).send({
+                status_code: 200,
+                message: reasoncodesWithDetails.length
+                    ? 'Reasoncode retrieved successfully'
+                    : 'Reasoncode not found',
+                items_per_page: limitNumber,
+                total_records: totalRecords,
+                reason_code_action: reasoncodesWithDetails,
+                trace_id: traceId,
+            });
+        } catch (error: any) {
+            reply.status(500).send({
+                status_code: 500,
+                message: 'Internal server error',
+                trace_id: traceId,
+                error: error.message,
+            });
+        }
     }
-}
+ 
 async function updateReasonCounts(program_id: string, reasonCodeActionIds: string[]) {
     const usageCounts = await ReasonCodeModel.findAll({
         where: {
             reason_code_id: {
                 [Op.in]: reasonCodeActionIds,
+            },
+            program_id: {
+                [Op.or]: [program_id, null],
             },
         },
         attributes: [
@@ -966,20 +990,37 @@ async function updateReasonCounts(program_id: string, reasonCodeActionIds: strin
         ],
         group: ['reason_code_id', 'program_id'],
         raw: true,
-    }); 
-    const usageMap: Record<string, number> = {};
+    });
+    const groupedCounts: Record<string, { program?: number; predefined?: number }> = {};
+    reasonCodeActionIds.forEach(id => {
+        groupedCounts[id] = {};
+    });
     usageCounts.forEach(({ reason_code_id, program_id: recordProgramId, usage_count }) => {
         const count = parseInt(usage_count || '0', 10);
-        if (recordProgramId === null || recordProgramId === program_id) {
-            usageMap[reason_code_id] = (usageMap[reason_code_id] || 0) + count;
+        if (recordProgramId === program_id) {
+            groupedCounts[reason_code_id].program = count;
+        } else if (recordProgramId === null) {
+            groupedCounts[reason_code_id].predefined = count;
         }
     });
-    const updatePromises = Object.entries(usageMap).map(([reason_code_id, totalCount]) => {
-        return ReasonCodeActionModel.update(
-            { reasons_count: totalCount },
-            { where: { id: reason_code_id } }
-        );
-    });
-    await Promise.all(updatePromises);
+    const usageMap: Record<string, number> = {};
+    for (const reason_code_id in groupedCounts) {
+        const { program, predefined } = groupedCounts[reason_code_id];
+        if (program !== undefined) {
+            usageMap[reason_code_id] = program;
+        } else if (predefined !== undefined) {
+            usageMap[reason_code_id] = predefined;
+        } else {
+            usageMap[reason_code_id] = 0;
+        }
+    }
+    await Promise.all(
+        Object.entries(usageMap).map(([reason_code_id, totalCount]) =>
+            ReasonCodeActionModel.update(
+                { reasons_count: totalCount },
+                { where: { id: reason_code_id } }
+            )
+        )
+    );
     return usageMap;
 }
