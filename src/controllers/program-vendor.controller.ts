@@ -881,6 +881,7 @@ export const getVendorDocuments = async (
 
     try {
         let documents: VendorDetails[] = [];
+        let display_name;
 
         const getVendorRecord = async () => {
             return sequelize.query<{ id: any }>(
@@ -916,6 +917,14 @@ export const getVendorDocuments = async (
                 type: QueryTypes.SELECT,
             });
         } else if (vendor_id) {
+            const vendorName = await sequelize.query<{ display_name: string }>(
+                `SELECT display_name FROM program_vendors WHERE id = :vendor_id AND program_id = :program_id`,
+                {
+                    replacements: { vendor_id, program_id },
+                    type: QueryTypes.SELECT,
+                }
+            );
+            display_name = vendorName[0].display_name;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
                 replacements,
                 type: QueryTypes.SELECT,
@@ -964,7 +973,7 @@ export const getVendorDocuments = async (
 
         const totalCount = documents.length > 0 ? documents[0].total_count : 0;
         const totalPages = Math.ceil(totalCount / pageSize);
-        if (!documents) {
+        if (totalCount == 0) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
@@ -973,6 +982,7 @@ export const getVendorDocuments = async (
                 page: pageNumber,
                 limit: pageSize,
                 total_pages: totalPages,
+                display_name,
                 uploaded_documents: [],
             });
         }
@@ -985,6 +995,7 @@ export const getVendorDocuments = async (
             page: pageNumber,
             limit: pageSize,
             total_pages: totalPages,
+            display_name,
             uploaded_documents: documents.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
