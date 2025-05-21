@@ -6,6 +6,7 @@ import { findDuplicateCandidate } from "../utility/create-candidate";
 import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
 import DisebleMtp from "../models/disable_mtp.model";
+import { Op } from "sequelize";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -247,6 +248,31 @@ class MtpService {
                     console.log("data",data)
                 }
             }
+
+            const conflictingMtps = await MtpModel.findAll({
+                where: {
+                  program_id: programId,
+                  is_deleted: false,
+                  id: { [Op.ne]: id },
+                  mtp_candidate_id: { [Op.in]: mtpCandidateId },
+                },
+                transaction
+              });
+          
+              if (conflictingMtps.length > 0) {
+                const conflictingIds = conflictingMtps.map(m => m.id);
+          
+                await MtpModel.update(
+                  { is_deleted: true },
+                  {
+                    where: {
+                      id: { [Op.in]: conflictingIds }
+                    },
+                    transaction
+                  }
+                );
+              }
+          
     
             await transaction.commit();
     
@@ -292,12 +318,7 @@ class MtpService {
     
             const currentLinks = Array.isArray(mtp.linked_profiles) ? mtp.linked_profiles : [];
             const notLinked = mtpCandidateIds.filter(cid => !currentLinks.includes(cid));
-            if (notLinked.length > 0) {
-                return {
-                    statusCode: 400,
-                    message: `Candidate IDs not found in linked profiles: ${notLinked.join(', ')}`
-                };
-            }
+           
             transaction = await sequelize.transaction();
             const updatedLinks = currentLinks.filter(cid => !mtpCandidateIds.includes(cid));
             await MtpModel.update(
@@ -315,7 +336,7 @@ class MtpService {
                 });
     
                 if (existing) {
-                    await existing.update({ is_deleted: false }, { transaction });
+                    await existing.update({ is_deleted: false,linked_profiles:[candidateId] }, { transaction });
                 } else {
                     const candidateData = await this.mtpRepository.getCandidate(programId, candidateId);
                     const talentName = candidateData?.[0]?.candidate_name;

@@ -845,6 +845,8 @@ export const getVendorDocuments = async (
         is_enabled = null,
         status = null,
         updated_on = null,
+        next_expiry_on = null,
+        compliance_verified = null
     } = request.query as {
         vendor_id?: string;
         document_id?: string;
@@ -853,7 +855,9 @@ export const getVendorDocuments = async (
         name?: string;
         is_enabled?: string;
         status?: string;
-        updated_on?: any
+        updated_on?: any;
+        next_expiry_on?: any;
+        compliance_verified?: string;
     };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -877,6 +881,7 @@ export const getVendorDocuments = async (
 
     try {
         let documents: VendorDetails[] = [];
+        let display_name;
 
         const getVendorRecord = async () => {
             return sequelize.query<{ id: any }>(
@@ -901,7 +906,9 @@ export const getVendorDocuments = async (
             limit: pageSize,
             offset,
             status: statusArray,
-            updated_on
+            updated_on,
+            next_expiry_on,
+            compliance_verified : compliance_verified ? `%${compliance_verified}` : null
         };
 
         if (vendor_id && document_id) {
@@ -910,6 +917,14 @@ export const getVendorDocuments = async (
                 type: QueryTypes.SELECT,
             });
         } else if (vendor_id) {
+            const vendorName = await sequelize.query<{ display_name: string }>(
+                `SELECT display_name FROM program_vendors WHERE id = :vendor_id AND program_id = :program_id`,
+                {
+                    replacements: { vendor_id, program_id },
+                    type: QueryTypes.SELECT,
+                }
+            );
+            display_name = vendorName[0].display_name;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
                 replacements,
                 type: QueryTypes.SELECT,
@@ -958,7 +973,7 @@ export const getVendorDocuments = async (
 
         const totalCount = documents.length > 0 ? documents[0].total_count : 0;
         const totalPages = Math.ceil(totalCount / pageSize);
-        if (!documents) {
+        if (totalCount == 0) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
@@ -967,6 +982,7 @@ export const getVendorDocuments = async (
                 page: pageNumber,
                 limit: pageSize,
                 total_pages: totalPages,
+                display_name,
                 uploaded_documents: [],
             });
         }
@@ -979,6 +995,7 @@ export const getVendorDocuments = async (
             page: pageNumber,
             limit: pageSize,
             total_pages: totalPages,
+            display_name,
             uploaded_documents: documents.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
@@ -1114,11 +1131,18 @@ export async function updateComplianceDocument(
 
         const documentData = complianceDocuments[0];
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
-        const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
-        if (!expiryDate) return;
+        let nextUpdateDueDate;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+        if (uploadedDocument?.expiry_on) {
+            const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
+            if (!expiryDate) return;
 
+            const nextUpdateDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+            nextUpdateDueDate = nextUpdateDate.getTime();
+        } else {
+            nextUpdateDueDate = null;
+        }
+        
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
 
@@ -1147,7 +1171,7 @@ export async function updateComplianceDocument(
                 created_on: uploadedDocument?.id ? undefined : Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
-                next_expiry_on: nextUpdateDueDate.getTime(),
+                next_expiry_on: nextUpdateDueDate,
                 expiry_on: uploadedDocument.expiry_on,
                 audited_on: finalAudited_on,
                 audited_by: finalAudited_by,
