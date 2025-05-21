@@ -71,10 +71,10 @@ async getAllMtpData(
   }
 
   if (hasUpdatedOn) {
-    const dateInMilliseconds = new Date(updatedOn).getTime();
-    
-    query += ` AND mtp.updated_on = :updatedOn`;
-    replacements.updatedOn = dateInMilliseconds;
+    const updatedDate = new Date(Number(updatedOn));
+    const formattedDate = updatedDate.toISOString().split('T')[0]; 
+    query += ` AND DATE(FROM_UNIXTIME(mtp.updated_on / 1000)) = :updatedOn`;
+    replacements.updatedOn = formattedDate;
   }
 
   if (hasLinkedProfilesCount) {
@@ -235,30 +235,31 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
         'contacts', sc.contacts,
         'candidate_id', sc.candidate_id
       ) AS submission_candidate,
-
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'mtp_candidate_id', c.id,
-          'first_name', c.first_name,
-          'last_name', c.last_name,
-          'middle_name', c.middle_name,
-          'program_id', c.program_id,
-          'candidate_id', c.candidate_id,
-          'birth_date', c.birth_date,
-          'email', c.email,
-          'contacts', c.contacts
-        )
+      COALESCE(
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'mtp_candidate_id', c2.id,
+              'first_name', c2.first_name,
+              'last_name', c2.last_name,
+              'middle_name', c2.middle_name,
+              'program_id', c2.program_id,
+              'candidate_id', c2.candidate_id,
+              'birth_date', c2.birth_date,
+              'email', c2.email,
+              'contacts', c2.contacts
+            )
+          )
+          FROM candidates c2
+          WHERE JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c2.id), '$')
+            AND c2.id != :mtp_candidate_id
+        ),
+        JSON_ARRAY()
       ) AS linked_profiles
 
     FROM mtp m
-
-    LEFT JOIN candidates c 
-      ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
-      AND c.id != m.mtp_candidate_id
-
     LEFT JOIN candidates sc 
-      ON sc.id = m.mtp_candidate_id
-
+      ON sc.id = :mtp_candidate_id
     WHERE 
       m.program_id = :program_id
       AND (
@@ -278,9 +279,6 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
 
   return result;
 }
-
-
- 
 
   }
 
