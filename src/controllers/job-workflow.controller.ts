@@ -498,7 +498,8 @@ export const updateWorkflowStatus = async (
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
                                             actor_by_avatar: userData?.avatar,
-                                            by: `${userData?.first_name} ${userData?.last_name}`
+                                            by: `${userData?.first_name} ${userData?.last_name}`,
+                                            notes: notes || "",
                                         };
                                     } else {
                                         // For non-matching users, mark as "Not needed" without creating history
@@ -533,7 +534,8 @@ export const updateWorkflowStatus = async (
                                             status_id: history.dataValues?.id,
                                             actor_first_name: userData?.first_name,
                                             actor_last_name: userData?.last_name,
-                                            actor_by_avatar: userData?.avatar
+                                            actor_by_avatar: userData?.avatar,
+                                            notes: notes || "",
                                         };
                                     }
                                 }
@@ -561,6 +563,7 @@ export const updateWorkflowStatus = async (
                                                 actor_last_name: userData?.last_name,
                                                 actor_by_avatar: userData?.avatar,
                                                 updated_on: Date.now(),
+                                                notes: notes || "",
                                             };
                                         }
 
@@ -588,6 +591,7 @@ export const updateWorkflowStatus = async (
                                                     actor_last_name: userData?.last_name,
                                                     actor_by_avatar: userData?.avatar,
                                                     updated_on: Date.now(),
+                                                    notes: notes || "",
                                                 };
                                             }
                                         }
@@ -612,6 +616,7 @@ export const updateWorkflowStatus = async (
                                         actor_last_name: userData?.last_name,
                                         actor_by_avatar: userData?.avatar,
                                         updated_on: Date.now(),
+                                        notes: notes || "",
                                     };
                                 }
 
@@ -647,6 +652,7 @@ export const updateWorkflowStatus = async (
                                 actor_by_avatar: userData?.avatar,
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
+                                notes: notes || "",
                             }));
                             if(level.status.toLowerCase() ==='pending') {
                                 level.status = "completed";
@@ -1040,10 +1046,21 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             type: QueryTypes.SELECT,
             replacements: { user_id: user.sub },
         });
-        let jobDatas: any;
-        if (workflow?.job_id) {
-            jobDatas = await getJobDetails(workflow?.job_id, program_id, token);
-        }
+              let workflowDetails = workflow?.dataValues?.id
+              ? await getWorkflowDetails(sequelize, workflow.dataValues.id)
+              : null;
+
+              const eventCodeStr = String(eventCode?.eventCode ?? '');
+              const isOfferEvent = eventCodeStr.includes('OFFER');
+
+              const offerData = isOfferEvent && workflow?.dataValues?.workflow_trigger_id
+              ? await getOfferDetails(workflow.dataValues.workflow_trigger_id, program_id, token)
+              : null;
+
+              const jobDatas = workflow?.dataValues?.job_id
+              ? await getJobDetails(workflow.dataValues.job_id, program_id, token)
+              : null;
+
         let userType = userData[0]
         if (userType?.user_type?.toLowerCase() == "msp".toLowerCase() || userType?.user_type?.toLowerCase() == "client".toLowerCase() || user.userType?.toLowerCase() == "super_user".toLowerCase()) {
 
@@ -1056,7 +1073,12 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
                 job_url: jobDatas
                     ? `${ui_base_url}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
-                status_reason: updates[0]?.reason
+                status_reason: updates[0]?.reason,
+                candidate_first_name:workflowDetails?.first_name ||"",
+                candidate_last_name:workflowDetails?.last_name ||"",
+                offer_id:offerData?.data?.offer?.offer_code || "",
+                offer_url: offerData?.data?.offer.candidate_id ? `${ui_base_url}/jobs/view-submit/${offerData?.data?.offer?.candidate_id}/job/${offerData?.data?.offer?.id}?offerId=${offerData?.data?.id}&detail=offer`:""
+
             };
 
             const recipientEmailArray: EmailRecipient[] = [];
