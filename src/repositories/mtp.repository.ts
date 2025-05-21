@@ -247,7 +247,8 @@ async getLinkProfiles(programId: any, mtpCandidateId: any): Promise<any> {
               'candidate_id', c2.candidate_id,
               'birth_date', c2.birth_date,
               'email', c2.email,
-              'contacts', c2.contacts
+              'contacts', c2.contacts,
+              'do_not_rehire', c2.do_not_rehire
             )
           )
           FROM candidates c2

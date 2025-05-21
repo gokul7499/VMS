@@ -774,7 +774,7 @@ export async function getPendingUser(
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
-        users,
+        users:[users[0]],
         trace_id: traceId
       });
     } else {
