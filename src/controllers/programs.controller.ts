@@ -399,13 +399,10 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
         where: { program_id: id }
       });
     }
-    if (updates.msp_id || (Array.isArray(updates.msps) && updates.msps.length > 0)) {
-      const mspIds: string[] = Array.isArray(updates.msps)
-        ? updates.msps
-        : updates.msp_id
-          ? [updates.msp_id]
-          : [];
- 
+
+    if (updates.msps && Array.isArray(updates.msps)) {
+      const mspIds = updates.msps.map(msp => msp.id);
+      
       if (mspIds.length > 0) {
         const validMspIds = (
           await Tenant.findAll({
@@ -414,25 +411,27 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
             raw: true,
           })
         ).map((tenant) => tenant.id);
+
         if (validMspIds.length > 0) {
-          const existingMspIds = (
-            await programMspAssociationModel.findAll({
-              where: {
-                program_id: id,
-                msp_id: validMspIds,
-              },
-              attributes: ['msp_id'],
-              raw: true,
-            })
-          ).map((record) => record.msp_id);
-          const newMspIds = validMspIds.filter((mspId) => !existingMspIds.includes(mspId));
-          if (newMspIds.length > 0) {
+          const existingAssociations = await programMspAssociationModel.findAll({
+            where: {
+              program_id: id,
+            },
+            attributes: ['msp_id'],
+            raw: true,
+          });
+
+          const existingMspIds = existingAssociations.map(record => record.msp_id);
+          
+          const newMspIds = validMspIds.filter(mspId => !existingMspIds.includes(mspId));
+
+           if (newMspIds.length > 0) {
             const newAssociations = newMspIds.map((mspId) => ({
               program_id: id,
               msp_id: mspId,
               created_by: userId,
               updated_by: userId,
-              is_enabled: true,
+              is_enabled: true, 
             }));
             await programMspAssociationModel.bulkCreate(newAssociations);
           }
