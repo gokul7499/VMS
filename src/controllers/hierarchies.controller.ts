@@ -176,17 +176,10 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     }
 
     const formattedHierarchies = hierarchies.map(
-      ({ default_currency, total_count, managed_by, managed_by_name, managed_by_display_name, ...rest }) => ({
+      ({ default_currency, total_count, ...rest }) => ({
         ...rest,
         currency: default_currency ?? null,
-        is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program),
-        managed_by: managed_by
-          ? {
-            id: managed_by,
-            name: managed_by_name ?? null,
-            display_name: managed_by_display_name ?? null,
-          }
-          : null,
+        is_vendor_neutral_program: Boolean(rest.is_vendor_neutral_program)
       })
     );
 
