@@ -644,9 +644,18 @@ WITH hierarchy_cte AS (
     h.is_not_editable,
     h.default_currency,
     ph.name AS parent_hierarchy_name,
-    h.managed_by,
-    t.name AS managed_by_name,
-    t.display_name AS managed_by_display_name
+    CASE 
+      WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+        'id', 'self-managed',
+        'name', 'self-managed',
+        'display_name', 'self-managed'
+      )
+      ELSE JSON_OBJECT(
+        'id', t.id,
+        'name', t.name,
+        'display_name', t.display_name
+      )
+    END AS managed_by
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   LEFT JOIN tenant t ON h.managed_by = t.id
