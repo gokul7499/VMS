@@ -285,6 +285,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
+    let candidateId;
+
     if (userType === "client" || userType === "msp") {
       newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     } else if (userType === "candidate") {
@@ -318,13 +320,13 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      let candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
 
       const candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
-        candidate_id: candidateId,
+        candidate_id: candidateCode,
         vendor_id: vendor_id,
         user_type: userType,
         created_by: userId,
@@ -401,7 +403,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(201).send({
       status_code: 201,
       message: "User created successfully",
-      id: newUser instanceof User ? newUser.id : undefined,
+      id: newUser instanceof User ? newUser.id : candidateId,
       trace_id: traceId,
     });
   } catch (error: any) {
@@ -774,7 +776,7 @@ export async function getPendingUser(
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
-        users,
+        users:[users[0]],
         trace_id: traceId
       });
     } else {

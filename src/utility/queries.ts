@@ -214,6 +214,19 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
     `;
   }
 
+  if (replacements.compliance_verified) {
+    whereClause += `
+      AND ( u.first_name LIKE :compliance_verified OR
+            u.last_name LIKE :compliance_verified OR
+            CONCAT(u.first_name, ' ', u.last_name) LIKE :compliance_verified
+          )`;
+    countWhereClause += `
+     AND ( u.first_name LIKE :compliance_verified OR
+            u.last_name LIKE :compliance_verified OR
+            CONCAT(u.first_name, ' ', u.last_name) LIKE :compliance_verified
+          )`;
+  }
+
   if (replacements.status && replacements.status.length > 0) {
     const statuses: string[] = replacements.status.map((s: string) => s.trim());
     const hasPendingUpload = statuses.includes('Pending Upload');
@@ -2683,6 +2696,7 @@ LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
 WHERE invitation.program_id = :program_id
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
+ORDER BY invitation.updated_on DESC
 LIMIT 0, 1000;
 `;
 
