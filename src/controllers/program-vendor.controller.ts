@@ -908,7 +908,7 @@ export const getVendorDocuments = async (
             status: statusArray,
             updated_on,
             next_expiry_on,
-            compliance_verified : compliance_verified ? `%${compliance_verified}` : null
+            compliance_verified : compliance_verified ? `%${compliance_verified}%` : null
         };
 
         if (vendor_id && document_id) {
