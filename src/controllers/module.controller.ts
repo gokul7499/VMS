@@ -26,14 +26,16 @@ export async function getModule(
       searchFilters.is_reason_code =is_reason_code =="true"||is_reason_code === true?1:0;
      }
 
-     const config = await ProgramsConfig.findOne({
-      where: {
-        program_id,
-        key: 'shift_rate',
-      },
-    });
-    const shiftRateEnabled = config?.value === true || config?.value === 'true';
-
+     let shiftRateEnabled = true;
+     if (program_id) {
+       const config = await ProgramsConfig.findOne({
+         where: {
+           program_id,
+           key: 'shift_rate',
+         },
+       });
+       shiftRateEnabled = config?.value === true || config?.value === 'true';
+     }
     const allModules = await Module.findAll({
       where: searchFilters,
       attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field", "is_reason_code"],
