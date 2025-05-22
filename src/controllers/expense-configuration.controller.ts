@@ -522,7 +522,10 @@ export async function expenseConfigurationAdvancedFilter(
             where: whereCondition,
             offset,
             limit,
-            order: [['created_on', 'DESC']],
+            order: [
+            ['is_enabled', 'DESC'], // Sort enabled configurations first
+            ['created_on', 'DESC']  // Then by creation date (newest first)
+            ],
         });
         const populatedExpenseConfig = await Promise.all(
             expenseConfigList.map(async (config) => {
