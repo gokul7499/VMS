@@ -8,7 +8,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
-import { CandidateCodeGenerate } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate, CandidateUniqueIdGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
@@ -502,8 +502,9 @@ export async function updateCandidateByIdAndProgramId(
                 });
             }
         }
+        let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
-            { ...updates, updated_by: userId, updated_on: Date.now() },
+            { ...updates, updated_by: userId, updated_on: Date.now(), unique_id: uniqueId },
             {
                 where: {
                     program_id,

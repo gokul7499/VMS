@@ -58,15 +58,6 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
 
     const { month: formattedMonth, day: formattedDay } = parseBirthDate();
 
-    // Check if required fields exist
-    if ((uniqueIdFormat === 'FF-MM-DD-XXX' || uniqueIdFormat === 'LL-MM-DD-XXX') && !user?.state_national_id) {
-        throw new Error('State/National ID is required for this format.');
-    }
-
-    if ((uniqueIdFormat === 'FF-MM-DD-XXXX' || uniqueIdFormat === 'LL-MM-DD-XXXX') && !user?.ssn_id) {
-        throw new Error('SSN ID is required for this format.');
-    }
-
     // Extract last N digits
     const getLastNDigits = (value: string | number, n: number) => {
         const str = value?.toString() || '';
