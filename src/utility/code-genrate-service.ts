@@ -42,17 +42,21 @@ export const CandidateUniqueIdGenerate = async (program_id: string, user: any): 
         str?.substring(0, length)?.toUpperCase() || '';
 
     // Parse and format birthdate
-    const birthDate = user?.birth_date
-        ? new Date(Number(user.birth_date))
-        : null;
+    const parseBirthDate = () => {
+        const birthDate = user?.birth_date || '01/01';
 
-    const formattedMonth = birthDate
-        ? String(birthDate.getMonth() + 1).padStart(2, '0')
-        : 'XX';
+        try {
+            const [month, day] = birthDate.split('/');
+            return {
+                month: String(parseInt(month)).padStart(2, '0'),
+                day: String(parseInt(day)).padStart(2, '0')
+            };
+        } catch (error) {
+            return { month: '01', day: '01' };
+        }
+    };
 
-    const formattedDay = birthDate
-        ? String(birthDate.getDate()).padStart(2, '0')
-        : 'XX';
+    const { month: formattedMonth, day: formattedDay } = parseBirthDate();
 
     // Check if required fields exist
     if ((uniqueIdFormat === 'FF-MM-DD-XXX' || uniqueIdFormat === 'LL-MM-DD-XXX') && !user?.state_national_id) {
