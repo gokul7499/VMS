@@ -214,6 +214,19 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
     `;
   }
 
+  if (replacements.compliance_verified) {
+    whereClause += `
+      AND ( u.first_name LIKE :compliance_verified OR
+            u.last_name LIKE :compliance_verified OR
+            CONCAT(u.first_name, ' ', u.last_name) LIKE :compliance_verified
+          )`;
+    countWhereClause += `
+     AND ( u.first_name LIKE :compliance_verified OR
+            u.last_name LIKE :compliance_verified OR
+            CONCAT(u.first_name, ' ', u.last_name) LIKE :compliance_verified
+          )`;
+  }
+
   if (replacements.status && replacements.status.length > 0) {
     const statuses: string[] = replacements.status.map((s: string) => s.trim());
     const hasPendingUpload = statuses.includes('Pending Upload');
@@ -239,7 +252,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   }
 
   return `
-    SELECT
+    SELECT DISTINCT 
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -301,11 +314,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
         user u ON u.user_id = vcrm.audited_by
     WHERE ${whereClause}
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number, vcrm.compliance_note,
-        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name, vcrm.created_on,
-        vcd.created_on, vcd.updated_on, vcd.is_enabled, vcd.is_deleted, vcd.to_uploaded, vcrm.id,
-        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on, vcrm.updated_on,
-        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by
+        vcd.id
     ORDER BY
         vcrm.updated_on DESC
     LIMIT :limit OFFSET :offset
@@ -368,7 +377,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
 `;
 
 export const complianceDocumentGetByVendorId = `
-    SELECT
+    SELECT DISTINCT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -434,10 +443,7 @@ export const complianceDocumentGetByVendorId = `
         -- Added is_enabled filter condition
         AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
     GROUP BY
-        vcd.id, vcd.program_id, vcd.name, vcd.act, vcd.document_number,vcrm.compliance_note,
-        vcd.upload_document_days, vcd.attached_doc_url, u.first_name, u.last_name,
-        vcd.no_of_days, vcd.uploaded_document, pv.display_name, vcrm.next_expiry_on,
-        vcrm.status, vcrm.file_name, vcrm.expiry_on, vcrm.url, vcrm.audited_on, vcrm.audited_by  -- Add next_expiry_on in GROUP BY
+        vcd.id
     ORDER BY
         vcrm.updated_on DESC
     LIMIT :limit OFFSET :offset
