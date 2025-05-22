@@ -17,7 +17,10 @@ import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
 import programMspAssociationModel from "../models/program-msp-association.model";
-
+type MSP = {
+  id: string;
+  is_enabled: boolean;
+};
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
@@ -74,13 +77,14 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
  
     const programId = item.id;
     if (Array.isArray(msps) && msps.length > 0) {
-      const mspAssociations = msps.map((mspId: string) => ({
+      const mspAssociations = msps.map((msp: MSP) => ({
         program_id: programId,
-        msp_id: mspId,
+        msp_id: msp.id,
         created_by: userId,
         updated_by: userId,
-        is_enabled: true,
+        is_enabled: msp.is_enabled,
       }));
+
       await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
     }
  
@@ -158,12 +162,13 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   } catch (error: any) {
  
     await transaction.rollback();
+ console.log(error);
  
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error,
+      error: error.message,
     });
  
     logger(
