@@ -182,6 +182,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 program_id,
                 name: expenseConfig.name,
                 is_deleted: false,
+                is_enabled: true,
                 latest: true,
             },
         });
@@ -200,6 +201,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 program_id,
                 is_deleted: false,
                 latest: true,
+                is_enabled: true,
                 [Op.or]: expenseConfig.hierarchy_ids.map((id: any) =>
                     Sequelize.where(
                     Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
