@@ -314,10 +314,12 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', program_custom_field.custom_field_id,
-                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$'))
+                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$')),
+                'label', cf.label
             )
         )
         FROM program_custom_field
+        JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
         WHERE program_custom_field.program_id = programs.id
     ), JSON_ARRAY()) AS custom_fields
 FROM programs

@@ -1041,11 +1041,12 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       labour_category,
       is_shift_rate,
       primary_hierarchy,
+      job_template_id,
       hierarchy_ids,
       category,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[] };
+    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[],job_template_id?: string[]; };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1085,6 +1086,10 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
+    if (job_template_id && job_template_id.length > 0) {
+       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
+       replacements.job_template_id = job_template_id;
     }
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
