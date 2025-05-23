@@ -878,7 +878,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     const workflowID = workflow?.id;
                     const apiUrl = `${SOURCE_BASE_URL}/v1/api/update-submission-status/program/${program_id}/submission-candidate/${submission_id}`;
                     const payload = {
-                        status: "submitted",
+                        status: "shortlisted",
                         updates,
                         workflowID,
                         user,
