@@ -1052,16 +1052,16 @@ export const clonePredefinedPicklistsForProgram = async (
 ) => {
   
   const requiredSlugs = [
-    "Worker Classification",
-    "Job Type",
-    "Worker Types",
-    "Worker Source Type"
+    "worker_classification",
+    "job_type",
+    "worker_types",
+    "worker_source_type"
     ,
   ];
     
   const predefinedPicklists = await picklist_model.findAll({
     where: {
-      name: { [Op.in]: requiredSlugs },
+      slug: { [Op.in]: requiredSlugs },
       program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
