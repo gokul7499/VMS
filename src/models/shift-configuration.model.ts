@@ -22,6 +22,11 @@ ShiftConfiguration.init(
       defaultValue: false,
       allowNull: true,
     },
+    time_format: {
+      type: DataTypes.ENUM('12', '24'),
+      values: ['12', '24'],
+      defaultValue: '24',
+    },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
