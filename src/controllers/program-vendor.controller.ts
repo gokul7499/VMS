@@ -78,12 +78,9 @@ export async function getProgramVendors(
             status,
             updated_on,
             hierarchy_ids,
-            page: pageStr = "1",
-            limit: limitStr = "10"
+            page: pageStr,
+            limit: limitStr 
         } = request.query as programVendorQueryInterface & { page?: string; limit?: string; hierarchy_ids?: any };
-
-        const page = parseInt(pageStr, 10) || 1;
-        const limit = parseInt(limitStr, 10) || 10;
 
         const filters: any = { program_id, is_deleted: false };
 
@@ -135,12 +132,8 @@ export async function getProgramVendors(
             filters.updated_on = updated_on;
         }
 
-        const offset = (page - 1) * limit;
-
         const queryOptions: any = {
             where: filters,
-            limit,
-            offset,
             order: [['updated_on', 'DESC']],
         };
 
@@ -149,6 +142,13 @@ export async function getProgramVendors(
                 'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
                 'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
+        }
+
+        if (pageStr && limitStr) {
+            const page = parseInt(pageStr, 10);
+            const limit = parseInt(limitStr, 10);
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
         }
 
         const { rows: program_vendors, count: totalItems } = await ProgramVendor.findAndCountAll(queryOptions);
@@ -273,7 +273,7 @@ export async function getProgramVendors(
             status_code: 200,
             message: 'ProgramVendors fetched successfully.',
             trace_id: traceId,
-            items_per_page: limit,
+            items_per_page: pageStr && limitStr ? parseInt(limitStr, 10) : null,
             total_records: totalItems,
             program_vendors: processedVendors,
         });
