@@ -839,22 +839,28 @@ SELECT
         FROM hierarchies h
         WHERE JSON_CONTAINS(pv.hierarchies, JSON_QUOTE(h.id))
     ) AS hierarchies,
-    (
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', vcf.id,
-            'custom_field_id', vcf.custom_field_id,
-            'custom_field_name', (
-                SELECT cf.name
-                FROM custom_fields cf
-                WHERE cf.id = vcf.custom_field_id
-            ),
-            'value', vcf.value
-      )
+   (
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'id', vcf.id,
+      'custom_field_id', vcf.custom_field_id,
+      'custom_field_name', cf.name,
+      'value', vcf.value,
+      'field_type', cf.field_type,
+      'manager_name', 
+        CASE 
+          WHEN user.user_id IS NOT NULL 
+          THEN CONCAT(user.first_name, ' ', user.last_name)
+          ELSE NULL
+        END
     )
-    FROM vendor_custom_field vcf
-    WHERE vcf.vendor_id = pv.id
-    ) AS custom_field,
+  )
+  FROM vendor_custom_field vcf
+  LEFT JOIN custom_fields cf ON cf.id = vcf.custom_field_id
+  LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id
+    AND user.program_id = cf.program_id
+  WHERE vcf.vendor_id = pv.id
+) AS custom_field,
     CASE
        WHEN pv.is_labour_category = 1 THEN TRUE
         ELSE FALSE
