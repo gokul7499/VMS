@@ -2330,11 +2330,18 @@ export const hierarchie = `
         h.support_email,
         h.is_not_editable,
         h.address,
-        JSON_OBJECT(
-          'id', t.id,
-          'name', t.name,
-          'display_name', t.display_name
-        ) AS managed_by,
+        CASE 
+          WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+            'id', 'self-managed',
+            'name', 'self-managed',
+            'display_name', 'self-managed'
+          )
+          ELSE JSON_OBJECT(
+            'id', t.id,
+            'name', t.name,
+            'display_name', t.display_name
+          )
+        END AS managed_by,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
