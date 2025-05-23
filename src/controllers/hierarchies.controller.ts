@@ -979,26 +979,32 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
-    const user = await User.findOne({
-      where: {
-        program_id,
-        user_id: client_id,
-      },
-    });
+    const [user]: any = await sequelize.query(
+      `SELECT * FROM user WHERE user_id = :client_id
+        AND (
+          user_type = 'super_user'
+          OR program_id = :program_id
+        )
+      LIMIT 1
+      `,
+      {
+        replacements: { client_id, program_id },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     if (!user) {
       return reply.status(404).send({
         status_code: 404,
         trace_id: traceId,
-        message: "User not found for given program_id and client_id",
+        message: "User not found for given client_id and program_id",
       });
     }
 
-    const { associate_hierarchy_ids, is_all_hierarchy_associate } = user;
-
+    const { associate_hierarchy_ids, is_all_hierarchy_associate, user_type} = user;
     let managedByIds: string[] = [];
 
-    if (is_all_hierarchy_associate) {
+    if (is_all_hierarchy_associate || user_type === "super_user") {
       const hierarchies = await HierarchiesModel.findAll({
         where: {
           program_id
