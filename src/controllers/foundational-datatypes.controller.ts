@@ -2,13 +2,15 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import foundationalDataTypes from '../models/foundational-datatypes.model';
 import { FoundationalDataTypesInterface } from '../interfaces/foundational-datatypes.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Op } from 'sequelize';
+import { Op, QueryTypes, where } from 'sequelize';
 import foundationalDataModel from '../models/foundational-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { FoundationalDataInterface } from '../interfaces/foundational-data.interface';
 import FoundationalData from '../models/foundational-data.model';
+import { getMasterDataCustomFields } from '../utility/queries';
+import MasterDataCustomFieldModel from '../models/master-data-custom-fields';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
@@ -166,6 +168,25 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
         const data = await foundationalDataTypes.findByPk(id);
         if (data) {
             await data.update({ ...foundationalData, updated_on: Date.now(), updated_by: userId, });
+            if (Array.isArray(foundationalData.custom_fields)) {
+                await MasterDataCustomFieldModel.destroy({
+                    where: {
+                        master_data_type_id: id
+                    },
+                });
+    
+                if (foundationalData.custom_fields.length > 0) {
+                    const customFieldsToInsert = foundationalData.custom_fields.map((field: { id: string; value: any }) => ({
+                        program_id,
+                        custom_field_id: field.id,
+                        value: field.value,
+                        master_data_type_id: id,       
+                    }));
+    
+                    await MasterDataCustomFieldModel.bulkCreate(customFieldsToInsert);
+                }
+            }
+    
             reply.status(201).send({
                 status_code: 201,
                 foundational_datatype_id: id,
@@ -261,10 +282,16 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 attributes: ['id', 'name']
             });
 
+            const [customFieldResults]: any = await sequelize.query(getMasterDataCustomFields, {
+                replacements: { program_id, id },
+                type: QueryTypes.SELECT,
+            });
+
             const foundationalDataTypeResponse = {
                 ...foundationalDataType.dataValues,
                 foundational_data_count: foundationalDataCount,
-                associated_data_types: associatedDataTypes
+                associated_data_types: associatedDataTypes,
+                custom_fields: customFieldResults?.custom_fields || []
             };
 
             reply.status(200).send({
