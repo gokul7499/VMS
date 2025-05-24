@@ -859,7 +859,8 @@ SELECT
     JSON_OBJECT(
       'id', vcf.id,
       'custom_field_id', vcf.custom_field_id,
-      'custom_field_name', cf.name,
+      'name', cf.name,
+      'label', cf.label,
       'value', vcf.value,
       'field_type', cf.field_type,
       'manager_name', 
@@ -3496,4 +3497,34 @@ export const getVendorDistributionSchedule = `
         ELSE 4
       END,
     dsd.duration ASC;
+`;
+
+
+export const getMasterDataCustomFields =  `
+   select 
+master_data_type.id,
+ COALESCE((
+                 SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                   'id', master_data_custom_field.id,
+                    'custom_field_id', master_data_custom_field.custom_field_id,
+                    'value', master_data_custom_field.value,
+                  'manager_name', 
+                      CASE 
+                        WHEN user.user_id IS NOT NULL 
+                      THEN CONCAT(user.first_name, ' ', user.last_name)
+                      ELSE NULL
+                      END,
+                   'name', custom_fields.name,
+                   'field_type', custom_fields.field_type
+               ))
+            FROM master_data_custom_field
+              LEFT JOIN custom_fields ON master_data_custom_field.custom_field_id = custom_fields.id
+              LEFT JOIN user ON TRIM(BOTH '"' FROM master_data_custom_field.value) = user.user_id
+              AND user.program_id = master_data_custom_field.program_id
+              WHERE master_data_custom_field.master_data_type_id = master_data_type.id
+    ), JSON_ARRAY()) AS custom_fields
+    
+    from master_data_type
+    where master_data_type.program_id=:program_id
+    AND master_data_type.id=:id
 `;

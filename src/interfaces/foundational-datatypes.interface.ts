@@ -11,7 +11,8 @@ export interface FoundationalDataTypesInterface {
     is_deleted: boolean,
     configuration: any
     associations: any,
-    timesheet__master_data:boolean
+    timesheet__master_data:boolean,
+    custom_fields:any[]
 }   
 
 export const paramsSchema = {
