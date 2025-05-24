@@ -850,7 +850,8 @@ SELECT
     JSON_OBJECT(
       'id', vcf.id,
       'custom_field_id', vcf.custom_field_id,
-      'custom_field_name', cf.name,
+      'name', cf.name,
+      'label', cf.label,
       'value', vcf.value,
       'field_type', cf.field_type,
       'manager_name', 
