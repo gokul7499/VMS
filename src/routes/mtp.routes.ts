@@ -29,6 +29,8 @@ async function mtpRoutes(fastify: FastifyInstance) {
     fastify.put('/program/:program_id/make-master-profile/:id', {
     }, mtpController.masterProfile);
    
+    fastify.put('/program/:program_id/update-mtp/:id', {
+    }, mtpController.updateMtp);
 }
 
 export default mtpRoutes;

@@ -259,3 +259,35 @@ export async function masterProfile(request: FastifyRequest, reply: FastifyReply
     }
 }
 
+export async function updateMtp(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    const user = request.user;
+    const token = request.headers.authorization as any;
+
+    try {
+        const { program_id: programId, id } = request.params as { program_id: string, id: string };
+        const { do_not_rehire } = request.body as { do_not_rehire: boolean };
+
+        const result = await mtpService.updateLinkedCandidatesDoNotRehire({
+            programId,
+            mtpId: id,
+            doNotRehire: do_not_rehire,
+            traceId,
+            token
+        });
+
+        return reply.code(result.statusCode).send({
+            status_code: result.statusCode,
+            message: result.message,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while updating candidate flag",
+            trace_id: traceId,
+            error: sanitizeError(error)
+        });
+    }
+}
+
