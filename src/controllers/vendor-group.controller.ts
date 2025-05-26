@@ -69,7 +69,7 @@ export const createVendorGroup = async (
     if (!created) {
       return reply.status(409).send({
         status_code: 409,
-        message: 'This vendor group with the same name already exists.',
+        message: 'Vendor group name already exists. Please use a different name.',
         trace_id: traceId,
       });
     }
@@ -216,7 +216,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
       if (existingVendorGroup) {
         return reply.status(409).send({
           status_code: 409,
-          message: 'This vendor group same name already exists',
+          message: 'Vendor group name already exists. Please use a different name.',
           trace_id: traceId,
         });
       }
