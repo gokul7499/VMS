@@ -861,17 +861,31 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
 
         } else
             if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
-                const offer_id = workflow.workflow_trigger_id;
-                const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
-                const payload = {
-                    status: "Pending Acceptance",
-                };
-                await axios.put(apiUrl, payload, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        authorization: authHeader
-                    },
-                });
+                if (workflow?.events?.toLowerCase() === "counter_offer") {
+                    const offer_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/offer/${offer_id}`;
+                    const payload = {
+                        status: "APPROVE",
+                    };
+                    await axios.put(apiUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            authorization: authHeader
+                        },
+                    });
+                } else {
+                    const offer_id = workflow.workflow_trigger_id;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/offer-release/program/${program_id}/offer/${offer_id}`;
+                    const payload = {
+                        status: "Pending Acceptance",
+                    };
+                    await axios.put(apiUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            authorization: authHeader
+                        },
+                    });
+                }
             } else
                 if (moduleType === "Submissions".toLowerCase()) {
                     const submission_id = workflow.workflow_trigger_id;

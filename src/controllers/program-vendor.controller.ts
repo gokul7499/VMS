@@ -78,12 +78,9 @@ export async function getProgramVendors(
             status,
             updated_on,
             hierarchy_ids,
-            page: pageStr = "1",
-            limit: limitStr = "10"
+            page: pageStr,
+            limit: limitStr
         } = request.query as programVendorQueryInterface & { page?: string; limit?: string; hierarchy_ids?: any };
-
-        const page = parseInt(pageStr, 10) || 1;
-        const limit = parseInt(limitStr, 10) || 10;
 
         const filters: any = { program_id, is_deleted: false };
 
@@ -135,12 +132,8 @@ export async function getProgramVendors(
             filters.updated_on = updated_on;
         }
 
-        const offset = (page - 1) * limit;
-
         const queryOptions: any = {
             where: filters,
-            limit,
-            offset,
             order: [['updated_on', 'DESC']],
         };
 
@@ -149,6 +142,13 @@ export async function getProgramVendors(
                 'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
                 'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
+        }
+
+        if (pageStr && limitStr) {
+            const page = parseInt(pageStr, 10);
+            const limit = parseInt(limitStr, 10);
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
         }
 
         const { rows: program_vendors, count: totalItems } = await ProgramVendor.findAndCountAll(queryOptions);
@@ -273,7 +273,7 @@ export async function getProgramVendors(
             status_code: 200,
             message: 'ProgramVendors fetched successfully.',
             trace_id: traceId,
-            items_per_page: limit,
+            items_per_page: pageStr && limitStr ? parseInt(limitStr, 10) : null,
             total_records: totalItems,
             program_vendors: processedVendors,
         });
@@ -452,20 +452,25 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
     const { program_id, id } = request.params as { program_id: string; id: string };
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
+
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
+
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
+    const transaction = await sequelize.transaction();
 
     try {
-        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id } });
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id }, transaction });
 
         if (!existingProgramVendor) {
+            await transaction.rollback();
             return reply.status(200).send({
                 status_code: 200,
                 message: 'ProgramVendor not found for update.',
@@ -474,42 +479,50 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             });
         }
 
-        await existingProgramVendor.update({ ...programVendorData, updated_by: userId, updated_on: Date.now() });
+        await existingProgramVendor.update(
+            { ...programVendorData, updated_by: userId, updated_on: Date.now() },
+            { transaction }
+        );
+
         const userUpdatePayload: any = {};
-
-        if (programVendorData.hierarchies) {
-            userUpdatePayload.associate_hierarchy_ids = programVendorData.hierarchies;
-        }
-
-        if (programVendorData.all_hierarchy) {
-            userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
-        }
-        if (programVendorData.work_locations) {
-            userUpdatePayload.work_location_ids = programVendorData.work_locations;
-        }
-
-        if (programVendorData.all_work_locations) {
-            userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
-        }
-        if (programVendorData.contact) {
-            userUpdatePayload.contacts = programVendorData.contact;
-        }
+        if (programVendorData.hierarchies) userUpdatePayload.associate_hierarchy_ids = programVendorData.hierarchies;
+        if (programVendorData.all_hierarchy) userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
+        if (programVendorData.work_locations) userUpdatePayload.work_location_ids = programVendorData.work_locations;
+        if (programVendorData.all_work_locations) userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
+        if (programVendorData.contact) userUpdatePayload.contacts = programVendorData.contact;
 
         if (Object.keys(userUpdatePayload).length > 0) {
             await UserModel.update(userUpdatePayload, {
                 where: {
                     user_id: existingProgramVendor.user_id,
-                    program_id: program_id
-                }
+                    program_id
+                },
+                transaction
             });
         }
-        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
 
+        if (programVendorData.vendor_group_id && Array.isArray(programVendorData.vendor_group_id)) {
+            for (const groupId of programVendorData.vendor_group_id) {
+                const vendorGroup = await VendorGroup.findOne({ where: { id: groupId }, transaction });
+
+                if (vendorGroup) {
+                    let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
+
+                    if (!vendorsArray.includes(existingProgramVendor.id)) {
+                        vendorsArray.push(existingProgramVendor.id);
+                        await VendorGroup.update(
+                            { vendors: vendorsArray },
+                            { where: { id: groupId }, transaction }
+                        );
+                    }
+                }
+            }
+        }
+
+        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             await vendorMarkupConfig.destroy({
-                where: {
-                    program_id,
-                    program_vendor_id: existingProgramVendor.id,
-                },
+                where: { program_id, program_vendor_id: existingProgramVendor.id },
+                transaction
             });
 
             for (const markup of programVendorData.markup_config) {
@@ -547,25 +560,28 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 }
 
                 const existingRecord = await vendorMarkupConfig.findOne({
-                    where: whereClause
+                    where: whereClause,
+                    transaction
                 });
 
                 if (existingRecord) {
                     throw new Error("A record with the same markup already exists.");
                 }
+
                 await vendorMarkupConfig.create({
                     ...markupData,
                     program_vendor_id: existingProgramVendor.id,
-                    program_id: program_id,
+                    program_id,
                     created_by: userId,
                     updated_by: userId
-                });
+                }, { transaction });
             }
         }
 
         if (programVendorData.custom_fields) {
             await VendorCustomField.destroy({
-                where: { vendor_id: programVendorData.id }
+                where: { vendor_id: programVendorData.id },
+                transaction
             });
 
             if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
@@ -575,15 +591,20 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                     value: field.value,
                     vendor_id: programVendorData.id,
                 }));
-                await VendorCustomField.bulkCreate(customFields);
+                await VendorCustomField.bulkCreate(customFields, { transaction });
             }
         }
+
+        await transaction.commit();
+
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
             trace_id: traceId,
         });
+
     } catch (error) {
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while updating ProgramVendor.',
@@ -908,7 +929,7 @@ export const getVendorDocuments = async (
             status: statusArray,
             updated_on,
             next_expiry_on,
-            compliance_verified : compliance_verified ? `%${compliance_verified}%` : null
+            compliance_verified: compliance_verified ? `%${compliance_verified}%` : null
         };
 
         if (vendor_id && document_id) {
@@ -1142,7 +1163,7 @@ export async function updateComplianceDocument(
         } else {
             nextUpdateDueDate = null;
         }
-        
+
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
 
