@@ -42,7 +42,7 @@ export async function createVendordocumentsgroup(
         if (existingDocument) {
             return reply.status(409).send({
                 status_code: 409,
-                message: 'This vendor document group already exists',
+                message: 'Vendor document group name already exists. Please use a different name.',
                 trace_id: traceId,
             });
         }
@@ -335,7 +335,7 @@ export async function updateVendordocumentsgroup(
             if (existingGroupWithName) {
                 return reply.status(400).send({
                     status_code: 400,
-                    message: 'A document group with the same name already exists',
+                    message: 'Vendor document group name already exists. Please use a different name.',
                     trace_id: traceId,
                 });
             }
