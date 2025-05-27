@@ -321,6 +321,7 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         FROM program_custom_field
         JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
         WHERE program_custom_field.program_id = programs.id
+        AND cf.is_deleted = false
     ), JSON_ARRAY()) AS custom_fields
 FROM programs
 WHERE programs.id = :id;

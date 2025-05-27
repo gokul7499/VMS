@@ -423,14 +423,24 @@ export async function vendorDocumentGroupFilter(request: FastifyRequest, reply: 
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { id, name, description, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; description: string; is_enabled: string; updated_on: string[]; page: string; limit: string };
+        const { id, name, description, is_enabled, updated_on, page, limit } = request.body as { id: string; name: string; description: string; is_enabled: string; updated_on: any; page: string; limit: string };
 
         const isEnabledFilter = typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled;
         const pageNumber = parseInt(page ?? '1', 10);
         const limitNumber = parseInt(limit ?? '10', 10);
         const offset = (pageNumber - 1) * limitNumber;
 
-        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+        let updatedOnStart: any = undefined;
+        let updatedOnEnd: any = undefined;
+
+        if (hasUpdatedOnFilter) {
+            const startDate = new Date(updated_on[0]);
+            updatedOnStart = startDate.setHours(0, 0, 0, 0);
+            updatedOnEnd = (updated_on.length === 1 || updated_on[1] === 0)
+                ? startDate.setHours(23, 59, 59, 999)
+                : updated_on[1];
+        }
 
         const query = vendorDocumentGroupFilterQuery(
             Boolean(id),
@@ -448,8 +458,8 @@ export async function vendorDocumentGroupFilter(request: FastifyRequest, reply: 
             limit: limitNumber,
             offset,
             is_enabled: isEnabledFilter,
-            updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
-            updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+            updated_on_start: updatedOnStart,
+            updated_on_end: updatedOnEnd,
         };
 
         const data = await sequelize.query<{ total_count: any }>(query, {

@@ -17,8 +17,13 @@ import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
-import { extractFileContent } from "../utility/fileUpload";
 import JobMasterDataModel from "../models/job-master-data.model";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import htmlEscape from "html-escape";
+import { Readable } from "stream";
+
+
 const jobTempletRepositories = new JobTempletRepository();
 
 export const getAllJobTemplates = async (
@@ -995,39 +1000,6 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
   }
 }
 
-export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
-  const traceId = generateCustomUUID();
-  try {
-    const data = await request.file();
-
-    if (!data) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: "No file uploaded.",
-        trace_id: traceId,
-      });
-    }
-
-    const htmlContent = await extractFileContent(data);
-
-    const htmlResponse = `<html><body>${htmlContent}</body></html>`;
-
-    return reply.status(200).send({
-      status_code: 200,
-      message: "File uploaded successfully",
-      trace_id: traceId,
-      data: htmlResponse,
-    });
-  } catch (error: any) {
-    reply.status(500).send({
-      status_code: 500,
-      message: "File upload failed",
-      trace_id: traceId,
-      error: error.message,
-    });
-  }
-}
-
 export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
@@ -1137,3 +1109,59 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     });
   }
 };
+
+export async function uploadJobTemplateFile(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "No file uploaded.",
+        trace_id: traceId,
+      });
+    }
+
+    const htmlContent = await extractFileContent(data);
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "File uploaded and converted successfully",
+      trace_id: traceId,
+      data: htmlContent,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "File upload failed",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+
+export async function extractFileContent(file: any): Promise<string> {
+  const buffer = await file.toBuffer();
+  const mimetype = file.mimetype;
+
+  if (mimetype === "application/pdf") {
+    const data = await pdfParse(buffer);
+    return `<div>${htmlEscape(data.text)}</div>`;
+  }
+
+  if (
+    mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mimetype === "application/msword"
+  ) {
+    const result = await mammoth.convertToHtml({ buffer });
+    return result.value;
+  }
+
+  if (mimetype === "text/plain") {
+    const text = buffer.toString("utf-8");
+    return `<pre>${htmlEscape(text)}</pre>`;
+  }
+
+  throw new Error("Unsupported file type");
+}
