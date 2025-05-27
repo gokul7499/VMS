@@ -374,10 +374,17 @@ export async function vendorComplianceDocumentFilter(
     const limitNumber = parseInt(limit ?? '10', 10);
     const offset = (pageNumber - 1) * limitNumber;
 
-    const hasUpdatedOnFilter =
-      Array.isArray(updated_on) && updated_on.length === 2
-        ? { updated_on: { [Op.between]: updated_on.map(ts => parseInt(ts, 10)) } }
-        : null;
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+    let updatedOnStart: any = undefined;
+    let updatedOnEnd: any = undefined;
+
+    if (hasUpdatedOnFilter) {
+      const startDate = new Date(updated_on[0]);
+      updatedOnStart = startDate.setHours(0, 0, 0, 0);
+      updatedOnEnd = (updated_on.length === 1 || updated_on[1] === 0)
+        ? startDate.setHours(23, 59, 59, 999)
+        : updated_on[1];
+    }
 
     const query = vendorComplianceDocumentFilterQuery(
       Boolean(id),
@@ -397,8 +404,8 @@ export async function vendorComplianceDocumentFilter(
       limit: limitNumber,
       offset,
       is_enabled: isEnabledFilter,
-      updated_on_start: hasUpdatedOnFilter && updated_on ? updated_on[0] : undefined,
-      updated_on_end: hasUpdatedOnFilter && updated_on ? updated_on[1] : undefined,
+      updated_on_start: updatedOnStart,
+      updated_on_end: updatedOnEnd,
     };
 
     const data = await sequelize.query<{ total_count: any }>(query, {
