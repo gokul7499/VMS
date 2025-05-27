@@ -9,6 +9,7 @@ import { sequelize } from "../config/instance";
 import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
 import FoundationalDataTypes from "../models/foundational-datatypes.model";
 import User from "../models/user.model";
+import { log } from "console";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -163,8 +164,7 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
 
 export async function createFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const foundational_data = request.body as FoundationalDataInterface;
-    const program_id = foundational_data.program_id;
-    const name = foundational_data.name;
+    const { program_id, name, code } = foundational_data;
     const traceId = generateCustomUUID();
 
     const authHeader = request.headers.authorization;
@@ -179,31 +179,10 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     }
 
     const userId = user?.sub;
-    console.log("uuu", userId)
-
-    logger(
-        {
-            trace_id: traceId,
-            actor: {
-                user_name: user?.preferred_username,
-                user_id: userId,
-            },
-            data: request.body,
-            eventname: "creating foundational data",
-            status: "in_progress",
-            description: `Creating foundational data for ${program_id}`,
-            level: 'info',
-            action: request.method,
-            url: request.url,
-            entity_id: program_id,
-            is_deleted: false
-        },
-        foundationalData
-    );
 
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id },
+            where: { name, program_id, code },
         });
 
         if (existingFoundationalDataWithSameName) {
@@ -213,6 +192,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
                 trace_id: traceId,
             });
         }
+
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
             created_by: userId,
@@ -220,26 +200,6 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
             created_on: Date.now(),
             updated_on: Date.now(),
         });
-
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                data: request.body,
-                eventname: "created foundational data",
-                status: "success",
-                description: `Created foundational data for ${program_id} successfully: ${foundational_Data.id}`,
-                level: 'success',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            foundationalData
-        );
 
         reply.status(201).send({
             status_code: 201,
@@ -249,26 +209,6 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
         });
 
     } catch (error: any) {
-        logger(
-            {
-                trace_id: traceId,
-                actor: {
-                    user_name: user?.preferred_username,
-                    user_id: userId,
-                },
-                data: request.body,
-                eventname: "creating foundational data",
-                status: "error",
-                description: `Error creating foundational data for ${program_id}`,
-                level: 'error',
-                action: request.method,
-                url: request.url,
-                entity_id: program_id,
-                is_deleted: false
-            },
-            foundationalData
-        );
-
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while creating FoundationalData.',
@@ -338,12 +278,12 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
                 trace_id: traceId,
             });
         }
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server error',
             trace_id: traceId,
-            error:error.message
+            error: error.message
         });
     }
 }
