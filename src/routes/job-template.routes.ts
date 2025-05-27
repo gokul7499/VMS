@@ -50,8 +50,6 @@ async function jobTemplate(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.getCommonHierarchies);
 
-  fastify.post("/upload-file", JobTemplateController.uploadFile);
-
   fastify.post("/program/:program_id/job-template/advance-filter", {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.advanceFilterJobTemplates);
