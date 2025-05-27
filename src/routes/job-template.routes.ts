@@ -54,6 +54,8 @@ async function jobTemplate(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.advanceFilterJobTemplates);
 
+  fastify.post("/upload-file", JobTemplateController.uploadJobTemplateFile);
+
 }
 
 export default jobTemplate;

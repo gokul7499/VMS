@@ -27,10 +27,12 @@
     "fastify-cors": "^6.1.0",
     "fastify-keycloak-adapter": "^2.3.2",
     "fastify-plugin": "^4.5.1",
+    "html-escape": "^2.0.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.9.0",
     "mysql2": "^3.10.3",
+    "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
     "nodemon": "^3.1.4",
     "pdf-parse": "^1.1.1",
@@ -39,10 +41,10 @@
     "playwright-core": "^1.47.0",
     "redis": "^4.7.0",
     "sequelize": "^6.37.3",
-    "xlsx": "^0.18.5",
-    "node-cron": "^3.0.3"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/html-escape": "^2.0.2",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/lodash": "^4.17.7",
     "@types/node": "^20.14.12",
