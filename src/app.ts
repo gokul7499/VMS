@@ -7,6 +7,7 @@ import keycloak, { KeycloakOptions } from 'fastify-keycloak-adapter';
 import { databaseConfig } from './config/db';
 import { handleRouteSecurity } from "./utility/securityUtils";
 import LoadSwagger from "./config/swagger";
+import multipart from '@fastify/multipart';
 
 dotenv.config();
 
@@ -26,6 +27,19 @@ app.register(cors, {
 });
 
 app.register(formBodyPlugin);
+app.register(multipart, {
+  limits: {
+    fieldNameSize: 100,
+    fieldSize: 100,
+    fields: 10,
+    fileSize: 50 * 1024 * 1024, // 50MB
+    files: 1,
+    headerPairs: 2000,
+  },
+  // Disable temp files to avoid disk space issues in serverless
+  throwFileSizeLimit: true,
+  attachFieldsToBody: false,
+});
 
 const start = async () => {
   try {
