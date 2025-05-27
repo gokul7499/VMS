@@ -5395,7 +5395,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         role_id: user.role_id,
                         email: user.email,
                         replaced_by: user.replaced_by,
-                        manager_data: manager_data || null,
+                        manager: manager_data || null,
                         imporsonate_by: user.impersonate_by || imposonate_user_data,
                         recipient_type: recipientType.name || '',
                         behaviour,
@@ -5423,7 +5423,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         recipient_type: recipientType.name || '',
                         behaviour,
                         replaced_by: replaced_user_data,
-                        manager_data: manager_data || null,
+                        manager: manager_data || null,
                         imporsonate_by: imposonate_user_data
                     }];
                 }
