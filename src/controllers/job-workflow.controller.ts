@@ -4580,7 +4580,28 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             WHERE JSON_EXTRACT(recipient.value, '$.replaced_by') IS NOT NULL
             LIMIT 1
         ) AS replaced_by,
-
+         (
+                SELECT JSON_UNQUOTE(
+                    JSON_EXTRACT(
+                        recipient.value, '$.managerId'
+                    )
+                )
+                FROM JSON_TABLE(
+                    JSON_EXTRACT(
+                        w.levels,
+                        CONCAT(
+                            '$[',
+                            l.placement_order,
+                            '].recipient_types'
+                        )
+                    ),
+                    '$[*]' COLUMNS (
+                        value JSON PATH '$'
+                    )
+                ) AS recipient
+                WHERE JSON_EXTRACT(recipient.value, '$.managerId') IS NOT NULL
+                LIMIT 1
+            ) AS manager_id,
                JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -4613,10 +4634,6 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             WHERE JSON_EXTRACT(recipient.value, '$.existing_replaced_user') IS NOT NULL
             LIMIT 1
         ) AS existing_replaced_user,
-
-
-
-
  JSON_UNQUOTE(
                     JSON_EXTRACT(
                         w.levels,
@@ -4981,7 +4998,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         const processPromises = rows.map(async (row: any) => {
             const { level_id, level_status, recipient_status, recipient_details,
                   placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
-                  existing_replaced_user, imporsonate_by } = row;
+                  existing_replaced_user, imporsonate_by, manager_id } = row;
             
             if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
                 return; 
@@ -4997,6 +5014,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
             let input_value: any = null;
             let replaced_user_data: any = null;
             let imposonate_user_data: any = null;
+            let manager_data: any = null;
             
             const effectiveImpersonateBy = imporsonate_by || impersonatorId;
             
@@ -5027,9 +5045,10 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                             ) : 
                             Promise.resolve(null);
                             
-                        const [userResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
+                        const [userResult, replacedUserResult, managerData, imporsonateUserResult] = await Promise.all([
                             fetchUser(userId),
                             replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+                            manager_id ? fetchUser(manager_id) : Promise.resolve(null),
                             imporsonateUserPromise
                         ]);
                         
@@ -5046,6 +5065,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                 reason: recipient_details?.reason,
                                 replaced_notes: recipient_details?.replaced_notes
                             };
+
+                            if (managerData) {
+                                manager_data = {
+                                    id: managerData.user_id,
+                                    first_name: managerData.first_name,
+                                    last_name: managerData.last_name,
+                                    avatar: managerData.avatar || null,
+                                    email: managerData.email || null
+                                };
+                            }
                             
                             if (replacedUserResult) {
                                 replaced_user_data = {
@@ -5126,6 +5155,16 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                                     replaced_date_time: recipient_details?.replaced_modified_on,
                                     replaced_notes: recipient_details?.replaced_notes,
                                 };
+                            }
+
+                            if(managerData){
+                                manager_data = {
+                                    id : managerData.user_id,
+                                    first_name: managerData.first_name,
+                                    last_name: managerData.last_name,
+                                    avatar: managerData.avatar || null,
+                                    email: managerData.email || null,
+                                }
                             }
                             
                             if (imporsonateUserResult) {
@@ -5356,6 +5395,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         role_id: user.role_id,
                         email: user.email,
                         replaced_by: user.replaced_by,
+                        manager: manager_data || null,
                         imporsonate_by: user.impersonate_by || imposonate_user_data,
                         recipient_type: recipientType.name || '',
                         behaviour,
@@ -5383,6 +5423,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                         recipient_type: recipientType.name || '',
                         behaviour,
                         replaced_by: replaced_user_data,
+                        manager: manager_data || null,
                         imporsonate_by: imposonate_user_data
                     }];
                 }
