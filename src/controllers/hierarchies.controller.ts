@@ -36,12 +36,15 @@ interface HierarchyItem {
 }
 export const getHierarchiesByProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id, id } = request.params as { program_id: string; id: string };
-  const { is_enabled } = request.query as { is_enabled: string };
+  const { is_enabled, msp_id } = request.query as { is_enabled?: string; msp_id?: string };
   const traceId = generateCustomUUID();
 
   try {
     const hierarchiesWithChildren: HierarchyItem[] = await sequelize.query(getHierarchieWithChildren, {
-      replacements: { program_id },
+      replacements: { 
+        program_id, 
+        managed_by: msp_id || null
+      },
       type: QueryTypes.SELECT
     });
 
@@ -68,28 +71,26 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
     const buildHierarchy = (data: HierarchyItem[], parentId: string | null = null): any[] => {
       return data
         .filter((item) => item.parent_hierarchy_id === parentId)
-        .map((item) => {
-          return {
-            id: item.id,
-            parent_hierarchy_id: item.parent_hierarchy_id,
-            name: item.name,
-            is_enabled: Boolean(item.is_enabled), // Convert is_enabled to boolean
-            preferred_date_format: item.preferred_date_format,
-            rate_model: item.rate_model,
-            created_on: item.created_on,
-            updated_on: item.updated_on,
-            code: item.code,
-            program_id: item.program_id,
-            default_timezone: item.default_timezone,
-            is_hide_candidate_img: item.is_hide_candidate_img,
-            default_language: item.default_language,
-            default_currency: item.default_currency,
-            default_date_format: item.default_date_format,
-            support_email: item.support_email,
-            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
-            hierarchies: buildHierarchy(data, item.id),
-          };
-        });
+        .map((item) => ({
+          id: item.id,
+          parent_hierarchy_id: item.parent_hierarchy_id,
+          name: item.name,
+          is_enabled: Boolean(item.is_enabled), // Convert is_enabled to boolean
+          preferred_date_format: item.preferred_date_format,
+          rate_model: item.rate_model,
+          created_on: item.created_on,
+          updated_on: item.updated_on,
+          code: item.code,
+          program_id: item.program_id,
+          default_timezone: item.default_timezone,
+          is_hide_candidate_img: item.is_hide_candidate_img,
+          default_language: item.default_language,
+          default_currency: item.default_currency,
+          default_date_format: item.default_date_format,
+          support_email: item.support_email,
+          is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
+          hierarchies: buildHierarchy(data, item.id),
+        }));
     };
 
     const nestedHierarchy = buildHierarchy(filteredHierarchies);
