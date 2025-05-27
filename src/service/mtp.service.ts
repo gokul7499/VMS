@@ -7,6 +7,8 @@ import { logger } from "../utility/loggerService";
 import { sequelize } from "../config/instance";
 import DisebleMtp from "../models/disable_mtp.model";
 import { Op } from "sequelize";
+import Candidate from "../models/candidate.model";
+import { updateDoNotRehireForCandidateWorkers } from "../utility/update-worker";
 
 class MtpService {
     private mtpRepository: MtpRepository;
@@ -484,6 +486,89 @@ class MtpService {
             throw error;
         }
     }
+    
+    async updateLinkedCandidatesDoNotRehire({
+        programId,
+        mtpId,
+        doNotRehire,
+        traceId,
+        token
+    }: {
+        programId: string;
+        mtpId: string;
+        doNotRehire: boolean;
+        traceId: string;
+        token: any;
+    }) {
+        let transaction;
+    
+        try {
+            transaction = await sequelize.transaction();
+    
+            const mtp = await MtpModel.findOne({
+                where: { id: mtpId, program_id: programId, is_deleted: false },
+                transaction
+            });
+    
+            if (!mtp) {
+                return {
+                    statusCode: 404,
+                    message: "MTP not found",
+                    traceId
+                };
+            }
+    
+            const linkedProfiles: string[] = mtp.linked_profiles || [];
+    
+            if (!linkedProfiles.length) {
+                return {
+                    statusCode: 400,
+                    message: "No linked profiles found in MTP",
+                    traceId
+                };
+            }
+                await Candidate.update(
+                { do_not_rehire: doNotRehire },
+                {
+                    where: {
+                        id: linkedProfiles,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await MtpModel.update(
+                { do_not_rehire: doNotRehire },
+                {
+                    where: {
+                        id: mtpId,
+                        program_id: programId,
+                        is_deleted: false
+                    },
+                    transaction
+                }
+            );
+    
+            await transaction.commit();
+
+          await Promise.allSettled(
+                linkedProfiles.map((candidateId) =>
+                  updateDoNotRehireForCandidateWorkers(candidateId, doNotRehire, programId, token)
+                )
+              );
+            return {
+                statusCode: 200,
+                message: "do_not_rehire updated in MTP and linked candidates successfully",
+                traceId
+            };
+        } catch (error) {
+            if (transaction) await transaction.rollback();
+            throw error;
+        }
+    }
+    
     
     
     private logEvent({
