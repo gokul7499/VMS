@@ -297,7 +297,8 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
             JSON_OBJECT(
                 'id', program_custom_field.custom_field_id,
                 'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$')),
-                'label', cf.label
+                'label', cf.label,
+                'field_type', cf.field_type,
             )
         )
         FROM program_custom_field
