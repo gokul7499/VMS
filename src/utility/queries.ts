@@ -619,9 +619,8 @@ WITH RECURSIVE hierarchy_cte AS (
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
     AND h.is_enabled = true
-    AND (:managed_by IS NULL OR h.managed_by = :managed_by)
 )
-SELECT *
+SELECT * 
 FROM hierarchy_cte;
 `;
 
