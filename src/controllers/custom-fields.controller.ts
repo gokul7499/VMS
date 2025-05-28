@@ -312,17 +312,17 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       whereClause.updated_on = { [Op.like]: `${updated_on}` };
     }
 
-    // Module-specific logic with permissions
     if (module_name) {
       if (userType === 'super_user') {
         andConditions.push({
           [Op.or]: [
             { module_name: { [Op.like]: `%${module_name}%` } },
-            Sequelize.literal(`JSON_SEARCH(linked_modules, 'one', '${module_name}', NULL, '$[*].module_name') IS NOT NULL`)
+            Sequelize.literal(`
+              JSON_CONTAINS(linked_modules, '{"linked": true, "module_name": "${module_name}"}', '$')
+            `)
           ]
         });
       } else {
-        // Direct approach without subquery - using CASE statement
         andConditions.push(
           Sequelize.literal(`
             (
@@ -348,8 +348,15 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
                     WHERE jt_perm.linked = true
                       AND jt_perm.module_name = '${module_name}'
                       AND (
-                        JSON_CONTAINS(jt_perm.can_edit, JSON_QUOTE('${userType}')) OR
-                        JSON_CONTAINS(jt_perm.can_view, JSON_QUOTE('${userType}'))
+                        EXISTS (
+                          SELECT 1 FROM JSON_TABLE(jt_perm.can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                          WHERE LOWER(edit_roles.role) = '${userType}'
+                        )
+                        OR
+                        EXISTS (
+                          SELECT 1 FROM JSON_TABLE(jt_perm.can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                          WHERE LOWER(view_roles.role) = '${userType}'
+                        )
                       )
                   )
                 )
@@ -357,8 +364,15 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
                   -- If NOT in linked_modules, check root level
                   module_name LIKE '%${module_name}%'
                   AND (
-                    JSON_CONTAINS(can_edit, JSON_QUOTE('${userType}')) OR 
-                    JSON_CONTAINS(can_view, JSON_QUOTE('${userType}'))
+                    EXISTS (
+                      SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                      WHERE LOWER(edit_roles.role) = '${userType}'
+                    )
+                    OR
+                    EXISTS (
+                      SELECT 1 FROM JSON_TABLE(can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                      WHERE LOWER(view_roles.role) = '${userType}'
+                    )
                   )
                 )
               END = 1
@@ -367,6 +381,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
         );
       }
     }
+    
 
     if (hierarchy_ids) {
       const hierarchyArray = hierarchy_ids.split(',').map((id: string) => `'${id.trim()}'`);
@@ -443,22 +458,24 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           is_view = true;
         } else {
           if (module_name) {
-            const linkedModule = customField.linked_modules?.find(
+            const linkedModules = Array.isArray(customField.linked_modules)
+              ? customField.linked_modules
+              : [];
+
+            const linkedModule = linkedModules.find(
               (lm: any) => lm.linked === true && lm.module_name === module_name
             );
 
             if (linkedModule) {
-              is_edit = linkedModule.can_edit?.includes(userType) || false;
-              is_view = linkedModule.can_view?.includes(userType) || false;
-            } else {
-              if (customField.module_name?.toLowerCase().includes(module_name.toLowerCase())) {
-                is_edit = customField.can_edit?.includes(userType) || false;
-                is_view = customField.can_view?.includes(userType) || false;
-              }
+              is_edit = includesRole(linkedModule.can_edit, userType);
+              is_view = includesRole(linkedModule.can_view, userType);
+            } else if (customField.module_name?.toLowerCase().includes(module_name.toLowerCase())) {
+              is_edit = includesRole(customField.can_edit, userType);
+              is_view = includesRole(customField.can_view, userType);
             }
           } else {
-            is_edit = customField.can_edit?.includes(userType) || false;
-            is_view = customField.can_view?.includes(userType) || false;
+            is_edit = includesRole(customField.can_edit, userType);
+            is_view = includesRole(customField.can_view, userType);
           }
         }
 
@@ -474,6 +491,16 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       })
     );
 
+    function includesRole(roles: any, userType: string | undefined): boolean {
+      if (!userType) return false;
+      if (!roles) return false;
+      if (Array.isArray(roles)) {
+        return roles.some((r) => String(r).toLowerCase() === userType.toLowerCase());
+      } else if (typeof roles === 'string') {
+        return roles.toLowerCase().includes(userType.toLowerCase());
+      }
+      return false;
+    }
     return reply.status(200).send({
       status_code: 200,
       custom_fields: customFieldsWithPicklistData,
