@@ -316,6 +316,9 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
         }
+          else if (module === 'sow') {
+            return await handleSowModule(workflow_trigger_id, reply, traceId);
+        }
         else {
             return await handleOtherModules(workflow_trigger_id , module, reply, traceId);
         }
@@ -331,7 +334,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
 }
 
 async function findModuleBySlug(slug: string) {
-    const moduleData = await Module.findOne({ where: { slug } });
+    const moduleData = await Module.findOne({ where: {slug: slug, is_enabled: true } });
     return moduleData?.dataValues.id || "";
 }
 
@@ -464,6 +467,71 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
         });
     }
 
+    // If no methods found, return early
+    if (!response.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflow methods found"
+        });
+    }
+
+    const workflows = await getWorkflows(workflowTriggerId);
+
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID"
+        });
+    }
+
+    const workflowMethodIds = workflows.map((workflow: any) => workflow.method_id);
+    const responses = response.filter(i => workflowMethodIds.includes(i.id));
+    
+    if (!responses.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No matching workflow methods found for trigger ID"
+        });
+    }
+
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
+
+    return reply.status(200).send({
+        status_code: 200,
+        message: "Workflow methods fetched successfully",
+        workflow_method: sortedResponse,
+    });
+}
+
+
+// Handle sow module
+async function handleSowModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+    const moduleId = await findModuleBySlug("sow");
+    console.log('Module id is nooww', moduleId)
+    const eventId1 = await findEvent(moduleId, "create_sow");
+    const eventId2 = await findEvent(moduleId, "update_sow");
+console.log('eventId1', eventId1)
+    const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
+    console.log('items', items)
+    const createApprovalMethod = findMethod(items, eventId1, "approval");
+    const updateApprovalMethod = findMethod(items, eventId2, "approval");
+
+    // Dynamically build response methods
+    const response: any[] = [];
+
+    if (createApprovalMethod || updateApprovalMethod) {
+        const method_ids = [
+            createApprovalMethod?.dataValues?.id,
+            updateApprovalMethod?.dataValues?.id
+        ].filter(Boolean);
+
+        const baseData = createApprovalMethod?.dataValues || updateApprovalMethod?.dataValues;
+
+        response.push({
+            ...baseData,
+            method_ids
+        });
+    }
     // If no methods found, return early
     if (!response.length) {
         return reply.status(400).send({
