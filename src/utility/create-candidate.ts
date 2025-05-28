@@ -32,6 +32,7 @@ export async function searchSimilarProfiles(
     phone_number: payload.contacts?.[0]?.number,
     birth_date: payload.birth_date,
     ssn_id: payload.ssn_id,
+    address: payload.addresses,
     vendor_search: vendorSearch,
     ...(vendorSearch && vendorId ? { vendor_id: vendorId } : {}),
   };
