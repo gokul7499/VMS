@@ -3,6 +3,7 @@ import { databaseConfig } from '../config/db';
 import MtpModel from '../models/mtp.model';
 import { PossibleDuplicateCandidate } from '../models/possible-duplicate-candidate.model';
 import { sequelize } from '../config/instance';
+import { first } from 'lodash';
 const AI_SERVICE_URL = databaseConfig.config.ai_url 
 
 export async function searchSimilarProfiles(
@@ -13,6 +14,7 @@ export async function searchSimilarProfiles(
   programId: string,
   userId: string,
   uniqueId:String,
+  payload:any,
   maxRetries = 3,
   delayMs = 1000
 ) {
@@ -24,6 +26,12 @@ export async function searchSimilarProfiles(
     candidate_id: candidateId,
     url: resumeText,
     c_unique_id:uniqueId,
+    first_name: payload.first_name,
+    last_name: payload.last_name,
+    email_address: payload.email,
+    phone_number: payload.contacts?.[0]?.number,
+    birth_date: payload.birth_date,
+    ssn_id: payload.ssn_id,
     vendor_search: vendorSearch,
     ...(vendorSearch && vendorId ? { vendor_id: vendorId } : {}),
   };

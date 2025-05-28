@@ -320,13 +320,13 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
+      // let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
 
       const candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
-        candidate_id: candidateCode,
+        // candidate_id: candidateCode,
         vendor_id: vendor_id,
         user_type: userType,
         created_by: userId,
@@ -429,7 +429,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
