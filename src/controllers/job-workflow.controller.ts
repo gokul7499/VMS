@@ -23,6 +23,7 @@ import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipie
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
 let TEAI_BASE_URL = databaseConfig.config.teai_url
+let SOW_BASE_URL = databaseConfig.config.sow_url
 let ui_base_url = databaseConfig.config.ui_base_url;
 
 export const createJobWorkFlow = async (
@@ -934,7 +935,22 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                                  console.log('errro is noowww', error);
                             }
              
-                        }
+                        } else
+                            if (moduleType === "Sow".toLowerCase()) {
+                                try {
+                                    const sow_id = workflow.workflow_trigger_id;
+                                    let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/approval`;
+                                    const payload = {};
+                                    await axios.put(apiUrl, payload, {
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            authorization: authHeader
+                                        },
+                                    });
+                                } catch (error) {
+                                    console.log('errro is noowww', error);
+                                }
+                            }
 
     } catch (error) {
         console.error('error while updating status:', error);
