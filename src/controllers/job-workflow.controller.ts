@@ -936,7 +936,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                             }
              
                         } else
-                            if (moduleType === "Sow".toLowerCase()) {
+                            if (moduleType === "Sow".toLowerCase() || moduleType === "Statement of Work".toLowerCase()) {
                                 try {
                                     const sow_id = workflow.workflow_trigger_id;
                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/approval`;
