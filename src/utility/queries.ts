@@ -593,7 +593,6 @@ WITH RECURSIVE hierarchy_cte AS (
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
     AND h.is_enabled = true
-    AND (:managed_by IS NULL OR h.managed_by = :managed_by)
   UNION ALL
 
   SELECT
