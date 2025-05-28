@@ -586,12 +586,14 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_language,
     h.default_currency,
     h.default_time_format,
-    h.is_vendor_neutral_program
+    h.is_vendor_neutral_program,
+    h.managed_by
   FROM hierarchies h
   WHERE h.program_id = :program_id
     AND h.parent_hierarchy_id IS NULL
     AND h.is_deleted = false
     AND h.is_enabled = true
+    AND (:managed_by IS NULL OR h.managed_by = :managed_by)
   UNION ALL
 
   SELECT
@@ -611,13 +613,14 @@ WITH RECURSIVE hierarchy_cte AS (
     h.default_language,
     h.default_currency,
     h.default_time_format,
-    h.is_vendor_neutral_program
+    h.is_vendor_neutral_program,
+    h.managed_by
   FROM hierarchies h
   INNER JOIN hierarchy_cte hc ON h.parent_hierarchy_id = hc.id
   WHERE h.is_deleted = false
     AND h.is_enabled = true
 )
-SELECT *
+SELECT * 
 FROM hierarchy_cte;
 `;
 
