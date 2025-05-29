@@ -4442,7 +4442,8 @@ async function getTriggeredEventsCode(flow_type: any, event: any) {
     } else if (flow_type === "Approval" && (event === "BUDGET_REDUCED" || event === "assignment_budget_adjustment")) {
         return NotificationEventCode.BUDGET_REDUCED_APPROVAL;
     } else {
-        throw new Error(`Event code not found for event: ${event}`);
+         return null
+        // throw new Error(`Event code not found for event: ${event}`);
     }
 }
 async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
