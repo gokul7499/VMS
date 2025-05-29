@@ -26,6 +26,7 @@ export async function searchSimilarProfiles(
     candidate_id: candidateId,
     url: resumeText,
     c_unique_id:uniqueId,
+    vendor_id: vendorId,
     first_name: payload.first_name,
     last_name: payload.last_name,
     email_address: payload.email,
@@ -33,8 +34,7 @@ export async function searchSimilarProfiles(
     birth_date: payload.birth_date,
     ssn_id: payload.ssn_id,
     address: payload.addresses,
-    vendor_search: vendorSearch,
-    ...(vendorSearch && vendorId ? { vendor_id: vendorId } : {}),
+    vendor_search: true,
   };
   console.log("similar profile paylod",searchPayload)
   let attempt = 0;
