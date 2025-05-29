@@ -16,6 +16,7 @@ import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
+import { candidateHistory } from "../utility/candidate-history";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -502,6 +503,15 @@ export async function updateCandidateByIdAndProgramId(
                 });
             }
         }
+
+        const oldRecord = await candidateModel.findOne({
+            where: {
+                program_id,
+                id,
+                is_deleted: false
+            }
+        });
+
         let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
             { ...updates, updated_by: userId, updated_on: Date.now(), unique_id: uniqueId },
@@ -526,6 +536,9 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
+
+        const historyResponse = await candidateHistory(program_id, authHeader, oldRecord?.dataValues, updatedRecord?.dataValues, "Update");
+
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate updated successfully",
