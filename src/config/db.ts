@@ -30,6 +30,7 @@ export const databaseConfig = {
       sourcing_url: config.sourcing_url,
       auth_url: config.auth_url,
       teai_url: config.teai_url,
+      sow_url: config.sow_url,
       db_sourcing: config.db_sourcing,
       app_origin: config.app_origin,
       keycloak_subdomain: config.keycloak_subdomain,
