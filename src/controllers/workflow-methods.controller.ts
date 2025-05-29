@@ -315,8 +315,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         }
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
-        }
-          else if (module === 'sow') {
+        } else if (module === 'sow') {
             return await handleSowModule(workflow_trigger_id, reply, traceId);
         }
         else {
@@ -342,7 +341,7 @@ async function findEvent(moduleId: string, slug: string) {
     if (!moduleId || !slug) return null;
     
     const event = await Event.findOne({
-        where: { module_id: moduleId, slug, is_enabled: true }
+        where: { module_id: moduleId, slug }
     });
     return event?.dataValues?.id || null;
 }
@@ -466,7 +465,7 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
             method_ids
         });
     }
-
+    console.log('Sending response from ehetere')
     // If no methods found, return early
     if (!response.length) {
         return reply.status(400).send({
