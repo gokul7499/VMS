@@ -489,6 +489,8 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
         if (programVendorData.all_hierarchy) userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
         if (programVendorData.work_locations) userUpdatePayload.work_location_ids = programVendorData.work_locations;
         if (programVendorData.all_work_locations) userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
+        if (programVendorData.program_industry) userUpdatePayload.associate_labour_category = programVendorData.program_industry;
+        if (programVendorData.is_labour_category) userUpdatePayload.is_all_labour_category_associate = programVendorData.is_labour_category;
         if (programVendorData.contact) userUpdatePayload.contacts = programVendorData.contact;
 
         if (Object.keys(userUpdatePayload).length > 0) {
