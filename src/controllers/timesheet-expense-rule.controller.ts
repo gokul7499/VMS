@@ -28,7 +28,6 @@ export async function createTimesheetExpenseRule(
     console.log("uuu", userId)
 
     try {
-        timesheetRule.rule_duration = timesheetRule.rule_duration?.toLowerCase();
         const existingRule = await TimesheetExpenseRuleModel.findOne({
             where: {
                 program_id,
