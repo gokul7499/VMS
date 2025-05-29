@@ -31,7 +31,7 @@ export async function searchSimilarProfiles(
     last_name: payload.last_name,
     email_address: payload.email,
     phone_number: payload.contacts?.[0]?.number,
-    birth_date: payload.birth_date,
+    birth_date: payload.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
     ssn_id: payload.ssn_id,
     address: payload.addresses,
     vendor_search: true,
@@ -49,11 +49,11 @@ export async function searchSimilarProfiles(
         },
         body: JSON.stringify(searchPayload),
       }); 
+      console.log("similar profile response",response)
 
-
-      if (!response.ok) {
-        return(`Failed to fetch similar profiles: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   return(`Failed to fetch similar profiles: ${response.statusText}`);
+      // }
 
       const result = await response.json();
       console.log("similar profile Data",result)
