@@ -527,17 +527,17 @@ class MtpService {
                     traceId
                 };
             }
-                await Candidate.update(
-                { do_not_rehire: doNotRehire },
-                {
-                    where: {
-                        id: linkedProfiles,
-                        program_id: programId,
-                        is_deleted: false
-                    },
-                    transaction
-                }
-            );
+            //     await Candidate.update(
+            //     { do_not_rehire: doNotRehire },
+            //     {
+            //         where: {
+            //             id: linkedProfiles,
+            //             program_id: programId,
+            //             is_deleted: false
+            //         },
+            //         transaction
+            //     }
+            // );
     
             await MtpModel.update(
                 { do_not_rehire: doNotRehire },
@@ -553,11 +553,11 @@ class MtpService {
     
             await transaction.commit();
 
-          await Promise.allSettled(
-                linkedProfiles.map((candidateId) =>
-                  updateDoNotRehireForCandidateWorkers(candidateId, doNotRehire, programId, token)
-                )
-              );
+        //   await Promise.allSettled(
+        //         linkedProfiles.map((candidateId) =>
+        //           updateDoNotRehireForCandidateWorkers(candidateId, doNotRehire, programId, token)
+        //         )
+        //       );
             return {
                 statusCode: 200,
                 message: "do_not_rehire updated in MTP and linked candidates successfully",
