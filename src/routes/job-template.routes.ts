@@ -56,6 +56,11 @@ async function jobTemplate(fastify: FastifyInstance) {
 
   fastify.post("/upload-file", JobTemplateController.uploadJobTemplateFile);
 
+    fastify.post("/program/:program_id/job-template/bulk-upload", {
+  // preHandler: validatePermissions(Actions.CREATE, [Permissions.JOB_TEMPLATE])
+}, JobTemplateController.bulkUploadJobTemplates);
+
 }
+
 
 export default jobTemplate;

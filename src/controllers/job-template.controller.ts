@@ -1155,3 +1155,70 @@ export async function extractFileContent(file: any): Promise<string> {
 
   throw new Error("Unsupported file type");
 }
+
+export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
+  const traceId = generateCustomUUID();
+ 
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const jobTemplates = request.body as any[];
+ 
+    if (!Array.isArray(jobTemplates) || jobTemplates.length === 0) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "No job templates provided.",
+        trace_id: traceId,
+      });
+    }
+ 
+    // Build conditions for checking existing templates
+    const templateConditions = jobTemplates.map((template) => ({
+      template_name: template.template_name,
+      program_id: program_id, // ✅ just the value
+    }));
+ 
+    const existingTemplates = await jobTemplateModel.findAll({
+      where: {
+        [Op.or]: templateConditions,
+      },
+    });
+ 
+    const existingSet = new Set(
+      existingTemplates.map((tpl) => `${tpl.template_name}|${tpl.program_id}`)
+    );
+ 
+    const newTemplates = jobTemplates
+      .filter((tpl) => !existingSet.has(`${tpl.template_name}|${program_id}`))
+      .map((tpl) => ({
+        ...tpl,
+        program_id, // ✅ attach program_id from params to each new template
+      }));
+ 
+    if (newTemplates.length === 0) {
+      return reply.status(409).send({
+        status_code: 409,
+        message: "All job templates already exist.",
+        trace_id: traceId,
+      });
+    }
+ 
+    const createdTemplates = await jobTemplateModel.bulkCreate(newTemplates, {
+      validate: true,
+      individualHooks: true,
+    });
+ 
+    return reply.status(201).send({
+      status_code: 201,
+      message: "Job templates created successfully.",
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: "Failed to create job templates.",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+};
+ 
