@@ -465,8 +465,7 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
             method_ids
         });
     }
-    console.log('Sending response from ehetere')
-    // If no methods found, return early
+        // If no methods found, return early
     if (!response.length) {
         return reply.status(400).send({
             status_code: 400,
