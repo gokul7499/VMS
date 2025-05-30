@@ -144,6 +144,7 @@ export async function notifyJobManager(
     recipientEmail: object[] | null
 ): Promise<void> {
     if (recipientEmail) {
+        console.log('User information:', notificationPayload.userId);
         await sendNotification(notificationPayload);
         console.info("Notification sent to:", recipientEmail);
     } else {
@@ -315,7 +316,7 @@ export const getJobDetails = async (id: string, program_id: string, token: strin
             console.warn("Job details not found.");
             return { status: 404, message: "Job details not found", data: null };
         }
-
+        console.log('Job details fetched successfully'); 
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
         return handleErrorProperly(error, "Job details");
@@ -335,7 +336,7 @@ export const getOfferDetails = async (id: string, program_id: string, token: str
             console.warn("Offer details not found.");
             return { status: 404, message: "Offer details not found", data: null };
         }
-
+        console.log('Offer details fetched successfully');
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
         return handleErrorProperly(error, "Offer details");
@@ -355,7 +356,7 @@ export const getAssignmentDetails = async (id: string, program_id: string, token
             console.warn("Assignment details not found.");
             return { status: 404, message: "Assignment details not found", data: null };
         }
-
+        console.log('Assignment details fetched successfully');
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
         return handleErrorProperly(error, "Assignment details");
