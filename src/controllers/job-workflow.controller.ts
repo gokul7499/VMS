@@ -719,7 +719,7 @@ export const updateWorkflowStatus = async (
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
-                    user_type: eventCode.user_type || ''
+                    user_type: eventCode?.user_type || ''
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
@@ -1253,8 +1253,16 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
+    }  if (flow_type == "Approval" && events === "create_sow") {
+        let response = {
+            eventCode: NotificationEventCode.CREATE_SOW,
+
+            user_type: ['msp']
+        }
+        return response;
     } else {
-        throw new Error(`Event code not found for event: ${events}`);
+    return null
+        // throw new Error(`Event code not found for event: ${events}`);
     }
 
 }
