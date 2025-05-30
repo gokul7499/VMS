@@ -206,58 +206,61 @@ export async function updateVendorComplianceDocumentById(
   reply: FastifyReply
 ) {
   const { id, program_id } = request.params as { id: string; program_id: string };
-  const vendorDocuments = request.body as Partial<VendorComplianceDocumentInterface>;
+  const payload = request.body as any;
   const traceId = generateCustomUUID();
+
   const authHeader = request.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
   }
+
   const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user: any = await decodeToken(token);
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
   }
-  const userId = user?.sub
+  const userId = user.sub;
 
   try {
-    const existingDocument = await vendorComplianceDocumentService.getByIdAndPopulate(
-      request,
-      { program_id, id }
-    );
-
+    const existingDocument = await vendorComplianceDocumentService.getByIdAndPopulate(request, { program_id, id });
     if (!existingDocument) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: "Vendor compliance documents not found for update.",
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'Vendor compliance document not found.',
         trace_id: traceId,
-        compliance_documents: []
       });
     }
 
-    await vendorComplianceDocumentService.updateById(request, { program_id, id, updated_by: userId, });
+    const duplicate = await VendorComplianceDocumentModel.findOne({
+      where: {
+        program_id,
+        name: payload.name,
+        id: { [Op.ne]: id },
+      },
+    });
 
-    if (vendorDocuments.uploaded_document && Array.isArray(vendorDocuments.uploaded_document)) {
-      for (const doc of vendorDocuments.uploaded_document) {
-        await VendorComplianceReqDocMappingModel.upsert({
-          id: doc.id,
-          program_id,
-          ...doc,
-          is_enabled: true,
-          is_deleted: false,
-        });
-      }
+    if (duplicate) {
+      return reply.status(409).send({
+        status_code: 409,
+        message: 'A document with the same name already exists for this program.',
+        trace_id: traceId,
+      });
     }
 
-    reply.status(200).send({
+    await VendorComplianceDocumentModel.update(
+      { ...payload, updated_by: userId },
+      { where: { id } }
+    );
+
+    return reply.status(200).send({
       status_code: 200,
-      message: "Vendor compliance documents updated successfully",
+      message: 'Vendor compliance document updated successfully.',
       trace_id: traceId,
     });
   } catch (error) {
-    console.error("Error updating vendor compliance documents:", error);
     return reply.status(500).send({
       status_code: 500,
-      message: "Internal Server Error",
+      message: 'Internal Server Error',
       trace_id: traceId,
     });
   }
