@@ -160,7 +160,6 @@ export async function sendNotification(payload: NotificationDataPayload): Promis
                         language: "en"
                     };
                     
-                    console.log(`Sending notification to ${element.email}`);
                     
                     // Make API call with proper error handling
                     const response = await axios.post(
