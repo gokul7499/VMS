@@ -591,8 +591,17 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const offset = (pageNum - 1) * limitNum;
 
     const workerTypeIds = worker_type_id ? worker_type_id.split(",") : [];
+    let userData;
+    if (!user?.userType) {
+        userData = await User.findOne({
+            where: { program_id: program_id, user_id: userId },
+            attributes: ['id', 'program_id', 'tenant_id', 'user_type']
+        });
+    }
+    const vendorId = userData?.tenant_id ?? undefined;
+    const user_type = userData?.user_type ?? undefined;
 
-    if (user?.userType === 'super_user') {
+    if (user?.userType === 'super_user' || user_type === 'client' || user_type === 'msp') {
         const replacements = {
             program_id,
             limit: limitNum,
@@ -620,12 +629,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({
-        where: { program_id: program_id, user_id: userId },
-        attributes: ['id', 'program_id', 'tenant_id', 'user_type']
-    });
-    const vendorId = userData?.tenant_id || undefined;
-
     const vendor = await ProgramVendor.findOne({
         where: {
             program_id: program_id,
@@ -634,7 +637,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         plain: true
     });
 
-    const vendor_id = vendor?.id || null;
+    const vendor_id = vendor?.id ?? null;
 
     if (vendorId === undefined) {
         return reply.status(200).send({
@@ -716,7 +719,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_per_identified",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire", "is_per_identified",
             ],
             limit: limitNum,
             offset,
