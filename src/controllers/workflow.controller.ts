@@ -563,7 +563,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             }),
             PicklistItemModel.findAll({
                 where: { id: { [Op.in]: Array.from(selectedItems) } },
-                attributes: ['id', 'value']
+                attributes: ['id', 'value','slug']
             }),
         ]);
 
@@ -814,7 +814,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             if (picklistItem) {
                                 condition.source_field_meta = {
                                     id: picklistItem.id,
-                                    value: picklistItem.value
+                                    name: picklistItem.value,
+                                    slug: picklistItem.slug
                                 };
                             }
                             delete condition.source_field_meta.selected_item;
