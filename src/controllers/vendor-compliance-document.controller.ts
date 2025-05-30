@@ -71,6 +71,7 @@ export async function createVendorComplianceDocument(
       where: {
         program_id,
         name: vendor_comp_doc.name,
+        is_deleted: false,
       },
     });
 
@@ -236,6 +237,7 @@ export async function updateVendorComplianceDocumentById(
         program_id,
         name: payload.name,
         id: { [Op.ne]: id },
+        is_deleted: false,
       },
     });
 
@@ -249,7 +251,7 @@ export async function updateVendorComplianceDocumentById(
 
     await VendorComplianceDocumentModel.update(
       { ...payload, updated_by: userId },
-      { where: { id } }
+      { where: { id, is_deleted: false, } }
     );
 
     return reply.status(200).send({
