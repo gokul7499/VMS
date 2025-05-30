@@ -5,6 +5,7 @@ import Tenant from './tenant.model';
 
 class programMspAssociationModel extends Model {
   msp_id: any;
+  is_enabled: any;
 }
 programMspAssociationModel.init(
   {
