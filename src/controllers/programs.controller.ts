@@ -406,7 +406,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
 
     if (updates.msps && Array.isArray(updates.msps)) {
       const mspIds = updates.msps.map(msp => msp.id);
-    
+      
       if (mspIds.length > 0) {
         const validMspIds = (
           await Tenant.findAll({
@@ -415,56 +415,29 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
             raw: true,
           })
         ).map((tenant) => tenant.id);
-    
+
         if (validMspIds.length > 0) {
           const existingAssociations = await programMspAssociationModel.findAll({
-            where: { program_id: id },
-            attributes: ['msp_id', 'is_enabled'],
+            where: {
+              program_id: id,
+            },
+            attributes: ['msp_id'],
             raw: true,
           });
-    
-          const existingMspMap = new Map(existingAssociations.map(record => [record.msp_id, record.is_enabled]));
-    
-          const mspUpserts = updates.msps.map((msp) => ({
-            program_id: id,
-            msp_id: msp.id,
-            created_by: userId,
-            updated_by: userId,
-            is_enabled: msp.is_enabled,
-          }));
-    
-          const newAssociations = mspUpserts.filter(item => !existingMspMap.has(item.msp_id));
-          const existingToUpdate = mspUpserts.filter(item => existingMspMap.has(item.msp_id));
-    
-          if (newAssociations.length > 0) {
-            await programMspAssociationModel.bulkCreate(newAssociations);
-          }
-    
-          for (const update of existingToUpdate) {
-            await programMspAssociationModel.update(
-              {
-                is_enabled: update.is_enabled,
-                updated_by: userId,
-              },
-              {
-                where: {
-                  program_id: id,
-                  msp_id: update.msp_id,
-                },
-              }
-            );
-          }
-    
+
           const existingMspIds = existingAssociations.map(record => record.msp_id);
-          const mspsToRemove = existingMspIds.filter(existingId => !validMspIds.includes(existingId));
-    
-          if (mspsToRemove.length > 0) {
-            await programMspAssociationModel.destroy({
-              where: {
-                program_id: id,
-                msp_id: mspsToRemove,
-              },
-            });
+          
+          const newMspIds = validMspIds.filter(mspId => !existingMspIds.includes(mspId));
+
+           if (newMspIds.length > 0) {
+            const newAssociations = newMspIds.map((mspId) => ({
+              program_id: id,
+              msp_id: mspId,
+              created_by: userId,
+              updated_by: userId,
+              is_enabled: true, 
+            }));
+            await programMspAssociationModel.bulkCreate(newAssociations);
           }
         }
       }
