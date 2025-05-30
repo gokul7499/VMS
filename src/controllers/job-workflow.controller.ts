@@ -938,15 +938,17 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         } else
                             if (moduleType === "Sow".toLowerCase() || moduleType === "Statement of Work".toLowerCase()) {
                                 try {
+                                    console.log('Calling sow api heree', SOW_BASE_URL)
                                     const sow_id = workflow.workflow_trigger_id;
                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/approval`;
                                     const payload = {};
-                                    await axios.put(apiUrl, payload, {
+                                   let res= await axios.put(apiUrl, payload, {
                                         headers: {
                                             'Content-Type': 'application/json',
                                             authorization: authHeader
                                         },
                                     });
+                                    console.log(' response from sow api', res)
                                 } catch (error) {
                                     console.log('errro is noowww', error);
                                 }
