@@ -142,7 +142,7 @@ Candidate.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        is_per_identified: {
+        is_pre_identified: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,      
         },
