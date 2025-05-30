@@ -54,7 +54,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
 
     try {
         const existingFoundationalDataTypeWithSameName = await foundationalDataTypes.findOne({
-            where: { name, program_id },
+            where: { name, program_id ,is_deleted: false },
         });
 
         if (existingFoundationalDataTypeWithSameName) {

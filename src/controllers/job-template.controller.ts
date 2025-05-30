@@ -907,19 +907,14 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     };
     const { program_id } = request.params as { program_id: string };
 
-    if (!job_manager_id) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Please provide job_manager_id.",
-        trace_id: traceId,
-      });
-    }
-
-    const managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
-
     let templateHierarchyIds: string[] = [];
     let sowTemplateHierarchyIds: string[] = [];
     let mspHierarchyIds: string[] = [];
+    let managerHierarchyIds: string[] = [];
+
+    if(job_manager_id){
+     managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    }
 
     if (job_template_id) {
       const templateData = await jobTempletRepositories.templateQuery(job_template_id);
@@ -935,19 +930,14 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
     }
 
-    let commonHierarchyIds = managerHierarchyIds;
+    let hierarchyGroups: string[][] = [];
 
-    if (templateHierarchyIds.length > 0) {
-      commonHierarchyIds = commonHierarchyIds.filter((id) => templateHierarchyIds.includes(id));
-    }
+    if (managerHierarchyIds.length > 0) hierarchyGroups.push(managerHierarchyIds);
+    if (templateHierarchyIds.length > 0) hierarchyGroups.push(templateHierarchyIds);
+    if (sowTemplateHierarchyIds.length > 0) hierarchyGroups.push(sowTemplateHierarchyIds);
+    if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
 
-    if (sowTemplateHierarchyIds.length > 0) {
-      commonHierarchyIds = commonHierarchyIds.filter((id) => sowTemplateHierarchyIds.includes(id));
-    }
-
-    if (mspHierarchyIds.length > 0) {
-      commonHierarchyIds = commonHierarchyIds.filter((id) => mspHierarchyIds.includes(id));
-    }
+    let commonHierarchyIds = hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)));
 
     if (commonHierarchyIds.length === 0) {
       return reply.status(200).send({

@@ -650,31 +650,18 @@ COALESCE((
   }
 
   async mspHierarchies(msp_id: string, program_id: string) {
-    const managerData = await sequelize.query<{
-      is_all_hierarchy_associate: any;
-      associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids, is_all_hierarchy_associate FROM user WHERE user_id = :msp_id AND program_id = :program_id`, {
-      replacements: { msp_id, program_id },
-      type: QueryTypes.SELECT,
-    });
-
-    if (!managerData || managerData.length === 0) {
-      return [];
-    }
-
-    const { is_all_hierarchy_associate, associate_hierarchy_ids } = managerData[0];
-
-    if (is_all_hierarchy_associate) {
-      const allHierarchies = await sequelize.query<{
-        id: string;
-      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
-        replacements: { program_id },
+    const hierarchies = await sequelize.query<{ id: string }>(
+      `SELECT id FROM hierarchies 
+       WHERE program_id = :program_id 
+         AND managed_by = :msp_id 
+         AND is_enabled = true`,
+      {
+        replacements: { program_id, msp_id },
         type: QueryTypes.SELECT,
-      });
+      }
+    );
 
-      return allHierarchies.map(h => h.id);
-    }
-    return associate_hierarchy_ids || [];
+    return hierarchies.map(h => h.id);
   }
 
   async templateQuery(job_template_id: string) {

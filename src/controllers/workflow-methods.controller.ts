@@ -315,8 +315,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         }
         else if (module === 'submit_candidate_rehire_check') {
             return await handleCandidateRehireCheckModule(workflow_trigger_id, reply, traceId);
-        }
-          else if (module === 'sow') {
+        } else if (module === 'sow') {
             return await handleSowModule(workflow_trigger_id, reply, traceId);
         }
         else {
@@ -334,7 +333,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
 }
 
 async function findModuleBySlug(slug: string) {
-    const moduleData = await Module.findOne({ where: {slug: slug, is_enabled: true } });
+    const moduleData = await Module.findOne({ where: {slug: slug } });
     return moduleData?.dataValues.id || "";
 }
 
@@ -466,7 +465,6 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
             method_ids
         });
     }
-
     // If no methods found, return early
     if (!response.length) {
         return reply.status(400).send({

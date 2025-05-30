@@ -231,7 +231,6 @@ export async function getWorkflowDetails(
     workflowId: string
 ): Promise<WorkflowDetails | null> {
     try {
-        console.log(`Executing query to fetch complete workflow details for workflow ID: ${workflowId}`);
 
         const result = await sequelize.query(
             `SELECT 
@@ -254,7 +253,6 @@ export async function getWorkflowDetails(
             }
         ) as WorkflowDetails[];
 
-        console.log("Query Result:", result);
 
         return result.length > 0 ? result[0] : null;
     } catch (error) {
@@ -318,8 +316,7 @@ export const getJobDetails = async (id: string, program_id: string, token: strin
             console.warn("Job details not found.");
             return { status: 404, message: "Job details not found", data: null };
         }
-
-        console.log('Job details fetched successfully');
+        console.log('Job details fetched successfully'); 
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
         return handleErrorProperly(error, "Job details");
@@ -339,7 +336,6 @@ export const getOfferDetails = async (id: string, program_id: string, token: str
             console.warn("Offer details not found.");
             return { status: 404, message: "Offer details not found", data: null };
         }
-
         console.log('Offer details fetched successfully');
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
@@ -360,7 +356,6 @@ export const getAssignmentDetails = async (id: string, program_id: string, token
             console.warn("Assignment details not found.");
             return { status: 404, message: "Assignment details not found", data: null };
         }
-
         console.log('Assignment details fetched successfully');
         return { status: 200, message: "Success", data: response.data };
     } catch (error: any) {
