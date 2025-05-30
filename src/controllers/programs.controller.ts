@@ -309,10 +309,10 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         FROM program_custom_field
         JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
         LEFT JOIN user AS u 
-        ON REPLACE(REPLACE(program_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id)
+    ON REPLACE(REPLACE(program_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id)
         WHERE program_custom_field.program_id = programs.id
         AND cf.is_enabled = true
-        OR program_custom_field.program_id = u.program_id
+        OR u.program_id = program_custom_field.program_id
     ), JSON_ARRAY()) AS custom_fields
 FROM programs
 WHERE programs.id = :id;
