@@ -5040,7 +5040,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Multiple users':
                 case 'Job Manager':
                 case 'Assignment Manager':
-                case 'Timesheet Managers': 
+                case 'Timesheet Managers':
+                case 'SOW Manager': 
                 case 'Job Manager On Offer':
                 case 'Manager of':{
                     const input_values = Object.values(meta_data);
