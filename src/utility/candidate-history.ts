@@ -3,7 +3,7 @@ import { databaseConfig } from "../config/db";
 import { handleErrorProperly } from './notification-helper';
 const sourcing_url = databaseConfig.config.sourcing_url;
 
-export const candidateHistory = async (program_id: string, token: string, oldData: any, newData: any, action: any) => {
+export const createCandidateHistory = async (program_id: string, token: string, oldData: any, newData: any, action: any) => {
 
   try {
     const response = await axios.post(

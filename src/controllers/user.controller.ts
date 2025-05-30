@@ -18,7 +18,7 @@ import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
-import { candidateHistory } from "../utility/candidate-history";
+import { createCandidateHistory } from "../utility/candidate-history";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -401,10 +401,15 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else {
       await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     }
-    const compareData = {}
+    
+    const compareData = {};
     if (userType === "candidate") {
-      const historyResponse = await candidateHistory(user.program_id, authHeader, candidateData, compareData, "Create");
+      createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Create")
+        .catch(error => {
+          console.error("Failed to create candidate history:", error);
+        });
     }
+
     await transaction.commit();
     return reply.status(201).send({
       status_code: 201,

@@ -16,7 +16,7 @@ import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
-import { candidateHistory } from "../utility/candidate-history";
+import { createCandidateHistory } from "../utility/candidate-history";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -537,8 +537,10 @@ export async function updateCandidateByIdAndProgramId(
             }
         });
 
-        const historyResponse = await candidateHistory(program_id, authHeader, oldRecord?.dataValues, updatedRecord?.dataValues, "Update");
-
+        createCandidateHistory(program_id, authHeader, oldRecord?.dataValues, updatedRecord?.dataValues, "Update")
+            .catch(error => {
+                console.error("Failed to create candidate history:", error);
+            });
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate updated successfully",
