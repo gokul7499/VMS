@@ -3530,3 +3530,12 @@ master_data_type.id,
     where master_data_type.program_id=:program_id
     AND master_data_type.id=:id
 `;
+
+export const userData = `
+  SELECT * FROM user WHERE user_id = :client_id
+    AND (
+      user_type = 'super_user'
+        OR program_id = :program_id
+      )
+    LIMIT 1;
+  `

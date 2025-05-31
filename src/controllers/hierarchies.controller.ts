@@ -7,7 +7,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
-import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getParentHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, vendorMarkup } from '../utility/queries';
+import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getParentHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, userData, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
 import User from '../models/user.model';
 import TenantModel from '../models/tenant.model';
@@ -38,7 +38,7 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
   const { program_id, id } = request.params as { program_id: string; id: string };
   const { is_enabled, msp_id } = request.query as { is_enabled: string; msp_id?: string };
   const traceId = generateCustomUUID();
- 
+
   try {
     const hierarchiesWithChildren: HierarchyItem[] = await sequelize.query(getHierarchieWithChildren, {
       replacements: {
@@ -47,7 +47,7 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
       },
       type: QueryTypes.SELECT
     });
- 
+
     if (hierarchiesWithChildren.length === 0) {
       return reply.status(200).send({
         status_code: 200,
@@ -56,47 +56,47 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
         hierarchies: [],
       });
     }
- 
+
     let filteredHierarchies = id
       ? hierarchiesWithChildren.filter((item) => item.id === id)
       : hierarchiesWithChildren;
- 
+
     if (is_enabled !== undefined) {
       const isEnabledBoolean = is_enabled === 'true'; // Convert to boolean
       filteredHierarchies = filteredHierarchies.filter((item) => {
         return Boolean(item.is_enabled) === isEnabledBoolean;
       });
     }
- 
+
     const buildHierarchy = (data: HierarchyItem[], parentId: string | null = null): any[] => {
       return data
         .filter((item) => item.parent_hierarchy_id === parentId)
         .map((item) => {
           return {
-          id: item.id,
-          parent_hierarchy_id: item.parent_hierarchy_id,
-          name: item.name,
-          is_enabled: Boolean(item.is_enabled),
-          preferred_date_format: item.preferred_date_format,
-          rate_model: item.rate_model,
-          created_on: item.created_on,
-          updated_on: item.updated_on,
-          code: item.code,
-          program_id: item.program_id,
-          default_timezone: item.default_timezone,
-          is_hide_candidate_img: item.is_hide_candidate_img,
-          default_language: item.default_language,
-          default_currency: item.default_currency,
-          default_date_format: item.default_date_format,
-          support_email: item.support_email,
-          is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
-          hierarchies: buildHierarchy(data, item.id),
+            id: item.id,
+            parent_hierarchy_id: item.parent_hierarchy_id,
+            name: item.name,
+            is_enabled: Boolean(item.is_enabled),
+            preferred_date_format: item.preferred_date_format,
+            rate_model: item.rate_model,
+            created_on: item.created_on,
+            updated_on: item.updated_on,
+            code: item.code,
+            program_id: item.program_id,
+            default_timezone: item.default_timezone,
+            is_hide_candidate_img: item.is_hide_candidate_img,
+            default_language: item.default_language,
+            default_currency: item.default_currency,
+            default_date_format: item.default_date_format,
+            support_email: item.support_email,
+            is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
+            hierarchies: buildHierarchy(data, item.id),
           };
         });
     };
- 
+
     const nestedHierarchy = buildHierarchy(filteredHierarchies);
- 
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -111,7 +111,7 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
     });
   }
 };
- 
+
 
 export const getHierarchies = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
@@ -124,7 +124,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     limit?: number;
   };
   const traceId = generateCustomUUID();
- 
+
   try {
     const hasName = !!name;
     const hasMsp = !!msp;
@@ -132,10 +132,10 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       is_enabled === "true" ? true : is_enabled === "false" ? false : undefined;
     let startDate: number | undefined;
     let endDate: number | undefined;
- 
+
     if (updated_on) {
       const dateRange = updated_on.split(",").map(date => date.trim());
- 
+
       if (dateRange.length > 0 && !isNaN(Number(dateRange[0]))) {
         startDate = Number(dateRange[0]);
       }
@@ -143,9 +143,9 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         endDate = Number(dateRange[1]);
       }
     }
- 
+
     const offset = (page - 1) * limit;
- 
+
     const replacements: any = {
       program_id,
       ...(hasName && { name: `%${name}%` }),
@@ -155,7 +155,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       limit: Number(limit),
       offset: Number(offset),
     };
- 
+
     const hierarchies: any[] = await sequelize.query(
       getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
       {
@@ -163,7 +163,7 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
         type: QueryTypes.SELECT,
       }
     );
- 
+
     const total_count = hierarchies[0]?.total_count || 0;
 
     if (total_count === 0) {
@@ -982,18 +982,10 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
-    const [user]: any = await sequelize.query(
-      `SELECT * FROM user WHERE user_id = :client_id
-        AND (
-          user_type = 'super_user'
-          OR program_id = :program_id
-        )
-      LIMIT 1
-      `,
-      {
-        replacements: { client_id, program_id },
-        type: QueryTypes.SELECT,
-      }
+    const [user]: any = await sequelize.query(userData, {
+      replacements: { client_id, program_id },
+      type: QueryTypes.SELECT,
+    }
     );
 
     if (!user) {
@@ -1004,7 +996,7 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
-    const { associate_hierarchy_ids, is_all_hierarchy_associate, user_type} = user;
+    const { associate_hierarchy_ids, is_all_hierarchy_associate, user_type } = user;
     let managedByIds: string[] = [];
 
     if (is_all_hierarchy_associate || user_type === "super_user") {
