@@ -188,8 +188,8 @@ class MtpService {
     }
 
 
-    async getMtpById(programId: string, id: string) {
-        const [mtpData] = await this.mtpRepository.getMtpById(programId, id);
+    async getMtpById(programId: string, id: string, limit?: number, offset?: number) {
+        const mtpData = await this.mtpRepository.getMtpById(programId, id,limit, offset);
 
         return {
             message: mtpData ? "MTP data retrieved successfully." : "No matching records found.",

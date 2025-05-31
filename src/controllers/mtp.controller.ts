@@ -97,14 +97,17 @@ export async function getAllMtp(request: FastifyRequest, reply: FastifyReply) {
 export async function getMtpById(request: FastifyRequest, reply: FastifyReply) {
     const { program_id: programId, id } = request.params as { program_id: string, id: string };
     const traceId = generateCustomUUID();
+    const { page = 1, limit = 10 } = request.query as { page?: string | number, limit?: string | number };
 
     try {
-        const result = await mtpService.getMtpById(programId, id);
+        const result = await mtpService.getMtpById(programId, id,Number(page), Number(limit));
 
         return reply.code(200).send({
             status_code: 200,
             message: result.message,
             mtp_data: result.data,
+            page: Number(page),
+            limit: Number(limit),
             trace_id: traceId
         });
     } catch (error: any) {

@@ -115,10 +115,23 @@ async getAllMtpData(
         return result;
     }
 
-    async getMtpById(programId: any, id: any): Promise<any> {
-      console.log("programId", programId)
-      console.log("candidateId", id)
+    async getMtpById(programId: any, id: any,page?: number, limit?: number): Promise<any> {
+      const usePagination = page !== undefined && limit !== undefined;
+      const offset = usePagination ? (page - 1) * limit : 0;
       const query = `
+       WITH linked_candidates AS (
+          SELECT c.*
+          FROM candidates c
+          JOIN mtp m ON m.id = :id
+          WHERE JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$')
+             OR m.mtp_candidate_id = c.id
+        ),
+        paginated_candidates AS (
+          SELECT *
+          FROM linked_candidates
+          ${usePagination ? 'ORDER BY id LIMIT :limit OFFSET :offset' : ''}
+        )
+
   SELECT 
     m.id,
     m.talent_name,
@@ -126,37 +139,46 @@ async getAllMtpData(
     m.mtp_id,
     m.mtp_candidate_id,
     m.is_master_profile,
+    (SELECT COUNT(*) FROM linked_candidates) AS linked_profiles_count,
 JSON_ARRAYAGG(JSON_OBJECT(
-          'mtp_candidate_id', c.id,
-          'program_id', c.program_id,
-          'vendor_id', c.vendor_id,
-          'candidate_id', c.candidate_id,
-          'birth_date', c.birth_date,
-          'address', c.addresses,
-          'email', c.email,
-          'first_name', c.first_name,
-          'last_name', c.last_name,
-          'middle_name', c.middle_name,
-          'contacts', c.contacts,
-          'do_not_rehire',c.do_not_rehire,
-          'do_not_rehire_notes',c.do_not_rehire_notes,
+          'mtp_candidate_id', pc.id,
+          'program_id', pc.program_id,
+          'vendor_id', pc.vendor_id,
+          'candidate_id', pc.candidate_id,
+          'birth_date', pc.birth_date,
+          'address', pc.addresses,
+          'email', pc.email,
+          'first_name', pc.first_name,
+          'last_name', pc.last_name,
+          'middle_name', pc.middle_name,
+          'contacts', pc.contacts,
+          'do_not_rehire',pc.do_not_rehire,
+          'do_not_rehire_notes',pc.do_not_rehire_notes,
           'do_not_rehire_reason',rc.name
         )) AS linked_profiles
   FROM 
     mtp m
-LEFT JOIN 
-candidates c ON JSON_CONTAINS(m.linked_profiles, JSON_QUOTE(c.id), '$') 
-             OR m.mtp_candidate_id = c.id  
-LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
+LEFT JOIN paginated_candidates pc ON TRUE  
+LEFT JOIN reason_codes rc ON rc.id = pc.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
 `;
-         const result = await sequelize.query(query, {
-           replacements: { program_id: programId,id },
-           type: QueryTypes.SELECT,
-          raw: true,
-         });
+
+const replacements: any = {
+  program_id: programId,
+  id,
+};
+
+if (usePagination) {
+  replacements.limit = limit;
+  replacements.offset = offset;
+}
+const result = await sequelize.query(query, {
+  replacements,
+  type: QueryTypes.SELECT,
+  raw: true,
+});
         console.log("mtpDtata",result)
       return result;
   }
