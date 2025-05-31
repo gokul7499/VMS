@@ -10,6 +10,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { getMasterDataCustomFields } from '../utility/queries';
 import MasterDataCustomFieldModel from '../models/master-data-custom-fields';
 import MasterDataTypeHierarchy from '../models/master-data-type-hierarchy.model';
+import Hierarchies from '../models/hierarchies.model';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
@@ -339,12 +340,23 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 replacements: { program_id, id },
                 type: QueryTypes.SELECT,
             });
+            const hierarchie = await MasterDataTypeHierarchy.findAll({
+                where: { master_data_type_id: id },
+                include: [
+                    {
+                        model: Hierarchies,
+                        as: 'hierarchy',
+                        attributes: ['id', 'name'],
+                    },
+                ],
+            }).then((data) => data.map((item) => item.hierarchy));
 
             const foundationalDataTypeResponse = {
                 ...foundationalDataType.dataValues,
                 foundational_data_count: foundationalDataCount,
                 associated_data_types: associatedDataTypes,
-                custom_fields: customFieldResults?.custom_fields || []
+                custom_fields: customFieldResults?.custom_fields || [],
+                hierarchies: hierarchie || []
             };
 
             reply.status(200).send({

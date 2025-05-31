@@ -9,6 +9,7 @@ import { countFoundationDataQuery, foundationDataQuery } from "../utility/querie
 import FoundationalDataTypes from "../models/master-datatypes.model";
 import User from "../models/user.model";
 import MasterDataHierarchy from "../models/master-data-hierarchy.model";
+import Hierarchies from "../models/hierarchies.model";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -130,7 +131,7 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
         if (!foundational_data) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'FoundationalData Not Found.',
+                message: 'Master Data Not Found.',
                 trace_id: traceId,
             });
         }
@@ -142,12 +143,24 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             })
             : [];
 
+        const hierarchie = await MasterDataHierarchy.findAll({
+            where: { master_data_id: id },
+            include: [
+                {
+                    model: Hierarchies,
+                    as: 'hierarchy',
+                    attributes: ['id', 'name'],
+                },
+            ],
+        }).then((data) => data.map((item) => item.hierarchy));
+
         reply.status(200).send({
             status_code: 200,
-            message: 'FoundationalData fetched successfully.',
+            message: 'Master data fetched successfully.',
             foundational_data: {
                 ...foundational_data.toJSON(),
                 manager_ids: populatedManagers,
+                hierarchies: hierarchie || []
             },
             trace_id: traceId,
         });
