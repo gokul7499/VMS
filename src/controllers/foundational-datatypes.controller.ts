@@ -41,7 +41,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             },
             data: request.body,
             eventname: "creating foundational data types",
-            status: "in_progress",
+            status: "success",
             description: `Creating foundational data types for ${program_id}`,
             level: 'info',
             action: request.method,
