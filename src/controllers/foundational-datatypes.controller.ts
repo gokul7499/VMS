@@ -86,9 +86,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
                 if (hierarchyId) {
                     await MasterDataTypeHierarchy.create({
                         master_data_type_id: foundationalData.id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId
+                        hierarchy_id: hierarchyId
                     }, { transaction });
                 }
             }
@@ -239,9 +237,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
                 if (hierarchyId) {
                     await MasterDataTypeHierarchy.create({
                         master_data_type_id: id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId
+                        hierarchy_id: hierarchyId
                     }, { transaction });
                 }
             }

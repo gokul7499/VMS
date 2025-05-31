@@ -206,9 +206,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
                 if (hierarchyId) {
                     await MasterDataHierarchy.create({
                         master_data_id: foundational_Data.id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId
+                        hierarchy_id: hierarchyId
                     }, { transaction });
                 }
             }
@@ -306,9 +304,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
                 if (hierarchyId) {
                     await MasterDataHierarchy.create({
                         master_data_id: id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId,
+                        hierarchy_id: hierarchyId
                     }, { transaction });
                 }
             }

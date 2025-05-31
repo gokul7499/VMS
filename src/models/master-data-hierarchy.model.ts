@@ -32,25 +32,7 @@ MasterDataHierarchy.init(
         model: Hierarchies,
         key: 'id',
       },
-    },
-    is_enabled: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    is_deleted: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    created_on: {
-      type: DataTypes.BIGINT.UNSIGNED,
-      defaultValue: Date.now(),
-      allowNull: true
-    },
-    updated_on: {
-      type: DataTypes.BIGINT.UNSIGNED,
-      defaultValue: Date.now(),
-      allowNull: true
-    },
+    }
   },
   {
     sequelize,
