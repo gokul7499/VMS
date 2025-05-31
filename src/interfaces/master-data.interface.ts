@@ -1,4 +1,5 @@
 export interface FoundationalDataInterface {
+    hierarchy: any;
     id: string;
     name: string;
     code: string;

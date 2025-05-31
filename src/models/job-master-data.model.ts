@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
 import { Programs } from "./programs.model";
 import jobTemplateModel from "./job-template.model";
-import FoundationalDataTypes from "./foundational-datatypes.model";
+import FoundationalDataTypes from "./master-datatypes.model";
 class JobMasterDataModel extends Model {
     id: any;
   foundation_data_type_id: any;
