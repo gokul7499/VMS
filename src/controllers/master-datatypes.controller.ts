@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import foundationalDataTypes from '../models/foundational-datatypes.model';
-import { FoundationalDataTypesInterface } from '../interfaces/foundational-datatypes.interface';
+import foundationalDataTypes from '../models/master-datatypes.model';
+import { FoundationalDataTypesInterface } from '../interfaces/master-datatypes.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { Op, QueryTypes } from 'sequelize';
-import foundationalDataModel from '../models/foundational-data.model';
+import foundationalDataModel from '../models/master-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';

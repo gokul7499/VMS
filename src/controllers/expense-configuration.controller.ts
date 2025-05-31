@@ -10,7 +10,7 @@ import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.mo
 import Hierarchies from "../models/hierarchies.model";
 import ExpenseTypeModel from "../models/expense-type.model";
 import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import FoundationalDataTypes from "../models/master-datatypes.model";
 import CustomField from "../models/custom-fields.model";
 
 export async function getExpenseConfigurations(request: FastifyRequest<{}>, reply: FastifyReply) {

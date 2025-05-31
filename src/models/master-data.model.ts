@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import FoundationalDataTypes from './foundational-datatypes.model';
+import FoundationalDataTypes from './master-datatypes.model';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import User from './user.model';

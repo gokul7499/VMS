@@ -1,12 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import foundationalData from "../models/foundational-data.model";
-import { FoundationalDataInterface } from "../interfaces/foundational-data.interface";
+import foundationalData from "../models/master-data.model";
+import { FoundationalDataInterface } from "../interfaces/master-data.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
 import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import FoundationalDataTypes from "../models/master-datatypes.model";
 import User from "../models/user.model";
 import MasterDataHierarchy from "../models/master-data-hierarchy.model";
 

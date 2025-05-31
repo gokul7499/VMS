@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import { beforeSave } from '../hooks/timeFormatHook';
-import MasterDataTypeModel from './foundational-datatypes.model';
+import MasterDataTypeModel from './master-datatypes.model';
 import Hierarchies from './hierarchies.model';
 
 class MasterDataTypeHierarchy extends Model {
