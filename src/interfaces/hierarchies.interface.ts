@@ -25,4 +25,5 @@ export interface hierarchiesData {
   is_not_editable:boolean;
   support_email:string;
   address:any;
+  managed_by?: string;
 }

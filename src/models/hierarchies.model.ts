@@ -130,6 +130,10 @@ Hierarchies.init(
       type: DataTypes.UUID,
       allowNull: true,
     },
+    managed_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     sequelize,
