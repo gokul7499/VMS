@@ -504,13 +504,7 @@ export async function updateCandidateByIdAndProgramId(
             }
         }
 
-        const oldRecord = await candidateModel.findOne({
-            where: {
-                program_id,
-                id,
-                is_deleted: false
-            }
-        });
+
 
         let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
@@ -537,7 +531,7 @@ export async function updateCandidateByIdAndProgramId(
             }
         });
 
-        createCandidateHistory(program_id, authHeader, oldRecord?.dataValues, updatedRecord?.dataValues, "Update")
+        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
             .catch(error => {
                 console.error("Failed to create candidate history:", error);
             });
