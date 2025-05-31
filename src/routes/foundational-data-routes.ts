@@ -22,7 +22,7 @@ async function foundationalDataRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataController.getFoundationalDataById);
 
-    fastify.post('/foundational_data', {
+    fastify.post('/program/:program_id/foundational_data', {
         schema: {
             body: createFoundationalDataSchema,
         },
