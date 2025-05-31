@@ -4,7 +4,7 @@ import { TimesheetTypeConfigInterface } from '../interfaces/timesheet-config.int
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import { sequelize } from '../config/instance';
 import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import FoundationalDataTypes from '../models/master-datatypes.model';
 import IndustriesModel from '../models/labour-category.model';
 import { Op, QueryTypes } from 'sequelize';
 import { timesheetConfigAdvancedFilter } from '../utility/queries';

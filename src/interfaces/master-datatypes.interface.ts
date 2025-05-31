@@ -12,7 +12,8 @@ export interface FoundationalDataTypesInterface {
     configuration: any
     associations: any,
     timesheet__master_data:boolean,
-    custom_fields:any[]
+    custom_fields:any[],
+    hierarchy:any
 }   
 
 export const paramsSchema = {

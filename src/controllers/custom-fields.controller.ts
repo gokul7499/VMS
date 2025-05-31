@@ -15,7 +15,7 @@ import { Op, QueryTypes, Sequelize } from 'sequelize';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import FoundationalDataTypes from '../models/master-datatypes.model';
 import Hierarchies from '../models/hierarchies.model';
 import { sequelize } from '../config/instance';
 
