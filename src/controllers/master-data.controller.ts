@@ -143,16 +143,25 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             })
             : [];
 
-        const hierarchie = await MasterDataHierarchy.findAll({
+        let hierarchie = [];
+
+        if (foundational_data.is_all_hierarchy_associated) {
+            hierarchie = await Hierarchies.findAll({
+            where: { program_id, is_deleted: false },
+            attributes: ['id', 'name'],
+        });
+        } else {
+            hierarchie = await MasterDataHierarchy.findAll({
             where: { master_data_id: id },
             include: [
-                {
-                    model: Hierarchies,
-                    as: 'hierarchy',
-                    attributes: ['id', 'name'],
-                },
-            ],
-        }).then((data) => data.map((item) => item.hierarchy));
+            {
+                model: Hierarchies,
+                as: 'hierarchy',
+                attributes: ['id', 'name'],
+            },
+        ],
+    }).then((data) => data.map((item) => item.hierarchy));
+}
 
         reply.status(200).send({
             status_code: 200,
