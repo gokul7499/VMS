@@ -314,7 +314,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations','is_all_hierarchy_associated']
         });
 
         if (foundationalDataType) {
@@ -339,12 +339,13 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 replacements: { program_id, id },
                 type: QueryTypes.SELECT,
             });
-
+           console.log('Custom Field Results:', customFieldResults);
             const foundationalDataTypeResponse = {
                 ...foundationalDataType.dataValues,
                 foundational_data_count: foundationalDataCount,
                 associated_data_types: associatedDataTypes,
-                custom_fields: customFieldResults?.custom_fields || []
+                custom_fields: customFieldResults?.custom_fields || [],
+                hierarchies:customFieldResults?.hierarchies || []
             };
 
             reply.status(200).send({
@@ -361,11 +362,12 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error: error.message
         });
     }
 }
