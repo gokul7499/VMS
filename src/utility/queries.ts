@@ -3524,7 +3524,24 @@ master_data_type.id,
               LEFT JOIN user ON TRIM(BOTH '"' FROM master_data_custom_field.value) = user.user_id
               AND user.program_id = master_data_custom_field.program_id
               WHERE master_data_custom_field.master_data_type_id = master_data_type.id
-    ), JSON_ARRAY()) AS custom_fields
+    ), JSON_ARRAY()) AS custom_fields,
+     (
+    CASE 
+      WHEN master_data_type.is_all_hierarchy_associated = TRUE THEN (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE h.program_id = master_data_type.program_id AND h.is_deleted = FALSE AND is_enabled = TRUE
+      )
+      ELSE (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM master_data_type_hierarchy mdth
+        JOIN hierarchies h ON mdth.hierarchy_id = h.id
+        WHERE mdth.master_data_type_id = master_data_type.id
+        AND h.is_deleted = FALSE
+        AND h.is_enabled = TRUE
+      )
+    END
+  ) AS hierarchies
     
     from master_data_type
     where master_data_type.program_id=:program_id
