@@ -343,7 +343,7 @@ if (managedByExists) {
   await transaction.rollback();
   return reply.status(409).send({
     status_code: 409,
-    message: "This hierarchy is already assigned to managed_by.",
+    message: "This hierarchy is already assigned to another msp.",
   });
 }
     // Create the hierarchy record
