@@ -363,7 +363,7 @@ export const getAssignmentDetails = async (id: string, program_id: string, token
     }
 };
 
-const handleErrorProperly = (error: any, entity: string) => {
+export const handleErrorProperly = (error: any, entity: string) => {
     if (axios.isAxiosError(error)) {
         if (error.response) {
             if (error.response.status === 404) {
