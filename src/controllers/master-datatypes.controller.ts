@@ -315,7 +315,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations','is_all_hierarchy_associated']
         });
 
         if (foundationalDataType) {
@@ -373,11 +373,12 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error:any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error: error.message
         });
     }
 }

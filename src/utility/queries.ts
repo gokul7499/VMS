@@ -627,7 +627,8 @@ export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
   startDate?: number,
-  endDate?: number
+  endDate?: number,
+  hasMsp?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -644,9 +645,19 @@ WITH hierarchy_cte AS (
     h.is_vendor_neutral_program,
     h.is_not_editable,
     h.default_currency,
-    t.name AS managed_by_name,
-    t.display_name AS managed_by_display_name,
-    ph.name AS parent_hierarchy_name
+    ph.name AS parent_hierarchy_name,
+    CASE 
+      WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+        'id', 'self-managed',
+        'name', 'self-managed',
+        'display_name', 'self-managed'
+      )
+      ELSE JSON_OBJECT(
+        'id', t.id,
+        'name', t.name,
+        'display_name', t.display_name
+      )
+    END AS managed_by
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   LEFT JOIN tenant t ON h.managed_by = t.id
@@ -654,26 +665,24 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''}
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-    : ''
-  }
+    ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
+    ${hasMsp ? 'AND h.managed_by = :msp' : ''}
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
-
+ 
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-h.created_on DESC,
- CASE
+  h.created_on DESC,
+  CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
-  END, -- Keep parent hierarchies first
-h.id
+  END,
+  h.id
 LIMIT :limit OFFSET :offset;
 `;
 
@@ -2324,6 +2333,18 @@ export const hierarchie = `
         h.support_email,
         h.is_not_editable,
         h.address,
+        CASE 
+          WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+            'id', 'self-managed',
+            'name', 'self-managed',
+            'display_name', 'self-managed'
+          )
+          ELSE JSON_OBJECT(
+            'id', t.id,
+            'name', t.name,
+            'display_name', t.display_name
+          )
+        END AS managed_by,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
@@ -2353,6 +2374,7 @@ export const hierarchie = `
     LEFT JOIN
         picklistitems uom
         ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+    LEFT JOIN tenant as t on h.managed_by = t.id
     WHERE
         h.id = :hierarchy_id
     LIMIT 0, 1000;
@@ -3502,9 +3524,35 @@ master_data_type.id,
               LEFT JOIN user ON TRIM(BOTH '"' FROM master_data_custom_field.value) = user.user_id
               AND user.program_id = master_data_custom_field.program_id
               WHERE master_data_custom_field.master_data_type_id = master_data_type.id
-    ), JSON_ARRAY()) AS custom_fields
+    ), JSON_ARRAY()) AS custom_fields,
+     (
+    CASE 
+      WHEN master_data_type.is_all_hierarchy_associated = TRUE THEN (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE h.program_id = master_data_type.program_id AND h.is_deleted = FALSE AND is_enabled = TRUE
+      )
+      ELSE (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM master_data_type_hierarchy mdth
+        JOIN hierarchies h ON mdth.hierarchy_id = h.id
+        WHERE mdth.master_data_type_id = master_data_type.id
+        AND h.is_deleted = FALSE
+        AND h.is_enabled = TRUE
+      )
+    END
+  ) AS hierarchies
     
     from master_data_type
     where master_data_type.program_id=:program_id
     AND master_data_type.id=:id
 `;
+
+export const userData = `
+  SELECT * FROM user WHERE user_id = :client_id
+    AND (
+      user_type = 'super_user'
+        OR program_id = :program_id
+      )
+    LIMIT 1;
+  `

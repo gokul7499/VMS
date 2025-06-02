@@ -449,7 +449,8 @@ export async function saveProgramVendor(
 
 export const updateProgramVendor = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { program_id, tenant_id } = request.params as { program_id: string; tenant_id: string };
+    console.log("request.params", request.params);
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
 
@@ -467,8 +468,8 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
     const transaction = await sequelize.transaction();
 
     try {
-        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id }, transaction });
-
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, tenant_id }, transaction });
+        console.log("existingProgramVendor", existingProgramVendor);
         if (!existingProgramVendor) {
             await transaction.rollback();
             return reply.status(200).send({
@@ -491,6 +492,8 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
         if (programVendorData.all_work_locations) userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
         if (programVendorData.program_industry) userUpdatePayload.associate_labour_category = programVendorData.program_industry;
         if (programVendorData.is_labour_category) userUpdatePayload.is_all_labour_category_associate = programVendorData.is_labour_category;
+        if (programVendorData.all_job_type) userUpdatePayload.is_all_job_type_associate = programVendorData.all_job_type;
+        if (programVendorData.job_type) userUpdatePayload.associate_job_type = programVendorData.job_type;
         if (programVendorData.contact) userUpdatePayload.contacts = programVendorData.contact;
 
         if (Object.keys(userUpdatePayload).length > 0) {
