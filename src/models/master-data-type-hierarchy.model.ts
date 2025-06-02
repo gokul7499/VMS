@@ -47,5 +47,5 @@ MasterDataTypeHierarchy.init(
     },
   }
 );
-
+MasterDataTypeHierarchy.belongsTo(Hierarchies, { foreignKey: 'hierarchy_id', as: 'hierarchy' });
 export default MasterDataTypeHierarchy;
