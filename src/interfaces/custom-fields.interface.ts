@@ -14,7 +14,7 @@ export interface CustomFields {
   is_all_hierarchy: boolean;
   supporting_text: string;
   range_applicable: Json;
-  description: string | null;
+  description: Text | null;
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
