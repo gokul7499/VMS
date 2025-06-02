@@ -10,6 +10,7 @@ class FoundationalData extends Model {
     foundational_data_type_id: any;
     name: any;
     manager_ids: any;
+    is_all_hierarchy_associated: any;
 }
 
 FoundationalData.init({
