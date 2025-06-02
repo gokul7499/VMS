@@ -687,6 +687,20 @@ COALESCE((
     return templateData;
   }
 
+  async masterDataQuery(master_data_type_id: string) {
+    const masterData = await sequelize.query<{
+      hierarchy_id: any; hierarchy: string 
+}>(
+      `SELECT hierarchy_id FROM master_data_type_hierarchy WHERE master_data_type_id = :master_data_type_id`,
+      {
+        replacements: { master_data_type_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    return masterData;
+  }
+
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {
     const hierarchyDetails = await sequelize.query(
       `SELECT * FROM hierarchies WHERE id IN (:commonHierarchyIds);`,
