@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import * as FoundationalDataTypeController from '../controllers/foundational-datatypes.controller';
-import { createFoundationalDataTypeSchema, paramsSchema, querySchema } from '../interfaces/foundational-datatypes.interface';
+import * as FoundationalDataTypeController from '../controllers/master-datatypes.controller';
+import { createFoundationalDataTypeSchema, paramsSchema, querySchema } from '../interfaces/master-datatypes.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
 

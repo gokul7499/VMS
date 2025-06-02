@@ -719,7 +719,7 @@ export const updateWorkflowStatus = async (
                 let allPayload = {
                     hierarchy_ids: hierarchy_ids || null,
                     program_id: program_id,
-                    user_type: eventCode.user_type || ''
+                    user_type: eventCode?.user_type || ''
                 };
                 let data = await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode);
                 await updateWorkflowPreviousCompltedStatus(request, reply, workflow)
@@ -938,15 +938,17 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                         } else
                             if (moduleType === "Sow".toLowerCase() || moduleType === "Statement of Work".toLowerCase()) {
                                 try {
+                                    console.log('Calling sow api heree', SOW_BASE_URL)
                                     const sow_id = workflow.workflow_trigger_id;
                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/approval`;
                                     const payload = {};
-                                    await axios.put(apiUrl, payload, {
+                                   let res= await axios.put(apiUrl, payload, {
                                         headers: {
                                             'Content-Type': 'application/json',
                                             authorization: authHeader
                                         },
                                     });
+                                    console.log(' response from sow api', res)
                                 } catch (error) {
                                     console.log('errro is noowww', error);
                                 }
@@ -1253,8 +1255,16 @@ async function getEventsCode(workflow: { flow_type: any, events: any }) {
             user_type: ['msp']
         }
         return response;
+    }  if (flow_type == "Approval" && events === "create_sow") {
+        let response = {
+            eventCode: NotificationEventCode.CREATE_SOW,
+
+            user_type: ['msp']
+        }
+        return response;
     } else {
-        throw new Error(`Event code not found for event: ${events}`);
+    return null
+        // throw new Error(`Event code not found for event: ${events}`);
     }
 
 }
@@ -5040,7 +5050,8 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 case 'Multiple users':
                 case 'Job Manager':
                 case 'Assignment Manager':
-                case 'Timesheet Managers': 
+                case 'Timesheet Managers':
+                case 'SOW Manager': 
                 case 'Job Manager On Offer':
                 case 'Manager of':{
                     const input_values = Object.values(meta_data);
