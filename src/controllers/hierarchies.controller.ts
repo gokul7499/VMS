@@ -333,19 +333,6 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
         message: "hierarchies code is already in use",
       });
     }
-
-  const managedByExists = await HierarchiesModel.findOne({
-  where: { managed_by: hierarchie.managed_by,name:hierarchie.name, program_id, is_deleted: false },
-  transaction,
-});
-
-if (managedByExists) {
-  await transaction.rollback();
-  return reply.status(409).send({
-    status_code: 409,
-    message: "This hierarchy is already assigned to another msp.",
-  });
-}
     // Create the hierarchy record
     const newItem = await HierarchiesModel.create(
       {
