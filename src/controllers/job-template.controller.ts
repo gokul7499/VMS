@@ -899,11 +899,12 @@ export async function findJobTemplatesByLabourCategories(request: FastifyRequest
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id, sow_template_id, msp_id } = request.query as {
+    const { job_manager_id, job_template_id, sow_template_id, msp_id, master_data_type_id } = request.query as {
       job_manager_id: string;
       job_template_id?: string;
       sow_template_id?: string;
       msp_id?: string;
+      master_data_type_id?: string;
     };
     const { program_id } = request.params as { program_id: string };
 
@@ -911,6 +912,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     let sowTemplateHierarchyIds: string[] = [];
     let mspHierarchyIds: string[] = [];
     let managerHierarchyIds: string[] = [];
+    let MasterDataHierarchyIds: string[] = [];
 
     if(job_manager_id){
      managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
@@ -930,12 +932,18 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
     }
 
+    if (master_data_type_id) {
+      const masterData = await jobTempletRepositories.masterDataQuery(master_data_type_id);
+      MasterDataHierarchyIds = masterData.map((row) => row.hierarchy_id);
+    }
+
     let hierarchyGroups: string[][] = [];
 
     if (managerHierarchyIds.length > 0) hierarchyGroups.push(managerHierarchyIds);
     if (templateHierarchyIds.length > 0) hierarchyGroups.push(templateHierarchyIds);
     if (sowTemplateHierarchyIds.length > 0) hierarchyGroups.push(sowTemplateHierarchyIds);
     if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
+    if (MasterDataHierarchyIds.length > 0) hierarchyGroups.push(MasterDataHierarchyIds);
 
     let commonHierarchyIds = hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)));
 
