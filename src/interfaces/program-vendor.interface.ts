@@ -77,6 +77,7 @@ export interface programVendorInterface {
     display_name:string;
     custom_fields: any[];
     is_labour_category: boolean;
+    all_job_type: boolean;
     
 }
 
