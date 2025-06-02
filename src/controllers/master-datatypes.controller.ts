@@ -345,7 +345,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 foundational_data_count: foundationalDataCount,
                 associated_data_types: associatedDataTypes,
                 custom_fields: customFieldResults?.custom_fields || [],
-                hierarchies:customFieldResults?.hierarchies || []
+                hierarchy:customFieldResults?.hierarchies || []
             };
 
             reply.status(200).send({
