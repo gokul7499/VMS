@@ -625,30 +625,43 @@ COALESCE((
     const managerData = await sequelize.query<{
       is_all_hierarchy_associate: any;
       associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids, is_all_hierarchy_associate FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`, {
-      replacements: { job_manager_id, program_id },
-      type: QueryTypes.SELECT,
-    });
-
-    if (!managerData || managerData.length === 0) {
-      return [];
-    }
-
-    const { is_all_hierarchy_associate, associate_hierarchy_ids } = managerData[0];
-
-    if (is_all_hierarchy_associate) {
-      const allHierarchies = await sequelize.query<{
-        id: string;
-      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
-        replacements: { program_id },
+      default_hierarchy_id: string | null;
+    }>(
+      `SELECT associate_hierarchy_ids, is_all_hierarchy_associate, default_hierarchy_id 
+       FROM user 
+       WHERE user_id = :job_manager_id AND program_id = :program_id`,
+      {
+        replacements: { job_manager_id, program_id },
         type: QueryTypes.SELECT,
-      });
-
-      return allHierarchies.map(h => h.id);
+      }
+    );
+  
+    if (!managerData || managerData.length === 0) {
+      return { hierarchies: [], defaultHierarchyId: null };
     }
-    return associate_hierarchy_ids || [];
+  
+    const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id } = managerData[0];
+  
+    if (is_all_hierarchy_associate) {
+      const allHierarchies = await sequelize.query<{ id: string }>(
+        `SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`,
+        {
+          replacements: { program_id },
+          type: QueryTypes.SELECT,
+        }
+      );
+  
+      return {
+        hierarchies: allHierarchies.map(h => h.id),
+        defaultHierarchyId: default_hierarchy_id,
+      };
+    }
+    return {
+      hierarchies: associate_hierarchy_ids || [],
+      defaultHierarchyId: default_hierarchy_id,
+    };
   }
-
+  
   async mspHierarchies(msp_id: string, program_id: string) {
     const hierarchies = await sequelize.query<{ id: string }>(
       `SELECT id FROM hierarchies 

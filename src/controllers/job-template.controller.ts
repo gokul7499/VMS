@@ -913,9 +913,12 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     let mspHierarchyIds: string[] = [];
     let managerHierarchyIds: string[] = [];
     let MasterDataHierarchyIds: string[] = [];
+    let defaultHierarchyId: string | null = null;
 
-    if(job_manager_id){
-     managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    if (job_manager_id) {
+      const managerResult = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+      managerHierarchyIds = managerResult.hierarchies;
+      defaultHierarchyId = managerResult.defaultHierarchyId;
     }
 
     if (job_template_id) {
@@ -965,12 +968,14 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
         .filter((item: any) => item.parent_hierarchy_id === parentId)
         .map((item: any) => {
           const isAssociated = commonHierarchyIds.includes(item.id);
+          const isDefault = item.id === defaultHierarchyId;
           const children = buildHierarchy(data, item.id);
 
           if (isAssociated || children.length > 0) {
             return {
               ...item,
               is_associated: isAssociated,
+              is_default: isDefault,
               hierarchies: children
             };
           }
@@ -1016,7 +1021,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       category,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[],job_template_id?: string[]; };
+    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[], job_template_id?: string[]; };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1058,8 +1063,8 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
     if (job_template_id && job_template_id.length > 0) {
-       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
-       replacements.job_template_id = job_template_id;
+      dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
+      replacements.job_template_id = job_template_id;
     }
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
