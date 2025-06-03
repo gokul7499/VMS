@@ -452,14 +452,28 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             replacements.hierarchie_ids = body.hierarchie_ids;
         }
 
-        const foundationalDataResult = await sequelize.query(
+        let masterDataType: string | null = null;
+        if (query.foundational_data_type_id) {
+            const foundationalDataTypeResult = await sequelize.query<any>(
+                `SELECT name FROM master_data_type WHERE id = :foundational_data_type_id`,
+                {
+                    replacements,
+                    type: QueryTypes.SELECT,
+                }
+            );
+            if (foundationalDataTypeResult.length > 0) {
+                masterDataType = foundationalDataTypeResult[0].name;
+            }
+        }
+
+        const foundationalDataResult = await sequelize.query<{ total_count: any }>(
             masterDataAdvanceFilterQuery(hierarchyFilter),
             {
                 replacements,
                 type: QueryTypes.SELECT,
             }
         );
-
+        const totalRecords = foundationalDataResult.length > 0 ? foundationalDataResult[0].total_count : 0;
         const foundationalDataArray = foundationalDataResult.map((row: any) => ({
             ...row,
             slug: row.slug,
@@ -472,11 +486,12 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         reply.status(200).send({
             status_code: 200,
             message: 'Foundational data retrieved successfully',
+            foundational_data_type_name: masterDataType,
+            total_records: totalRecords,
             data: foundationalDataArray,
             trace_id: traceId,
         });
     } catch (error: any) {
-        console.error(`Error fetching foundational data: ${error.message}`, { traceId, error });
         reply.status(500).send({
             status_code: 500,
             message: 'Internal server error',
