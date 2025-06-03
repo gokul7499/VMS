@@ -2,6 +2,7 @@ import axios from 'axios';
 import { databaseConfig } from "../config/db";
 import { handleErrorProperly } from './notification-helper';
 const sourcing_url = databaseConfig.config.sourcing_url;
+console.log("sourcing_url : : :", sourcing_url)
 
 export const createCandidateHistory = async (program_id: string, token: string, oldData: any, newData: any, action: any) => {
 
