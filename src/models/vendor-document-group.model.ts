@@ -28,7 +28,7 @@ vendordocumentgroupModel.init(
             defaultValue: [],
         },
         description: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
             allowNull: true,
         },
         is_enabled: {
