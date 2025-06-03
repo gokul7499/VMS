@@ -333,13 +333,13 @@ export async function getAllExpenseType(
         whereClause.category = { [Op.like]: `%${category}%` };
     }
     if (is_msp_fees_applied !== undefined) {
-        whereClause.apply_msp_fee = is_msp_fees_applied === "true";
+        whereClause.is_msp_fees_applied = is_msp_fees_applied === "true";
     }
     if (appply_tax !== undefined) {
-        whereClause.appply_tax = appply_tax === "true" ? "1" : "0";
+        whereClause.is_tax_applied = appply_tax === "true" ? "1" : "0";
     }
     if (allow_unit_based !== undefined) {
-        whereClause.allow_unit_based = allow_unit_based === "true";
+        whereClause.is_unit_based = allow_unit_based === "true";
     }
     if (is_enabled !== undefined) {
         whereClause.is_enabled = is_enabled === "true";
