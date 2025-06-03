@@ -481,6 +481,16 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             });
         }
 
+        const normalizeEmptyArrayToNull = (obj: Record<string, any>) => {
+            for (const key in obj) {
+                if (Array.isArray(obj[key]) && obj[key].length === 0) {
+                    obj[key] = null;
+                }
+            }
+        };
+
+        normalizeEmptyArrayToNull(programVendorData);
+
         await existingProgramVendor.update(
             { ...programVendorData, updated_by: userId, updated_on: Date.now() },
             { transaction }
@@ -540,7 +550,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 ];
 
                 fieldsToCheck.forEach(field => {
-                    if (markupData[field] === 'all') {
+                    if (markupData[field] === 'all' || (Array.isArray(markupData[field]) && markupData[field].length === 0)) {
                         markupData[field] = null;
                     }
                 });
@@ -584,7 +594,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.custom_fields) {
+        if (programVendorData.custom_fields !== undefined) {
             await VendorCustomField.destroy({
                 where: { vendor_id: programVendorData.id },
                 transaction
