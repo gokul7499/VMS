@@ -315,7 +315,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations','is_all_hierarchy_associated']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations', 'is_all_hierarchy_associated']
         });
 
         if (foundationalDataType) {
@@ -373,7 +373,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 trace_id: traceId,
             });
         }
-    } catch (error:any) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
@@ -506,33 +506,24 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
 export async function getAllFoundationalDataTypesAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const responseFields = [
-        'id',
-        'program_id',
-        'name',
-        'is_enabled',
-        'updated_on',
-        'description',
-        'configuration',
+        'id', 'program_id', 'name', 'is_enabled',
+        'updated_on', 'description', 'configuration',
     ];
     const { program_id } = request.params as { program_id: string };
     const {
-        name,
-        is_enabled,
-        updated_on,
-        timesheet_master_data,
-        user_association_exclude,
-        page = '1',
-        limit = '10',
-        track_owner,
+        name, is_enabled, updated_on, timesheet_master_data,
+        user_association_exclude, page = '1', limit = '10',
+        track_owner, hierarchie_ids,
     } = request.body as {
         name?: string;
         is_enabled?: boolean;
-        updated_on?: string;
+        updated_on?: string[];
         timesheet_master_data?: boolean;
         user_association_exclude?: boolean;
         page?: string;
         limit?: string;
         track_owner?: boolean;
+        hierarchie_ids?: string[];
     };
 
     try {
@@ -557,6 +548,19 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
 
         const offset = (Number(page) - 1) * Number(limit);
 
+        if (hierarchie_ids?.length) {
+            const hierarchyMappings = await MasterDataTypeHierarchy.findAll({
+                where: { hierarchy_id: { [Op.in]: hierarchie_ids } },
+                attributes: ['master_data_type_id'],
+            });
+
+            const masterDataTypeIdsToFilter = hierarchyMappings.map(item => item.master_data_type_id);
+            if (!masterDataTypeIdsToFilter.length) {
+                return reply.status(200).send({ status_code: 200, message: 'master data not found', foundationalData: [], trace_id: traceId });
+            }
+            filters.id = { [Op.in]: masterDataTypeIdsToFilter };
+        }
+
         const { rows: foundationalDataItems, count: totalRecords } =
             await foundationalDataTypes.findAndCountAll({
                 where: filters,
@@ -569,7 +573,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
         if (!foundationalDataItems.length) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'Foundational data not found',
+                message: 'Master data not found',
                 foundationalData: [],
                 trace_id: traceId,
             });
@@ -613,8 +617,6 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
             trace_id: traceId,
         });
     } catch (error: any) {
-        console.error(`Error fetching foundational data: ${error.message}`, { traceId, error });
-
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
