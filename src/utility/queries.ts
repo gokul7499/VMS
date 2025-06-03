@@ -2366,6 +2366,8 @@ export const hierarchie = `
               LEFT JOIN user ON TRIM(BOTH '"' FROM hierarchies_custom_field.value) = user.user_id
               AND user.program_id = hierarchies_custom_field.program_id
               WHERE hierarchies_custom_field.hierarchy_id = h.id
+              AND custom_fields.is_deleted = false
+              AND custom_fields.is_enabled = true
     ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
