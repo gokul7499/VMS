@@ -299,7 +299,6 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       );
     }
 
-    // Existing filter conditions
     if (is_enabled) {
       const isEnabledValue = is_enabled === 'true' ? 1 : 0;
       whereClause.is_enabled = { [Op.eq]: isEnabledValue };
