@@ -163,6 +163,7 @@ LEFT JOIN reason_codes rc ON rc.id = pc.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
+    AND m.is_deleted = false
 `;
 
 const replacements: any = {

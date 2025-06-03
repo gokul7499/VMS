@@ -14,7 +14,7 @@ export async function searchSimilarProfiles(
   programId: string,
   userId: string,
   uniqueId:String,
-  candidate_unique_id:string,
+  candidateData:any,
   payload:any,
   maxRetries = 3,
   delayMs = 1000
@@ -28,15 +28,15 @@ export async function searchSimilarProfiles(
     url: resumeText,
     c_unique_id:uniqueId,
     vendor_id: vendorId,
-    first_name: payload.first_name,
-    last_name: payload.last_name,
-    email_address: payload.email,
-    phone_number: payload.contacts?.[0]?.number,
-    birth_date: payload.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
-    ssn_id: payload.ssn_id,
-    address: payload.addresses,
+    first_name: candidateData.first_name,
+    last_name: candidateData.last_name,
+    email_address: candidateData.email,
+    phone_number: candidateData.contacts?.[0]?.number,
+    birth_date: candidateData.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
+    ssn_id: candidateData.ssn_id,
+    address: candidateData.addresses,
     vendor_search: true,
-    candidate_unique_id:candidate_unique_id
+    candidate_unique_id:candidateData.candidate_id
   };
   console.log("similar profile paylod",searchPayload)
   let attempt = 0;
