@@ -151,6 +151,7 @@ LEFT JOIN reason_codes rc ON rc.id = c.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
     AND m.id = :id;
+    AND m.is_deleted = false
 `;
          const result = await sequelize.query(query, {
            replacements: { program_id: programId,id },

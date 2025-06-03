@@ -338,9 +338,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       candidateId = candidateData.id
       vendor_id = user.tenant_id
-      const candidate_unique_id = candidateData.candidate_id;
       const candidate = candidateData.toJSON();
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidate_unique_id);
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidateData);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
@@ -438,10 +437,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidate_unique_id:string) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidateData:any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidate_unique_id);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidateData);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
