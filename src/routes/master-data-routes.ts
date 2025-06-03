@@ -43,7 +43,7 @@ async function foundationalDataRoutes(fastify: FastifyInstance) {
         }
     }, FoundationalDataController.deleteFoundationalData);
     
-    fastify.post('/program/:program_id/foundational_data/advance-filter', {
+    fastify.post('/program/:program_id/master-data', {
     }, FoundationalDataController.foundationalDataFilter);
     
 
