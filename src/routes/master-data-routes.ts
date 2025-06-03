@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
-import * as FoundationalDataController from "../controllers/foundational-data.controller";
-import { createFoundationalDataSchema, paramsSchema, querySchema } from "../interfaces/foundational-data.interface";
+import * as FoundationalDataController from "../controllers/master-data.controller";
+import { createFoundationalDataSchema, paramsSchema, querySchema } from "../interfaces/master-data.interface";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
 
@@ -22,7 +22,7 @@ async function foundationalDataRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataController.getFoundationalDataById);
 
-    fastify.post('/foundational_data', {
+    fastify.post('/program/:program_id/foundational_data', {
         schema: {
             body: createFoundationalDataSchema,
         },

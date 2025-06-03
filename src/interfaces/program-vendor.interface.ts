@@ -76,6 +76,8 @@ export interface programVendorInterface {
     is_job_auto_opt_in: boolean;
     display_name:string;
     custom_fields: any[];
+    is_labour_category: boolean;
+    all_job_type: boolean;
     
 }
 

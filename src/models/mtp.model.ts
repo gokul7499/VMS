@@ -68,6 +68,10 @@ MtpModel.init(
         is_master_profile:{
             type: DataTypes.BOOLEAN,
             defaultValue: true,
+        },
+        do_not_rehire:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
         }
     },
     {

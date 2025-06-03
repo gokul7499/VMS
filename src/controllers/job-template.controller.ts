@@ -18,6 +18,12 @@ import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
 import JobMasterDataModel from "../models/job-master-data.model";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import htmlEscape from "html-escape";
+
+
+
 const jobTempletRepositories = new JobTempletRepository();
 import { pipeline } from 'stream/promises';
 import fs from 'fs/promises';
@@ -912,25 +918,24 @@ export async function findJobTemplatesByLabourCategories(request: FastifyRequest
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id, sow_template_id } = request.query as {
+    const { job_manager_id, job_template_id, sow_template_id, msp_id, master_data_type_id } = request.query as {
       job_manager_id: string;
       job_template_id?: string;
       sow_template_id?: string;
+      msp_id?: string;
+      master_data_type_id?: string;
     };
     const { program_id } = request.params as { program_id: string };
 
-    if (!job_manager_id) {
-      return reply.status(400).send({
-        status_code: 400,
-        message: "Please provide job_manager_id.",
-        trace_id: traceId,
-      });
-    }
-
-    const managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
-
     let templateHierarchyIds: string[] = [];
     let sowTemplateHierarchyIds: string[] = [];
+    let mspHierarchyIds: string[] = [];
+    let managerHierarchyIds: string[] = [];
+    let MasterDataHierarchyIds: string[] = [];
+
+    if(job_manager_id){
+     managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    }
 
     if (job_template_id) {
       const templateData = await jobTempletRepositories.templateQuery(job_template_id);
@@ -942,15 +947,24 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       sowTemplateHierarchyIds = sowTemplateData.map((row) => row.hierarchy_id);
     }
 
-    let commonHierarchyIds = managerHierarchyIds;
-
-    if (templateHierarchyIds.length > 0) {
-      commonHierarchyIds = commonHierarchyIds.filter((id) => templateHierarchyIds.includes(id));
+    if (msp_id) {
+      mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
     }
 
-    if (sowTemplateHierarchyIds.length > 0) {
-      commonHierarchyIds = commonHierarchyIds.filter((id) => sowTemplateHierarchyIds.includes(id));
+    if (master_data_type_id) {
+      const masterData = await jobTempletRepositories.masterDataQuery(master_data_type_id);
+      MasterDataHierarchyIds = masterData.map((row) => row.hierarchy_id);
     }
+
+    let hierarchyGroups: string[][] = [];
+
+    if (managerHierarchyIds.length > 0) hierarchyGroups.push(managerHierarchyIds);
+    if (templateHierarchyIds.length > 0) hierarchyGroups.push(templateHierarchyIds);
+    if (sowTemplateHierarchyIds.length > 0) hierarchyGroups.push(sowTemplateHierarchyIds);
+    if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
+    if (MasterDataHierarchyIds.length > 0) hierarchyGroups.push(MasterDataHierarchyIds);
+
+    let commonHierarchyIds = hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)));
 
     if (commonHierarchyIds.length === 0) {
       return reply.status(200).send({
@@ -1105,11 +1119,12 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       labour_category,
       is_shift_rate,
       primary_hierarchy,
+      job_template_id,
       hierarchy_ids,
       category,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[] };
+    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[],job_template_id?: string[]; };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1149,6 +1164,10 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
+    }
+    if (job_template_id && job_template_id.length > 0) {
+       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
+       replacements.job_template_id = job_template_id;
     }
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
@@ -1196,3 +1215,59 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     });
   }
 };
+
+export async function uploadJobTemplateFile(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: "No file uploaded.",
+        trace_id: traceId,
+      });
+    }
+
+    const htmlContent = await extractFileContent(data);
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: "File uploaded and converted successfully",
+      trace_id: traceId,
+      data: htmlContent,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: "File upload failed",
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+
+export async function extractFileContent(file: any): Promise<string> {
+  const buffer = await file.toBuffer();
+  const mimetype = file.mimetype;
+
+  if (mimetype === "application/pdf") {
+    const data = await pdfParse(buffer);
+    return `<div>${htmlEscape(data.text)}</div>`;
+  }
+
+  if (
+    mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mimetype === "application/msword"
+  ) {
+    const result = await mammoth.convertToHtml({ buffer });
+    return result.value;
+  }
+
+  if (mimetype === "text/plain") {
+    const text = buffer.toString("utf-8");
+    return `<pre>${htmlEscape(text)}</pre>`;
+  }
+
+  throw new Error("Unsupported file type");
+}

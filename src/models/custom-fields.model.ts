@@ -89,7 +89,7 @@ CustomField.init(
       allowNull: true,
     },
     description: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     is_required: {
@@ -101,7 +101,7 @@ CustomField.init(
       allowNull: false,
     },
     organization_category:{
-      type: DataTypes.JSON,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     is_enabled: {

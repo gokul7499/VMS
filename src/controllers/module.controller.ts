@@ -1,13 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import ModuleData from '../interfaces/module.interface';
 import { Module } from '../models/module.model';
+import ProgramsConfig from '../models/programs-config.model';
 
 
 export async function getModule(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { is_enabled , is_custom_field , is_reason_code} = request.query as { is_enabled?: boolean | string, is_custom_field?:boolean | string, is_reason_code?:boolean|string };
+  const { is_enabled , is_custom_field , is_reason_code,program_id} = request.query as { is_enabled?: boolean | string, is_custom_field?:boolean | string, is_reason_code?:boolean|string, program_id?: string };
 
   try {
 
@@ -25,14 +26,31 @@ export async function getModule(
       searchFilters.is_reason_code =is_reason_code =="true"||is_reason_code === true?1:0;
      }
 
-    const result = await Module.findAndCountAll({
+     let shiftRateEnabled = true;
+     if (program_id) {
+       const config = await ProgramsConfig.findOne({
+         where: {
+           program_id,
+           key: 'shift_rate',
+         },
+       });
+       shiftRateEnabled = config?.value === true || config?.value === 'true';
+     }
+    const allModules = await Module.findAll({
       where: searchFilters,
-      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field","is_reason_code"],
+      attributes: ["id", "name", "is_enabled", "module_linking", "is_custom_field", "is_reason_code"],
       order: [["name", "ASC"]],
     });
 
+    const modules = allModules.filter((mod: any) => {
+      if (mod.name === 'Shift Scheduler' && !shiftRateEnabled) {
+        return false;
+      }
+      return true;
+    })as any;
 
-    if (result.rows.length === 0) {
+
+    if (modules.length === 0) {
       return reply.status(200).send({
         status_code: 200,
         message: "Modules not found",
@@ -45,8 +63,8 @@ export async function getModule(
     return reply.status(200).send({
       status_code: 200,
       message: "Modules fetched successfully",
-      modules: result.rows,
-      total_count: result.count, 
+      modules: modules,
+      total_count: modules.length, 
     });
   } catch (error: any) {
 

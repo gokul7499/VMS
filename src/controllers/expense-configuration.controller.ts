@@ -10,7 +10,7 @@ import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.mo
 import Hierarchies from "../models/hierarchies.model";
 import ExpenseTypeModel from "../models/expense-type.model";
 import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import FoundationalDataTypes from "../models/master-datatypes.model";
 import CustomField from "../models/custom-fields.model";
 
 export async function getExpenseConfigurations(request: FastifyRequest<{}>, reply: FastifyReply) {
@@ -182,6 +182,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 program_id,
                 name: expenseConfig.name,
                 is_deleted: false,
+                is_enabled: true,
                 latest: true,
             },
         });
@@ -200,8 +201,23 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
                 program_id,
                 is_deleted: false,
                 latest: true,
+                is_enabled: true,
+                [Op.or]: expenseConfig.hierarchy_ids.map((id: any) =>
+                    Sequelize.where(
+                    Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${id}"]')`),
+                    true
+                    )
+                ),
             },
         });
+
+        if (existingConfigs.length > 0) {
+            return reply.status(409).send({
+            status_code: 409,
+            message: 'An expense configuration with the same hierarchy IDs already exists',
+            trace_id: traceId,
+            });
+        }
 
         for (const config of existingConfigs) {
             const configHierarchyIds = config.hierarchy_ids ?? [];
@@ -330,7 +346,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
             const conflictingConfigs = await ExpenseConfigurationModel.findAll({
                 where: {
                     program_id,
-                    latest: false,
+                    latest: true,
                     [Op.and]: addedHierarchyIds.map((hierarchyId: any) =>
                         Sequelize.where(
                             Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${hierarchyId}"]')`),
@@ -506,7 +522,10 @@ export async function expenseConfigurationAdvancedFilter(
             where: whereCondition,
             offset,
             limit,
-            order: [['created_on', 'DESC']],
+            order: [
+            ['is_enabled', 'DESC'], // Sort enabled configurations first
+            ['created_on', 'DESC']  // Then by creation date (newest first)
+            ],
         });
         const populatedExpenseConfig = await Promise.all(
             expenseConfigList.map(async (config) => {

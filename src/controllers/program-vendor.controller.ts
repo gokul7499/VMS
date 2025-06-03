@@ -78,12 +78,9 @@ export async function getProgramVendors(
             status,
             updated_on,
             hierarchy_ids,
-            page: pageStr = "1",
-            limit: limitStr = "10"
+            page: pageStr,
+            limit: limitStr
         } = request.query as programVendorQueryInterface & { page?: string; limit?: string; hierarchy_ids?: any };
-
-        const page = parseInt(pageStr, 10) || 1;
-        const limit = parseInt(limitStr, 10) || 10;
 
         const filters: any = { program_id, is_deleted: false };
 
@@ -135,12 +132,8 @@ export async function getProgramVendors(
             filters.updated_on = updated_on;
         }
 
-        const offset = (page - 1) * limit;
-
         const queryOptions: any = {
             where: filters,
-            limit,
-            offset,
             order: [['updated_on', 'DESC']],
         };
 
@@ -149,6 +142,13 @@ export async function getProgramVendors(
                 'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
                 'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
+        }
+
+        if (pageStr && limitStr) {
+            const page = parseInt(pageStr, 10);
+            const limit = parseInt(limitStr, 10);
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
         }
 
         const { rows: program_vendors, count: totalItems } = await ProgramVendor.findAndCountAll(queryOptions);
@@ -273,7 +273,7 @@ export async function getProgramVendors(
             status_code: 200,
             message: 'ProgramVendors fetched successfully.',
             trace_id: traceId,
-            items_per_page: limit,
+            items_per_page: pageStr && limitStr ? parseInt(limitStr, 10) : null,
             total_records: totalItems,
             program_vendors: processedVendors,
         });
@@ -357,6 +357,7 @@ export async function saveProgramVendor(
             addresses: user.addresses,
             tenant_id: tenant.id,
             background_logo_color: tenant.background_logo_color,
+            job_title: user.job_title,
         }
 
         const contact = [
@@ -377,7 +378,7 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
@@ -449,23 +450,29 @@ export async function saveProgramVendor(
 
 export const updateProgramVendor = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { program_id, tenant_id } = request.params as { program_id: string; tenant_id: string };
+    console.log("request.params", request.params);
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
+
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
+
     const token = authHeader.split(' ')[1];
     let user: any = await decodeToken(token);
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
+    const transaction = await sequelize.transaction();
 
     try {
-        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id } });
-
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, tenant_id }, transaction });
+        console.log("existingProgramVendor", existingProgramVendor);
         if (!existingProgramVendor) {
+            await transaction.rollback();
             return reply.status(200).send({
                 status_code: 200,
                 message: 'ProgramVendor not found for update.',
@@ -474,42 +481,54 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             });
         }
 
-        await existingProgramVendor.update({ ...programVendorData, updated_by: userId, updated_on: Date.now() });
+        await existingProgramVendor.update(
+            { ...programVendorData, updated_by: userId, updated_on: Date.now() },
+            { transaction }
+        );
+
         const userUpdatePayload: any = {};
-
-        if (programVendorData.hierarchies) {
-            userUpdatePayload.associate_hierarchy_ids = programVendorData.hierarchies;
-        }
-
-        if (programVendorData.all_hierarchy) {
-            userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
-        }
-        if (programVendorData.work_locations) {
-            userUpdatePayload.work_location_ids = programVendorData.work_locations;
-        }
-
-        if (programVendorData.all_work_locations) {
-            userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
-        }
-        if (programVendorData.contact) {
-            userUpdatePayload.contacts = programVendorData.contact;
-        }
+        if (programVendorData.hierarchies) userUpdatePayload.associate_hierarchy_ids = programVendorData.hierarchies;
+        if (programVendorData.all_hierarchy) userUpdatePayload.is_all_hierarchy_associate = programVendorData.all_hierarchy;
+        if (programVendorData.work_locations) userUpdatePayload.work_location_ids = programVendorData.work_locations;
+        if (programVendorData.all_work_locations) userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
+        if (programVendorData.program_industry) userUpdatePayload.associate_labour_category = programVendorData.program_industry;
+        if (programVendorData.is_labour_category) userUpdatePayload.is_all_labour_category_associate = programVendorData.is_labour_category;
+        if (programVendorData.all_job_type) userUpdatePayload.is_all_job_type_associate = programVendorData.all_job_type;
+        if (programVendorData.job_type) userUpdatePayload.associate_job_type = programVendorData.job_type;
+        if (programVendorData.contact) userUpdatePayload.contacts = programVendorData.contact;
 
         if (Object.keys(userUpdatePayload).length > 0) {
             await UserModel.update(userUpdatePayload, {
                 where: {
                     user_id: existingProgramVendor.user_id,
-                    program_id: program_id
-                }
+                    program_id
+                },
+                transaction
             });
         }
-        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
 
+        if (programVendorData.vendor_group_id && Array.isArray(programVendorData.vendor_group_id)) {
+            for (const groupId of programVendorData.vendor_group_id) {
+                const vendorGroup = await VendorGroup.findOne({ where: { id: groupId }, transaction });
+
+                if (vendorGroup) {
+                    let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
+
+                    if (!vendorsArray.includes(existingProgramVendor.id)) {
+                        vendorsArray.push(existingProgramVendor.id);
+                        await VendorGroup.update(
+                            { vendors: vendorsArray },
+                            { where: { id: groupId }, transaction }
+                        );
+                    }
+                }
+            }
+        }
+
+        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             await vendorMarkupConfig.destroy({
-                where: {
-                    program_id,
-                    program_vendor_id: existingProgramVendor.id,
-                },
+                where: { program_id, program_vendor_id: existingProgramVendor.id },
+                transaction
             });
 
             for (const markup of programVendorData.markup_config) {
@@ -547,25 +566,28 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 }
 
                 const existingRecord = await vendorMarkupConfig.findOne({
-                    where: whereClause
+                    where: whereClause,
+                    transaction
                 });
 
                 if (existingRecord) {
                     throw new Error("A record with the same markup already exists.");
                 }
+
                 await vendorMarkupConfig.create({
                     ...markupData,
                     program_vendor_id: existingProgramVendor.id,
-                    program_id: program_id,
+                    program_id,
                     created_by: userId,
                     updated_by: userId
-                });
+                }, { transaction });
             }
         }
 
         if (programVendorData.custom_fields) {
             await VendorCustomField.destroy({
-                where: { vendor_id: programVendorData.id }
+                where: { vendor_id: programVendorData.id },
+                transaction
             });
 
             if (Array.isArray(programVendorData.custom_fields) && programVendorData.custom_fields.length > 0) {
@@ -575,15 +597,20 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                     value: field.value,
                     vendor_id: programVendorData.id,
                 }));
-                await VendorCustomField.bulkCreate(customFields);
+                await VendorCustomField.bulkCreate(customFields, { transaction });
             }
         }
+
+        await transaction.commit();
+
         reply.status(200).send({
             status_code: 200,
             message: 'ProgramVendor and VendorMarkupConfig updated successfully.',
             trace_id: traceId,
         });
+
     } catch (error) {
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while updating ProgramVendor.',
@@ -845,6 +872,8 @@ export const getVendorDocuments = async (
         is_enabled = null,
         status = null,
         updated_on = null,
+        next_expiry_on = null,
+        compliance_verified = null
     } = request.query as {
         vendor_id?: string;
         document_id?: string;
@@ -853,7 +882,9 @@ export const getVendorDocuments = async (
         name?: string;
         is_enabled?: string;
         status?: string;
-        updated_on?: any
+        updated_on?: any;
+        next_expiry_on?: any;
+        compliance_verified?: string;
     };
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -877,6 +908,7 @@ export const getVendorDocuments = async (
 
     try {
         let documents: VendorDetails[] = [];
+        let display_name;
 
         const getVendorRecord = async () => {
             return sequelize.query<{ id: any }>(
@@ -901,7 +933,9 @@ export const getVendorDocuments = async (
             limit: pageSize,
             offset,
             status: statusArray,
-            updated_on
+            updated_on,
+            next_expiry_on,
+            compliance_verified: compliance_verified ? `%${compliance_verified}%` : null
         };
 
         if (vendor_id && document_id) {
@@ -910,6 +944,14 @@ export const getVendorDocuments = async (
                 type: QueryTypes.SELECT,
             });
         } else if (vendor_id) {
+            const vendorName = await sequelize.query<{ display_name: string }>(
+                `SELECT display_name FROM program_vendors WHERE id = :vendor_id AND program_id = :program_id`,
+                {
+                    replacements: { vendor_id, program_id },
+                    type: QueryTypes.SELECT,
+                }
+            );
+            display_name = vendorName[0].display_name;
             documents = await sequelize.query<VendorDetails>(complianceDocumentGetByVendorId, {
                 replacements,
                 type: QueryTypes.SELECT,
@@ -956,18 +998,18 @@ export const getVendorDocuments = async (
             });
         }
 
-        const uniqueDocuments = documents.filter((doc, index, self) =>
-            index === self.findIndex((d) => d.id === doc.id)
-        );
-        const totalCount = uniqueDocuments.length;
-
-        if (!totalCount) {
+        const totalCount = documents.length > 0 ? documents[0].total_count : 0;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        if (totalCount == 0) {
             return reply.status(200).send({
                 status_code: 200,
                 message: 'No compliance documents found for the given criteria.',
                 trace_id: traceId,
                 total_count: totalCount,
-                page_size: pageSize,
+                page: pageNumber,
+                limit: pageSize,
+                total_pages: totalPages,
+                display_name,
                 uploaded_documents: [],
             });
         }
@@ -977,8 +1019,11 @@ export const getVendorDocuments = async (
             message: 'Vendor documents fetched successfully.',
             trace_id: traceId,
             total_count: totalCount,
-            page_size: pageSize,
-            uploaded_documents: uniqueDocuments.map(doc => ({
+            page: pageNumber,
+            limit: pageSize,
+            total_pages: totalPages,
+            display_name,
+            uploaded_documents: documents.map(doc => ({
                 id: doc.id,
                 program_id: doc.program_id,
                 name: doc.name,
@@ -1113,10 +1158,17 @@ export async function updateComplianceDocument(
 
         const documentData = complianceDocuments[0];
         const uploadedDocument = complianceDocumentUpdate.uploaded_document;
-        const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
-        if (!expiryDate) return;
+        let nextUpdateDueDate;
 
-        const nextUpdateDueDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+        if (uploadedDocument?.expiry_on) {
+            const expiryDate = validateAndParseDate(uploadedDocument?.expiry_on, traceId, reply);
+            if (!expiryDate) return;
+
+            const nextUpdateDate = calculateNextUpdateDueDate(expiryDate, documentData.no_of_days, documentData.to_uploaded);
+            nextUpdateDueDate = nextUpdateDate.getTime();
+        } else {
+            nextUpdateDueDate = null;
+        }
 
         const audited_by = await getAuditedBy(user, program_id);
         const audited_on = Date.now();
@@ -1146,7 +1198,7 @@ export async function updateComplianceDocument(
                 created_on: uploadedDocument?.id ? undefined : Date.now(),
                 compliance_note: uploadedDocument.compliance_note,
                 file_name: uploadedDocument.file_name,
-                next_expiry_on: nextUpdateDueDate.getTime(),
+                next_expiry_on: nextUpdateDueDate,
                 expiry_on: uploadedDocument.expiry_on,
                 audited_on: finalAudited_on,
                 audited_by: finalAudited_by,
@@ -1311,8 +1363,8 @@ export async function advanceFilter(
             page: string;
             limit: string;
         };
-
-        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status ? false : null;
+        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status === 'Non-Compliant' ? false : null;
+        const hasComplianceStatus = finalComplianceStatus !== null;
         const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
         const hasPage = !!page;
@@ -1336,7 +1388,8 @@ export async function advanceFilter(
             hasStatus,
             hasEmail,
             hasFullName,
-            finalComplianceStatus !== null,
+            hasComplianceStatus,
+            finalComplianceStatus,
             hasAudited,
             hierarchyIdsArray,
             laborCategoryIdsArray,
@@ -1351,7 +1404,7 @@ export async function advanceFilter(
             status: status ?? null,
             contact_email: contact_email ? `${contact_email}%` : null,
             full_name: full_name ? `${full_name.trim()}%` : null,
-            compliance_status: finalComplianceStatus,
+            compliance_status: hasComplianceStatus,
             is_audited: is_audited ?? null,
             limit: limitNumber,
             offset: offset,

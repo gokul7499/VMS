@@ -11,12 +11,13 @@ import { createCustomFieldLocations } from './custom-field-location.controller';
 import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op, Sequelize } from 'sequelize';
+import { Op, QueryTypes, Sequelize } from 'sequelize';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import FoundationalDataTypes from '../models/master-datatypes.model';
 import Hierarchies from '../models/hierarchies.model';
+import { sequelize } from '../config/instance';
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
@@ -245,114 +246,189 @@ export const createCustomField = async (data: any, user: any) => {
 
 export async function getAllCustomFields(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const user = request.user;
+  const userId = user?.sub;
+  console.log("userId", userId);
   const { program_id } = request.params as { program_id: string };
   const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
-  const whereClause: any = {
-    program_id,
-    is_deleted: false,
-  };
-
-  if (is_enabled) {
-    const isEnabledValue = is_enabled === 'true' ? 1 : 0;
-    whereClause.is_enabled = { [Op.eq]: isEnabledValue };
-  }
-  if (slug) {
-    whereClause.slug = { [Op.like]: `%${slug}%` };
-  }
-  if (name) {
-    whereClause.name = { [Op.like]: `%${name}%` };
-  }
-
-  if (label) {
-    whereClause.label = { [Op.like]: `%${label}%` };
-  }
-  if (field_type) {
-    whereClause.field_type = { [Op.like]: `%${field_type}%` };
-  }
-  if (is_required) {
-    const isRequiredValue = is_required === 'true' ? 1 : 0;
-    whereClause.is_required = { [Op.eq]: isRequiredValue };
-  }
-  if (updated_on) {
-    const modifiedOnPattern = `${updated_on}`;
-    whereClause.updated_on = { [Op.like]: modifiedOnPattern };
-  }
-  const andConditions: any[] = [];
-
-  if (module_name) {
-    andConditions.push({
-      [Op.or]: [
-        { module_name: { [Op.like]: `%${module_name}%` } },
-        Sequelize.literal(`JSON_CONTAINS(linked_modules, '{"linked": true, "module_name": "${module_name}"}', '$')`)
-      ]
-    });
-  }
-  
-  if (hierarchy_ids) {
-    const hierarchyArray = hierarchy_ids.split(',').map((id: string) => `'${id.trim()}'`);
-    if (hierarchyArray.length > 0) {
-      andConditions.push({
-        [Op.or]: [
-          {
-            id: {
-              [Op.in]: Sequelize.literal(`(
-                SELECT custom_field_id
-                FROM custom_fields_hierarchie
-                WHERE hierarchy_id IN (${hierarchyArray.join(',')})
-              )`)
-            }
-          },
-          { is_all_hierarchy: true }
-        ]
+  try {
+    let userType = user?.userType;
+    
+    if (userType != 'super_user') {
+      const [userTypeResult] = await sequelize.query(
+        `SELECT user_type FROM user WHERE program_id = :program_id AND user_id = :user_id`,
+        {
+          replacements: { program_id, user_id: userId },
+          type: QueryTypes.SELECT,
+        }
+      ) as any;
+      
+      userType = userTypeResult?.user_type;
+    }
+    console.log("userType", userType);
+    if (!userType) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: 'User type not found for the given user.',
+        trace_id: traceId,
       });
     }
-  }
-  
-  if (andConditions.length > 0) {
-    whereClause[Op.and] = andConditions;
-  }
 
-  const pageNumber = Number(page) || 1;
-  const limitNumber = Number(limit) || 10;
-  const offset = (pageNumber - 1) * limitNumber;
-  try {
+    // Build where clause
+    const whereClause: any = {
+      program_id,
+      is_deleted: false,
+    };
+
+    const andConditions: any[] = []
+    
+    // Only add general permission check if no module_name filter is specified
+    if (userType !== 'super_user' && !module_name) {
+      andConditions.push(
+        Sequelize.literal(`(
+          JSON_CONTAINS(can_edit, JSON_QUOTE(:userType)) OR 
+          JSON_CONTAINS(can_view, JSON_QUOTE(:userType))
+        )`)
+      );
+    }
+
+    // Existing filter conditions
+    if (is_enabled) {
+      const isEnabledValue = is_enabled === 'true' ? 1 : 0;
+      whereClause.is_enabled = { [Op.eq]: isEnabledValue };
+    }
+    if (slug) whereClause.slug = { [Op.like]: `%${slug}%` };
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (label) whereClause.label = { [Op.like]: `%${label}%` };
+    if (field_type) whereClause.field_type = { [Op.like]: `%${field_type}%` };
+    
+    if (is_required) {
+      const isRequiredValue = is_required === 'true' ? 1 : 0;
+      whereClause.is_required = { [Op.eq]: isRequiredValue };
+    }
+    
+    if (updated_on) {
+      whereClause.updated_on = { [Op.like]: `${updated_on}` };
+    }
+
+    if (module_name) {
+      if (userType === 'super_user') {
+        andConditions.push({
+          [Op.or]: [
+            { module_name: { [Op.like]: `%${module_name}%` } },
+            Sequelize.literal(`
+              JSON_CONTAINS(linked_modules, '{"linked": true, "module_name": "${module_name}"}', '$')
+            `)
+          ]
+        });
+      } else {
+        andConditions.push(
+          Sequelize.literal(`
+            (
+              CASE 
+                -- Check if the module exists in linked_modules with linked=true
+                WHEN EXISTS (
+                  SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
+                    linked BOOLEAN PATH '$.linked',
+                    module_name VARCHAR(255) PATH '$.module_name'
+                  )) AS jt_exists
+                  WHERE jt_exists.linked = true 
+                    AND jt_exists.module_name = '${module_name}'
+                ) 
+                THEN (
+                  -- If exists in linked_modules, check permissions there
+                  EXISTS (
+                    SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
+                      linked BOOLEAN PATH '$.linked',
+                      module_name VARCHAR(255) PATH '$.module_name',
+                      can_edit JSON PATH '$.can_edit',
+                      can_view JSON PATH '$.can_view'
+                    )) AS jt_perm
+                    WHERE jt_perm.linked = true
+                      AND jt_perm.module_name = '${module_name}'
+                      AND (
+                        EXISTS (
+                          SELECT 1 FROM JSON_TABLE(jt_perm.can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                          WHERE LOWER(edit_roles.role) = '${userType}'
+                        )
+                        OR
+                        EXISTS (
+                          SELECT 1 FROM JSON_TABLE(jt_perm.can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                          WHERE LOWER(view_roles.role) = '${userType}'
+                        )
+                      )
+                  )
+                )
+                ELSE (
+                  -- If NOT in linked_modules, check root level
+                  module_name LIKE '%${module_name}%'
+                  AND (
+                    EXISTS (
+                      SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                      WHERE LOWER(edit_roles.role) = '${userType}'
+                    )
+                    OR
+                    EXISTS (
+                      SELECT 1 FROM JSON_TABLE(can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                      WHERE LOWER(view_roles.role) = '${userType}'
+                    )
+                  )
+                )
+              END = 1
+            )
+          `)
+        );
+      }
+    }
+    
+
+    if (hierarchy_ids) {
+      const hierarchyArray = hierarchy_ids.split(',').map((id: string) => `'${id.trim()}'`);
+      if (hierarchyArray.length > 0) {
+        andConditions.push({
+          [Op.or]: [
+            {
+              id: {
+                [Op.in]: Sequelize.literal(`(
+                  SELECT custom_field_id
+                  FROM custom_fields_hierarchie
+                  WHERE hierarchy_id IN (${hierarchyArray.join(',')})
+                )`)
+              }
+            },
+            { is_all_hierarchy: true }
+          ]
+        });
+      }
+    }
+
+    whereClause[Op.and] = andConditions;
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
     const result = await CustomField.findAndCountAll({
       where: whereClause,
       attributes: [
-        "id",
-        "name",
-        "is_enabled",
-        "updated_on",
-        "created_on",
-        "module_id",
-        "module_name",
-        "field_type",
-        "is_required",
-        "label",
-        "decimal_place",
-        "meta_data",
-        "linked_modules",
-        "is_readonly",
-        "supporting_text",
-        "placeholder",
-        "description",
-        "can_edit",
-        "can_view"
+        "id", "name", "is_enabled", "updated_on", "created_on", "module_id",
+        "module_name", "field_type", "is_required", "label", "decimal_place",
+        "meta_data", "linked_modules", "is_readonly", "supporting_text",
+        "placeholder", "description", "can_edit", "can_view"
       ],
+      replacements: {
+        userType: userType 
+      },
       order: [["updated_on", "DESC"]],
-      offset: offset,
+      offset,
       limit: limitNumber,
     });
-
-
     const customFieldsWithPicklistData = await Promise.all(
       result.rows.map(async (customField) => {
         let picklistData: { picklist_name: string, picklist_values: { id: string, value: string }[] } | null = null;
 
         if (customField.meta_data?.picklist_id) {
           const picklistId = customField.meta_data.picklist_id;
-
           const picklist = await PicklistModel.findOne({
             where: { id: picklistId },
             attributes: ["name"],
@@ -374,26 +450,69 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           }
         }
 
+        let is_edit = false;
+        let is_view = false;
+
+        if (userType === 'super_user') {
+          is_edit = true;
+          is_view = true;
+        } else {
+          if (module_name) {
+            const linkedModules = Array.isArray(customField.linked_modules)
+              ? customField.linked_modules
+              : [];
+
+            const linkedModule = linkedModules.find(
+              (lm: any) => lm.linked === true && lm.module_name === module_name
+            );
+
+            if (linkedModule) {
+              is_edit = includesRole(linkedModule.can_edit, userType);
+              is_view = includesRole(linkedModule.can_view, userType);
+            } else if (customField.module_name?.toLowerCase().includes(module_name.toLowerCase())) {
+              is_edit = includesRole(customField.can_edit, userType);
+              is_view = includesRole(customField.can_view, userType);
+            }
+          } else {
+            is_edit = includesRole(customField.can_edit, userType);
+            is_view = includesRole(customField.can_view, userType);
+          }
+        }
+
         return {
           ...customField.toJSON(),
           meta_data: {
             ...customField.meta_data,
-            ...picklistData || {},
+            ...(picklistData || {}),
           },
+          is_edit,
+          is_view,
         };
       })
     );
 
+    function includesRole(roles: any, userType: string | undefined): boolean {
+      if (!userType) return false;
+      if (!roles) return false;
+      if (Array.isArray(roles)) {
+        return roles.some((r) => String(r).toLowerCase() === userType.toLowerCase());
+      } else if (typeof roles === 'string') {
+        return roles.toLowerCase().includes(userType.toLowerCase());
+      }
+      return false;
+    }
     return reply.status(200).send({
       status_code: 200,
       custom_fields: customFieldsWithPicklistData,
       total_records: result.count,
       page: pageNumber,
       limit: limitNumber,
-      message: 'Custom Fields Get Successfully',
+      message: 'Custom Fields Retrieved Successfully',
       trace_id: traceId,
     });
+
   } catch (error: any) {
+    console.error('Error fetching custom fields:', error);
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching custom fields',
@@ -402,7 +521,6 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     });
   }
 }
-
 
 export const getCustomFieldById = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string, program_id: string };
@@ -427,7 +545,7 @@ export const getCustomFieldById = async (request: FastifyRequest, reply: Fastify
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
         "supporting_text", "linked_modules", "meta_data", "job_type",
-        "range_applicable", "is_sensitive_data"
+        "range_applicable", "is_sensitive_data","organization_category"
       ],
     });
 

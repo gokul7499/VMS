@@ -49,6 +49,7 @@ async function hierarchiesRoutes(fastify: FastifyInstance) {
     }, HierarchyController.getHierarchiesAdvancedFilter);
 
     fastify.get('/program/:program_id/get-parent-hierarchy', HierarchyController.getParentHierarchies);
+    fastify.get('/program/:program_id/fetch-msp', HierarchyController.getMspByClient);
 
 }
 

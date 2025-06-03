@@ -16,9 +16,13 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { sequelize } from "../config/instance";
 import ProgramCustomField from "../models/program_custom_field_model";
 import { clonePredefinedPicklistsForProgram } from "./picklist.controller";
-
+import programMspAssociationModel from "../models/program-msp-association.model";
+type MSP = {
+  id: string;
+  is_enabled: boolean;
+};
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
-  const { ...programData } = request.body as CreateProgramData;
+  const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
 
   const authHeader = request.headers.authorization;
@@ -29,7 +33,7 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
 
   const token = authHeader.split(' ')[1];
   let user: any = await decodeToken(token);
-  const userId=user?.sub;
+  const userId = user?.sub;
 
   if (!user) {
     return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
@@ -71,14 +75,27 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     }
     const item: any = await Programs.create({ ...programData }, { transaction });
 
+    const programId = item.id;
+    if (Array.isArray(msps) && msps.length > 0) {
+      const mspAssociations = msps.map((msp: MSP) => ({
+        program_id: programId,
+        msp_id: msp.id,
+        created_by: userId,
+        updated_by: userId,
+        is_enabled: msp.is_enabled,
+      }));
+
+      await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
+    }
+
     reply.status(201).send({
       status_code: 201,
-      id: item.id,
+      id: programId,
       message: "Program Created Successfully",
       trace_id: traceId,
     });
-    const programId = item.id;
-    await clonePredefinedPicklistsForProgram(programId,userId,transaction);
+
+    await clonePredefinedPicklistsForProgram(programId, userId, transaction);
 
     logger(
       {
@@ -145,12 +162,13 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   } catch (error: any) {
 
     await transaction.rollback();
+    console.log(error);
 
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error: error,
+      error: error.message,
     });
 
     logger(
@@ -296,11 +314,23 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', program_custom_field.custom_field_id,
-                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$'))
+                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$')),
+                'label', cf.label,
+                'field_type', cf.field_type,
+                'manager_name',
+          CASE
+            WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
+            ELSE NULL
+          END
             )
         )
         FROM program_custom_field
+        JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
+        LEFT JOIN user AS u 
+    ON REPLACE(REPLACE(program_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id)
         WHERE program_custom_field.program_id = programs.id
+        AND cf.is_enabled = true
+        OR u.program_id = program_custom_field.program_id
     ), JSON_ARRAY()) AS custom_fields
 FROM programs
 WHERE programs.id = :id;
@@ -309,7 +339,7 @@ WHERE programs.id = :id;
         replacements: { id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
     const customFields = customFieldsResult?.custom_fields || [];
     if (programs) {
@@ -382,40 +412,98 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       });
     }
 
+    if (updates.msps?.length) {
+      await updateProgramMsps(id, updates.msps, userId);
+    }
+
     const updatedCount: any = await Programs.update({ ...updates, updated_by: userId }, {
       where: { id: id },
     });
 
-     if (updates.custom_fields && updates.custom_fields.length > 0) {
-           await ProgramCustomField.destroy({
-              where: { program_id: id }
-              
-            });    
-          }
+    if (updates.custom_fields && updates.custom_fields.length > 0) {
+      await ProgramCustomField.destroy({
+        where: { program_id: id }
 
-          
-          if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
-            const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
-              program_id:updates.id,
-              custom_field_id: field.id,
-              value: field.value,
-            }));
-            await ProgramCustomField.bulkCreate(customFields);
-          }
-  
+      });
+    }
+
+
+    if (Array.isArray(updates.custom_fields) && updates.custom_fields.length > 0) {
+      const customFields = updates.custom_fields.map((field: { id: any; value: any; }) => ({
+        program_id: updates.id,
+        custom_field_id: field.id,
+        value: field.value,
+      }));
+      await ProgramCustomField.bulkCreate(customFields);
+    }
+
     reply.status(200).send({
       status_code: 200,
       id: updatedCount.id,
       message: "Program configuration updated successfully",
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
-      error:error.message,
+      error: error.message,
     });
+  }
+};
+
+export const updateProgramMsps = async (programId: string, msps: any[], userId: string) => {
+  const mspIds = msps.map(msp => msp.id);
+
+  if (mspIds.length === 0) return;
+
+  const validMspIds = (
+    await Tenant.findAll({
+      where: { id: mspIds },
+      attributes: ['id'],
+      raw: true,
+    })
+  ).map((tenant) => tenant.id);
+
+  if (validMspIds.length === 0) return;
+
+  const existingAssociations = await programMspAssociationModel.findAll({
+    where: { program_id: programId },
+    attributes: ['msp_id', 'is_enabled'],
+    raw: true,
+  });
+
+  const existingMspMap = new Map(existingAssociations.map(record => [record.msp_id, record.is_enabled]));
+
+  const mspUpserts = msps.map((msp) => ({
+    program_id: programId,
+    msp_id: msp.id,
+    created_by: userId,
+    updated_by: userId,
+    is_enabled: msp.is_enabled,
+  }));
+
+  const newAssociations = mspUpserts.filter(item => !existingMspMap.has(item.msp_id));
+  const existingToUpdate = mspUpserts.filter(item => existingMspMap.has(item.msp_id));
+
+  if (newAssociations.length > 0) {
+    await programMspAssociationModel.bulkCreate(newAssociations);
+  }
+
+  for (const update of existingToUpdate) {
+    await programMspAssociationModel.update(
+      {
+        is_enabled: update.is_enabled,
+        updated_by: userId,
+      },
+      {
+        where: {
+          program_id: programId,
+          msp_id: update.msp_id,
+        },
+      }
+    );
   }
 };
 
@@ -466,4 +554,112 @@ export async function advancedFilter(request: FastifyRequest, reply: FastifyRepl
   const searchFields = ["is_enabled", "name"];
   const responseFields = ["id", "name", "display_name", "type", "is_enabled"];
   return baseSearch(request, reply, Programs, searchFields, responseFields);
+}
+
+export async function getMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+
+  try {
+    const { program_id } = request.params as { program_id: string };
+    const { is_enabled } = request.query as { is_enabled?: string };
+
+    const whereCondition: any = {
+      program_id,
+    }
+    if (is_enabled !== undefined) {
+      whereCondition.is_enabled = is_enabled === 'true';
+    }
+
+    const { rows: mspAssociations, count: totalRecords } = await programMspAssociationModel.findAndCountAll({
+      where: whereCondition,
+      attributes: {
+        exclude: ['created_by', 'updated_by'],
+      },
+      include: [
+        {
+          model: Tenant,
+          as: 'msp',
+          attributes: ['id', 'name', 'display_name'],
+          required: false,
+        }
+      ]
+    });
+
+    const responseData = mspAssociations.map((item: any) => {
+      const msp = item.toJSON();
+      return {
+        id: msp.id,
+        program_id: msp.program_id,
+        msp: {
+          id: msp.msp?.id || null,
+          name: msp.msp?.name || null,
+          display_name: msp.msp?.display_name || null,
+        },
+        is_enabled: msp.is_enabled,
+        created_on: msp.created_on,
+        updated_on: msp.updated_on,
+      };
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: responseData.length
+        ? 'MSP(s) retrieved successfully'
+        : 'No MSP(s) found for the given program ID',
+      total_records: totalRecords,
+      msp_associations: responseData,
+      trace_id: traceId,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+
+export async function updateMspByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  const transaction = await sequelize.transaction();
+  try {
+    const { program_id, msp_id } = request.params as { program_id: string; msp_id: string };
+    const updateData = request.body as Partial<{ is_enabled: boolean }>;
+
+    const existingRecord = await programMspAssociationModel.findOne({
+      where: { program_id, msp_id },
+      transaction,
+    });
+
+    if (!existingRecord) {
+      await transaction.rollback();
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'MSP association not found',
+        trace_id: traceId,
+      });
+    }
+    await programMspAssociationModel.update(updateData, {
+      where: { program_id, msp_id },
+      transaction
+    });
+
+    await transaction.commit();
+
+    reply.status(200).send({
+      status_code: 200,
+      message: 'MSP association updated successfully',
+      msp_id: msp_id,
+      trace_id: traceId
+    });
+  } catch (error: any) {
+    await transaction.rollback();
+    reply.status(500).send({
+      status_code: 500,
+      message: 'Internal server error',
+      error: error.message,
+      trace_id: traceId
+    });
+  }
 }

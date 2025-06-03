@@ -18,6 +18,7 @@ import UserCustomFieldModel from "../models/user-custom-field.model";
 import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
+import { createCandidateHistory } from "../utility/candidate-history";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -285,6 +286,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
+    let candidateId;
+    let candidateData:any;
+
     if (userType === "client" || userType === "msp") {
       newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     } else if (userType === "candidate") {
@@ -298,7 +302,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
           tenant_id: user.tenant_id
         },
       });
-      const vendor_id = vendor?.id || null;
+      let vendor_id = vendor?.id || null;
 
       const existingCandidate = await candidateModel.findOne({
         where: {
@@ -318,13 +322,13 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         });
       }
 
-      let candidateId = await CandidateCodeGenerate(vendor_id, program_id);
+      let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
 
-      const candidateData = await candidateModel.create({
+      candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
-        candidate_id: candidateId,
+        candidate_id: candidateCode,
         vendor_id: vendor_id,
         user_type: userType,
         created_by: userId,
@@ -333,6 +337,8 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       }, { transaction });
 
       candidateId = candidateData.id
+      vendor_id = user.tenant_id
+      const candidate = candidateData.toJSON();
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId);
 
     } else if (userType === "vendor") {
@@ -395,12 +401,20 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else {
       await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     }
+    
+    const compareData = {};
+    if (userType === "candidate") {
+      createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Create")
+        .catch(error => {
+          console.error("Failed to create candidate history:", error);
+        });
+    }
 
     await transaction.commit();
     return reply.status(201).send({
       status_code: 201,
       message: "User created successfully",
-      id: newUser instanceof User ? newUser.id : undefined,
+      id: newUser instanceof User ? newUser.id : candidateId,
       trace_id: traceId,
     });
   } catch (error: any) {
@@ -426,7 +440,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -773,7 +787,7 @@ export async function getPendingUser(
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
-        users,
+        users:[users[0]],
         trace_id: traceId
       });
     } else {

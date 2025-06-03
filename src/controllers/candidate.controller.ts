@@ -8,7 +8,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { Op } from "sequelize";
-import { CandidateCodeGenerate } from "../utility/code-genrate-service";
+import { CandidateCodeGenerate, CandidateUniqueIdGenerate } from "../utility/code-genrate-service";
 import { fetchSubmittedCandidate, fetchUnavailableCandidates } from "../utility/submission-candidate";
 import User from "../models/user.model";
 import Qualifications from "../models/qualifications.model";
@@ -16,6 +16,7 @@ import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
+import { createCandidateHistory } from "../utility/candidate-history";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -502,8 +503,12 @@ export async function updateCandidateByIdAndProgramId(
                 });
             }
         }
+
+
+
+        let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
-            { ...updates, updated_by: userId, updated_on: Date.now() },
+            { ...updates, updated_by: userId, updated_on: Date.now(), unique_id: uniqueId },
             {
                 where: {
                     program_id,
@@ -525,6 +530,11 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
+
+        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
+            .catch(error => {
+                console.error("Failed to create candidate history:", error);
+            });
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate updated successfully",
@@ -715,7 +725,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_per_identified",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_pre_identified",
             ],
             limit: limitNum,
             offset,
@@ -758,7 +768,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 do_not_rehire_reason: cand.do_not_rehire_reason,
                 do_not_rehire: cand.do_not_rehire,
                 phone_number: cand.contacts[0]?.number,
-                is_per_identified: cand.is_per_identified
+                is_pre_identified: cand.is_pre_identified
             };
         });
 

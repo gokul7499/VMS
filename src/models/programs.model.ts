@@ -47,7 +47,7 @@ Programs.init(
     },
     config: {
       type: DataTypes.JSON,
-      allowNull: false,
+      allowNull: true,
     },
     client_id: {
       type: DataTypes.UUID,

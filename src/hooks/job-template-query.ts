@@ -406,6 +406,7 @@ class JobTempletRepository {
         job_templates.created_on,
         job_templates.updated_on,
         job_templates.checklist_entity_id,
+        job_templates.checklist_version,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -648,6 +649,21 @@ COALESCE((
     return associate_hierarchy_ids || [];
   }
 
+  async mspHierarchies(msp_id: string, program_id: string) {
+    const hierarchies = await sequelize.query<{ id: string }>(
+      `SELECT id FROM hierarchies 
+       WHERE program_id = :program_id 
+         AND managed_by = :msp_id 
+         AND is_enabled = true`,
+      {
+        replacements: { program_id, msp_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    return hierarchies.map(h => h.id);
+  }
+
   async templateQuery(job_template_id: string) {
     const templateData = await sequelize.query<{ hierarchy: string }>(
       `SELECT hierarchy FROM job_template_hierarchies WHERE job_temp_id = :job_template_id`,
@@ -669,6 +685,20 @@ COALESCE((
     );
 
     return templateData;
+  }
+
+  async masterDataQuery(master_data_type_id: string) {
+    const masterData = await sequelize.query<{
+      hierarchy_id: any; hierarchy: string 
+}>(
+      `SELECT hierarchy_id FROM master_data_type_hierarchy WHERE master_data_type_id = :master_data_type_id`,
+      {
+        replacements: { master_data_type_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    return masterData;
   }
 
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {

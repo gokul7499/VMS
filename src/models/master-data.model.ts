@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/instance';
-import FoundationalDataTypes from './foundational-datatypes.model';
+import FoundationalDataTypes from './master-datatypes.model';
 import { Programs } from './programs.model';
 import { convertEmptyStringsToNull } from '../hooks/convertEmptyStringsToNull';
 import User from './user.model';
@@ -10,6 +10,7 @@ class FoundationalData extends Model {
     foundational_data_type_id: any;
     name: any;
     manager_ids: any;
+    is_all_hierarchy_associated: any;
 }
 
 FoundationalData.init({
@@ -71,9 +72,13 @@ FoundationalData.init({
         type: DataTypes.JSON,
         allowNull: true,
     },
-    is_billable:{
+    is_billable: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
+    },
+    is_all_hierarchy_associated: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
     },
     created_on: {
         type: DataTypes.BIGINT.UNSIGNED,
@@ -83,7 +88,7 @@ FoundationalData.init({
     updated_on: {
         type: DataTypes.BIGINT.UNSIGNED,
         defaultValue: Date.now(),
-       allowNull: true,
+        allowNull: true,
     },
     created_by: {
         type: DataTypes.UUID,
@@ -94,10 +99,9 @@ FoundationalData.init({
         allowNull: true,
     },
 }, {
-    
     sequelize,
     modelName: 'master_data',
-    timestamps:false,
+    timestamps: false,
     hooks: {
         beforeValidate: (instance) => {
             convertEmptyStringsToNull(instance);

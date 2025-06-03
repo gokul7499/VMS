@@ -1,6 +1,5 @@
 import { FastifyInstance } from "fastify";
 import * as JobTemplateController from "../controllers/job-template.controller";
-import fastifyMultipart from "@fastify/multipart";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
 
@@ -52,11 +51,11 @@ async function jobTemplate(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.getCommonHierarchies);
 
-  fastify.post("/upload-file", JobTemplateController.uploadFile);
-
   fastify.post("/program/:program_id/job-template/advance-filter", {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.advanceFilterJobTemplates);
+
+  fastify.post("/upload-file", JobTemplateController.uploadJobTemplateFile);
 
 }
 

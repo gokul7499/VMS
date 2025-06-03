@@ -3,6 +3,7 @@ import { databaseConfig } from '../config/db';
 import MtpModel from '../models/mtp.model';
 import { PossibleDuplicateCandidate } from '../models/possible-duplicate-candidate.model';
 import { sequelize } from '../config/instance';
+import { first } from 'lodash';
 const AI_SERVICE_URL = databaseConfig.config.ai_url 
 
 export async function searchSimilarProfiles(
@@ -13,6 +14,7 @@ export async function searchSimilarProfiles(
   programId: string,
   userId: string,
   uniqueId:String,
+  payload:any,
   maxRetries = 3,
   delayMs = 1000
 ) {
@@ -24,8 +26,15 @@ export async function searchSimilarProfiles(
     candidate_id: candidateId,
     url: resumeText,
     c_unique_id:uniqueId,
-    vendor_search: vendorSearch,
-    ...(vendorSearch && vendorId ? { vendor_id: vendorId } : {}),
+    vendor_id: vendorId,
+    first_name: payload.first_name,
+    last_name: payload.last_name,
+    email_address: payload.email,
+    phone_number: payload.contacts?.[0]?.number,
+    birth_date: payload.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
+    ssn_id: payload.ssn_id,
+    address: payload.addresses,
+    vendor_search: true,
   };
   console.log("similar profile paylod",searchPayload)
   let attempt = 0;
@@ -40,11 +49,11 @@ export async function searchSimilarProfiles(
         },
         body: JSON.stringify(searchPayload),
       }); 
+      console.log("similar profile response",response)
 
-
-      if (!response.ok) {
-        return(`Failed to fetch similar profiles: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   return(`Failed to fetch similar profiles: ${response.statusText}`);
+      // }
 
       const result = await response.json();
       console.log("similar profile Data",result)
@@ -74,7 +83,7 @@ export async function findDuplicateCandidate(
   delayMs = 1000
 ) {
   const searchUrl = `${AI_SERVICE_URL}/candidates/cross-match`;
-  const SIMILARITY_SCORE = 1;
+  const SIMILARITY_SCORE = 0.80;
 
   const searchPayload = { 
     candidate_ids: candidateId 

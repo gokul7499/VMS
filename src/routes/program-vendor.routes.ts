@@ -20,7 +20,7 @@ export default async function programVendorRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR])
     }, ProgramVendorController.getProgramVendorByUserId);
 
-    fastify.put('/program/:program_id/program-vendor/:id', {
+    fastify.put('/program/:program_id/program-vendor/:tenant_id', {
         // preHandler: validatePermissions(Actions.UPDATE, [Permissions.VENDOR])
     }, ProgramVendorController.updateProgramVendor);
 
