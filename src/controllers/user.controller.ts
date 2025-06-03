@@ -401,9 +401,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     } else {
       await UserMapping.create({ ...user_group_mapping, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     }
-    
+    console.log("Candidate History ------------------------->")
     const compareData = {};
     if (userType === "candidate") {
+      console.log("Call  Candidate History")
       createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Create")
         .catch(error => {
           console.error("Failed to create candidate history:", error);
