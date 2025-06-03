@@ -250,7 +250,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   const userId = user?.sub;
   console.log("userId", userId);
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = '1', limit = '10' } = request.query as GetQueryInterface;
+  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug,user_type, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
   try {
     let userType = user?.userType;
@@ -290,6 +290,12 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           JSON_CONTAINS(can_edit, JSON_QUOTE(:userType)) OR 
           JSON_CONTAINS(can_view, JSON_QUOTE(:userType))
         )`)
+      );
+    }
+
+    if (user_type) {
+      andConditions.push(
+        Sequelize.literal(`LOWER(organization_category) = LOWER('${user_type}')`)
       );
     }
 
