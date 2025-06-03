@@ -17,9 +17,27 @@ import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
 import { getHierarchieWithChildren } from "../utility/queries";
-import { extractFileContent } from "../utility/fileUpload";
 import JobMasterDataModel from "../models/job-master-data.model";
 const jobTempletRepositories = new JobTempletRepository();
+import { pipeline } from 'stream/promises';
+import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
+import { convertFileToHTML } from '../utility/fileConverter';
+import { Readable } from 'node:stream';
+
+interface Metadata {
+  program_id: string;
+  job_template_id: string;
+  signed_url: string;
+}
+
+const supportedMimeTypes = [
+  'text/plain',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
 
 export const getAllJobTemplates = async (
   request: FastifyRequest,
@@ -985,38 +1003,94 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
   }
 }
 
-export async function uploadFile(request: FastifyRequest, reply: FastifyReply) {
-  const traceId = generateCustomUUID();
-  try {
-    const data = await request.file();
+function webReadableStreamToNodeStream(webStream: ReadableStream<Uint8Array>): NodeJS.ReadableStream {
+  const reader = webStream.getReader();
+  return new Readable({
+    async read() {
+      const { done, value } = await reader.read();
+      if (done) {
+        this.push(null);
+      } else {
+        this.push(Buffer.from(value));
+      }
+    }
+  });
+}
 
-    if (!data) {
-      return reply.status(200).send({
-        status_code: 200,
-        message: "No file uploaded.",
-        trace_id: traceId,
+export async function uploadFile(
+  req: FastifyRequest<{
+    Body: {
+      program_id: string;
+      job_template_id: string;
+      signed_url: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id, job_template_id, signed_url } = req.body;
+
+  if (!signed_url || typeof signed_url !== 'string') {
+    return reply.status(400).send({ status: 'error', message: 'Missing or invalid signed_url' });
+  }
+
+  let filePath: string | undefined;
+
+  try {
+    const response = await fetch(signed_url);
+    if (!response.ok) {
+      return reply.status(400).send({
+        status: 'error',
+        message: 'Failed to fetch file from signed_url',
       });
     }
 
-    const htmlContent = await extractFileContent(data);
+    const contentType = response.headers.get('content-type') || '';
+    if (!supportedMimeTypes.includes(contentType)) {
+      return reply.status(400).send({
+        status: 'error',
+        message: `Unsupported file type: ${contentType}`,
+      });
+    }
 
-    const htmlResponse = `<html><body>${htmlContent}</body></html>`;
+    const tempDir = path.join(__dirname, '..', 'uploads');
+    const tempFile = `${randomUUID()}.upload`;
+    filePath = path.join(tempDir, tempFile);
+    await fs.mkdir(tempDir, { recursive: true });
 
-    return reply.status(200).send({
-      status_code: 200,
-      message: "File uploaded successfully",
-      trace_id: traceId,
-      data: htmlResponse,
+    const fileStream = createWriteStream(filePath);
+    const webStream = response.body;
+    if (!webStream) {
+      return reply.status(400).send({ status: 'error', message: 'Empty response body' });
+    }
+
+    const nodeStream = webReadableStreamToNodeStream(webStream as ReadableStream<Uint8Array>);
+    await pipeline(nodeStream, fileStream);
+
+    const htmlContent = await convertFileToHTML(filePath, contentType);
+
+    // Optional: do something with program_id and job_template_id
+    console.log('Received metadata:', { program_id, job_template_id });
+
+    return reply.send({
+      status: 'success',
+      message: 'File processed successfully',
+      data: {
+        upload_url: signed_url,
+        html_content: htmlContent,
+      },
     });
-  } catch (error: any) {
-    reply.status(500).send({
-      status_code: 500,
-      message: "File upload failed",
-      trace_id: traceId,
-      error: error.message,
-    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    return reply.status(500).send({ status: 'error', message: 'Failed to process file' });
+  } finally {
+    if (filePath) {
+      await fs.unlink(filePath).catch(() => {});
+    }
   }
 }
+
+
+
 
 export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };

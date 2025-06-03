@@ -5,7 +5,7 @@ import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
 
 async function jobTemplate(fastify: FastifyInstance) {
-  fastify.register(fastifyMultipart);
+  //fastify.register(fastifyMultipart);
 
   fastify.get("/program/:program_id/job-template", {
     // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
