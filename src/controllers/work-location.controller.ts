@@ -10,6 +10,7 @@ import { Op, QueryTypes } from "sequelize";
 import { getWorklocation } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import CountryModel from "../models/countries.model";
+import WorkLocationCustomFieldModel from "../models/work-location-custom-field";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -104,6 +105,17 @@ export async function createWorkLocation(
         }, { transaction });
       }
     }
+     if (Array.isArray(workLocation.custom_fields) && workLocation.custom_fields.length > 0) {
+          const customFields = workLocation.custom_fields.map((field: {
+            id: any; value: any;
+          }) => ({
+            program_id,
+            customfield_id: field.id,
+            value: field.value,
+            work_location_id: workLocationData.id
+          }));
+          await WorkLocationCustomFieldModel.bulkCreate(customFields, { transaction });
+        }
     await transaction.commit();
     reply.status(201).send({
       status_code: 201,
@@ -336,7 +348,7 @@ export async function updateWorkLocation(request: FastifyRequest, reply: Fastify
   const traceId = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };
-    const { program_id, currencies, ...updates } = request.body as WorkLocationInterface;
+    const { program_id, currencies,custom_fields, ...updates } = request.body as WorkLocationInterface;
 
     if (!program_id) {
       return reply.status(400).send({
@@ -378,6 +390,22 @@ export async function updateWorkLocation(request: FastifyRequest, reply: Fastify
         })
       );
     }
+
+     if (custom_fields && custom_fields.length > 0) {
+            await WorkLocationCustomFieldModel.destroy({
+              where: { work_location_id:id },
+            });
+          }
+    
+          if (Array.isArray(custom_fields) && custom_fields.length > 0) {
+            const customFields =custom_fields.map((field: { id: any; value: any; }) => ({
+              program_id,
+              customfield_id: field.id,
+              value: field.value,
+              work_location_id: id,
+            }));
+            await WorkLocationCustomFieldModel.bulkCreate(customFields,);
+          }
 
     return reply.status(200).send({
       status_code: 200,

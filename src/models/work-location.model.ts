@@ -103,10 +103,10 @@ WorkLocationModel.init(
     timezone_id: {
       type: DataTypes.STRING,
     },
-    custom_fields: {
-      type: DataTypes.JSON,
-      allowNull: true,
-    },
+    // custom_fields: {
+    //   type: DataTypes.JSON,
+    //   allowNull: true,
+    // },
     program_id: {
       type: DataTypes.UUID,
       references: {
