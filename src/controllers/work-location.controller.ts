@@ -7,7 +7,7 @@ import WorkLocationCurrency from "../models/work-location-currency.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
-import { getWorklocation } from "../utility/queries";
+import { getWorklocation, getWorklocationCustomField } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import CountryModel from "../models/countries.model";
 import WorkLocationCustomFieldModel from "../models/work-location-custom-field";
@@ -315,6 +315,15 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
         message: "Work Location Not Found",
       });
     }
+     const [customFieldsResult] = await sequelize.query(
+      getWorklocationCustomField,
+      {
+        replacements: { program_id,id },
+        type: QueryTypes.SELECT,
+      }
+    )as any;
+
+    const customFields = customFieldsResult?.custom_fields ?? [];
     const workLocationCurrencies = await WorkLocationCurrency.findAll({
       where: { work_location_id: id },
       attributes: ['name', 'is_default', 'code'],
@@ -324,6 +333,7 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
     const responseWorkLocation = {
       ...workLocation.dataValues,
       currencies: responseCurrencies,
+      custom_fields:customFields
     };
 
     return reply.status(200).send({
