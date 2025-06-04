@@ -45,7 +45,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    console.log("userr", user)
+    console.log("userr-- - - - >", user)
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -84,7 +84,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             },
             candidateModel
         );
-
+        console.log("******************")
         const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id, program_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
@@ -93,6 +93,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             created_by: userId,
             updated_by: userId,
         });
+        console.log("candidateId:-",candidateId)
 
         logger(
             {
@@ -113,7 +114,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             },
             candidateModel
         );
-
+            console.log("Candidate :-")
         return reply.status(201).send({
             status_code: 201,
             message: "Candidate Created Successfully",

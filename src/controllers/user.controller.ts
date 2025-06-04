@@ -264,7 +264,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     const user_id = user.id;
-
+        console.log("user_id:: : :",user_id)
     const existingUser = await User.findOne({
       where: {
         user_id: user_id,
@@ -283,7 +283,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     let newUser;
-
+    console.log("-------------------->")
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     let candidateId;
@@ -303,7 +303,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         },
       });
       let vendor_id = vendor?.id || null;
-
+      console.log("vendor_id: : : ",vendor_id)
       const existingCandidate = await candidateModel.findOne({
         where: {
           email: user.email,
@@ -324,7 +324,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
-
+       console.log("candidateCode: : : ----",candidateCode)
       candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
@@ -335,7 +335,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         updated_by: userId,
         unique_id: uniqueId
       }, { transaction });
-
+        console.log("candidateData :  : : ",candidateData)
       candidateId = candidateData.id
       vendor_id = user.tenant_id
       const candidate = candidateData.toJSON();
