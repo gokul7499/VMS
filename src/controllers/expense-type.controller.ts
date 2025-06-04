@@ -345,7 +345,7 @@ export async function getAllExpenseType(
         whereClause.is_enabled = is_enabled === "true";
     }
     if (max_limit !== undefined) {
-        whereClause["unit_based.max_limit"] = { [Op.lte]: max_limit };
+        whereClause.max_unit_limit = max_limit;
     }
     if (updated_on) {
         const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
