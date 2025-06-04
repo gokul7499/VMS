@@ -217,6 +217,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
+            program_id,
             created_by: userId,
             updated_by: userId,
             created_on: Date.now(),
