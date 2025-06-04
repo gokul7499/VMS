@@ -955,7 +955,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     }
 
     if (master_data_type_id) {
-      const masterData = await jobTempletRepositories.masterDataQuery(master_data_type_id);
+      const masterData = await jobTempletRepositories.masterDataQuery(master_data_type_id, program_id);
       MasterDataHierarchyIds = masterData.map((row) => row.hierarchy_id);
     }
 
@@ -1103,7 +1103,7 @@ export async function uploadFile(
     return reply.status(500).send({ status: 'error', message: 'Failed to process file' });
   } finally {
     if (filePath) {
-      await fs.unlink(filePath).catch(() => {});
+      await fs.unlink(filePath).catch(() => { });
     }
   }
 }

@@ -635,13 +635,13 @@ COALESCE((
         type: QueryTypes.SELECT,
       }
     );
-  
+
     if (!managerData || managerData.length === 0) {
       return { hierarchies: [], defaultHierarchyId: null };
     }
-  
+
     const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id } = managerData[0];
-  
+
     if (is_all_hierarchy_associate) {
       const allHierarchies = await sequelize.query<{ id: string }>(
         `SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`,
@@ -650,7 +650,7 @@ COALESCE((
           type: QueryTypes.SELECT,
         }
       );
-  
+
       return {
         hierarchies: allHierarchies.map(h => h.id),
         defaultHierarchyId: default_hierarchy_id,
@@ -661,7 +661,7 @@ COALESCE((
       defaultHierarchyId: default_hierarchy_id,
     };
   }
-  
+
   async mspHierarchies(msp_id: string, program_id: string) {
     const hierarchies = await sequelize.query<{ id: string }>(
       `SELECT id FROM hierarchies 
@@ -700,18 +700,24 @@ COALESCE((
     return templateData;
   }
 
-  async masterDataQuery(master_data_type_id: string) {
-    const masterData = await sequelize.query<{
-      hierarchy_id: any; hierarchy: string 
-}>(
-      `SELECT hierarchy_id FROM master_data_type_hierarchy WHERE master_data_type_id = :master_data_type_id`,
+  async masterDataQuery(master_data_type_id: string, program_id: string) {
+    return sequelize.query<{ hierarchy_id: any }>(
+      `
+      SELECT 
+        CASE 
+          WHEN mdt.is_all_hierarchy_associated THEN h.id
+          ELSE mdth.hierarchy_id
+        END AS hierarchy_id
+      FROM master_data_type mdt
+      LEFT JOIN hierarchies h ON mdt.is_all_hierarchy_associated AND h.program_id = :program_id
+      LEFT JOIN master_data_type_hierarchy mdth ON NOT mdt.is_all_hierarchy_associated AND mdth.master_data_type_id = :master_data_type_id
+      WHERE mdt.id = :master_data_type_id
+      `,
       {
-        replacements: { master_data_type_id },
+        replacements: { master_data_type_id, program_id },
         type: QueryTypes.SELECT,
       }
     );
-
-    return masterData;
   }
 
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {
