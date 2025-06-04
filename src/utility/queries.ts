@@ -2366,6 +2366,8 @@ export const hierarchie = `
               LEFT JOIN user ON TRIM(BOTH '"' FROM hierarchies_custom_field.value) = user.user_id
               AND user.program_id = hierarchies_custom_field.program_id
               WHERE hierarchies_custom_field.hierarchy_id = h.id
+              AND custom_fields.is_deleted = false
+              AND custom_fields.is_enabled = true
     ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
@@ -3500,7 +3502,7 @@ export const getVendorDistributionSchedule = `
 `;
 
 
-export const getMasterDataCustomFields =  `
+export const getMasterDataCustomFields = `
    select 
 master_data_type.id,
  COALESCE((
@@ -3553,4 +3555,33 @@ export const userData = `
         OR program_id = :program_id
       )
     LIMIT 1;
-  `
+  `;
+
+export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
+  SELECT DISTINCT md.id,
+      md.program_id, md.name, md.is_enabled,
+      MIN(md.updated_on) AS first_updated_on, 
+      MAX(md.updated_on) AS last_updated_on,
+      md.code, md.foundational_data_type_id, md.depended_fields,
+      t.id AS manager_ids, t.first_name, t.last_name,
+      mdt.name AS foundational_data_type_name,
+      COUNT(*) OVER() AS total_count
+  FROM master_data AS md
+  LEFT JOIN user AS t ON md.manager_ids = t.id
+  LEFT JOIN master_data_type AS mdt ON md.foundational_data_type_id = mdt.id
+  WHERE md.program_id = :program_id
+      AND md.is_deleted = 0
+      AND (:id IS NULL OR md.id = :id)
+      AND (:name IS NULL OR md.name LIKE :name)
+      AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
+      AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
+      AND (:manager_ids IS NULL OR md.manager_ids = :manager_ids)
+      AND (:code IS NULL OR md.code LIKE :code)
+      AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
+      AND (:first_name IS NULL OR t.first_name LIKE :first_name)
+      ${hierarchyFilter}
+  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
+           t.id, t.first_name, t.last_name, mdt.name
+  ORDER BY last_updated_on DESC
+  LIMIT :limit OFFSET :offset;
+`;

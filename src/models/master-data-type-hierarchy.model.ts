@@ -7,6 +7,7 @@ import Hierarchies from './hierarchies.model';
 
 class MasterDataTypeHierarchy extends Model {
   hierarchy: any;
+  master_data_type_id: any;
 }
 MasterDataTypeHierarchy.init(
   {

@@ -21,10 +21,29 @@ import JobMasterDataModel from "../models/job-master-data.model";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import htmlEscape from "html-escape";
-import { Readable } from "stream";
+
 
 
 const jobTempletRepositories = new JobTempletRepository();
+import { pipeline } from 'stream/promises';
+import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
+import { convertFileToHTML } from '../utility/fileConverter';
+import { Readable } from 'node:stream';
+
+interface Metadata {
+  program_id: string;
+  job_template_id: string;
+  signed_url: string;
+}
+
+const supportedMimeTypes = [
+  'text/plain',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
 
 export const getAllJobTemplates = async (
   request: FastifyRequest,
@@ -913,9 +932,12 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     let mspHierarchyIds: string[] = [];
     let managerHierarchyIds: string[] = [];
     let MasterDataHierarchyIds: string[] = [];
+    let defaultHierarchyId: string | null = null;
 
-    if(job_manager_id){
-     managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    if (job_manager_id) {
+      const managerResult = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+      managerHierarchyIds = managerResult.hierarchies;
+      defaultHierarchyId = managerResult.defaultHierarchyId;
     }
 
     if (job_template_id) {
@@ -965,12 +987,14 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
         .filter((item: any) => item.parent_hierarchy_id === parentId)
         .map((item: any) => {
           const isAssociated = commonHierarchyIds.includes(item.id);
+          const isDefault = item.id === defaultHierarchyId;
           const children = buildHierarchy(data, item.id);
 
           if (isAssociated || children.length > 0) {
             return {
               ...item,
               is_associated: isAssociated,
+              is_default: isDefault,
               hierarchies: children
             };
           }
@@ -998,6 +1022,95 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
   }
 }
 
+function webReadableStreamToNodeStream(webStream: ReadableStream<Uint8Array>): NodeJS.ReadableStream {
+  const reader = webStream.getReader();
+  return new Readable({
+    async read() {
+      const { done, value } = await reader.read();
+      if (done) {
+        this.push(null);
+      } else {
+        this.push(Buffer.from(value));
+      }
+    }
+  });
+}
+
+export async function uploadFile(
+  req: FastifyRequest<{
+    Body: {
+      program_id: string;
+      job_template_id: string;
+      signed_url: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  const { program_id, job_template_id, signed_url } = req.body;
+
+  if (!signed_url || typeof signed_url !== 'string') {
+    return reply.status(400).send({ status: 'error', message: 'Missing or invalid signed_url' });
+  }
+
+  let filePath: string | undefined;
+
+  try {
+    const response = await fetch(signed_url);
+    if (!response.ok) {
+      return reply.status(400).send({
+        status: 'error',
+        message: 'Failed to fetch file from signed_url',
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!supportedMimeTypes.includes(contentType)) {
+      return reply.status(400).send({
+        status: 'error',
+        message: `Unsupported file type: ${contentType}`,
+      });
+    }
+
+    const tempDir = path.join(__dirname, '..', 'uploads');
+    const tempFile = `${randomUUID()}.upload`;
+    filePath = path.join(tempDir, tempFile);
+    await fs.mkdir(tempDir, { recursive: true });
+
+    const fileStream = createWriteStream(filePath);
+    const webStream = response.body;
+    if (!webStream) {
+      return reply.status(400).send({ status: 'error', message: 'Empty response body' });
+    }
+
+    const nodeStream = webReadableStreamToNodeStream(webStream as ReadableStream<Uint8Array>);
+    await pipeline(nodeStream, fileStream);
+
+    const htmlContent = await convertFileToHTML(filePath, contentType);
+
+    // Optional: do something with program_id and job_template_id
+    console.log('Received metadata:', { program_id, job_template_id });
+
+    return reply.send({
+      status: 'success',
+      message: 'File processed successfully',
+      data: {
+        upload_url: signed_url,
+        html_content: htmlContent,
+      },
+    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    return reply.status(500).send({ status: 'error', message: 'Failed to process file' });
+  } finally {
+    if (filePath) {
+      await fs.unlink(filePath).catch(() => {});
+    }
+  }
+}
+
+
+
+
 export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
@@ -1016,7 +1129,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       category,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[],job_template_id?: string[]; };
+    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[], job_template_id?: string[]; };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1058,8 +1171,8 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
     if (job_template_id && job_template_id.length > 0) {
-       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
-       replacements.job_template_id = job_template_id;
+      dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
+      replacements.job_template_id = job_template_id;
     }
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
