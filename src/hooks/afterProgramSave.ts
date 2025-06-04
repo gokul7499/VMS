@@ -14,6 +14,7 @@ export const createProgramModule = async (record: Model,transaction: any) => {
     let modules = await Module.findAll({
         where: {
             is_deleted: false,
+            is_enabled: true,
             parent_module_id: null
         },
         transaction 
