@@ -217,6 +217,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
+            program_id,
             created_by: userId,
             updated_by: userId,
             created_on: Date.now(),
@@ -394,7 +395,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
 
     try {
         const params = request.params as { program_id: string };
-        const query = request.query as { foundational_data_type_id?: string };
+        const query = request.query as { master_data_type_id?: string };
         const body = request.body as {
             id?: string;
             name?: string;
@@ -425,7 +426,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
 
         const replacements: any = {
             program_id: params.program_id,
-            foundational_data_type_id: query.foundational_data_type_id ?? null,
+            foundational_data_type_id: query.master_data_type_id ?? null,
             id: body.id ?? null,
             name: body.name ? `%${body.name}%` : null,
             is_enabled: body.is_enabled ?? null,
@@ -453,7 +454,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         }
 
         let masterDataType: string | null = null;
-        if (query.foundational_data_type_id) {
+        if (query.master_data_type_id) {
             const foundationalDataTypeResult = await sequelize.query<any>(
                 `SELECT name FROM master_data_type WHERE id = :foundational_data_type_id`,
                 {

@@ -45,7 +45,7 @@ async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.MASTER_DATA])
     }, FoundationalDataTypeController.getFoundationalDataTypeById);
 
-    fastify.post('/program/:program_id/foundational-datatypes-advanced-filter', {
+    fastify.post('/program/:program_id/master-data-types', {
         schema: {
             params: paramsSchema,
         },
