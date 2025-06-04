@@ -503,12 +503,13 @@ export async function expenseConfigurationAdvancedFilter(
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === true || is_enabled === "true";
         }
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const dateRange = updated_on.map(timestamp => Number(timestamp));
-
-            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
-                whereCondition.updated_on = { [Op.between]: dateRange };
-            }
+        if (updated_on && Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startDate, endDate] = updated_on;
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp = new Date(endDate).getTime();
+            whereCondition.updated_on = {
+                [Op.between]: [startTimestamp, endTimestamp]
+            };
         }
 
         if (hierarchy_ids && hierarchy_ids.length > 0) {
