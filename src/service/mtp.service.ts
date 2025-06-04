@@ -190,11 +190,13 @@ class MtpService {
 
     async getMtpById(programId: string, id: string, limit?: number, offset?: number) {
         const mtpData = await this.mtpRepository.getMtpById(programId, id,limit, offset);
-
-        return {
-            message: mtpData ? "MTP data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
-        };
+        console.log("mtpData", mtpData);
+        const hasData = mtpData && mtpData?.[0]?.id;
+       console.log("hasData", hasData);
+       return {
+       message: hasData ? "MTP data retrieved successfully." : "No matching records found.",
+       data: hasData ? mtpData : {}
+       };
     }
 
 
