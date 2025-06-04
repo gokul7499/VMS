@@ -198,9 +198,7 @@ async function updateMtpWithMatchingProfiles(
   }[],
   programId: string
 ): Promise<number> {
-  console.log("candidateMatchingScore",candidateMatchingScore)
   if (!candidateMatchingScore.length) {
-    console.log(`[updateMtpWithMatchingProfiles] - No matching profiles to update`);
     return 0;
   }
 
@@ -228,9 +226,6 @@ async function updateMtpWithMatchingProfiles(
       }
     });
 
-    console.log(`[updateMtpWithMatchingProfiles] - MTPs found to update: ${mtpsToUpdate.length}`);
-
-    // Step 3: Update only MTPs with direct matches
     const updatedCount = await sequelize.transaction(async (transaction) => {
       let count = 0;
 
@@ -255,8 +250,6 @@ async function updateMtpWithMatchingProfiles(
           { linked_profiles: updatedLinkedProfiles },
           { transaction }
         );
-      console.log("update data mtp:::::::::::::::::::::",dataUpdate)
-        console.log(`[updateMtpWithMatchingProfiles] - Updated MTP ID: ${mtp.id}`);
         count++;
       }
 
