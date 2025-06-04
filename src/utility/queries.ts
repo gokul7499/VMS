@@ -3585,3 +3585,34 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
   ORDER BY last_updated_on DESC
   LIMIT :limit OFFSET :offset;
 `;
+
+export const getWorklocationCustomField = `
+  SELECT 
+    work_locations.id,
+    work_locations.name,
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'custom_field_id', work_location_custom_field.customfield_id,
+                'value', JSON_UNQUOTE(JSON_EXTRACT(work_location_custom_field.value, '$')),
+                'label', cf.label,
+                'field_type', cf.field_type,
+                'manager_name',
+          CASE
+            WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
+            ELSE NULL
+          END
+            )
+        )
+        FROM work_location_custom_field
+        JOIN custom_fields cf ON work_location_custom_field.customfield_id = cf.id
+        LEFT JOIN user AS u 
+        ON REPLACE(REPLACE(work_location_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = work_locations.program_id
+        WHERE  work_locations.program_id=cf.program_id
+        AND cf.is_enabled = true
+        AND cf.is_deleted = false
+    ), JSON_ARRAY()) AS custom_fields
+FROM work_locations
+WHERE work_locations.program_id =:program_id
+AND  work_locations.id=:id
+  `;

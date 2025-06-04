@@ -758,7 +758,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         });
 
         const vendorGroupQuery: { where: Record<string, any>; attributes: any } = {
-            where: { program_id, is_deleted: false },
+            where: { program_id, is_deleted: false, is_enabled: true },
             attributes: ['id', 'vendor_group_name'],
         };
 
