@@ -11,6 +11,7 @@ class MtpModel extends Model {
     linked_profiles: any;
   static QueryTypes: any;
   static query: any;
+  mtp_candidate_id: any;
 
 }
 

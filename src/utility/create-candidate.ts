@@ -150,7 +150,7 @@ export async function findDuplicateCandidate(
 
           console.log(`[findDuplicateCandidate] - PossibleDuplicateCandidate created:`, possibleDuplicateData?.id);
 
-          const updatedCount = await updateMtpWithMatchingProfiles(matchingProfiles, programId);
+          const updatedCount = await updateMtpWithMatchingProfiles(candidateMatchingScore, programId);
           console.log(`[findDuplicateCandidate] - Total MTPs updated: ${updatedCount}`);
         } else {
           console.log(`[findDuplicateCandidate] - Candidate is NOT part of matching profiles, creating MTP.`);
@@ -191,56 +191,82 @@ export async function findDuplicateCandidate(
 
 
 async function updateMtpWithMatchingProfiles(
-  matchingProfileIds: string[],
+  candidateMatchingScore: {
+    score: number;
+    candidate1_id: string;
+    candidate2_id: string;
+  }[],
   programId: string
 ): Promise<number> {
-  if (!matchingProfileIds.length) {
+  console.log("candidateMatchingScore",candidateMatchingScore)
+  if (!candidateMatchingScore.length) {
     console.log(`[updateMtpWithMatchingProfiles] - No matching profiles to update`);
     return 0;
   }
-  
+
   if (!programId) {
     throw new Error('Program ID is required');
   }
 
   try {
+    const directMatchMap: Record<string, Set<string>> = {};
+
+    for (const { candidate1_id, candidate2_id } of candidateMatchingScore) {
+      if (!directMatchMap[candidate1_id]) directMatchMap[candidate1_id] = new Set();
+      if (!directMatchMap[candidate2_id]) directMatchMap[candidate2_id] = new Set();
+
+      directMatchMap[candidate1_id].add(candidate2_id);
+      directMatchMap[candidate2_id].add(candidate1_id);
+    }
+
+    const mtpCandidateIds = Object.keys(directMatchMap);
+
     const mtpsToUpdate = await MtpModel.findAll({
       where: {
         program_id: programId,
-        [Op.or]: matchingProfileIds.map((id) => {
-          return Sequelize.where(
-            Sequelize.fn('JSON_CONTAINS', Sequelize.col('linked_profiles'), JSON.stringify(id)),
-            1
-          );
-        })
+        mtp_candidate_id: mtpCandidateIds
       }
     });
 
     console.log(`[updateMtpWithMatchingProfiles] - MTPs found to update: ${mtpsToUpdate.length}`);
-    
+
+    // Step 3: Update only MTPs with direct matches
     const updatedCount = await sequelize.transaction(async (transaction) => {
       let count = 0;
-      
+
       for (const mtp of mtpsToUpdate) {
-        const existingLinkedProfiles = mtp.linked_profiles || [];
-        const updatedLinkedProfilesSet = new Set([...existingLinkedProfiles, ...matchingProfileIds]);
-        const updatedLinkedProfiles = Array.from(updatedLinkedProfilesSet);
-        
-        await mtp.update({
-          linked_profiles: updatedLinkedProfiles
-        }, { transaction });
-        
+        const candidateId = mtp.mtp_candidate_id;
+        const directMatches = directMatchMap[candidateId];
+
+        if (!directMatches || directMatches.size === 0) {
+          continue;
+        }
+
+        const existingLinkedProfiles = Array.isArray(mtp.linked_profiles)
+          ? mtp.linked_profiles
+          : [];
+
+        const updatedLinkedProfiles = Array.from(new Set([
+          ...existingLinkedProfiles,
+          ...directMatches
+        ]));
+
+       const dataUpdate= await mtp.update(
+          { linked_profiles: updatedLinkedProfiles },
+          { transaction }
+        );
+      console.log("update data mtp:::::::::::::::::::::",dataUpdate)
+        console.log(`[updateMtpWithMatchingProfiles] - Updated MTP ID: ${mtp.id}`);
         count++;
-        console.log(`[updateMtpWithMatchingProfiles] - MTP updated with new linked_profiles. MTP ID: ${mtp.id}`);
       }
-      
+
       return count;
     });
-    
+
     return updatedCount;
   } catch (error) {
-    console.error(`[updateMtpWithMatchingProfiles] - Error updating MTPs:`, error);
-    throw error; 
+    console.error(`[updateMtpWithMatchingProfiles] - Error:`, error);
+    throw error;
   }
 }
 
