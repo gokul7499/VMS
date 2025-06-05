@@ -1340,10 +1340,10 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
       });
     }
  
-    // Build conditions for checking existing templates
+    
     const templateConditions = jobTemplates.map((template) => ({
       template_name: template.template_name,
-      program_id: program_id, // ✅ just the value
+      program_id: program_id, 
     }));
  
     const existingTemplates = await jobTemplateModel.findAll({
@@ -1360,16 +1360,8 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
       .filter((tpl) => !existingSet.has(`${tpl.template_name}|${program_id}`))
       .map((tpl) => ({
         ...tpl,
-        program_id, // ✅ attach program_id from params to each new template
-      }));
- 
-    if (newTemplates.length === 0) {
-      return reply.status(409).send({
-        status_code: 409,
-        message: "All job templates already exist.",
-        trace_id: traceId,
-      });
-    }
+        program_id,
+      })); 
  
     const createdTemplates = await jobTemplateModel.bulkCreate(newTemplates, {
       validate: true,
