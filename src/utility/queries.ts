@@ -1428,47 +1428,17 @@ export const programVendorAdvancedFilter = (
   }
 
   return `
-    WITH document_data AS (
-      SELECT
-        vdg.id AS doc_group_id,
-        vdg.name AS doc_group_name,
-        JSON_ARRAYAGG(
-          JSON_OBJECT('doc_id', vcd.id, 'doc_name', vcd.name)
-        ) AS compliance_documents
-      FROM vendor_document_groups vdg
-      LEFT JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
-      GROUP BY vdg.id
-    ),
-
-    vendor_doc_groups AS (
+    WITH vendor_doc_compliance_check AS (
       SELECT
         pv.id AS vendor_id,
-        JSON_ARRAYAGG(vcd.id) AS com_doc_groups
+        CASE
+          WHEN COUNT(vr.id) > 0 AND SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END) = COUNT(vr.id)
+          THEN 1
+          ELSE 0
+        END AS compliance_status
       FROM program_vendors pv
-      JOIN vendor_document_groups vdg
-        ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(CAST(vdg.id AS CHAR)), '$')
-      JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
-      GROUP BY pv.id
-    ),
-
-    vendor_doc_compliance_check AS (
-      SELECT
-        pv.id AS vendor_id,
-        IF(
-          COUNT(DISTINCT vcd.id) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END),
-          TRUE,
-          FALSE
-        ) AS compliance_status
-      FROM program_vendors pv
-      JOIN vendor_document_groups vdg
-        ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(CAST(vdg.id AS CHAR)), '$')
-      JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
       LEFT JOIN vendor_compliance_req_doc_mappings vr
-        ON vr.required_document_id = vcd.id
-        AND vr.vendor_id = pv.id
+        ON vr.vendor_id = pv.id
       GROUP BY pv.id
     )
 
@@ -1476,7 +1446,6 @@ export const programVendorAdvancedFilter = (
       pv.id,
       pv.program_id,
       pv.tenant_id,
-      vdg.com_doc_groups AS com_doc_group,
       pv.display_name,
       pv.vendor_name,
       pv.is_enabled,
@@ -1486,8 +1455,6 @@ export const programVendorAdvancedFilter = (
       vcc.compliance_status,
       COUNT(*) OVER() AS total_count
     FROM program_vendors AS pv
-    LEFT JOIN vendor_doc_groups vdg
-      ON vdg.vendor_id = pv.id
     LEFT JOIN vendor_doc_compliance_check vcc
       ON vcc.vendor_id = pv.id
     WHERE

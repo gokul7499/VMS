@@ -454,11 +454,14 @@ class MtpService {
             }
     
             transaction = await sequelize.transaction();
+            const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+            const talentName = getCandidateData?.[0]?.candidate_name;
     
            await MtpModel.update(
                 {
                     mtp_candidate_id: mtpCandidateId,
-                    is_master_profile: true
+                    is_master_profile: true,
+                    talent_name:talentName
                 },
                 {
                     where: {
