@@ -1155,7 +1155,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       limit = 10,
     } = request.body as GetJobTemplatesQuery & {
       hierarchy_ids?: string[];
-      job_template_id?: string[];
+      job_template_id?: any;
       requested_from?: string;
     };
 
@@ -1222,7 +1222,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       `);
       replacements.hierarchy_ids = hierarchy_ids;
     }
-    if(requested_from){
+    if(requested_from && job_template_id<1){
       reply.status(200).send({
         status_code: 200, 
         trace_id: traceId,
