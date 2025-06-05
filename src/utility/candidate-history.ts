@@ -13,7 +13,7 @@ export const createCandidateHistory = async (program_id: string, token: string, 
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `${token}`
         }
       }
     );
