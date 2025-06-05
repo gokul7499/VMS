@@ -451,7 +451,6 @@ export async function saveProgramVendor(
 export const updateProgramVendor = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const { program_id, tenant_id } = request.params as { program_id: string; tenant_id: string };
-    console.log("request.params", request.params);
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
 
@@ -470,7 +469,6 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
 
     try {
         const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, tenant_id }, transaction });
-        console.log("existingProgramVendor", existingProgramVendor);
         if (!existingProgramVendor) {
             await transaction.rollback();
             return reply.status(200).send({
@@ -531,6 +529,45 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                             { where: { id: groupId }, transaction }
                         );
                     }
+                }
+            }
+        }
+
+        if (programVendorData.com_doc_group && Array.isArray(programVendorData.com_doc_group)) {
+            const complianceDocuments = await sequelize.query<{ id: any }>(`   
+            SELECT DISTINCT vd.id 
+            FROM vendor_document_groups vdg
+              JOIN JSON_TABLE(
+                vdg.required_documents,
+                '$[*]' COLUMNS (doc_id VARCHAR(255) PATH '$')
+              ) AS docs ON true
+            JOIN vendor_compliance_documents vd ON vd.id = docs.doc_id
+            WHERE vdg.id IN (:groupIds)
+            AND vd.is_enabled = true;`,
+                { replacements: { groupIds: programVendorData.com_doc_group, }, type: QueryTypes.SELECT, transaction, }
+            );
+
+            for (const doc of complianceDocuments) {
+                const existingMapping = await VendorComplianceReqDocMappingModel.findOne({
+                    where: {
+                        vendor_id: existingProgramVendor.id,
+                        required_document_id: doc.id,
+                    },
+                    transaction,
+                });
+
+                if (!existingMapping) {
+                    await VendorComplianceReqDocMappingModel.create(
+                        {
+                            vendor_id: existingProgramVendor.id,
+                            required_document_id: doc.id,
+                            program_id: program_id,
+                            status: "Pending Upload",
+                            created_by: userId,
+                            updated_by: userId,
+                        },
+                        { transaction }
+                    );
                 }
             }
         }
