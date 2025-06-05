@@ -93,7 +93,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             created_by: userId,
             updated_by: userId,
         });
-        console.log("candidateId:-",candidateId)
+        console.log("candidateId:-", candidateId)
 
         logger(
             {
@@ -114,7 +114,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             },
             candidateModel
         );
-            console.log("Candidate :-")
+        console.log("Candidate :-")
         return reply.status(201).send({
             status_code: 201,
             message: "Candidate Created Successfully",
@@ -601,15 +601,25 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const offset = (pageNum - 1) * limitNum;
 
     const workerTypeIds = worker_type_id ? worker_type_id.split(",") : [];
-    let userData;
+    let userData: any;
     if (!user?.userType) {
         userData = await User.findOne({
             where: { program_id: program_id, user_id: userId },
-            attributes: ['id', 'program_id', 'tenant_id', 'user_type']
+            attributes: ['id', 'program_id', 'tenant_id', 'user_type', 'is_all_hierarchy_associate', 'associate_hierarchy_ids']
         });
     }
+
     const vendorId = userData?.tenant_id ?? undefined;
     const user_type = userData?.user_type ?? undefined;
+    let isMsp = false;
+    let is_all_hierarchy_associate = false;
+    let associate_hierarchy_ids: string[] = [];
+
+    if (user_type === 'msp') {
+        isMsp = true;
+        is_all_hierarchy_associate = userData?.is_all_hierarchy_associate ?? false;
+        associate_hierarchy_ids = userData?.associate_hierarchy_ids ?? [];
+    }
 
     if (user?.userType === 'super_user' || user_type === 'client' || user_type === 'msp') {
         const replacements = {
@@ -625,8 +635,12 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             worker_type_id: workerTypeIds,
             availability_date: availability_date ? parseInt(availability_date, 10) : undefined,
             updated_on: updated_on ? updated_on : undefined,
-            search: search ? `%${search}%` : null
+            search: search ? `%${search}%` : null,
+            isMsp,
+            is_all_hierarchy_associate,
+            associate_hierarchy_ids
         };
+
         const { count, candidates } = await candidateRepository.getCandidatesWithFilters(replacements);
 
         return reply.status(200).send({
@@ -729,7 +743,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_pre_identified",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire", "is_pre_identified",
             ],
             limit: limitNum,
             offset,

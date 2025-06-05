@@ -35,7 +35,27 @@ class CandidateRepository {
             c.last_name LIKE :search OR 
             c.email LIKE :search OR
             CONCAT(c.first_name, ' ', c.last_name, c.email) LIKE :search
-          )`}
+          )`
+        }
+
+        if (replacements.isMsp) {
+            if (replacements.is_all_hierarchy_associate) {
+                whereClause += ` AND c.vendor_id IN (
+                    SELECT id FROM program_vendors WHERE program_id = :program_id
+                )`;
+            } else if (replacements.associate_hierarchy_ids && replacements.associate_hierarchy_ids.length > 0) {
+                const hierarchyIds = replacements.associate_hierarchy_ids.map((id: string) => `'${id.trim()}'`).join(',');
+                whereClause += ` AND c.vendor_id IN (
+                    SELECT id FROM program_vendors 
+                    WHERE program_id = :program_id
+                    AND (
+                        all_hierarchy = true
+                        OR
+                        JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchyIds}))
+                    )
+                )`;
+            }
+        }
 
         const countQuery = `
             SELECT COUNT(*) as count 
