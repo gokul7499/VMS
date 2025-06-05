@@ -16,6 +16,7 @@ import QualificationTypeModel from "../models/qualification-type-model";
 import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
+import { createCandidateHistory } from "../utility/candidate-history";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -44,7 +45,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    console.log("userr", user)
+    console.log("userr-- - - - >", user)
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -83,7 +84,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             },
             candidateModel
         );
-
+        console.log("******************")
         const candidateId = id ? candidate.candidate_id : await CandidateCodeGenerate(vendor_id, program_id);
         const [candidateData]: any = await candidateModel.upsert({
             ...candidate,
@@ -92,6 +93,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             created_by: userId,
             updated_by: userId,
         });
+        console.log("candidateId:-",candidateId)
 
         logger(
             {
@@ -112,7 +114,7 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
             },
             candidateModel
         );
-
+            console.log("Candidate :-")
         return reply.status(201).send({
             status_code: 201,
             message: "Candidate Created Successfully",
@@ -502,6 +504,9 @@ export async function updateCandidateByIdAndProgramId(
                 });
             }
         }
+
+
+
         let uniqueId = await CandidateUniqueIdGenerate(program_id, updates);
         const [updatedRows] = await candidateModel.update(
             { ...updates, updated_by: userId, updated_on: Date.now(), unique_id: uniqueId },
@@ -526,6 +531,11 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
+
+        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
+            .catch(error => {
+                console.error("Failed to create candidate history:", error);
+            });
         return reply.status(200).send({
             status_code: 200,
             message: "Candidate updated successfully",
@@ -591,8 +601,17 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
     const offset = (pageNum - 1) * limitNum;
 
     const workerTypeIds = worker_type_id ? worker_type_id.split(",") : [];
+    let userData;
+    if (!user?.userType) {
+        userData = await User.findOne({
+            where: { program_id: program_id, user_id: userId },
+            attributes: ['id', 'program_id', 'tenant_id', 'user_type']
+        });
+    }
+    const vendorId = userData?.tenant_id ?? undefined;
+    const user_type = userData?.user_type ?? undefined;
 
-    if (user?.userType === 'super_user') {
+    if (user?.userType === 'super_user' || user_type === 'client' || user_type === 'msp') {
         const replacements = {
             program_id,
             limit: limitNum,
@@ -620,12 +639,6 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         });
     }
 
-    const userData = await User.findOne({
-        where: { program_id: program_id, user_id: userId },
-        attributes: ['id', 'program_id', 'tenant_id', 'user_type']
-    });
-    const vendorId = userData?.tenant_id || undefined;
-
     const vendor = await ProgramVendor.findOne({
         where: {
             program_id: program_id,
@@ -634,7 +647,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
         plain: true
     });
 
-    const vendor_id = vendor?.id || null;
+    const vendor_id = vendor?.id ?? null;
 
     if (vendorId === undefined) {
         return reply.status(200).send({
@@ -716,7 +729,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
             where: whereClause,
             attributes: [
                 'id', 'first_name', 'middle_name', 'last_name', 'is_active', 'name', 'email', 'tenant_id', "contacts",
-                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_per_identified",
+                'candidate_id', 'preferences', 'vendor_id', 'worker_type_id', 'title', 'birth_date', 'updated_on', "state_national_id", "do_not_rehire_notes", "do_not_rehire_reason", "do_not_rehire","is_pre_identified",
             ],
             limit: limitNum,
             offset,
@@ -759,7 +772,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
                 do_not_rehire_reason: cand.do_not_rehire_reason,
                 do_not_rehire: cand.do_not_rehire,
                 phone_number: cand.contacts[0]?.number,
-                is_per_identified: cand.is_per_identified
+                is_pre_identified: cand.is_pre_identified
             };
         });
 

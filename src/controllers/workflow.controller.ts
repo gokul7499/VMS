@@ -26,17 +26,18 @@ import WorkflowLevelCondition from '../models/workflow-level-condition.model';
 import WorkflowRecepientType from '../models/workflow-recipient-type.model';
 import User from '../models/user.model';
 import CustomField from '../models/custom-fields.model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import FoundationalDataTypes from '../models/master-datatypes.model';
 import WorkLocationModel from '../models/work-location.model';
 import IndustriesModel from '../models/labour-category.model';
 import picklistModel from '../models/picklist.model';
-import foundationalData from '../models/foundational-data.model';
+import foundationalData from '../models/master-data.model';
 import jobTemplateModel from '../models/job-template.model';
 import TimesheetTypeConfig from '../models/timesheet-type-config.model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import axios from 'axios';
 import { databaseConfig } from '../config/db';
+import PicklistItemModel from '../models/picklist-item.model';
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -501,7 +502,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             });
         });
 
-        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType] = await Promise.all([
+        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType, picklistItem] = await Promise.all([
             FieldConfigModel.findAll({
                 where: { id: { [Op.in]: Array.from(metaFieldConfigIds) } },
                 attributes: ['id', 'config', 'field_id', 'placement_order'],
@@ -560,6 +561,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(targetValues) } },
                 attributes: ['id', 'title']
             }),
+            PicklistItemModel.findAll({
+                where: { id: { [Op.in]: Array.from(selectedItems) } },
+                attributes: ['id', 'value','slug']
+            }),
         ]);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
@@ -582,6 +587,11 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             return acc;
         }, {});
         const masterItemMap = foundationalDetails.reduce((acc: any, item: any) => {
+            acc[item.id] = item;
+            return acc;
+        }, {});
+
+        const picklistItemMap = picklistItem.reduce((acc: any, item: any) => {
             acc[item.id] = item;
             return acc;
         }, {});
@@ -796,6 +806,16 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                                 condition.source_field_meta = {
                                     id: masterDataItem.id,
                                     name: masterDataItem.name
+                                };
+                            }
+                            
+                            const picklistItem = picklistItemMap[condition.source_field_meta.selected_item];
+                            
+                            if (picklistItem) {
+                                condition.source_field_meta = {
+                                    id: picklistItem.id,
+                                    name: picklistItem.value,
+                                    slug: picklistItem.slug
                                 };
                             }
                             delete condition.source_field_meta.selected_item;

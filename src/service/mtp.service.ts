@@ -188,13 +188,13 @@ class MtpService {
     }
 
 
-    async getMtpById(programId: string, id: string) {
-        const [mtpData] = await this.mtpRepository.getMtpById(programId, id);
-
-        return {
-            message: mtpData ? "MTP data retrieved successfully." : "No matching records found.",
-            data: mtpData || []
-        };
+    async getMtpById(programId: string, id: string, limit?: number, offset?: number) {
+        const [mtpData] = await this.mtpRepository.getMtpById(programId, id,limit, offset);
+        const hasData = mtpData && mtpData?.id;
+       return {
+       message: hasData ? "MTP data retrieved successfully." : "No matching records found.",
+       data: hasData ? mtpData : {}
+       };
     }
 
 
@@ -232,50 +232,48 @@ class MtpService {
                 { linked_profiles: updatedTargetLinks },
                 { where: { id, program_id: programId }, transaction }
             );
-    
+
+           if (unlinkMtpId) {
+            await MtpModel.findOne({
+                where: { id: unlinkMtpId, program_id: programId, is_deleted: false },
+                transaction
+            });
+        
             if (unlinkMtpId) {
                 const unlinkMtp = await MtpModel.findOne({
                     where: { id: unlinkMtpId, program_id: programId, is_deleted: false },
                     transaction
                 });
-    
+            
                 if (unlinkMtp) {
                     const oldLinks = Array.isArray(unlinkMtp.linked_profiles) ? unlinkMtp.linked_profiles : [];
-                    const updatedOldLinks = oldLinks.filter(id => !mtpCandidateId.includes(id));
-    
-                  const data=  await MtpModel.update(
+                    const candidatesToTransfer = mtpCandidateId.length === 0 ? oldLinks : mtpCandidateId;
+            
+                    const updatedOldLinks = oldLinks.filter(id => !candidatesToTransfer.includes(id));
+                    await MtpModel.update(
                         { linked_profiles: updatedOldLinks },
                         { where: { id: unlinkMtpId, program_id: programId }, transaction }
                     );
-                    console.log("data",data)
+
+                    const newLinksToAdd = candidatesToTransfer.filter(id => !updatedTargetLinks.includes(id));
+                    updatedTargetLinks.push(...newLinksToAdd);
+            
+                    await MtpModel.update(
+                        { linked_profiles: updatedTargetLinks },
+                        { where: { id, program_id: programId }, transaction }
+                    );
+
+                     if (mtpCandidateId.length === 0 || updatedOldLinks.length === 0) {
+                        await MtpModel.update(
+                            { is_deleted: true },
+                            { where: { id: unlinkMtpId, program_id: programId }, transaction }
+                        );
+                    }
                 }
             }
-
-            const conflictingMtps = await MtpModel.findAll({
-                where: {
-                  program_id: programId,
-                  is_deleted: false,
-                  id: { [Op.ne]: id },
-                  mtp_candidate_id: { [Op.in]: mtpCandidateId },
-                },
-                transaction
-              });
-          
-              if (conflictingMtps.length > 0) {
-                const conflictingIds = conflictingMtps.map(m => m.id);
-          
-                await MtpModel.update(
-                  { is_deleted: true },
-                  {
-                    where: {
-                      id: { [Op.in]: conflictingIds }
-                    },
-                    transaction
-                  }
-                );
-              }
-          
-    
+            
+        }
+        
             await transaction.commit();
     
             return {
@@ -456,11 +454,14 @@ class MtpService {
             }
     
             transaction = await sequelize.transaction();
+            const getCandidateData = await this.mtpRepository.getCandidate(programId, mtpCandidateId);
+            const talentName = getCandidateData?.[0]?.candidate_name;
     
            await MtpModel.update(
                 {
                     mtp_candidate_id: mtpCandidateId,
-                    is_master_profile: true
+                    is_master_profile: true,
+                    talent_name:talentName
                 },
                 {
                     where: {

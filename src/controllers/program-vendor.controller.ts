@@ -357,6 +357,7 @@ export async function saveProgramVendor(
             addresses: user.addresses,
             tenant_id: tenant.id,
             background_logo_color: tenant.background_logo_color,
+            job_title: user.job_title,
         }
 
         const contact = [
@@ -377,7 +378,7 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.title }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
@@ -449,7 +450,7 @@ export async function saveProgramVendor(
 
 export const updateProgramVendor = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { program_id, tenant_id } = request.params as { program_id: string; tenant_id: string };
     const programVendorData = request.body as Partial<programVendorInterface>;
     const authHeader = request.headers.authorization;
 
@@ -467,8 +468,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
     const transaction = await sequelize.transaction();
 
     try {
-        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, id }, transaction });
-
+        const existingProgramVendor = await ProgramVendor.findOne({ where: { program_id, tenant_id }, transaction });
         if (!existingProgramVendor) {
             await transaction.rollback();
             return reply.status(200).send({
@@ -478,6 +478,16 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 program_vendor: []
             });
         }
+
+        const normalizeEmptyArrayToNull = (obj: Record<string, any>) => {
+            for (const key in obj) {
+                if (Array.isArray(obj[key]) && obj[key].length === 0) {
+                    obj[key] = null;
+                }
+            }
+        };
+
+        normalizeEmptyArrayToNull(programVendorData);
 
         await existingProgramVendor.update(
             { ...programVendorData, updated_by: userId, updated_on: Date.now() },
@@ -491,6 +501,8 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
         if (programVendorData.all_work_locations) userUpdatePayload.is_all_work_location_associate = programVendorData.all_work_locations;
         if (programVendorData.program_industry) userUpdatePayload.associate_labour_category = programVendorData.program_industry;
         if (programVendorData.is_labour_category) userUpdatePayload.is_all_labour_category_associate = programVendorData.is_labour_category;
+        if (programVendorData.all_job_type) userUpdatePayload.is_all_job_type_associate = programVendorData.all_job_type;
+        if (programVendorData.job_type) userUpdatePayload.associate_job_type = programVendorData.job_type;
         if (programVendorData.contact) userUpdatePayload.contacts = programVendorData.contact;
 
         if (Object.keys(userUpdatePayload).length > 0) {
@@ -521,6 +533,45 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
+        if (programVendorData.com_doc_group && Array.isArray(programVendorData.com_doc_group)) {
+            const complianceDocuments = await sequelize.query<{ id: any }>(`   
+            SELECT DISTINCT vd.id 
+            FROM vendor_document_groups vdg
+              JOIN JSON_TABLE(
+                vdg.required_documents,
+                '$[*]' COLUMNS (doc_id VARCHAR(255) PATH '$')
+              ) AS docs ON true
+            JOIN vendor_compliance_documents vd ON vd.id = docs.doc_id
+            WHERE vdg.id IN (:groupIds)
+            AND vd.is_enabled = true;`,
+                { replacements: { groupIds: programVendorData.com_doc_group, }, type: QueryTypes.SELECT, transaction, }
+            );
+
+            for (const doc of complianceDocuments) {
+                const existingMapping = await VendorComplianceReqDocMappingModel.findOne({
+                    where: {
+                        vendor_id: existingProgramVendor.id,
+                        required_document_id: doc.id,
+                    },
+                    transaction,
+                });
+
+                if (!existingMapping) {
+                    await VendorComplianceReqDocMappingModel.create(
+                        {
+                            vendor_id: existingProgramVendor.id,
+                            required_document_id: doc.id,
+                            program_id: program_id,
+                            status: "Pending Upload",
+                            created_by: userId,
+                            updated_by: userId,
+                        },
+                        { transaction }
+                    );
+                }
+            }
+        }
+
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             await vendorMarkupConfig.destroy({
                 where: { program_id, program_vendor_id: existingProgramVendor.id },
@@ -536,7 +587,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                 ];
 
                 fieldsToCheck.forEach(field => {
-                    if (markupData[field] === 'all') {
+                    if (markupData[field] === 'all' || (Array.isArray(markupData[field]) && markupData[field].length === 0)) {
                         markupData[field] = null;
                     }
                 });
@@ -580,7 +631,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.custom_fields) {
+        if (programVendorData.custom_fields !== undefined) {
             await VendorCustomField.destroy({
                 where: { vendor_id: programVendorData.id },
                 transaction
@@ -744,7 +795,7 @@ export async function getVendorAndVendorGroup(request: FastifyRequest, reply: Fa
         });
 
         const vendorGroupQuery: { where: Record<string, any>; attributes: any } = {
-            where: { program_id, is_deleted: false },
+            where: { program_id, is_deleted: false, is_enabled: true },
             attributes: ['id', 'vendor_group_name'],
         };
 

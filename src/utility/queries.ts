@@ -185,7 +185,6 @@ WHERE
 export const complianceDocumentGetByUserId = (replacements: any) => {
   let whereClause = `
     pv.program_id = :program_id
-    AND vcd.is_enabled = true
     AND vcd.program_id = :program_id
     AND (vcrm.program_id IS NULL OR vcrm.program_id = :program_id)
     AND (pv.id IS NULL OR pv.id = :vendor_id)
@@ -196,7 +195,6 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
 
   let countWhereClause = `
     pv_sub.program_id = :program_id
-    AND vcd_sub.is_enabled = true
     AND vcd_sub.program_id = :program_id
     AND (vcrm_sub.program_id IS NULL OR vcrm_sub.program_id = :program_id)
     AND (pv_sub.id IS NULL OR pv_sub.id = :vendor_id)
@@ -419,7 +417,7 @@ export const complianceDocumentGetByVendorId = `
         SELECT COUNT(DISTINCT vcd_sub.id)
         FROM program_vendors pv_sub
         JOIN vendor_document_groups vdg_sub ON JSON_CONTAINS(pv_sub.com_doc_group, JSON_QUOTE(vdg_sub.id))
-        LEFT JOIN vendor_compliance_documents vcd_sub ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id)) AND vcd_sub.is_enabled = true
+        LEFT JOIN vendor_compliance_documents vcd_sub ON JSON_CONTAINS(vdg_sub.required_documents, JSON_QUOTE(vcd_sub.id))
         WHERE pv_sub.program_id = :program_id
           AND (pv_sub.id IS NULL OR pv_sub.id = :vendor_id)
           AND (:name IS NULL OR vcd_sub.name LIKE :name)
@@ -430,7 +428,7 @@ export const complianceDocumentGetByVendorId = `
     JOIN
         vendor_document_groups vdg ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(vdg.id))
     LEFT JOIN
-        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id)) AND vcd.is_enabled = true
+        vendor_compliance_documents vcd ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(vcd.id))
     LEFT JOIN
         vendor_compliance_req_doc_mappings vcrm ON vcd.id = vcrm.required_document_id  AND vcrm.vendor_id=:vendor_id
     LEFT JOIN
@@ -627,7 +625,8 @@ export const getAllHierarchies = (
   hasName: boolean,
   hasIsEnabled: boolean,
   startDate?: number,
-  endDate?: number
+  endDate?: number,
+  hasMsp?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -644,9 +643,19 @@ WITH hierarchy_cte AS (
     h.is_vendor_neutral_program,
     h.is_not_editable,
     h.default_currency,
-    t.name AS managed_by_name,
-    t.display_name AS managed_by_display_name,
-    ph.name AS parent_hierarchy_name
+    ph.name AS parent_hierarchy_name,
+    CASE 
+      WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+        'id', 'self-managed',
+        'name', 'self-managed',
+        'display_name', 'self-managed'
+      )
+      ELSE JSON_OBJECT(
+        'id', t.id,
+        'name', t.name,
+        'display_name', t.display_name
+      )
+    END AS managed_by
   FROM hierarchies h
   LEFT JOIN hierarchies ph ON h.parent_hierarchy_id = ph.id
   LEFT JOIN tenant t ON h.managed_by = t.id
@@ -654,26 +663,24 @@ WITH hierarchy_cte AS (
     AND h.is_deleted = false
     ${hasName ? 'AND h.name LIKE :name' : ''}
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
-    ${startDate !== undefined && endDate !== undefined
-    ? 'AND h.updated_on BETWEEN :startDate AND :endDate'
-    : ''
-  }
+    ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
+    ${hasMsp ? 'AND h.managed_by = :msp' : ''}
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
-
+ 
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
 FROM hierarchy_cte h
 ORDER BY
-h.created_on DESC,
- CASE
+  h.created_on DESC,
+  CASE
     WHEN h.parent_hierarchy_id IS NULL THEN 0
     ELSE 1
-  END, -- Keep parent hierarchies first
-h.id
+  END,
+  h.id
 LIMIT :limit OFFSET :offset;
 `;
 
@@ -1421,47 +1428,17 @@ export const programVendorAdvancedFilter = (
   }
 
   return `
-    WITH document_data AS (
-      SELECT
-        vdg.id AS doc_group_id,
-        vdg.name AS doc_group_name,
-        JSON_ARRAYAGG(
-          JSON_OBJECT('doc_id', vcd.id, 'doc_name', vcd.name)
-        ) AS compliance_documents
-      FROM vendor_document_groups vdg
-      LEFT JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
-      GROUP BY vdg.id
-    ),
-
-    vendor_doc_groups AS (
+    WITH vendor_doc_compliance_check AS (
       SELECT
         pv.id AS vendor_id,
-        JSON_ARRAYAGG(vcd.id) AS com_doc_groups
+        CASE
+          WHEN COUNT(vr.id) > 0 AND SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END) = COUNT(vr.id)
+          THEN 1
+          ELSE 0
+        END AS compliance_status
       FROM program_vendors pv
-      JOIN vendor_document_groups vdg
-        ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(CAST(vdg.id AS CHAR)), '$')
-      JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
-      GROUP BY pv.id
-    ),
-
-    vendor_doc_compliance_check AS (
-      SELECT
-        pv.id AS vendor_id,
-        IF(
-          COUNT(DISTINCT vcd.id) = SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END),
-          TRUE,
-          FALSE
-        ) AS compliance_status
-      FROM program_vendors pv
-      JOIN vendor_document_groups vdg
-        ON JSON_CONTAINS(pv.com_doc_group, JSON_QUOTE(CAST(vdg.id AS CHAR)), '$')
-      JOIN vendor_compliance_documents vcd
-        ON JSON_CONTAINS(vdg.required_documents, JSON_QUOTE(CAST(vcd.id AS CHAR)), '$')
       LEFT JOIN vendor_compliance_req_doc_mappings vr
-        ON vr.required_document_id = vcd.id
-        AND vr.vendor_id = pv.id
+        ON vr.vendor_id = pv.id
       GROUP BY pv.id
     )
 
@@ -1469,7 +1446,6 @@ export const programVendorAdvancedFilter = (
       pv.id,
       pv.program_id,
       pv.tenant_id,
-      vdg.com_doc_groups AS com_doc_group,
       pv.display_name,
       pv.vendor_name,
       pv.is_enabled,
@@ -1479,8 +1455,6 @@ export const programVendorAdvancedFilter = (
       vcc.compliance_status,
       COUNT(*) OVER() AS total_count
     FROM program_vendors AS pv
-    LEFT JOIN vendor_doc_groups vdg
-      ON vdg.vendor_id = pv.id
     LEFT JOIN vendor_doc_compliance_check vcc
       ON vcc.vendor_id = pv.id
     WHERE
@@ -2324,6 +2298,18 @@ export const hierarchie = `
         h.support_email,
         h.is_not_editable,
         h.address,
+        CASE 
+          WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
+            'id', 'self-managed',
+            'name', 'self-managed',
+            'display_name', 'self-managed'
+          )
+          ELSE JSON_OBJECT(
+            'id', t.id,
+            'name', t.name,
+            'display_name', t.display_name
+          )
+        END AS managed_by,
         JSON_OBJECT(
             'id', uom.id,
             'name', uom.label
@@ -2347,12 +2333,15 @@ export const hierarchie = `
               LEFT JOIN user ON TRIM(BOTH '"' FROM hierarchies_custom_field.value) = user.user_id
               AND user.program_id = hierarchies_custom_field.program_id
               WHERE hierarchies_custom_field.hierarchy_id = h.id
+              AND custom_fields.is_deleted = false
+              AND custom_fields.is_enabled = true
     ), JSON_ARRAY()) AS custom_fields
     FROM
         hierarchies h
     LEFT JOIN
         picklistitems uom
         ON JSON_UNQUOTE(JSON_EXTRACT(h.unit_of_measure, '$[0].id')) = uom.id
+    LEFT JOIN tenant as t on h.managed_by = t.id
     WHERE
         h.id = :hierarchy_id
     LIMIT 0, 1000;
@@ -3480,7 +3469,7 @@ export const getVendorDistributionSchedule = `
 `;
 
 
-export const getMasterDataCustomFields =  `
+export const getMasterDataCustomFields = `
    select 
 master_data_type.id,
  COALESCE((
@@ -3502,9 +3491,95 @@ master_data_type.id,
               LEFT JOIN user ON TRIM(BOTH '"' FROM master_data_custom_field.value) = user.user_id
               AND user.program_id = master_data_custom_field.program_id
               WHERE master_data_custom_field.master_data_type_id = master_data_type.id
-    ), JSON_ARRAY()) AS custom_fields
+    ), JSON_ARRAY()) AS custom_fields,
+     (
+    CASE 
+      WHEN master_data_type.is_all_hierarchy_associated = TRUE THEN (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM hierarchies h
+        WHERE h.program_id = master_data_type.program_id AND h.is_deleted = FALSE AND is_enabled = TRUE
+      )
+      ELSE (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
+        FROM master_data_type_hierarchy mdth
+        JOIN hierarchies h ON mdth.hierarchy_id = h.id
+        WHERE mdth.master_data_type_id = master_data_type.id
+        AND h.is_deleted = FALSE
+        AND h.is_enabled = TRUE
+      )
+    END
+  ) AS hierarchies
     
     from master_data_type
     where master_data_type.program_id=:program_id
     AND master_data_type.id=:id
 `;
+
+export const userData = `
+  SELECT * FROM user WHERE user_id = :client_id
+    AND (
+      user_type = 'super_user'
+        OR program_id = :program_id
+      )
+    LIMIT 1;
+  `;
+
+export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
+  SELECT DISTINCT md.id,
+      md.program_id, md.name, md.is_enabled,
+      MIN(md.updated_on) AS first_updated_on, 
+      MAX(md.updated_on) AS last_updated_on,
+      md.code, md.foundational_data_type_id, md.depended_fields,
+      t.id AS manager_ids, t.first_name, t.last_name,
+      mdt.name AS foundational_data_type_name,
+      COUNT(*) OVER() AS total_count
+  FROM master_data AS md
+  LEFT JOIN user AS t ON md.manager_ids = t.id
+  LEFT JOIN master_data_type AS mdt ON md.foundational_data_type_id = mdt.id
+  WHERE md.program_id = :program_id
+      AND md.is_deleted = 0
+      AND (:id IS NULL OR md.id = :id)
+      AND (:name IS NULL OR md.name LIKE :name)
+      AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
+      AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
+      AND (:manager_ids IS NULL OR md.manager_ids = :manager_ids)
+      AND (:code IS NULL OR md.code LIKE :code)
+      AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
+      AND (:first_name IS NULL OR t.first_name LIKE :first_name)
+      ${hierarchyFilter}
+  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
+           t.id, t.first_name, t.last_name, mdt.name
+  ORDER BY last_updated_on DESC
+  LIMIT :limit OFFSET :offset;
+`;
+
+export const getWorklocationCustomField = `
+  SELECT 
+    work_locations.id,
+    work_locations.name,
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'custom_field_id', work_location_custom_field.customfield_id,
+                'value', JSON_UNQUOTE(JSON_EXTRACT(work_location_custom_field.value, '$')),
+                'label', cf.label,
+                'field_type', cf.field_type,
+                'manager_name',
+          CASE
+            WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
+            ELSE NULL
+          END
+            )
+        )
+        FROM work_location_custom_field
+        JOIN custom_fields cf ON work_location_custom_field.customfield_id = cf.id
+        LEFT JOIN user AS u 
+        ON REPLACE(REPLACE(work_location_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = work_locations.program_id
+        WHERE  work_locations.program_id=cf.program_id
+        AND cf.is_enabled = true
+        AND cf.is_deleted = false
+    ), JSON_ARRAY()) AS custom_fields
+FROM work_locations
+WHERE work_locations.program_id =:program_id
+AND  work_locations.id=:id
+  `;

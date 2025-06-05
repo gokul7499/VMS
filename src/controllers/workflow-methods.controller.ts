@@ -333,7 +333,7 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
 }
 
 async function findModuleBySlug(slug: string) {
-    const moduleData = await Module.findOne({ where: {slug: slug } });
+    const moduleData = await Module.findOne({ where: { slug: slug, is_workflow: true } });
     return moduleData?.dataValues.id || "";
 }
 

@@ -10,7 +10,7 @@ import ExpenseTypeMapping from "../models/expense-config-expense-type-mapping.mo
 import Hierarchies from "../models/hierarchies.model";
 import ExpenseTypeModel from "../models/expense-type.model";
 import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import FoundationalDataTypes from "../models/master-datatypes.model";
 import CustomField from "../models/custom-fields.model";
 
 export async function getExpenseConfigurations(request: FastifyRequest<{}>, reply: FastifyReply) {
@@ -289,7 +289,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
         const updatedData = request.body as ExpenseConfigurationAttributes;
 
         const existingConfig = await ExpenseConfigurationModel.findOne({
-            where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
+            where: { id, program_id, is_deleted: false, latest: true },
             transaction,
         });
 
@@ -503,12 +503,13 @@ export async function expenseConfigurationAdvancedFilter(
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === true || is_enabled === "true";
         }
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const dateRange = updated_on.map(timestamp => Number(timestamp));
-
-            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
-                whereCondition.updated_on = { [Op.between]: dateRange };
-            }
+        if (updated_on && Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startDate, endDate] = updated_on;
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp = new Date(endDate).getTime();
+            whereCondition.updated_on = {
+                [Op.between]: [startTimestamp, endTimestamp]
+            };
         }
 
         if (hierarchy_ids && hierarchy_ids.length > 0) {

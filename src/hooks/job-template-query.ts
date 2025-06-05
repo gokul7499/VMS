@@ -407,6 +407,7 @@ class JobTempletRepository {
         job_templates.updated_on,
         job_templates.checklist_entity_id,
         job_templates.checklist_version,
+        job_templates.job_type,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title
@@ -625,56 +626,56 @@ COALESCE((
     const managerData = await sequelize.query<{
       is_all_hierarchy_associate: any;
       associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids, is_all_hierarchy_associate FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`, {
-      replacements: { job_manager_id, program_id },
-      type: QueryTypes.SELECT,
-    });
+      default_hierarchy_id: string | null;
+    }>(
+      `SELECT associate_hierarchy_ids, is_all_hierarchy_associate, default_hierarchy_id 
+       FROM user 
+       WHERE user_id = :job_manager_id AND program_id = :program_id`,
+      {
+        replacements: { job_manager_id, program_id },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     if (!managerData || managerData.length === 0) {
-      return [];
+      return { hierarchies: [], defaultHierarchyId: null };
     }
 
-    const { is_all_hierarchy_associate, associate_hierarchy_ids } = managerData[0];
+    const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id } = managerData[0];
 
     if (is_all_hierarchy_associate) {
-      const allHierarchies = await sequelize.query<{
-        id: string;
-      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
-        replacements: { program_id },
-        type: QueryTypes.SELECT,
-      });
+      const allHierarchies = await sequelize.query<{ id: string }>(
+        `SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`,
+        {
+          replacements: { program_id },
+          type: QueryTypes.SELECT,
+        }
+      );
 
-      return allHierarchies.map(h => h.id);
+      return {
+        hierarchies: allHierarchies.map(h => h.id),
+        defaultHierarchyId: default_hierarchy_id,
+      };
     }
-    return associate_hierarchy_ids || [];
+    return {
+      hierarchies: associate_hierarchy_ids || [],
+      defaultHierarchyId: default_hierarchy_id,
+    };
   }
 
   async mspHierarchies(msp_id: string, program_id: string) {
-    const managerData = await sequelize.query<{
-      is_all_hierarchy_associate: any;
-      associate_hierarchy_ids: string[];
-    }>(`SELECT associate_hierarchy_ids, is_all_hierarchy_associate FROM user WHERE user_id = :msp_id AND program_id = :program_id`, {
-      replacements: { msp_id, program_id },
-      type: QueryTypes.SELECT,
-    });
-
-    if (!managerData || managerData.length === 0) {
-      return [];
-    }
-
-    const { is_all_hierarchy_associate, associate_hierarchy_ids } = managerData[0];
-
-    if (is_all_hierarchy_associate) {
-      const allHierarchies = await sequelize.query<{
-        id: string;
-      }>(`SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`, {
-        replacements: { program_id },
+    const hierarchies = await sequelize.query<{ id: string }>(
+      `SELECT id FROM hierarchies 
+       WHERE program_id = :program_id 
+         AND managed_by = :msp_id 
+         AND is_enabled = true`,
+      {
+        replacements: { program_id, msp_id },
         type: QueryTypes.SELECT,
-      });
+      }
+    );
 
-      return allHierarchies.map(h => h.id);
-    }
-    return associate_hierarchy_ids || [];
+    return hierarchies.map(h => h.id);
   }
 
   async templateQuery(job_template_id: string) {
@@ -698,6 +699,26 @@ COALESCE((
     );
 
     return templateData;
+  }
+
+  async masterDataQuery(master_data_type_id: string, program_id: string) {
+    return sequelize.query<{ hierarchy_id: any }>(
+      `
+      SELECT 
+        CASE 
+          WHEN mdt.is_all_hierarchy_associated THEN h.id
+          ELSE mdth.hierarchy_id
+        END AS hierarchy_id
+      FROM master_data_type mdt
+      LEFT JOIN hierarchies h ON mdt.is_all_hierarchy_associated AND h.program_id = :program_id
+      LEFT JOIN master_data_type_hierarchy mdth ON NOT mdt.is_all_hierarchy_associated AND mdth.master_data_type_id = :master_data_type_id
+      WHERE mdt.id = :master_data_type_id
+      `,
+      {
+        replacements: { master_data_type_id, program_id },
+        type: QueryTypes.SELECT,
+      }
+    );
   }
 
   async hierarchyDetailsQuery(commonHierarchyIds: string[]) {

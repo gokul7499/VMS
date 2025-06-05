@@ -21,10 +21,29 @@ import JobMasterDataModel from "../models/job-master-data.model";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import htmlEscape from "html-escape";
-import { Readable } from "stream";
+
 
 
 const jobTempletRepositories = new JobTempletRepository();
+import { pipeline } from 'stream/promises';
+import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
+import { convertFileToHTML } from '../utility/fileConverter';
+import { Readable } from 'node:stream';
+
+interface Metadata {
+  program_id: string;
+  job_template_id: string;
+  signed_url: string;
+}
+
+const supportedMimeTypes = [
+  'text/plain',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
 
 export const getAllJobTemplates = async (
   request: FastifyRequest,
@@ -308,6 +327,29 @@ export async function createJobTemplate(
       );
       await Promise.all(qualificationPromises);
     }
+
+    if (Array.isArray(jobMasterData.foundational_data)) {
+  const foundationalDataPromises = jobMasterData.foundational_data.flatMap(
+    (dataItem: {
+      foundation_data_type_id: string;
+      is_read_only: boolean;
+      foundation_data_id: any[];
+    }) =>
+        JobMasterDataModel.create(
+          {
+            job_temp_id: jobTemplate.id,
+            program_id,
+            foundation_data_type_id: dataItem.foundation_data_type_id,
+            foundation_data_id: dataItem.foundation_data_id,
+            is_read_only: dataItem.is_read_only,
+          },
+          { transaction }
+        )
+
+  );
+  await Promise.all(foundationalDataPromises);
+}
+
 
     await transaction.commit();
 
@@ -899,11 +941,12 @@ export async function findJobTemplatesByLabourCategories(request: FastifyRequest
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id, sow_template_id, msp_id } = request.query as {
+    const { job_manager_id, job_template_id, sow_template_id, msp_id, master_data_type_id } = request.query as {
       job_manager_id: string;
       job_template_id?: string;
       sow_template_id?: string;
       msp_id?: string;
+      master_data_type_id?: string;
     };
     const { program_id } = request.params as { program_id: string };
 
@@ -911,9 +954,13 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     let sowTemplateHierarchyIds: string[] = [];
     let mspHierarchyIds: string[] = [];
     let managerHierarchyIds: string[] = [];
+    let MasterDataHierarchyIds: string[] = [];
+    let defaultHierarchyId: string | null = null;
 
-    if(job_manager_id){
-     managerHierarchyIds = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+    if (job_manager_id) {
+      const managerResult = await jobTempletRepositories.managerQuery(job_manager_id, program_id);
+      managerHierarchyIds = managerResult.hierarchies;
+      defaultHierarchyId = managerResult.defaultHierarchyId;
     }
 
     if (job_template_id) {
@@ -930,12 +977,18 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
       mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
     }
 
+    if (master_data_type_id) {
+      const masterData = await jobTempletRepositories.masterDataQuery(master_data_type_id, program_id);
+      MasterDataHierarchyIds = masterData.map((row) => row.hierarchy_id);
+    }
+
     let hierarchyGroups: string[][] = [];
 
     if (managerHierarchyIds.length > 0) hierarchyGroups.push(managerHierarchyIds);
     if (templateHierarchyIds.length > 0) hierarchyGroups.push(templateHierarchyIds);
     if (sowTemplateHierarchyIds.length > 0) hierarchyGroups.push(sowTemplateHierarchyIds);
     if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
+    if (MasterDataHierarchyIds.length > 0) hierarchyGroups.push(MasterDataHierarchyIds);
 
     let commonHierarchyIds = hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)));
 
@@ -957,12 +1010,14 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
         .filter((item: any) => item.parent_hierarchy_id === parentId)
         .map((item: any) => {
           const isAssociated = commonHierarchyIds.includes(item.id);
+          const isDefault = item.id === defaultHierarchyId;
           const children = buildHierarchy(data, item.id);
 
           if (isAssociated || children.length > 0) {
             return {
               ...item,
               is_associated: isAssociated,
+              is_default: isDefault,
               hierarchies: children
             };
           }
@@ -990,6 +1045,97 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
   }
 }
 
+function webReadableStreamToNodeStream(webStream: ReadableStream<Uint8Array>): NodeJS.ReadableStream {
+  const reader = webStream.getReader();
+  return new Readable({
+    async read() {
+      const { done, value } = await reader.read();
+      if (done) {
+        this.push(null);
+      } else {
+        this.push(Buffer.from(value));
+      }
+    }
+  });
+}
+
+export async function uploadFile(
+  req: FastifyRequest<{
+    Body: {
+      job_template_id: string;
+      signed_url: string;
+    };
+    Params: { program_id: string; }
+  }>,
+  reply: FastifyReply
+) {
+  const { job_template_id, signed_url } = req.body;
+  const { program_id } = req.params;
+
+  if (!signed_url || typeof signed_url !== 'string') {
+    return reply.status(400).send({ status: 'error', message: 'Missing or invalid signed_url' });
+  }
+
+  let filePath: string | undefined;
+
+  try {
+    const response = await fetch(signed_url);
+    if (!response.ok) {
+      return reply.status(400).send({
+        status: 'error',
+        message: 'Failed to fetch file from signed_url',
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!supportedMimeTypes.includes(contentType)) {
+      return reply.status(400).send({
+        status: 'error',
+        message: `Unsupported file type: ${contentType}`,
+      });
+    }
+
+    const tempDir = path.join(__dirname, '..', 'uploads');
+    const tempFile = `${randomUUID()}.upload`;
+    filePath = path.join(tempDir, tempFile);
+    await fs.mkdir(tempDir, { recursive: true });
+
+    const fileStream = createWriteStream(filePath);
+    const webStream = response.body;
+    if (!webStream) {
+      return reply.status(400).send({ status: 'error', message: 'Empty response body' });
+    }
+
+    const nodeStream = webReadableStreamToNodeStream(webStream as ReadableStream<Uint8Array>);
+    await pipeline(nodeStream, fileStream);
+
+    const htmlContent = await convertFileToHTML(filePath, contentType);
+
+    if (job_template_id) {
+      await jobTemplateModel.update(
+        { description_url : signed_url },
+        { where: { id: job_template_id, program_id } }
+      );
+    }
+
+    return reply.send({
+      status: 'success',
+      message: 'File processed successfully',
+      data: {
+        upload_url: signed_url,
+        html_content: htmlContent,
+      },
+    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    return reply.status(500).send({ status: 'error', message: 'Failed to process file' });
+  } finally {
+    if (filePath) {
+      await fs.unlink(filePath).catch(() => { });
+    }
+  }
+}
+
 export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
@@ -1006,9 +1152,14 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       job_template_id,
       hierarchy_ids,
       category,
+      requested_from,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[],job_template_id?: string[]; };
+    } = request.body as GetJobTemplatesQuery & {
+      hierarchy_ids?: string[];
+      job_template_id?: any;
+      requested_from?: string;
+    };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1021,38 +1172,47 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       dynamicConditions.push(`job_templates.id = :id`);
       replacements.id = id;
     }
+
     if (job_id) {
       dynamicConditions.push(`job_templates.job_id = :job_id`);
       replacements.job_id = job_id;
     }
+
     if (is_enabled !== undefined) {
       dynamicConditions.push(`job_templates.is_enabled = :is_enabled`);
       replacements.is_enabled = is_enabled.toString() !== "false";
     }
+
     if (template_name) {
       dynamicConditions.push(`job_templates.template_name LIKE :template_name`);
       replacements.template_name = `%${template_name}%`;
     }
+
     if (category) {
       dynamicConditions.push(`job_category.title LIKE :category`);
       replacements.category = `%${category}%`;
     }
+
     if (labour_category) {
       dynamicConditions.push(`labour_category.id LIKE :labour_category`);
       replacements.labour_category = `%${labour_category}%`;
     }
+
     if (primary_hierarchy) {
       dynamicConditions.push(`job_templates.primary_hierarchy = :primary_hierarchy`);
       replacements.primary_hierarchy = primary_hierarchy;
     }
+
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
+
     if (job_template_id && job_template_id.length > 0) {
-       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
-       replacements.job_template_id = job_template_id;
+      dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
+      replacements.job_template_id = job_template_id;
     }
+
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
         job_templates.id IN (
@@ -1064,7 +1224,15 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       `);
       replacements.hierarchy_ids = hierarchy_ids;
     }
+    if(requested_from && job_template_id<1){
+      reply.status(200).send({
+        status_code: 200, 
+        trace_id: traceId,
+        message:"job templet not found.",
+        job_templates:[]
 
+    })
+  }
 
     const dynamicConditionsString =
       dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
@@ -1080,7 +1248,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
     const totalPages = Math.ceil(totalCount / limitNumber);
 
-    reply.status(200).send({
+    return reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
       job_templates: jobTemplates,
@@ -1092,13 +1260,14 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       },
     });
   } catch (error: any) {
-    reply.status(500).send({
+    return reply.status(500).send({
       message: "An error occurred while fetching job templates.",
       trace_id: traceId,
       error: error.message,
     });
   }
 };
+
 
 export async function uploadJobTemplateFile(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();

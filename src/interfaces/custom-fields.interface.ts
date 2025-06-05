@@ -14,7 +14,7 @@ export interface CustomFields {
   is_all_hierarchy: boolean;
   supporting_text: string;
   range_applicable: Json;
-  description: string | null;
+  description: Text | null;
   is_required: boolean;
   is_readonly: boolean;
   is_enabled: boolean;
@@ -45,7 +45,8 @@ export interface GetQueryInterface {
   updated_on?: string;
   slug?: string;
   program_id?: string;
-  hierarchy_ids?:any
+  hierarchy_ids?:any;
+  user_type?: string;
 }
 
 export const paramsSchema = {

@@ -3,7 +3,7 @@ import { sequelize } from '../config/instance';
 import { Programs } from './programs.model';
 import IndustriesModel from './labour-category.model';
 import Hierarchies from './hierarchies.model';
-import FoundationalDataTypes from './foundational-datatypes.model';
+import FoundationalDataTypes from './master-datatypes.model';
 
 class ExpenseConfigurationModel extends Model {
   master_data_types(master_data_types: any) {

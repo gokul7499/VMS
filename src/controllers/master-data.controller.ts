@@ -1,15 +1,15 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import foundationalData from "../models/foundational-data.model";
-import { FoundationalDataInterface } from "../interfaces/foundational-data.interface";
+import foundationalData from "../models/master-data.model";
+import { FoundationalDataInterface } from "../interfaces/master-data.interface";
 import generateCustomUUID from "../utility/genrateTraceId";
-import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
 import { sequelize } from "../config/instance";
-import { countFoundationDataQuery, foundationDataQuery } from "../utility/queries";
-import FoundationalDataTypes from "../models/foundational-datatypes.model";
+import { countFoundationDataQuery, foundationDataQuery, masterDataAdvanceFilterQuery } from "../utility/queries";
+import FoundationalDataTypes from "../models/master-datatypes.model";
 import User from "../models/user.model";
-import { log } from "console";
+import MasterDataHierarchy from "../models/master-data-hierarchy.model";
+import Hierarchies from "../models/hierarchies.model";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -131,7 +131,7 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
         if (!foundational_data) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'FoundationalData Not Found.',
+                message: 'Master Data Not Found.',
                 trace_id: traceId,
             });
         }
@@ -143,12 +143,33 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             })
             : [];
 
+        let hierarchie = [];
+
+        if (foundational_data.is_all_hierarchy_associated) {
+            hierarchie = await Hierarchies.findAll({
+                where: { program_id, is_deleted: false },
+                attributes: ['id', 'name'],
+            });
+        } else {
+            hierarchie = await MasterDataHierarchy.findAll({
+                where: { master_data_id: id },
+                include: [
+                    {
+                        model: Hierarchies,
+                        as: 'hierarchy',
+                        attributes: ['id', 'name'],
+                    },
+                ],
+            }).then((data) => data.map((item) => item.hierarchy));
+        }
+
         reply.status(200).send({
             status_code: 200,
-            message: 'FoundationalData fetched successfully.',
+            message: 'Master data fetched successfully.',
             foundational_data: {
                 ...foundational_data.toJSON(),
                 manager_ids: populatedManagers,
+                hierarchies: hierarchie || []
             },
             trace_id: traceId,
         });
@@ -163,10 +184,11 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
 }
 
 export async function createFoundationalData(request: FastifyRequest, reply: FastifyReply) {
+    const { program_id } = request.params as { program_id: string }
     const foundational_data = request.body as FoundationalDataInterface;
-    const { program_id, name, code } = foundational_data;
+    const { name, code } = foundational_data;
     const traceId = generateCustomUUID();
-
+    const transaction = await sequelize.transaction();
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
@@ -195,34 +217,47 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
         const foundational_Data = await foundationalData.create({
             ...foundational_data,
+            program_id,
             created_by: userId,
             updated_by: userId,
             created_on: Date.now(),
             updated_on: Date.now(),
-        });
+        }, { transaction });
+
+        if (foundational_data.hierarchy) {
+            for (const hierarchyId of foundational_data.hierarchy) {
+                if (hierarchyId) {
+                    await MasterDataHierarchy.create({
+                        master_data_id: foundational_Data.id,
+                        hierarchy_id: hierarchyId
+                    }, { transaction });
+                }
+            }
+        }
+        await transaction.commit();
 
         reply.status(201).send({
             status_code: 201,
             foundational_data_id: foundational_Data.id,
             trace_id: traceId,
-            message: 'FoundationalData Created Successfully.',
+            message: 'Master data created successfully.',
         });
 
     } catch (error: any) {
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
-            message: 'An error occurred while creating FoundationalData.',
+            message: 'An error occurred while creating master data.',
             trace_id: traceId,
             error: error.message
         });
     }
 }
 
-
 export async function updateFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { program_id: string, id: string };
-    let { name } = request.body as { name: string };
+    let { name, hierarchy } = request.body as { name: string, hierarchy?: string[] };
     name = name.trim();
 
     const authHeader = request.headers.authorization;
@@ -232,12 +267,15 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
     }
 
     const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
+    const user: any = await decodeToken(token);
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId = user?.sub
+
+    const userId = user?.sub;
+    const transaction = await sequelize.transaction();
+
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
             where: {
@@ -249,45 +287,70 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
         });
 
         if (existingFoundationalDataWithSameName) {
+            await transaction.rollback();
             return reply.status(400).send({
                 status_code: 400,
-                message: "Master Data Already Exist.",
+                message: "Master Data with the same name already exists.",
                 trace_id: traceId,
             });
         }
 
-        const [updatedCount] = await foundationalData.update(
+        const existingMasterData = await foundationalData.findOne({
+            where: { program_id, id, is_deleted: false },
+        });
+
+        if (!existingMasterData) {
+            await transaction.rollback();
+            return reply.status(404).send({
+                status_code: 404,
+                message: 'Foundational data not found.',
+                trace_id: traceId,
+            });
+        }
+
+        await existingMasterData.update(
             {
                 ...request.body as FoundationalDataInterface,
                 updated_on: Date.now(),
                 updated_by: userId,
             },
-            { where: { program_id, id } }
+            { transaction }
         );
 
-        if (updatedCount > 0) {
-            reply.send({
-                status_code: 201,
-                message: 'FoundationalData updated successfully.',
-                trace_id: traceId,
+        if (hierarchy && Array.isArray(hierarchy)) {
+            await MasterDataHierarchy.destroy({
+                where: { master_data_id: id },
+                transaction,
             });
-        } else {
-            reply.status(200).send({
-                status_code: 200,
-                message: 'FoundationalData not found.',
-                trace_id: traceId,
-            });
+
+            for (const hierarchyId of hierarchy) {
+                if (hierarchyId) {
+                    await MasterDataHierarchy.create({
+                        master_data_id: id,
+                        hierarchy_id: hierarchyId
+                    }, { transaction });
+                }
+            }
         }
+
+        await transaction.commit();
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: 'Foundational data updated successfully.',
+            trace_id: traceId,
+        });
+
     } catch (error: any) {
+        await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
-            message: 'Internal Server error',
+            message: 'Internal Server Error',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }
-
 
 export async function deleteFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -329,9 +392,10 @@ export async function deleteFoundationalData(request: FastifyRequest, reply: Fas
 
 export async function foundationalDataFilter(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
+
     try {
         const params = request.params as { program_id: string };
-        const query = request.query as { foundational_data_type_id?: string }; // Corrected to use query parameters
+        const query = request.query as { master_data_type_id?: string };
         const body = request.body as {
             id?: string;
             name?: string;
@@ -343,6 +407,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             page?: number;
             limit?: number;
             is_billable?: boolean;
+            hierarchie_ids?: string[];
         };
 
         const page = body.page ?? 1;
@@ -351,7 +416,6 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
 
         let updated_on_start = null;
         let updated_on_end = null;
-
         if (body.updated_on) {
             const modifiedOnRange = body.updated_on.split(',');
             if (modifiedOnRange.length === 2) {
@@ -360,9 +424,9 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             }
         }
 
-        const filters: any = {
+        const replacements: any = {
             program_id: params.program_id,
-            foundational_data_type_id: query.foundational_data_type_id ?? null, // Added query param
+            foundational_data_type_id: query.master_data_type_id ?? null,
             id: body.id ?? null,
             name: body.name ? `%${body.name}%` : null,
             is_enabled: body.is_enabled ?? null,
@@ -371,54 +435,59 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             manager_ids: body.manager_ids ?? null,
             code: body.code ? `%${body.code}%` : null,
             first_name: body.first_name ? `%${body.first_name}%` : null,
-            is_billable: body.is_billable ?? null,
             limit,
-            offset
+            offset,
         };
 
-        const [foundationalDataResult, countResult] = await Promise.all([
-            sequelize.query(foundationDataQuery, {
-                replacements: filters,
-                type: QueryTypes.SELECT,
-            }),
-            sequelize.query(countFoundationDataQuery, {
-                replacements: filters,
-                type: QueryTypes.SELECT,
-            })
-        ]);
+        let hierarchyFilter = '';
+        if (body.hierarchie_ids && body.hierarchie_ids.length > 0) {
+            hierarchyFilter = `
+            AND (
+              md.is_all_hierarchy_associated = 1
+              OR md.id IN (
+                SELECT master_data_id
+                FROM master_data_hierarchy
+                WHERE hierarchy_id IN (:hierarchie_ids)
+                )
+            )`;
+            replacements.hierarchie_ids = body.hierarchie_ids;
+        }
 
-        const totalRecords = (countResult[0] as any).total;
+        let masterDataType: string | null = null;
+        if (query.master_data_type_id) {
+            const foundationalDataTypeResult = await sequelize.query<any>(
+                `SELECT name FROM master_data_type WHERE id = :foundational_data_type_id`,
+                {
+                    replacements,
+                    type: QueryTypes.SELECT,
+                }
+            );
+            if (foundationalDataTypeResult.length > 0) {
+                masterDataType = foundationalDataTypeResult[0].name;
+            }
+        }
 
+        const foundationalDataResult = await sequelize.query<{ total_count: any }>(
+            masterDataAdvanceFilterQuery(hierarchyFilter),
+            {
+                replacements,
+                type: QueryTypes.SELECT,
+            }
+        );
+        const totalRecords = foundationalDataResult.length > 0 ? foundationalDataResult[0].total_count : 0;
         const foundationalDataArray = foundationalDataResult.map((row: any) => ({
             ...row,
             slug: row.slug,
-            depended_fields: typeof row.depended_fields === 'string' ? JSON.parse(row.depended_fields) : row.depended_fields
+            depended_fields:
+                typeof row.depended_fields === 'string'
+                    ? JSON.parse(row.depended_fields)
+                    : row.depended_fields,
         }));
-
-        let foundationalDataTypeName = 'null';
-        if (foundationalDataArray.length > 0) {
-            foundationalDataTypeName = foundationalDataArray[0].foundational_data_type_name;
-        } else if (query.foundational_data_type_id) {
-            const foundationalDataType: any = await FoundationalDataTypes.findByPk(query.foundational_data_type_id, {
-                attributes: ['name']
-            });
-            foundationalDataTypeName = foundationalDataType?.name || null;
-        }
-
-        if (foundationalDataResult.length === 0) {
-            return reply.status(200).send({
-                status_code: 200,
-                foundational_data_type_name: foundationalDataTypeName,
-                message: "Foundational data not found",
-                foundational_data: [],
-                trace_id: traceId,
-            });
-        }
 
         reply.status(200).send({
             status_code: 200,
-            message: "Foundational data retrieved successfully",
-            foundational_data_type_name: foundationalDataTypeName,
+            message: 'Foundational data retrieved successfully',
+            foundational_data_type_name: masterDataType,
             total_records: totalRecords,
             data: foundationalDataArray,
             trace_id: traceId,
@@ -428,7 +497,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             status_code: 500,
             message: 'Internal server error',
             trace_id: traceId,
-            error: error.message
+            error: error.message,
         });
     }
 }

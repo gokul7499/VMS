@@ -14,6 +14,7 @@ export async function searchSimilarProfiles(
   programId: string,
   userId: string,
   uniqueId:String,
+  candidateData:any,
   payload:any,
   maxRetries = 3,
   delayMs = 1000
@@ -27,14 +28,15 @@ export async function searchSimilarProfiles(
     url: resumeText,
     c_unique_id:uniqueId,
     vendor_id: vendorId,
-    first_name: payload.first_name,
-    last_name: payload.last_name,
-    email_address: payload.email,
-    phone_number: payload.contacts?.[0]?.number,
-    birth_date: payload.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
-    ssn_id: payload.ssn_id,
-    address: payload.addresses,
+    first_name: candidateData.first_name,
+    last_name: candidateData.last_name,
+    email_address: candidateData.email,
+    phone_number: candidateData.contacts?.[0]?.number,
+    birth_date: candidateData.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
+    ssn_id: candidateData.ssn_id,
+    address: candidateData.addresses,
     vendor_search: true,
+    candidate_unique_id:candidateData.candidate_id
   };
   console.log("similar profile paylod",searchPayload)
   let attempt = 0;
@@ -148,7 +150,7 @@ export async function findDuplicateCandidate(
 
           console.log(`[findDuplicateCandidate] - PossibleDuplicateCandidate created:`, possibleDuplicateData?.id);
 
-          const updatedCount = await updateMtpWithMatchingProfiles(matchingProfiles, programId);
+          const updatedCount = await updateMtpWithMatchingProfiles(candidateMatchingScore, programId);
           console.log(`[findDuplicateCandidate] - Total MTPs updated: ${updatedCount}`);
         } else {
           console.log(`[findDuplicateCandidate] - Candidate is NOT part of matching profiles, creating MTP.`);
@@ -189,56 +191,75 @@ export async function findDuplicateCandidate(
 
 
 async function updateMtpWithMatchingProfiles(
-  matchingProfileIds: string[],
+  candidateMatchingScore: {
+    score: number;
+    candidate1_id: string;
+    candidate2_id: string;
+  }[],
   programId: string
 ): Promise<number> {
-  if (!matchingProfileIds.length) {
-    console.log(`[updateMtpWithMatchingProfiles] - No matching profiles to update`);
+  if (!candidateMatchingScore.length) {
     return 0;
   }
-  
+
   if (!programId) {
     throw new Error('Program ID is required');
   }
 
   try {
+    const directMatchMap: Record<string, Set<string>> = {};
+
+    for (const { candidate1_id, candidate2_id } of candidateMatchingScore) {
+      if (!directMatchMap[candidate1_id]) directMatchMap[candidate1_id] = new Set();
+      if (!directMatchMap[candidate2_id]) directMatchMap[candidate2_id] = new Set();
+
+      directMatchMap[candidate1_id].add(candidate2_id);
+      directMatchMap[candidate2_id].add(candidate1_id);
+    }
+
+    const mtpCandidateIds = Object.keys(directMatchMap);
+
     const mtpsToUpdate = await MtpModel.findAll({
       where: {
         program_id: programId,
-        [Op.or]: matchingProfileIds.map((id) => {
-          return Sequelize.where(
-            Sequelize.fn('JSON_CONTAINS', Sequelize.col('linked_profiles'), JSON.stringify(id)),
-            1
-          );
-        })
+        mtp_candidate_id: mtpCandidateIds
       }
     });
 
-    console.log(`[updateMtpWithMatchingProfiles] - MTPs found to update: ${mtpsToUpdate.length}`);
-    
     const updatedCount = await sequelize.transaction(async (transaction) => {
       let count = 0;
-      
+
       for (const mtp of mtpsToUpdate) {
-        const existingLinkedProfiles = mtp.linked_profiles || [];
-        const updatedLinkedProfilesSet = new Set([...existingLinkedProfiles, ...matchingProfileIds]);
-        const updatedLinkedProfiles = Array.from(updatedLinkedProfilesSet);
-        
-        await mtp.update({
-          linked_profiles: updatedLinkedProfiles
-        }, { transaction });
-        
+        const candidateId = mtp.mtp_candidate_id;
+        const directMatches = directMatchMap[candidateId];
+
+        if (!directMatches || directMatches.size === 0) {
+          continue;
+        }
+
+        const existingLinkedProfiles = Array.isArray(mtp.linked_profiles)
+          ? mtp.linked_profiles
+          : [];
+
+        const updatedLinkedProfiles = Array.from(new Set([
+          ...existingLinkedProfiles,
+          ...directMatches
+        ]));
+
+       const dataUpdate= await mtp.update(
+          { linked_profiles: updatedLinkedProfiles },
+          { transaction }
+        );
         count++;
-        console.log(`[updateMtpWithMatchingProfiles] - MTP updated with new linked_profiles. MTP ID: ${mtp.id}`);
       }
-      
+
       return count;
     });
-    
+
     return updatedCount;
   } catch (error) {
-    console.error(`[updateMtpWithMatchingProfiles] - Error updating MTPs:`, error);
-    throw error; 
+    console.error(`[updateMtpWithMatchingProfiles] - Error:`, error);
+    throw error;
   }
 }
 

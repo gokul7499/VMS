@@ -15,7 +15,7 @@ import { Op, QueryTypes, Sequelize } from 'sequelize';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
-import FoundationalDataTypes from '../models/foundational-datatypes.model';
+import FoundationalDataTypes from '../models/master-datatypes.model';
 import Hierarchies from '../models/hierarchies.model';
 import { sequelize } from '../config/instance';
 
@@ -250,7 +250,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   const userId = user?.sub;
   console.log("userId", userId);
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, page = '1', limit = '10' } = request.query as GetQueryInterface;
+  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug,user_type, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
   try {
     let userType = user?.userType;
@@ -293,7 +293,12 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       );
     }
 
-    // Existing filter conditions
+    if (user_type) {
+      andConditions.push(
+        Sequelize.literal(`LOWER(organization_category) = LOWER('${user_type}')`)
+      );
+    }
+
     if (is_enabled) {
       const isEnabledValue = is_enabled === 'true' ? 1 : 0;
       whereClause.is_enabled = { [Op.eq]: isEnabledValue };

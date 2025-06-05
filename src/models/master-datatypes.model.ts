@@ -51,6 +51,10 @@ FoundationalDataTypes.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    is_all_hierarchy_associated: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),
@@ -71,7 +75,6 @@ FoundationalDataTypes.init(
     },
   },
   {
-    
     sequelize,
     tableName: "master_data_type",
     timestamps: false,

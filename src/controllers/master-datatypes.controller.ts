@@ -1,21 +1,21 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import foundationalDataTypes from '../models/foundational-datatypes.model';
-import { FoundationalDataTypesInterface } from '../interfaces/foundational-datatypes.interface';
+import foundationalDataTypes from '../models/master-datatypes.model';
+import { FoundationalDataTypesInterface } from '../interfaces/master-datatypes.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
-import { Op, QueryTypes, where } from 'sequelize';
-import foundationalDataModel from '../models/foundational-data.model';
+import { Op, QueryTypes } from 'sequelize';
+import foundationalDataModel from '../models/master-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { FoundationalDataInterface } from '../interfaces/foundational-data.interface';
-import FoundationalData from '../models/foundational-data.model';
 import { getMasterDataCustomFields } from '../utility/queries';
 import MasterDataCustomFieldModel from '../models/master-data-custom-fields';
+import MasterDataTypeHierarchy from '../models/master-data-type-hierarchy.model';
+import Hierarchies from '../models/hierarchies.model';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
     const { program_id } = request.params as { program_id: string };
-    const name = foundationalDataPayload.name;
+    const name = foundationalDataPayload.name.trim();
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
 
@@ -24,13 +24,14 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
     }
 
     const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
+    const user: any = await decodeToken(token);
 
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
+
     const userId = user?.sub;
-    console.log("uuu", userId)
+    const transaction = await sequelize.transaction();
 
     logger(
         {
@@ -54,10 +55,16 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
 
     try {
         const existingFoundationalDataTypeWithSameName = await foundationalDataTypes.findOne({
-            where: { name, program_id },
+            where: {
+                name,
+                program_id,
+                is_deleted: false
+            },
+            transaction
         });
 
         if (existingFoundationalDataTypeWithSameName) {
+            await transaction.rollback();
             return reply.status(400).send({
                 status_code: 400,
                 message: "Master Data Type Already Exists",
@@ -67,21 +74,26 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
 
         const foundationalData: any = await foundationalDataTypes.create({
             ...foundationalDataPayload,
+            name,
             program_id,
             created_by: userId,
             updated_by: userId,
             created_on: Date.now(),
             updated_on: Date.now(),
-        });
-        reply.status(201).send({
-            status_code: 201,
-            message: "Data create successfully",
-            data: {
-                id: foundationalData?.id,
-                name: foundationalData?.name,
-            },
-            trace_id: traceId,
-        });
+        }, { transaction });
+
+        if (foundationalDataPayload.hierarchy && Array.isArray(foundationalDataPayload.hierarchy)) {
+            for (const hierarchyId of foundationalDataPayload.hierarchy) {
+                if (hierarchyId) {
+                    await MasterDataTypeHierarchy.create({
+                        master_data_type_id: foundationalData.id,
+                        hierarchy_id: hierarchyId
+                    }, { transaction });
+                }
+            }
+        }
+
+        await transaction.commit();
 
         logger(
             {
@@ -102,7 +114,20 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             },
             foundationalDataTypes
         );
+
+        return reply.status(201).send({
+            status_code: 201,
+            message: "Data created successfully",
+            data: {
+                id: foundationalData?.id,
+                name: foundationalData?.name,
+            },
+            trace_id: traceId,
+        });
+
     } catch (error: any) {
+        await transaction.rollback();
+
         logger(
             {
                 trace_id: traceId,
@@ -123,9 +148,9 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             foundationalDataTypes
         );
 
-        reply.status(500).send({
+        return reply.status(500).send({
             status_code: 500,
-            message: 'Error while creating foundation datatype',
+            message: 'Error while creating foundational data type',
             trace_id: traceId,
             error: error.message
         });
@@ -135,79 +160,108 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
 export const updateFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const { program_id, id } = request.params as { id: string, program_id: string };
-    const foundationalData = request.body as FoundationalDataTypesInterface;
-    let { name } = request.body as { name: string };
+    const foundationalDataPayload = request.body as FoundationalDataTypesInterface;
+    let { name } = foundationalDataPayload;
     name = name.trim();
+
     const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
+
     const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
+    const user: any = await decodeToken(token);
+
     if (!user) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
     }
-    const userId = user?.sub
+
+    const userId = user?.sub;
+    const transaction = await sequelize.transaction();
     try {
-        const existingFoundationalDataTypeWithSameName = await foundationalDataTypes.findOne({
+        const existingDataType = await foundationalDataTypes.findOne({
             where: {
                 name: sequelize.where(sequelize.fn('lower', sequelize.col('name')), sequelize.fn('lower', name)),
-                id: { [Op.ne]: id },  // Exclude the current record's ID from the search
-                program_id,  // Only consider records from the specified program_id
-                is_deleted: false,     // Only consider records that are not deleted
+                id: { [Op.ne]: id },
+                program_id,
+                is_deleted: false,
             }
         });
 
-        if (existingFoundationalDataTypeWithSameName) {
+        if (existingDataType) {
             return reply.status(400).send({
                 status_code: 400,
-                message: "Master Data Type Already Exist.",
+                message: "Master Data Type Already Exists.",
                 trace_id: traceId,
             });
         }
+
         const data = await foundationalDataTypes.findByPk(id);
-        if (data) {
-            await data.update({ ...foundationalData, updated_on: Date.now(), updated_by: userId, });
-            if (Array.isArray(foundationalData.custom_fields)) {
-                await MasterDataCustomFieldModel.destroy({
-                    where: {
-                        master_data_type_id: id
-                    },
-                });
-    
-                if (foundationalData.custom_fields.length > 0) {
-                    const customFieldsToInsert = foundationalData.custom_fields.map((field: { id: string; value: any }) => ({
-                        program_id,
-                        custom_field_id: field.id,
-                        value: field.value,
-                        master_data_type_id: id,       
-                    }));
-    
-                    await MasterDataCustomFieldModel.bulkCreate(customFieldsToInsert);
+        if (!data) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: 'Foundational Datatype not found',
+                trace_id: traceId,
+            });
+        }
+
+        await data.update({
+            ...foundationalDataPayload,
+            updated_on: Date.now(),
+            updated_by: userId,
+        }, { transaction });
+
+        if (Array.isArray(foundationalDataPayload.custom_fields)) {
+            await MasterDataCustomFieldModel.destroy({
+                where: { master_data_type_id: id },
+                transaction
+            });
+
+            if (foundationalDataPayload.custom_fields.length > 0) {
+                const customFieldsToInsert = foundationalDataPayload.custom_fields.map(field => ({
+                    program_id,
+                    custom_field_id: field.id,
+                    value: field.value,
+                    master_data_type_id: id,
+                }));
+                await MasterDataCustomFieldModel.bulkCreate(customFieldsToInsert, { transaction });
+            }
+        }
+
+        if (Array.isArray(foundationalDataPayload.hierarchy)) {
+            await MasterDataTypeHierarchy.destroy({
+                where: { master_data_type_id: id },
+                transaction
+            });
+
+            for (const hierarchyId of foundationalDataPayload.hierarchy) {
+                if (hierarchyId) {
+                    await MasterDataTypeHierarchy.create({
+                        master_data_type_id: id,
+                        hierarchy_id: hierarchyId
+                    }, { transaction });
                 }
             }
-    
-            reply.status(201).send({
-                status_code: 201,
-                foundational_datatype_id: id,
-                message: 'Foundational data type updated successfully.',
-                trace_id: traceId,
-            });
-        } else {
-            reply.status(200).send({
-                status_code: 200,
-                message: 'Foundational Datatypes not found',
-                trace_id: traceId,
-            });
         }
-    } catch (error) {
-        reply.status(500).send({
-            status_code: 500,
-            message: 'Error updating foundational data',
+
+        await transaction.commit();
+
+        reply.status(200).send({
+            status_code: 200,
+            foundational_datatype_id: id,
+            message: 'Foundational Data Type updated successfully.',
             trace_id: traceId,
         });
+
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Error updating Foundational Data Type',
+            trace_id: traceId,
+            error: error.message,
+        });
     }
-}
+};
 
 export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -261,7 +315,7 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 program_id,
                 is_deleted: false,
             },
-            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations']
+            attributes: ['id', 'name', 'description', 'is_enabled', 'created_on', 'updated_on', 'program_id', 'configuration', 'associations', 'is_all_hierarchy_associated']
         });
 
         if (foundationalDataType) {
@@ -286,12 +340,23 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 replacements: { program_id, id },
                 type: QueryTypes.SELECT,
             });
+            const hierarchie = await MasterDataTypeHierarchy.findAll({
+                where: { master_data_type_id: id },
+                include: [
+                    {
+                        model: Hierarchies,
+                        as: 'hierarchy',
+                        attributes: ['id', 'name'],
+                    },
+                ],
+            }).then((data) => data.map((item) => item.hierarchy));
 
             const foundationalDataTypeResponse = {
                 ...foundationalDataType.dataValues,
                 foundational_data_count: foundationalDataCount,
                 associated_data_types: associatedDataTypes,
-                custom_fields: customFieldResults?.custom_fields || []
+                custom_fields: customFieldResults?.custom_fields || [],
+                hierarchies: hierarchie || []
             };
 
             reply.status(200).send({
@@ -308,11 +373,12 @@ export async function getFoundationalDataTypeById(request: FastifyRequest, reply
                 trace_id: traceId,
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
             trace_id: traceId,
+            error: error.message
         });
     }
 }
@@ -440,33 +506,24 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
 export async function getAllFoundationalDataTypesAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const responseFields = [
-        'id',
-        'program_id',
-        'name',
-        'is_enabled',
-        'updated_on',
-        'description',
-        'configuration',
+        'id', 'program_id', 'name', 'is_enabled',
+        'updated_on', 'description', 'configuration',
     ];
     const { program_id } = request.params as { program_id: string };
     const {
-        name,
-        is_enabled,
-        updated_on,
-        timesheet_master_data,
-        user_association_exclude,
-        page = '1',
-        limit = '10',
-        track_owner,
+        name, is_enabled, updated_on, timesheet_master_data,
+        user_association_exclude, page = '1', limit = '10',
+        track_owner, hierarchie_ids,
     } = request.body as {
         name?: string;
         is_enabled?: boolean;
-        updated_on?: string;
+        updated_on?: string[];
         timesheet_master_data?: boolean;
         user_association_exclude?: boolean;
         page?: string;
         limit?: string;
         track_owner?: boolean;
+        hierarchie_ids?: string[];
     };
 
     try {
@@ -491,6 +548,32 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
 
         const offset = (Number(page) - 1) * Number(limit);
 
+        if (hierarchie_ids?.length) {
+            const hierarchyMappings = await MasterDataTypeHierarchy.findAll({
+                where: { hierarchy_id: { [Op.in]: hierarchie_ids } },
+                attributes: ['master_data_type_id'],
+            });
+
+            const masterDataTypeIdsToFilter = hierarchyMappings.map(item => item.master_data_type_id);
+
+            const allHierarchyAssociatedItems = await foundationalDataTypes.findAll({
+                where: {
+                program_id,
+                is_deleted: false,
+                is_all_hierarchy_associated: true,
+            },
+              attributes: ['id'],
+            });
+
+            const allAssociatedIds = allHierarchyAssociatedItems.map(item => item.id);
+
+            const combinedIds = [...new Set([...masterDataTypeIdsToFilter, ...allAssociatedIds])];
+            if (!combinedIds.length) {
+                return reply.status(200).send({ status_code: 200, message: 'master data not found', foundationalData: [], trace_id: traceId });
+            }
+            filters.id = { [Op.in]: combinedIds };
+        }
+
         const { rows: foundationalDataItems, count: totalRecords } =
             await foundationalDataTypes.findAndCountAll({
                 where: filters,
@@ -503,7 +586,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
         if (!foundationalDataItems.length) {
             return reply.status(200).send({
                 status_code: 200,
-                message: 'Foundational data not found',
+                message: 'Master data not found',
                 foundationalData: [],
                 trace_id: traceId,
             });
@@ -547,8 +630,6 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
             trace_id: traceId,
         });
     } catch (error: any) {
-        console.error(`Error fetching foundational data: ${error.message}`, { traceId, error });
-
         reply.status(500).send({
             statusCode: 500,
             message: 'Internal server error',
