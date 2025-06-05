@@ -70,6 +70,11 @@ JobTemplateModel.init(
             type: DataTypes.TEXT,
             allowNull: true
         },
+        description_url: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            defaultValue: null
+        },
         is_submission_exceed_max_bill_rate: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,

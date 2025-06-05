@@ -57,6 +57,8 @@ async function jobTemplate(fastify: FastifyInstance) {
 
   fastify.post("/upload-file", JobTemplateController.uploadJobTemplateFile);
 
-}
+  fastify.post("/program/:program_id/upload-description", JobTemplateController.uploadFile);
+
+};
 
 export default jobTemplate;
