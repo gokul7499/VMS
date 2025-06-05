@@ -407,6 +407,7 @@ class JobTempletRepository {
         job_templates.updated_on,
         job_templates.checklist_entity_id,
         job_templates.checklist_version,
+        job_templates.job_type,
         JSON_OBJECT(
           'id', job_category.id,
           'title', job_category.title

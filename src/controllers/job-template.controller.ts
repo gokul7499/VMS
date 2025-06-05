@@ -1150,9 +1150,14 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       job_template_id,
       hierarchy_ids,
       category,
+      requested_from,
       page = 1,
       limit = 10,
-    } = request.body as GetJobTemplatesQuery & { hierarchy_ids?: string[], job_template_id?: string[]; };
+    } = request.body as GetJobTemplatesQuery & {
+      hierarchy_ids?: string[];
+      job_template_id?: string[];
+      requested_from?: string;
+    };
 
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1165,38 +1170,47 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       dynamicConditions.push(`job_templates.id = :id`);
       replacements.id = id;
     }
+
     if (job_id) {
       dynamicConditions.push(`job_templates.job_id = :job_id`);
       replacements.job_id = job_id;
     }
+
     if (is_enabled !== undefined) {
       dynamicConditions.push(`job_templates.is_enabled = :is_enabled`);
       replacements.is_enabled = is_enabled.toString() !== "false";
     }
+
     if (template_name) {
       dynamicConditions.push(`job_templates.template_name LIKE :template_name`);
       replacements.template_name = `%${template_name}%`;
     }
+
     if (category) {
       dynamicConditions.push(`job_category.title LIKE :category`);
       replacements.category = `%${category}%`;
     }
+
     if (labour_category) {
       dynamicConditions.push(`labour_category.id LIKE :labour_category`);
       replacements.labour_category = `%${labour_category}%`;
     }
+
     if (primary_hierarchy) {
       dynamicConditions.push(`job_templates.primary_hierarchy = :primary_hierarchy`);
       replacements.primary_hierarchy = primary_hierarchy;
     }
+
     if (is_shift_rate !== undefined) {
       dynamicConditions.push(`job_templates.is_shift_rate = :is_shift_rate`);
       replacements.is_shift_rate = is_shift_rate.toString() !== "false";
     }
+
     if (job_template_id && job_template_id.length > 0) {
       dynamicConditions.push(`job_templates.id IN (:job_template_id)`);
       replacements.job_template_id = job_template_id;
     }
+
     if (hierarchy_ids && hierarchy_ids.length > 0) {
       dynamicConditions.push(`
         job_templates.id IN (
@@ -1208,7 +1222,15 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       `);
       replacements.hierarchy_ids = hierarchy_ids;
     }
+    if(requested_from){
+      reply.status(200).send({
+        status_code: 200, 
+        trace_id: traceId,
+        message:"job templet not found.",
+        job_templates:[]
 
+    })
+  }
 
     const dynamicConditionsString =
       dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
@@ -1224,7 +1246,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     const totalCount = jobTemplates.length > 0 ? jobTemplates[0].total_count : 0;
     const totalPages = Math.ceil(totalCount / limitNumber);
 
-    reply.status(200).send({
+    return reply.status(200).send({
       statusCode: 200,
       trace_id: traceId,
       job_templates: jobTemplates,
@@ -1236,13 +1258,14 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       },
     });
   } catch (error: any) {
-    reply.status(500).send({
+    return reply.status(500).send({
       message: "An error occurred while fetching job templates.",
       trace_id: traceId,
       error: error.message,
     });
   }
 };
+
 
 export async function uploadJobTemplateFile(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
