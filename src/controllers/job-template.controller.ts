@@ -345,7 +345,7 @@ export async function createJobTemplate(
           },
           { transaction }
         )
-      
+
   );
   await Promise.all(foundationalDataPromises);
 }
@@ -1062,14 +1062,15 @@ function webReadableStreamToNodeStream(webStream: ReadableStream<Uint8Array>): N
 export async function uploadFile(
   req: FastifyRequest<{
     Body: {
-      program_id: string;
       job_template_id: string;
       signed_url: string;
     };
+    Params: { program_id: string; }
   }>,
   reply: FastifyReply
 ) {
-  const { program_id, job_template_id, signed_url } = req.body;
+  const { job_template_id, signed_url } = req.body;
+  const { program_id } = req.params;
 
   if (!signed_url || typeof signed_url !== 'string') {
     return reply.status(400).send({ status: 'error', message: 'Missing or invalid signed_url' });
@@ -1110,8 +1111,12 @@ export async function uploadFile(
 
     const htmlContent = await convertFileToHTML(filePath, contentType);
 
-    // Optional: do something with program_id and job_template_id
-    console.log('Received metadata:', { program_id, job_template_id });
+    if (job_template_id) {
+      await jobTemplateModel.update(
+        { description_url : signed_url },
+        { where: { id: job_template_id, program_id } }
+      );
+    }
 
     return reply.send({
       status: 'success',
@@ -1130,9 +1135,6 @@ export async function uploadFile(
     }
   }
 }
-
-
-
 
 export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
