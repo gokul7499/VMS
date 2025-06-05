@@ -623,44 +623,57 @@ COALESCE((
   }
 
   async managerQuery(job_manager_id: string, program_id: string) {
-    const managerData = await sequelize.query<{
-      is_all_hierarchy_associate: any;
+    const [managerData] = await sequelize.query<{
+      is_all_hierarchy_associate: boolean;
       associate_hierarchy_ids: string[];
       default_hierarchy_id: string | null;
+      tenant_id: string;
+      user_type: string;
     }>(
-      `SELECT associate_hierarchy_ids, is_all_hierarchy_associate, default_hierarchy_id 
-       FROM user 
-       WHERE user_id = :job_manager_id AND program_id = :program_id`,
-      {
-        replacements: { job_manager_id, program_id },
-        type: QueryTypes.SELECT,
-      }
+      `SELECT associate_hierarchy_ids, is_all_hierarchy_associate, 
+       default_hierarchy_id, tenant_id, user_type 
+       FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`,
+      { replacements: { job_manager_id, program_id }, type: QueryTypes.SELECT }
     );
 
-    if (!managerData || managerData.length === 0) {
-      return { hierarchies: [], defaultHierarchyId: null };
-    }
+    if (!managerData) return { hierarchies: [], defaultHierarchyId: null };
 
-    const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id } = managerData[0];
+    const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id, tenant_id, user_type } = managerData;
 
-    if (is_all_hierarchy_associate) {
-      const allHierarchies = await sequelize.query<{ id: string }>(
-        `SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`,
-        {
-          replacements: { program_id },
-          type: QueryTypes.SELECT,
-        }
+    if (user_type === 'vendor') {
+      const [programVendorData] = await sequelize.query<{
+        all_hierarchy: boolean;
+        hierarchies: string[];
+      }>(
+        `SELECT all_hierarchy, hierarchies FROM program_vendors 
+         WHERE tenant_id = :tenant_id AND program_id = :program_id`,
+        { replacements: { tenant_id, program_id }, type: QueryTypes.SELECT }
       );
 
-      return {
-        hierarchies: allHierarchies.map(h => h.id),
-        defaultHierarchyId: default_hierarchy_id,
-      };
+      if (!programVendorData) return { hierarchies: [], defaultHierarchyId: null };
+
+      return programVendorData.all_hierarchy
+        ? {
+          hierarchies: await this.fetchAllHierarchies(program_id),
+          defaultHierarchyId: default_hierarchy_id,
+        }
+        : {
+          hierarchies: programVendorData.hierarchies || [],
+          defaultHierarchyId: default_hierarchy_id,
+        };
     }
-    return {
-      hierarchies: associate_hierarchy_ids || [],
-      defaultHierarchyId: default_hierarchy_id,
-    };
+
+    return is_all_hierarchy_associate
+      ? { hierarchies: await this.fetchAllHierarchies(program_id), defaultHierarchyId: default_hierarchy_id }
+      : { hierarchies: associate_hierarchy_ids || [], defaultHierarchyId: default_hierarchy_id };
+  }
+
+  async fetchAllHierarchies(program_id: string) {
+    const allHierarchies = await sequelize.query<{ id: string }>(
+      `SELECT id FROM hierarchies WHERE program_id = :program_id AND is_enabled = true`,
+      { replacements: { program_id }, type: QueryTypes.SELECT }
+    );
+    return allHierarchies.map(h => h.id);
   }
 
   async mspHierarchies(msp_id: string, program_id: string) {
