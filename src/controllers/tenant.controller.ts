@@ -341,9 +341,10 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
     const traceId = generateCustomUUID();
     try {
         const query = request.query as Record<string, string>;
-        const page = parseInt(query.page) || 1;
-        const limit = parseInt(query.limit) || 10;
-        const offset = (page - 1) * limit;
+        const page = query.page ? parseInt(query.page) : null;
+        const limit = query.limit ? parseInt(query.limit) : null;
+        const offset = page && limit ? (page - 1) * limit : undefined;
+
 
         const sortField = query.sortField || "created_on";
         const sortDirection = query.sortDirection || "DESC";
@@ -396,7 +397,7 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
 
         const { rows: results, count } = await Tenant.findAndCountAll({
             where: { ...searchConditions, is_deleted: false },
-            limit: limit,
+            limit: limit??undefined,
             offset: offset,
             attributes: attributes,
             order: [[finalSortField, finalSortDirection]],
