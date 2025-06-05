@@ -7,4 +7,14 @@ export const beforeSave = (record: Model) => {
     } else {
         record.set('updated_on', Date.now());
     }
+    
+  const ruleDuration = record.get('rule_duration');
+  if (ruleDuration && typeof ruleDuration === 'string') {
+    const capitalized = ruleDuration
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('-');
+    record.set('rule_duration', capitalized);
+  }
+
 };
