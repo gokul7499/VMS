@@ -328,6 +328,29 @@ export async function createJobTemplate(
       await Promise.all(qualificationPromises);
     }
 
+    if (Array.isArray(jobMasterData.foundational_data)) {
+  const foundationalDataPromises = jobMasterData.foundational_data.flatMap(
+    (dataItem: {
+      foundation_data_type_id: string;
+      is_read_only: boolean;
+      foundation_data_id: any[];
+    }) =>
+        JobMasterDataModel.create(
+          {
+            job_temp_id: jobTemplate.id,
+            program_id,
+            foundation_data_type_id: dataItem.foundation_data_type_id,
+            foundation_data_id: dataItem.foundation_data_id,
+            is_read_only: dataItem.is_read_only,
+          },
+          { transaction }
+        )
+      
+  );
+  await Promise.all(foundationalDataPromises);
+}
+
+
     await transaction.commit();
 
     reply.status(201).send({
