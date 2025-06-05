@@ -1099,11 +1099,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
-                user_type: user?.userType,
-                fullName: managerData?.data?.first_name,
+                user_type: user?.userType,                
                 job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
-                    ? `${ui_base_url}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    ? `${ui_base_url}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
                 status_reason: updates[0]?.reason,
                 candidate_first_name:workflowDetails?.first_name ||"",
