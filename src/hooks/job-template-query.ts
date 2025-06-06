@@ -688,6 +688,10 @@ COALESCE((
   }
 
   async mspHierarchies(msp_id: string, program_id: string) {
+    if (msp_id.toLowerCase() === 'self-managed') {
+      return [];
+    }
+
     const hierarchies = await sequelize.query<{ id: string }>(
       `SELECT id FROM hierarchies 
        WHERE program_id = :program_id 
