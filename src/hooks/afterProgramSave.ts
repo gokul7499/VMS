@@ -59,6 +59,11 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         is_vendor_neutral_program: false,
         is_hide_candidate_img: false,
         support_email: "noreply@simplifyvms.com",
+        address:[
+            {
+                country: "United States",
+            }
+        ]
     },{ transaction });
 
     return hierarchy;
