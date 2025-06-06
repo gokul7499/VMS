@@ -1131,12 +1131,59 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
           continue;
         }
 
+        let managedById = null;
+        if (hierarchie.managed_by) {
+        const managedByUser = await TenantModel.findOne({
+         where: {
+         display_name: hierarchie.managed_by
+        },
+        attributes: ['id'],
+        transaction
+      });
+
+     if (managedByUser) {
+      managedById = managedByUser.id;
+     } else {
+        results.failed.push({
+        index: i,
+       code: hierarchyCode,
+       message: `Invalid managed_by: '${hierarchie.managed_by}' not found`
+      });
+      continue; 
+    }
+}
+         let parentHierarchyId = null;
+    if (hierarchie.parent_hierarchy_id) {
+      const parentHierarchy = await HierarchiesModel.findOne({
+        where: {
+          code: hierarchie.parent_hierarchy_id,
+          program_id,
+          is_deleted: false
+        },
+        attributes: ['parent_hierarchy_id'],
+        transaction
+      });
+
+      if (parentHierarchy) {
+        parentHierarchyId = parentHierarchy.parent_hierarchy_id;
+      } else {
+        results.failed.push({
+          index: i,
+          code: hierarchyCode,
+          message: `Invalid parent_hierarchy_code: '${hierarchie.code}' not found`
+        });
+        continue;
+      }
+    }
+
         const newItem = await HierarchiesModel.create(
           {
             ...hierarchie,
             program_id,
             created_by: userId,
             updated_by: userId,
+            managed_by: managedById,
+            parent_hierarchy_id: parentHierarchyId,
           },
           { transaction }
         );
