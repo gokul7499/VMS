@@ -10,7 +10,6 @@ class Hierarchies extends Model {
   is_enabled: any;
   rate_model!: any;
   program_id!: string;
-  code: any;
 }
 Hierarchies.init(
   {
