@@ -526,7 +526,9 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
 
       await UserMapping.bulkCreate(groupMappingData);
     }
-
+      if (userBody.user_type === 'vendor') {
+      await updateProgramVendor(userBody)
+    }
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -545,6 +547,43 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+export async function updateProgramVendor(userBody:any):Promise<any> {
+       const contactInfo = [
+    {
+      first_name: userBody.first_name ,
+      middle_name: userBody.middle_name ,
+      last_name: userBody.last_name ,
+      email: userBody.email ,
+      phone_numbers:userBody.contacts?.[0]?.number,
+      iso_code_2:userBody.contacts?.[0]?.iso_code_2,
+      isd_code:userBody.contacts?.[0]?.isd_code,
+      addresses: Array.isArray(userBody.addresses)
+        ? userBody.addresses.map((addr: { type: any; address_line_1: any; address_line_2: any; zipcode: any; city_name: any; state_name: any; county_name: any; }) => ({
+            type: addr.type,
+            address_line_1: addr.address_line_1 ,
+            address_line_2: addr.address_line_2||'' ,
+            country: userBody.country_id ,
+            zipcode: addr.zipcode ,
+            city_name: addr.city_name ,
+            state_name: addr.state_name ,
+            county_name: addr.county_name ,
+          }))
+        : [],
+    },
+  ];
+      const programVendor = await ProgramVendor.findOne({
+        where: {
+          user_id: userBody.id,
+          program_id:userBody.program_id, 
+        },
+      });
+      if (programVendor) {
+       const update= await programVendor.update({
+        contact: contactInfo,
+        addresses: contactInfo?.[0]?.addresses || [],
+        });
+      }
+    }
 
 export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
