@@ -631,8 +631,13 @@ COALESCE((
       user_type: string;
     }>(
       `SELECT associate_hierarchy_ids, is_all_hierarchy_associate, 
-       default_hierarchy_id, tenant_id, user_type 
-       FROM user WHERE user_id = :job_manager_id AND program_id = :program_id`,
+        default_hierarchy_id, tenant_id, user_type 
+       FROM user 
+       WHERE user_id = :job_manager_id 
+       AND (
+        user_type = 'super_user' 
+        OR (user_type != 'super_user' AND program_id = :program_id)
+      )`,
       { replacements: { job_manager_id, program_id }, type: QueryTypes.SELECT }
     );
 
@@ -640,6 +645,12 @@ COALESCE((
 
     const { is_all_hierarchy_associate, associate_hierarchy_ids, default_hierarchy_id, tenant_id, user_type } = managerData;
 
+    if (user_type === 'super_user') {
+      return {
+        hierarchies: await this.fetchAllHierarchies(program_id),
+        defaultHierarchyId: default_hierarchy_id,
+      };
+    }
     if (user_type === 'vendor') {
       const [programVendorData] = await sequelize.query<{
         all_hierarchy: boolean;
