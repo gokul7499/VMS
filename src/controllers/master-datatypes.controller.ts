@@ -555,10 +555,23 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
             });
 
             const masterDataTypeIdsToFilter = hierarchyMappings.map(item => item.master_data_type_id);
-            if (!masterDataTypeIdsToFilter.length) {
+
+            const allHierarchyAssociatedItems = await foundationalDataTypes.findAll({
+                where: {
+                program_id,
+                is_deleted: false,
+                is_all_hierarchy_associated: true,
+            },
+              attributes: ['id'],
+            });
+
+            const allAssociatedIds = allHierarchyAssociatedItems.map(item => item.id);
+
+            const combinedIds = [...new Set([...masterDataTypeIdsToFilter, ...allAssociatedIds])];
+            if (!combinedIds.length) {
                 return reply.status(200).send({ status_code: 200, message: 'master data not found', foundationalData: [], trace_id: traceId });
             }
-            filters.id = { [Op.in]: masterDataTypeIdsToFilter };
+            filters.id = { [Op.in]: combinedIds };
         }
 
         const { rows: foundationalDataItems, count: totalRecords } =

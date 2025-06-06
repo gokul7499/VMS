@@ -21,6 +21,7 @@ type MSP = {
   id: string;
   is_enabled: boolean;
 };
+
 export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) => {
   const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
@@ -76,16 +77,27 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
     const item: any = await Programs.create({ ...programData }, { transaction });
 
     const programId = item.id;
-    if (Array.isArray(msps) && msps.length > 0) {
-      const mspAssociations = msps.map((msp: MSP) => ({
-        program_id: programId,
-        msp_id: msp.id,
-        created_by: userId,
-        updated_by: userId,
-        is_enabled: msp.is_enabled,
-      }));
 
-      await programMspAssociationModel.bulkCreate(mspAssociations, { transaction });
+    if (Array.isArray(msps) && msps.length > 0) {
+      for (const msp of msps) {
+        const existingAssociation = await programMspAssociationModel.findOne({
+          where: {
+            program_id: programId,
+            msp_id: msp.id
+          },
+          transaction
+        });
+
+        if (!existingAssociation) {
+          await programMspAssociationModel.create({
+            program_id: programId,
+            msp_id: msp.id,
+            created_by: userId,
+            updated_by: userId,
+            is_enabled: msp.is_enabled,
+          }, { transaction });
+        }
+      }
     }
 
     reply.status(201).send({

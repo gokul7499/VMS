@@ -940,8 +940,8 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                                 try {
                                     console.log('Calling sow api heree', SOW_BASE_URL)
                                     const sow_id = workflow.workflow_trigger_id;
-                                    let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/approval`;
-                                    const payload = {};
+                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/update-status`;
+                                    const payload = {status: "approved"}; 
                                    let res= await axios.put(apiUrl, payload, {
                                         headers: {
                                             'Content-Type': 'application/json',
@@ -1030,7 +1030,7 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     },
                 });
 
-            }else if (moduleType === "timesheet".toLowerCase()) {
+            } else if (moduleType === "timesheet".toLowerCase()) {
                 const timesheet_id = workflow.workflow_trigger_id;
                 const body = Array.isArray(updates) ? updates[0] : updates;
                 const apiUrl = `${TEAI_BASE_URL}/timesheet/v1/program/${program_id}/timesheet/${timesheet_id}/rejection`;
@@ -1045,7 +1045,23 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                     },
                 });
 
-            }
+            }else if (moduleType === "Sow".toLowerCase() || moduleType === "Statement of Work".toLowerCase()) {
+                                try {
+                                    console.log('Calling sow api heree', SOW_BASE_URL)
+                                    const sow_id = workflow.workflow_trigger_id;
+                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/update-status`;
+                                    const payload = {status: "rejected"}; 
+                                   let res= await axios.put(apiUrl, payload, {
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            authorization: authHeader
+                                        },
+                                    });
+                                    console.log(' response from sow api', res)
+                                } catch (error) {
+                                    console.log('errro is noowww', error);
+                                }
+                            }
 
     } catch (error) {
         console.error(error);
@@ -1099,11 +1115,10 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
             // Fetch manager details
             let managerData: any = await getManagerDetails(program_id, id);
             const payload = {
-                user_type: user?.userType,
-                fullName: managerData?.data?.first_name,
+                user_type: user?.userType,                
                 job_id: jobDatas?.data?.job?.job_id || "",
                 job_url: jobDatas
-                    ? `${ui_base_url}/jobs/job/view/${workflow?.job_id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                    ? `${ui_base_url}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
                     : '',
                 status_reason: updates[0]?.reason,
                 candidate_first_name:workflowDetails?.first_name ||"",
