@@ -231,7 +231,7 @@ export async function updateVendorComplianceDocumentById(
         trace_id: traceId,
       });
     }
-
+ if (payload.name) {
     const duplicate = await VendorComplianceDocumentModel.findOne({
       where: {
         program_id,
@@ -248,7 +248,7 @@ export async function updateVendorComplianceDocumentById(
         trace_id: traceId,
       });
     }
-
+  }
     await VendorComplianceDocumentModel.update(
       { ...payload, updated_by: userId },
       { where: { id, is_deleted: false, } }
@@ -259,11 +259,12 @@ export async function updateVendorComplianceDocumentById(
       message: 'Vendor compliance document updated successfully.',
       trace_id: traceId,
     });
-  } catch (error) {
+  } catch (error:any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
       trace_id: traceId,
+      error: error.message,
     });
   }
 }

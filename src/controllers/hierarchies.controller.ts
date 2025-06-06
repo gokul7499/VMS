@@ -5,7 +5,7 @@ import generateCustomUUID from '../utility/genrateTraceId';
 import HierarchiesModel from '../models/hierarchies.model';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 import { getAllHierarchies, getHierarchieWithChildren, getMatchingHierarchiesQuery, getParentHierarchiesQuery, getUserHierarchiesBasedOnUserType, hierarchie, hierarchyDetailsQuery, masterDataQuery, parentHierarchyDetailsQuery, userData, vendorMarkup } from '../utility/queries';
 import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model';
