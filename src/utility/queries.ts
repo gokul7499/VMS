@@ -3575,7 +3575,7 @@ export const getWorklocationCustomField = `
         JOIN custom_fields cf ON work_location_custom_field.customfield_id = cf.id
         LEFT JOIN user AS u 
         ON REPLACE(REPLACE(work_location_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = work_locations.program_id
-        WHERE  work_locations.program_id=cf.program_id
+        WHERE  work_location_custom_field.work_location_id=work_locations.id
         AND cf.is_enabled = true
         AND cf.is_deleted = false
     ), JSON_ARRAY()) AS custom_fields
