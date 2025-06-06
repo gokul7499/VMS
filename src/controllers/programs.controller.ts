@@ -432,7 +432,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       where: { id: id },
     });
 
-    if (updates.custom_fields && updates.custom_fields.length > 0) {
+    if (updates.custom_fields) {
       await ProgramCustomField.destroy({
         where: { program_id: id }
 
