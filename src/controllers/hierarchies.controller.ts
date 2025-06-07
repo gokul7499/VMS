@@ -1036,12 +1036,21 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
       });
     }
 
+    const isSelfManagedPresent = managedByIds.includes("self-managed");
     const tenants = await TenantModel.findAll({
       where: {
         id: managedByIds,
       },
       attributes: ['id', 'name', 'display_name'],
     });
+
+    if (isSelfManagedPresent) {
+      tenants.unshift({
+        id: null,
+        name: "SELF_MANAGED",
+        display_name: "SELF_MANAGED",
+      } as any);
+    }
 
     return reply.status(200).send({
       status_code: 200,
