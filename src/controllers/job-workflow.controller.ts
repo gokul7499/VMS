@@ -3821,7 +3821,7 @@ export const getModuleEvent = async (
                 candidate_id,
                 program_id,
                 job_id,
-                is_deleted: false,
+                is_deleted: false
             },
             attributes: ['workflow_trigger_id'],
             include: [
@@ -3841,7 +3841,7 @@ export const getModuleEvent = async (
 
         const groupedData: Record<string, any[]> = {};
 
-        workflows.forEach((workflow) => {
+        workflows.forEach((workflow) => {            
             const moduleName = workflow.moduleDetail?.name || 'Unknown';
             const eventName = workflow.event?.name || null;
             const eventSlug = workflow.event?.slug || null;
@@ -3852,7 +3852,7 @@ export const getModuleEvent = async (
 
             const workflowTriggerId = (workflow as any).workflow_trigger_id;
             const isDuplicate = groupedData[moduleName].some(
-                (event) => event.event === eventName && event.event_slug === eventSlug
+                (event) => event.event === eventName && event.event_slug === eventSlug && event.event_slug !== "counter_offer"
             );
 
             if (!isDuplicate) {
