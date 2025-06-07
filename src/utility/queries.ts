@@ -234,7 +234,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   }
 
   return `
-    SELECT DISTINCT 
+    SELECT DISTINCT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -556,7 +556,7 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.is_deleted = false
     AND h.is_enabled = true
 )
-SELECT * 
+SELECT *
 FROM hierarchy_cte;
 `;
 
@@ -583,7 +583,7 @@ WITH hierarchy_cte AS (
     h.is_not_editable,
     h.default_currency,
     ph.name AS parent_hierarchy_name,
-    CASE 
+    CASE
       WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
         'id', 'self-managed',
         'name', 'self-managed',
@@ -608,7 +608,7 @@ WITH hierarchy_cte AS (
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
- 
+
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
@@ -802,9 +802,9 @@ SELECT
       'label', cf.label,
       'value', vcf.value,
       'field_type', cf.field_type,
-      'manager_name', 
-        CASE 
-          WHEN user.user_id IS NOT NULL 
+      'manager_name',
+        CASE
+          WHEN user.user_id IS NOT NULL
           THEN CONCAT(user.first_name, ' ', user.last_name)
           ELSE NULL
         END
@@ -2237,7 +2237,7 @@ export const hierarchie = `
         h.support_email,
         h.is_not_editable,
         h.address,
-        CASE 
+        CASE
           WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
             'id', 'self-managed',
             'name', 'self-managed',
@@ -2258,9 +2258,9 @@ export const hierarchie = `
                    'id', hierarchies_custom_field.id,
                     'custom_field_id', hierarchies_custom_field.customfield_id,
                     'value', hierarchies_custom_field.value,
-                  'manager_name', 
-                      CASE 
-                        WHEN user.user_id IS NOT NULL 
+                  'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
                       THEN CONCAT(user.first_name, ' ', user.last_name)
                       ELSE NULL
                       END,
@@ -3130,11 +3130,11 @@ export const vendorDocumentGroupFilterQuery = (
       vendor_document_groups.*,
       COUNT(vendor_document_groups.id) OVER () AS total_count,
       (
-        SELECT 
+        SELECT
           COUNT(*)
-        FROM 
+        FROM
           vendor_compliance_documents vcd
-        WHERE 
+        WHERE
           JSON_CONTAINS(vendor_document_groups.required_documents, JSON_QUOTE(vcd.id))
           AND vcd.is_deleted = false
           AND vcd.is_enabled = true
@@ -3361,7 +3361,7 @@ export const shiftTypesQuery = `
 `;
 
 export const getVendorDistributionSchedule = `
-  SELECT 
+  SELECT
     ds.id,
     ds.name,
     ds.description,
@@ -3371,7 +3371,7 @@ export const getVendorDistributionSchedule = `
     dsd.measure_unit,
     dsd.condition,
     (
-      SELECT 
+      SELECT
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', pv.id,
@@ -3382,7 +3382,7 @@ export const getVendorDistributionSchedule = `
         WHERE JSON_OVERLAPS(dsd.vendors, JSON_ARRAY(pv.id))
     ) AS vendors,
     (
-      SELECT 
+      SELECT
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', vg.id,
@@ -3409,16 +3409,16 @@ export const getVendorDistributionSchedule = `
 
 
 export const getMasterDataCustomFields = `
-   select 
+   select
 master_data_type.id,
  COALESCE((
                  SELECT JSON_ARRAYAGG(JSON_OBJECT(
                    'id', master_data_custom_field.id,
                     'custom_field_id', master_data_custom_field.custom_field_id,
                     'value', master_data_custom_field.value,
-                  'manager_name', 
-                      CASE 
-                        WHEN user.user_id IS NOT NULL 
+                  'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
                       THEN CONCAT(user.first_name, ' ', user.last_name)
                       ELSE NULL
                       END,
@@ -3432,7 +3432,7 @@ master_data_type.id,
               WHERE master_data_custom_field.master_data_type_id = master_data_type.id
     ), JSON_ARRAY()) AS custom_fields,
      (
-    CASE 
+    CASE
       WHEN master_data_type.is_all_hierarchy_associated = TRUE THEN (
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
         FROM hierarchies h
@@ -3448,7 +3448,7 @@ master_data_type.id,
       )
     END
   ) AS hierarchies
-    
+
     from master_data_type
     where master_data_type.program_id=:program_id
     AND master_data_type.id=:id
@@ -3466,7 +3466,7 @@ export const userData = `
 export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
   SELECT DISTINCT md.id,
       md.program_id, md.name, md.is_enabled,
-      MIN(md.updated_on) AS first_updated_on, 
+      MIN(md.updated_on) AS first_updated_on,
       MAX(md.updated_on) AS last_updated_on,
       md.code, md.foundational_data_type_id, md.depended_fields,
       t.id AS manager_ids, t.first_name, t.last_name,
@@ -3493,7 +3493,7 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
 `;
 
 export const getWorklocationCustomField = `
-  SELECT 
+  SELECT
     work_locations.id,
     work_locations.name,
     COALESCE((
@@ -3512,7 +3512,7 @@ export const getWorklocationCustomField = `
         )
         FROM work_location_custom_field
         JOIN custom_fields cf ON work_location_custom_field.customfield_id = cf.id
-        LEFT JOIN user AS u 
+        LEFT JOIN user AS u
         ON REPLACE(REPLACE(work_location_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = work_locations.program_id
         WHERE  work_location_custom_field.work_location_id=work_locations.id
         AND cf.is_enabled = true
