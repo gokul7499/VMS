@@ -250,7 +250,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
       hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
-      hierarchy.country = countryData || { id: null, name: "Unknown" };
+      hierarchy.country = countryData || { id: null, name: null };
 
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'

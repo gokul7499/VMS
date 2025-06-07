@@ -378,8 +378,8 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId, user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
-        await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type, status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId,user_type:user.user_type.toLowerCase(), user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
+        await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type.toLowerCase(), status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
             { user_id: userData.user_id, contact },
