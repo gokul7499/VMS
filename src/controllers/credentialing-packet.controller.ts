@@ -326,22 +326,46 @@ export async function deleteCredentialingPacket(
             });
         }
 
-        await CredentialingPacket.update(
-            {
-                is_deleted: true,
-                updated_by: userId,
-                updated_on: BigInt(Date.now()),
-            },
-            {
-                where: { entity_id },
-            }
-        );
+        const transaction = await sequelize.transaction();
 
-        return reply.status(200).send({
-            status_code: 200,
-            message: 'Credentialing packet deleted successfully',
-            traceId,
-        });
+        try {
+            await CredentialingPacket.update(
+                {
+                    is_deleted: true,
+                    updated_by: userId,
+                    updated_on: BigInt(Date.now()),
+                },
+                {
+                    where: { entity_id },
+                    transaction,
+                }
+            );
+
+            await CredentialingPacketMapping.update(
+                {
+                    is_deleted: true,
+                    updated_by: userId,
+                    updated_on: BigInt(Date.now()),
+                },
+                {
+                    where: {
+                        credentialing_packet_entity_id: entity_id,
+                    },
+                    transaction,
+                }
+            );
+
+            await transaction.commit();
+
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Credentialing packet deleted successfully',
+                traceId,
+            });
+        } catch (err) {
+            await transaction.rollback();
+            throw err;
+        }
     } catch (error) {
         return reply.status(500).send({
             status_code: 500,
@@ -351,3 +375,4 @@ export async function deleteCredentialingPacket(
         });
     }
 }
+
