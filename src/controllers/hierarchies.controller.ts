@@ -1001,7 +1001,8 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
     if (is_all_hierarchy_associate || user_type === "super_user") {
       const hierarchies = await HierarchiesModel.findAll({
         where: {
-          program_id
+          program_id,
+          is_enabled: true
         },
         attributes: ['managed_by'],
         raw: true
@@ -1014,6 +1015,8 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
       const hierarchies = await HierarchiesModel.findAll({
         where: {
           id: associate_hierarchy_ids,
+          is_enabled: true,
+          program_id
         },
         attributes: ['managed_by'],
         raw: true
