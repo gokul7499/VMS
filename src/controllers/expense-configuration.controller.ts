@@ -289,7 +289,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
         const updatedData = request.body as ExpenseConfigurationAttributes;
 
         const existingConfig = await ExpenseConfigurationModel.findOne({
-            where: { id, program_id, is_deleted: false, latest: true },
+            where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
             transaction,
         });
 
