@@ -50,7 +50,6 @@ export const createHierarchy = async (record: Model, transaction: any) => {
   }
 )as any;
 
-  console.log("Country:", country);
   const countyId = country?.id || null;
     const hierarchy = await hierarchies.create({
         program_id: programId,

@@ -12,6 +12,7 @@ import HierarchyCustomFieldModel from '../models/hierarchies-custom-field.model'
 import User from '../models/user.model';
 import TenantModel from '../models/tenant.model';
 import CountryModel from '../models/countries.model';
+import CustomField from '../models/custom-fields.model';
 
 interface HierarchyItem {
   support_email: any;
@@ -1200,17 +1201,48 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
           { transaction }
         );
 
-        if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
-          const customFields = hierarchie.custom_fields.map((field: {
-            id: any; value: any;
-          }) => ({
-            program_id,
-            customfield_id: field.id,
-            value: field.value,
-            hierarchy_id: newItem.id,
-          }));
-          await HierarchyCustomFieldModel.bulkCreate(customFields, { transaction });
-        }
+if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
+  const customFieldNames = hierarchie.custom_fields.map((field: { name: any; value: any }) => field.name);
+  
+  const customFieldsFromDB = await CustomField.findAll({
+    where: {
+      name: { [Op.in]: customFieldNames },
+      program_id 
+    },
+    attributes: ['id', 'name'],
+    transaction
+  });
+  
+  const customFieldMap = new Map();
+  customFieldsFromDB.forEach((cf: { name: any; id: any; }) => {
+    customFieldMap.set(cf.name, cf.id);
+  });
+  
+  const validCustomFields = [];
+  const invalidCustomFields = [];
+  
+  for (const field of hierarchie.custom_fields) {
+    const customFieldId = customFieldMap.get(field.name);
+    
+    if (customFieldId) {
+      validCustomFields.push({
+        program_id,
+        customfield_id: customFieldId, 
+        value: field.value,
+        hierarchy_id: newItem.id,
+      });
+    } else {
+      invalidCustomFields.push(field.name);
+    }
+  }
+    if (invalidCustomFields.length > 0) {
+    if (validCustomFields.length > 0) {
+      await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
+    }
+  } else {
+    await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
+  }
+}
         existingCodesSet.add(hierarchyCode);
 
         results.successful.push({
