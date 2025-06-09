@@ -14,8 +14,6 @@ export default interface CredentialingPacketInterface {
     task_category_configs: {
         seq_no: number;
         is_mandatory: boolean;
-        configuration: object;
-        dependency?: string;
         trigger: string;
         created_by: string;
         updated_by: string;

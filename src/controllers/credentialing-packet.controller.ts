@@ -5,7 +5,7 @@ import generateCustomUUID from "../utility/genrateTraceId";
 import { sequelize } from "../config/instance";
 import CredentialingPacketInterface from "../interfaces/credentialing-packet.interface";
 import CredentialingPacketMapping from "../models/credentialing-packet-mapping.model";
-import { col, fn, Op } from "sequelize";
+import { col, fn, Op, Sequelize } from "sequelize";
 
 export async function createCredentialingPacket(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -379,42 +379,43 @@ export async function deleteCredentialingPacket(
 
 export async function filterCredentialingPacket(
     request: FastifyRequest<{
-      Querystring: {
-        task_ids?: string;
-        is_enabled?: boolean | string;
-        entity_id?: string;
-        name?: string;
-        limit?: number | string;
-        page?: number | string;
-      };
-      Params: {
-        program_id: string;
-      };
+        Querystring: {
+            is_enabled?: boolean | string;
+            entity_id?: string;
+            name?: string;
+            limit?: number | string;
+            page?: number | string;
+            task_count?: number | string;
+        };
+        Params: {
+            program_id: string;
+        };
     }>,
     reply: FastifyReply
-  ) {
+) {
     const {
-      is_enabled,
-      name,
-      limit: rawLimit = '10',
-      page: rawPage = '1',
+        is_enabled,
+        name,
+        limit: rawLimit = '10',
+        page: rawPage = '1',
+        task_count,
     } = request.query;
-  
+
     const program_id = request.params.program_id;
     const traceId = generateCustomUUID();
-  
+
     const limit = Number(rawLimit);
     const page = Number(rawPage);
     const offset = (page - 1) * limit;
-  
+
     try {
-      const whereConditions: any = {
-        latest: true,
-        is_deleted: false,
-        program_id,
-      };
-  
-      if (is_enabled !== undefined) {
+        const whereConditions: any = {
+            latest: true,
+            is_deleted: false,
+            program_id,
+        };
+
+        if (is_enabled !== undefined) {
         if (typeof is_enabled === 'string') {
           const lower = is_enabled.toLowerCase();
           if (lower === 'true') whereConditions.is_enabled = true;
@@ -423,130 +424,139 @@ export async function filterCredentialingPacket(
           whereConditions.is_enabled = is_enabled;
         }
       }
-  
-      if (name !== undefined) {
-        whereConditions.name = {
-          [Op.like]: `%${name}%`,
-        };
-      }
-  
-      const credentialingPacket = await CredentialingPacket.findAndCountAll({
-        attributes: [
-          'version_id',
-          'entity_id',
-          'name',
-          'description',
-          'version',
-          'program_id',
-          'is_enabled',
-          [fn('COUNT', col('credentialingPacketTasks.id')), 'task_count'],
-        ],
-        include: [
-          {
-            model: CredentialingPacketMapping,
-            as: 'credentialingPacketTasks',
-            attributes: [],
-            where: {
-              is_deleted: false,
-              is_enabled: true,
-            },
-            required: false,
-          },
-        ],
-        where: whereConditions,
-        group: ['CredentialingPacket.version_id'],
-        order: [['updated_on', 'DESC']],
-        limit,
-        offset,
-        subQuery: false,
-      });
-  
-      if (!credentialingPacket.rows.length) {
-        return reply.status(200).send({
-          status_code: 200,
-          message: 'No credentialing packet found for the given filters.',
-          data: [],
-          total_count: 0,
-          current_page: page,
-          limit,
-          traceId,
-        });
-      }
-  
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Credentialing Packet fetched successfully',
-        data: credentialingPacket.rows.map((credentialingPacket: any) => ({
-          ...credentialingPacket.get(),
-        })),
-        total_count: credentialingPacket.count.length,
-        current_page: page,
-        limit,
-        traceId,
-      });
-    } catch (error) {
-      console.error('Error while filtering credentialing packet:', error);
-  
-      return reply.status(500).send({
-        status_code: 500,
-        message: 'An error occurred while filtering the credentialing packet',
-        traceId,
-        error: {
-          message: (error as Error).message || 'An unexpected error occurred.',
-          stack: (error as Error).stack || null,
-        },
-      });
-    }
-  }
 
-  export async function listCredentialingPacket(
-      request: FastifyRequest<{
-          Querystring: {
-              name?: string;
-          };
-          Params: {
-              program_id: string
-          };
-      }>,
-      reply: FastifyReply
-  ) {
-      const { name } = request.query;
-      const program_id = request.params.program_id;
-      const traceId = generateCustomUUID();
-  
-      try {
-          const whereConditions: any = {
-              latest: true,
-              is_enabled: true,
-              program_id,
-              ...(!name ? {} : { name: { [Op.like]: `%${name}%` } })
-          };
-  
-          const credentialingPacket = await CredentialingPacket.findAll({
-              where: whereConditions,
-              order: [['name', 'ASC']],
-              attributes: ['name', 'entity_id', 'version', 'version_id'],
-          });
-  
-          return reply.status(200).send({
-              status_code: 200,
-              message: credentialingPacket.length
-                  ? "Successfully fetched credentialing packet for the program"
-                  : "No credentialing packet found for the given filters.",
-              data: credentialingPacket,
-              traceId: traceId,
-          });
-      } catch (error) {
-          console.error('Error while listing credentialing packet:', error);
-  
-          return reply.status(500).send({
-              status_code: 500,
-              message: 'An error occurred while listing the credentialing packet',
-              traceId: traceId,
-              error: {
-                  message: (error as Error).message || 'An unexpected error occurred.',
-                  stack: (error as Error).stack || null,
-              },
-          });
-      }
-  }
+        if (name !== undefined) {
+            whereConditions.name = {
+                [Op.like]: `%${name}%`,
+            };
+        }
+
+        let havingCondition: any = undefined;
+        if (task_count !== undefined) {
+            const count = Number(task_count);
+            if (!isNaN(count)) {
+                havingCondition = Sequelize.literal(`COUNT(credentialingPacketTasks.id) = ${count}`);
+            }
+        }
+
+        const credentialingPacket = await CredentialingPacket.findAndCountAll({
+            attributes: [
+                'version_id',
+                'entity_id',
+                'name',
+                'description',
+                'version',
+                'program_id',
+                'is_enabled',
+                [fn('COUNT', col('credentialingPacketTasks.id')), 'task_count'],
+            ],
+            include: [
+                {
+                    model: CredentialingPacketMapping,
+                    as: 'credentialingPacketTasks',
+                    attributes: [],
+                    where: {
+                        is_deleted: false,
+                        is_enabled: true,
+                    },
+                    required: false,
+                },
+            ],
+            where: whereConditions,
+            group: ['CredentialingPacket.version_id'],
+            having: havingCondition,
+            order: [['updated_on', 'DESC']],
+            limit,
+            offset,
+            subQuery: false,
+        });
+
+        if (!credentialingPacket.rows.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'No credentialing packet found for the given filters.',
+                data: [],
+                total_count: 0,
+                current_page: page,
+                limit,
+                traceId,
+            });
+        }
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: 'Credentialing Packet fetched successfully',
+            data: credentialingPacket.rows.map((credentialingPacket: any) => ({
+                ...credentialingPacket.get(),
+            })),
+            total_count: credentialingPacket.count.length,
+            current_page: page,
+            limit,
+            traceId,
+        });
+    } catch (error) {
+        console.error('Error while filtering credentialing packet:', error);
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while filtering the credentialing packet',
+            traceId,
+            error: {
+                message: (error as Error).message || 'An unexpected error occurred.',
+                stack: (error as Error).stack || null,
+            },
+        });
+    }
+}
+
+export async function listCredentialingPacket(
+    request: FastifyRequest<{
+        Querystring: {
+            name?: string;
+        };
+        Params: {
+            program_id: string
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const { name } = request.query;
+    const program_id = request.params.program_id;
+    const traceId = generateCustomUUID();
+
+    try {
+        const whereConditions: any = {
+            latest: true,
+            is_enabled: true,
+            program_id,
+            ...(!name ? {} : { name: { [Op.like]: `%${name}%` } })
+        };
+
+        const credentialingPacket = await CredentialingPacket.findAll({
+            where: whereConditions,
+            order: [['name', 'ASC']],
+            attributes: ['name', 'entity_id', 'version', 'version_id'],
+        });
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: credentialingPacket.length
+                ? "Successfully fetched credentialing packet for the program"
+                : "No credentialing packet found for the given filters.",
+            data: credentialingPacket,
+            traceId: traceId,
+        });
+    } catch (error) {
+        console.error('Error while listing credentialing packet:', error);
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'An error occurred while listing the credentialing packet',
+            traceId: traceId,
+            error: {
+                message: (error as Error).message || 'An unexpected error occurred.',
+                stack: (error as Error).stack || null,
+            },
+        });
+    }
+}
