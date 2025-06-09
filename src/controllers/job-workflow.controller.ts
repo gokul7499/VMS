@@ -3801,30 +3801,43 @@ export const getModuleEvent = async (
     const { candidate_id, job_id } = request.query;
 
     try {
-        const results : any[] = await sequelize.query(
+        const results: any[] = await sequelize.query(
             `
-            SELECT 
-                jw.workflow_trigger_id,
-                m.name AS module_name,
-                e.name AS event_name,
-                e.slug AS event_slug
-            FROM 
-                workflow AS jw
-            LEFT JOIN 
-                module AS m ON jw.module_type = m.name
-            LEFT JOIN 
-                event AS e ON jw.event_id = e.id
-            WHERE 
-                jw.candidate_id = :candidate_id
-                AND jw.program_id = :program_id
-                AND jw.job_id = :job_id
-                AND jw.is_deleted = false
-                AND (
-                   e.slug != 'counter_offer' OR (e.slug = 'counter_offer' AND jw.is_updated = false)
-                  )
-            ORDER BY 
-                jw.created_on DESC
-            `,
+           WITH ranked_workflows AS (
+               SELECT 
+                   jw.workflow_trigger_id,
+                   m.name AS module_name,
+                   e.name AS event_name,
+                   e.slug AS event_slug,
+                   jw.created_on,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY e.slug
+                       ORDER BY jw.created_on ASC
+                   ) AS rn
+               FROM 
+                   workflow AS jw
+               LEFT JOIN 
+                   module AS m ON jw.module_type = m.name
+               LEFT JOIN 
+                   event AS e ON jw.event_id = e.id
+               WHERE 
+                   jw.candidate_id = :candidate_id
+                   AND jw.program_id = :program_id
+                   AND jw.job_id = :job_id
+                   AND jw.is_deleted = false
+           )
+           SELECT 
+               workflow_trigger_id,
+               module_name,
+               event_name,
+               event_slug
+           FROM 
+               ranked_workflows
+           WHERE 
+               event_slug != 'counter_offer' OR (event_slug = 'counter_offer' AND rn = 1)
+           ORDER BY 
+               created_on DESC
+           `,
             {
                 replacements: {
                     candidate_id,
