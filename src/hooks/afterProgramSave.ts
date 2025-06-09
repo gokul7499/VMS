@@ -7,6 +7,7 @@ import qualificationTypeModel from '../models/qualification-type-model'
 import rateType from '../models/rate-type.model';
 import { sequelize } from '../config/instance';
 import { fetchProgramConfigValues } from '../utility/queries';
+import CountyModel from '../models/county.model';
 
 
 export const createProgramModule = async (record: Model,transaction: any) => {
@@ -36,7 +37,21 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         trim: true,
         removedspecial: true,
     });
+    const [country] = await sequelize.query(
+  `
+    SELECT id FROM countries
+    WHERE name = :name
+    LIMIT 1
+  `,
+  {
+    replacements: { name: "United States" },
+    type: QueryTypes.SELECT,
+    transaction,
+  }
+)as any;
 
+  console.log("Country:", country);
+  const countyId = country?.id || null;
     const hierarchy = await hierarchies.create({
         program_id: programId,
         name : display_name,
@@ -61,7 +76,7 @@ export const createHierarchy = async (record: Model, transaction: any) => {
         support_email: "noreply@simplifyvms.com",
         address:[
             {
-                country: "United States",
+                country:countyId,
             }
         ]
     },{ transaction });
