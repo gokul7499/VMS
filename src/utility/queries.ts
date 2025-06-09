@@ -334,57 +334,57 @@ export const complianceDocumentGetByUserAndDocumentId = `
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
-export const complianceDocumentGetByVendorId = `
-SELECT DISTINCT
-    vcd.id,
-    vcd.program_id,
-    vcd.name,
-    vcd.act,
-    vcd.document_number,
-    vcd.upload_document_days,
-    vcd.attached_doc_url,
-    vcd.created_on,
-    vcd.updated_on,
-    vcd.is_enabled,
-    vcd.is_deleted,
-    vcd.to_uploaded,
-    vcd.no_of_days,
-    vcrm.id AS doc_id,
-    vcrm.next_expiry_on,
-    vcrm.status,
-    vcrm.file_name,
-    vcrm.expiry_on,
-    vcrm.url,
-    vcrm.audited_on,
-    vcrm.compliance_note,
-    vcrm.updated_on,
-    vcrm.created_on,
-    u.first_name,
-    u.last_name,
-    vcd.uploaded_document,
-    (
-        SELECT COUNT(DISTINCT vcd_inner.id)
-        FROM vendor_compliance_req_doc_mappings vcrm_inner
-        LEFT JOIN vendor_compliance_documents vcd_inner ON vcd_inner.id = vcrm_inner.required_document_id
-        WHERE vcd_inner.program_id = :program_id
-          AND vcrm_inner.vendor_id = :vendor_id
-          AND (:name IS NULL OR vcd_inner.name LIKE :name)
-          AND (:is_enabled IS NULL OR vcd_inner.is_enabled LIKE :is_enabled)
-    ) AS total_count
-FROM vendor_compliance_req_doc_mappings vcrm
-LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
-LEFT JOIN user u ON u.user_id = vcrm.audited_by
+  export const complianceDocumentGetByVendorId = `
+  SELECT DISTINCT
+      vcd.id,
+      vcd.program_id,
+      vcd.name,
+      vcd.act,
+      vcd.document_number,
+      vcd.upload_document_days,
+      vcd.attached_doc_url,
+      vcd.created_on,
+      vcd.updated_on,
+      vcd.is_enabled,
+      vcd.is_deleted,
+      vcd.to_uploaded,
+      vcd.no_of_days,
+      vcrm.id AS doc_id,
+      vcrm.next_expiry_on,
+      vcrm.status,
+      vcrm.file_name,
+      vcrm.expiry_on,
+      vcrm.url,
+      vcrm.audited_on,
+      vcrm.compliance_note,
+      vcrm.updated_on,
+      vcrm.created_on,
+      u.first_name,
+      u.last_name,
+      vcd.uploaded_document,
+      (
+          SELECT COUNT(DISTINCT vcd_inner.id)
+          FROM vendor_compliance_req_doc_mappings vcrm_inner
+          LEFT JOIN vendor_compliance_documents vcd_inner ON vcd_inner.id = vcrm_inner.required_document_id
+          WHERE vcd_inner.program_id = :program_id
+            AND vcrm_inner.vendor_id = :vendor_id
+            AND (:name IS NULL OR vcd_inner.name LIKE :name)
+            AND (:is_enabled IS NULL OR vcd_inner.is_enabled LIKE :is_enabled)
+      ) AS total_count
+  FROM vendor_compliance_req_doc_mappings vcrm
+  LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
+  LEFT JOIN user u ON u.user_id = vcrm.audited_by
 
--- Ensure vendor_id and program_id filter first
-WHERE vcrm.program_id = :program_id
-  AND vcrm.vendor_id = :vendor_id
-  AND (:name IS NULL OR vcd.name LIKE :name)
-  AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+  WHERE vcd.program_id = :program_id
+    AND vcrm.program_id = :program_id
+    AND vcrm.vendor_id = :vendor_id
+    AND (:name IS NULL OR vcd.name LIKE :name)
+    AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
 
-GROUP BY vcd.id
-ORDER BY vcrm.updated_on DESC
-LIMIT :limit OFFSET :offset
-`;
+  GROUP BY vcd.id
+  ORDER BY vcrm.updated_on DESC
+  LIMIT :limit OFFSET :offset
+  `;
 
 export const complianceDocumentCountByVendorId = `
     SELECT

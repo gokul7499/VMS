@@ -1047,9 +1047,9 @@ export const getMspByClient = async (request: FastifyRequest, reply: FastifyRepl
 
     if (isSelfManagedPresent) {
       tenants.unshift({
-        id: null,
+        id: 'self-managed',
         name: "SELF_MANAGED",
-        display_name: "SELF_MANAGED",
+        display_name: "SELF MANAGED",
       } as any);
     }
 
