@@ -3879,7 +3879,7 @@ export const getModuleEvent = async (
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
-            error: error instanceof Error ? error.message : error,
+            error: error,
         });
     }
 };
