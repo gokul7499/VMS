@@ -3816,49 +3816,74 @@ export const getModuleEvent = async (
     const { candidate_id, job_id } = request.query;
 
     try {
-        const workflows = await JobWorkFlowModel.findAll({
-            where: {
-                candidate_id,
-                program_id,
-                job_id,
-                is_deleted: false
-            },
-            attributes: ['workflow_trigger_id'],
-            include: [
-                {
-                    model: Module,
-                    as: 'moduleDetail',
-                    attributes: ['name'],
+        const results: any[] = await sequelize.query(
+            `
+           WITH ranked_workflows AS (
+               SELECT 
+                   jw.workflow_trigger_id,
+                   m.name AS module_name,
+                   e.name AS event_name,
+                   e.slug AS event_slug,
+                   jw.created_on,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY e.slug
+                       ORDER BY jw.created_on ASC
+                   ) AS rn
+               FROM 
+                   workflow AS jw
+               LEFT JOIN 
+                   module AS m ON jw.module_type = m.name
+               LEFT JOIN 
+                   event AS e ON jw.event_id = e.id
+               WHERE 
+                   jw.candidate_id = :candidate_id
+                   AND jw.program_id = :program_id
+                   AND jw.job_id = :job_id
+                   AND jw.is_deleted = false
+           )
+           SELECT 
+               workflow_trigger_id,
+               module_name,
+               event_name,
+               event_slug
+           FROM 
+               ranked_workflows
+           WHERE 
+               event_slug != 'counter_offer' OR (event_slug = 'counter_offer' AND rn = 1)
+           ORDER BY 
+               created_on DESC
+           `,
+            {
+                replacements: {
+                    candidate_id,
+                    program_id,
+                    job_id,
                 },
-                {
-                    model: Event,
-                    as: 'event',
-                    attributes: ['name', 'slug'],
-                },
-            ],
-            order: [['created_on', 'DESC']],
-        });
+                type: QueryTypes.SELECT,
+            }
+        );
 
         const groupedData: Record<string, any[]> = {};
 
-        workflows.forEach((workflow) => {            
-            const moduleName = workflow.moduleDetail?.name || 'Unknown';
-            const eventName = workflow.event?.name || null;
-            const eventSlug = workflow.event?.slug || null;
+        results.forEach((workflow: any) => {
+            const moduleName = workflow.module_name || '';
+            const eventName = workflow.event_name || null;
+            const eventSlug = workflow.event_slug || null;
 
             if (!groupedData[moduleName]) {
                 groupedData[moduleName] = [];
             }
 
-            const workflowTriggerId = (workflow as any).workflow_trigger_id;
             const isDuplicate = groupedData[moduleName].some(
-                (event) => event.event === eventName && event.event_slug === eventSlug && event.event_slug !== "counter_offer"
+                (event) =>
+                    event.event === eventName &&
+                    event.event_slug === eventSlug
             );
 
             if (!isDuplicate) {
                 groupedData[moduleName].push({
                     event: eventName,
-                    workflow_trigger_id: workflowTriggerId,
+                    workflow_trigger_id: workflow.workflow_trigger_id,
                     event_slug: eventSlug,
                 });
             }
