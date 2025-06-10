@@ -2751,7 +2751,8 @@ export const rateCardMinRateMaxRate = `
       d.hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     JOIN
@@ -2761,6 +2762,7 @@ export const rateCardMinRateMaxRate = `
       AND (d.job_template_id IN (:jobTemplateIds) OR d.job_template_id IS NULL)
       AND (d.unit_of_measure = :unit_of_measure OR d.unit_of_measure IS NULL)
       AND (d.currency = :currency_id OR d.currency IS NULL)
+      AND (:job_type IS NULL OR d.job_type = :job_type OR d.job_type IS NULL)
   ),
   fallback_matches AS (
     SELECT
@@ -2772,7 +2774,8 @@ export const rateCardMinRateMaxRate = `
       NULL AS hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     WHERE
@@ -2780,6 +2783,7 @@ export const rateCardMinRateMaxRate = `
       AND d.job_template_id IN (:jobTemplateIds)
       AND d.unit_of_measure = :unit_of_measure
       AND d.currency = :currency_id
+      AND (:job_type IS NULL OR d.job_type = :job_type)
   )
   SELECT *
   FROM primary_matches
@@ -2815,7 +2819,8 @@ WHERE
   AND rcdt.job_template_id IS NULL
   AND rcdt.unit_of_measure IS NULL
   AND rcdt.rate_type_id IS NULL
-  AND rcdt.currency IS NULL`;
+  AND rcdt.currency IS NULL
+  AND rcdt.job_type IS NULL`;
 
 export const getInvoiceConfigByHierarchyId = `
     SELECT *
