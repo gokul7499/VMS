@@ -1166,10 +1166,10 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
     }
 }
          let parentHierarchyId = null;
-    if (hierarchie.parent_hierarchy_id) {
+    if (hierarchie.parent_hierarchy_name) {
       const parentHierarchy = await HierarchiesModel.findOne({
         where: {
-          name: hierarchie.parent_hierarchy_id,
+          name: hierarchie.parent_hierarchy_name,
           program_id,
           is_deleted: false
         },
