@@ -7,7 +7,7 @@ import TimesheetExpenseRuleGroup from '../models/timesheet-expense-rule-group.mo
 import FoundationalDataTypes from '../models/master-datatypes.model';
 import IndustriesModel from '../models/labour-category.model';
 import { Op, QueryTypes } from 'sequelize';
-import { timesheetConfigAdvancedFilter } from '../utility/queries';
+import { timesheetConfigAdvancedFilter, timesheetConfigAdvancedGetAllFilter } from '../utility/queries';
 import hierarchies from '../models/hierarchies.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import generateSlug from '../plugins/slugGenerate';
@@ -93,19 +93,19 @@ export const getAllTimesheetTypeConfigs = async (
         const { program_id } = request.params as { program_id: string };
         const { page = '1', limit = '10' } = request.query as { page: string; limit: string };
 
-        const pageNumber = parseInt(page, 10); 
-        const pageSize = parseInt(limit, 10); 
-        const offset = (pageNumber - 1) * pageSize; 
+        const pageNumber = parseInt(page, 10);
+        const pageSize = parseInt(limit, 10);
+        const offset = (pageNumber - 1) * pageSize;
 
         const searchConditions: Record<string, any> = { is_deleted: false };
         if (program_id) searchConditions.program_id = program_id;
 
         const { count: totalRecords } = await sequelize.models.TimesheetTypeConfig.findAndCountAll({
             where: searchConditions,
-            limit: pageSize,   
-            offset: offset,  
+            limit: pageSize,
+            offset: offset,
         });
-    
+
         const configs = await sequelize.query(
             `SELECT
                 ttc.id,
@@ -311,7 +311,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             program_id,
             ...configData,
             updated_by: userId,
-           updated_on: Date.now(),
+            updated_on: Date.now(),
         }, { transaction });
         await transaction.commit();
         reply.status(200).send({
@@ -319,7 +319,7 @@ export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: 
             message: 'Timesheet Type Config updated successfully.',
             trace_id: traceId,
         });
-    } catch (error:any) {
+    } catch (error: any) {
         await transaction.rollback();
         reply.status(500).send({
             status_code: 500,
@@ -376,98 +376,98 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
 export async function timesheetTypeConfigFilter(
     request: FastifyRequest,
     reply: FastifyReply
-  ) {
+) {
     const traceId = generateCustomUUID();
     try {
-      const { program_id } = request.params as { program_id: string };
-      const {
-        id,
-        title,
-        hierarchy_ids,
-        labor_category,
-        is_enabled,
-        timesheet_rule_group,
-        timesheet_format,
-        allocation_method,
-        page,
-        limit,
-      } = request.body as { id: string; title: string; hierarchy_ids: string[]; labor_category: string; is_enabled: string; timesheet_rule_group: string; timesheet_format: string; allocation_method: string; page: string; limit: string };
+        const { program_id } = request.params as { program_id: string };
+        const {
+            id,
+            title,
+            hierarchy_ids,
+            labor_category,
+            is_enabled,
+            timesheet_rule_group,
+            timesheet_format,
+            allocation_method,
+            page,
+            limit,
+        } = request.body as { id: string; title: string; hierarchy_ids: string[]; labor_category: string; is_enabled: string; timesheet_rule_group: string; timesheet_format: string; allocation_method: string; page: string; limit: string };
 
-      const isEnabledFilter =
-        typeof is_enabled === 'string'
-          ? is_enabled === 'true'
-            ? 1
-            : 0
-          : is_enabled === true
-          ? 1
-          : is_enabled === false
-          ? 0
-          : undefined;
+        const isEnabledFilter =
+            typeof is_enabled === 'string'
+                ? is_enabled === 'true'
+                    ? 1
+                    : 0
+                : is_enabled === true
+                    ? 1
+                    : is_enabled === false
+                        ? 0
+                        : undefined;
 
-      const pageNumber = parseInt(page ?? '1');
-      const limitNumber = parseInt(limit ?? '10');
-      const offset = (pageNumber - 1) * limitNumber;
+        const pageNumber = parseInt(page ?? '1');
+        const limitNumber = parseInt(limit ?? '10');
+        const offset = (pageNumber - 1) * limitNumber;
 
-      const query = timesheetConfigAdvancedFilter(
-        Boolean(id),
-        Boolean(title),
-        hierarchy_ids || [],
-        Array.isArray(labor_category) ? labor_category : labor_category ? [labor_category] : [],
-        Boolean(timesheet_rule_group),
-        Boolean(timesheet_format),
-        Boolean(allocation_method),
-        isEnabledFilter !== undefined
-      );
+        const query = timesheetConfigAdvancedFilter(
+            Boolean(id),
+            Boolean(title),
+            hierarchy_ids || [],
+            Array.isArray(labor_category) ? labor_category : labor_category ? [labor_category] : [],
+            Boolean(timesheet_rule_group),
+            Boolean(timesheet_format),
+            Boolean(allocation_method),
+            isEnabledFilter !== undefined
+        );
 
-      const replacements: Record<string, any> = {
-        program_id,
-        id,
-        title: title ? `%${title}%` : undefined,
-        timesheet_rule_group,
-        timesheet_format,
-        allocation_method,
-        limit: limitNumber,
-        offset,
-        is_enabled: isEnabledFilter,
-      };
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            title: title ? `%${title}%` : undefined,
+            timesheet_rule_group,
+            timesheet_format,
+            allocation_method,
+            limit: limitNumber,
+            offset,
+            is_enabled: isEnabledFilter,
+        };
 
-      if (Array.isArray(labor_category)) {
-        labor_category.forEach((laborCategoryId, index) => {
-          replacements[`labor_category_id${index}`] = laborCategoryId;
+        if (Array.isArray(labor_category)) {
+            labor_category.forEach((laborCategoryId, index) => {
+                replacements[`labor_category_id${index}`] = laborCategoryId;
+            });
+        } else if (labor_category) {
+            replacements[`labor_category_id0`] = labor_category;
+        }
+
+        hierarchy_ids?.forEach((hierarchyId, index) => {
+            replacements[`hierarchy_id${index}`] = hierarchyId;
         });
-      } else if (labor_category) {
-        replacements[`labor_category_id0`] = labor_category;
-      }
 
-      hierarchy_ids?.forEach((hierarchyId, index) => {
-        replacements[`hierarchy_id${index}`] = hierarchyId;
-      });
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
 
-      const data = await sequelize.query<{ total_count: any }>(query, {
-        replacements,
-        type: QueryTypes.SELECT,
-      });
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
 
-      const totalRecords = data.length > 0 ? data[0].total_count : 0;
-
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: data.length > 0 ? 'Timesheet Type Config fetched successfully.' : 'No records found.',
-        total_records: totalRecords,
-        page: pageNumber,
-        limit: limitNumber,
-        items: data,
-      });
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Timesheet Type Config fetched successfully.' : 'No records found.',
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            items: data,
+        });
     } catch (error: any) {
-      return reply.status(500).send({
-        status_code: 500,
-        message: 'Internal Server Error',
-        trace_id: traceId,
-        error: error.message,
-      });
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
     }
-  }
+}
 
 export const getAllRelatedDataByProgram = async (
     request: FastifyRequest,
@@ -488,11 +488,11 @@ export const getAllRelatedDataByProgram = async (
         const [hierarchiesData, laborsData, ruleGroupsData] = await Promise.all([
             hierarchyIds.length ? hierarchies.findAll({ where: { id: hierarchyIds }, attributes: ['id', 'name'] }) : [],
             laborIds.length ? IndustriesModel.findAll({ where: { id: laborIds }, attributes: ['id', 'name'] }) : [],
-            ruleGroupIds.length? TimesheetExpenseRuleGroup.findAll({where: { id: ruleGroupIds }, attributes: ['id', 'rule_group_name'],}): [], ]);
+            ruleGroupIds.length ? TimesheetExpenseRuleGroup.findAll({ where: { id: ruleGroupIds }, attributes: ['id', 'rule_group_name'], }) : [],]);
         const data = {
             hierarchies: hierarchiesData.map(hierarchy => ({ id: hierarchy.id, name: hierarchy.name })),
             labor_categories: laborsData.map(labor => ({ id: labor.id, name: labor.name })),
-            timesheet_rule_groups: ruleGroupsData.map(ruleGroup => ({id: ruleGroup.id,name: ruleGroup.rule_group_name,})),
+            timesheet_rule_groups: ruleGroupsData.map(ruleGroup => ({ id: ruleGroup.id, name: ruleGroup.rule_group_name, })),
         };
         reply.status(200).send({
             status_code: 200,
@@ -509,3 +509,99 @@ export const getAllRelatedDataByProgram = async (
         });
     }
 };
+
+export async function timesheetTypeConfigGetAllFilter(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    const traceId = generateCustomUUID();
+    try {
+        const { program_id } = request.params as { program_id: string };
+        const {
+            id,
+            title,
+            hierarchy_ids,
+            labor_category,
+            is_enabled,
+            timesheet_rule_group,
+            timesheet_format,
+            allocation_method,
+            page,
+            limit,
+        } = request.body as { id: string; title: string; hierarchy_ids: string[]; labor_category: string; is_enabled: string; timesheet_rule_group: string; timesheet_format: string; allocation_method: string; page: string; limit: string };
+
+        const isEnabledFilter =
+            typeof is_enabled === 'string'
+                ? is_enabled === 'true'
+                    ? 1
+                    : 0
+                : is_enabled === true
+                    ? 1
+                    : is_enabled === false
+                        ? 0
+                        : undefined;
+
+        const pageNumber = parseInt(page ?? '1');
+        const limitNumber = parseInt(limit ?? '10');
+        const offset = (pageNumber - 1) * limitNumber;
+
+        const query = timesheetConfigAdvancedGetAllFilter(
+            Boolean(id),
+            Boolean(title),
+            hierarchy_ids || [],
+            Array.isArray(labor_category) ? labor_category : labor_category ? [labor_category] : [],
+            Boolean(timesheet_rule_group),
+            Boolean(timesheet_format),
+            Boolean(allocation_method),
+            isEnabledFilter !== undefined
+        );
+
+        const replacements: Record<string, any> = {
+            program_id,
+            id,
+            title: title ? `%${title}%` : undefined,
+            timesheet_rule_group,
+            timesheet_format,
+            allocation_method,
+            limit: limitNumber,
+            offset,
+            is_enabled: isEnabledFilter,
+        };
+
+        if (Array.isArray(labor_category)) {
+            labor_category.forEach((laborCategoryId, index) => {
+                replacements[`labor_category_id${index}`] = laborCategoryId;
+            });
+        } else if (labor_category) {
+            replacements[`labor_category_id0`] = labor_category;
+        }
+
+        hierarchy_ids?.forEach((hierarchyId, index) => {
+            replacements[`hierarchy_id${index}`] = hierarchyId;
+        });
+
+        const data = await sequelize.query<{ total_count: any }>(query, {
+            replacements,
+            type: QueryTypes.SELECT,
+        });
+
+        const totalRecords = data.length > 0 ? data[0].total_count : 0;
+
+        return reply.status(200).send({
+            status_code: 200,
+            trace_id: traceId,
+            message: data.length > 0 ? 'Timesheet Type Config fetched successfully.' : 'No records found.',
+            total_records: totalRecords,
+            page: pageNumber,
+            limit: limitNumber,
+            items: data,
+        });
+    } catch (error: any) {
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            trace_id: traceId,
+            error: error.message,
+        });
+    }
+}

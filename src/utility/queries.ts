@@ -334,7 +334,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
-  export const complianceDocumentGetByVendorId = `
+export const complianceDocumentGetByVendorId = `
   SELECT DISTINCT
       vcd.id,
       vcd.program_id,
@@ -3522,3 +3522,50 @@ FROM work_locations
 WHERE work_locations.program_id =:program_id
 AND  work_locations.id=:id
   `;
+
+export const timesheetConfigAdvancedGetAllFilter = (
+  hasId: boolean,
+  hasTitle: boolean,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  hasTimesheetRuleGroup: boolean,
+  hasTimesheetFormat: boolean,
+  hasAllocationMethod: boolean,
+  hasIsEnabled: boolean
+) => {
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+         ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
+
+  const laborCategoryClause = laborCategoryIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+         ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+    : '';
+
+  return `
+        SELECT
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          COUNT(ttc.id) OVER () AS total_count,
+          JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
+        FROM
+          timesheet_type_config ttc
+        LEFT JOIN timesheet_expense_rule_groups trg ON ttc.timesheet_rule_group = trg.id
+        ${hierarchyIdsClause}
+        ${laborCategoryClause}
+        WHERE
+          ttc.is_deleted = false
+          AND ttc.program_id = :program_id
+          ${hasId ? 'AND ttc.id = :id' : ''}
+          ${hasTitle ? 'AND ttc.title LIKE :title' : ''}
+          ${hasIsEnabled ? 'AND ttc.is_enabled = :is_enabled' : ''}
+          ${hasTimesheetRuleGroup ? 'AND ttc.timesheet_rule_group = :timesheet_rule_group' : ''}
+          ${hasTimesheetFormat ? 'AND ttc.timesheet_format = :timesheet_format' : ''}
+          ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(ttc.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        GROUP BY
+          ttc.id
+         ORDER BY ttc.updated_on DESC
+        LIMIT :limit
+        OFFSET :offset;
+    `;
+};
