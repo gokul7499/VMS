@@ -3535,7 +3535,9 @@ export const timesheetConfigAdvancedGetAllFilter = (
   hasTimesheetRuleGroup: boolean,
   hasTimesheetFormat: boolean,
   hasAllocationMethod: boolean,
-  hasIsEnabled: boolean
+  hasIsEnabled: boolean,
+  hasLimit: boolean,
+  hasOffset: boolean
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
@@ -3569,7 +3571,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
         GROUP BY
           ttc.id
          ORDER BY ttc.updated_on DESC
-        LIMIT :limit
-        OFFSET :offset;
+        ${hasLimit ? 'LIMIT :limit' : ''}
+        ${hasOffset ? 'OFFSET :offset' : ''};
     `;
 };
