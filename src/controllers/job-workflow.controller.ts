@@ -19,7 +19,6 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
-import WorkflowDataSource from '../models/workflow-data-source.model';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
