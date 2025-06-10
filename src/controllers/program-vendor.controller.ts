@@ -563,6 +563,8 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
                             required_document_id: doc.id,
                             program_id: program_id,
                             status: "Pending Upload",
+                            created_on: Date.now(),
+                            updated_on: Date.now(),
                             created_by: userId,
                             updated_by: userId,
                         },
