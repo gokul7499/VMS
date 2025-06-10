@@ -541,9 +541,9 @@ export async function timesheetTypeConfigGetAllFilter(
           ? 0
           : undefined;
 
-      const pageNumber = parseInt(page ?? '1');
-      const limitNumber = parseInt(limit ?? '10');
-      const offset = (pageNumber - 1) * limitNumber;
+      const pageNumber = page ? parseInt(page) : undefined;
+      const limitNumber = limit ? parseInt(limit) : undefined;
+      const offset = pageNumber && limitNumber ? (pageNumber - 1) * limitNumber : undefined;
 
       const query = timesheetConfigAdvancedGetAllFilter(
         Boolean(id),
@@ -553,7 +553,9 @@ export async function timesheetTypeConfigGetAllFilter(
         Boolean(timesheet_rule_group),
         Boolean(timesheet_format),
         Boolean(allocation_method),
-        isEnabledFilter !== undefined
+        isEnabledFilter !== undefined,
+        limitNumber !== undefined,
+        offset !== undefined 
       );
 
       const replacements: Record<string, any> = {
@@ -568,6 +570,8 @@ export async function timesheetTypeConfigGetAllFilter(
         is_enabled: isEnabledFilter,
       };
 
+      if (limitNumber !== undefined) replacements.limit = limitNumber;
+      if (offset !== undefined) replacements.offset = offset;
       if (Array.isArray(labor_category)) {
         labor_category.forEach((laborCategoryId, index) => {
           replacements[`labor_category_id${index}`] = laborCategoryId;
