@@ -1,5 +1,6 @@
 export interface hierarchiesData {
   parent_hierarchy_name: any;
+  parent_hierarchy_code:any;
   id: string;
   parent_hierarchy_id?: string; 
   program_id: string;
