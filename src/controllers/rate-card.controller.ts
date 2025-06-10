@@ -193,7 +193,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
         }));
 
         const rateCardsWithDetails = rateCards.map((rateCard) => {
-            const laborCategory = laborCategoryMap[rateCard.labor_category_id] || null;
+            const laborCategory = laborCategoryMap[rateCard.labor_category_id] ?? null;
             const relatedDecisionTables = decisionTableDetails.filter(
                 (dt) => dt.rate_card_id === rateCard.id
             );
@@ -203,15 +203,14 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
                 decision_table: relatedDecisionTables.map((dt) => ({
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "any", name: "Any" },
-                    job_template: dt.job_template || { id: "any", template_name: "Any" },
-                    rate_type: dt.rate_type || { id: "any", name: "Any" },
-                    currency: dt.currency || { id: "any", name: "Any", label: "Any", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "Any",
+                    hierarchy: dt.hierarchy ?? { id: "any", name: "Any" },
+                    job_template: dt.job_template ?? { id: "any", template_name: "Any" },
+                    rate_type: dt.rate_type ?? { id: "any", name: "Any" },
+                    currency: dt.currency ?? { id: "any", name: "Any", label: "Any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure ?? "Any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
-                    created_on: dt.created_on,
-                    updated_on: dt.updated_on,
+                    job_type: dt.job_type ?? "Any"
                 })),
             };
         });
@@ -228,7 +227,7 @@ export const getAllRateCards = async (request: FastifyRequest, reply: FastifyRep
     } catch (error: any) {
         return reply.status(500).send({
             message: 'Internal Server Error',
-            error: error.message || error,
+            error: error.message ?? error,
             trace_id: traceId,
         });
     }
@@ -290,15 +289,14 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
                 return {
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "any", name: "Any" },
-                    job_template: dt.job_template || { id: "any", template_name: "Any" },
-                    rate_type: dt.rate_type || { id: "any", name: "Any" },
-                    currency: currencyDetails || { id: "any", name: "Any", label: "Any", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "Any",
+                    hierarchy: dt.hierarchy ?? { id: "any", name: "Any" },
+                    job_template: dt.job_template ?? { id: "any", template_name: "Any" },
+                    rate_type: dt.rate_type ?? { id: "any", name: "Any" },
+                    currency: currencyDetails ?? { id: "any", name: "Any", label: "Any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure ?? "Any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
-                    created_on: dt.created_on,
-                    updated_on: dt.updated_on,
+                    job_type: dt.job_type ?? "Any",
                 }
             }),
         );
@@ -315,7 +313,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
     } catch (error: any) {
         reply.status(500).send({
             message: "Internal Server Error",
-            error: error.message || error,
+            error: error.message ?? error,
             trace_id: traceId,
         });
     }
@@ -376,6 +374,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         rate_type_id: dt.rate_type_id === "any" ? null : dt.rate_type_id,
                         currency: dt.currency === "any" ? null : dt.currency,
                         unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
+                        job_type: dt.job_type === "any" ? null : dt.job_type,
                     },
                     transaction,
                 });
@@ -398,8 +397,7 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
                         unit_of_measure: dt.unit_of_measure === "any" ? null : dt.unit_of_measure,
                         min_rate: dt.min_rate,
                         max_rate: dt.max_rate,
-                        created_on: dt.created_on,
-                        updated_on: dt.updated_on,
+                        job_type: dt.job_type === "any" ? null : dt.job_type
                     },
                     { transaction }
                 );
@@ -416,8 +414,8 @@ export const updateRateCard = async (request: FastifyRequest, reply: FastifyRepl
         await transaction.rollback();
         reply.status(500).send({
             message: 'Internal Server Error',
-            error: error.message || error,
-            trace_id: traceId,
+            error: error.message ?? error,
+            trace_id: traceId
         });
     }
 };
@@ -535,10 +533,10 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
         const currencyMap = Object.fromEntries(currencies.map((currency) => [currency.name, currency]));
         const decisionTableDetails = decisionTables.map((dt) => ({
             ...dt.toJSON(),
-            currency: currencyMap[dt.currency] || null,
+            currency: currencyMap[dt.currency] ?? null,
         }));
         const rateCardsWithDetails = rateCards.map((rateCard) => {
-            const laborCategory = laborCategoryMap[rateCard.labor_category_id] || null;
+            const laborCategory = laborCategoryMap[rateCard.labor_category_id] ?? null;
             const relatedDecisionTables = decisionTableDetails.filter(
                 (dt) => dt.rate_card_id === rateCard.id
             );
@@ -548,15 +546,14 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
                 decision_table: relatedDecisionTables.map((dt) => ({
                     id: dt.id,
                     rate_card_id: dt.rate_card_id,
-                    hierarchy: dt.hierarchy || { id: "any", name: "Any" },
-                    job_template: dt.job_template || { id: "any", template_name: "Any" },
-                    rate_type: dt.rate_type || { id: "any", name: "Any" },
-                    currency: dt.currency || { id: "any", name: "Any", label: "Any", symbol: "$" },
-                    unit_of_measure: dt.unit_of_measure || "Any",
+                    hierarchy: dt.hierarchy ?? { id: "any", name: "Any" },
+                    job_template: dt.job_template ?? { id: "any", template_name: "Any" },
+                    rate_type: dt.rate_type ?? { id: "any", name: "Any" },
+                    currency: dt.currency ?? { id: "any", name: "Any", label: "Any", symbol: "$" },
+                    unit_of_measure: dt.unit_of_measure ?? "Any",
                     min_rate: dt.min_rate,
                     max_rate: dt.max_rate,
-                    created_on: dt.created_on,
-                    updated_on: dt.updated_on,
+                    job_type: dt.job_type ?? "Any"
                 })),
             };
         });
@@ -573,7 +570,7 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
     } catch (error: any) {
         reply.status(500).send({
             message: 'Internal Server Error',
-            error: error.message || error,
+            error: error.message ?? error,
             trace_id: traceId,
         });
     }

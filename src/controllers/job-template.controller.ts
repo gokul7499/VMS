@@ -32,6 +32,10 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { convertFileToHTML } from '../utility/fileConverter';
 import { Readable } from 'node:stream';
+import Hierarchies from "../models/hierarchies.model";
+import JobCategoryModel from "../models/job-category.model";
+import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
+import IndustriesModel from "../models/labour-category.model";
 
 interface Metadata {
   program_id: string;
@@ -941,12 +945,13 @@ export async function findJobTemplatesByLabourCategories(request: FastifyRequest
 export async function getCommonHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   try {
-    const { job_manager_id, job_template_id, sow_template_id, msp_id, master_data_type_id } = request.query as {
+    const { job_manager_id, job_template_id, sow_template_id, msp_id, master_data_type_id, hierarchy_name } = request.query as {
       job_manager_id: string;
       job_template_id?: string;
       sow_template_id?: string;
       msp_id?: string;
       master_data_type_id?: string;
+      hierarchy_name?: string;
     };
     const { program_id } = request.params as { program_id: string };
 
@@ -990,7 +995,9 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
     if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
     if (MasterDataHierarchyIds.length > 0) hierarchyGroups.push(MasterDataHierarchyIds);
 
-    let commonHierarchyIds = hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)));
+    let commonHierarchyIds = hierarchyGroups.length > 0
+      ? hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)), hierarchyGroups[0])
+      : [];
 
     if (commonHierarchyIds.length === 0) {
       return reply.status(200).send({
@@ -1027,7 +1034,39 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
         .filter(Boolean);
     };
 
-    const nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+    let nestedHierarchy = buildHierarchy(hierarchiesWithChildren);
+
+    if (hierarchy_name) {
+      const searchLower = hierarchy_name.toLowerCase().trim();
+
+      const findAndBuildPath = (hierarchies: any[]): any[] => {
+        for (const hierarchy of hierarchies) {
+          const nameMatches = hierarchy.name.toLowerCase().includes(searchLower);
+
+          if (nameMatches) {
+            return [{
+              ...hierarchy,
+              hierarchies: hierarchy.hierarchies || []
+            }];
+          }
+
+          if (hierarchy.hierarchies && hierarchy.hierarchies.length > 0) {
+            const childResult = findAndBuildPath(hierarchy.hierarchies);
+            if (childResult.length > 0) {
+              return [{
+                ...hierarchy,
+                hierarchies: childResult
+              }];
+            }
+          }
+        }
+
+        return [];
+      };
+
+      const matchingResult = findAndBuildPath(nestedHierarchy);
+      nestedHierarchy = matchingResult;
+    }
 
     reply.status(200).send({
       status_code: 200,
@@ -1226,7 +1265,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
     }
     if(requested_from && job_template_id<1){
       reply.status(200).send({
-        status_code: 200, 
+        status_code: 200,
         trace_id: traceId,
         message:"job templet not found.",
         job_templates:[]
@@ -1327,11 +1366,11 @@ export async function extractFileContent(file: any): Promise<string> {
 
 export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
- 
+
   try {
     const { program_id } = request.params as { program_id: string };
     const jobTemplates = request.body as any[];
- 
+
     if (!Array.isArray(jobTemplates) || jobTemplates.length === 0) {
       return reply.status(400).send({
         status_code: 400,
@@ -1339,41 +1378,98 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
         trace_id: traceId,
       });
     }
- 
-    
-    const templateConditions = jobTemplates.map((template) => ({
+
+    const primaryHierarchyNames = jobTemplates.map(t => t.primary_hierarchy?.trim()).filter(Boolean);
+    const hierarchyNames = jobTemplates.flatMap(t => Array.isArray(t.hierarchy) ? t.hierarchy.map((n: string) => n.trim()) : []).filter(Boolean);
+    const categoryNames = jobTemplates.map(t => t.category?.trim()).filter(Boolean);
+    const labourCategoryNames = jobTemplates.map(t => t.labour_category?.trim()).filter(Boolean);
+
+    const [hierarchyRecords, categoryRecords, labourCategoryRecords] = await Promise.all([
+      Hierarchies.findAll({
+        where: {
+          name: {
+            [Op.in]: [...new Set([...primaryHierarchyNames, ...hierarchyNames])]
+          }
+        }
+      }),
+      JobCategoryModel.findAll({
+        where: {
+          title: {
+            [Op.in]: categoryNames
+          }
+        }
+      }),
+      IndustriesModel.findAll({
+        where: {
+          name: {
+            [Op.in]: labourCategoryNames
+          }
+        }
+      })
+    ]);
+
+    const hierarchyMap = new Map(hierarchyRecords.map(h => [h.name.trim(), h.id]));
+    const categoryMap = new Map(categoryRecords.map(c => [c.title.trim(), c.id]));
+    const labourCategoryMap = new Map(labourCategoryRecords.map(l => [l.name.trim(), l.id]));
+
+    const templateConditions = jobTemplates.map(template => ({
       template_name: template.template_name,
-      program_id: program_id, 
+      program_id,
     }));
- 
+
     const existingTemplates = await jobTemplateModel.findAll({
       where: {
         [Op.or]: templateConditions,
       },
     });
- 
-    const existingSet = new Set(
-      existingTemplates.map((tpl) => `${tpl.template_name}|${tpl.program_id}`)
-    );
- 
-    const newTemplates = jobTemplates
-      .filter((tpl) => !existingSet.has(`${tpl.template_name}|${program_id}`))
-      .map((tpl) => ({
+
+    const existingSet = new Set(existingTemplates.map(tpl => `${tpl.template_name}|${tpl.program_id}`));
+
+    const newTemplates = [];
+    const hierarchyMappings = [];
+
+    for (const tpl of jobTemplates) {
+      if (existingSet.has(`${tpl.template_name}|${program_id}`)) continue;
+
+      const templateData = {
         ...tpl,
         program_id,
-      })); 
- 
-    const createdTemplates = await jobTemplateModel.bulkCreate(newTemplates, {
-      validate: true,
-      individualHooks: true,
-    });
- 
+        primary_hierarchy: hierarchyMap.get(tpl.primary_hierarchy?.trim()) ?? null,
+        category: categoryMap.get(tpl.category?.trim()) ?? null,
+        labour_category: labourCategoryMap.get(tpl.labour_category?.trim()) ?? null,
+      };
+
+      const createdTemplate = await jobTemplateModel.create(templateData, {
+        validate: true,
+        individualHooks: true,
+      });
+
+      const hierarchyList = Array.isArray(tpl.hierarchy)
+        ? tpl.hierarchy.map((name: string) => hierarchyMap.get(name.trim())).filter(Boolean)
+        : [];
+
+      for (const hierarchyId of hierarchyList) {
+        hierarchyMappings.push({
+          job_temp_id: createdTemplate.id,
+          hierarchy: hierarchyId,
+          program_id,
+        });
+      }
+
+      newTemplates.push(createdTemplate);
+    }
+    if (hierarchyMappings.length > 0) {
+      await jobTemplateHierarchyModel.bulkCreate(hierarchyMappings);
+    }
+
     return reply.status(201).send({
       status_code: 201,
       message: "Job templates created successfully.",
       trace_id: traceId,
     });
+
   } catch (error: any) {
+    console.error(`trace_id: ${traceId} - Error:`, error);
     return reply.status(500).send({
       status_code: 500,
       message: "Failed to create job templates.",
@@ -1382,4 +1478,5 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
     });
   }
 };
- 
+
+

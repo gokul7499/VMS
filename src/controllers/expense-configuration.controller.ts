@@ -289,7 +289,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
         const updatedData = request.body as ExpenseConfigurationAttributes;
 
         const existingConfig = await ExpenseConfigurationModel.findOne({
-            where: { id, program_id, is_deleted: false, latest: true },
+            where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
             transaction,
         });
 
@@ -300,6 +300,35 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
                 trace_id: traceId,
                 message: "Expense configuration not found.",
             });
+        }
+        if (existingConfig.hierarchy_ids && Array.isArray(existingConfig.hierarchy_ids)) {
+            const existingHierarchyIds = existingConfig.hierarchy_ids;
+            const updatedHierarchyIds = updatedData.hierarchy_ids || [];
+
+            const conflictingRecords = await ExpenseConfigurationModel.findAll({
+                where: {
+                    program_id,
+                    is_deleted: false,
+                    latest: true,
+                    id: { [Op.ne]: id },
+                    [Op.or]: updatedHierarchyIds.map((hierarchyId: string) =>
+                        Sequelize.where(
+                            Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '["${hierarchyId}"]')`),
+                            true
+                        )
+                    )
+                }
+            });
+
+            if (conflictingRecords.length > 0) {
+                const conflictingIds = conflictingRecords.map(record => record.id);
+                return reply.status(409).send({
+                    status_code: 409,
+                    message: "Hierarchy IDs already exist in other records",
+                    trace_id: traceId,
+                    conflicting_record_ids: conflictingIds
+                });
+            }
         }
         const newHierarchyIds = updatedData.hierarchy_ids ?? [];
         const hierarchyConditions = newHierarchyIds.map((id: any) =>

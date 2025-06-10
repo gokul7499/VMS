@@ -204,13 +204,28 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id, code },
+            where: { name, program_id },
         });
 
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
                 status_code: 400,
                 message: "Master Data Already Exist.",
+                trace_id: traceId,
+            });
+        }
+
+        const existingFoundationalDataWithSameCode = await foundationalData.findOne({
+            where: {
+                code: sequelize.where(sequelize.fn('lower', sequelize.col('code')), sequelize.fn('lower', code)),
+                program_id,
+            },
+        });
+
+        if (existingFoundationalDataWithSameCode) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "Master Data with the same code already exists.",
                 trace_id: traceId,
             });
         }

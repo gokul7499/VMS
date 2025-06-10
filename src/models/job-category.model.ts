@@ -4,6 +4,7 @@ import { sequelize } from "../config/instance";
 
 class JobCategoryModel extends Model {
     id: any;
+  title: any;
 }
 
 JobCategoryModel.init(

@@ -234,7 +234,7 @@ export const complianceDocumentGetByUserId = (replacements: any) => {
   }
 
   return `
-    SELECT DISTINCT 
+    SELECT DISTINCT
         vcd.id,
         vcd.program_id,
         vcd.name,
@@ -335,56 +335,56 @@ export const complianceDocumentGetByUserAndDocumentId = `
 `;
 
 export const complianceDocumentGetByVendorId = `
-SELECT DISTINCT
-    vcd.id,
-    vcd.program_id,
-    vcd.name,
-    vcd.act,
-    vcd.document_number,
-    vcd.upload_document_days,
-    vcd.attached_doc_url,
-    vcd.created_on,
-    vcd.updated_on,
-    vcd.is_enabled,
-    vcd.is_deleted,
-    vcd.to_uploaded,
-    vcd.no_of_days,
-    vcrm.id AS doc_id,
-    vcrm.next_expiry_on,
-    vcrm.status,
-    vcrm.file_name,
-    vcrm.expiry_on,
-    vcrm.url,
-    vcrm.audited_on,
-    vcrm.compliance_note,
-    vcrm.updated_on,
-    vcrm.created_on,
-    u.first_name,
-    u.last_name,
-    vcd.uploaded_document,
-    (
-        SELECT COUNT(DISTINCT vcd_inner.id)
-        FROM vendor_compliance_req_doc_mappings vcrm_inner
-        LEFT JOIN vendor_compliance_documents vcd_inner ON vcd_inner.id = vcrm_inner.required_document_id
-        WHERE vcd_inner.program_id = :program_id
-          AND vcrm_inner.vendor_id = :vendor_id
-          AND (:name IS NULL OR vcd_inner.name LIKE :name)
-          AND (:is_enabled IS NULL OR vcd_inner.is_enabled LIKE :is_enabled)
-    ) AS total_count
-FROM vendor_compliance_req_doc_mappings vcrm
-LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
-LEFT JOIN user u ON u.user_id = vcrm.audited_by
+  SELECT DISTINCT
+      vcd.id,
+      vcd.program_id,
+      vcd.name,
+      vcd.act,
+      vcd.document_number,
+      vcd.upload_document_days,
+      vcd.attached_doc_url,
+      vcd.created_on,
+      vcd.updated_on,
+      vcd.is_enabled,
+      vcd.is_deleted,
+      vcd.to_uploaded,
+      vcd.no_of_days,
+      vcrm.id AS doc_id,
+      vcrm.next_expiry_on,
+      vcrm.status,
+      vcrm.file_name,
+      vcrm.expiry_on,
+      vcrm.url,
+      vcrm.audited_on,
+      vcrm.compliance_note,
+      vcrm.updated_on,
+      vcrm.created_on,
+      u.first_name,
+      u.last_name,
+      vcd.uploaded_document,
+      (
+          SELECT COUNT(DISTINCT vcd_inner.id)
+          FROM vendor_compliance_req_doc_mappings vcrm_inner
+          LEFT JOIN vendor_compliance_documents vcd_inner ON vcd_inner.id = vcrm_inner.required_document_id
+          WHERE vcd_inner.program_id = :program_id
+            AND vcrm_inner.vendor_id = :vendor_id
+            AND (:name IS NULL OR vcd_inner.name LIKE :name)
+            AND (:is_enabled IS NULL OR vcd_inner.is_enabled LIKE :is_enabled)
+      ) AS total_count
+  FROM vendor_compliance_req_doc_mappings vcrm
+  LEFT JOIN vendor_compliance_documents vcd ON vcd.id = vcrm.required_document_id
+  LEFT JOIN user u ON u.user_id = vcrm.audited_by
 
--- Ensure vendor_id and program_id filter first
-WHERE vcrm.program_id = :program_id
-  AND vcrm.vendor_id = :vendor_id
-  AND (:name IS NULL OR vcd.name LIKE :name)
-  AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
+  WHERE vcd.program_id = :program_id
+    AND vcrm.program_id = :program_id
+    AND vcrm.vendor_id = :vendor_id
+    AND (:name IS NULL OR vcd.name LIKE :name)
+    AND (:is_enabled IS NULL OR vcd.is_enabled LIKE :is_enabled)
 
-GROUP BY vcd.id
-ORDER BY vcrm.updated_on DESC
-LIMIT :limit OFFSET :offset
-`;
+  GROUP BY vcd.id
+  ORDER BY vcrm.updated_on DESC
+  LIMIT :limit OFFSET :offset
+  `;
 
 export const complianceDocumentCountByVendorId = `
     SELECT
@@ -556,7 +556,7 @@ WITH RECURSIVE hierarchy_cte AS (
   WHERE h.is_deleted = false
     AND h.is_enabled = true
 )
-SELECT * 
+SELECT *
 FROM hierarchy_cte;
 `;
 
@@ -583,7 +583,7 @@ WITH hierarchy_cte AS (
     h.is_not_editable,
     h.default_currency,
     ph.name AS parent_hierarchy_name,
-    CASE 
+    CASE
       WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
         'id', 'self-managed',
         'name', 'self-managed',
@@ -608,7 +608,7 @@ WITH hierarchy_cte AS (
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
 )
- 
+
 SELECT
   h.*,
   (SELECT total_count FROM total_count_cte) AS total_count
@@ -802,9 +802,9 @@ SELECT
       'label', cf.label,
       'value', vcf.value,
       'field_type', cf.field_type,
-      'manager_name', 
-        CASE 
-          WHEN user.user_id IS NOT NULL 
+      'manager_name',
+        CASE
+          WHEN user.user_id IS NOT NULL
           THEN CONCAT(user.first_name, ' ', user.last_name)
           ELSE NULL
         END
@@ -1731,7 +1731,6 @@ export const timesheetConfigAdvancedFilter = (
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
       GROUP BY
         timesheet_type_config.id
-       ORDER BY timesheet_type_config.updated_on DESC
       LIMIT :limit
       OFFSET :offset;
   `;
@@ -2237,7 +2236,7 @@ export const hierarchie = `
         h.support_email,
         h.is_not_editable,
         h.address,
-        CASE 
+        CASE
           WHEN UPPER(h.managed_by) = 'SELF-MANAGED' THEN JSON_OBJECT(
             'id', 'self-managed',
             'name', 'self-managed',
@@ -2258,9 +2257,9 @@ export const hierarchie = `
                    'id', hierarchies_custom_field.id,
                     'custom_field_id', hierarchies_custom_field.customfield_id,
                     'value', hierarchies_custom_field.value,
-                  'manager_name', 
-                      CASE 
-                        WHEN user.user_id IS NOT NULL 
+                  'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
                       THEN CONCAT(user.first_name, ' ', user.last_name)
                       ELSE NULL
                       END,
@@ -2483,7 +2482,7 @@ export const getPendingUserQuery = `
     user_group_mapping.last_name,
     user_group_mapping.first_name,
     user_group_mapping.middle_name,
-    'pending' AS status,
+    invitation.status,
     JSON_OBJECT(
       'id', tenant.id,
       'name', tenant.name,
@@ -2752,7 +2751,8 @@ export const rateCardMinRateMaxRate = `
       d.hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     JOIN
@@ -2762,6 +2762,7 @@ export const rateCardMinRateMaxRate = `
       AND (d.job_template_id IN (:jobTemplateIds) OR d.job_template_id IS NULL)
       AND (d.unit_of_measure = :unit_of_measure OR d.unit_of_measure IS NULL)
       AND (d.currency = :currency_id OR d.currency IS NULL)
+      AND (:job_type IS NULL OR d.job_type = :job_type OR d.job_type IS NULL)
   ),
   fallback_matches AS (
     SELECT
@@ -2773,7 +2774,8 @@ export const rateCardMinRateMaxRate = `
       NULL AS hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     WHERE
@@ -2781,6 +2783,7 @@ export const rateCardMinRateMaxRate = `
       AND d.job_template_id IN (:jobTemplateIds)
       AND d.unit_of_measure = :unit_of_measure
       AND d.currency = :currency_id
+      AND (:job_type IS NULL OR d.job_type = :job_type)
   )
   SELECT *
   FROM primary_matches
@@ -2816,7 +2819,8 @@ WHERE
   AND rcdt.job_template_id IS NULL
   AND rcdt.unit_of_measure IS NULL
   AND rcdt.rate_type_id IS NULL
-  AND rcdt.currency IS NULL`;
+  AND rcdt.currency IS NULL
+  AND rcdt.job_type IS NULL`;
 
 export const getInvoiceConfigByHierarchyId = `
     SELECT *
@@ -3130,11 +3134,11 @@ export const vendorDocumentGroupFilterQuery = (
       vendor_document_groups.*,
       COUNT(vendor_document_groups.id) OVER () AS total_count,
       (
-        SELECT 
+        SELECT
           COUNT(*)
-        FROM 
+        FROM
           vendor_compliance_documents vcd
-        WHERE 
+        WHERE
           JSON_CONTAINS(vendor_document_groups.required_documents, JSON_QUOTE(vcd.id))
           AND vcd.is_deleted = false
           AND vcd.is_enabled = true
@@ -3361,7 +3365,7 @@ export const shiftTypesQuery = `
 `;
 
 export const getVendorDistributionSchedule = `
-  SELECT 
+  SELECT
     ds.id,
     ds.name,
     ds.description,
@@ -3371,7 +3375,7 @@ export const getVendorDistributionSchedule = `
     dsd.measure_unit,
     dsd.condition,
     (
-      SELECT 
+      SELECT
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', pv.id,
@@ -3382,7 +3386,7 @@ export const getVendorDistributionSchedule = `
         WHERE JSON_OVERLAPS(dsd.vendors, JSON_ARRAY(pv.id))
     ) AS vendors,
     (
-      SELECT 
+      SELECT
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', vg.id,
@@ -3409,16 +3413,16 @@ export const getVendorDistributionSchedule = `
 
 
 export const getMasterDataCustomFields = `
-   select 
+   select
 master_data_type.id,
  COALESCE((
                  SELECT JSON_ARRAYAGG(JSON_OBJECT(
                    'id', master_data_custom_field.id,
                     'custom_field_id', master_data_custom_field.custom_field_id,
                     'value', master_data_custom_field.value,
-                  'manager_name', 
-                      CASE 
-                        WHEN user.user_id IS NOT NULL 
+                  'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
                       THEN CONCAT(user.first_name, ' ', user.last_name)
                       ELSE NULL
                       END,
@@ -3432,7 +3436,7 @@ master_data_type.id,
               WHERE master_data_custom_field.master_data_type_id = master_data_type.id
     ), JSON_ARRAY()) AS custom_fields,
      (
-    CASE 
+    CASE
       WHEN master_data_type.is_all_hierarchy_associated = TRUE THEN (
         SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'name', h.name))
         FROM hierarchies h
@@ -3448,7 +3452,7 @@ master_data_type.id,
       )
     END
   ) AS hierarchies
-    
+
     from master_data_type
     where master_data_type.program_id=:program_id
     AND master_data_type.id=:id
@@ -3466,7 +3470,7 @@ export const userData = `
 export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
   SELECT DISTINCT md.id,
       md.program_id, md.name, md.is_enabled,
-      MIN(md.updated_on) AS first_updated_on, 
+      MIN(md.updated_on) AS first_updated_on,
       MAX(md.updated_on) AS last_updated_on,
       md.code, md.foundational_data_type_id, md.depended_fields,
       t.id AS manager_ids, t.first_name, t.last_name,
@@ -3493,7 +3497,7 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
 `;
 
 export const getWorklocationCustomField = `
-  SELECT 
+  SELECT
     work_locations.id,
     work_locations.name,
     COALESCE((
@@ -3512,7 +3516,7 @@ export const getWorklocationCustomField = `
         )
         FROM work_location_custom_field
         JOIN custom_fields cf ON work_location_custom_field.customfield_id = cf.id
-        LEFT JOIN user AS u 
+        LEFT JOIN user AS u
         ON REPLACE(REPLACE(work_location_custom_field.value, '"', ''), ' ', '') = TRIM(u.user_id) AND u.program_id = work_locations.program_id
         WHERE  work_location_custom_field.work_location_id=work_locations.id
         AND cf.is_enabled = true
@@ -3522,3 +3526,52 @@ FROM work_locations
 WHERE work_locations.program_id =:program_id
 AND  work_locations.id=:id
   `;
+
+export const timesheetConfigAdvancedGetAllFilter = (
+  hasId: boolean,
+  hasTitle: boolean,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  hasTimesheetRuleGroup: boolean,
+  hasTimesheetFormat: boolean,
+  hasAllocationMethod: boolean,
+  hasIsEnabled: boolean,
+  hasLimit: boolean,
+  hasOffset: boolean
+) => {
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+         ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
+
+  const laborCategoryClause = laborCategoryIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+         ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+    : '';
+
+  return `
+        SELECT
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          COUNT(ttc.id) OVER () AS total_count,
+          JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
+        FROM
+          timesheet_type_config ttc
+        LEFT JOIN timesheet_expense_rule_groups trg ON ttc.timesheet_rule_group = trg.id
+        ${hierarchyIdsClause}
+        ${laborCategoryClause}
+        WHERE
+          ttc.is_deleted = false
+          AND ttc.program_id = :program_id
+          ${hasId ? 'AND ttc.id = :id' : ''}
+          ${hasTitle ? 'AND ttc.title LIKE :title' : ''}
+          ${hasIsEnabled ? 'AND ttc.is_enabled = :is_enabled' : ''}
+          ${hasTimesheetRuleGroup ? 'AND ttc.timesheet_rule_group = :timesheet_rule_group' : ''}
+          ${hasTimesheetFormat ? 'AND ttc.timesheet_format = :timesheet_format' : ''}
+          ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(ttc.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        GROUP BY
+          ttc.id
+         ORDER BY ttc.updated_on DESC
+        ${hasLimit ? 'LIMIT :limit' : ''}
+        ${hasOffset ? 'OFFSET :offset' : ''};
+    `;
+};
