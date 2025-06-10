@@ -59,7 +59,7 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.timesheetTypeConfigFilter);
 
-    fastify.post('/timeshet-type/get-all', {
+    fastify.post('/timeshet-type', {
         schema: {
             params: paramsSchema,
             body: timesheetTypeConfigFilterSchema
