@@ -53,7 +53,6 @@ export async function createCredentialingPacket(
                     task_name: config.task_name,
                     seq_no: config.seq_no,
                     is_mandatory: config.is_mandatory ?? true,
-                    trigger: config.trigger,
                     is_enabled: config.is_enabled ?? true,
                     is_deleted: config.is_deleted ?? false,
                     created_by: userId,
@@ -156,7 +155,7 @@ export async function updateCredentialingPacket(
         name,
         description,
         is_enabled,
-        associations,
+        sourcing_model,
         task_category_configs,
     } = request.body;
 
@@ -232,9 +231,9 @@ export async function updateCredentialingPacket(
                 name,
                 description,
                 is_enabled,
+                sourcing_model,
                 pre_credentialing_packet_entity_id: existingCredentialingPacket?.pre_credentialing_packet_entity_id,
                 pre_credentialing_packet_version: existingCredentialingPacket?.pre_credentialing_packet_version,
-                associations: JSON.stringify(associations),
                 previous_version_id: existingCredentialingPacket?.version_id || null,
                 latest: true,
                 created_by: userId,
@@ -257,7 +256,6 @@ export async function updateCredentialingPacket(
             task_name: config.task_name,
             seq_no: config.seq_no,
             is_mandatory: config.is_mandatory ?? true,
-            trigger: config.trigger,
             is_enabled: config.is_enabled ?? true,
             is_deleted: false,
             created_by: userId,
@@ -416,14 +414,14 @@ export async function filterCredentialingPacket(
         };
 
         if (is_enabled !== undefined) {
-        if (typeof is_enabled === 'string') {
-          const lower = is_enabled.toLowerCase();
-          if (lower === 'true') whereConditions.is_enabled = true;
-          else if (lower === 'false') whereConditions.is_enabled = false;
-        } else {
-          whereConditions.is_enabled = is_enabled;
+            if (typeof is_enabled === 'string') {
+                const lower = is_enabled.toLowerCase();
+                if (lower === 'true') whereConditions.is_enabled = true;
+                else if (lower === 'false') whereConditions.is_enabled = false;
+            } else {
+                whereConditions.is_enabled = is_enabled;
+            }
         }
-      }
 
         if (name !== undefined) {
             whereConditions.name = {

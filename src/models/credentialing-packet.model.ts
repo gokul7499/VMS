@@ -14,7 +14,7 @@ class CredentialingPacket extends Model {
     previous_version_id: any;
     pre_credentialing_packet_entity_id: any;
     pre_credentialing_packet_version: any;
-    associations: any;
+    sourcing_model: any;
     is_enabled: any;
     is_deleted: any;
     created_on: any;
@@ -71,16 +71,16 @@ CredentialingPacket.init(
                 key: 'id'
             }
         },
+        sourcing_model: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+        },
         pre_credentialing_packet_entity_id: {
             type: DataTypes.UUID,
             allowNull: true,
         },
         pre_credentialing_packet_version: {
             type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        associations: {
-            type: DataTypes.JSON,
             allowNull: true,
         },
         is_enabled: {

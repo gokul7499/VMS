@@ -10,11 +10,10 @@ export default interface CredentialingPacketInterface {
     previous_version_id?: string;
     pre_credentialing_packet_entity_id?: string;
     pre_credentialing_packet_version?: number;
-    associations?: Record<string, any>;
+    sourcing_model?: string;
     task_category_configs: {
         seq_no: number;
         is_mandatory: boolean;
-        trigger: string;
         created_by: string;
         updated_by: string;
         created_on?: bigint;

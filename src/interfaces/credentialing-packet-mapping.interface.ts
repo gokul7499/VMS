@@ -9,7 +9,6 @@ export default interface CredentialingPacketMappingInterface {
     task_name: string;
     seq_no: number;
     is_mandatory?: boolean;
-    trigger: string;
     is_enabled?: boolean;
     is_deleted?: boolean;
     created_on?: number;

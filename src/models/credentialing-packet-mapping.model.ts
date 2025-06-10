@@ -52,10 +52,6 @@ CredentialingPacketMapping.init(
             type: DataTypes.BOOLEAN,
             defaultValue: true,
         },
-        trigger: {
-            type: DataTypes.STRING(40),
-            allowNull: false,
-        },
         is_enabled: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
