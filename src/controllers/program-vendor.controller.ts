@@ -574,12 +574,12 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
-            await vendorMarkupConfig.destroy({
+         await vendorMarkupConfig.destroy({
                 where: { program_id, program_vendor_id: existingProgramVendor.id },
                 transaction
             });
 
+        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
                 const fieldsToCheck = [
