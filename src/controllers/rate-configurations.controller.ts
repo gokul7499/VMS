@@ -732,15 +732,10 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
     const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
-        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt } = request.query as { hierarchie_id: string; job_templates: string; is_shift_rate: string; currency_id: string; unit_of_measure: string; labor_category_id: string; ot_exempt: string };
+        const { hierarchie_id, job_templates, is_shift_rate, currency_id, unit_of_measure, labor_category_id, ot_exempt, job_type } = request.query as { hierarchie_id: string; job_templates: string; is_shift_rate: string; currency_id: string; unit_of_measure: string; labor_category_id: string; ot_exempt: string; job_type: string };
 
         const hierarchyIds = hierarchie_id ? hierarchie_id.split(',') : [];
         const jobTemplateIds = job_templates ? job_templates.split(',') : [];
-
-        const configData = await AccuracyConfiguration.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
-        const formatWithAccuracy = (value: any, title: string): string => {
-            return AccuracyConfiguration.findAndCalculate(configData, title, value);
-        };
 
         const rateCardDecisionRecords = await sequelize.query<RateCardDecisionRecord>(rateCardMinRateMaxRate, {
             replacements: {
@@ -749,6 +744,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                 unit_of_measure,
                 currency_id,
                 labor_category_id,
+                job_type: job_type ?? null,
                 program_id
             },
             type: QueryTypes.SELECT,
@@ -765,7 +761,6 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                 is_shift_rate,
                 hierarchyIds,
                 jobTemplateIds,
-                formatWithAccuracy,
                 rateCardDecisionRecords,
                 traceId,
                 unit_of_measure,
@@ -1026,18 +1021,14 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                             return {
                                 ...billRate.get(),
                                 differential_value,
-                                min_rate: formatWithAccuracy(
+                                min_rate:
                                     billRate.differential_type === "Factor Differential"
-                                        ? matchingDecisionRecord.min_rate.amount * differential_value
-                                        : matchingDecisionRecord.min_rate.amount + differential_value,
-                                    accuracyType.RATE
-                                ),
-                                max_rate: formatWithAccuracy(
+                                        ? (matchingDecisionRecord.min_rate.amount * differential_value).toFixed(8)
+                                        : (matchingDecisionRecord.min_rate.amount + differential_value).toFixed(8),
+                                max_rate:
                                     billRate.differential_type === "Factor Differential"
-                                        ? matchingDecisionRecord.max_rate.amount * differential_value
-                                        : matchingDecisionRecord.max_rate.amount + differential_value,
-                                    accuracyType.RATE
-                                )
+                                        ? (matchingDecisionRecord.max_rate.amount * differential_value).toFixed(8)
+                                        : (matchingDecisionRecord.max_rate.amount + differential_value).toFixed(8),
                             };
                         });
 
@@ -1054,19 +1045,13 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
                             return {
                                 ...payRate.get(),
-                                differential_value,
-                                min_rate: formatWithAccuracy(
-                                    payRate.differential_type === "Factor Differential"
-                                        ? matchingDecisionRecord.min_rate.amount * differential_value
-                                        : matchingDecisionRecord.min_rate.amount + differential_value,
-                                    accuracyType.RATE
-                                ),
-                                max_rate: formatWithAccuracy(
-                                    payRate.differential_type === "Factor Differential"
-                                        ? matchingDecisionRecord.max_rate.amount * differential_value
-                                        : matchingDecisionRecord.max_rate.amount + differential_value,
-                                    accuracyType.RATE
-                                )
+                                differential_value: Number(differential_value.toFixed(8)),
+                                min_rate: payRate.differential_type === "Factor Differential"
+                                    ? (matchingDecisionRecord.min_rate.amount * differential_value).toFixed(8)
+                                    : (matchingDecisionRecord.min_rate.amount + differential_value).toFixed(8),
+                                max_rate: payRate.differential_type === "Factor Differential"
+                                    ? (matchingDecisionRecord.max_rate.amount * differential_value).toFixed(8)
+                                    : (matchingDecisionRecord.max_rate.amount + differential_value).toFixed(8),
                             };
                         });
 
@@ -1109,12 +1094,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 shift_type: shiftType,
                                 rate_type_category: rateTypeCategory,
                                 min_rate: {
-                                    amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
+                                    amount: matchingDecisionRecord.min_rate.amount.toFixed(8),
                                     is_changeable: matchingDecisionRecord.min_rate.is_changeable,
                                     is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
                                 },
                                 max_rate: {
-                                    amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
+                                    amount: matchingDecisionRecord.max_rate.amount.toFixed(8),
                                     is_changeable: matchingDecisionRecord.max_rate.is_changeable,
                                     is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
                                 },
@@ -1175,19 +1160,19 @@ async function calculateMinMaxRates(rateCardDecisionRecords: RateCardDecisionRec
     return {
         min_rate: minRateRecord
             ? {
-                amount: minRateRecord.min_rate.amount,
+                amount: Number(minRateRecord.min_rate.amount.toFixed(8)),
                 is_changeable: minRateRecord.min_rate.is_changeable,
                 is_reduceable: minRateRecord.min_rate.is_reduceable
             }
-            : { amount: 0, is_changeable: true, is_reduceable: false },
+            : { amount: 0.00000000, is_changeable: true, is_reduceable: false },
 
         max_rate: maxRateRecord
             ? {
-                amount: maxRateRecord.max_rate.amount,
+                amount: Number(maxRateRecord.max_rate.amount.toFixed(8)),
                 is_changeable: maxRateRecord.max_rate.is_changeable,
                 is_reduceable: maxRateRecord.max_rate.is_reduceable
             }
-            : { amount: 0, is_changeable: true, is_reduceable: false }
+            : { amount: 0.00000000, is_changeable: true, is_reduceable: false }
     };
 }
 
@@ -1197,7 +1182,6 @@ async function handleStandardBaseRateCase({
     is_shift_rate,
     hierarchyIds,
     jobTemplateIds,
-    formatWithAccuracy,
     rateCardDecisionRecords,
     traceId,
     unit_of_measure,
@@ -1210,7 +1194,6 @@ async function handleStandardBaseRateCase({
     is_shift_rate: string;
     hierarchyIds: string[];
     jobTemplateIds: string[];
-    formatWithAccuracy: (value: any, title: string) => string;
     rateCardDecisionRecords: RateCardDecisionRecord[];
     traceId: string;
     unit_of_measure: string;
@@ -1301,12 +1284,12 @@ async function handleStandardBaseRateCase({
                     shift_type: shiftType,
                     rate_type_category: rateTypeCategory,
                     min_rate: {
-                        amount: formatWithAccuracy(matchingDecisionRecord.min_rate.amount, accuracyType.RATE),
+                        amount: matchingDecisionRecord.min_rate.amount.toFixed(8),
                         is_changeable: matchingDecisionRecord.min_rate.is_changeable,
                         is_reduceable: matchingDecisionRecord.min_rate.is_reduceable,
                     },
                     max_rate: {
-                        amount: formatWithAccuracy(matchingDecisionRecord.max_rate.amount, accuracyType.RATE),
+                        amount: matchingDecisionRecord.max_rate.amount.toFixed(8),
                         is_changeable: matchingDecisionRecord.max_rate.is_changeable,
                         is_reduceable: matchingDecisionRecord.max_rate.is_reduceable,
                     },
