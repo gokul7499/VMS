@@ -826,6 +826,15 @@ export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, re
       });
     }
 
+    const allHierarchyTemplates = await jobTemplateModel.findAll({
+      where: {
+        program_id,
+        is_all_hierarchy_associated: 1,
+        is_enabled: 1
+      },
+      attributes: ["program_id", "id", "job_id", "is_enabled", "template_name"],
+    });
+
     const jobTemplateHierarchies = await jobTemplateHierarchyModel.findAll({
       where: {
         hierarchy: {
@@ -834,14 +843,6 @@ export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, re
       },
       attributes: ["job_temp_id", "hierarchy"],
     });
-
-    if (jobTemplateHierarchies.length === 0) {
-      return reply.status(400).send({
-        status_code: 400,
-        trace_id: traceId,
-        message: "No matching data found for the provided hierarchy IDs.",
-      });
-    }
 
     const hierarchyMap = jobTemplateHierarchies.reduce(
       (acc, record) => {
@@ -859,7 +860,12 @@ export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, re
         hierarchy_ids.every((id) => hierarchyMap[jobTempId].has(id))
     );
 
-    if (matchingJobTemplateIds.length === 0) {
+    const allMatchingIds = [
+      ...allHierarchyTemplates.map(t => t.id.toString()),
+      ...matchingJobTemplateIds
+    ];
+
+    if (allMatchingIds.length === 0) {
       return reply.status(404).send({
         status_code: 404,
         trace_id: traceId,
@@ -871,17 +877,20 @@ export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, re
     const jobTemplates = await jobTemplateModel.findAll({
       where: {
         id: {
-          [Op.in]: matchingJobTemplateIds,
+          [Op.in]: allMatchingIds,
         },
         program_id,
       },
-      attributes: ["program_id", "id", "job_id", "is_enabled", "template_name"],
+      attributes: ["program_id", "id", "job_id", "is_enabled", "template_name", "is_all_hierarchy_associated"],
     });
 
     const jobTemplatesWithHierarchies = jobTemplates.map((template) => ({
       ...template.toJSON(),
-      jobTemplateHierarchies: Array.from(hierarchyMap[template.id]),
+      jobTemplateHierarchies: template.is_all_hierarchy_associated === 1 
+        ? ['All Hierarchies'] 
+        : Array.from(hierarchyMap[template.id] || []),
     }));
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -1253,17 +1262,17 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       replacements.job_template_id = job_template_id;
     }
 
-    if (hierarchy_ids && hierarchy_ids.length > 0) {
-      dynamicConditions.push(`
-        job_templates.id IN (
-          SELECT job_temp_id
-          FROM job_template_hierarchies
-          WHERE hierarchy IN (:hierarchy_ids)
-          AND is_deleted = false
-        )
-      `);
-      replacements.hierarchy_ids = hierarchy_ids;
-    }
+  if (hierarchy_ids && hierarchy_ids.length > 0) {
+  dynamicConditions.push(`
+    (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+      SELECT job_temp_id
+      FROM job_template_hierarchies
+      WHERE hierarchy IN (:hierarchy_ids)
+      AND is_deleted = false
+    ))
+  `);
+  replacements.hierarchy_ids = hierarchy_ids;
+}
     if(requested_from && job_template_id<1){
       reply.status(200).send({
         status_code: 200,

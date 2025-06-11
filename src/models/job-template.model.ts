@@ -16,6 +16,7 @@ class JobTemplateModel extends Model {
     is_automatic_distribute_submit: any;
     labour_category: any;
     is_tiered_distribute_schedule: any;
+  is_all_hierarchy_associated: any;
 }
 
 JobTemplateModel.init(
@@ -239,7 +240,7 @@ JobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: true
         },
-        is_all_hierarchy_associate:{
+        is_all_hierarchy_associated:{
            type: DataTypes.BOOLEAN,
             defaultValue: false
         },
