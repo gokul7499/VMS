@@ -239,6 +239,10 @@ JobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: true
         },
+        is_all_hierarchy_associate:{
+           type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
             defaultValue: Date.now(),
