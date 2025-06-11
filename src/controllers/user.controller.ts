@@ -593,6 +593,7 @@ export async function deleteUser(
 
 export async function getAllUserIDAndUserId(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
+  console.log("**********************")
   const {
     user_id,
     user_type,
@@ -652,7 +653,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
 
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { user_id: user.user_id },
+        replacements: { user_id: user.user_id ,program_id},
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
