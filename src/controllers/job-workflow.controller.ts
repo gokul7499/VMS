@@ -334,7 +334,7 @@ export const updateWorkflowStatus = async (
         
         try {
             const userQuery = `
-        SELECT  status FROM user WHERE user_id = :userId AND is_enabled = true;`;
+        SELECT  status FROM user WHERE user_id = :userId AND LOWER(status) = 'active';`;
             const user: any = await sequelize.query(userQuery, {
                 replacements: { userId },
                 type: QueryTypes.SELECT,
@@ -799,7 +799,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         SELECT user_id, status,first_name,last_name,avatar
         FROM user
         WHERE user_id IN (:userId)
-          AND is_enabled = true;`;
+          AND LOWER(status) = 'active';`;
 
     const users = await sequelize.query(userQuery, {
         type: QueryTypes.SELECT,
@@ -864,7 +864,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
                 if (workflow?.events?.toLowerCase() === "counter_offer") {
                     const offer_id = workflow.workflow_trigger_id;
-                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/offer/${offer_id}`;
+                    const apiUrl = `http://localhost:8002/sourcing/v1/api/program/${program_id}/offer/${offer_id}`;
                     const payload = {
                         status: "APPROVE",
                     };
@@ -1070,7 +1070,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         SELECT user_id, user_type,email
         FROM user
         WHERE user_id = :user_id
-        AND is_enabled = true
+        AND LOWER(status) = 'active'
         LIMIT 1
     `;
 
@@ -4499,7 +4499,7 @@ async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
             user
         WHERE
             id IN (:userIds)
-            AND is_enabled = true
+            AND LOWER(status) = 'active'
     `;
 
     try {
