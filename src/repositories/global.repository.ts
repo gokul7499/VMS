@@ -63,32 +63,29 @@ class GlobalRepository {
         const userId = user.sub;
         let userType = user.userType;
         let userData: any;
+        let mspHierarchyIds: string[] | undefined = undefined;
 
         if (!userType) {
             userData = await this.findUser(program_id, userId);
-        }
-
-        let mspHierarchyIds: string[] | undefined = undefined;
-
-        if (userData && userData[0].user_type.toUpperCase() === 'MSP') {
-            if (userData[0].is_all_hierarchy_associate) {
-                const hierarchies: any[] = await sequelize.query(
-                    `
+            if (userData && userData[0].user_type.toUpperCase() === 'MSP') {
+                if (userData[0].is_all_hierarchy_associate) {
+                    const hierarchies: any[] = await sequelize.query(
+                        `
                     SELECT id FROM hierarchies 
                     WHERE program_id = :program_id 
                       AND managed_by = :tenant_id
                     `,
-                    {
-                        replacements: { program_id, tenant_id: userData[0].tenant_id },
-                        type: QueryTypes.SELECT,
-                    }
-                );
-                mspHierarchyIds = hierarchies.map(h => h.id);
-            } else {
-                mspHierarchyIds = userData[0].associate_hierarchy_ids;
+                        {
+                            replacements: { program_id, tenant_id: userData[0].tenant_id },
+                            type: QueryTypes.SELECT,
+                        }
+                    );
+                    mspHierarchyIds = hierarchies.map(h => h.id);
+                } else {
+                    mspHierarchyIds = userData[0].associate_hierarchy_ids;
+                }
             }
         }
-
         return { mspHierarchyIds };
     }
 }

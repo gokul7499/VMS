@@ -3467,7 +3467,7 @@ export const userData = `
     LIMIT 1;
   `;
 
-export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
+export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarchyFilter: string) => `
   SELECT DISTINCT md.id,
       md.program_id, md.name, md.is_enabled,
       MIN(md.updated_on) AS first_updated_on,
@@ -3490,6 +3490,7 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
       AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
       AND (:first_name IS NULL OR t.first_name LIKE :first_name)
       ${hierarchyFilter}
+      ${mspHierarchyFilter}
   GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
            t.id, t.first_name, t.last_name, mdt.name
   ORDER BY last_updated_on DESC
