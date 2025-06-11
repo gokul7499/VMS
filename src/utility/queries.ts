@@ -334,7 +334,7 @@ export const complianceDocumentGetByUserAndDocumentId = `
         AND (:document_id IS NULL OR vcd.id = :document_id)
 `;
 
-  export const complianceDocumentGetByVendorId = `
+export const complianceDocumentGetByVendorId = `
   SELECT DISTINCT
       vcd.id,
       vcd.program_id,
@@ -2769,7 +2769,8 @@ export const rateCardMinRateMaxRate = `
       d.hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     JOIN
@@ -2779,6 +2780,7 @@ export const rateCardMinRateMaxRate = `
       AND (d.job_template_id IN (:jobTemplateIds) OR d.job_template_id IS NULL)
       AND (d.unit_of_measure = :unit_of_measure OR d.unit_of_measure IS NULL)
       AND (d.currency = :currency_id OR d.currency IS NULL)
+      AND (:job_type IS NULL OR d.job_type = :job_type OR d.job_type IS NULL)
   ),
   fallback_matches AS (
     SELECT
@@ -2790,7 +2792,8 @@ export const rateCardMinRateMaxRate = `
       NULL AS hierarchy_id,
       d.job_template_id,
       d.unit_of_measure,
-      d.currency
+      d.currency,
+      d.job_type
     FROM
       rate_card_decision_table d
     WHERE
@@ -2798,6 +2801,7 @@ export const rateCardMinRateMaxRate = `
       AND d.job_template_id IN (:jobTemplateIds)
       AND d.unit_of_measure = :unit_of_measure
       AND d.currency = :currency_id
+      AND (:job_type IS NULL OR d.job_type = :job_type)
   )
   SELECT *
   FROM primary_matches
@@ -2833,7 +2837,8 @@ WHERE
   AND rcdt.job_template_id IS NULL
   AND rcdt.unit_of_measure IS NULL
   AND rcdt.rate_type_id IS NULL
-  AND rcdt.currency IS NULL`;
+  AND rcdt.currency IS NULL
+  AND rcdt.job_type IS NULL`;
 
 export const getInvoiceConfigByHierarchyId = `
     SELECT *
@@ -3480,7 +3485,7 @@ export const userData = `
     LIMIT 1;
   `;
 
-export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
+export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarchyFilter: string) => `
   SELECT DISTINCT md.id,
       md.program_id, md.name, md.is_enabled,
       MIN(md.updated_on) AS first_updated_on,
@@ -3503,6 +3508,7 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
       AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
       AND (:first_name IS NULL OR t.first_name LIKE :first_name)
       ${hierarchyFilter}
+      ${mspHierarchyFilter}
   GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
            t.id, t.first_name, t.last_name, mdt.name
   ORDER BY last_updated_on DESC
@@ -3539,3 +3545,97 @@ FROM work_locations
 WHERE work_locations.program_id =:program_id
 AND  work_locations.id=:id
   `;
+
+export const timesheetConfigAdvancedGetAllFilter = (
+  hasId: boolean,
+  hasTitle: boolean,
+  hierarchyIdsArray: string[],
+  laborCategoryIdsArray: string[],
+  hasTimesheetRuleGroup: boolean,
+  hasTimesheetFormat: boolean,
+  hasAllocationMethod: boolean,
+  hasIsEnabled: boolean,
+  hasLimit: boolean,
+  hasOffset: boolean
+) => {
+  const hierarchyIdsClause = hierarchyIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+         ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    : '';
+
+  const laborCategoryClause = laborCategoryIdsArray.length
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+         ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+    : '';
+
+  return `
+        SELECT
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          COUNT(ttc.id) OVER () AS total_count,
+          JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
+        FROM
+          timesheet_type_config ttc
+        LEFT JOIN timesheet_expense_rule_groups trg ON ttc.timesheet_rule_group = trg.id
+        ${hierarchyIdsClause}
+        ${laborCategoryClause}
+        WHERE
+          ttc.is_deleted = false
+          AND ttc.program_id = :program_id
+          ${hasId ? 'AND ttc.id = :id' : ''}
+          ${hasTitle ? 'AND ttc.title LIKE :title' : ''}
+          ${hasIsEnabled ? 'AND ttc.is_enabled = :is_enabled' : ''}
+          ${hasTimesheetRuleGroup ? 'AND ttc.timesheet_rule_group = :timesheet_rule_group' : ''}
+          ${hasTimesheetFormat ? 'AND ttc.timesheet_format = :timesheet_format' : ''}
+          ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(ttc.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        GROUP BY
+          ttc.id
+         ORDER BY ttc.updated_on DESC
+        ${hasLimit ? 'LIMIT :limit' : ''}
+        ${hasOffset ? 'OFFSET :offset' : ''};
+    `;
+};
+
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string,mspHierarchyFilter:string) => `
+SELECT
+  mdt.id,
+  mdt.program_id,
+  mdt.name,
+  mdt.is_enabled,
+  mdt.updated_on,
+  mdt.description,
+  mdt.configuration,
+  COUNT(*) OVER() AS total_count
+FROM master_data_type AS mdt
+WHERE
+  mdt.program_id = :program_id
+  AND mdt.is_deleted = FALSE
+  AND (
+    :name IS NULL
+    OR mdt.name LIKE CONCAT('%', :name, '%')
+  )
+  AND (
+    :is_enabled IS NULL
+    OR mdt.is_enabled = :is_enabled
+  )
+  AND (
+    (:updated_on_start IS NULL OR mdt.updated_on >= :updated_on_start)
+    AND (:updated_on_end IS NULL OR mdt.updated_on <= :updated_on_end)
+  )
+  AND (
+    :timesheet_master_data IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.timesheet_master_data') = :timesheet_master_data
+  )
+  AND (
+    :user_association_exclude IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.user_association_exclude') = :user_association_exclude
+  )
+  AND (
+    :track_owner IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.track_owner') = :track_owner
+  )
+  ${hierarchyFilter}
+  ${mspHierarchyFilter}
+ORDER BY
+  mdt.updated_on DESC
+LIMIT :limit OFFSET :offset;
+`;

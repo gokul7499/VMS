@@ -593,7 +593,6 @@ export async function deleteUser(
 
 export async function getAllUserIDAndUserId(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
-  console.log("**********************")
   const {
     user_id,
     user_type,
