@@ -334,7 +334,7 @@ export const updateWorkflowStatus = async (
         
         try {
             const userQuery = `
-        SELECT  status FROM user WHERE user_id = :userId AND is_enabled = true;`;
+        SELECT  status FROM user WHERE user_id = :userId AND LOWER(status) = 'active';`;
             const user: any = await sequelize.query(userQuery, {
                 replacements: { userId },
                 type: QueryTypes.SELECT,
@@ -799,7 +799,7 @@ export async function getUsersStatus(sequelize: any, userId: any, program_id: an
         SELECT user_id, status,first_name,last_name,avatar
         FROM user
         WHERE user_id IN (:userId)
-          AND is_enabled = true;`;
+          AND LOWER(status) = 'active';`;
 
     const users = await sequelize.query(userQuery, {
         type: QueryTypes.SELECT,
@@ -1086,7 +1086,7 @@ async function handleJobWorkflowStatus(request: FastifyRequest, reply: FastifyRe
         SELECT user_id, user_type,email
         FROM user
         WHERE user_id = :user_id
-        AND is_enabled = true
+        AND LOWER(status) = 'active'
         LIMIT 1
     `;
 
@@ -2401,7 +2401,7 @@ async function fetchUserData(user_id: string, program_id: string) {
         FROM user
         WHERE user_id = :user_id
           AND program_id = :program_id
-          AND status = 'active'
+          AND LOWER(status) = 'active'
         LIMIT 1
     `;
     
@@ -2422,7 +2422,7 @@ async function fetchJobManagerData(manager_id: string, program_id: string) {
         FROM user
         WHERE user_id = :job_manager_id
           AND program_id = :program_id
-          AND status = 'active'
+          AND LOWER(status) = 'active'
         LIMIT 1
     `;
     
@@ -2443,7 +2443,7 @@ async function fetchSupervisorData(supervisor_id: string, program_id: string) {
         FROM user
         WHERE user_id = :supervisor
           AND program_id = :program_id
-          AND status = 'active'
+          AND LOWER(status) = 'active'
         LIMIT 1
     `;
     
@@ -3074,7 +3074,7 @@ async function fetchUserById(userId: string, programId: string): Promise<any> {
             FROM user
             WHERE user_id = :userId
               AND program_id = :programId
-              AND status = 'active'
+              AND LOWER(status) = 'active'
             LIMIT 1;
         `;
         
@@ -3987,7 +3987,7 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
                     sequelize.query(
                         `SELECT user_id, first_name, last_name, avatar, role_id, email, supervisor
                          FROM user
-                         WHERE user_id IN (:user_ids) AND program_id = :program_id AND status = 'active'`,
+                         WHERE user_id IN (:user_ids) AND program_id = :program_id AND LOWER(status) = 'active'`,
                         {
                             type: QueryTypes.SELECT,
                             replacements: { user_ids: [...userIds], program_id },
@@ -4319,7 +4319,7 @@ async function getUserData(userIds: any[], sequelize: any): Promise<any[]> {
             user
         WHERE
             id IN (:userIds)
-            AND is_enabled = true
+            AND LOWER(status) = 'active'
     `;
 
     try {
@@ -4765,7 +4765,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 FROM user
                 WHERE user_id = :user_id
                 AND program_id = :program_id
-                AND status = 'active'
+                AND LOWER(status) = 'active'
                 LIMIT 1
             `;
             const userResult = await sequelize.query(userQuery, {
@@ -4786,7 +4786,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 SELECT user_id, first_name, last_name, avatar, role_id, email
                 FROM user
                 WHERE user_id = :user_id         
-                AND status = 'active'
+                AND LOWER(status) = 'active'
                 LIMIT 1
             `;
             const impersonatorResult = await sequelize.query(userQuery, {
@@ -4818,7 +4818,7 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
                 FROM user
                 WHERE user_id = :user_id
                 AND program_id = :program_id
-                AND status = 'active'
+                AND LOWER(status) = 'active'
                 LIMIT 1
             `;
             const result = await sequelize.query(userQuery, {
@@ -5487,7 +5487,7 @@ const fetchLevelUserData = async (userId: any, program_id: any) => {
         FROM user
         WHERE user_id = :user_id
           AND program_id=:program_id
-         AND status = 'active'
+         AND LOWER(status) = 'active'
         LIMIT 1
     `;
     const userResult = await sequelize.query<Users>(userQuery, {
