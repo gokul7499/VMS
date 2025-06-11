@@ -652,7 +652,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
 
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { user_id: user.user_id },
+        replacements: { user_id: user.user_id ,program_id},
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);

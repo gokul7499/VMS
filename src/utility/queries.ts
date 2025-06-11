@@ -1763,36 +1763,51 @@ export const labourCategoryAdvanceFilter = (
 
 export const getMasterData = `
 SELECT
-    JSON_OBJECT(
-        'master_data', JSON_OBJECT(
-            'id', master_data_type.id,
-            'name', master_data_type.name,
-            'configuration',master_data_type.configuration
-        ),
-        'associated_master_data', (
-            SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', md1.id,
-                    'name', md1.name
-                )
-            )
-            FROM master_data AS md1
-            WHERE JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md1.id), '$')
-        ),
-        'default_master_data', JSON_OBJECT(
-            'id', md2.id,
-            'name', md2.name
-        ),
-        'is_all_associated', user_master_data.is_all_associated=1
-    ) AS foundational_data
-FROM
-    user_master_data
-LEFT JOIN
-    master_data_type ON user_master_data.master_data = master_data_type.id
-LEFT JOIN
-    master_data AS md2 ON user_master_data.default_master_data = md2.id
-WHERE
-    user_master_data.user_id = :user_id;
+                    JSON_OBJECT(
+                        'master_data', JSON_OBJECT(
+                            'id', master_data_type.id,
+                            'name', master_data_type.name
+                        ),
+                        'associated_master_data', COALESCE(
+                            CASE
+                                WHEN user_master_data.is_all_associated = 1 THEN (
+                                    SELECT JSON_ARRAYAGG(
+                                        JSON_OBJECT('id', md1.id, 'name', md1.name)
+                                    )
+                                    FROM master_data AS md1
+                                    WHERE md1.foundational_data_type_id = master_data_type.id
+                                    AND md1.program_id = :program_id
+                                    AND md1.is_enabled = 1
+                                )
+                                ELSE (
+                                    SELECT JSON_ARRAYAGG(
+                                        JSON_OBJECT('id', md2.id, 'name', md2.name)
+                                    )
+                                    FROM master_data AS md2
+                                    WHERE md2.foundational_data_type_id = master_data_type.id
+                                    AND JSON_CONTAINS(user_master_data.associated_master_data, JSON_QUOTE(md2.id), '$')
+                                )
+                            END,
+                            JSON_ARRAY()
+                        ),
+                        'default_master_data', COALESCE(
+                            (
+                                SELECT JSON_ARRAYAGG(
+                                    JSON_OBJECT('id', md3.id, 'name', md3.name)
+                                )
+                                FROM master_data AS md3
+                                WHERE md3.foundational_data_type_id = master_data_type.id
+                                AND JSON_CONTAINS(user_master_data.default_master_data, JSON_QUOTE(md3.id), '$')
+                            ),
+                            JSON_ARRAY()
+                        ),
+                        'is_all_associated', user_master_data.is_all_associated = 1
+                    ) AS foundational_data
+                FROM user_master_data
+                LEFT JOIN master_data_type ON user_master_data.master_data = master_data_type.id
+                LEFT JOIN user ON user_master_data.user_id = user.user_id
+                WHERE user_master_data.user_id = :user_id
+                AND user.program_id = :program_id;
 `;
 
 export const getAllRateTypes = (
@@ -2482,7 +2497,10 @@ export const getPendingUserQuery = `
     user_group_mapping.last_name,
     user_group_mapping.first_name,
     user_group_mapping.middle_name,
-    invitation.status,
+    CASE
+    WHEN invitation.status = 'SENT' THEN 'Pending'
+    ELSE invitation.status
+    END AS status,
     JSON_OBJECT(
       'id', tenant.id,
       'name', tenant.name,
