@@ -239,7 +239,7 @@ JobTemplateModel.init(
             type: DataTypes.UUID,
             allowNull: true
         },
-        is_all_hierarchy_associate:{
+        is_all_hierarchy_associated:{
            type: DataTypes.BOOLEAN,
             defaultValue: false
         },

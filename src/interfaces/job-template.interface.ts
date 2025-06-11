@@ -43,7 +43,7 @@ export interface JobTemplateInterface {
   is_checklist_enable:boolean;
   ot_exempt:boolean;
   distribution_schedule:string;
-  is_all_hierarchy_associate: boolean;
+  is_all_hierarchy_associated: boolean;
 }
 
 export interface JobMasterDataInterface {
