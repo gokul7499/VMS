@@ -11,6 +11,7 @@ import { UserInterface } from "../interfaces/user.interface";
 import { UserMappingAttributes } from "../interfaces/user-mapping.interface";
 import { decodeToken } from '../middlewares/verifyToken';
 import CountryModel from "../models/countries.model";
+import { ProgramVendor } from "../models/program-vendor.model";
 
 export async function getTenants(
     request: FastifyRequest<{ Querystring: TenantData }>,
@@ -266,7 +267,6 @@ export async function createTenantAndUser(request: FastifyRequest, reply: Fastif
     }
 }
 
-
 export async function updateTenant(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const TenantData = request.body as TenantData;
@@ -286,6 +286,13 @@ export async function updateTenant(request: FastifyRequest, reply: FastifyReply)
         const userId = user?.sub;
         if (tenant) {
             await tenant.update({...TenantData, updated_by:userId});
+            
+            if (TenantData.display_name) {
+                await ProgramVendor.update(
+                    { display_name: TenantData.display_name },
+                    { where: { tenant_id: id } }
+                );
+            }
             reply.status(200).send({
                 status_code: 200,
                 message: 'Tenant updated successfully.',
