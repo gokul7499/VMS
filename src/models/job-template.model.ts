@@ -16,6 +16,7 @@ class JobTemplateModel extends Model {
     is_automatic_distribute_submit: any;
     labour_category: any;
     is_tiered_distribute_schedule: any;
+  is_all_hierarchy_associated: any;
 }
 
 JobTemplateModel.init(
