@@ -864,7 +864,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
             if (moduleType === "offer".toLowerCase() || moduleType === "offers".toLowerCase()) {
                 if (workflow?.events?.toLowerCase() === "counter_offer") {
                     const offer_id = workflow.workflow_trigger_id;
-                    const apiUrl = `http://localhost:8002/sourcing/v1/api/program/${program_id}/offer/${offer_id}`;
+                    const apiUrl = `${SOURCE_BASE_URL}/v1/api/program/${program_id}/offer/${offer_id}`;
                     const payload = {
                         status: "APPROVE",
                     };
