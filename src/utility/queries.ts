@@ -3485,7 +3485,7 @@ export const userData = `
     LIMIT 1;
   `;
 
-export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
+export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarchyFilter: string) => `
   SELECT DISTINCT md.id,
       md.program_id, md.name, md.is_enabled,
       MIN(md.updated_on) AS first_updated_on,
@@ -3508,6 +3508,7 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string) => `
       AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
       AND (:first_name IS NULL OR t.first_name LIKE :first_name)
       ${hierarchyFilter}
+      ${mspHierarchyFilter}
   GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
            t.id, t.first_name, t.last_name, mdt.name
   ORDER BY last_updated_on DESC
@@ -3593,3 +3594,48 @@ export const timesheetConfigAdvancedGetAllFilter = (
         ${hasOffset ? 'OFFSET :offset' : ''};
     `;
 };
+
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string,mspHierarchyFilter:string) => `
+SELECT
+  mdt.id,
+  mdt.program_id,
+  mdt.name,
+  mdt.is_enabled,
+  mdt.updated_on,
+  mdt.description,
+  mdt.configuration,
+  COUNT(*) OVER() AS total_count
+FROM master_data_type AS mdt
+WHERE
+  mdt.program_id = :program_id
+  AND mdt.is_deleted = FALSE
+  AND (
+    :name IS NULL
+    OR mdt.name LIKE CONCAT('%', :name, '%')
+  )
+  AND (
+    :is_enabled IS NULL
+    OR mdt.is_enabled = :is_enabled
+  )
+  AND (
+    (:updated_on_start IS NULL OR mdt.updated_on >= :updated_on_start)
+    AND (:updated_on_end IS NULL OR mdt.updated_on <= :updated_on_end)
+  )
+  AND (
+    :timesheet_master_data IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.timesheet_master_data') = :timesheet_master_data
+  )
+  AND (
+    :user_association_exclude IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.user_association_exclude') = :user_association_exclude
+  )
+  AND (
+    :track_owner IS NULL
+    OR JSON_EXTRACT(mdt.configuration, '$.track_owner') = :track_owner
+  )
+  ${hierarchyFilter}
+  ${mspHierarchyFilter}
+ORDER BY
+  mdt.updated_on DESC
+LIMIT :limit OFFSET :offset;
+`;
