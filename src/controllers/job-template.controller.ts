@@ -36,6 +36,7 @@ import Hierarchies from "../models/hierarchies.model";
 import JobCategoryModel from "../models/job-category.model";
 import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
 import IndustriesModel from "../models/labour-category.model";
+import Checklist from "../models/checklist.model";
 
 interface Metadata {
   program_id: string;
@@ -1379,38 +1380,57 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
       });
     }
 
-    const primaryHierarchyNames = jobTemplates.map(t => t.primary_hierarchy?.trim()).filter(Boolean);
-    const hierarchyNames = jobTemplates.flatMap(t => Array.isArray(t.hierarchy) ? t.hierarchy.map((n: string) => n.trim()) : []).filter(Boolean);
-    const categoryNames = jobTemplates.map(t => t.category?.trim()).filter(Boolean);
-    const labourCategoryNames = jobTemplates.map(t => t.labour_category?.trim()).filter(Boolean);
+    const primaryHierarchyPairs = jobTemplates
+      .map(t => ({
+        name: t.primary_hierarchy?.trim(),
+        code: t.primary_hierarchy_code?.trim()
+      }))
+      .filter(t => t.name && t.code);
 
-    const [hierarchyRecords, categoryRecords, labourCategoryRecords] = await Promise.all([
-      Hierarchies.findAll({
-        where: {
-          name: {
-            [Op.in]: [...new Set([...primaryHierarchyNames, ...hierarchyNames])]
-          }
-        }
-      }),
+    const [categoryRecords, labourCategoryRecords, hierarchyRecords,checklistrecord] = await Promise.all([
       JobCategoryModel.findAll({
         where: {
           title: {
-            [Op.in]: categoryNames
+            [Op.in]: jobTemplates.map(t => t.category?.trim()).filter(Boolean)
           }
         }
       }),
       IndustriesModel.findAll({
         where: {
           name: {
-            [Op.in]: labourCategoryNames
+            [Op.in]: jobTemplates.map(t => t.labour_category?.trim()).filter(Boolean)
+          }
+        }
+      }),
+      Hierarchies.findAll({
+        where: {
+          [Op.and]: [
+            { name: { [Op.in]: primaryHierarchyPairs.map(p => p.name) } },
+            { code: { [Op.in]: primaryHierarchyPairs.map(p => p.code) } }
+          ]
+        }
+      }),
+      Checklist.findAll({
+        where: {
+          name: {
+            [Op.in]:jobTemplates.map(t => t.checklist_entity_id?.trim()).filter(Boolean)
           }
         }
       })
     ]);
 
-    const hierarchyMap = new Map(hierarchyRecords.map(h => [h.name.trim(), h.id]));
-    const categoryMap = new Map(categoryRecords.map(c => [c.title.trim(), c.id]));
-    const labourCategoryMap = new Map(labourCategoryRecords.map(l => [l.name.trim(), l.id]));
+    const hierarchyMap = new Map(
+      hierarchyRecords.map(h => [`${h.name.trim()}|${h.code.trim()}`, h.id])
+    );
+    const categoryMap = new Map(
+      categoryRecords.map(c => [c.title.trim(), c.id])
+    );
+    const labourCategoryMap = new Map(
+      labourCategoryRecords.map(l => [l.name.trim(), l.id])
+    );
+    const checklistMap = new Map(
+      checklistrecord.map(c => [c.name.trim(), c.id])
+    );
 
     const templateConditions = jobTemplates.map(template => ({
       template_name: template.template_name,
@@ -1418,25 +1438,30 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
     }));
 
     const existingTemplates = await jobTemplateModel.findAll({
-      where: {
-        [Op.or]: templateConditions,
-      },
+      where: { [Op.or]: templateConditions }
     });
 
     const existingSet = new Set(existingTemplates.map(tpl => `${tpl.template_name}|${tpl.program_id}`));
 
     const newTemplates = [];
-    const hierarchyMappings = [];
 
     for (const tpl of jobTemplates) {
       if (existingSet.has(`${tpl.template_name}|${program_id}`)) continue;
 
+      const primaryKey = `${tpl.primary_hierarchy?.trim()}|${tpl.primary_hierarchy_code?.trim()}`;
+
       const templateData = {
         ...tpl,
         program_id,
-        primary_hierarchy: hierarchyMap.get(tpl.primary_hierarchy?.trim()) ?? null,
+        primary_hierarchy: hierarchyMap.get(primaryKey) ?? null,
         category: categoryMap.get(tpl.category?.trim()) ?? null,
         labour_category: labourCategoryMap.get(tpl.labour_category?.trim()) ?? null,
+        checklist_entity_id: checklistMap.get(tpl.checklist_entity_id?.trim()) ?? null,
+        is_manual_distribute_submit:true,
+        is_distribute_final_approval:true,
+        is_all_hierarchy_associate:true
+
+
       };
 
       const createdTemplate = await jobTemplateModel.create(templateData, {
@@ -1444,22 +1469,7 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
         individualHooks: true,
       });
 
-      const hierarchyList = Array.isArray(tpl.hierarchy)
-        ? tpl.hierarchy.map((name: string) => hierarchyMap.get(name.trim())).filter(Boolean)
-        : [];
-
-      for (const hierarchyId of hierarchyList) {
-        hierarchyMappings.push({
-          job_temp_id: createdTemplate.id,
-          hierarchy: hierarchyId,
-          program_id,
-        });
-      }
-
       newTemplates.push(createdTemplate);
-    }
-    if (hierarchyMappings.length > 0) {
-      await jobTemplateHierarchyModel.bulkCreate(hierarchyMappings);
     }
 
     return reply.status(201).send({
