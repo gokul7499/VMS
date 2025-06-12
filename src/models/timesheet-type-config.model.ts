@@ -176,6 +176,10 @@ TimesheetTypeConfig.init(
       type: DataTypes.STRING,
       allowNull: true
     },
+    is_all_hierarchy_associated:{
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
       defaultValue: Date.now(),

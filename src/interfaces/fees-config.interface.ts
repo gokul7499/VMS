@@ -16,6 +16,7 @@ export interface FeesConfigurationInterface {
   created_on?: bigint;
   updated_on?: bigint;
   is_deleted: boolean;
+  is_all_hierarchy_associated: boolean;
 }
 
 export const paramsSchema = {
