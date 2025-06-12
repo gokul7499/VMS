@@ -39,7 +39,7 @@ import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import PicklistItemModel from '../models/picklist-item.model';
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
-const AUTHE_DB = databaseConfig.config.database_auth;
+const AUTH_DB = databaseConfig.config.database_auth;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
@@ -567,7 +567,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 attributes: ['id', 'value','slug']
             }),
             sequelize.query(
-                `SELECT id, display_name FROM ${AUTHE_DB}.roles WHERE id IN (${Array.from(targetValues).map(() => '?').join(',')})`,
+                `SELECT id, display_name FROM ${AUTH_DB}.roles WHERE id IN (${Array.from(targetValues).map(() => '?').join(',')})`,
                 { replacements: Array.from(targetValues), type: QueryTypes.SELECT }
             )
         ]);
