@@ -3610,8 +3610,17 @@ SELECT
   mdt.updated_on,
   mdt.description,
   mdt.configuration,
+  COALESCE(fdc.total_data_count, 0) AS master_data_count,
   COUNT(*) OVER() AS total_count
 FROM master_data_type AS mdt
+LEFT JOIN (
+  SELECT
+    foundational_data_type_id,
+    COUNT(*) AS total_data_count
+  FROM master_data
+  WHERE is_deleted = FALSE
+  GROUP BY foundational_data_type_id
+) AS fdc ON fdc.foundational_data_type_id = mdt.id
 WHERE
   mdt.program_id = :program_id
   AND mdt.is_deleted = FALSE
