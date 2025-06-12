@@ -592,7 +592,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
             });
         }
 
-        const foundationalDataTypeIds = foundationalDataItems.map((item) => item.dataValues.id);
+        const foundationalDataTypeIds = foundationalDataItems.map((item) => item.id);
 
         const foundationalDataCounts = await foundationalDataModel.findAll({
             where: {
@@ -606,20 +606,19 @@ export async function getAllFoundationalDataTypesAdvancedFilter(request: Fastify
             group: ['foundational_data_type_id'],
         });
 
-        const foundationalDataCountMap = foundationalDataCounts.reduce(
-            (map: Map<string, number>, item: any) => {
-                map.set(item.dataValues.foundational_data_type_id, item.dataValues.count);
-                return map;
-            },
-            new Map<string, number>()
-        );
+        const foundationalDataCountMap = new Map<string, number>();
+        for (const item of foundationalDataCounts) {
+            const typeId = item.get('foundational_data_type_id');
+            const count = Number(item.get('count'));
+            foundationalDataCountMap.set(typeId, count);
+        }
 
         const populatedFoundationalData = foundationalDataItems.map((item) => ({
             ...item.dataValues,
             updated_on: item.dataValues.updated_on
                 ? Number(item.dataValues.updated_on)
                 : null,
-            foundational_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
+            master_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
         }));
 
         reply.send({
