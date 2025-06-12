@@ -279,10 +279,15 @@ export async function getFeesConfig(
       program_id,
       is_enabled: is_enabled ? is_enabled === "true" : undefined,
       [Op.and]: [
-        Sequelize.where(
-          Sequelize.fn('JSON_CONTAINS', Sequelize.col('hierarchy_levels'), JSON.stringify(hierarchyLevelsArray)),
-          true
-        ),
+        {
+          [Op.or]: [
+            { is_all_hierarchy_associated: 1 },
+            Sequelize.where(
+              Sequelize.fn('JSON_CONTAINS', Sequelize.col('hierarchy_levels'), JSON.stringify(hierarchyLevelsArray)),
+              true
+            )
+          ]
+        },
         Sequelize.where(
           Sequelize.fn('JSON_CONTAINS', Sequelize.col('labor_category'), JSON.stringify(labor_category)),
           true

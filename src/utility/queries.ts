@@ -1687,13 +1687,18 @@ export const timesheetConfigAdvancedFilter = (
   hasIsEnabled: boolean
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
-       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
+    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch 
+       ON timesheet_type_config.id = ttch.timesheet_type_config_id
+       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
     : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
        ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+    : '';
+  
+   const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
     : '';
 
   return `
@@ -1729,6 +1734,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        ${hierarchyFilterCondition}
       GROUP BY
         timesheet_type_config.id
       LIMIT :limit
