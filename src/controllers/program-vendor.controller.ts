@@ -262,7 +262,8 @@ export async function getProgramVendors(
                     ...vendor.toJSON(),
                     hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
                     work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
-                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : []
+                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : [],
+                    custom_fields:vendorDetails.length > 0 ? vendorDetails[0].custom_fields : []                
                 };
 
                 return transformedVendor;

@@ -3264,7 +3264,30 @@ export const getProgramVendorDetails = `
         WHERE
             (pv.is_labour_category = TRUE AND lc.program_id = pv.program_id) OR
             (pv.is_labour_category = FALSE AND JSON_CONTAINS(pv.program_industry, JSON_QUOTE(lc.id)))
-    ) AS labour_category
+    ) AS labour_category,
+  (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', vcf.id,
+          'custom_field_id', vcf.custom_field_id,
+          'name', cf.name,
+          'label', cf.label,
+          'value', vcf.value,
+          'field_type', cf.field_type,
+          'manager_name',
+            CASE
+              WHEN user.user_id IS NOT NULL
+              THEN CONCAT(user.first_name, ' ', user.last_name)
+              ELSE NULL
+            END
+        )
+      )
+      FROM vendor_custom_field vcf
+      LEFT JOIN custom_fields cf ON cf.id = vcf.custom_field_id
+      LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id
+        AND user.program_id = cf.program_id
+      WHERE vcf.vendor_id = pv.id
+    ) AS custom_fields
 
 FROM
     program_vendors pv
