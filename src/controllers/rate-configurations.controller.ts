@@ -1366,7 +1366,7 @@ export async function getAllHierarchiesAndJobTemplates(request: FastifyRequest, 
     }
 }
 
-function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, ot_exempt: boolean, rateTypeCategory: string, formatWithAccuracy: (value: any, title: string) => string) {
+function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, ot_exempt: boolean, rateTypeCategory: string) {
     return rates.map((rate) => {
 
         let differential_value
@@ -1391,8 +1391,8 @@ function calculateRates(rates: any[], baseRateMin: string, baseRateMax: string, 
         return {
             ...rate,
             differential_value,
-            min_rate: formatWithAccuracy(min_rate, accuracyType.RATE),
-            max_rate: formatWithAccuracy(max_rate, accuracyType.RATE),
+            min_rate: min_rate.toFixed(8),
+            max_rate: max_rate.toFixed(8)
         };
     });
 }
@@ -1401,17 +1401,12 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
     const traceId = generateCustomUUID();
     const { program_id } = request.params as { program_id: string };
     try {
-        const configData = await AccuracyConfiguration.accuracyConfiguration(program_id, accuracyType.CONFIG_MODEL);
-        const formatWithAccuracy = (value: any, title: string): string => {
-            return AccuracyConfiguration.findAndCalculate(configData, title, value);
-        };
-
         const response = (request.body as any[]).map((config) => {
             const { program_id, name, is_shift_rate, hierarchies, job_templates, rate_configuration, ot_exempt } = config;
 
             const rateConfigurationDetails = rate_configuration.map((rateConfig: { base_rate: { rate_type: { min_rate: any; max_rate: any }; rates: any[] }; rate: any[] }) => {
-                const baseRateMin = formatWithAccuracy(rateConfig.base_rate.rate_type.min_rate.amount, accuracyType.RATE);
-                const baseRateMax = formatWithAccuracy(rateConfig.base_rate.rate_type.max_rate.amount, accuracyType.RATE);
+                const baseRateMin = rateConfig.base_rate.rate_type.min_rate.amount;
+                const baseRateMax = rateConfig.base_rate.rate_type.max_rate.amount;
 
                 const base_rate = {
                     ...rateConfig.base_rate,
@@ -1431,8 +1426,8 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
                         return {
                             ...rate,
                             rateTypeCategory,
-                            bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
-                            pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
+                            bill_rate: calculateRates(rate.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                            pay_rate: calculateRates(rate.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
                         };
                     }),
                 };
@@ -1442,15 +1437,15 @@ export async function getAllRateConfigurationBudget(request: FastifyRequest, rep
                     return {
                         ...rateConfigNested,
                         rateTypeCategory,
-                        bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
-                        pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory, formatWithAccuracy),
+                        bill_rate: calculateRates(rateConfigNested.bill_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
+                        pay_rate: calculateRates(rateConfigNested.pay_rate, baseRateMin, baseRateMax, ot_exempt, rateTypeCategory),
                         rates: rateConfigNested.rates.map((nestedRate: { rate_type: any; bill_rate: any[]; pay_rate: any[] }) => {
                             const nestedRateTypeCategory = nestedRate.rate_type.rate_type_category.value;
                             return {
                                 ...nestedRate,
                                 rateTypeCategory: nestedRateTypeCategory,
-                                bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory, formatWithAccuracy),
-                                pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory, formatWithAccuracy),
+                                bill_rate: calculateRates(nestedRate.bill_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
+                                pay_rate: calculateRates(nestedRate.pay_rate, baseRateMin, baseRateMax, ot_exempt, nestedRateTypeCategory),
                             };
                         }),
                     };
