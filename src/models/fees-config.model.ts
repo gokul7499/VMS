@@ -94,6 +94,10 @@ FeesConfigurationModel.init({
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     allowNull: false,
+  },
+  is_all_hierarchy_associated:{
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   }
 },
   {

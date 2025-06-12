@@ -20,6 +20,7 @@ class DecisionTable extends Model {
     updated_on: any;
     id: any;
     rate_type_id: any;
+    job_type: any;
 }
 
 DecisionTable.init(
@@ -74,25 +75,10 @@ DecisionTable.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
-        created_on: {
-            type: DataTypes.BIGINT.UNSIGNED,
-            defaultValue: Date.now(),
+        job_type: {
+            type: DataTypes.STRING,
             allowNull: true
-        },
-        updated_on: {
-            type: DataTypes.BIGINT.UNSIGNED,
-            defaultValue: Date.now(),
-            allowNull: true
-        },
-        created_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-        updated_by: {
-            type: DataTypes.UUID,
-            allowNull: true,
-        },
-
+        }
     },
     {
         sequelize,

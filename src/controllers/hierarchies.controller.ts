@@ -1166,24 +1166,25 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
     }
 }
          let parentHierarchyId = null;
-    if (hierarchie.parent_hierarchy_id) {
+    if (hierarchie.parent_hierarchy_name && hierarchie.parent_hierarchy_code) {
       const parentHierarchy = await HierarchiesModel.findOne({
         where: {
-          name: hierarchie.parent_hierarchy_id,
+          name: hierarchie.parent_hierarchy_name,
+          code: hierarchie.parent_hierarchy_code,
           program_id,
           is_deleted: false
         },
-        attributes: ['parent_hierarchy_id'],
+        attributes: ['id'],
         transaction
       });
 
       if (parentHierarchy) {
-        parentHierarchyId = parentHierarchy.parent_hierarchy_id;
+        parentHierarchyId = parentHierarchy.id;
       } else {
         results.failed.push({
           index: i,
           code: hierarchyCode,
-          message: `Invalid parent_hierarchy_code: '${hierarchie.code}' not found`
+          message: `Invalid parent_hierarchy: name='${hierarchie.parent_hierarchy_name}', code='${hierarchie.parent_hierarchy_code}' not found`
         });
         continue;
       }
