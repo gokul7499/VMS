@@ -69,7 +69,7 @@ async function picklistRoutes(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
   }, pickListController.getPicklists);
 
-  fastify.put('/picklist/:id', {
+  fastify.put('/pre-define-picklist/:id', {
     // preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
   }, pickListController.updatePicklist);
 
