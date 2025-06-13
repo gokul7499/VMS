@@ -254,6 +254,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       user: UserInterface;
       user_group_mapping: Omit<UserMappingAttributes, "id"> | Omit<UserMappingAttributes, "id">[];
     };
+
     if (!user?.program_id) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -264,7 +265,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     const user_id = user.id;
-        console.log("user_id:: : :",user_id)
+
     const existingUser = await User.findOne({
       where: {
         user_id: user_id,
@@ -273,6 +274,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       },
       transaction,
     });
+
     if (existingUser) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -283,27 +285,29 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     let newUser;
-    console.log("-------------------->")
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     let candidateId;
-    let candidateData:any;
+    let candidateData: any;
 
     if (userType === "client" || userType === "msp") {
       newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
+
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
+
       const vendor = await ProgramVendor.findOne({
         where: {
           program_id: program_id,
           tenant_id: user.tenant_id
         },
       });
-      let vendor_id = vendor?.id || null;
-      console.log("vendor_id: : : ",vendor_id)
+
+      let vendor_id = vendor?.id ?? null;
+
       const existingCandidate = await candidateModel.findOne({
         where: {
           email: user.email,
@@ -324,7 +328,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
-       console.log("candidateCode: : : ----",candidateCode)
+
       candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
@@ -335,17 +339,15 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         updated_by: userId,
         unique_id: uniqueId
       }, { transaction });
-        console.log("candidateData :  : : ",candidateData)
+
       candidateId = candidateData.id
       vendor_id = user.tenant_id
-      const candidate = candidateData.toJSON();
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidateData);
+
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
-        // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, updated_by: userId, }, { transaction });
       } else {
         newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
       }
@@ -438,10 +440,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidateData:any) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidateData);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -652,7 +654,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
 
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { user_id: user.user_id ,program_id},
+        replacements: { user_id: user.user_id, program_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
@@ -789,7 +791,7 @@ export async function getPendingUser(
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
-        users:[users[0]],
+        users: [users[0]],
         trace_id: traceId
       });
     } else {
