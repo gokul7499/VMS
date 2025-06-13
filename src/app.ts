@@ -76,7 +76,7 @@ const start = async () => {
       },
     };
     try {
-      // app.register(keycloak, opts);
+      app.register(keycloak, opts);
       console.log("Keycloak plugin registered successfully");
     } catch (error) {
       console.error("Failed to register Keycloak plugin:", error);
