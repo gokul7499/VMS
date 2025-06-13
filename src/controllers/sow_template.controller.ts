@@ -1,13 +1,15 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op, QueryTypes } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 import SowTemplateModel from '../models/sow_template.model';
 import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
 
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
+import SOWTemplateMasterDataModel from '../models/sow-templare-master-data.model';
+import SowTemplateCustomField from '../models/sow-template-custom-flied.model';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -17,7 +19,7 @@ export async function createSowTemplate(
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
-   const entityId = generateCustomUUID();
+    const entityId = generateCustomUUID();
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
     }
@@ -45,13 +47,13 @@ export async function createSowTemplate(
                 trace_id: traceId,
                 message: "SOW Template Title already exists",
             });
-        } 
+        }
 
         const item = await SowTemplateModel.create({
             ...sowTemplate,
             entity_id: entityId,
             program_id,
-            latest: true, 
+            latest: true,
             created_by: userId,
             updated_by: userId,
         }, { transaction });
@@ -65,6 +67,41 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
+
+        if (Array.isArray(sowTemplate.master_data) && sowTemplate.master_data.length > 0) {
+            for (const master of sowTemplate.master_data) {
+                await SOWTemplateMasterDataModel.create({
+                    program_id,
+                    sow_temp_id: item.id,
+                    sow_master_data_type_id: master.master_data_type,
+                    sow_master_data_id: master.master_data, // This is array, and DB allows JSON
+                    is_deleted: false,
+                    is_enabled: true,
+                    created_by: userId,
+                    updated_by: userId,
+                    created_on: Date.now(),
+                    updated_on: Date.now(),
+                }, { transaction });
+            }
+        }
+
+                if (Array.isArray(sowTemplate.custom_fields)) {
+            for (const field of sowTemplate.custom_fields) {
+                await SowTemplateCustomField.create({
+                    sow_custom_field_id: field.sow_custom_field_id,
+                    value: field.value,
+                    program_id,
+                    sow_temp_id: item.id,
+                    is_deleted: false,
+                    is_enabled: true,
+                    created_by: userId,
+                    updated_by: userId,
+                    created_on: Date.now(),
+                    updated_on: Date.now(),
+                }, { transaction });
+            }
+        }
+
 
         await transaction.commit();
         reply.status(201).send({
@@ -249,7 +286,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-           if (sowTemplateRecord[field] !== undefined) {
+            if (sowTemplateRecord[field] !== undefined) {
                 sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
             }
         });
@@ -316,25 +353,25 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             {
                 ...existingTemplate.toJSON(),
                 ...sowTemplate,
-                id: undefined, 
+                id: undefined,
                 revision: newRevision,
                 latest: true,
                 created_on: userId,
-                created_by:userId,
+                created_by: userId,
                 updated_on: Date.now(),
                 updated_by: userId,
             },
             { transaction }
         );
-       
+
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
-                        sow_template_id: newTemplate.id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId,
-                    },
+                    sow_template_id: newTemplate.id,
+                    hierarchy_id: hierarchyId,
+                    created_by: userId,
+                    updated_by: userId,
+                },
                     { transaction }
                 );
             }
