@@ -28,7 +28,7 @@ export async function createCredentialingPacket(
     const userId = user.sub;
 
     try {
-        const { task_category_configs, ...credentialingPacketData } = request.body as CredentialingPacketInterface;
+        const { credentialing_packet_task_mappings, ...credentialingPacketData } = request.body as CredentialingPacketInterface;
 
         const transaction = await sequelize.transaction();
         try {
@@ -42,8 +42,8 @@ export async function createCredentialingPacket(
                 { transaction }
             );
 
-            if (Array.isArray(task_category_configs) && task_category_configs.length > 0) {
-                const mappings = task_category_configs.map((config) => ({
+            if (Array.isArray(credentialing_packet_task_mappings) && credentialing_packet_task_mappings.length > 0) {
+                const mappings = credentialing_packet_task_mappings.map((config) => ({
                     credentialing_packet_version_id: createdCredentialingPacket.version_id,
                     credentialing_packet_entity_id: createdCredentialingPacket.entity_id,
                     category_id: config.category_id,
@@ -67,7 +67,7 @@ export async function createCredentialingPacket(
             reply.status(201).send({
                 status_code: 201,
                 message: "Credentialing packet created successfully",
-                credentialing_packet: createdCredentialingPacket,
+                data: createdCredentialingPacket,
                 traceId,
             });
         } catch (err) {
@@ -156,13 +156,13 @@ export async function updateCredentialingPacket(
         description,
         is_enabled,
         sourcing_model,
-        task_category_configs,
+        credentialing_packet_task_mappings,
     } = request.body;
 
-    if (!Array.isArray(task_category_configs)) {
+    if (!Array.isArray(credentialing_packet_task_mappings)) {
         return reply.status(400).send({
             status_code: 400,
-            message: '`task_category_configs` must be an array.',
+            message: '`credentialing_packet_task_mappings` must be an array.',
             traceId,
         });
     }
@@ -246,7 +246,7 @@ export async function updateCredentialingPacket(
             throw new Error('Failed to create a new credentialing packet version.');
         }
 
-        const credentialingPacketMappings = task_category_configs.map((config: any) => ({
+        const credentialingPacketMappings = credentialing_packet_task_mappings.map((config: any) => ({
             credentialing_packet_version_id: newCredentialingPacket.version_id,
             credentialing_packet_entity_id: newCredentialingPacket.entity_id,
             category_id: config.category_id,

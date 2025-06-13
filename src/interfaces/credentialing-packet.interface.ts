@@ -11,7 +11,7 @@ export default interface CredentialingPacketInterface {
     pre_credentialing_packet_entity_id?: string;
     pre_credentialing_packet_version?: number;
     sourcing_model?: string;
-    task_category_configs: {
+    credentialing_packet_task_mappings: {
         seq_no: number;
         is_mandatory: boolean;
         created_by: string;
