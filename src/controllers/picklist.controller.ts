@@ -451,8 +451,8 @@ export const updatePicklistAndItem = async (
           ],
         },
       });
-
-      if (existingPicklistWithSameName) {
+      
+         if (existingPicklistWithSameName) {
         return reply.status(400).send({
           status_code: 400,
           message: "Picklist with the same name already exists.",
@@ -585,6 +585,7 @@ export const getPicklistAndPicklistItem = async (
           },
         },
       ],
+      order: [[{ model: picklist_item_model, as: "picklistItems" }, "value", "ASC"]],
     });
 
     if (picklists.length > 0) {
