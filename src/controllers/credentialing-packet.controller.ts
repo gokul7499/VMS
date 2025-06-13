@@ -28,7 +28,11 @@ export async function createCredentialingPacket(
     const userId = user.sub;
 
     try {
-        const { credentialing_packet_task_mappings, ...credentialingPacketData } = request.body as CredentialingPacketInterface;
+        const {
+            credentialing_packet: { credentialing_packet_task_mappings, ...credentialingPacketData },
+        } = request.body as {
+            credentialing_packet: CredentialingPacketInterface;
+        };
 
         const transaction = await sequelize.transaction();
         try {
@@ -145,18 +149,21 @@ export async function getCredentialingPacketById(
 export async function updateCredentialingPacket(
     request: FastifyRequest<{
         Params: { program_id: string; entity_id: string };
-        Body: CredentialingPacketInterface,
+        Body: { credentialing_packet: CredentialingPacketInterface };
     }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     const { program_id, entity_id } = request.params;
+
     const {
-        name,
-        description,
-        is_enabled,
-        sourcing_model,
-        credentialing_packet_task_mappings,
+        credentialing_packet: {
+            name,
+            description,
+            is_enabled,
+            sourcing_model,
+            credentialing_packet_task_mappings,
+        },
     } = request.body;
 
     if (!Array.isArray(credentialing_packet_task_mappings)) {
@@ -192,7 +199,7 @@ export async function updateCredentialingPacket(
     try {
         const existingCredentialingPacket = await CredentialingPacket.findOne({
             where: { entity_id, is_deleted: false, latest: true },
-            attributes: ['version', 'version_id'],
+            attributes: ['version', 'version_id', 'pre_credentialing_packet_entity_id', 'pre_credentialing_packet_version'],
             order: [['version', 'DESC']],
         });
 
@@ -205,32 +212,30 @@ export async function updateCredentialingPacket(
             });
         }
 
-        const newVersion = existingCredentialingPacket ? existingCredentialingPacket.version + 1 : 1;
+        const newVersion = existingCredentialingPacket.version + 1;
 
-        if (existingCredentialingPacket) {
-            await CredentialingPacket.update(
-                { latest: false, updated_on: BigInt(Date.now()), updated_by: userId },
-                {
-                    where: { version_id: existingCredentialingPacket.version_id },
-                    transaction,
-                }
-            );
+        await CredentialingPacket.update(
+            { latest: false, updated_on: BigInt(Date.now()), updated_by: userId },
+            {
+                where: { version_id: existingCredentialingPacket.version_id },
+                transaction,
+            }
+        );
 
-            await CredentialingPacketMapping.update(
-                {
-                    is_deleted: true,
-                    updated_on: BigInt(Date.now()),
-                    updated_by: userId,
+        await CredentialingPacketMapping.update(
+            {
+                is_deleted: true,
+                updated_on: BigInt(Date.now()),
+                updated_by: userId,
+            },
+            {
+                where: {
+                    credentialing_packet_version_id: existingCredentialingPacket.version_id,
+                    credentialing_packet_entity_id: entity_id,
                 },
-                {
-                    where: {
-                        credentialing_packet_version_id: existingCredentialingPacket.version_id,
-                        credentialing_packet_entity_id: entity_id,
-                    },
-                    transaction,
-                }
-            );
-        }
+                transaction,
+            }
+        );
 
         const newCredentialingPacket = await CredentialingPacket.create(
             {
@@ -241,19 +246,15 @@ export async function updateCredentialingPacket(
                 description,
                 is_enabled,
                 sourcing_model,
-                pre_credentialing_packet_entity_id: existingCredentialingPacket?.pre_credentialing_packet_entity_id,
-                pre_credentialing_packet_version: existingCredentialingPacket?.pre_credentialing_packet_version,
-                previous_version_id: existingCredentialingPacket?.version_id || null,
+                pre_credentialing_packet_entity_id: existingCredentialingPacket.pre_credentialing_packet_entity_id,
+                pre_credentialing_packet_version: existingCredentialingPacket.pre_credentialing_packet_version,
+                previous_version_id: existingCredentialingPacket.version_id,
                 latest: true,
                 created_by: userId,
                 updated_by: userId,
             },
             { transaction }
         );
-
-        if (!newCredentialingPacket) {
-            throw new Error('Failed to create a new credentialing packet version.');
-        }
 
         const credentialingPacketMappings = credentialing_packet_task_mappings.map((config: any) => ({
             credentialing_packet_version_id: newCredentialingPacket.version_id,
@@ -492,7 +493,7 @@ export async function filterCredentialingPacket(
 
         return reply.status(200).send({
             status_code: 200,
-            message: 'Credentialing Packet fetched successfully',
+            message: 'Credentialing Packet found successfully',
             data: credentialingPacket.rows.map((credentialingPacket: any) => ({
                 ...credentialingPacket.get(),
             })),
