@@ -6,6 +6,7 @@ import { sequelize } from "../config/instance";
 import CredentialingPacketInterface from "../interfaces/credentialing-packet.interface";
 import CredentialingPacketMapping from "../models/credentialing-packet-mapping.model";
 import { col, fn, Op, Sequelize } from "sequelize";
+import CredentialingPacketMappingInterface from "../interfaces/credentialing-packet-mapping.interface";
 
 export async function createCredentialingPacket(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -29,22 +30,25 @@ export async function createCredentialingPacket(
 
     try {
         const {
-            credentialing_packet: { credentialing_packet_task_mappings, ...credentialingPacketData },
+            credentialing_packet,
+            credentialing_packet_task_mappings = [],
         } = request.body as {
             credentialing_packet: CredentialingPacketInterface;
+            credentialing_packet_task_mappings?: CredentialingPacketMappingInterface[];
         };
 
         const transaction = await sequelize.transaction();
         try {
             const createdCredentialingPacket = await CredentialingPacket.create(
                 {
-                    ...credentialingPacketData,
+                    ...credentialing_packet,
                     program_id,
                     created_by: userId,
                     updated_by: userId,
                 },
                 { transaction }
             );
+
 
             if (Array.isArray(credentialing_packet_task_mappings) && credentialing_packet_task_mappings.length > 0) {
                 const mappings = credentialing_packet_task_mappings.map((config) => ({
@@ -71,7 +75,9 @@ export async function createCredentialingPacket(
             reply.status(201).send({
                 status_code: 201,
                 message: "Credentialing packet created successfully",
-                data: createdCredentialingPacket,
+                data: {
+                    credentialing_packet: createdCredentialingPacket.get({ plain: true }),
+                },
                 traceId,
             });
         } catch (err) {
@@ -149,7 +155,10 @@ export async function getCredentialingPacketById(
 export async function updateCredentialingPacket(
     request: FastifyRequest<{
         Params: { program_id: string; entity_id: string };
-        Body: { credentialing_packet: CredentialingPacketInterface };
+        Body: {
+            credentialing_packet: CredentialingPacketInterface;
+            credentialing_packet_task_mappings?: CredentialingPacketMappingInterface[];
+        };
     }>,
     reply: FastifyReply
 ) {
@@ -162,11 +171,14 @@ export async function updateCredentialingPacket(
             description,
             is_enabled,
             sourcing_model,
-            credentialing_packet_task_mappings,
         },
+        credentialing_packet_task_mappings
     } = request.body;
 
-    if (!Array.isArray(credentialing_packet_task_mappings)) {
+    if (
+        credentialing_packet_task_mappings &&
+        !Array.isArray(credentialing_packet_task_mappings)
+    ) {
         return reply.status(400).send({
             status_code: 400,
             message: '`credentialing_packet_task_mappings` must be an array.',
@@ -256,30 +268,34 @@ export async function updateCredentialingPacket(
             { transaction }
         );
 
-        const credentialingPacketMappings = credentialing_packet_task_mappings.map((config: any) => ({
-            credentialing_packet_version_id: newCredentialingPacket.version_id,
-            credentialing_packet_entity_id: newCredentialingPacket.entity_id,
-            category_id: config.category_id,
-            category_name: config.category_name,
-            task_entity_id: config.task_entity_id,
-            task_version_id: config.task_version_id,
-            task_name: config.task_name,
-            seq_no: config.seq_no,
-            is_mandatory: config.is_mandatory ?? true,
-            is_enabled: config.is_enabled ?? true,
-            is_deleted: false,
-            created_by: userId,
-            updated_by: userId,
-        }));
+        if (credentialing_packet_task_mappings && credentialing_packet_task_mappings.length > 0) {
+            const credentialingPacketMappings = credentialing_packet_task_mappings.map((config: any) => ({
+                credentialing_packet_version_id: newCredentialingPacket.version_id,
+                credentialing_packet_entity_id: newCredentialingPacket.entity_id,
+                category_id: config.category_id,
+                category_name: config.category_name,
+                task_entity_id: config.task_entity_id,
+                task_version_id: config.task_version_id,
+                task_name: config.task_name,
+                seq_no: config.seq_no,
+                is_mandatory: config.is_mandatory ?? true,
+                is_enabled: config.is_enabled ?? true,
+                is_deleted: false,
+                created_by: userId,
+                updated_by: userId,
+            }));
 
-        await CredentialingPacketMapping.bulkCreate(credentialingPacketMappings, { transaction });
+            await CredentialingPacketMapping.bulkCreate(credentialingPacketMappings, { transaction });
+        }
 
         await transaction.commit();
 
         return reply.status(200).send({
             status_code: 200,
             message: 'Credentialing packet updated and new version created successfully',
-            data: newCredentialingPacket,
+            data: {
+                credentialing_packet: newCredentialingPacket.get({ plain: true }),
+            },
             traceId,
         });
     } catch (error: any) {
