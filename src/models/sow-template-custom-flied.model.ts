@@ -1,8 +1,9 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/instance";
-
 export class SowTemplateCustomField extends Model {
-    id: any;    
+    id: any;
+  custom_fields: any;
+  sow_custom_field_id: any;
 }
 
 SowTemplateCustomField.init(
@@ -14,13 +15,15 @@ SowTemplateCustomField.init(
         },
         sow_custom_field_id: {
             type: DataTypes.UUID,
-                        references: {
+            references: {
                 model: "sow_custom_fields",
                 key: "id",
             },
+               allowNull: false,
+
         },
-        value:{
-            type:DataTypes.JSON
+        value: {
+            type: DataTypes.JSON
         },
         program_id: {
             type: DataTypes.UUID,

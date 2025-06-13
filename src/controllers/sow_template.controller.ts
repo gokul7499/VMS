@@ -74,7 +74,7 @@ export async function createSowTemplate(
                     program_id,
                     sow_temp_id: item.id,
                     sow_master_data_type_id: master.master_data_type,
-                    sow_master_data_id: master.master_data, // This is array, and DB allows JSON
+                    sow_master_data_id: master.master_data,
                     is_deleted: false,
                     is_enabled: true,
                     created_by: userId,
@@ -85,10 +85,10 @@ export async function createSowTemplate(
             }
         }
 
-                if (Array.isArray(sowTemplate.custom_fields)) {
+        if (Array.isArray(sowTemplate.custom_fields)) {
             for (const field of sowTemplate.custom_fields) {
                 await SowTemplateCustomField.create({
-                    sow_custom_field_id: field.sow_custom_field_id,
+                    sow_custom_field_id: field.id,
                     value: field.value,
                     program_id,
                     sow_temp_id: item.id,
