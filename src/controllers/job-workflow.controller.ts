@@ -2335,8 +2335,8 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
         if (workflowDetails) {
             payload = {
                 job_id: jobDatas?.data?.job?.job_id,
-                job_url: jobDatas?.data?.job?.job_id
-                    ? `${ui_base_url}/jobs/job/view/${jobDatas?.data?.job?.id}/${jobDatas?.data?.job?.job_template_id}?detail=job-details`
+                job_url: jobDatas?.data?.job?.id && jobDatas?.data?.job?.job_template_id
+                    ? `${ui_base_url}/jobs/job/view/${jobDatas.data.job.id}/${jobDatas.data.job.job_template_id}?detail=job-details`
                     : '',
                 user_type: user?.userType,
                 candidate_first_name: workflowDetails?.first_name,
