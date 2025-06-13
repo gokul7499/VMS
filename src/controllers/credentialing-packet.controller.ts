@@ -121,7 +121,7 @@ export async function getCredentialingPacketById(
 
         return reply.status(200).send({
             status_code: 200,
-            message: "Successfully found credentialing packet",
+            message: "Successfully fetch credentialing packet",
             data: {
                 credentialing_packet: {
                     ...credentialingPacketData.dataValues,
@@ -195,6 +195,15 @@ export async function updateCredentialingPacket(
             attributes: ['version', 'version_id'],
             order: [['version', 'DESC']],
         });
+
+        if (!existingCredentialingPacket) {
+            await transaction.rollback();
+            return reply.status(404).send({
+                status_code: 404,
+                message: 'Credentialing packet not found',
+                traceId,
+            });
+        }
 
         const newVersion = existingCredentialingPacket ? existingCredentialingPacket.version + 1 : 1;
 
