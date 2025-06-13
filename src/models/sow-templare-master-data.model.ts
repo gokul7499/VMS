@@ -15,16 +15,28 @@ SOWTemplateMasterDataModel.init(
         program_id: {
             type: DataTypes.UUID,
             allowNull: false,
+             references: {
+                model: "programs",
+                key: "id",
+            },
         },
         sow_temp_id: {
             type: DataTypes.UUID,
             allowNull: true,
+            references: {
+                model: "sow_templates",
+                key: "id",
+            },
         },
-        sow_foundation_data_type_id: {
+        sow_master_data_type_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            references: {
+                model: 'master_data_type',
+                key: 'id'
+            }
         },
-        sow_foundation_data_id: {
+        sow_master_data_id: {
             type: DataTypes.JSON,
             allowNull: false,
         },

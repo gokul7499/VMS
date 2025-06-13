@@ -1,4 +1,4 @@
-export interface ISowTemplateCustomField {
+export interface SowTemplateCustomField {
   id?: string;
   sow_custom_field_id?: string;
   value?: JSON; 
