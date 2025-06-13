@@ -13,7 +13,7 @@ export interface SOWTemplateMasterDataInterface {
   updated_by:string;
 }
 
-export interface SOWTemplateMasterDatas{
+export interface SOWTemplateMasterData{
   master_data_type: string;
   master_data: string[];
 }

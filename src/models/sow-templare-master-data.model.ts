@@ -12,14 +12,6 @@ SOWTemplateMasterDataModel.init(
             allowNull: false,
             primaryKey: true,
         },
-        program_id: {
-            type: DataTypes.UUID,
-            allowNull: false,
-             references: {
-                model: "programs",
-                key: "id",
-            },
-        },
         sow_temp_id: {
             type: DataTypes.UUID,
             allowNull: true,
@@ -28,7 +20,7 @@ SOWTemplateMasterDataModel.init(
                 key: "id",
             },
         },
-        sow_master_data_type_id: {
+        master_data_type_id: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
@@ -36,17 +28,9 @@ SOWTemplateMasterDataModel.init(
                 key: 'id'
             }
         },
-        sow_master_data_id: {
+        master_data_id: {
             type: DataTypes.JSON,
             allowNull: false,
-        },
-        is_deleted: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-        },
-        is_enabled: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
         },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,

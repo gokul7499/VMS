@@ -13,7 +13,7 @@ SowTemplateCustomField.init(
             primaryKey: true,
             defaultValue: DataTypes.UUIDV4,
         },
-        sow_custom_field_id: {
+        custom_field_id: {
             type: DataTypes.UUID,
             references: {
                 model: "sow_custom_fields",
@@ -25,14 +25,6 @@ SowTemplateCustomField.init(
         value: {
             type: DataTypes.JSON
         },
-        program_id: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            references: {
-                model: "programs",
-                key: "id",
-            },
-        },
         sow_temp_id: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -40,16 +32,6 @@ SowTemplateCustomField.init(
                 model: "sow_templates",
                 key: "id",
             },
-        },
-        is_deleted: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: false,
-        },
-        is_enabled: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: true,
         },
         created_on: {
             type: DataTypes.BIGINT.UNSIGNED,
