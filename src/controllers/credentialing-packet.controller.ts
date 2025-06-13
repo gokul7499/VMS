@@ -119,17 +119,17 @@ export async function getCredentialingPacketById(
 
         const credentialingPacketMappings = await CredentialingPacketMapping.findAll(mappingOptions);
 
-        const responseData = {
-            ...credentialingPacketData.dataValues,
-            task_category_configs: credentialingPacketMappings.map((mapping: any) => ({
-                ...mapping.dataValues,
-            })),
-        };
-
         return reply.status(200).send({
             status_code: 200,
             message: "Successfully found credentialing packet",
-            data: responseData,
+            data: {
+                credentialing_packet: {
+                    ...credentialingPacketData.dataValues,
+                },
+                credentialing_packet_task_mappings: credentialingPacketMappings.map((mapping: any) => ({
+                    ...mapping.dataValues,
+                })),
+            },
             traceId,
         });
     } catch (error) {
