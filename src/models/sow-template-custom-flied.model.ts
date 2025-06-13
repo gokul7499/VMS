@@ -14,6 +14,10 @@ SowTemplateCustomField.init(
         },
         sow_custom_field_id: {
             type: DataTypes.UUID,
+                        references: {
+                model: "sow_custom_fields",
+                key: "id",
+            },
         },
         value:{
             type:DataTypes.JSON
@@ -29,6 +33,10 @@ SowTemplateCustomField.init(
         sow_temp_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            references: {
+                model: "sow_templates",
+                key: "id",
+            },
         },
         is_deleted: {
             type: DataTypes.BOOLEAN,

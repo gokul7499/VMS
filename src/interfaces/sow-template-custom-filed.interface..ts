@@ -11,3 +11,8 @@ export interface SowTemplateCustomField {
   created_by?: string;
   updated_by?: string;
 }
+export interface SOWTemplateMasterDataChild {
+  master_data_type: string;
+  master_data: string[];
+}
+
