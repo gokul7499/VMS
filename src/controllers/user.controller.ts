@@ -482,7 +482,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     updates.updated_on = BigInt(Date.now());
     updates.updated_by = userId;
     updates.updated_by = userId;
-    updates.user_type = updates.user_type.toLowerCase();
+    updates.user_type = updates.user_type?.toLowerCase();
     await user.update(updates);
     if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
       await UserMasterDataModel.destroy({ where: { user_id: user.user_id } });
@@ -517,7 +517,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         id: mapping.id,
         tenant_id: mapping.tenant_id,
         user_id: user.user_id,
-        user_type: mapping.user_type.toLowerCase(),
+        user_type: mapping.user_type?.toLowerCase(),
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_active: mapping.is_active,
