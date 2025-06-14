@@ -94,6 +94,18 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
             }
         }
 
+        if (Array.isArray(foundationalDataPayload.custom_fields) && foundationalDataPayload.custom_fields.length > 0) {
+              const customFields = foundationalDataPayload.custom_fields.map((field: {
+                id: any; value: any;
+              }) => ({
+                program_id,
+                custom_field_id: field.id,
+                value: field.value,
+                master_data_type_id: foundationalData.id,
+              }));
+              await MasterDataCustomFieldModel.bulkCreate(customFields, { transaction });
+        }
+
         await transaction.commit();
 
         logger(

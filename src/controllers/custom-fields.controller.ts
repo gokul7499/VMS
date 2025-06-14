@@ -448,7 +448,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       replacements: {
         userType: userType 
       },
-      order: [["updated_on", "DESC"]],
+      order: [["updated_on", "ASC"]],
       offset,
       limit: limitNumber,
     });
