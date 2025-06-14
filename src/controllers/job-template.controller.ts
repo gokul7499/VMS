@@ -204,6 +204,14 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
 
     const transformedJobTemplate = transformBooleanFields(jobTemplate);
 
+    transformedJobTemplate.job_template_custom_fields = Array.isArray(transformedJobTemplate.job_template_custom_fields)
+  ? transformedJobTemplate.job_template_custom_fields.map((field: any) => ({
+      ...field,
+      value: parseValue(field.value),
+    }))
+  : [];
+
+
     reply.status(200).send({
       statusCode: 200,
       message: "Job template fetched successfully",
@@ -218,6 +226,21 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
     });
   }
 }
+
+function parseValue(value: string | null): any {
+  if (!value) return null;
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed;
+  } catch {
+    if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+      return value.slice(1, -1);
+    }
+    return value;
+  }
+}
+
 
 export async function createJobTemplate(
   request: FastifyRequest,

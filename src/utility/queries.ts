@@ -763,6 +763,8 @@ SELECT
     pv.supl_ref_id,
     pv.is_job_auto_opt_in,
     pv.vendor_logo, -- Added vendor_logo here
+    pv.updated_on,
+    pv.created_on
     (
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -812,9 +814,10 @@ SELECT
   )
   FROM vendor_custom_field vcf
   LEFT JOIN custom_fields cf ON cf.id = vcf.custom_field_id
-  LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id
-    AND user.program_id = cf.program_id
+  LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id AND user.program_id = cf.program_id
   WHERE vcf.vendor_id = pv.id
+  AND cf.is_enabled=true
+  AND cf.is_deleted = false
 ) AS custom_field,
     CASE
        WHEN pv.is_labour_category = 1 THEN TRUE
@@ -3284,9 +3287,10 @@ export const getProgramVendorDetails = `
       )
       FROM vendor_custom_field vcf
       LEFT JOIN custom_fields cf ON cf.id = vcf.custom_field_id
-      LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id
-        AND user.program_id = cf.program_id
+      LEFT JOIN user ON TRIM(BOTH '"' FROM vcf.value) = user.user_id AND user.program_id = cf.program_id
       WHERE vcf.vendor_id = pv.id
+      AND cf.is_deleted = false
+      AND cf.is_enabled = true
     ) AS custom_fields
 
 FROM
@@ -3552,7 +3556,7 @@ export const getWorklocationCustomField = `
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'custom_field_id', work_location_custom_field.customfield_id,
-                'value', JSON_UNQUOTE(JSON_EXTRACT(work_location_custom_field.value, '$')),
+                'value', work_location_custom_field.value,
                 'label', cf.label,
                 'field_type', cf.field_type,
                 'manager_name',
