@@ -5,7 +5,7 @@ export interface SowTemplate {
     program_id: string;
     type: string;
     template_title: string;
-    description: string;
+    description: Text;
     is_sow_assignment: boolean; 
     is_sow_expense: boolean;
     is_sow_milestones: boolean;
