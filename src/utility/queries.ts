@@ -1710,9 +1710,8 @@ export const timesheetConfigAdvancedFilter = (
     : '';
 
   const mspHierarchyFilterClause = hasMspHierarchyIds
-    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
-       ON timesheet_type_config.id = ttch_msp.timesheet_type_config_id
-       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS mspHierarchyTable
+       ON mspHierarchyTable.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')})`
     : '';
 
   const hierarchyFilterCondition = hierarchyIdsArray.length
@@ -1720,7 +1719,7 @@ export const timesheetConfigAdvancedFilter = (
     : '';
 
   const mspHierarchyFilterCondition = hasMspHierarchyIds
-    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR mspHierarchyTable.hierarchy_id IS NOT NULL)`
     : '';
 
   return `
