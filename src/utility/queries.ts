@@ -566,7 +566,6 @@ export const getAllHierarchies = (
   startDate?: number,
   endDate?: number,
   hasMsp?: boolean,
-  hasMspHierarchyFilter?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -605,7 +604,6 @@ WITH hierarchy_cte AS (
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
     ${hasMsp ? 'AND h.managed_by = :msp' : ''}
-    ${hasMspHierarchyFilter ? 'AND h.id IN (:mspHierarchyIds)' : ''}
 
 ),
 total_count_cte AS (

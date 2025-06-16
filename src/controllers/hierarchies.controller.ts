@@ -126,10 +126,6 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     limit?: number;
   };
   const traceId = generateCustomUUID();
-  const user=request?.user
-  const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
-  const hasMspHierarchyFilter = Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0;
-  console.log("mspHierarchyIds:", mspHierarchyIds);
   try {
     const hasName = !!name;
     const hasMsp = !!msp;
@@ -157,13 +153,12 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
       ...(isEnabledValue !== undefined && { is_enabled: isEnabledValue }),
       ...(startDate && endDate && { startDate, endDate }),
       ...(hasMsp && { msp }),
-      ...(mspHierarchyIds?.length && { mspHierarchyIds }),
       limit: Number(limit),
       offset: Number(offset),
     };
 
     const hierarchies: any[] = await sequelize.query(
-      getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp,hasMspHierarchyFilter),
+      getAllHierarchies(hasName, !!is_enabled, startDate, endDate, hasMsp),
       {
         replacements,
         type: QueryTypes.SELECT,
