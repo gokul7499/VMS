@@ -8,8 +8,10 @@ import {
     getAllCounty,
 } from "../controllers/county.controller";
 import { createCountySchema } from "../interfaces/county.interface";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function countyRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.get("/county/:id", getCountyById);
     fastify.post("/county", {
         schema:{
