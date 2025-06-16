@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as candidateController from '../controllers/candidate.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function candidateRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/candidate', {
         // preHandler: validatePermissions(Actions.CREATE_CANDIDATE, [Permissions.CANDIDATE])
     }, candidateController.createCandidate);
