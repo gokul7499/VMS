@@ -4072,7 +4072,7 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
                     // Continue despite errors
                 });
             });
-            
+
             // Wait for status handling but with a timeout
             await Promise.race([
                 Promise.all(statusHandlingPromises),
@@ -4088,7 +4088,6 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
             // CASE 2: Regular workflow approval handling
             const { method_id } = queryParams;
             const methodIds = method_id.split(',');
-            
             // OPTIMIZATION: For regular workflow, we only use the first result, so limit to 1
             // after ordering by priority (pending first, then completed)
             const optimizedQuery = `${minimalSelectPart}
@@ -4107,7 +4106,7 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
             LIMIT 50;
             `;
             
-            // OPTIMIZATION: Execute all queries in parallel to save time
+             // OPTIMIZATION: Execute all queries in parallel to save time
             const [user, queryRows, flowTypesData] = await Promise.all([
                 userPromise,
                 sequelize.query(optimizedQuery, {
@@ -4135,7 +4134,6 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
             }
             
             rows = queryRows;
-            
             // Log job creation asynchronously if request body exists - don't wait for it
             if (request.body) {
                 const initialJobData = request.body as JobWorkFlow;
@@ -4156,7 +4154,7 @@ export async function getUnifiedWorkflowHandler(request: FastifyRequest, reply: 
                 }, JobWorkFlowModel).catch(err => console.error("Logging error:", err));
             }
             
-            // Process flow types
+             // Process flow types
             const flowTypeStatusMap = new Map<string, boolean>();
             
             for (const program of flowTypesData) {
@@ -4724,9 +4722,9 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     if (!authHeader?.startsWith('Bearer ')) {
         return reply.status(401).send({ message: 'Unauthorized - Token not found' });
     }
+    
     const token = authHeader.split(' ')[1];
     const user = await decodeToken(token);
-
 
     if (!user) {
         return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
@@ -4734,589 +4732,743 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
     
     const impersonatorId = user.impersonator?.id || null;
     
-    try {        
-        const uniqueRecipientTypeIds = [...new Set(rows
-            .filter((row: any) => row.recipient_type_id)
-            .map((row: any) => row.recipient_type_id))];
-            
-        let recipientTypes: Record<string, any> = {};
-        if (uniqueRecipientTypeIds.length > 0) {
-            const recipientTypeQuery = `
-                SELECT id, name
-                FROM recipient_type
-                WHERE id IN (:recipient_type_ids)
-                AND is_enabled = true
-            `;
-            const recipientTypeResults = await sequelize.query(recipientTypeQuery, {
-                type: QueryTypes.SELECT,
-                replacements: { recipient_type_ids: uniqueRecipientTypeIds },
-            });
-            
-            recipientTypes = (recipientTypeResults as any[]).reduce((acc: Record<string, any>, type: any) => {
-                acc[type.id] = type;
-                return acc;
-            }, {});
-        }
-        
-        let managerData: any = null;
-        if (manager) {
-            const userQuery = `
-                SELECT user_id, first_name, last_name, avatar, role_id, email, supervisor
-                FROM user
-                WHERE user_id = :user_id
-                AND program_id = :program_id
-                AND LOWER(status) = 'active'
-                LIMIT 1
-            `;
-            const userResult = await sequelize.query(userQuery, {
-                type: QueryTypes.SELECT,
-                replacements: { user_id: manager, program_id: workflow.program_id },
-            });
-            
-            if (userResult.length > 0) {
-                managerData = userResult[0];
-            }
-        }
+    try {
+        const [recipientTypes, managerData, impersonatorData] = await Promise.all([
+            fetchRecipientTypes(rows),
+            fetchManagerData(manager, workflow.program_id),
+            fetchImpersonatorData(impersonatorId)
+        ]);
 
         const userCache = new Map<string, any>();
-        
-        let impersonatorData: any = null;
-        if (impersonatorId) {
-            const userQuery = `
-                SELECT user_id, first_name, last_name, avatar, role_id, email
-                FROM user
-                WHERE user_id = :user_id         
-                AND LOWER(status) = 'active'
-                LIMIT 1
-            `;
-            const impersonatorResult = await sequelize.query(userQuery, {
-                type: QueryTypes.SELECT,
-                replacements: { user_id: impersonatorId },
-             
-            });
-            
-            if (impersonatorResult.length > 0) {
-                impersonatorData = impersonatorResult[0];
-                userCache.set(impersonatorId, impersonatorData);
-            }
-        }
-        
-        const fetchUser = async (userId: string): Promise<any> => {
-            if (!userId) return null;
-            
-            if (userCache.has(userId)) {
-                return userCache.get(userId);
-            }
-            
-            if (userId === manager && managerData) {
-                userCache.set(userId, managerData);
-                return managerData;
-            }
-            
-            const userQuery = `
-                SELECT user_id, first_name, last_name, avatar, role_id, email
-                FROM user
-                WHERE user_id = :user_id
-                AND program_id = :program_id
-                AND LOWER(status) = 'active'
-                LIMIT 1
-            `;
-            const result = await sequelize.query(userQuery, {
-                type: QueryTypes.SELECT,
-                replacements: { user_id: userId, program_id: workflow.program_id },
-            });
-            
-            const userData = result.length > 0 ? result[0] : null;
-            if (userData) {
-                userCache.set(userId, userData);
-            }
-            return userData;
-        };
-        
-        const levelMap = new Map<string, any>();
-        
-        for (const row of rows) {
-            const { level_id, level_status, placement_order } = row;
-            
-            if (!levelMap.has(level_id)) {
-                levelMap.set(level_id, {
-                    level_id,
-                    placement_order,
-                    level_status,
-                    behaviour: row.behaviour,
-                    recipients: [],
-                    processedUsers: new Set<string>() 
-                });
-            }
-        }
-        
-        const createImpersonateUserData = (userData: any, recipientDetails: any, recipientType: string, behaviour: string) => {
-            if (!userData) return null;
-            
-            return {
-                id: userData.user_id,
-                first_name: userData.first_name,
-                last_name: userData.last_name,
-                avatar: userData.avatar,
-                role_id: userData.role_id,
-                email: userData.email,
-                updated_on: recipientDetails?.updated_on,
-                recipient_type: recipientType || '',
-                replaced_notes: recipientDetails?.replaced_notes,
-                behaviour,
-            };
-        };
-        
-        const processPromises = rows.map(async (row: any) => {
-            const { level_id, level_status, recipient_status, recipient_details,
-                  placement_order, recipient_type_id, meta_data, behaviour, replaced_by,
-                  existing_replaced_user, imporsonate_by, manager_id } = row;
-            
-            if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
-                return; 
-            }
-            
-            const levelInfo = levelMap.get(level_id);
-            const recipientType = recipientTypes[recipient_type_id];
-            
-            if (!recipientType) {
-                return; 
-            }
-            
-            let input_value: any = null;
-            let replaced_user_data: any = null;
-            let imposonate_user_data: any = null;
-            let manager_data: any = null;
-            
-            const effectiveImpersonateBy = imporsonate_by || impersonatorId;
-            
-            switch (recipientType.name) {
-                case 'Specific User':
-                case 'Multiple users':
-                case 'Job Manager':
-                case 'Assignment Manager':
-                case 'Timesheet Managers':
-                case 'SOW Manager': 
-                case 'Job Manager On Offer':
-                case 'Manager of':{
-                    const input_values = Object.values(meta_data);
-                    let userId: string | undefined;
-                    
-                    if (existing_replaced_user) {
-                        userId = existing_replaced_user;
-                    } else if (recipientType.name === 'Job Manager') {
-                        userId = manager;
-                    } else if (input_values.length > 0) {
-                        userId = input_values[0] as string;
-                    }
-                    
-                    if (userId) {
-                        const imporsonateUserPromise = effectiveImpersonateBy ? 
-                            (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
-                                Promise.resolve(impersonatorData) : 
-                                fetchUser(effectiveImpersonateBy)
-                            ) : 
-                            Promise.resolve(null);
-                            
-                        const [userResult, replacedUserResult, managerData, imporsonateUserResult] = await Promise.all([
-                            fetchUser(userId),
-                            replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
-                            manager_id ? fetchUser(manager_id) : Promise.resolve(null),
-                            imporsonateUserPromise
-                        ]);
-                        
-                        if (userResult) {
-                            input_value = {
-                                id: userResult.user_id,
-                                first_name: userResult.first_name,
-                                last_name: userResult.last_name,
-                                avatar: userResult.avatar,
-                                role_id: userResult.role_id,
-                                email: userResult.email,
-                                updated_on: recipient_details?.updated_on,
-                                notes: recipient_details?.notes,
-                                reason: recipient_details?.reason,
-                                replaced_notes: recipient_details?.replaced_notes
-                            };
+        if (impersonatorData) userCache.set(impersonatorId, impersonatorData);
+        if (managerData) userCache.set(manager, managerData);
 
-                            if (managerData) {
-                                manager_data = {
-                                    id: managerData.user_id,
-                                    first_name: managerData.first_name,
-                                    last_name: managerData.last_name,
-                                    avatar: managerData.avatar || null,
-                                    email: managerData.email || null
-                                };
-                            }
-                            
-                            if (replacedUserResult) {
-                                replaced_user_data = {
-                                    id: replacedUserResult.user_id,
-                                    first_name: replacedUserResult.first_name,
-                                    last_name: replacedUserResult.last_name,
-                                    avatar: replacedUserResult.avatar,
-                                    role_id: replacedUserResult.role_id,
-                                    email: replacedUserResult.email,
-                                    recipient_type: recipientType.name || '',
-                                    behaviour,
-                                    replaced_date_time: recipient_details?.replaced_modified_on
-                                };
-                            }
-                            
-                            if (imporsonateUserResult) {
-                                imposonate_user_data = createImpersonateUserData(
-                                    imporsonateUserResult,
-                                    recipient_details,
-                                    recipientType.name,
-                                    behaviour
-                                );
-                            }
-                        }
-                    }
-                    break;
-                }
-                
-                case 'Manager of': {
-                    if (!managerData) break;
-                    
-                    let supervisorId: string | null = null;
-                    if (existing_replaced_user) {
-                        supervisorId = existing_replaced_user;
-                    } else if (managerData.supervisor) {
-                        supervisorId = managerData.supervisor;
-                    }
-                    
-                    if (supervisorId) {
-                        const imporsonateUserPromise = effectiveImpersonateBy ? 
-                            (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
-                                Promise.resolve(impersonatorData) : 
-                                fetchUser(effectiveImpersonateBy)
-                            ) : 
-                            Promise.resolve(null);
-                            
-                        const [supervisorResult, replacedUserResult, imporsonateUserResult] = await Promise.all([
-                            fetchUser(supervisorId),
-                            replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
-                            imporsonateUserPromise
-                        ]);
-                        
-                        if (supervisorResult) {
-                            const supervisorData = {
-                                id: supervisorResult.user_id,
-                                first_name: supervisorResult.first_name,
-                                last_name: supervisorResult.last_name,
-                                name: `${supervisorResult.first_name} ${supervisorResult.last_name}`.trim(),
-                                email: supervisorResult.email,
-                                avatar: supervisorResult.avatar || null,
-                                updated_on: recipient_details?.updated_on,
-                                notes: recipient_details?.notes,
-                                reason: recipient_details?.reason,
-                                replaced_notes: recipient_details?.replaced_notes
-                            };
-                            
-                            input_value = [supervisorData];
-                            
-                            if (replacedUserResult) {
-                                replaced_user_data = {
-                                    id: replacedUserResult.user_id,
-                                    first_name: replacedUserResult.first_name,
-                                    last_name: replacedUserResult.last_name,
-                                    avatar: replacedUserResult.avatar || null,
-                                    email: replacedUserResult.email || null,
-                                    recipient_type: recipientType.name || "",
-                                    behaviour,
-                                    replaced_date_time: recipient_details?.replaced_modified_on,
-                                    replaced_notes: recipient_details?.replaced_notes,
-                                };
-                            }
-
-                            if(managerData){
-                                manager_data = {
-                                    id : managerData.user_id,
-                                    first_name: managerData.first_name,
-                                    last_name: managerData.last_name,
-                                    avatar: managerData.avatar || null,
-                                    email: managerData.email || null,
-                                }
-                            }
-                            
-                            if (imporsonateUserResult) {
-                                imposonate_user_data = createImpersonateUserData(
-                                    imporsonateUserResult,
-                                    recipient_details,
-                                    recipientType.name,
-                                    behaviour
-                                );
-                            }
-                        }
-                    }
-                    break;
-                }
-                
-                case 'Custom Field Supplied User': {
-                    const levels = row.levels || [];
-                    for (const level of levels) {
-                        for (const recipient of level.recipient_types || []) {
-                            if (recipient?.meta_data && recipientType?.id == recipient.recipient_type_id) {
-                                const metaData = recipient.meta_data;
-                                const metaValue = Object.values(metaData)[0] as string;
-                                
-                                const userId = recipient.existing_replaced_user || metaValue;
-                                
-                                if (userId) {
-                                    const imporsonateUserPromise = effectiveImpersonateBy ? 
-                                        (effectiveImpersonateBy === impersonatorId && impersonatorData ? 
-                                            Promise.resolve(impersonatorData) : 
-                                            fetchUser(effectiveImpersonateBy)
-                                        ) : 
-                                        Promise.resolve(null);
-                                        
-                                    const [userData, replacedUserResult, imporsonateUserResult] = await Promise.all([
-                                        fetchUser(userId),
-                                        replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
-                                        imporsonateUserPromise
-                                    ]);
-                                    
-                                    if (userData) {
-                                        input_value = {
-                                            id: userData.user_id,
-                                            name: `${userData.first_name}${" "}${userData.last_name}`,
-                                            email: userData.email,
-                                            avatar: userData.avatar,
-                                            updated_on: recipient_details?.updated_on,
-                                            notes: recipient_details?.notes,
-                                            reason: recipient_details?.reason,
-                                            replaced_notes: recipient_details?.replaced_notes
-                                        };
-                                        
-                                        if (replacedUserResult) {
-                                            replaced_user_data = {
-                                                id: replacedUserResult.user_id,
-                                                first_name: replacedUserResult.first_name,
-                                                last_name: replacedUserResult.last_name,
-                                                avatar: replacedUserResult.avatar,
-                                                role_id: replacedUserResult.role_id,
-                                                email: replacedUserResult.email,
-                                                recipient_type: recipientType.name || '',
-                                                behaviour,
-                                                replaced_date_time: recipient_details?.replaced_modified_on,
-                                                replaced_notes: recipient_details?.replaced_notes,
-                                            };
-                                        }
-                                        
-                                        if (imporsonateUserResult) {
-                                            imposonate_user_data = createImpersonateUserData(
-                                                imporsonateUserResult,
-                                                recipient_details,
-                                                recipientType.name,
-                                                behaviour
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-                
-                case 'Users in Program Role':
-                case 'Master Data Owner':
-                case 'Managerial Chain':
-                case 'Financial Authority Chain':
-                case 'Vendor Users':
-                case 'Top of Financial Authority Chain': {
-                    const users: any[] = [];
-                    const recipientTypes = JSON.parse(row.recipient_types) || [];
-                    
-                    await Promise.all(recipientTypes.map(async (recipient: any) => {
-                        const receipentstatus = recipient.status;
-                        
-                        if (recipient?.meta_data) {
-                            const metaData = recipient.meta_data;
-                            let userId = Object.values(metaData)[0] as string; 
-                            const level_behaviour = Object.values(metaData)[1];
-                            
-                            if (recipient.existing_replaced_user) {
-                                userId = recipient.existing_replaced_user;
-                            }
-                            
-                            const user = await fetchUser(userId);
-                            
-                            if (user) {
-                                const userData: any = {
-                                    id: user.user_id,
-                                    first_name: user.first_name,
-                                    last_name: user.last_name,
-                                    avatar: user.avatar,
-                                    role_id: user.role_id,
-                                    email: user.email,
-                                    receipentstatus: receipentstatus,
-                                    modifiedOn: recipient.updated_on,
-                                    level_behaviour: level_behaviour,
-                                    replaced_by: null, 
-                                    impersonate_by: null,
-                                    updated_on: recipient.updated_on,
-                                    notes: recipient.notes,
-                                    reason: recipient.reason,
-                                    actor_first_name: recipient.actor_first_name,
-                                    actor_last_name: recipient.actor_last_name,
-                                    actor_by_avatar: recipient.actor_by_avatar,
-                                    is_admin_override: recipient.is_admin_override,
-                                    replaced_notes: recipient.replaced_notes
-                                };
-                                
-                                if (recipient.replaced_by) {
-                                    const replacedByUser = await fetchUser(recipient.replaced_by);
-                                    if (replacedByUser) {
-                                        userData.replaced_by = {
-                                            id: replacedByUser.user_id,
-                                            first_name: replacedByUser.first_name,
-                                            last_name: replacedByUser.last_name,
-                                            email: replacedByUser.email,
-                                            avatar: replacedByUser.avatar,
-                                            role_id: replacedByUser.role_id,
-                                            replaced_notes: recipient.replaced_notes,
-                                            replaced_date_time: recipient.replaced_modified_on,
-                                            actor_first_name: recipient.actor_first_name,
-                                            actor_last_name: recipient.actor_last_name,
-                                            actor_by_avatar: recipient.actor_by_avatar,
-                                            is_admin_override: recipient.is_admin_override,
-                                        };
-                                    }
-                                }
-                                
-                                const effectiveImpersonateId = recipient.impersonate_by || impersonatorId;
-                                
-                                if (effectiveImpersonateId) {
-                                    let impersonatedUser = null;
-                                    
-                                    if (effectiveImpersonateId === impersonatorId && impersonatorData) {
-                                        impersonatedUser = impersonatorData;
-                                    } else {
-                                        impersonatedUser = await fetchUser(effectiveImpersonateId);
-                                    }
-                                    
-                                    if (impersonatedUser) {
-                                        userData.impersonate_by = {
-                                            id: impersonatedUser.user_id,
-                                            first_name: impersonatedUser.first_name,
-                                            last_name: impersonatedUser.last_name,
-                                            email: impersonatedUser.email,
-                                            avatar: impersonatedUser.avatar,
-                                            role_id: impersonatedUser.role_id,
-                                            updated_on: recipient_details?.updated_on,
-                                            impersonate_notes: recipient.impersonate_notes,
-                                            impersonate_date_time: recipient.impersonate_modified_on,
-                                            actor_first_name: recipient.actor_first_name,
-                                            actor_last_name: recipient.actor_last_name,
-                                            actor_by_avatar: recipient.actor_by_avatar,
-                                            is_admin_override: recipient.is_admin_override,
-                                        };
-                                    }
-                                }
-                                
-                                users.push(userData);
-                            }
-                        }
-                    }));
-                    
-                    if (users.length > 0) {
-                        input_value = users.map(user => ({
-                            id: user.id,
-                            name: `${user.first_name} ${user.last_name}`.trim(),
-                            email: user.email,
-                            avatar: user.avatar || null,
-                            level_behaviour: user.level_behaviour,
-                            replaced_by: user.replaced_by,
-                            impersonate_by: user.impersonate_by,
-                            receipentStatus: user.receipentstatus,
-                            actor_first_name: user.actor_first_name,
-                            actor_last_name: user.actor_last_name,
-                            actor_by_avatar: user.actor_by_avatar,
-                            is_admin_override: user.is_admin_override,
-                            reason: user.reason,
-                            updated_on: user.updated_on,
-                            notes: user.notes
-                        }));
-                    }
-                    break;
-                }
-            }
-            
-            // Process input_value to create recipients if available
-            if (input_value) {
-                let recipients = [];
-                
-                if (Array.isArray(input_value)) {
-                    recipients = input_value.map(user => ({
-                        name: getRecipientName(user),
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        level_id,
-                        actor_first_name: user.actor_first_name,
-                        actor_last_name: user.actor_last_name,
-                        actor_by_avatar: user.actor_by_avatar,
-                        is_admin_override: user.is_admin_override,
-                        status: user.receipentStatus,
-                        updated_on: user.updated_on,
-                        notes: user.notes,
-                        reason: user.reason,
-                        level_behaviour: user.level_behaviour,
-                        user_id: user.id,
-                        avatar: user.avatar?.url || '',
-                        role_id: user.role_id,
-                        email: user.email,
-                        replaced_by: user.replaced_by,
-                        manager: manager_data || null,
-                        imporsonate_by: user.impersonate_by || imposonate_user_data,
-                        recipient_type: recipientType.name || '',
-                        behaviour,
-                    }));
-                } else {
-                    recipients = [{
-                        name: getRecipientName(input_value),
-                        first_name: input_value.first_name,
-                        last_name: input_value.last_name,
-                        level_id,
-                        status: recipient_status,
-                        updated_on: recipient_details?.updated_on,
-                        notes: recipient_details?.notes,
-                        reason: recipient_details?.reason,
-                        replaced_date_time: recipient_details?.replaced_modified_on,
-                        replaced_notes: recipient_details?.replaced_notes,
-                        actor_first_name: recipient_details?.actor_first_name,
-                        actor_last_name: recipient_details?.actor_last_name,
-                        actor_by_avatar: recipient_details?.actor_by_avatar,
-                        is_admin_override: recipient_details?.is_admin_override,
-                        user_id: input_value.id,
-                        avatar: input_value.avatar?.url || '',
-                        role_id: input_value.role_id,
-                        email: input_value.email,
-                        recipient_type: recipientType.name || '',
-                        behaviour,
-                        replaced_by: replaced_user_data,
-                        manager: manager_data || null,
-                        imporsonate_by: imposonate_user_data
-                    }];
-                }
-                
-                const levelData = levelMap.get(level_id);
-                for (const recipient of recipients) {
-                    if (!levelData.processedUsers.has(recipient.user_id)) {
-                        levelData.recipients.push(recipient);
-                        levelData.processedUsers.add(recipient.user_id);
-                    }
-                }
-            }
+        const fetchUser = createUserFetcher(userCache, workflow.program_id);
+        const levelMap = initializeLevelMap(rows);
+        
+        await processRowsInBatches(rows, {
+            levelMap,
+            recipientTypes,
+            managerData,
+            impersonatorData,
+            impersonatorId,
+            fetchUser,
+            manager
         });
         
-        await Promise.all(processPromises);
+        const finalLevels = buildFinalLevels(levelMap);
+        workflow.levels = finalLevels;
         
-      
-        const unprocessedLevels = Array.from(levelMap.values())
-        .filter(({recipients}) => recipients.length > 0) // Remove levels with empty recipients
-        .map(({level_id, placement_order, level_status, behaviour, recipients}) => ({
+        await Promise.all([
+            statusHandling(request, reply, workflow),
+            updateMissingLevels(rows.length > 0 ? rows[0].levels || [] : [], workflow)
+        ]);
+        
+        return workflow;
+    } catch (error) {
+        console.error('Error in getLevelData:', error);
+        return reply.status(500).send({
+            statusCode: 500,
+            message: 'An error occurred while fetching workflow data.',
+        });
+    }
+};
+
+async function fetchRecipientTypes(rows: any[]): Promise<Record<string, any>> {
+    const uniqueRecipientTypeIds = [...new Set(rows
+        .filter(row => row.recipient_type_id)
+        .map(row => row.recipient_type_id))];
+        
+    if (uniqueRecipientTypeIds.length === 0) return {};
+    
+    const recipientTypeQuery = `
+        SELECT id, name
+        FROM recipient_type
+        WHERE id IN (:recipient_type_ids)
+        AND is_enabled = true
+    `;
+    
+    const recipientTypeResults = await sequelize.query(recipientTypeQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { recipient_type_ids: uniqueRecipientTypeIds },
+    });
+    
+    return (recipientTypeResults as any[]).reduce((acc: Record<string, any>, type: any) => {
+        acc[type.id] = type;
+        return acc;
+    }, {});
+}
+
+async function fetchManagerData(manager: any, programId: string): Promise<any> {
+    if (!manager) return null;
+    
+    const userQuery = `
+        SELECT user_id, first_name, last_name, avatar, role_id, email, supervisor
+        FROM user
+        WHERE user_id = :user_id
+        AND program_id = :program_id
+        AND LOWER(status) = 'active'
+        LIMIT 1
+    `;
+    
+    const userResult = await sequelize.query(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { user_id: manager, program_id: programId },
+    });
+    
+    return userResult.length > 0 ? userResult[0] : null;
+}
+
+async function fetchImpersonatorData(impersonatorId: string | null): Promise<any> {
+    if (!impersonatorId) return null;
+    
+    const userQuery = `
+        SELECT user_id, first_name, last_name, avatar, role_id, email
+        FROM user
+        WHERE user_id = :user_id         
+        AND LOWER(status) = 'active'
+        LIMIT 1
+    `;
+    
+    const impersonatorResult = await sequelize.query(userQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { user_id: impersonatorId },
+    });
+    
+    return impersonatorResult.length > 0 ? impersonatorResult[0] : null;
+}
+
+function createUserFetcher(userCache: Map<string, any>, programId: string) {
+    return async (userId: string): Promise<any> => {
+        if (!userId) return null;
+        
+        if (userCache.has(userId)) {
+            return userCache.get(userId);
+        }
+        
+        const userQuery = `
+            SELECT user_id, first_name, last_name, avatar, role_id, email
+            FROM user
+            WHERE user_id = :user_id
+            AND program_id = :program_id
+            AND LOWER(status) = 'active'
+            LIMIT 1
+        `;
+        
+        const result = await sequelize.query(userQuery, {
+            type: QueryTypes.SELECT,
+            replacements: { user_id: userId, program_id: programId },
+        });
+        
+        const userData = result.length > 0 ? result[0] : null;
+        if (userData) {
+            userCache.set(userId, userData);
+        }
+        return userData;
+    };
+}
+
+function initializeLevelMap(rows: any[]): Map<string, any> {
+    const levelMap = new Map<string, any>();
+    
+    for (const row of rows) {
+        const { level_id, level_status, placement_order, behaviour } = row;
+        
+        if (!levelMap.has(level_id)) {
+            levelMap.set(level_id, {
+                level_id,
+                placement_order,
+                level_status,
+                behaviour,
+                recipients: [],
+                processedUsers: new Set<string>()
+            });
+        }
+    }
+    
+    return levelMap;
+}
+
+async function processRowsInBatches(rows: any[], context: any): Promise<void> {
+    const BATCH_SIZE = 10; 
+    const batches: any[][] = [];
+    
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        batches.push(rows.slice(i, i + BATCH_SIZE));
+    }
+    
+    for (const batch of batches) {
+        await Promise.all(batch.map(row => processRow(row, context)));
+    }
+}
+
+async function processRow(row: any, context: any): Promise<void> {
+    const {
+        levelMap, recipientTypes, managerData, impersonatorData,
+        impersonatorId, fetchUser, manager
+    } = context;
+    
+    const {
+        level_id, level_status, recipient_status, recipient_details,
+        placement_order, recipient_type_id, meta_data, behaviour,
+        replaced_by, existing_replaced_user, imporsonate_by, manager_id
+    } = row;
+    
+    if (!meta_data || Object.keys(meta_data).length === 0 || !recipient_type_id) {
+        return;
+    }
+    
+    const levelInfo = levelMap.get(level_id);
+    const recipientType = recipientTypes[recipient_type_id];
+    
+    if (!recipientType) {
+        return;
+    }
+    
+    const effectiveImpersonateBy = imporsonate_by || impersonatorId;
+    
+    const result = await processRecipientType(
+        recipientType.name,
+        row,
+        {
+            manager,
+            managerData,
+            impersonatorData,
+            impersonatorId,
+            effectiveImpersonateBy,
+            fetchUser,
+            recipientType,
+            behaviour,
+            recipient_details,
+            replaced_by,
+            manager_id,
+            existing_replaced_user,
+            meta_data
+        }
+    );
+    
+    if (result?.input_value) {
+        addRecipientsToLevel(levelInfo, result, row, recipientType, behaviour);
+    }
+}
+
+async function processRecipientType(
+    typeName: string,
+    row: any,
+    context: any
+): Promise<any> {
+    const {
+        manager, managerData, impersonatorData, impersonatorId,
+        effectiveImpersonateBy, fetchUser, recipientType, behaviour,
+        recipient_details, replaced_by, manager_id, existing_replaced_user,
+        meta_data
+    } = context;
+    
+    switch (typeName) {
+        case 'Specific User':
+        case 'Multiple users':
+        case 'Job Manager':
+        case 'Assignment Manager':
+        case 'Timesheet Managers':
+        case 'SOW Manager':
+        case 'Job Manager On Offer':
+            return await processSpecificUserTypes(context, row);
+            
+        case 'Manager of':
+            return await processManagerOf(context, row);
+            
+        case 'Custom Field Supplied User':
+            return await processCustomFieldUser(context, row);
+            
+        case 'Users in Program Role':
+        case 'Master Data Owner':
+        case 'Managerial Chain':
+        case 'Financial Authority Chain':
+        case 'Vendor Users':
+        case 'Top of Financial Authority Chain':
+            return await processProgramRoleUsers(context, row);
+            
+        default:
+            return null;
+    }
+}
+
+async function processSpecificUserTypes(context: any, row: any): Promise<any> {
+    const {
+        manager, managerData, impersonatorData, impersonatorId,
+        effectiveImpersonateBy, fetchUser, recipientType, behaviour,
+        recipient_details, replaced_by, manager_id, existing_replaced_user,
+        meta_data
+    } = context;
+    
+    const input_values = Object.values(meta_data);
+    let userId: string | undefined;
+    
+    if (existing_replaced_user) {
+        userId = existing_replaced_user;
+    } else if (recipientType.name === 'Job Manager') {
+        userId = manager;
+    } else if (input_values.length > 0) {
+        userId = input_values[0] as string;
+    }
+    
+    if (!userId) return null;
+    
+    const impersonateUserPromise = effectiveImpersonateBy ?
+        (effectiveImpersonateBy === impersonatorId && impersonatorData ?
+            Promise.resolve(impersonatorData) :
+            fetchUser(effectiveImpersonateBy)
+        ) :
+        Promise.resolve(null);
+    
+    const [userResult, replacedUserResult, managerDataResult, impersonateUserResult] = await Promise.all([
+        fetchUser(userId),
+        replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+        manager_id ? fetchUser(manager_id) : Promise.resolve(null),
+        impersonateUserPromise
+    ]);
+    
+    if (!userResult) return null;
+    
+    const input_value = {
+        id: userResult.user_id,
+        first_name: userResult.first_name,
+        last_name: userResult.last_name,
+        avatar: userResult.avatar,
+        role_id: userResult.role_id,
+        email: userResult.email,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_notes: recipient_details?.replaced_notes
+    };
+    
+    let manager_data = null;
+    if (managerDataResult) {
+        manager_data = {
+            id: managerDataResult.user_id,
+            first_name: managerDataResult.first_name,
+            last_name: managerDataResult.last_name,
+            avatar: managerDataResult.avatar || null,
+            email: managerDataResult.email || null
+        };
+    }
+    
+    let replaced_user_data = null;
+    if (replacedUserResult) {
+        replaced_user_data = {
+            id: replacedUserResult.user_id,
+            first_name: replacedUserResult.first_name,
+            last_name: replacedUserResult.last_name,
+            avatar: replacedUserResult.avatar,
+            role_id: replacedUserResult.role_id,
+            email: replacedUserResult.email,
+            recipient_type: recipientType.name || '',
+            behaviour,
+            replaced_date_time: recipient_details?.replaced_modified_on
+        };
+    }
+    
+    let imposonate_user_data = null;
+    if (impersonateUserResult) {
+        imposonate_user_data = createImpersonateUserData(
+            impersonateUserResult,
+            recipient_details,
+            recipientType.name,
+            behaviour
+        );
+    }
+    
+    return { input_value, manager_data, replaced_user_data, imposonate_user_data };
+}
+
+async function processManagerOf(context: any, row: any): Promise<any> {
+    const {
+        managerData, impersonatorData, impersonatorId,
+        effectiveImpersonateBy, fetchUser, recipientType, behaviour,
+        recipient_details, replaced_by, existing_replaced_user
+    } = context;
+    
+    if (!managerData) return null;
+    
+    let supervisorId: string | null = null;
+    if (existing_replaced_user) {
+        supervisorId = existing_replaced_user;
+    } else if (managerData.supervisor) {
+        supervisorId = managerData.supervisor;
+    }
+    
+    if (!supervisorId) return null;
+    
+    const impersonateUserPromise = effectiveImpersonateBy ?
+        (effectiveImpersonateBy === impersonatorId && impersonatorData ?
+            Promise.resolve(impersonatorData) :
+            fetchUser(effectiveImpersonateBy)
+        ) :
+        Promise.resolve(null);
+    
+    const [supervisorResult, replacedUserResult, impersonateUserResult] = await Promise.all([
+        fetchUser(supervisorId),
+        replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+        impersonateUserPromise
+    ]);
+    
+    if (!supervisorResult) return null;
+    
+    const supervisorData = {
+        id: supervisorResult.user_id,
+        first_name: supervisorResult.first_name,
+        last_name: supervisorResult.last_name,
+        name: `${supervisorResult.first_name} ${supervisorResult.last_name}`.trim(),
+        email: supervisorResult.email,
+        avatar: supervisorResult.avatar || null,
+        updated_on: recipient_details?.updated_on,
+        notes: recipient_details?.notes,
+        reason: recipient_details?.reason,
+        replaced_notes: recipient_details?.replaced_notes
+    };
+    
+    const input_value = [supervisorData];
+    
+    let replaced_user_data = null;
+    if (replacedUserResult) {
+        replaced_user_data = {
+            id: replacedUserResult.user_id,
+            first_name: replacedUserResult.first_name,
+            last_name: replacedUserResult.last_name,
+            avatar: replacedUserResult.avatar || null,
+            email: replacedUserResult.email || null,
+            recipient_type: recipientType.name || "",
+            behaviour,
+            replaced_date_time: recipient_details?.replaced_modified_on,
+            replaced_notes: recipient_details?.replaced_notes,
+        };
+    }
+    
+    let manager_data = null;
+    if (managerData) {
+        manager_data = {
+            id: managerData.user_id,
+            first_name: managerData.first_name,
+            last_name: managerData.last_name,
+            avatar: managerData.avatar || null,
+            email: managerData.email || null,
+        };
+    }
+    
+    let imposonate_user_data = null;
+    if (impersonateUserResult) {
+        imposonate_user_data = createImpersonateUserData(
+            impersonateUserResult,
+            recipient_details,
+            recipientType.name,
+            behaviour
+        );
+    }
+    
+    return { input_value, manager_data, replaced_user_data, imposonate_user_data };
+}
+
+async function processCustomFieldUser(context: any, row: any): Promise<any> {
+    const {
+        impersonatorData, impersonatorId, effectiveImpersonateBy,
+        fetchUser, recipientType, behaviour, recipient_details, replaced_by
+    } = context;
+    
+    const levels = row.levels || [];
+    
+    for (const level of levels) {
+        for (const recipient of level.recipient_types || []) {
+            if (recipient?.meta_data && recipientType?.id == recipient.recipient_type_id) {
+                const metaData = recipient.meta_data;
+                const metaValue = Object.values(metaData)[0] as string;
+                const userId = recipient.existing_replaced_user || metaValue;
+                
+                if (!userId) continue;
+                
+                const impersonateUserPromise = effectiveImpersonateBy ?
+                    (effectiveImpersonateBy === impersonatorId && impersonatorData ?
+                        Promise.resolve(impersonatorData) :
+                        fetchUser(effectiveImpersonateBy)
+                    ) :
+                    Promise.resolve(null);
+                
+                const [userData, replacedUserResult, impersonateUserResult] = await Promise.all([
+                    fetchUser(userId),
+                    replaced_by ? fetchUser(replaced_by) : Promise.resolve(null),
+                    impersonateUserPromise
+                ]);
+                
+                if (!userData) continue;
+                
+                const input_value = {
+                    id: userData.user_id,
+                    name: `${userData.first_name} ${userData.last_name}`,
+                    email: userData.email,
+                    avatar: userData.avatar,
+                    updated_on: recipient_details?.updated_on,
+                    notes: recipient_details?.notes,
+                    reason: recipient_details?.reason,
+                    replaced_notes: recipient_details?.replaced_notes
+                };
+                
+                let replaced_user_data = null;
+                if (replacedUserResult) {
+                    replaced_user_data = {
+                        id: replacedUserResult.user_id,
+                        first_name: replacedUserResult.first_name,
+                        last_name: replacedUserResult.last_name,
+                        avatar: replacedUserResult.avatar,
+                        role_id: replacedUserResult.role_id,
+                        email: replacedUserResult.email,
+                        recipient_type: recipientType.name || '',
+                        behaviour,
+                        replaced_date_time: recipient_details?.replaced_modified_on,
+                        replaced_notes: recipient_details?.replaced_notes,
+                    };
+                }
+                
+                let imposonate_user_data = null;
+                if (impersonateUserResult) {
+                    imposonate_user_data = createImpersonateUserData(
+                        impersonateUserResult,
+                        recipient_details,
+                        recipientType.name,
+                        behaviour
+                    );
+                }
+                
+                return { input_value, replaced_user_data, imposonate_user_data };
+            }
+        }
+    }
+    
+    return null;
+}
+
+async function processProgramRoleUsers(context: any, row: any): Promise<any> {
+    const { fetchUser, impersonatorId, impersonatorData } = context;
+    
+    const users: any[] = [];
+    const recipientTypes = JSON.parse(row.recipient_types) || [];
+    
+    const CONCURRENCY_LIMIT = 5;
+    const chunks = [];
+    for (let i = 0; i < recipientTypes.length; i += CONCURRENCY_LIMIT) {
+        chunks.push(recipientTypes.slice(i, i + CONCURRENCY_LIMIT));
+    }
+    
+    for (const chunk of chunks) {
+        const chunkResults = await Promise.all(
+            chunk.map(async (recipient: any) => {
+                const receipentStatus = recipient.status;
+                
+                if (!recipient?.meta_data) return null;
+                
+                const metaData = recipient.meta_data;
+                let userId = Object.values(metaData)[0] as string;
+                const level_behaviour = Object.values(metaData)[1];
+                
+                if (recipient.existing_replaced_user) {
+                    userId = recipient.existing_replaced_user;
+                }
+                
+                const user = await fetchUser(userId);
+                if (!user) return null;
+                
+                const userData: any = {
+                    id: user.user_id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    avatar: user.avatar,
+                    role_id: user.role_id,
+                    email: user.email,
+                    receipentstatus: receipentStatus,
+                    modifiedOn: recipient.updated_on,
+                    level_behaviour: level_behaviour,
+                    replaced_by: null,
+                    impersonate_by: null,
+                    updated_on: recipient.updated_on,
+                    notes: recipient.notes,
+                    reason: recipient.reason,
+                    actor_first_name: recipient.actor_first_name,
+                    actor_last_name: recipient.actor_last_name,
+                    actor_by_avatar: recipient.actor_by_avatar,
+                    is_admin_override: recipient.is_admin_override,
+                    replaced_notes: recipient.replaced_notes
+                };
+                
+                const [replacedByUser, impersonatedUser] = await Promise.all([
+                    recipient.replaced_by ? fetchUser(recipient.replaced_by) : Promise.resolve(null),
+                    (() => {
+                        const effectiveImpersonateId = recipient.impersonate_by || impersonatorId;
+                        if (!effectiveImpersonateId) return Promise.resolve(null);
+                        
+                        if (effectiveImpersonateId === impersonatorId && impersonatorData) {
+                            return Promise.resolve(impersonatorData);
+                        }
+                        return fetchUser(effectiveImpersonateId);
+                    })()
+                ]);
+                
+                if (replacedByUser) {
+                    userData.replaced_by = {
+                        id: replacedByUser.user_id,
+                        first_name: replacedByUser.first_name,
+                        last_name: replacedByUser.last_name,
+                        email: replacedByUser.email,
+                        avatar: replacedByUser.avatar,
+                        role_id: replacedByUser.role_id,
+                        replaced_notes: recipient.replaced_notes,
+                        replaced_date_time: recipient.replaced_modified_on,
+                        actor_first_name: recipient.actor_first_name,
+                        actor_last_name: recipient.actor_last_name,
+                        actor_by_avatar: recipient.actor_by_avatar,
+                        is_admin_override: recipient.is_admin_override,
+                    };
+                }
+                
+                if (impersonatedUser) {
+                    userData.impersonate_by = {
+                        id: impersonatedUser.user_id,
+                        first_name: impersonatedUser.first_name,
+                        last_name: impersonatedUser.last_name,
+                        email: impersonatedUser.email,
+                        avatar: impersonatedUser.avatar,
+                        role_id: impersonatedUser.role_id,
+                        updated_on: context.recipient_details?.updated_on,
+                        impersonate_notes: recipient.impersonate_notes,
+                        impersonate_date_time: recipient.impersonate_modified_on,
+                        actor_first_name: recipient.actor_first_name,
+                        actor_last_name: recipient.actor_last_name,
+                        actor_by_avatar: recipient.actor_by_avatar,
+                        is_admin_override: recipient.is_admin_override,
+                    };
+                }
+                
+                return userData;
+            })
+        );
+        
+        users.push(...chunkResults.filter(Boolean));
+    }
+    
+    if (users.length === 0) return null;
+    
+    const input_value = users.map(user => ({
+        id: user.id,
+        name: `${user.first_name} ${user.last_name}`.trim(),
+        email: user.email,
+        avatar: user.avatar || null,
+        level_behaviour: user.level_behaviour,
+        replaced_by: user.replaced_by,
+        impersonate_by: user.impersonate_by,
+        receipentStatus: user.receipentstatus,
+        actor_first_name: user.actor_first_name,
+        actor_last_name: user.actor_last_name,
+        actor_by_avatar: user.actor_by_avatar,
+        is_admin_override: user.is_admin_override,
+        reason: user.reason,
+        updated_on: user.updated_on,
+        notes: user.notes
+    }));
+    
+    return { input_value };
+}
+
+function createImpersonateUserData(userData: any, recipientDetails: any, recipientType: string, behaviour: string) {
+    if (!userData) return null;
+    
+    return {
+        id: userData.user_id,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        avatar: userData.avatar,
+        role_id: userData.role_id,
+        email: userData.email,
+        updated_on: recipientDetails?.updated_on,
+        recipient_type: recipientType || '',
+        replaced_notes: recipientDetails?.replaced_notes,
+        behaviour,
+    };
+}
+
+function addRecipientsToLevel(levelData: any, result: any, row: any, recipientType: any, behaviour: string): void {
+    const {
+        input_value, manager_data, replaced_user_data, imposonate_user_data
+    } = result;
+    
+    const {
+        level_id, recipient_status, recipient_details
+    } = row;
+    
+    let recipients = [];
+    
+    if (Array.isArray(input_value)) {
+        recipients = input_value.map(user => ({
+            name: getRecipientName(user),
+            first_name: user.first_name,
+            last_name: user.last_name,
+            level_id,
+            actor_first_name: user.actor_first_name,
+            actor_last_name: user.actor_last_name,
+            actor_by_avatar: user.actor_by_avatar,
+            is_admin_override: user.is_admin_override,
+            status: user.receipentStatus,
+            updated_on: user.updated_on,
+            notes: user.notes,
+            reason: user.reason,
+            level_behaviour: user.level_behaviour,
+            user_id: user.id,
+            avatar: user.avatar?.url || '',
+            role_id: user.role_id,
+            email: user.email,
+            replaced_by: user.replaced_by,
+            manager: manager_data || null,
+            imporsonate_by: user.impersonate_by || imposonate_user_data,
+            recipient_type: recipientType.name || '',
+            behaviour,
+        }));
+    } else {
+        recipients = [{
+            name: getRecipientName(input_value),
+            first_name: input_value.first_name,
+            last_name: input_value.last_name,
+            level_id,
+            status: recipient_status,
+            updated_on: recipient_details?.updated_on,
+            notes: recipient_details?.notes,
+            reason: recipient_details?.reason,
+            replaced_date_time: recipient_details?.replaced_modified_on,
+            replaced_notes: recipient_details?.replaced_notes,
+            actor_first_name: recipient_details?.actor_first_name,
+            actor_last_name: recipient_details?.actor_last_name,
+            actor_by_avatar: recipient_details?.actor_by_avatar,
+            is_admin_override: recipient_details?.is_admin_override,
+            user_id: input_value.id,
+            avatar: input_value.avatar?.url || '',
+            role_id: input_value.role_id,
+            email: input_value.email,
+            recipient_type: recipientType.name || '',
+            behaviour,
+            replaced_by: replaced_user_data,
+            manager: manager_data || null,
+            imporsonate_by: imposonate_user_data
+        }];
+    }
+    
+    for (const recipient of recipients) {
+        if (!levelData.processedUsers.has(recipient.user_id)) {
+            levelData.recipients.push(recipient);
+            levelData.processedUsers.add(recipient.user_id);
+        }
+    }
+}
+
+function buildFinalLevels(levelMap: Map<string, any>): any[] {
+    const unprocessedLevels = Array.from(levelMap.values())
+        .filter(({ recipients }) => recipients.length > 0)
+        .map(({ level_id, placement_order, level_status, behaviour, recipients }) => ({
             level_id,
             level_order: placement_order,
             placement_order,
@@ -5326,7 +5478,6 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         }))
         .sort((a, b) => a.placement_order - b.placement_order);
     
-    // Group levels by placement_order
     const placementOrderGroups = new Map<number, any[]>();
     for (const level of unprocessedLevels) {
         if (!placementOrderGroups.has(level.placement_order)) {
@@ -5335,60 +5486,36 @@ const getLevelData = async (request: FastifyRequest, reply: FastifyReply, rows: 
         placementOrderGroups.get(level.placement_order)?.push(level);
     }
     
-    // For each placement_order group, deduplicate by analyzing recipients
     const finalLevels: any[] = [];
+    
+    placementOrderGroups.forEach((levels) => {
+        const recipientTypeMap = new Map<string, any>();
         
-        placementOrderGroups.forEach((levels, placement_order) => {
-            const recipientTypeMap = new Map<string, any>();
-            
-            // Group by recipient_type
-            for (const level of levels) {
-                const key = level.recipient_type || 'null';
-                if (!recipientTypeMap.has(key)) {
-                    recipientTypeMap.set(key, level);
-                } else {
-                    // If duplicate found, merge the recipients
-                    const existingLevel = recipientTypeMap.get(key);
-                    const existingUserIds = new Set(existingLevel.recipients.map((r: any) => r.user_id));
-                    
-                    // Add non-duplicate recipients
-                    for (const recipient of level.recipients) {
-                        if (!existingUserIds.has(recipient.user_id)) {
-                            existingLevel.recipients.push(recipient);
-                            existingUserIds.add(recipient.user_id);
-                        }
+        for (const level of levels) {
+            const key = level.recipient_type || 'null';
+            if (!recipientTypeMap.has(key)) {
+                recipientTypeMap.set(key, level);
+            } else {
+                const existingLevel = recipientTypeMap.get(key);
+                const existingUserIds = new Set(existingLevel.recipients.map((r: any) => r.user_id));
+                
+                for (const recipient of level.recipients) {
+                    if (!existingUserIds.has(recipient.user_id)) {
+                        existingLevel.recipients.push(recipient);
+                        existingUserIds.add(recipient.user_id);
                     }
                 }
             }
-            
-            // Add deduplicated levels to final array
-            recipientTypeMap.forEach(level => {
-                delete level.recipient_type; // Remove temporary property
-                finalLevels.push(level);
-            });
+        }
+        
+        recipientTypeMap.forEach(level => {
+            delete level.recipient_type; 
+            finalLevels.push(level);
         });
-        
-        // Sort by placement_order
-        finalLevels.sort((a, b) => a.placement_order - b.placement_order);
-        
-        // Set the dedupli
-        // cated levels to workflow
-        workflow.levels = finalLevels;
-        
-        // Process status handling and update missing levels
-        await statusHandling(request, reply, workflow);
-        await updateMissingLevels(rows.length > 0 ? rows[0].levels || [] : [], workflow);
-        
-        return workflow;
-    } catch (error) {
-        console.log(error);
-        return reply.status(500).send({
-            statusCode: 500,
-            message: 'An error occurred while fetching workflow data.',
-        });
-    }
-};
-
+    });
+    
+    return finalLevels.sort((a, b) => a.placement_order - b.placement_order);
+}
 
 
 // Helper function to get name (renamed to avoid duplicate function implementation)
