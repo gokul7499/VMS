@@ -11,8 +11,10 @@ import {
     createWorkflowLevel,
     workflowFilter
 } from '../controllers/workflow.controller';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function WorkflowRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/workflow', async (request, reply) => {
         await createWorkflow(request, reply);
     });

@@ -44,19 +44,8 @@ export const createWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const { program_id } = request.params as { program_id: string };
     const { name, module, hierarchies, method_id } = request.body as WorkflowData;
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
-    }
-    const userId = user?.sub;
+    const user=request?.user;
+    const userId=user?.sub;
     try {
         const existingWorkflow = await WorkFlow.findOne({
             where: { name, program_id, is_deleted: false }
@@ -158,17 +147,8 @@ export const updateWorkflow = async (request: FastifyRequest, reply: FastifyRepl
     const workflowData = request.body as WorkflowData;
     const { name } = workflowData;
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+    const user=request?.user;
+    const userId=user?.sub;
 
     try {   
         const data = await WorkFlow.findOne({

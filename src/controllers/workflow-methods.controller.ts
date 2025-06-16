@@ -13,20 +13,8 @@ import JobWorkFlowModel from '../models/job-workflow.model';
 export const createWorkflowMethod = async (request: FastifyRequest, reply: FastifyReply) => {
     const WorkflowMethodDataPayload = request.body as Omit<WorkflowMethodData, '_id'>;
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
+    const user=request?.user;
+    const userId=user?.sub;
     logger(
         {
             trace_id: traceId,

@@ -18,19 +18,8 @@ export async function createVendordocumentsgroup(
     const vendorDocumentsGroup = request.body as VendorDocumentGroup;
     const { required_documents } = vendorDocumentsGroup;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+     const user=request?.user;
+    const userId=user?.sub;
     try {
         const existingDocument = await vendordocumentgroupModel.findOne({
             where: {
@@ -295,16 +284,8 @@ export async function updateVendordocumentsgroup(
     const documentGroupData = request.body as Partial<VendorDocumentGroup>;
     const { required_documents, name } = documentGroupData;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+    const user=request?.user;
+    const userId=user?.sub;
     try {
         const documentGroup = await vendordocumentgroupModel.findOne({
             where: {
@@ -367,16 +348,8 @@ export async function updateVendordocumentsgroup(
 }
 
 export async function deleteVendordocumentsgroup(request: FastifyRequest, reply: FastifyReply) {
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    const userId = user?.sub;
+     const user=request?.user;
+    const userId=user?.sub;
     const traceId = generateCustomUUID();
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
