@@ -50,6 +50,22 @@ export async function createExpenseType(request: FastifyRequest, reply: FastifyR
         const { program_id } = request.params as { program_id?: string };
         const expenseType = request.body as ExpenseTypeInterface;
 
+        const existingCode = await ExpenseTypeModel.findOne({
+            where: {
+                code: expenseType.code,
+                program_id,
+                is_deleted: false,
+            },
+        });
+
+        if (existingCode) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: "An expense type with the same code already exists",
+                trace_id: traceId,
+            });
+        }
+
         const expenseTypeData: any = await ExpenseTypeModel.create({
             ...expenseType,
             program_id,
