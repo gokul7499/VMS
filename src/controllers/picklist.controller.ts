@@ -1266,13 +1266,12 @@ export const clonePredefinedPicklistsForProgram = async (
     }
   }
 
-
 export const updatePicklist = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const { id, program_id } = request.params as { id: string; program_id?: string };
+  const { id } = request.params as { id: string };
   const { picklist_items, ...picklist_data } = request.body as any;
   const authHeader = request.headers.authorization;
 
@@ -1300,10 +1299,6 @@ export const updatePicklist = async (
       { is_deleted: false },
     ];
 
-    if (picklist_data.defined_by !== 'PREDEFINED' && program_id) {
-      andConditions.push({ program_id });
-    }
-
     const existingPicklistWithSameName = await picklist_model.findOne({
       where: { [Op.and]: andConditions },
     });
@@ -1317,9 +1312,6 @@ export const updatePicklist = async (
     }
 
     const whereClause: any = { id };
-    if (picklist_data.defined_by !== 'PREDEFINED' && program_id) {
-      whereClause.program_id = program_id;
-    }
 
     picklist = await picklist_model.findOne({ where: whereClause });
 
@@ -1343,7 +1335,6 @@ export const updatePicklist = async (
           id: item.id || uuidv4(),
           ...item,
           picklist_id: id,
-          ...(program_id && { program_id }),
           created_by: userId,
           updated_by: userId,
         }));
@@ -1357,7 +1348,8 @@ export const updatePicklist = async (
         status_code: 200,
         message: 'Successfully updated picklist and items',
         trace_id: traceId,
-        picklist_data,picklist_items
+        picklist_data,
+        picklist_items,
       });
     } catch (error) {
       await transaction.rollback();
