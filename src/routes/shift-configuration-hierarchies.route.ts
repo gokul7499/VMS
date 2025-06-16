@@ -8,8 +8,10 @@ import {
   postRateTypesByShiftType,
   postRateTypesByShiftTypeSchema
 } from '../controllers/shift-configuration-hierarchies.controller';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function shiftConfigurationHierarchiesRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   fastify.post('/shift-hierarchy/shift-configuration-hierarchie', createShiftConfigurationHierarchies);
   fastify.get('/shift-hierarchy/program/:program_id/shift-configuration-hierarchie/:id', getShiftConfigurationHierarchiesById);
   fastify.put('/shift-hierarchy/program/:program_idshift-configuration-hierarchie/:id', updateShiftConfigurationHierarchies);

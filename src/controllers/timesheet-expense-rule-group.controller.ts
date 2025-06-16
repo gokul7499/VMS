@@ -14,19 +14,8 @@ export const createTimesheetExpenseRuleGroup = async (
     reply: FastifyReply
 ) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({status_code: 401,message: 'Unauthorized - Token not found',});
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({
-                status_code: 401,
-                message: 'Unauthorized - Invalid token',
-            });
-        }
+     const user=request?.user;
         const userId = user?.sub;
         const { program_id } = request.params as { program_id: string };
         const { timesheet_expense_rules,rule_group_name, ...data } = request.body as any;
@@ -257,17 +246,10 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
     const traceId = generateCustomUUID();
     const { id, program_id } = request.params as { id: string, program_id: string };
     const updates = request.body as Partial<TimesheetExpenseRuleGroupData>;
-    const authHeader = request.headers.authorization;
+ 
 
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user;
         const userId = user?.sub;
 
         if (updates.rule_group_name) {
@@ -330,17 +312,9 @@ export async function updateTimesheetExpenseRuleGroup(request: FastifyRequest, r
 
 export const deleteTimesheetExpenseRuleGroup = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params as { id: string };
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user;
         const userId = user?.sub;
         const ruleGroup = await TimesheetExpenseRuleGroup.findOne({ where: { id, is_deleted: false } });
         if (!ruleGroup) {
