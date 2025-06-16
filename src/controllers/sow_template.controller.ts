@@ -72,8 +72,8 @@ export async function createSowTemplate(
             for (const master of sowTemplate.master_data) {
                 await SOWTemplateMasterDataModel.create({
                     sow_temp_id: item.id,
-                    master_data_type_id: master.master_data_type_id,
-                    master_data_id: master.master_data_id,
+                    master_data_type: master.master_data_type,
+                    master_data: master.master_data,
                     is_deleted: false,
                     is_enabled: true,
                     created_by: userId,

@@ -20,7 +20,7 @@ SOWTemplateMasterDataModel.init(
                 key: "id",
             },
         },
-        master_data_type_id: {
+        master_data_type: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
@@ -28,7 +28,7 @@ SOWTemplateMasterDataModel.init(
                 key: 'id'
             }
         },
-        master_data_id: {
+        master_data: {
             type: DataTypes.JSON,
             allowNull: true,
         },
