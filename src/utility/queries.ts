@@ -1442,17 +1442,20 @@ export const vendorFilterQueryBuilder = (
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `AND (${hierarchyIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const laborCategoryIdsClause = laborCategoryIdsArray.length
     ? `AND (${laborCategoryIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const workLocationIdsClause = workLocationIdsArray.length
     ? `AND (${workLocationIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   return `
@@ -1694,30 +1697,25 @@ export const timesheetConfigAdvancedFilter = (
   hasAllocationMethod: boolean,
   hasIsEnabled: boolean,
   hasMspHierarchyIds: boolean,
-  mspHierarchyIds: string[] |any
+  mspHierarchyIds: string[] | any,
 ) => {
-  const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch 
-       ON timesheet_type_config.id = ttch.timesheet_type_config_id
-       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
-    : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
-       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+      ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
   const mspHierarchyFilterClause = hasMspHierarchyIds
-     ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
-       ON timesheet_type_config.id = ttch_msp.timesheet_type_config_id
-       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
-    : '';
-  
-   const hierarchyFilterCondition = hierarchyIdsArray.length
-    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
+      ON timesheet_type_config.id = ttch_msp.timesheet_type_config_id
+      AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
     : '';
 
-    const mspHierarchyFilterCondition = hasMspHierarchyIds
+  const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR (${hierarchyIdsArray.map((_, index) => `JSON_CONTAINS(timesheet_type_config.hierarchies, JSON_QUOTE(:hierarchy_id${index}))`).join(' OR ')}))`
+    : '';
+
+  const mspHierarchyFilterCondition = hasMspHierarchyIds
     ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
     : '';
 
@@ -1743,7 +1741,6 @@ export const timesheetConfigAdvancedFilter = (
       FROM
         timesheet_type_config
       LEFT JOIN timesheet_expense_rule_groups trg ON timesheet_type_config.timesheet_rule_group = trg.id
-      ${hierarchyIdsClause}
       ${laborCategoryClause}
       ${mspHierarchyFilterClause}
       WHERE
@@ -2360,7 +2357,7 @@ export const userQuery = (
   status?: string,
   user_id?: string,
   hierarchy_id?: string[],
-   mspHierarchyIds?: string[]
+  mspHierarchyIds?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -3634,7 +3631,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
 
   return `
         SELECT
-          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on,
           COUNT(ttc.id) OVER () AS total_count,
           JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
         FROM
@@ -3659,7 +3656,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     `;
 };
 
-export const masterDataTypeAdvanceFilter = (hierarchyFilter: string,mspHierarchyFilter:string) => `
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string) => `
 SELECT
   mdt.id,
   mdt.program_id,
