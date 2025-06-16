@@ -2,8 +2,10 @@ import { FastifyInstance } from "fastify"
 import * as vendorDistributionSchedule from "../controllers/vendor-distribution-schedule.controller";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function vendorDistributionScheduleRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.get("/program/:program_id/vendor-distribution-schedules", {
         // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_DISTRIBUTION_SCHEDULE])
     }, vendorDistributionSchedule.getAllvendorDistributionSchedules);

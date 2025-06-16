@@ -22,21 +22,7 @@ export async function createVendorComplianceDocument(
   const vendor_comp_doc = request.body as VendorComplianceDocumentInterface;
 
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return reply
-      .status(401)
-      .send({ status_code: 401, message: "Unauthorized - Token not found", trace_id: traceId });
-  }
-
-  const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
-
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token", trace_id: traceId });
-  }
+  const user=request?.user;
   const userId = user?.sub
   logger(
     {
@@ -209,17 +195,7 @@ export async function updateVendorComplianceDocumentById(
   const { id, program_id } = request.params as { id: string; program_id: string };
   const payload = request.body as any;
   const traceId = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user.sub;
 
   try {
@@ -274,15 +250,7 @@ export async function deleteVendorComplianceDocumentById(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub
   try {
     const { program_id, id } = request.params as { program_id: string; id: string };

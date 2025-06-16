@@ -92,20 +92,8 @@ export async function getUserById(
 
 export async function getUserHierarchiesByProgram(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
   const { job_template_id } = request.query as { job_template_id: string };
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply
-      .status(401)
-      .send({ message: "Unauthorized - Token not found" });
-  }
-  const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user;
   try {
     const { id: user_id, program_id } = request.params as { id: string, program_id: string };
     const user = await User.findOne({
@@ -554,18 +542,7 @@ export async function deleteUser(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const { id } = request.params;
@@ -866,23 +843,8 @@ export async function getUserAndHierarchieId(request: FastifyRequest, reply: Fas
 }
 
 export async function getActiveUser(request: FastifyRequest, reply: FastifyReply) {
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: "Unauthorized - Token not found",
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
-  const userTokenData: any = await decodeToken(token);
-  if (!userTokenData) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: "Unauthorized - Invalid token",
-    });
-  }
-
+ const userTokenData=request?.user;
+ 
   const { program_id } = request.params as { program_id: string };
   const { hierarchy_id } = request.query as { hierarchy_id?: string };
   const traceId = generateCustomUUID();
@@ -1022,18 +984,7 @@ export async function getUserProgram(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Token not found" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user;
   const userType = user?.userType;
   const { user_id, search } = request.query as { user_id: string, search: string };
   const traceId = generateCustomUUID();

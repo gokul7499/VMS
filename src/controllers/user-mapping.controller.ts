@@ -110,17 +110,7 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
     const traceId = generateCustomUUID();
     try {
         const authHeader = request.headers.authorization;
-
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user;
         const userId = user?.sub;
         updates.updated_on = BigInt(Date.now())
         const [updatedCount] = await UserMapping.update({ ...updates, updated_by: userId, }, { where: { id: id } });
@@ -152,18 +142,7 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
 export const deleteUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+     const user=request?.user;
     const userId = user?.sub;
     try {
         const deletedCount = await UserMapping.destroy({ where: { id: id } });
@@ -236,17 +215,7 @@ export async function updateStatus(
 export const getUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id, id } = request.params as { program_id: string; id: string };
     const queryParams = request.query as { [key: string]: string | boolean };
-    const authHeader = request.headers.authorization;
-    
-    if (!authHeader?.startsWith("Bearer ")) {
-        return reply.status(401).send({
-            status_code: 401,
-            message: "Unauthorized - Token not found",
-        });
-    }
-    
-    const token = authHeader.split(" ")[1];
-    let user: any = await decodeToken(token);
+    const user=request?.user;
     if (!user) {
         return reply.status(401).send({
             status_code: 401,
