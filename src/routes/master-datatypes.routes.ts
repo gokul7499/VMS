@@ -3,10 +3,10 @@ import * as FoundationalDataTypeController from '../controllers/master-datatypes
 import { createFoundationalDataTypeSchema, paramsSchema, querySchema } from '../interfaces/master-datatypes.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
-
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function foundationalDataTypeRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/foundational-datatypes', {
         schema: {
             body: createFoundationalDataTypeSchema,

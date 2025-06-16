@@ -230,9 +230,9 @@ export const createPicklist = async (
       picklist_data.slug = picklist_data.name
         .trim()
         .toLowerCase()
-        .replace(/\s+/g, '_')        
-        .replace(/[^\w_]/g, '');       
-    }    
+        .replace(/\s+/g, '_')
+        .replace(/[^\w_]/g, '');
+    }
 
     const typed_picklist_data: Omit<picklist, "picklist_items"> =
       picklist_data as Omit<picklist, "picklist_items">;
@@ -451,8 +451,8 @@ export const updatePicklistAndItem = async (
           ],
         },
       });
-
-      if (existingPicklistWithSameName) {
+      
+         if (existingPicklistWithSameName) {
         return reply.status(400).send({
           status_code: 400,
           message: "Picklist with the same name already exists.",
@@ -551,7 +551,7 @@ export const getPicklistAndPicklistItem = async (
 ) => {
   const traceId = generateCustomUUID();
   const { program_id, id } = request.params as { program_id: string; id: string };
-  
+
   if (!program_id || !id) {
     return reply.status(400).send({
       status_code: 400,
@@ -585,6 +585,7 @@ export const getPicklistAndPicklistItem = async (
           },
         },
       ],
+      order: [[{ model: picklist_item_model, as: "picklistItems" }, "value", "ASC"]],
     });
 
     if (picklists.length > 0) {
@@ -640,6 +641,7 @@ export async function getAllPickListByProgramId(request: FastifyRequest, reply: 
           as: "picklistItems",
           where: {
             is_deleted: false,
+            is_enabled: true,
             ...(label && { label }),
             ...(program_id && { program_id }),
             ...(picklist_id && { picklist_id }),
@@ -1050,7 +1052,7 @@ export const clonePredefinedPicklistsForProgram = async (
   userId: string,
   transaction?: any
 ) => {
-  
+
   const requiredSlugs = [
     "worker_classification",
     "job_type",
@@ -1058,17 +1060,17 @@ export const clonePredefinedPicklistsForProgram = async (
     "worker_source_type"
     ,
   ];
-    
+
   const predefinedPicklists = await picklist_model.findAll({
     where: {
       slug: { [Op.in]: requiredSlugs },
       program_id: { [Op.is]: null },
       defined_by: "predefined",
       is_deleted: false,
-    } as WhereOptions<any>, 
+    } as WhereOptions<any>,
     transaction,
-  });    
-  for (const picklist of predefinedPicklists) {    
+  });
+  for (const picklist of predefinedPicklists) {
     try {
       const newPicklist = await picklist_model.create(
         {
@@ -1087,7 +1089,7 @@ export const clonePredefinedPicklistsForProgram = async (
         },
         { transaction }
       );
-            
+
       const picklistItems = await picklistItemModel.findAll({
         where: {
           picklist_id: picklist.id,
@@ -1095,7 +1097,7 @@ export const clonePredefinedPicklistsForProgram = async (
         },
         transaction
       });
-            
+
       const allowedSlugs = ["worker_classification", "worker_source_type"];
 
     if (allowedSlugs.includes(picklist.slug ?? '') && picklistItems.length > 0) {
@@ -1114,12 +1116,12 @@ export const clonePredefinedPicklistsForProgram = async (
         created_by: userId,
         updated_by: userId,
       }));
-      
+
         await picklistItemModel.bulkCreate(newItems, { transaction });
       }
     } catch (error) {
       console.error(`Error cloning picklist ${picklist.name}:`, error);
-      throw error; 
+      throw error;
     }
   }
   };
@@ -1129,7 +1131,7 @@ export const clonePredefinedPicklistsForProgram = async (
     reply: FastifyReply
   ) {
     const traceId = generateCustomUUID();
-  
+
     const { program_id } = request.params as { program_id: string };
     const {
       name,
@@ -1154,17 +1156,17 @@ export const clonePredefinedPicklistsForProgram = async (
       page?: number;
       limit?: number;
     };
-  
+
     try {
       const pageNumber = parseInt(String(page), 10) || 1;
       const limitNumber = limit !== undefined ? parseInt(String(limit), 10) : undefined;
       const offset = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
-  
+
       let whereClause: any = {
         is_deleted: false,
         program_id
       };
-  
+
       // Filters
       if (name) whereClause.name = { [Op.like]: `%${name}%` };
       if (slug) whereClause.slug = { [Op.like]: `%${slug}%` };
@@ -1177,12 +1179,12 @@ export const clonePredefinedPicklistsForProgram = async (
         const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
         whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
       }
-  
+
       whereClause[Op.or] = [
         { defined_by: "predefined" },
         { program_id: program_id },
       ];
-  
+
       if (search) {
         const searchFields = [
           "name",
@@ -1205,7 +1207,7 @@ export const clonePredefinedPicklistsForProgram = async (
           }));
         }
       }
-  
+
       const picklists = await picklist_model.findAndCountAll({
         where: whereClause,
         include: [
@@ -1221,7 +1223,7 @@ export const clonePredefinedPicklistsForProgram = async (
         ...(limitNumber !== undefined && { offset, limit: limitNumber }),
         distinct: true,
       });
-  
+
       let filteredPicklists = picklists.rows;
       if (picklist_items_count) {
         const countFilter = parseInt(picklist_items_count, 10);
@@ -1229,7 +1231,7 @@ export const clonePredefinedPicklistsForProgram = async (
           (picklist) => picklist.picklistItems.length === countFilter
         );
       }
-  
+
       const picklistsData = filteredPicklists.map((picklist: any) => ({
         id: picklist.id,
         name: picklist.name,
@@ -1244,7 +1246,7 @@ export const clonePredefinedPicklistsForProgram = async (
         defined_by: picklist.defined_by,
         picklist_items_count: picklist.picklistItems.length,
       }));
-  
+
       reply.status(200).send({
         status_code: 200,
         message: "Picklists retrieved successfully",

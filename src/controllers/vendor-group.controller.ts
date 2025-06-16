@@ -322,16 +322,19 @@ export async function vendorGroupFilter(
     const offset = (pageNumber - 1) * limitNumber;
 
     const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
-    let updatedOnStart: any = undefined;
-    let updatedOnEnd: any = undefined;
-
+    let updatedOnStart: number | undefined = undefined;
+    let updatedOnEnd: number | undefined = undefined;
+    
     if (hasUpdatedOnFilter) {
       const startDate = new Date(updated_on[0]);
-      updatedOnStart = startDate.setHours(0, 0, 0, 0);
-      updatedOnEnd = (updated_on.length === 1 || updated_on[1] === 0)
-        ? startDate.setHours(23, 59, 59, 999)
-        : updated_on[1];
-    }
+      updatedOnStart = startDate.setHours(0, 0, 0, 0); 
+    
+      if (updated_on.length === 1 || updated_on[1] === 0) {
+        updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+      } else {
+        updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+      }
+    }    
 
     const query = vendorGroupFilterQuery(
       Boolean(id),

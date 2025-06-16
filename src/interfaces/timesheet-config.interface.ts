@@ -46,6 +46,7 @@ export interface TimesheetTypeConfigInterface {
   timesheet_rule_group?: string;
   break_rule_group?: string;
   input_format?:string;
+  is_all_hierarchy_associated?: boolean;
 }
 
 export const querySchema = {

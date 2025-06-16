@@ -7,10 +7,11 @@ import foundationalDataModel from '../models/master-data.model';
 import { sequelize } from '../config/instance';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { getMasterDataCustomFields } from '../utility/queries';
+import { getMasterDataCustomFields, masterDataTypeAdvanceFilter } from '../utility/queries';
 import MasterDataCustomFieldModel from '../models/master-data-custom-fields';
 import MasterDataTypeHierarchy from '../models/master-data-type-hierarchy.model';
 import Hierarchies from '../models/hierarchies.model';
+import GlobalRepository from '../repositories/global.repository';
 
 export const createFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const foundationalDataPayload = request.body as Omit<FoundationalDataTypesInterface, '_id'>;
@@ -91,6 +92,18 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
                     }, { transaction });
                 }
             }
+        }
+
+        if (Array.isArray(foundationalDataPayload.custom_fields) && foundationalDataPayload.custom_fields.length > 0) {
+              const customFields = foundationalDataPayload.custom_fields.map((field: {
+                id: any; value: any;
+              }) => ({
+                program_id,
+                custom_field_id: field.id,
+                value: field.value,
+                master_data_type_id: foundationalData.id,
+              }));
+              await MasterDataCustomFieldModel.bulkCreate(customFields, { transaction });
         }
 
         await transaction.commit();
@@ -503,130 +516,110 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
     }
 }
 
-export async function getAllFoundationalDataTypesAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllFoundationalDataTypesAdvancedFilter(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
     const traceId = generateCustomUUID();
-    const responseFields = [
-        'id', 'program_id', 'name', 'is_enabled',
-        'updated_on', 'description', 'configuration',
-    ];
-    const { program_id } = request.params as { program_id: string };
-    const {
-        name, is_enabled, updated_on, timesheet_master_data,
-        user_association_exclude, page = '1', limit = '10',
-        track_owner, hierarchie_ids,
-    } = request.body as {
-        name?: string;
-        is_enabled?: boolean;
-        updated_on?: string[];
-        timesheet_master_data?: boolean;
-        user_association_exclude?: boolean;
-        page?: string;
-        limit?: string;
-        track_owner?: boolean;
-        hierarchie_ids?: string[];
-    };
-
     try {
-        const filters: any = { program_id, is_deleted: false };
+        const { program_id } = request.params as { program_id: string };
 
-        if (name) filters.name = { [Op.like]: `%${name}%` };
-        if (is_enabled !== undefined) filters.is_enabled = is_enabled;
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-            filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+        const user = request.user;
+        if (!user) {
+            return reply.status(400).send({ status_code: 400, message: 'user is requried.' });
         }
+        const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
 
-        if (timesheet_master_data !== undefined) {
-            filters['configuration.timesheet_master_data'] = timesheet_master_data;
-        }
-        if (user_association_exclude !== undefined) {
-            filters['configuration.user_association_exclude'] = user_association_exclude;
-        }
-        if (track_owner !== undefined) {
-            filters['configuration.track_owner'] = track_owner;
-        }
+        const {
+            name,
+            is_enabled,
+            updated_on,
+            timesheet_master_data,
+            user_association_exclude,
+            page = 1,
+            limit = 10,
+            track_owner,
+            hierarchy_ids,
+        } = request.body as {
+            name?: string;
+            is_enabled?: boolean;
+            updated_on?: string;
+            timesheet_master_data?: boolean;
+            user_association_exclude?: boolean;
+            page?: number;
+            limit?: number;
+            track_owner?: boolean;
+            hierarchy_ids?: string[];
+        };
 
-        const offset = (Number(page) - 1) * Number(limit);
+        const offset = (page - 1) * limit;
 
-        if (hierarchie_ids?.length) {
-            const hierarchyMappings = await MasterDataTypeHierarchy.findAll({
-                where: { hierarchy_id: { [Op.in]: hierarchie_ids } },
-                attributes: ['master_data_type_id'],
-            });
+        let updated_on_start = null;
+        let updated_on_end = null;
 
-            const masterDataTypeIdsToFilter = hierarchyMappings.map(item => item.master_data_type_id);
-
-            const allHierarchyAssociatedItems = await foundationalDataTypes.findAll({
-                where: {
-                program_id,
-                is_deleted: false,
-                is_all_hierarchy_associated: true,
-            },
-              attributes: ['id'],
-            });
-
-            const allAssociatedIds = allHierarchyAssociatedItems.map(item => item.id);
-
-            const combinedIds = [...new Set([...masterDataTypeIdsToFilter, ...allAssociatedIds])];
-            if (!combinedIds.length) {
-                return reply.status(200).send({ status_code: 200, message: 'master data not found', foundationalData: [], trace_id: traceId });
+        if (updated_on) {
+            const modifiedOnRange = updated_on.split(',');
+            if (modifiedOnRange.length === 2) {
+                updated_on_start = modifiedOnRange[0];
+                updated_on_end = modifiedOnRange[1];
             }
-            filters.id = { [Op.in]: combinedIds };
         }
 
-        const { rows: foundationalDataItems, count: totalRecords } =
-            await foundationalDataTypes.findAndCountAll({
-                where: filters,
-                attributes: responseFields,
-                offset,
-                limit: Number(limit),
-                order: [['updated_on', 'DESC']],
-            });
+        const replacements: any = {
+            program_id,
+            name: name ? `%${name}%` : null,
+            is_enabled: is_enabled ?? null,
+            updated_on_start,
+            updated_on_end,
+            timesheet_master_data: timesheet_master_data ?? null,
+            user_association_exclude: user_association_exclude ?? null,
+            track_owner: track_owner ?? null,
+            limit,
+            offset,
+        };
 
-        if (!foundationalDataItems.length) {
-            return reply.status(200).send({
-                status_code: 200,
-                message: 'Master data not found',
-                foundationalData: [],
-                trace_id: traceId,
-            });
+        let hierarchyFilter = '';
+        if (hierarchy_ids && hierarchy_ids.length > 0) {
+            hierarchyFilter = `
+            AND (
+               mdt.is_all_hierarchy_associated = 1
+               OR mdt.id IN (
+                SELECT master_data_type_id
+                FROM master_data_type_hierarchy
+                WHERE hierarchy_id IN (:hierarchy_ids)
+               )
+            )
+            `;
+            replacements.hierarchy_ids = hierarchy_ids;
         }
 
-        const foundationalDataTypeIds = foundationalDataItems.map((item) => item.dataValues.id);
+        let mspHierarchyFilter = '';
+        if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+            mspHierarchyFilter = `
+            AND (
+               mdt.is_all_hierarchy_associated = 1
+               OR mdt.id IN (
+                SELECT master_data_type_id
+                FROM master_data_type_hierarchy
+                WHERE hierarchy_id IN (:mspHierarchyIds)
+               )
+            )
+            `;
+            replacements.mspHierarchyIds = mspHierarchyIds;
+        }
 
-        const foundationalDataCounts = await foundationalDataModel.findAll({
-            where: {
-                foundational_data_type_id: { [Op.in]: foundationalDataTypeIds },
-                is_deleted: false,
-            },
-            attributes: [
-                'foundational_data_type_id',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
-            ],
-            group: ['foundational_data_type_id'],
+        const foundationalDataItems: any[] = await sequelize.query(masterDataTypeAdvanceFilter(hierarchyFilter, mspHierarchyFilter), {
+            replacements,
+            type: QueryTypes.SELECT,
         });
-
-        const foundationalDataCountMap = foundationalDataCounts.reduce(
-            (map: Map<string, number>, item: any) => {
-                map.set(item.dataValues.foundational_data_type_id, item.dataValues.count);
-                return map;
-            },
-            new Map<string, number>()
-        );
-
-        const populatedFoundationalData = foundationalDataItems.map((item) => ({
-            ...item.dataValues,
-            updated_on: item.dataValues.updated_on
-                ? Number(item.dataValues.updated_on)
-                : null,
-            foundational_data_count: foundationalDataCountMap.get(item.dataValues.id) ?? 0,
-        }));
-
+        const totalRecords = foundationalDataItems.length > 0 ? foundationalDataItems[0].total_count : 0;
         reply.send({
             status_code: 200,
-            message: 'Foundational data retrieved successfully',
+            message: foundationalDataItems && foundationalDataItems.length > 0
+                ? 'Master data type retrieved successfully'
+                : 'No master data type found',
             total_records: totalRecords,
-            foundationalData: populatedFoundationalData,
+            foundationalData: foundationalDataItems,
             trace_id: traceId,
         });
     } catch (error: any) {
