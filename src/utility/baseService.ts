@@ -127,7 +127,11 @@ export class BaseService {
         return results;
     }
 
-    async advancedFilter(request: FastifyRequest, program_id: string, include?: any[]) {
+    async advancedFilter(
+        request: FastifyRequest,
+        program_id: string,
+        paginationOverride?: { page?: number; limit?: number }
+      ) {
         const { filters = {}, pagination } = request.body as {
             filters?: Record<string, any>;
             pagination?: { page?: number; limit?: number };
@@ -179,14 +183,16 @@ export class BaseService {
             }
         });
 
-        const offset = pagination?.page ? (pagination.page - 1) * (pagination.limit ?? 10) : undefined;
-        const limit = pagination?.limit ?? undefined;
+         const page = paginationOverride?.page ?? pagination?.page ?? 1;
+        const limit = paginationOverride?.limit ?? pagination?.limit ?? 10;
+        const offset = (page - 1) * limit;
 
         const options: any = {
             where: whereCondition,
             distinct: true,
             order: [["created_on", "DESC"]],
-            include: include
+            offset,
+            limit
         };
 
         if (offset !== undefined && limit !== undefined) {
