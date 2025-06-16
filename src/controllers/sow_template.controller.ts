@@ -71,10 +71,9 @@ export async function createSowTemplate(
         if (Array.isArray(sowTemplate.master_data) && sowTemplate.master_data.length > 0) {
             for (const master of sowTemplate.master_data) {
                 await SOWTemplateMasterDataModel.create({
-                    program_id,
                     sow_temp_id: item.id,
-                    sow_master_data_type_id: master.master_data_type,
-                    sow_master_data_id: master.master_data,
+                    master_data_type: master.master_data_type,
+                    master_data: master.master_data,
                     is_deleted: false,
                     is_enabled: true,
                     created_by: userId,
@@ -88,9 +87,8 @@ export async function createSowTemplate(
         if (Array.isArray(sowTemplate.custom_fields)) {
             for (const field of sowTemplate.custom_fields) {
                 await SowTemplateCustomField.create({
-                    sow_custom_field_id: field.id,
+                    custom_field_id: field.id,
                     value: field.value,
-                    program_id,
                     sow_temp_id: item.id,
                     is_deleted: false,
                     is_enabled: true,
