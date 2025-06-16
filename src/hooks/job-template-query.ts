@@ -509,13 +509,23 @@ END AS hierarchy,
              SELECT JSON_ARRAYAGG(
               JSON_OBJECT(
             'custom_field_id', jtc.custom_field_id,
-            'value', JSON_UNQUOTE(jtc.value),
-            'label', cf.label
+            'value', jtc.value,
+            'label', cf.label,
+            'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
+                      THEN CONCAT(user.first_name, ' ', user.last_name)
+                      ELSE NULL
+                      END,
+            'field_type', cf.field_type
             )
           )
     FROM job_template_custom_field jtc
     LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
+    LEFT JOIN user ON TRIM(BOTH '"' FROM jtc.value) = user.user_id AND jtc.program_id=user.program_id
     WHERE jtc.job_temp_id = job_templates.id
+    AND cf.is_enabled = true
+    AND cf.is_deleted = false
 ), JSON_ARRAY()) AS job_template_custom_fields,
 
             COALESCE((
