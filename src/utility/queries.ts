@@ -2984,7 +2984,7 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
     LEFT JOIN tenant ON programs.client_id = tenant.id
     ${!isSuperAdmin ? "LEFT JOIN user_mappings ON user_mappings.program_id = programs.id" : ""}
     WHERE
-      ${!isSuperAdmin ? "user_mappings.user_id = :user_id" : "1=1"}
+    ${!isSuperAdmin ? "(user_mappings.user_id = :user_id OR user_mappings.candidate_id = :user_id)" : "1=1"}
        ${replacements.search ? `AND (programs.display_name LIKE :search OR tenant.name LIKE :search)` : ""}
   `;
 
