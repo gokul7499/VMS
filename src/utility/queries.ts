@@ -1692,12 +1692,11 @@ export const timesheetConfigAdvancedFilter = (
   hasAllocationMethod: boolean,
   hasIsEnabled: boolean,
   hasMspHierarchyIds: boolean,
-  mspHierarchyIds: string[] |any
+  mspHierarchyIds: string[] | any
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch 
-       ON timesheet_type_config.id = ttch.timesheet_type_config_id
-       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
     : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
@@ -1706,16 +1705,16 @@ export const timesheetConfigAdvancedFilter = (
     : '';
 
   const mspHierarchyFilterClause = hasMspHierarchyIds
-     ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
+    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
        ON timesheet_type_config.id = ttch_msp.timesheet_type_config_id
        AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
     : '';
-  
-   const hierarchyFilterCondition = hierarchyIdsArray.length
-    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+
+  const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR hierarchyTable.hierarchy_id IS NOT NULL)`
     : '';
 
-    const mspHierarchyFilterCondition = hasMspHierarchyIds
+  const mspHierarchyFilterCondition = hasMspHierarchyIds
     ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
     : '';
 
@@ -2358,7 +2357,7 @@ export const userQuery = (
   status?: string,
   user_id?: string,
   hierarchy_id?: string[],
-   mspHierarchyIds?: string[]
+  mspHierarchyIds?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -3621,15 +3620,18 @@ export const timesheetConfigAdvancedGetAllFilter = (
   hasOffset: boolean
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+    ? `INNER JOIN JSON_TABLE(ttc.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
          ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
     : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
-    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+    ? `INNER JOIN JSON_TABLE(ttc.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
          ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
+  const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (ttc.is_all_hierarchy_associated = 1 OR hierarchyTable.hierarchy_id IS NOT NULL)`
+    : '';
   return `
         SELECT
           ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
@@ -3649,6 +3651,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
           ${hasTimesheetRuleGroup ? 'AND ttc.timesheet_rule_group = :timesheet_rule_group' : ''}
           ${hasTimesheetFormat ? 'AND ttc.timesheet_format = :timesheet_format' : ''}
           ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(ttc.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+          ${hierarchyFilterCondition}
         GROUP BY
           ttc.id
          ORDER BY ttc.updated_on DESC
@@ -3657,7 +3660,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     `;
 };
 
-export const masterDataTypeAdvanceFilter = (hierarchyFilter: string,mspHierarchyFilter:string) => `
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string) => `
 SELECT
   mdt.id,
   mdt.program_id,
