@@ -59,7 +59,7 @@ SowTemplateModel.init(
               allowNull: false
         },
         description: {
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT ,
             allowNull: false,
         },
         is_sow_assignment: {
