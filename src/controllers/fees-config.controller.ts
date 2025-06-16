@@ -240,9 +240,10 @@ export async function advancedSearchFeesConfiguration(
 ) {
   try {
     const { program_id } = request.params as { program_id: string };
-    const result = await baseService.advancedFilter(request, program_id, []);
+    const { page = 1, limit = 10 } = request.body as { page: number; limit: number };
+    const result = await baseService.advancedFilter(request, program_id, { page, limit });
 
-    if (result.count > 0) {
+    if (result?.count > 0) {
       return reply.status(200).send({
         status_code: 200,
         message: "Data search successfully",
