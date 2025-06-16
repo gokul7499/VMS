@@ -565,7 +565,8 @@ export const getAllHierarchies = (
   hasIsEnabled: boolean,
   startDate?: number,
   endDate?: number,
-  hasMsp?: boolean
+  hasMsp?: boolean,
+  hasMspHierarchyFilter?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -604,6 +605,8 @@ WITH hierarchy_cte AS (
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
     ${hasMsp ? 'AND h.managed_by = :msp' : ''}
+    ${hasMspHierarchyFilter ? 'AND h.id IN (:mspHierarchyIds)' : ''}
+
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -764,7 +767,7 @@ SELECT
     pv.is_job_auto_opt_in,
     pv.vendor_logo, -- Added vendor_logo here
     pv.updated_on,
-    pv.created_on
+    pv.created_on,
     (
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -1687,7 +1690,9 @@ export const timesheetConfigAdvancedFilter = (
   hasTimesheetRuleGroup: boolean,
   hasTimesheetFormat: boolean,
   hasAllocationMethod: boolean,
-  hasIsEnabled: boolean
+  hasIsEnabled: boolean,
+  hasMspHierarchyIds: boolean,
+  mspHierarchyIds: string[] |any
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch 
@@ -1699,9 +1704,19 @@ export const timesheetConfigAdvancedFilter = (
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
        ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
+
+  const mspHierarchyFilterClause = hasMspHierarchyIds
+     ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch_msp
+       ON timesheet_type_config.id = ttch_msp.timesheet_type_config_id
+       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
+    : '';
   
    const hierarchyFilterCondition = hierarchyIdsArray.length
     ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+    : '';
+
+    const mspHierarchyFilterCondition = hasMspHierarchyIds
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch_msp.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')}))`
     : '';
 
   return `
@@ -1728,6 +1743,7 @@ export const timesheetConfigAdvancedFilter = (
       LEFT JOIN timesheet_expense_rule_groups trg ON timesheet_type_config.timesheet_rule_group = trg.id
       ${hierarchyIdsClause}
       ${laborCategoryClause}
+      ${mspHierarchyFilterClause}
       WHERE
         timesheet_type_config.is_deleted = false
         AND timesheet_type_config.program_id = :program_id
@@ -1737,6 +1753,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        ${mspHierarchyFilterCondition}
         ${hierarchyFilterCondition}
       GROUP BY
         timesheet_type_config.id
@@ -2340,7 +2357,8 @@ export const userQuery = (
   user_type?: string,
   status?: string,
   user_id?: string,
-  hierarchy_id?: string[]
+  hierarchy_id?: string[],
+   mspHierarchyIds?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2448,6 +2466,17 @@ WITH user_data AS (
               u.is_all_hierarchy_associate = false
               AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})
+            )
+          )`
+    : ''}
+     ${mspHierarchyIds && mspHierarchyIds.length > 0
+    ? `AND (
+            u.is_all_hierarchy_associate = true
+            OR (
+              u.is_all_hierarchy_associate = false
+              AND (${mspHierarchyIds
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:msp_hierarchy_id_${index}))`)
       .join(' OR ')})
             )
           )`

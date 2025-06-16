@@ -11,6 +11,7 @@ import { timesheetConfigAdvancedFilter, timesheetConfigAdvancedGetAllFilter } fr
 import hierarchies from '../models/hierarchies.model';
 import { decodeToken } from '../middlewares/verifyToken';
 import generateSlug from '../plugins/slugGenerate';
+import GlobalRepository from '../repositories/global.repository';
 
 export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -379,6 +380,7 @@ export async function timesheetTypeConfigFilter(
     reply: FastifyReply
   ) {
     const traceId = generateCustomUUID();
+    const user=request?.user
     try {
       const { program_id } = request.params as { program_id: string };
       const {
@@ -393,7 +395,8 @@ export async function timesheetTypeConfigFilter(
         page,
         limit,
       } = request.body as { id: string; title: string; hierarchy_ids: string[]; labor_category: string; is_enabled: string; timesheet_rule_group: string; timesheet_format: string; allocation_method: string; page: string; limit: string };
-
+      
+      const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
       const isEnabledFilter =
         typeof is_enabled === 'string'
           ? is_enabled === 'true'
@@ -408,7 +411,7 @@ export async function timesheetTypeConfigFilter(
       const pageNumber = parseInt(page ?? '1');
       const limitNumber = parseInt(limit ?? '10');
       const offset = (pageNumber - 1) * limitNumber;
-
+      const hasMspHierarchyIds = Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0;
       const query = timesheetConfigAdvancedFilter(
         Boolean(id),
         Boolean(title),
@@ -417,7 +420,9 @@ export async function timesheetTypeConfigFilter(
         Boolean(timesheet_rule_group),
         Boolean(timesheet_format),
         Boolean(allocation_method),
-        isEnabledFilter !== undefined
+        isEnabledFilter !== undefined,
+       hasMspHierarchyIds,
+       mspHierarchyIds
       );
 
       const replacements: Record<string, any> = {
@@ -443,6 +448,12 @@ export async function timesheetTypeConfigFilter(
       hierarchy_ids?.forEach((hierarchyId, index) => {
         replacements[`hierarchy_id${index}`] = hierarchyId;
       });
+
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+        mspHierarchyIds.forEach((hierarchyId: any, index: any) => {
+          replacements[`msp_hierarchy_id${index}`] = hierarchyId;
+        });
+      }
 
       const data = await sequelize.query<{ total_count: any }>(query, {
         replacements,

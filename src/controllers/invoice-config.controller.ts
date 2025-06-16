@@ -8,6 +8,7 @@ import { decodeToken } from "../middlewares/verifyToken";
 import { getInvoiceConfigByHierarchyId } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import HierarchyModel from "../models/hierarchies.model";
+import GlobalRepository from "../repositories/global.repository";
 
 export async function createInvoiceConfig(
     request: FastifyRequest,
@@ -240,9 +241,34 @@ export async function getAllInvoiceConfig(request: FastifyRequest, reply: Fastif
     const { program_id } = request.params as { program_id: string };
     const { name, page = 1, limit = 10 } = request.query as { name: string, page: number, limit: number };
     const traceId = generateCustomUUID();
+    const user=request?.user
     const offset = (page - 1) * limit;
     let whereClause: any = { program_id };
+     let mspHierarchyIds ;
+        if (user) {
+            const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+            mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+        }
 
+        // Build MSP hierarchy filter - only apply if user exists and has MSP restrictions
+        if (user && Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0) {
+            const mspHierarchyChecks = mspHierarchyIds.map((hierarchyId: string) => 
+                sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '"${hierarchyId}"')`)
+            );
+            
+            whereClause[Op.and] = {
+                [Op.or]: [
+                    // Record applies to all hierarchies
+                    { is_all_hierarchy_associate: true },
+                    // OR match any of the MSP hierarchy IDs
+                    ...mspHierarchyChecks,
+                    // OR hierarchy_ids is null/empty
+                    { hierarchy_ids: null },
+                    sequelize.literal(`hierarchy_ids = '[]'`),
+                    { hierarchy_ids: '' }
+                ]
+            };
+        }
     if (name) {
         whereClause.name = { [Op.like]: `%${name}%` };
     }
