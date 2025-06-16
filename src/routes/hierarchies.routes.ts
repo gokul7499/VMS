@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as HierarchyController from '../controllers/hierarchies.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
+     fastify.addHook('preHandler', verifyToken);
     fastify.get('/program/:program_id/hierarchies/:id', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
     }, HierarchyController.getHierarchiesById);

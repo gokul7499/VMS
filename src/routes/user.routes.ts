@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as userController from '../controllers/user.controller';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function userRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.get('/user/', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUser);

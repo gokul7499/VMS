@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as HolidayCalendarController from "../controllers/holiday-calendar.controller";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function holidayCalendarRoutes(fastify: FastifyInstance) {
-
+   fastify.addHook('preHandler', verifyToken);
   fastify.get('/program/:program_id/holiday-calendar', {
     // preHandler: validatePermissions(Actions.READ, [Permissions.HOLIDAY_CALANDER])
   }, HolidayCalendarController.getHolidayCalendar);

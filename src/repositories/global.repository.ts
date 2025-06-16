@@ -61,6 +61,7 @@ class GlobalRepository {
 
     static async getUserHierarchyData(program_id: string, user: any) {
         const userId = user.sub;
+        console.log("userId",userId)
         let userType = user.userType;
         let userData: any;
         let mspHierarchyIds: string[] | undefined = undefined;
@@ -86,6 +87,7 @@ class GlobalRepository {
                 }
             }
         }
+        console.log("mspHierarchyIds", mspHierarchyIds);
         return { mspHierarchyIds };
     }
 }

@@ -19,6 +19,7 @@ import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
 import { createCandidateHistory } from "../utility/candidate-history";
+import GlobalRepository from "../repositories/global.repository";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -622,7 +623,12 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
   };
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
-
+  const user=request?.user;
+  let mspHierarchyIds: string[] = [];
+    if (user) {
+      const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+      mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+    }
   const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
@@ -631,8 +637,14 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
       hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
     );
 
+    const mspHierarchyReplacements = mspHierarchyIds.length > 0 
+      ? Object.fromEntries(
+          mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
+        )
+      : {};
+
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray),
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray,mspHierarchyIds),
       {
         replacements: {
           program_id,
@@ -647,6 +659,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
           limit: parseInt(limit),
           offset,
           ...hierarchyReplacements,
+          ...mspHierarchyReplacements
         },
         type: QueryTypes.SELECT,
       }

@@ -12,6 +12,7 @@ import ExpenseTypeModel from "../models/expense-type.model";
 import { getAllExpenseConfigHierarchies, getExpenseByHierarchy, getExpenseConfigurationQuery } from "../repositories/expense-config.repository";
 import FoundationalDataTypes from "../models/master-datatypes.model";
 import CustomField from "../models/custom-fields.model";
+import GlobalRepository from "../repositories/global.repository";
 
 export async function getExpenseConfigurations(request: FastifyRequest<{}>, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -523,7 +524,9 @@ export async function expenseConfigurationAdvancedFilter(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
+    
     try {
+        const user=request?.user;
         const { program_id } = request.params as { program_id: string };
         const { page = 1, limit = 10, name, is_enabled, updated_on, hierarchy_ids } = request.body as { page: number; limit: number; name?: string; is_enabled?: string | boolean; updated_on?: string; hierarchy_ids?: string[] };
         const offset = (page - 1) * limit;
@@ -546,12 +549,30 @@ export async function expenseConfigurationAdvancedFilter(
                 [Op.between]: [startTimestamp, endTimestamp]
             };
         }
-
+        const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
+        const allConditions = [];
         if (hierarchy_ids && hierarchy_ids.length > 0) {
             const hierarchyJsonArray = JSON.stringify(hierarchy_ids);
             whereCondition[Op.and] = sequelize.literal(
                 `JSON_CONTAINS(hierarchy_ids, '${hierarchyJsonArray}')`
             );
+        }
+        if (Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0) {
+            const mspHierarchyChecks = mspHierarchyIds.map((hierarchyId: string) => 
+                sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '"${hierarchyId}"')`)
+            );
+            allConditions.push({
+                [Op.or]: [
+                    ...mspHierarchyChecks,
+                    { hierarchy_ids: null },
+                    sequelize.literal(`hierarchy_ids = '[]'`),
+                    { hierarchy_ids: '' }
+                ]
+            });
+        }
+         
+         if (allConditions.length > 0) {
+            whereCondition[Op.and] = allConditions.length === 1 ? allConditions[0] : { [Op.and]: allConditions };
         }
         whereCondition.latest = true;
         const { count, rows: expenseConfigList } = await ExpenseConfigurationModel.findAndCountAll({
