@@ -231,24 +231,24 @@ export async function updateVendorComplianceDocumentById(
         trace_id: traceId,
       });
     }
- if (payload.name) {
-    const duplicate = await VendorComplianceDocumentModel.findOne({
-      where: {
-        program_id,
-        name: payload.name,
-        id: { [Op.ne]: id },
-        is_deleted: false,
-      },
-    });
-
-    if (duplicate) {
-      return reply.status(409).send({
-        status_code: 409,
-        message: 'A document with the same name already exists for this program.',
-        trace_id: traceId,
+    if (payload.name) {
+      const duplicate = await VendorComplianceDocumentModel.findOne({
+        where: {
+          program_id,
+          name: payload.name,
+          id: { [Op.ne]: id },
+          is_deleted: false,
+        },
       });
+
+      if (duplicate) {
+        return reply.status(409).send({
+          status_code: 409,
+          message: 'A document with the same name already exists for this program.',
+          trace_id: traceId,
+        });
+      }
     }
-  }
     await VendorComplianceDocumentModel.update(
       { ...payload, updated_by: userId },
       { where: { id, is_deleted: false, } }
@@ -259,7 +259,7 @@ export async function updateVendorComplianceDocumentById(
       message: 'Vendor compliance document updated successfully.',
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
@@ -381,15 +381,18 @@ export async function vendorComplianceDocumentFilter(
     const offset = (pageNumber - 1) * limitNumber;
 
     const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
-    let updatedOnStart: any = undefined;
-    let updatedOnEnd: any = undefined;
+    let updatedOnStart: number | undefined = undefined;
+    let updatedOnEnd: number | undefined = undefined;
 
     if (hasUpdatedOnFilter) {
       const startDate = new Date(updated_on[0]);
       updatedOnStart = startDate.setHours(0, 0, 0, 0);
-      updatedOnEnd = (updated_on.length === 1 || updated_on[1] === 0)
-        ? startDate.setHours(23, 59, 59, 999)
-        : updated_on[1];
+
+      if (updated_on.length === 1 || updated_on[1] === 0) {
+        updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+      } else {
+        updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+      }
     }
 
     const query = vendorComplianceDocumentFilterQuery(

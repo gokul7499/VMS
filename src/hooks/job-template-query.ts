@@ -18,9 +18,12 @@ class JobTempletRepository {
         ji.job_id,
         ji.program_id,
         ji.created_on,
-        GROUP_CONCAT(jc.hierarchy SEPARATOR ',') AS hierarchy
+        CASE 
+        WHEN ji.is_all_hierarchy_associated = 1 THEN 'All Hierarchies'
+        ELSE GROUP_CONCAT(jc.hierarchy SEPARATOR ',')
+      END AS hierarchy
       FROM job_templates AS ji
-             INNER JOIN job_template_hierarchies AS jc ON jc.job_temp_id = ji.id
+             LEFT JOIN job_template_hierarchies AS jc ON jc.job_temp_id = ji.id
       WHERE ji.is_deleted = false
         AND ji.program_id = :program_id
     `;
@@ -28,13 +31,13 @@ class JobTempletRepository {
     const replacements: Record<string, any> = {
       program_id,
     };
-    if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
-      query += ` AND jc.hierarchy IN (:hierarchy_ids)`;
-      replacements.hierarchy_ids = hierarchy_ids;
-    }
+     if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
+    query += ` AND (ji.is_all_hierarchy_associated = 1 OR jc.hierarchy IN (:hierarchy_ids))`;
+    replacements.hierarchy_ids = hierarchy_ids;
+  }
 
     query += `
-    GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on
+    GROUP BY ji.id, ji.template_name, ji.job_id, ji.program_id, ji.created_on,ji.is_all_hierarchy_associated
     ORDER BY ji.created_on DESC
   `;
 
@@ -66,15 +69,15 @@ class JobTempletRepository {
     is_enabled?: boolean,
     is_shift_rate?: boolean
   ) {
-    const hierarchyCondition = hierarchyIdsArray.length > 0
-      ? `job_templates.id IN (
-          SELECT job_temp_id
-          FROM job_template_hierarchies
-          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
-          GROUP BY job_temp_id
-          HAVING COUNT(DISTINCT hierarchy) = ?
-        )`
-      : '';
+   const hierarchyCondition = hierarchyIdsArray.length > 0
+  ? `AND (job_templates.is_all_hierarchy_associated= 1 OR job_templates.id IN (
+      SELECT job_temp_id
+      FROM job_template_hierarchies
+      WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+      GROUP BY job_temp_id
+      HAVING COUNT(DISTINCT hierarchy) = ?
+    ))`
+  : "";
 
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
@@ -90,17 +93,20 @@ class JobTempletRepository {
         MIN(job_templates.template_code) AS template_code,
         MIN(job_category.title) AS job_category,
         MIN(labour_category.name) AS labour_category_name,
-        MIN(hierarchies.name) AS hierarchy,
+        CASE 
+        WHEN MIN(job_templates.is_all_hierarchy_associated) = 1 THEN 'All Hierarchies'
+        ELSE GROUP_CONCAT(DISTINCT hierarchies.name SEPARATOR ', ')
+        END AS hierarchy,
         MAX(job_templates.job_submitted_count) AS job_submitted_count
       FROM job_templates
-      INNER JOIN job_template_hierarchies
+      LEFT JOIN job_template_hierarchies
         ON job_templates.id = job_template_hierarchies.job_temp_id
-      INNER JOIN hierarchies
+      LEFT JOIN hierarchies
         ON job_template_hierarchies.hierarchy = hierarchies.id
       LEFT JOIN job_category ON job_templates.category = job_category.id
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
       WHERE job_templates.program_id = ?
-      ${hierarchyCondition ? `AND ${hierarchyCondition}` : ''}
+      ${hierarchyCondition}
       ${jobTypeCondition}
       ${isEnabledCondition}
       ${isShiftRateCondition}
@@ -112,9 +118,9 @@ class JobTempletRepository {
 
     const replacements: (string | number)[] = [program_id];
 
-    if (hierarchyIdsArray.length > 0) {
-      replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
-    }
+if (hierarchyIdsArray.length > 0) {
+  replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+}
 
     if (job_type) {
       replacements.push(`"${job_type}"`);
@@ -148,15 +154,15 @@ class JobTempletRepository {
     is_enabled?: boolean,
     is_shift_rate?: boolean
   ) {
-    const hierarchyCondition = hierarchyIdsArray.length > 0
-      ? `AND job_templates.id IN (
-          SELECT job_temp_id
-          FROM job_template_hierarchies
-          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
-          GROUP BY job_temp_id
-          HAVING COUNT(DISTINCT hierarchy) = ?
-        )`
-      : "";
+   const hierarchyCondition = hierarchyIdsArray.length > 0
+  ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+      SELECT job_temp_id
+      FROM job_template_hierarchies
+      WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+      GROUP BY job_temp_id
+      HAVING COUNT(DISTINCT hierarchy) = ?
+    ))`
+  : "";
 
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
@@ -172,12 +178,15 @@ class JobTempletRepository {
         MIN(job_templates.template_code) AS template_code,
         MIN(job_category.title) AS job_category,
         MIN(labour_category.name) AS labour_category_name,
-        MIN(hierarchies.name) AS hierarchy,
+        CASE 
+        WHEN MIN(job_templates.is_all_hierarchy_associated) = 1 THEN 'All Hierarchies'
+        ELSE GROUP_CONCAT(DISTINCT hierarchies.name SEPARATOR ', ')
+        END AS hierarchy,
         MIN(job_templates.created_on) AS created_on
       FROM job_templates
-      INNER JOIN job_template_hierarchies
+      LEFT JOIN job_template_hierarchies
         ON job_templates.id = job_template_hierarchies.job_temp_id
-      INNER JOIN hierarchies
+      LEFT JOIN hierarchies
         ON job_template_hierarchies.hierarchy = hierarchies.id
       LEFT JOIN job_category ON job_templates.category = job_category.id
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
@@ -231,30 +240,30 @@ class JobTempletRepository {
     is_shift_rate?: boolean,
     isHierarchyIdsArray?: string[]
   ) {
-    const hierarchyCondition = hierarchyIdsArray.length > 0
-      ? `job_templates.id IN (
-          SELECT job_temp_id
-          FROM job_template_hierarchies
-          WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
-          GROUP BY job_temp_id
-          HAVING COUNT(DISTINCT hierarchy) = ?
-        )`
-      : "";
+  const hierarchyCondition = hierarchyIdsArray.length > 0
+? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+    SELECT job_temp_id
+    FROM job_template_hierarchies
+    WHERE hierarchy IN (${hierarchyIdsArray.map(() => '?').join(',')})
+    GROUP BY job_temp_id
+    HAVING COUNT(DISTINCT hierarchy) = ?
+  ))`
+: "";
 
     const isHierarchyCondition = isHierarchyIdsArray && isHierarchyIdsArray.length > 0
-      ? `job_templates.id IN (
-          SELECT job_temp_id
-          FROM job_template_hierarchies
-          WHERE hierarchy IN (${isHierarchyIdsArray.map(() => '?').join(',')})
-          GROUP BY job_temp_id
-          HAVING COUNT(DISTINCT hierarchy) = ?
-          AND COUNT(DISTINCT hierarchy) = (
-            SELECT COUNT(*)
-            FROM job_template_hierarchies AS jth_sub
-            WHERE jth_sub.job_temp_id = job_template_hierarchies.job_temp_id
-          )
-        )`
-      : "";
+  ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+      SELECT job_temp_id
+      FROM job_template_hierarchies
+      WHERE hierarchy IN (${isHierarchyIdsArray.map(() => '?').join(',')})
+      GROUP BY job_temp_id
+      HAVING COUNT(DISTINCT hierarchy) = ?
+      AND COUNT(DISTINCT hierarchy) = (
+        SELECT COUNT(*)
+        FROM job_template_hierarchies AS jth_sub
+        WHERE jth_sub.job_temp_id = job_template_hierarchies.job_temp_id
+      )
+    ))`
+  : "";
 
     const conditions = [
       hierarchyCondition,
@@ -269,6 +278,7 @@ class JobTempletRepository {
     ].filter(Boolean).join(' AND ');
 
     const pagination = (limit && offset) ? 'LIMIT ? OFFSET ?' : '';
+    
 
     const query = `
       SELECT
@@ -289,18 +299,34 @@ class JobTempletRepository {
           'id', ph.id,
           'name', ph.name
         ) AS primary_hierarchy,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', unique_hierarchies.id,
-            'name', unique_hierarchies.name
-          )
-        ) AS hierarchy,
+        CASE 
+  WHEN MIN(job_templates.is_all_hierarchy_associated) = 1 THEN (
+    SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'id', h.id,
+        'name', h.name
+      )
+    )
+    FROM hierarchies h
+    WHERE h.program_id = job_templates.program_id
+    AND h.is_enabled = 1
+  )
+  ELSE JSON_ARRAYAGG(
+    CASE 
+      WHEN unique_hierarchies.id IS NOT NULL THEN
+        JSON_OBJECT(
+          'id', unique_hierarchies.id,
+          'name', unique_hierarchies.name
+        )
+    END
+  )
+END AS hierarchy,
         MIN(qualifications.name) AS qualification_name,
         MIN(qualifications.id) AS qualification_id
       FROM job_templates
-      INNER JOIN job_template_hierarchies
+      LEFT JOIN job_template_hierarchies
         ON job_templates.id = job_template_hierarchies.job_temp_id
-      INNER JOIN (
+      LEFT JOIN (
         SELECT DISTINCT id, name
         FROM hierarchies
       ) unique_hierarchies
@@ -483,13 +509,23 @@ class JobTempletRepository {
              SELECT JSON_ARRAYAGG(
               JSON_OBJECT(
             'custom_field_id', jtc.custom_field_id,
-            'value', JSON_UNQUOTE(jtc.value),
-            'label', cf.label
+            'value', jtc.value,
+            'label', cf.label,
+            'manager_name',
+                      CASE
+                        WHEN user.user_id IS NOT NULL
+                      THEN CONCAT(user.first_name, ' ', user.last_name)
+                      ELSE NULL
+                      END,
+            'field_type', cf.field_type
             )
           )
     FROM job_template_custom_field jtc
     LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
+    LEFT JOIN user ON TRIM(BOTH '"' FROM jtc.value) = user.user_id AND jtc.program_id=user.program_id
     WHERE jtc.job_temp_id = job_templates.id
+    AND cf.is_enabled = true
+    AND cf.is_deleted = false
 ), JSON_ARRAY()) AS job_template_custom_fields,
 
             COALESCE((

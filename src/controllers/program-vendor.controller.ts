@@ -34,7 +34,6 @@ interface VendorDetails {
     attached_doc_url: null;
     created_on: any;
     updated_on: any;
-    is_enabled: any;
     is_deleted: any;
     no_of_days: any;
     uploaded_document_status: string;
@@ -61,6 +60,7 @@ interface VendorDetails {
     status: any;
     tenant_id: any;
     compliance_documents: any;
+    is_enabled:any
 }
 
 
@@ -74,7 +74,6 @@ export async function getProgramVendors(
         const {
             vendor_name,
             user_id,
-            is_enabled,
             status,
             updated_on,
             hierarchy_ids,
@@ -88,9 +87,6 @@ export async function getProgramVendors(
             filters.vendor_name = { [Op.like]: `%${vendor_name}%` };
         }
 
-        if (is_enabled !== undefined) {
-            filters.is_enabled = is_enabled;
-        }
 
         if (hierarchy_ids && typeof hierarchy_ids === 'string') {
             const hierarchyArray = hierarchy_ids.split(',').map(id => id.trim());
@@ -139,7 +135,7 @@ export async function getProgramVendors(
 
         if (!user_id) {
             queryOptions.attributes = [
-                'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name', 'is_enabled',
+                'id', 'program_id', 'tenant_id', 'com_doc_group', 'display_name', 'vendor_name',
                 'updated_on', 'status', 'job', 'created_on', 'candidate', 'compliance_status', 'contact', 'diversity_details'
             ];
         }
@@ -262,7 +258,8 @@ export async function getProgramVendors(
                     ...vendor.toJSON(),
                     hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
                     work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
-                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : []
+                    associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : [],
+                    custom_fields:vendorDetails.length > 0 ? vendorDetails[0].custom_fields : []                
                 };
 
                 return transformedVendor;
@@ -543,7 +540,7 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
               ) AS docs ON true
             JOIN vendor_compliance_documents vd ON vd.id = docs.doc_id
             WHERE vdg.id IN (:groupIds)
-            AND vd.is_enabled = true;`,
+            ;`,
                 { replacements: { groupIds: programVendorData.com_doc_group, }, type: QueryTypes.SELECT, transaction, }
             );
 
@@ -574,12 +571,12 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
-            await vendorMarkupConfig.destroy({
+         await vendorMarkupConfig.destroy({
                 where: { program_id, program_vendor_id: existingProgramVendor.id },
                 transaction
             });
 
+        if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             for (const markup of programVendorData.markup_config) {
                 const { id, ...markupData } = markup;
                 const fieldsToCheck = [
@@ -688,7 +685,7 @@ export async function deleteProgramVendor(
         const { program_id, id } = request.params as { program_id: string; id: string };
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
-            await ProgramVendor.update({ is_deleted: true, is_enabled: false }, {
+            await ProgramVendor.update({ is_deleted: true}, {
                 where: {
                     program_id, id, created_by: userId,
                     updated_by: userId,

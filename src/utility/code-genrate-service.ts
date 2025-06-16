@@ -2,6 +2,7 @@
 import Candidate from '../models/candidate.model';
 import { ProgramVendor } from '../models/program-vendor.model';
 import ProgramsConfig from '../models/programs-config.model';
+import Tenant from '../models/tenant.model';
 
 export const generateCandidateCode = async (): Promise<string> => {
     const count = await Candidate.count(); // Remove the where clause to count all records
@@ -11,12 +12,21 @@ export const generateCandidateCode = async (): Promise<string> => {
 
 export const CandidateCodeGenerate = async (vendor_id: string, program_id: string): Promise<string> => {
     const vendor = await ProgramVendor.findOne({
-        where: { id: vendor_id, program_id: program_id }
+        where: { id: vendor_id, program_id: program_id },
+        include: [
+            {
+                model: Tenant,
+                as: 'tenant',
+                attributes: ['vendor_code', 'display_name']
+            }
+        ],
+        logging: true
     });
 
-    const vendor_code = vendor?.vendor_code ? vendor.vendor_code.toUpperCase() : 'VENDOR';
+    const vendor_code = vendor?.vendor_code?.toUpperCase() ?? vendor?.display_name.substring(0, 3).toUpperCase();
 
-    const count = await Candidate.count({ where: { vendor_id: vendor?.id } }); const nextNumber = (count + 1).toString().padStart(5, '0');
+    const count = await Candidate.count({ where: { vendor_id: vendor?.id } });
+    const nextNumber = (count + 1).toString().padStart(5, '0');
 
     return `${vendor_code}-CAN-${nextNumber}`;
 };
