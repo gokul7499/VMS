@@ -19,7 +19,7 @@ SowTemplateCustomField.init(
                 model: "sow_custom_fields",
                 key: "id",
             },
-               allowNull: false,
+               allowNull: true,
 
         },
         value: {
@@ -27,7 +27,7 @@ SowTemplateCustomField.init(
         },
         sow_temp_id: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: "sow_templates",
                 key: "id",
