@@ -1250,6 +1250,7 @@ export const getChildWorkflowsQuery = (hierarchyIdCount: number) => {
            wf.flow_type,
            wf.is_enabled,
            wf.placement_order,
+           wf.is_associated_to_all_hierarchy,
            e.id AS event_id,
            e.name AS event_name,
            e.module_id,
@@ -1285,6 +1286,7 @@ export const getparentWorkflowsQuery = (hierarchyIdCount: number) => {
            wf.flow_type,
            wf.is_enabled,
            wf.placement_order,
+           wf.is_associated_to_all_hierarchy,
            e.id AS event_id,
            e.name AS event_name,
            e.module_id,
@@ -1440,17 +1442,20 @@ export const vendorFilterQueryBuilder = (
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `AND (${hierarchyIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const laborCategoryIdsClause = laborCategoryIdsArray.length
     ? `AND (${laborCategoryIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const workLocationIdsClause = workLocationIdsArray.length
     ? `AND (${workLocationIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   return `
@@ -1701,7 +1706,7 @@ export const timesheetConfigAdvancedFilter = (
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
-       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+      ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
   const mspHierarchyFilterClause = hasMspHierarchyIds
@@ -3634,7 +3639,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     : '';
   return `
         SELECT
-          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on,
           COUNT(ttc.id) OVER () AS total_count,
           JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
         FROM
