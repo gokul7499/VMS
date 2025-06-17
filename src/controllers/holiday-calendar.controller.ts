@@ -150,20 +150,8 @@ export async function getHolidayCalendarById(request: FastifyRequest, reply: Fas
 export const createHolidayCalendar = async (request: FastifyRequest, reply: FastifyReply) => {
   const holiday_calendar = request.body as any;
   const { program_id } = request.params as { program_id: string };
-  const authHeader = request.headers.authorization;
   const transaction = await sequelize.transaction();
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-
+  const user = request?.user;
   const userId = user?.sub;
   const traceId = generateCustomUUID();
 
@@ -297,19 +285,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
   const { program_id, id } = request.params as { program_id: string, id: string };
   const traceId = generateCustomUUID();
   const updateData = request.body as Partial<HolidayCalendarData>;
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Token not found" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  const user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
-  }
-
+  const user = request?.user;
   const userId = user?.sub;
   const transaction = await sequelize.transaction();
 
@@ -427,15 +403,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
 
 export async function deleteHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID()
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { program_id, id } = request.params as { program_id: string, id: string };
