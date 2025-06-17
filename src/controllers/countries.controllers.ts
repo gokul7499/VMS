@@ -6,17 +6,7 @@ import { logger } from '../utility/loggerService';
 
 export const createCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user = request?.user;
     const userId = user?.sub;
 
     logger(
@@ -226,18 +216,7 @@ export const getCountriesById = async (request: FastifyRequest, reply: FastifyRe
 
 export const updateCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
+    const user = request?.user;
     const userId = user?.sub;
 
     const { id } = request.params as { id: string };
@@ -367,17 +346,9 @@ export const updateCountry = async (request: FastifyRequest, reply: FastifyReply
 
 export const deleteCountry = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params as { id: string };
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user = request?.user;
         const userId = user?.sub;
 
         const [updatedRows] = await CountryModel.update(
