@@ -18,21 +18,8 @@ export async function createSowTemplate(
     const program_id = request.params.program_id;
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
-<<<<<<< HEAD
     const entityId = generateCustomUUID();
     const user=request?.user;
-=======
-    const authHeader = request.headers.authorization;
-    const entityId = generateCustomUUID();
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
->>>>>>> 79025d3ea90284fa339d565559da8e2414eb5f80
     const userId = user?.sub;
     const sequelize = SowTemplateModel.sequelize!;
     const transaction = await sequelize.transaction();
