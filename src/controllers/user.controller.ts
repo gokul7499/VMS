@@ -338,8 +338,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         console.log("candidateData :  : : ",candidateData)
       candidateId = candidateData.id
       vendor_id = user.tenant_id
+      const candidate_uniqe_code=candidateData?.candidate1_id
       const candidate = candidateData.toJSON();
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidateData);
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidateData,candidate_uniqe_code);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
@@ -438,10 +439,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidateData:any) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidateData:any,candidate_uniqe_code:any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidateData);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidateData,candidate_uniqe_code);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -574,11 +575,12 @@ export async function updateProgramVendor(userBody:any):Promise<any> {
       const programVendor = await ProgramVendor.findOne({
         where: {
           user_id: userBody.id,
-          program_id:userBody.program_id, 
+          program_id:userBody.program_id,
+          tenant_id:userBody.tenant_id
         },
       });
       if (programVendor) {
-       const update= await programVendor.update({
+        await programVendor.update({
         contact: contactInfo,
         addresses: contactInfo?.[0]?.addresses || [],
         });

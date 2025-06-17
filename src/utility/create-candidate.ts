@@ -16,6 +16,7 @@ export async function searchSimilarProfiles(
   uniqueId:String,
   candidateData:any,
   payload:any,
+  candidate_uniqe_code:any,
   maxRetries = 3,
   delayMs = 1000
 ) {
@@ -36,7 +37,7 @@ export async function searchSimilarProfiles(
     ssn_id: candidateData.ssn_id,
     address: candidateData.addresses,
     vendor_search: true,
-    candidate_unique_id:candidateData.candidate_id
+    candidate_unique_id:candidate_uniqe_code
   };
   console.log("similar profile paylod",searchPayload)
   let attempt = 0;
