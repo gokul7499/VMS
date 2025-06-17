@@ -76,6 +76,7 @@ import sowTemplateRoutes from "./sow_template.route";
 import mtpRoutes from "./mtp.routes";
 import thresholdRoutes from "./notification-threshold-config.routes";
 import credentialingPacketRoutes from "./credentialing-packet.routes";
+import { rateGuidanceConfigRoutes } from "./rate-guidance-config.route";
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -155,5 +156,6 @@ export default async function (app: FastifyInstance) {
   app.register(mtpRoutes, { prefix: `${basePrefix}` });
   app.register(thresholdRoutes, { prefix: `${basePrefix}` })
   app.register(credentialingPacketRoutes, { prefix: `${basePrefix}` })
+  app.register(rateGuidanceConfigRoutes, { prefix: `${basePrefix}` });
 
 }
