@@ -4,8 +4,10 @@ import * as ExpenseTypeController from "../controllers/expense-type.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
 import { createExpenseTypeSchema, paramsSchema, querySchema } from "../interfaces/expense-type.interface";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function expenseTypeRoute(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
 
     fastify.get("/program/:program_id/expense-type/:id", {
         schema: {

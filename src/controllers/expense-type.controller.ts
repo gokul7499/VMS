@@ -11,18 +11,8 @@ export async function createExpenseType(request: FastifyRequest, reply: FastifyR
 
 
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith("Bearer ")) {
-        return reply.status(401).send({ message: "Unauthorized - Token not found" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const user = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
-
+    const user = request?.user;
+ 
     logger(
         {
 
@@ -163,17 +153,7 @@ export async function updateExpenseTypeById(
     const { id, program_id } = request.params as { id: string, program_id: string };
     const updates = request.body as ExpenseTypeInterface;
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-        return reply.status(401).send({ message: "Unauthorized - Token not found" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const user = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
+    const user = request?.user;
 
     try {
         logger(
@@ -250,18 +230,8 @@ export async function deleteExpenseTypeById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-        return reply.status(401).send({ message: "Unauthorized - Token not found" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const user = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
-
+    const user = request?.user;
+    
     try {
         const { id, program_id } = request.params;
 
