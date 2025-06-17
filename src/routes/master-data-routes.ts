@@ -3,9 +3,10 @@ import * as FoundationalDataController from "../controllers/master-data.controll
 import { createFoundationalDataSchema, paramsSchema, querySchema } from "../interfaces/master-data.interface";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function foundationalDataRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.get('/program/:program_id/foundational_data', {
         schema: {
             params: paramsSchema,
@@ -42,11 +43,9 @@ async function foundationalDataRoutes(fastify: FastifyInstance) {
             params: paramsSchema,
         }
     }, FoundationalDataController.deleteFoundationalData);
-    
+
     fastify.post('/program/:program_id/master-data', {
     }, FoundationalDataController.foundationalDataFilter);
-    
-
 }
 
 export default foundationalDataRoutes;

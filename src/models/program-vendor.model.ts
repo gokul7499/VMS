@@ -23,7 +23,6 @@ class ProgramVendor extends Model {
     vendor_group_id: any;
     com_doc_group: any;
     bussiness_structure: any;
-    is_enabled: any;
     is_deleted: any;
     job_type: any;
     created_by: any;
@@ -142,10 +141,6 @@ ProgramVendor.init(
         is_deleted: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
-        },
-        is_enabled: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
         },
         status: {
             type: DataTypes.ENUM("Active", "Inactive", "Pending Setup"),

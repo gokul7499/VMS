@@ -4,7 +4,7 @@ import MtpModel from '../models/mtp.model';
 import { PossibleDuplicateCandidate } from '../models/possible-duplicate-candidate.model';
 import { sequelize } from '../config/instance';
 import { first } from 'lodash';
-const AI_SERVICE_URL = databaseConfig.config.ai_url 
+const AI_SERVICE_URL = databaseConfig.config.ai_url
 
 export async function searchSimilarProfiles(
   candidateId: string,
@@ -13,33 +13,33 @@ export async function searchSimilarProfiles(
   authHeader: string,
   programId: string,
   userId: string,
-  uniqueId:String,
-  candidateData:any,
-  payload:any,
+  uniqueId: String,
+  candidateData: any,
+  payload: any,
   candidate_uniqe_code:any,
   maxRetries = 3,
   delayMs = 1000
 ) {
-   console.log("candidateId",candidateId)
+  console.log("candidateId", candidateId)
   const searchUrl = `${AI_SERVICE_URL}/upload-and-search`;
   const vendorSearch = !!vendorId;
- console.log("vendorSearch",vendorSearch)
+  console.log("vendorSearch", vendorSearch)
   const searchPayload = {
     candidate_id: candidateId,
     url: resumeText,
-    c_unique_id:uniqueId,
+    c_unique_id: uniqueId,
     vendor_id: vendorId,
     first_name: candidateData.first_name,
     last_name: candidateData.last_name,
     email_address: candidateData.email,
     phone_number: candidateData.contacts?.[0]?.number,
-    birth_date: candidateData.birth_date?new Date(payload.birth_date).toISOString().split("T")[0] : null,
+    birth_date: candidateData.birth_date,
     ssn_id: candidateData.ssn_id,
     address: candidateData.addresses,
     vendor_search: true,
-    candidate_unique_id:candidate_uniqe_code
+    candidate_unique_id: candidate_uniqe_code
   };
-  console.log("similar profile paylod",searchPayload)
+  console.log("similar profile paylod", searchPayload)
   let attempt = 0;
 
   while (attempt < maxRetries) {
@@ -51,16 +51,16 @@ export async function searchSimilarProfiles(
           'Authorization': `Bearer ${authHeader}`,
         },
         body: JSON.stringify(searchPayload),
-      }); 
-      console.log("similar profile response",response)
+      });
+      console.log("similar profile response", response)
 
       // if (!response.ok) {
       //   return(`Failed to fetch similar profiles: ${response.statusText}`);
       // }
 
       const result = await response.json();
-      console.log("similar profile Data",result)
-       return result; 
+      console.log("similar profile Data", result)
+      return result;
 
     } catch (searchError) {
       attempt++;
@@ -71,7 +71,7 @@ export async function searchSimilarProfiles(
         return searchError;
       }
 
-      await new Promise((res) => setTimeout(res, delayMs)); 
+      await new Promise((res) => setTimeout(res, delayMs));
     }
   }
 }
@@ -88,8 +88,8 @@ export async function findDuplicateCandidate(
   const searchUrl = `${AI_SERVICE_URL}/candidates/cross-match`;
   const SIMILARITY_SCORE = 0.80;
 
-  const searchPayload = { 
-    candidate_ids: candidateId 
+  const searchPayload = {
+    candidate_ids: candidateId
   };
 
   console.log(`[findDuplicateCandidate] - Search Payload:`, JSON.stringify(searchPayload));
@@ -247,7 +247,7 @@ async function updateMtpWithMatchingProfiles(
           ...directMatches
         ]));
 
-       const dataUpdate= await mtp.update(
+        const dataUpdate = await mtp.update(
           { linked_profiles: updatedLinkedProfiles },
           { transaction }
         );
@@ -263,4 +263,3 @@ async function updateMtpWithMatchingProfiles(
     throw error;
   }
 }
-

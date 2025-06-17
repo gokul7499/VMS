@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as HierarchyController from '../controllers/hierarchies.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function hierarchiesRoutes(fastify: FastifyInstance) {
+     fastify.addHook('preHandler', verifyToken);
     fastify.get('/program/:program_id/hierarchies/:id', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.HIERARCHY])
     }, HierarchyController.getHierarchiesById);
@@ -50,8 +52,8 @@ async function hierarchiesRoutes(fastify: FastifyInstance) {
 
     fastify.get('/program/:program_id/get-parent-hierarchy', HierarchyController.getParentHierarchies);
     fastify.get('/program/:program_id/fetch-msp', HierarchyController.getMspByClient);
+    fastify.post('/program/:program_id/hierarchy/bulk-upload', HierarchyController.bulkCreateHierarchies);
 
-     fastify.post('/program/:program_id/hierarchy-bulk-upload', HierarchyController.bulkCreateHierarchies);
 
 }
 

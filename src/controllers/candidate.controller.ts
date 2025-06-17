@@ -339,7 +339,7 @@ export async function getCandidateByIdAndProgramId(
                 {
                     model: JobCategoryModel,
                     as: 'job_category',
-                    attributes: ['id', 'title'],
+                    attributes: ['id', 'category'],
                 },
                 {
                     model: countriesModel,
@@ -364,7 +364,7 @@ export async function getCandidateByIdAndProgramId(
         if (candidateData.job_category) {
             candidateData.job_category_id = {
                 id: candidateData.job_category.id,
-                name: candidateData.job_category.title
+                name: candidateData?.job_category?.category?.category_name
             };
             delete candidateData.job_category;
         }

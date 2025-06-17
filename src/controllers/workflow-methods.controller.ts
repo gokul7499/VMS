@@ -508,9 +508,7 @@ async function handleSowModule(workflowTriggerId: string | undefined, reply: Fas
     console.log('Module id is nooww', moduleId)
     const eventId1 = await findEvent(moduleId, "create_sow");
     const eventId2 = await findEvent(moduleId, "update_sow");
-console.log('eventId1', eventId1)
     const items = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
-    console.log('items', items)
     const createApprovalMethod = findMethod(items, eventId1, "approval");
     const updateApprovalMethod = findMethod(items, eventId2, "approval");
 
@@ -658,6 +656,13 @@ async function handleAssignmentModule(workflowTriggerId: string | undefined, rep
     const updateApprovalMethod = findMethod(items, eventId2, "approval");
     const budgetAdjustmentApprovalMethod = findMethod(items, eventId3, "approval");
     const workflows = await getWorkflows(workflowTriggerId);
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID",
+            trace_id: traceId,
+        });
+    }
     if (createApprovalMethod && updateApprovalMethod && budgetAdjustmentApprovalMethod) {
         const response = [
             {
@@ -693,6 +698,13 @@ async function handleTimesheetModule(workflowTriggerId: string | undefined, repl
     const items = await findWorkflowMethods(moduleId, [eventId]);
     const submitApprovalMethod = findMethod(items, eventId, "approval");
     const workflows = await getWorkflows(workflowTriggerId);
+    if (!workflows.length) {
+        return reply.status(400).send({
+            status_code: 400,
+            message: "No workflows found for the given trigger ID",
+            trace_id: traceId,
+        });
+    }
 
     if (submitApprovalMethod) {
         const response = [

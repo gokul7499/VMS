@@ -19,6 +19,7 @@ import { ProgramVendor } from "../models/program-vendor.model";
 import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
 import { createCandidateHistory } from "../utility/candidate-history";
+import GlobalRepository from "../repositories/global.repository";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -254,6 +255,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       user: UserInterface;
       user_group_mapping: Omit<UserMappingAttributes, "id"> | Omit<UserMappingAttributes, "id">[];
     };
+
     if (!user?.program_id) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -264,7 +266,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     const user_id = user.id;
-        console.log("user_id:: : :",user_id)
+
     const existingUser = await User.findOne({
       where: {
         user_id: user_id,
@@ -273,6 +275,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       },
       transaction,
     });
+
     if (existingUser) {
       await transaction.rollback();
       return reply.status(400).send({
@@ -283,27 +286,29 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     let newUser;
-    console.log("-------------------->")
     const userType = Array.isArray(user_group_mapping) ? user_group_mapping[0].user_type.toLowerCase() : user_group_mapping.user_type.toLowerCase();
     const { id, ...userWithoutId } = user;
     let candidateId;
-    let candidateData:any;
+    let candidateData: any;
 
     if (userType === "client" || userType === "msp") {
       newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
     } else if (userType === "candidate") {
       const program_id = user.program_id;
+
       if (!program_id) {
         throw new Error("Program ID is required to generate candidate code");
       }
+
       const vendor = await ProgramVendor.findOne({
         where: {
           program_id: program_id,
           tenant_id: user.tenant_id
         },
       });
-      let vendor_id = vendor?.id || null;
-      console.log("vendor_id: : : ",vendor_id)
+
+      let vendor_id = vendor?.id ?? null;
+
       const existingCandidate = await candidateModel.findOne({
         where: {
           email: user.email,
@@ -324,7 +329,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       let candidateCode = await CandidateCodeGenerate(vendor_id, program_id);
       let uniqueId = await CandidateUniqueIdGenerate(program_id, user);
-       console.log("candidateCode: : : ----",candidateCode)
+
       candidateData = await candidateModel.create({
         ...userWithoutId,
         user_id: user.id,
@@ -335,18 +340,16 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
         updated_by: userId,
         unique_id: uniqueId
       }, { transaction });
-        console.log("candidateData :  : : ",candidateData)
+
       candidateId = candidateData.id
       vendor_id = user.tenant_id
-      const candidate_uniqe_code=candidateData?.candidate1_id
-      const candidate = candidateData.toJSON();
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId,candidateData,candidate_uniqe_code);
+      const candidate_uniqe_code=candidateData?.candidate_id
+
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData,candidate_uniqe_code);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
-        // const vendorName = `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
-        // await ProgramVendor.create({ ...user, user_id: user.id, vendor_name: vendorName, created_by: userId, updated_by: userId, }, { transaction });
       } else {
         newUser = await User.create({ ...userWithoutId, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
       }
@@ -439,10 +442,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string,candidateData:any,candidate_uniqe_code:any) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any,candidate_uniqe_code:any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId,user,candidateData,candidate_uniqe_code);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData,candidate_uniqe_code);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -483,6 +486,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     updates.updated_on = BigInt(Date.now());
     updates.updated_by = userId;
     updates.updated_by = userId;
+    updates.user_type = updates.user_type?.toLowerCase();
     await user.update(updates);
     if (Array.isArray(userBody.foundational_data) && userBody.foundational_data.length > 0) {
       await UserMasterDataModel.destroy({ where: { user_id: user.user_id } });
@@ -517,7 +521,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
         id: mapping.id,
         tenant_id: mapping.tenant_id,
         user_id: user.user_id,
-        user_type: mapping.user_type,
+        user_type: mapping.user_type?.toLowerCase(),
         role_id: mapping.role_id,
         program_id: mapping.program_id,
         is_active: mapping.is_active,
@@ -527,9 +531,11 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
 
       await UserMapping.bulkCreate(groupMappingData);
     }
-      if (userBody.user_type === 'vendor') {
+
+    if(userBody.user_type === "vendor"){
       await updateProgramVendor(userBody)
     }
+
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
@@ -660,7 +666,12 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
   };
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
-
+  const user=request?.user;
+  let mspHierarchyIds: string[] = [];
+    if (user) {
+      const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+      mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+    }
   const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
@@ -669,8 +680,14 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
       hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
     );
 
+    const mspHierarchyReplacements = mspHierarchyIds.length > 0 
+      ? Object.fromEntries(
+          mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
+        )
+      : {};
+
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray),
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray,mspHierarchyIds),
       {
         replacements: {
           program_id,
@@ -685,6 +702,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
           limit: parseInt(limit),
           offset,
           ...hierarchyReplacements,
+          ...mspHierarchyReplacements
         },
         type: QueryTypes.SELECT,
       }
@@ -692,7 +710,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
 
     for (const user of users) {
       const masterData = await sequelize.query(getMasterData, {
-        replacements: { user_id: user.user_id },
+        replacements: { user_id: user.user_id, program_id },
         type: QueryTypes.SELECT,
       }) as any[];
       user.foundational_data = masterData.map(item => item.foundational_data);
@@ -829,7 +847,7 @@ export async function getPendingUser(
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
-        users:[users[0]],
+        users: [users[0]],
         trace_id: traceId
       });
     } else {

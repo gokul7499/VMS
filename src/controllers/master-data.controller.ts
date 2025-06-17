@@ -10,6 +10,7 @@ import FoundationalDataTypes from "../models/master-datatypes.model";
 import User from "../models/user.model";
 import MasterDataHierarchy from "../models/master-data-hierarchy.model";
 import Hierarchies from "../models/hierarchies.model";
+import GlobalRepository from "../repositories/global.repository";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -204,13 +205,28 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id, code },
+            where: { name, program_id },
         });
 
         if (existingFoundationalDataWithSameName) {
             return reply.status(400).send({
                 status_code: 400,
                 message: "Master Data Already Exist.",
+                trace_id: traceId,
+            });
+        }
+
+        const existingFoundationalDataWithSameCode = await foundationalData.findOne({
+            where: {
+                code: sequelize.where(sequelize.fn('lower', sequelize.col('code')), sequelize.fn('lower', code)),
+                program_id,
+            },
+        });
+
+        if (existingFoundationalDataWithSameCode) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "Master Data with the same code already exists.",
                 trace_id: traceId,
             });
         }
@@ -392,9 +408,14 @@ export async function deleteFoundationalData(request: FastifyRequest, reply: Fas
 
 export async function foundationalDataFilter(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-
+    const { program_id } = request.params as { program_id: string };
     try {
-        const params = request.params as { program_id: string };
+        const user = request.user;
+        if (!user) {
+            return reply.status(400).send({ status_code: 400, message: 'user is requried.' });
+        }
+        const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
+
         const query = request.query as { master_data_type_id?: string };
         const body = request.body as {
             id?: string;
@@ -425,7 +446,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         }
 
         const replacements: any = {
-            program_id: params.program_id,
+            program_id: program_id,
             foundational_data_type_id: query.master_data_type_id ?? null,
             id: body.id ?? null,
             name: body.name ? `%${body.name}%` : null,
@@ -453,6 +474,21 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             replacements.hierarchie_ids = body.hierarchie_ids;
         }
 
+        let mspHierarchyFilter = '';
+        if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+            mspHierarchyFilter = `
+            AND (
+               md.is_all_hierarchy_associated = 1
+               OR md.id IN (
+                SELECT master_data_id
+                FROM master_data_hierarchy
+                WHERE hierarchy_id IN (:mspHierarchyIds)
+               )
+            )
+            `;
+            replacements.mspHierarchyIds = mspHierarchyIds;
+        }
+
         let masterDataType: string | null = null;
         if (query.master_data_type_id) {
             const foundationalDataTypeResult = await sequelize.query<any>(
@@ -468,7 +504,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         }
 
         const foundationalDataResult = await sequelize.query<{ total_count: any }>(
-            masterDataAdvanceFilterQuery(hierarchyFilter),
+            masterDataAdvanceFilterQuery(hierarchyFilter, mspHierarchyFilter),
             {
                 replacements,
                 type: QueryTypes.SELECT,

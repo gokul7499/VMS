@@ -317,76 +317,100 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       whereClause.updated_on = { [Op.like]: `${updated_on}` };
     }
 
-    if (module_name) {
-      if (userType === 'super_user') {
-        andConditions.push({
-          [Op.or]: [
-            { module_name: { [Op.like]: `%${module_name}%` } },
-            Sequelize.literal(`
-              JSON_CONTAINS(linked_modules, '{"linked": true, "module_name": "${module_name}"}', '$')
-            `)
-          ]
-        });
-      } else {
-        andConditions.push(
-          Sequelize.literal(`
-            (
-              CASE 
-                -- Check if the module exists in linked_modules with linked=true
-                WHEN EXISTS (
+   if (module_name) {
+  if (module_name === 'Assignment Revision') {
+    // Special case: include 'Assignment' module fields and linked modules
+    andConditions.push(
+      Sequelize.literal(`
+         (
+        module_name IN ('Assignment', 'Assignment Revision')
+        OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment'))
+        OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment Revision'))
+      )
+      `)  
+    );
+  } else if (userType === 'super_user') {
+    // Super user can access if module_name matches or linked_modules includes module_name
+    andConditions.push({
+      [Op.or]: [
+        { module_name: { [Op.like]: `%${module_name}%` } },
+        Sequelize.literal(`
+          JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', '${module_name}'))
+        `)
+      ]
+    });
+  } else {
+    // Regular user permission check (non super_user)
+    andConditions.push(
+      Sequelize.literal(`
+        (
+          (
+            -- Check if module is linked and user has permission in linked_modules
+            CASE 
+              WHEN EXISTS (
+                SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
+                  linked BOOLEAN PATH '$.linked',
+                  module_name VARCHAR(255) PATH '$.module_name'
+                )) AS jt_exists
+                WHERE jt_exists.linked = true
+                  AND jt_exists.module_name = '${module_name}'
+              )
+              THEN (
+                EXISTS (
                   SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
                     linked BOOLEAN PATH '$.linked',
-                    module_name VARCHAR(255) PATH '$.module_name'
-                  )) AS jt_exists
-                  WHERE jt_exists.linked = true 
-                    AND jt_exists.module_name = '${module_name}'
-                ) 
-                THEN (
-                  -- If exists in linked_modules, check permissions there
-                  EXISTS (
-                    SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
-                      linked BOOLEAN PATH '$.linked',
-                      module_name VARCHAR(255) PATH '$.module_name',
-                      can_edit JSON PATH '$.can_edit',
-                      can_view JSON PATH '$.can_view'
-                    )) AS jt_perm
-                    WHERE jt_perm.linked = true
-                      AND jt_perm.module_name = '${module_name}'
-                      AND (
-                        EXISTS (
-                          SELECT 1 FROM JSON_TABLE(jt_perm.can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
-                          WHERE LOWER(edit_roles.role) = '${userType}'
-                        )
-                        OR
-                        EXISTS (
-                          SELECT 1 FROM JSON_TABLE(jt_perm.can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
-                          WHERE LOWER(view_roles.role) = '${userType}'
-                        )
+                    module_name VARCHAR(255) PATH '$.module_name',
+                    can_edit JSON PATH '$.can_edit',
+                    can_view JSON PATH '$.can_view'
+                  )) AS jt_perm
+                  WHERE jt_perm.linked = true
+                    AND jt_perm.module_name = '${module_name}'
+                    AND (
+                      EXISTS (
+                        SELECT 1 FROM JSON_TABLE(jt_perm.can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                        WHERE LOWER(edit_roles.role) = LOWER('${userType}')
                       )
+                      OR
+                      EXISTS (
+                        SELECT 1 FROM JSON_TABLE(jt_perm.can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                        WHERE LOWER(view_roles.role) = LOWER('${userType}')
+                      )
+                    )
+                )
+              )
+              ELSE (
+                -- If module is not linked, check root level module and permissions
+                module_name LIKE '%${module_name}%'
+                AND (
+                  EXISTS (
+                    SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                    WHERE LOWER(edit_roles.role) = LOWER('${userType}')
+                  )
+                  OR
+                  EXISTS (
+                    SELECT 1 FROM JSON_TABLE(can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                    WHERE LOWER(view_roles.role) = LOWER('${userType}')
                   )
                 )
-                ELSE (
-                  -- If NOT in linked_modules, check root level
-                  module_name LIKE '%${module_name}%'
-                  AND (
-                    EXISTS (
-                      SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
-                      WHERE LOWER(edit_roles.role) = '${userType}'
-                    )
-                    OR
-                    EXISTS (
-                      SELECT 1 FROM JSON_TABLE(can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
-                      WHERE LOWER(view_roles.role) = '${userType}'
-                    )
-                  )
-                )
-              END = 1
-            )
-          `)
-        );
-      }
-    }
-    
+              )
+            END = 1
+          )
+        )
+      `)
+    );
+  }
+} else {
+  // If no module_name specified and user is not super_user, restrict to only those custom fields where userType in can_edit or can_view
+  if (userType !== 'super_user') {
+    andConditions.push(
+      Sequelize.literal(`(
+        JSON_CONTAINS(can_edit, JSON_QUOTE('${userType}')) OR 
+        JSON_CONTAINS(can_view, JSON_QUOTE('${userType}'))
+      )`)
+    );
+  }
+}
+
 
     if (hierarchy_ids) {
       const hierarchyArray = hierarchy_ids.split(',').map((id: string) => `'${id.trim()}'`);
@@ -424,7 +448,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       replacements: {
         userType: userType 
       },
-      order: [["updated_on", "DESC"]],
+      order: [["updated_on", "ASC"]],
       offset,
       limit: limitNumber,
     });

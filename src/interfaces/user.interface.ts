@@ -3,7 +3,7 @@ export interface UserInterface {
   id: unknown;
   vendor_id: any;
   program_id?: string;
-  user_type?: string;
+  user_type?: string| any;
   name_prefix?: string;
   first_name?: string;
   addresses?: any;

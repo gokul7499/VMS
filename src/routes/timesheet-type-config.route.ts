@@ -3,9 +3,10 @@ import * as TimesheetTypeConfigController from '../controllers/timesheet-type-co
 import { createTimesheetTypeConfigSchema, paramsSchema, querySchema, timesheetTypeConfigFilterSchema } from '../interfaces/timesheet-config.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/timesheet-type-config', {
         schema: {
             params: paramsSchema,
@@ -59,6 +60,12 @@ async function timesheetTypeConfigRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.READ, [Permissions.TIMESHEET_TYPE_CONFIGURATION])
     }, TimesheetTypeConfigController.timesheetTypeConfigFilter);
 
+    fastify.post('/timeshet-type', {
+        schema: {
+            params: paramsSchema,
+            body: timesheetTypeConfigFilterSchema
+        },
+    }, TimesheetTypeConfigController.timesheetTypeConfigGetAllFilter);
 }
 
 export default timesheetTypeConfigRoutes;

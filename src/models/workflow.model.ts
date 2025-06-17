@@ -66,6 +66,10 @@ Workflow.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        is_associated_to_all_hierarchy: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+        },
         placement_order: {
             type: DataTypes.INTEGER,
             allowNull: true,

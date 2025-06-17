@@ -40,6 +40,56 @@ class GlobalRepository {
 
         return markupData;
     }
+
+    static async findUser(program_id: string, userId: string): Promise<any> {
+        const userHierarchyData = await sequelize.query(
+            `SELECT 
+             u.user_type, 
+             u.tenant_id, 
+             u.is_all_hierarchy_associate, 
+             u.associate_hierarchy_ids
+           FROM user AS u
+           WHERE u.user_id = :userId AND u.program_id = :program_id`,
+            {
+                replacements: { program_id, userId },
+                type: QueryTypes.SELECT,
+            }
+        );
+
+        return userHierarchyData;
+    }
+
+    static async getUserHierarchyData(program_id: string, user: any) {
+        const userId = user.sub;
+        console.log("userId",userId)
+        let userType = user.userType;
+        let userData: any;
+        let mspHierarchyIds: string[] | undefined = undefined;
+
+        if (!userType) {
+            userData = await this.findUser(program_id, userId);
+            if (userData && userData[0].user_type.toUpperCase() === 'MSP') {
+                if (userData[0].is_all_hierarchy_associate) {
+                    const hierarchies: any[] = await sequelize.query(
+                        `
+                    SELECT id FROM hierarchies 
+                    WHERE program_id = :program_id 
+                      AND managed_by = :tenant_id
+                    `,
+                        {
+                            replacements: { program_id, tenant_id: userData[0].tenant_id },
+                            type: QueryTypes.SELECT,
+                        }
+                    );
+                    mspHierarchyIds = hierarchies.map(h => h.id);
+                } else {
+                    mspHierarchyIds = userData[0].associate_hierarchy_ids;
+                }
+            }
+        }
+        console.log("mspHierarchyIds", mspHierarchyIds);
+        return { mspHierarchyIds };
+    }
 }
 
 export default GlobalRepository;

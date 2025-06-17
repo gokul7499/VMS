@@ -326,7 +326,7 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', program_custom_field.custom_field_id,
-                'value', JSON_UNQUOTE(JSON_EXTRACT(program_custom_field.value, '$')),
+                 'value', program_custom_field.value,
                 'label', cf.label,
                 'field_type', cf.field_type,
                 'manager_name',
@@ -432,7 +432,7 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
       where: { id: id },
     });
 
-    if (updates.custom_fields && updates.custom_fields.length > 0) {
+    if (updates.custom_fields) {
       await ProgramCustomField.destroy({
         where: { program_id: id }
 
