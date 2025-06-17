@@ -8,10 +8,8 @@ import {
     getWorkflowMethods,
     getWorkflowMethod
 } from '../controllers/workflow-methods.controller';
-import { verifyToken } from '../middlewares/verifyToken';
 
 async function WorkflowMethodRoutes(fastify: FastifyInstance) {
-    fastify.addHook('preHandler', verifyToken);
     fastify.post('/workflow-method', async (request, reply) => {
         await createWorkflowMethod(request, reply);
     });
