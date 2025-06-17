@@ -32,7 +32,8 @@ class FeesConfigRepository {
   static async feesAdvancedFilter(
     request: FastifyRequest,
     program_id: string,
-    paginationOverride?: { page?: number; limit?: number }
+    paginationOverride?: { page?: number; limit?: number },
+    mspHierarchyIds?: string[]
   ) {
     const { filters = {}, pagination } = request.body as {
       filters?: Record<string, any>;
@@ -48,7 +49,17 @@ class FeesConfigRepository {
       "fees.program_id = :program_id",
     ];
     const replacements: Record<string, any> = { program_id };
-
+    
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+    whereClause.push(`(
+      fees.is_all_hierarchy_associated = 1
+      OR EXISTS (
+        SELECT 1 FROM JSON_TABLE(fees.hierarchy_levels, '$[*]' COLUMNS (hierarchy_id VARCHAR(255) PATH '$')) AS jt
+        WHERE jt.hierarchy_id IN (:mspHierarchyIds)
+      )
+    )`);
+    replacements.mspHierarchyIds = mspHierarchyIds;
+  }
     // JSON filters
     if (filters.hierarchy_levels) {
       whereClause.push("JSON_CONTAINS(fees.hierarchy_levels, :hierarchies)");

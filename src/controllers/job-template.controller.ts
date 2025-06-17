@@ -37,6 +37,7 @@ import JobCategoryModel from "../models/job-category.model";
 import vendorLabourCategoriesModel from "../models/vendor-labour-categories.model";
 import IndustriesModel from "../models/labour-category.model";
 import Checklist from "../models/checklist.model";
+import GlobalRepository from "../repositories/global.repository";
 
 interface Metadata {
   program_id: string;
@@ -74,10 +75,22 @@ export const getAllJobTemplates = async (
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
+    const user=request?.user
+     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
 
     const dynamicConditions: string[] = [];
     const replacements: any = { program_id, limit: limitNumber, offset };
-
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      dynamicConditions.push(`
+        (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (:mspHierarchyIds)
+          AND is_deleted = false
+        ))
+      `);
+      replacements.mspHierarchyIds = mspHierarchyIds;
+    }
     if (id) {
       dynamicConditions.push(`job_templates.id = :id`);
       replacements.id = id;
@@ -646,6 +659,7 @@ export async function deleteJobTemplate(
 
 export async function getJobTemplatesByHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  const user=request?.user;
 
   try {
     const { program_id } = request.params as { program_id: string };
@@ -653,7 +667,7 @@ export async function getJobTemplatesByHierarchies(request: FastifyRequest, repl
       hierarchy_ids?: string[];
       filter_by_hierarchy?: boolean;
     };
-
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     if (filter_by_hierarchy && (!hierarchy_ids || hierarchy_ids.length === 0)) {
       return reply.status(400).send({
         status_code: 400,
@@ -665,7 +679,8 @@ export async function getJobTemplatesByHierarchies(request: FastifyRequest, repl
     const data = await jobTempletRepositories.getJobTemplateByHierarchies(
       program_id,
       hierarchy_ids,
-      filter_by_hierarchy
+      filter_by_hierarchy,
+       mspHierarchyIds
     );
 
     return reply.status(200).send({
@@ -692,12 +707,16 @@ export async function getAllJobTemplateHierarchyById(request: FastifyRequest, re
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
+
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const data = await jobTempletRepositories.getJobTempletByHierarchies(
       program_id,
       hierarchyIdsArray,
       job_type,
       isEnabledBool,
-      isShiftRate
+      isShiftRate,
+       mspHierarchyIds
     );
     console.log("datat", data)
     reply.status(200).send({
@@ -719,6 +738,8 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
   try {
     const { program_id } = request.params as { program_id: string };
     const { hierarchy_ids, job_type, limit, offset, is_enabled, is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string, is_shift_rate?: string };
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
@@ -729,7 +750,8 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
       limit,
       offset,
       isEnabledBool,
-      isShiftRate
+      isShiftRate,
+       mspHierarchyIds
     );
 
     reply.status(200).send({
@@ -775,7 +797,9 @@ export async function getAllJobTempletsByHierarchies(request: FastifyRequest, re
       is_shift_rate?: string;
       hierarchy_ids?: string
     };
-
+    
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const hierarchyIdsArray = hierarchy?.split(",") || [];
     const JobType = job_type?.split(",") || [];
     const laborCategoryIdsArray = labour_category?.split(",") || [];
@@ -795,7 +819,8 @@ export async function getAllJobTempletsByHierarchies(request: FastifyRequest, re
       labour_category_id,
       isEnabledBool,
       isShiftRate,
-      isHierarchyIdsArray
+      isHierarchyIdsArray,
+      mspHierarchyIds
     );
     if (!data || data.length === 0) {
       return reply.status(200).send({
@@ -1232,13 +1257,26 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       job_template_id?: any;
       requested_from?: string;
     };
-
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
 
     const dynamicConditions: string[] = [];
     const replacements: any = { program_id, limit: limitNumber, offset };
+
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      dynamicConditions.push(`
+        (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (:mspHierarchyIds)
+          AND is_deleted = false
+        ))
+      `);
+      replacements.mspHierarchyIds = mspHierarchyIds;
+    }
 
     if (id) {
       dynamicConditions.push(`job_templates.id = :id`);

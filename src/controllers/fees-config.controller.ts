@@ -10,6 +10,7 @@ import { Op, Sequelize } from 'sequelize';
 import IndustriesModel from '../models/labour-category.model';
 import { ProgramVendor } from '../models/program-vendor.model';
 import FeesConfigRepository from '../repositories/fees-config.repository';
+import GlobalRepository from '../repositories/global.repository';
 
 
 const baseService = new BaseService(feesConfiguration);
@@ -241,7 +242,9 @@ export async function advancedSearchFeesConfiguration(
   try {
     const { program_id } = request.params as { program_id: string };
     const { page = 1, limit = 10 } = request.body as { page: number; limit: number };
-    const result = await FeesConfigRepository.feesAdvancedFilter(request, program_id, { page, limit });
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
+    const result = await FeesConfigRepository.feesAdvancedFilter(request, program_id, { page, limit },mspHierarchyIds);
 
     if (result?.count > 0) {
       return reply.status(200).send({
@@ -258,10 +261,11 @@ export async function advancedSearchFeesConfiguration(
         items: [],
       });
     }
-  } catch (error) {
+  } catch (error:any) {
     return reply.status(500).send({
       message: "Internal Server Error",
       status_code: 500,
+      error:error.message
     });
   }
 }
