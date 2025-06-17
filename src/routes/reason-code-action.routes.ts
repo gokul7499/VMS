@@ -3,9 +3,10 @@ import * as ResonCodeController from '../controllers/reason-code-action.controll
 import { createReasoncodeSchema, querySchema, paramsSchema } from '../interfaces/reason-code.interface';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function reasoncodeRoute(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/reason-code', {
         schema: {
             body: createReasoncodeSchema,

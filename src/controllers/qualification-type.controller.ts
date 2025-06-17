@@ -101,18 +101,7 @@ export async function getQualificationTypes(
 export async function createQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const { name } = request.body as qualificationType;
@@ -206,15 +195,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
     });
   }
   const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Token not found" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const existingQualificationTypeWithSameName = await qualificationTypeModel.findOne({
@@ -266,18 +247,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
 
 export async function deleteQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const { id } = request.params as { id: string };
@@ -368,18 +338,7 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
   const qualificationList = request.body as QualificationData[];
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-
+  const user=request?.user;
   const userId = user?.sub;
 
   try {
@@ -508,17 +467,8 @@ export const getQualificationById = async (request: FastifyRequest, reply: Fasti
 
 export const updateQualificationById = async (request: FastifyRequest, reply: FastifyReply) => {
 
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
-
   const traceId = generateCustomUUID();
   try {
     const { id } = request.params as { id: string };

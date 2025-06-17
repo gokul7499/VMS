@@ -14,15 +14,7 @@ export async function createReasoncode(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId = user?.sub
     try {
         const reasoncode = request.body as {
@@ -97,25 +89,7 @@ export async function createReasonCodes(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer')) {
-        return reply.status(401).send({
-            status_code: 401,
-            message: 'Unauthorized - Token not found',
-            trace_id: traceId,
-        });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const user = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({
-            status_code: 401,
-            message: 'Unauthorized - Invalid token',
-            trace_id: traceId,
-        });
-    }
+    const user=request?.user;
     const userId = user.sub;
 
     const transaction = await sequelize.transaction();
@@ -551,15 +525,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     const traceId = generateCustomUUID();
 
     const transaction = await ReasonCodeModel.sequelize?.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId = user?.sub
 
     try {
