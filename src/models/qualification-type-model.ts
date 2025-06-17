@@ -56,13 +56,13 @@ QualificationTypeModel.init({
     type: DataTypes.BIGINT.UNSIGNED,
     defaultValue: Date.now(),
     allowNull: true,
-},
+  },
   created_by: {
-    type: DataTypes.UUID,
+    type: DataTypes.STRING(36),
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.UUID,
+    type: DataTypes.STRING(36),
     allowNull: true,
   },
 }, {

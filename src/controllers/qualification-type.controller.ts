@@ -129,7 +129,12 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     }
 
     const qualification_types = request.body as qualificationType;
-    const qualificationType: any = await qualificationTypeModel.create({ ...qualification_types, program_id ,created_by: userId,updated_by: userId,});
+    const qualificationType: any = await qualificationTypeModel.create({
+      ...qualification_types,
+      program_id,
+      created_by:userId,
+      updated_by: userId,
+    });
     reply.status(201).send({
       status_code: 201,
       message: 'Qualification type created successfully',
@@ -247,7 +252,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
     await data.update({
       ...updates,
       updated_by: userId,
-      updated_on: new Date(),
+      updated_on: Date.now(),
     });
 
     return reply.status(200).send({
@@ -401,14 +406,14 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
       });
     }
 
-      const createdEntries = await Qualifications.bulkCreate(
-          qualificationList.map(qualification => ({
-              ...qualification,
-              created_by: userId,
-              updated_by: userId,
-              program_id
-          }))
-      );
+    const createdEntries = await Qualifications.bulkCreate(
+      qualificationList.map(qualification => ({
+        ...qualification,
+        created_by: userId,
+        updated_by: userId,
+        program_id
+      }))
+    );
 
     logger(
       {
@@ -633,10 +638,10 @@ export async function advancedSearchQualification(
       message: "Qualification type fetched successfully",
       items_per_page: limit,
       total_records: count,
-      qualification_type:qualificationTypeData,
+      qualification_type: qualificationTypeData,
       trace_id: traceId,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     reply.status(500).send({
       status_code: 500,
       message: "Internal Server Error",
