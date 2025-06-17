@@ -64,19 +64,7 @@ export const createConfiguration = async (request: FastifyRequest, reply: Fastif
   const configData = request.body as Partial<ConfigurationAttributes>;
   const { program_id } = request.body as { program_id: string };
   const traceId = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub;
 
 
@@ -185,19 +173,8 @@ export const updateConfiguration = async (
 ) => {
   const traceId = generateCustomUUID();
 
+  const user = request?.user;
 
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
   const userId = user?.sub;
   try {
     const { id } = request.params as { id: string };
@@ -236,18 +213,7 @@ export const deleteConfiguration = async (
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { id } = request.params as { id: string };
