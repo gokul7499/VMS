@@ -21,10 +21,6 @@ class FeesConfigRepository {
       vendors: JSON.stringify(vendors),
     };
 
-    // Log SQL query with replacement values
-    console.log("SQL Query:", sql);
-    console.log("Replacement Values:", JSON.stringify(replacements, null, 2));
-
     result = await sequelize.query(sql, {
       replacements,
       type: QueryTypes.SELECT,
@@ -33,7 +29,7 @@ class FeesConfigRepository {
     return result;
   }
 
-  static async advancedFilter(
+  static async feesAdvancedFilter(
     request: FastifyRequest,
     program_id: string,
     paginationOverride?: { page?: number; limit?: number }

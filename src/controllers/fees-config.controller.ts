@@ -241,7 +241,7 @@ export async function advancedSearchFeesConfiguration(
   try {
     const { program_id } = request.params as { program_id: string };
     const { page = 1, limit = 10 } = request.body as { page: number; limit: number };
-    const result = await FeesConfigRepository.advancedFilter(request, program_id, { page, limit });
+    const result = await FeesConfigRepository.feesAdvancedFilter(request, program_id, { page, limit });
 
     if (result?.count > 0) {
       return reply.status(200).send({
