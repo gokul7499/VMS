@@ -7,15 +7,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 
 export async function createGlobalConfig(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     const industries = request.body as GlobalConfigInterface;
@@ -111,15 +103,7 @@ export async function updateGlobalConfig(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     const { id } = request.params as { id: string };
@@ -152,15 +136,7 @@ export async function updateGlobalConfigFlags(
 ) {
   const traceId = generateCustomUUID();
   const { global_launches } = request.body;
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     await GlobalConfigModel.sequelize?.transaction(async (t) => {
@@ -190,15 +166,7 @@ export async function deleteGlobalConfig(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     const { id } = request.params;
