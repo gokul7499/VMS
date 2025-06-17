@@ -3636,7 +3636,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     : '';
   return `
         SELECT
-          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on,
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, ttc.slug,
           COUNT(ttc.id) OVER () AS total_count,
           JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
         FROM
