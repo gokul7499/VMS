@@ -343,9 +343,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       candidateId = candidateData.id
       vendor_id = user.tenant_id
-      const candidate_uniqe_code=candidateData?.candidate_id
+      const candidate_unique_code=candidateData?.candidate_id
 
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData,candidate_uniqe_code);
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData,candidate_unique_code);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
@@ -442,10 +442,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any,candidate_uniqe_code:any) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any,candidate_unique_code:any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData,candidate_uniqe_code);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData,candidate_unique_code);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
