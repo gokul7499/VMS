@@ -6,8 +6,10 @@ import {
     getAllFieldOperator,
     getFieldOperatorById,
 } from '../controllers/field-operator.controller';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function fieldOperatorRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/field-operator', async (request, reply) => {
         await createFieldOperator(request, reply);
     });
