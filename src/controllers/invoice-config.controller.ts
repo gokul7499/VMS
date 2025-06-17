@@ -15,17 +15,8 @@ export async function createInvoiceConfig(
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user
         const userId = user?.sub;
 
         const { program_id } = request.params as any;
@@ -132,17 +123,8 @@ export async function getInvoiceConfigById(request: FastifyRequest, reply: Fasti
 export async function updateInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user
         const userId = user?.sub;
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: { uuid: id, program_id },
@@ -190,18 +172,10 @@ export async function updateInvoiceConfigById(request: FastifyRequest, reply: Fa
 
 export async function deleteInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
-
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        
+        const user=request?.user
         const userId = user?.sub;
 
         const [invoiceConfig] = await InvoiceConfigModel.update(
