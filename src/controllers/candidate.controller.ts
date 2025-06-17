@@ -33,19 +33,9 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
     const vendor_id = vendor?.id || null;
 
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    const userId = user?.sub;
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-    console.log("userr-- - - - >", user)
+  
+     const user = request?.user;
+     const userId = user?.sub;
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -156,13 +146,7 @@ export async function getAllCandidate(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
+    const user = request?.user;
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -221,7 +205,7 @@ export async function getAllCandidate(
                 const unavailableCandidateIds = await fetchUnavailableCandidates(
                     program_id,
                     job_id,
-                    token,
+                    user,
                     traceId
                 );
                 whereClause.id = { [Op.notIn]: unavailableCandidateIds };
@@ -316,13 +300,6 @@ export async function getCandidateByIdAndProgramId(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
     const traceId = generateCustomUUID();
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
@@ -457,15 +434,7 @@ export async function updateCandidateByIdAndProgramId(
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
         const updates = request.body as candidateInterface;
-        const authHeader = request.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        const user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user = request?.user;
         const userId = user?.sub;
         let existingRecord: any;
         if (updates.email) {
@@ -531,8 +500,7 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
-
-        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
+        createCandidateHistory(program_id, user, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
             .catch(error => {
                 console.error("Failed to create candidate history:", error);
             });
@@ -560,19 +528,8 @@ export async function candidateSearch(request: FastifyRequest, reply: FastifyRep
 
 export async function getCandidates(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const user = await decodeToken(token);
+    const user = request?.user;
     const userId = user?.sub;
-    if (!user) {
-        return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
-    }
-
     const { program_id } = request.params as { program_id: string };
     const {
         page = "1",
@@ -726,7 +683,7 @@ export async function getCandidates(request: FastifyRequest, reply: FastifyReply
 
     if (is_talent_pool === "true" && job_id) {
         try {
-            const submitCandidateIds = await fetchSubmittedCandidate(job_id, token, vendor_id);
+            const submitCandidateIds = await fetchSubmittedCandidate(job_id, user, vendor_id);
             whereClause.id = { [Op.notIn]: submitCandidateIds };
         } catch (error: any) {
             return reply.status(500).send({

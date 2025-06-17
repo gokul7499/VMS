@@ -9,7 +9,9 @@ import {
     listChecklists,
     enableDisableChecklist
 } from "../controllers/checklist.controller";
+import { verifyToken } from "../middlewares/verifyToken";
 async function checklistRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post("/program/:program_id/checklists", createCheckList);
     fastify.get("/program/:program_id/checklists/entity/:entity_id", getChecklistById);
     fastify.put("/program/:program_id/checklists/entity/:entity_id", updateCheckList);

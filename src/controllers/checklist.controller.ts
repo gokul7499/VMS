@@ -18,15 +18,7 @@ export async function createCheckList(
     console.log("inside function")
     const traceId = generateCustomUUID();
     const program_id = request.params.program_id;
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user = request?.user;
     const userId=user?.sub
     try {
         const { task_category_configs, ...checkListData } = request.body as ChecklistInterface;
@@ -171,15 +163,7 @@ export async function updateCheckList(
         });
     }
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user = request?.user;
     const userId=user?.sub
     try {
         const existingChecklist = await Checklist.findOne({
@@ -294,15 +278,7 @@ export async function deleteCheckList(
 ) {
     const { entity_id } = request.params;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user = request?.user;
     const userId=user?.sub
 
     try {
