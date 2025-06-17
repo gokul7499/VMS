@@ -3,9 +3,10 @@ import * as SupportingTextController from '../controllers/supporting-text.contro
 import { createsupportingTextSchema, paramsSchema, querySchema } from '../interfaces/supporting-text.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function supportingTextRoutes(fastify: FastifyInstance) {
-
+  fastify.addHook('preHandler', verifyToken);
   fastify.post('/supporting-text', {
     schema: {
       body: createsupportingTextSchema,

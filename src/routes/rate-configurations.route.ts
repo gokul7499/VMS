@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as rateConfigurationsController from '../controllers/rate-configurations.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function rateConfigurationsRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/rate-configurations', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.RATE_CONFIGURATION])
     }, rateConfigurationsController.createRateConfigurations);

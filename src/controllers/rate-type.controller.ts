@@ -13,20 +13,7 @@ export const saveRateType = async (request: FastifyRequest, reply: FastifyReply)
   const { program_id } = request.params as { program_id: string };
   const { name, rate, rate_type_category } = data;
   const trace_id = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({ message: "Unauthorized - Token not found" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  const user = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
-
+  const user=request?.user;
   logger(
     {
       trace_id,
@@ -466,16 +453,7 @@ export const updateRateTypeById = async (request: FastifyRequest, reply: Fastify
   const updates = request.body as CreateRateTypeData;
   const traceId = generateCustomUUID();
   const { name } = request.body as { name: string };
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
 
   try {

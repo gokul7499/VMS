@@ -2,9 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as QualificationController from '../controllers/qualifications.controller';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function QualificationsRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/qualifications', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.QUALIFICATION])
     }, QualificationController.createQualification);

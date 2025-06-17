@@ -3,9 +3,10 @@ import * as TimesheetExpenseRuleGroupController from '../controllers/timesheet-e
 import { createTimesheetExpenseRuleGroupSchema, paramsSchema, querySchema } from '../interfaces/timesheet-expense-rule-group.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function timesheetExpenseRuleGroupRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/timesheet-expense-rule-groups', {
         schema: {
             params: paramsSchema,

@@ -18,17 +18,7 @@ export const createTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     try {
         const { program_id } = request.params as { program_id: string };
         const data = request.body as TimesheetTypeConfigInterface;
-
-        const authHeader = request.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        const user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user;
         const userId = user?.sub;
 
         if (data.allow_timesheet_to_be_submitted) {
@@ -269,17 +259,8 @@ export const getTimesheetTypeConfigById = async (
 export const updateTimesheetTypeConfig = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+     const user=request?.user;
     const userId = user?.sub;
-
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
         const configData = request.body as TimesheetTypeConfigInterface;
@@ -336,15 +317,7 @@ export const deleteTimesheetTypeConfig = async (request: FastifyRequest, reply: 
     const traceId = generateCustomUUID();
     let { name } = request.body as { name: string };
     name = name.trim();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId = user?.sub
     try {
         const { id } = request.params as { id: string };

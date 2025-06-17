@@ -14,15 +14,7 @@ export async function createVendorComplianceReqDoc(
 ) {
     const traceId = generateCustomUUID();
     const vendorComplianceMapping = request.body as VendorComplianceReqDocMappingInterface;
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId=user?.sub;
     logger(
         {
@@ -148,15 +140,7 @@ export async function updateVendorComplianceReqDoc(
 ) {
     const { program_id, id } = request.params;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId=user?.sub;
     logger(
         {
@@ -266,15 +250,7 @@ export async function deleteVendorComplianceReqDoc(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId=user?.sub
     try {
         const { program_id, id } = request.params;

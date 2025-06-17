@@ -256,15 +256,7 @@ export async function getShiftConfigurationById(request: FastifyRequest, reply: 
 export async function createShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const transaction = await sequelize.transaction();
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+   const user=request?.user;
   const userId = user?.sub;
   try {
     const shiftTypeData = request.body as ShiftConfigurationAttributes;
@@ -350,15 +342,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
   const shiftTypeData = request.body as ShiftConfigurationAttributes;
   const { hierarchy_ids, shift_type_ids, ...rest } = shiftTypeData;
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const shiftType = await ShiftConfiguration.findOne({
@@ -474,15 +458,7 @@ export async function updateShiftConfiguration(request: FastifyRequest, reply: F
 export async function deleteShiftConfiguration(request: FastifyRequest, reply: FastifyReply) {
   const { id, program_id } = request.params as { id: string, program_id: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user;
   const userId = user?.sub;
   try {
     const shiftConfiguration = await ShiftConfiguration.findOne({

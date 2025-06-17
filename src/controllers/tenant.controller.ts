@@ -112,18 +112,7 @@ export async function getTenantById(request: FastifyRequest, reply: FastifyReply
 export async function createTenant(request: FastifyRequest, reply: FastifyReply) {
     const data = request.body as TenantData;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found',trace_id:traceId });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
-    }
+    const user=request?.user;
 
     logger(
         {
@@ -214,18 +203,7 @@ export async function createTenant(request: FastifyRequest, reply: FastifyReply)
 export async function createTenantAndUser(request: FastifyRequest, reply: FastifyReply) {
     const { tenant } = request.body as { tenant: TenantData; user: UserInterface; user_group_mapping: UserMappingAttributes };
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Token not found' ,trace_id:traceId});
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodeUser: any = await decodeToken(token);
-    if (!decodeUser) {
-        return reply.status(401).send({status_code:401, message: 'Unauthorized - Invalid token',trace_id:traceId });
-    }
-
+    const user=request?.user;
     try {
         const processedData = {
             ...tenant,
@@ -315,14 +293,7 @@ export async function deleteTenant(request: FastifyRequest, reply: FastifyReply)
     try {
 
         const tenant = await Tenant.findByPk(id);
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code:401,message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user;
         const userId = user?.sub;
         if (tenant) {
            
