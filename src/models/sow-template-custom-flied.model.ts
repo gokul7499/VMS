@@ -14,7 +14,7 @@ SowTemplateCustomField.init(
             defaultValue: DataTypes.UUIDV4,
         },
         custom_field_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.CHAR(36),
             references: {
                 model: "sow_custom_fields",
                 key: "id",
@@ -26,7 +26,7 @@ SowTemplateCustomField.init(
             type: DataTypes.JSON
         },
         sow_temp_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.CHAR(36),
             allowNull: true,
             references: {
                 model: "sow_templates",
