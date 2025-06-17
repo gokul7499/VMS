@@ -24,7 +24,7 @@ async function feesConfigurationRoute(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.FEE_CONFIGURATION])
     }, FeesController.createFeesConfiguration);
 
-    fastify.delete('/program/:program_id/fees/:id', {
+       fastify.delete('/program/:program_id/fees/:id', {
         schema: {
             params: paramsSchema,
         },
