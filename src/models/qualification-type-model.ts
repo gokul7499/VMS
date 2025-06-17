@@ -58,11 +58,11 @@ QualificationTypeModel.init({
     allowNull: true,
   },
   created_by: {
-    type: DataTypes.STRING(36),
+    type: DataTypes.CHAR(36),
     allowNull: true,
   },
   updated_by: {
-    type: DataTypes.STRING(36),
+    type: DataTypes.CHAR(36),
     allowNull: true,
   },
 }, {
