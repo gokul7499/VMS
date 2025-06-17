@@ -13,7 +13,7 @@ SOWTemplateMasterDataModel.init(
             primaryKey: true,
         },
         sow_temp_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.CHAR(36),
             allowNull: true,
             references: {
                 model: "sow_templates",
@@ -21,7 +21,7 @@ SOWTemplateMasterDataModel.init(
             },
         },
         master_data_type: {
-            type: DataTypes.UUID,
+            type: DataTypes.CHAR(36),
             allowNull: true,
             references: {
                 model: 'master_data_type',

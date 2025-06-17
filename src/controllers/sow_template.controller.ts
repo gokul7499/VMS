@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import SowTemplateModel from '../models/sow_template.model';
 import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
 
@@ -215,6 +215,61 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
+        const templateIds = templates.map(t => t.id);
+        let masterDataRecords: any[] = [];
+        if (templateIds.length > 0) {
+            masterDataRecords = await sequelize.query(
+                `
+        SELECT DISTINCT 
+            m.sow_temp_id, 
+            md.name AS name,
+            m.master_data_type AS id,
+            md.name AS name
+        FROM sow_template_master_data m
+        LEFT JOIN master_data_type md ON md.id = m.master_data_type
+        WHERE m.sow_temp_id IN (:templateIds)
+        `,
+                {
+                    replacements: { templateIds },
+                    type: QueryTypes.SELECT,
+                }
+            );
+        }
+        templates.forEach(template => {
+            const matchedData = masterDataRecords
+                .filter(md => md.sow_temp_id === template.id)
+                .map(md => ({ id: md.id, name: md.name }));
+            const uniqueMasterDataTypes = Array.from(
+                new Map(matchedData.map(obj => [obj.id, obj])).values()
+            );
+            template.master_data_type = uniqueMasterDataTypes;
+            template.sow_temp_id = template.id;
+        });
+
+        let customFieldRecords: any[] = [];
+        if (templateIds.length > 0) {
+            customFieldRecords = await sequelize.query(
+                `
+        SELECT DISTINCT 
+            scf.sow_temp_id, 
+            scf.custom_field_id 
+        FROM sow_template_custom_field scf
+        WHERE scf.sow_temp_id IN (:templateIds)
+        `,
+                {
+                    replacements: { templateIds },
+                    type: QueryTypes.SELECT,
+                }
+            );
+        }
+
+        templates.forEach(template => {
+            const matchedFields = customFieldRecords
+                .filter(f => f.sow_temp_id === template.id)
+                .map(f => f.custom_field_id);
+            template.custom_field_id = matchedFields;
+        });
+
 
         const filteredTemplates = templates.map(template => ({
             id: template.id,
@@ -225,6 +280,9 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             description: template.description,
             hierarchy: template.hierarchy,
             picklist_items: template.picklist_items,
+            sow_temp_id: template.sow_temp_id,
+            master_data_type: template.master_data_type,
+            custom_field_id: template.custom_field_id,
             created_on: template.created_on,
             updated_on: template.updated_on,
             is_sow_assignment: template.is_sow_assignment,
