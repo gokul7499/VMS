@@ -68,8 +68,8 @@ export async function createSowTemplate(
             }
         }
 
-        if (Array.isArray(sowTemplate.master_data) && sowTemplate.master_data.length > 0) {
-            for (const master of sowTemplate.master_data) {
+        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
+            for (const master of sowTemplate.master_date_type) {
                 await SOWTemplateMasterDataModel.create({
                     sow_temp_id: item.id,
                     master_data_type: master.master_data_type,
@@ -84,7 +84,7 @@ export async function createSowTemplate(
             }
         }
 
-        if (Array.isArray(sowTemplate.custom_fields)) {
+        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
             for (const field of sowTemplate.custom_fields) {
                 await SowTemplateCustomField.create({
                     custom_field_id: field.id,
