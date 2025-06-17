@@ -19,22 +19,8 @@ export async function createWorkLocation(
   const workLocation = request.body as WorkLocationInterface;
   const traceId = generateCustomUUID();
   const program_id = workLocation.program_id;
-
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    throw new Error("Unauthorized: Token not found or invalid");
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
   const transaction = await sequelize.transaction();
-
-  if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
-  }
-
+   const user=request?.user;
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
       where: {

@@ -2,9 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as WorklocationController from '../controllers/work-location.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function workLocationRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/work-location', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.WORK_LOCATION])
     }, WorklocationController.createWorkLocation);

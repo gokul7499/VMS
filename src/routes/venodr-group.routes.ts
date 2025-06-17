@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as VendorGroupController from '../controllers/vendor-group.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function VendorGroupRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/vendor-groups', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_GROUP])
     }, VendorGroupController.createVendorGroup);
