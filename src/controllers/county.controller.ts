@@ -9,19 +9,11 @@ import { logger } from "../utility/loggerService";
 
 export async function createCounty(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const county = request.body as CountyInterface;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user
         const userId = user?.sub;
-
+  
         logger({
             trace_id: traceId,
             actor: {
@@ -124,23 +116,11 @@ export async function getCountyById(
 }
 export async function updateCountyById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<CountyInterface>;
 
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
-        const userId = user?.sub;
-
+        const user=request?.user
         logger({
             trace_id: traceId,
             actor: {
@@ -209,19 +189,10 @@ export async function deleteCountyById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const { id } = request.params;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user
         const userId = user?.sub;
-
         const [county] = await countyModel.update(
             {
                 is_deleted: true,

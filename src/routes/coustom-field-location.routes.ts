@@ -9,7 +9,9 @@ import {
 } from '../controllers/custom-field-location.controller';
 
 import { createCustomFieldLocations, paramsSchema } from '../interfaces/custom-field-location-interface';
+import { verifyToken } from '../middlewares/verifyToken';
 async function customFieldLocationRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.get('/program/:program_id/custom_field_location/:id', getCustomFieldLocationById);
     fastify.post('/custom_field_location',
         {

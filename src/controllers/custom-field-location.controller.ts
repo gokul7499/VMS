@@ -12,17 +12,7 @@ export async function createCustomFieldLocation(
 ) {
   const traceId = generateCustomUUID();
   logger.info({ traceId, message: 'createCustomFieldLocation function initiated' });
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    logger.warn({ traceId, message: 'Unauthorized - Token not found' });
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    logger.warn({ traceId, message: 'Unauthorized - Invalid token' });
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
   logger.info({ traceId, userId, message: 'Token decoded successfully' });
   const { program_id } = request.body as { program_id: string };
