@@ -10,6 +10,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
 import picklistItemModel from '../models/picklist-item.model';
+import { v4 as uuidv4 } from 'uuid'; 
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -416,7 +417,6 @@ export async function deletePredefinedPicklist(
     trace_id: traceId,
   });
 }
-
 
 
 export const updatePicklistAndItem = async (
@@ -1267,3 +1267,93 @@ export const clonePredefinedPicklistsForProgram = async (
       });
     }
   }
+
+export const updatePridefinedPicklist = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const traceId = generateCustomUUID();
+  const { id } = request.params as { id: string };
+  const { picklist_items, ...picklist_data } = request.body as any;
+  const user=request?.user;
+  const userId = user?.sub;
+  try {
+    let picklist;
+
+    const andConditions: any[] = [
+      sequelize.where(
+        sequelize.fn('lower', sequelize.col('name')),
+        sequelize.fn('lower', picklist_data.name)
+      ),
+      { id: { [Op.ne]: id } },
+      { is_deleted: false },
+    ];
+
+    const existingPicklistWithSameName = await picklist_model.findOne({
+      where: { [Op.and]: andConditions },
+    });
+
+    if (existingPicklistWithSameName) {
+      return reply.status(400).send({
+        status_code: 400,
+        message: 'Picklist with the same name already exists.',
+        trace_id: traceId,
+      });
+    }
+
+    const whereClause: any = { id };
+
+    picklist = await picklist_model.findOne({ where: whereClause });
+
+    if (!picklist) {
+      return reply.status(404).send({
+        status_code: 404,
+        message: `Picklist with ID ${id} not found`,
+        trace_id: traceId,
+      });
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      await picklist.update({ ...picklist_data, updated_by: userId }, { transaction });
+
+      if (picklist_items && picklist_items.length > 0) {
+        await picklist_item_model.destroy({ where: { picklist_id: id }, transaction });
+
+        const newPicklistItems = picklist_items.map((item: any) => ({
+          id: item.id || uuidv4(),
+          ...item,
+          picklist_id: id,
+          created_by: userId,
+          updated_by: userId,
+        }));
+
+        await picklist_item_model.bulkCreate(newPicklistItems, { transaction });
+      }
+
+      await transaction.commit();
+
+      return reply.status(200).send({
+        status_code: 200,
+        message: 'Successfully updated picklist and items',
+        trace_id: traceId,
+        picklist_data,
+        picklist_items,
+      });
+    } catch (error) {
+      await transaction.rollback();
+      return reply.status(500).send({
+        status_code: 500,
+        message: 'Error updating picklist and items',
+        trace_id: traceId,
+      });
+    }
+  } catch (error) {
+    return reply.status(500).send({
+      status_code: 500,
+      message: `Error fetching picklist or validation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      trace_id: traceId,
+    });
+  }
+};
