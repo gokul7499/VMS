@@ -3,10 +3,11 @@ import * as pickListController from '../controllers/picklist.controller';
 import { createPicklistSchema, paramsSchema, querySchema } from '../interfaces/picklist.interface';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 
 async function picklistRoutes(fastify: FastifyInstance) {
-
+  fastify.addHook('preHandler', verifyToken);
   fastify.get('/program/:program_id/picklist', {
     // preHandler: validatePermissions(Actions.READ, [Permissions.PICKLIST]),
     schema: {
@@ -71,7 +72,7 @@ async function picklistRoutes(fastify: FastifyInstance) {
 
   fastify.put('/pre-define-picklist/:id', {
     // preHandler: validatePermissions(Actions.UPDATE, [Permissions.PICKLIST]),
-  }, pickListController.updatePicklist);
+  }, pickListController.updatePridefinedPicklist);
 
 
 }

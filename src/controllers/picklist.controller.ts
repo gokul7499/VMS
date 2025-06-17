@@ -1268,27 +1268,15 @@ export const clonePredefinedPicklistsForProgram = async (
     }
   }
 
-export const updatePicklist = async (
+export const updatePridefinedPicklist = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
   const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
   const { picklist_items, ...picklist_data } = request.body as any;
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
-  }
-
+  const user=request?.user;
   const userId = user?.sub;
-
   try {
     let picklist;
 
