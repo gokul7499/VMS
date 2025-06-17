@@ -533,7 +533,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
     }
 
     if(userBody.user_type === "vendor"){
-      await updateProgramVendor(userBody)
+      await updateProgramVendor(userBody,id)
     }
 
     return reply.status(200).send({
@@ -554,7 +554,7 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function updateProgramVendor(userBody:any):Promise<any> {
+export async function updateProgramVendor(userBody:any,id:string):Promise<any> {
        const contactInfo = [
     {
       first_name: userBody.first_name ,
@@ -580,7 +580,7 @@ export async function updateProgramVendor(userBody:any):Promise<any> {
   ];
       const programVendor = await ProgramVendor.findOne({
         where: {
-          user_id: userBody.id,
+          user_id:id,
           program_id:userBody.program_id,
           tenant_id:userBody.tenant_id
         },
