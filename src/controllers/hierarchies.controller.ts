@@ -13,6 +13,7 @@ import User from '../models/user.model';
 import TenantModel from '../models/tenant.model';
 import CountryModel from '../models/countries.model';
 import CustomField from '../models/custom-fields.model';
+import GlobalRepository from '../repositories/global.repository';
 
 interface HierarchyItem {
   support_email: any;
@@ -125,7 +126,6 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     limit?: number;
   };
   const traceId = generateCustomUUID();
-
   try {
     const hasName = !!name;
     const hasMsp = !!msp;

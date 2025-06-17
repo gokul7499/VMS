@@ -10,6 +10,7 @@ import HolidayCalendarHierarchies from "../models/holiday-calender-hierarchie.mo
 import HolidayCalendarWorkLocation from "../models/holiday-calender-work-location.model";
 import HolidayCalendarDetails from "../models/holiday-calender-details.model";
 import HolidayCalendar from "../models/holiday-calendar.model";
+import GlobalRepository from "../repositories/global.repository";
 
 export async function getHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
@@ -463,6 +464,7 @@ export async function deleteHolidayCalendar(request: FastifyRequest, reply: Fast
 
 export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
+  
   try {
     const { program_id } = request.params as { program_id: string };
     const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body as { name?: string, year?: string, is_enabled?: string, updated_on?: string, page?: string, limit?: string };
@@ -476,7 +478,8 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
         trace_id: traceId,
       });
     }
-
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const filterConditions: any = { program_id, is_deleted: false };
     if (name) {
       filterConditions.name = { [Op.like]: `%${name}%` };
@@ -490,6 +493,20 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
     if (Array.isArray(updated_on) && updated_on.length === 2) {
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+    }
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      filterConditions[Op.or] = [
+        { is_all_hierarchy_associated: true },
+        {
+          id: {
+            [Op.in]: sequelize.literal(`(
+              SELECT holiday_calendar_id
+              FROM holiday_calendar_hierarchies
+              WHERE hierarchy_id IN (${mspHierarchyIds.map(id => `'${id}'`).join(',')})
+            )`)
+          }
+        }
+      ];
     }
     const offset = (pageNum - 1) * limitNum;
     const { rows: holiday_calendars, count: totalRecords } = await holidayCalendar.findAndCountAll({
