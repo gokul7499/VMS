@@ -43,6 +43,7 @@ async getByRateGuidanceId(rate_guidance_id: string) {
   return {
     rate_guidance: {
       program_id: config.program_id ,
+      rate_guidance_id: config.id,
        is_enable: config.dataValues.is_enable,
     },
     events: events.map(event => ({
