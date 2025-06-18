@@ -1,12 +1,12 @@
 
-import { RateGuidanceConfigRepository } from '../repositories/rate-guidance-config.repository';
-import { RateGuidanceRepository } from '../repositories/rate-guidance.repository';
+import  RateGuidanceConfigRepository  from '../repositories/rate-guidance-config.repository';
+import  RateGuidanceRepository from '../repositories/rate-guidance.repository';
 
-export class RateGuidanceService {
+ class RateGuidanceService {
   private configRepo = new RateGuidanceConfigRepository();
   private eventRepo = new RateGuidanceRepository();
 
-  async process(payload: {
+async process(payload: {
     program_id: string,
     is_enabled: boolean,
     rate_guidance_id?: string,
@@ -17,16 +17,20 @@ export class RateGuidanceService {
     if (!config) {
       throw new Error('Failed to create or update rate guidance config.');
     }
+    
     const rate_guidance_id = payload.rate_guidance_id || config.id;
-    const rawEvents = await this.eventRepo.createOrUpdateEvents(rate_guidance_id, payload.rate_guidance);
+    const isUpdate = !!payload.rate_guidance_id; // payload मध्ये rate_guidance_id आहे का check करा
+    
+    const rawEvents = await this.eventRepo.createOrUpdateEvents(rate_guidance_id, payload.rate_guidance, isUpdate);
 
-
-    const events = rawEvents.map(event => ({
-      id: event.id,
-      rate_guidance_id: event.rate_guidance_id,
-      is_enabled: event.is_enabled,
-      event_name: event.event,
-    }));
+    const events = rawEvents
+      .filter((event): event is NonNullable<typeof event> => event !== null)
+      .map(event => ({
+        id: event.id,
+        rate_guidance_id: event.rate_guidance_id,
+        is_enabled: event.is_enabled,
+        event_name: event.event,
+      }));
 
     return {
       config,
@@ -34,17 +38,17 @@ export class RateGuidanceService {
     };
   }
 
-async getByRateGuidanceId(rate_guidance_id: string) {
-  const config = await this.configRepo.findById(rate_guidance_id);
+async getByProgramId(program_id: string) {
+  const config = await this.configRepo.findByProgramId(program_id);
   if (!config) return null;
 
-  const events = await this.eventRepo.findEventsByRateGuidanceId(rate_guidance_id);
+  const events = await this.eventRepo.findEventsByRateGuidanceId(config.id);
 
   return {
     rate_guidance: {
-      program_id: config.program_id ,
-      rate_guidance_id: config.id,
-       is_enable: config.dataValues.is_enable,
+      program_id: config.program_id,
+      rate_guidance_id: config.id, // important: config.id becomes rate_guidance_id
+      is_enable: config.dataValues.is_enable,
     },
     events: events.map(event => ({
       id: event.id,
@@ -58,3 +62,4 @@ async getByRateGuidanceId(rate_guidance_id: string) {
 
 }
 
+export default RateGuidanceService;

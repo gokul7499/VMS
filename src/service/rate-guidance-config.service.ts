@@ -1,5 +1,5 @@
 
-import { RateGuidanceConfigRepository } from '../repositories/rate-guidance-config.repository';
+import  RateGuidanceConfigRepository  from '../repositories/rate-guidance-config.repository';
 import { RateGuidanceConfigPayload } from '../interfaces/rate-guidance-config.interface';
 
 export class RateGuidanceConfigService {
