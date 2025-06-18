@@ -171,15 +171,7 @@ export const createPicklist = async (
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
 
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
 
   logger(
@@ -339,15 +331,7 @@ export async function deletePicklist(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string; program_id: string };
@@ -380,15 +364,7 @@ export async function deletePredefinedPicklist(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+ const user=request?.user
   const userId = user?.sub;
   const traceId = generateCustomUUID();
   const { id } = request.params as { id: string };
@@ -426,15 +402,7 @@ export const updatePicklistAndItem = async (
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string; program_id: string };
   const { picklist_items, ...picklist_data } = request.body as picklist;
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
   try {
     let picklist;
@@ -743,16 +711,7 @@ export const createPicklistData = async (
   };
 
   const traceId = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
 
   logger(
