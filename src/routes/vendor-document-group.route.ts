@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as VendorDocumentGroup from '../controllers/vendor-document-group.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function vendordocumentsgroup(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/vendor-documents-group', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.VENDOR_COMPLIANCE_DOCUMENT_GROUP])
     }, VendorDocumentGroup.createVendordocumentsgroup);

@@ -23,19 +23,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   const { program_id } = request.params as { program_id: string };
   const { work_location_ids, hierarchy_ids, master_data_id, modules, label, name, module_id, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-  const userId = user?.sub;
-  console.log("uuu", userId)
-
+   const user=request?.user
   if (!validateProgramId(program_id, reply, traceId)) return;
 
   generateSlugIfNeeded(name, customFieldData);
@@ -689,25 +677,7 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as CustomFields;
 
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: 'Unauthorized - Token not found',
-    });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: 'Unauthorized - Invalid token',
-    });
-  }
-
+  const user=request?.user
   const userId = user?.sub;
 
   const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids } = updates as {
@@ -855,15 +825,7 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
 
     if (customFieldItem) {
-      const authHeader = request.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-      }
-      const token = authHeader.split(' ')[1];
-      let user: any = await decodeToken(token);
-      if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-      }
+      const user=request?.user
       const userId = user?.sub
       if ((customFieldItem as any).is_linked === false) {
         await customFieldItem.update({
@@ -903,26 +865,7 @@ export async function updateCustomFieldsIsdisable(request: FastifyRequest, reply
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const { is_enabled } = request.body as { is_enabled: boolean };
-
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: 'Unauthorized - Token not found',
-    });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({
-      status_code: 401,
-      message: 'Unauthorized - Invalid token',
-    });
-  }
-
+   const user=request?.user
   const userId = user?.sub;
 
   if (is_enabled === undefined || is_enabled === null) {

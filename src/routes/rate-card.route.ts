@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as RateCardController from "../controllers/rate-card.controller";
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function rateCardsRoutes(fastify: FastifyInstance) {
-
+  fastify.addHook('preHandler', verifyToken);
   fastify.post("/program/:program_id/rate-card", {
     // preHandler: validatePermissions(Actions.CREATE, [Permissions.RATE_CARD])
   }, RateCardController.createRateCard);

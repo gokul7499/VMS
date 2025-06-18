@@ -174,17 +174,7 @@ export const getSupportingText = async (request: FastifyRequest, reply: FastifyR
 export const createSupportingText = async (request: FastifyRequest, reply: FastifyReply) => {
     const data = request.body as supportingTextAttributes;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
-    }
+    const user=request?.user;
     const userId = user?.sub
     logger(
         {
@@ -289,17 +279,7 @@ export const updateSupportingText = async (request: FastifyRequest, reply: Fasti
         module_id,
         support_text_action,
     } = request.body as supportingTextModel;
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
-    }
+   const user=request?.user;
     const userId = user?.sub;
 
     logger(

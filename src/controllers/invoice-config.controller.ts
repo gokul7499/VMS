@@ -8,23 +8,15 @@ import { decodeToken } from "../middlewares/verifyToken";
 import { getInvoiceConfigByHierarchyId } from "../utility/queries";
 import { sequelize } from "../config/instance";
 import HierarchyModel from "../models/hierarchies.model";
+import GlobalRepository from "../repositories/global.repository";
 
 export async function createInvoiceConfig(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user
         const userId = user?.sub;
 
         const { program_id } = request.params as any;
@@ -131,17 +123,8 @@ export async function getInvoiceConfigById(request: FastifyRequest, reply: Fasti
 export async function updateInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user
         const userId = user?.sub;
         const invoiceConfig = await InvoiceConfigModel.findOne({
             where: { uuid: id, program_id },
@@ -189,18 +172,10 @@ export async function updateInvoiceConfigById(request: FastifyRequest, reply: Fa
 
 export async function deleteInvoiceConfigById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
     try {
         const { id, program_id } = request.params as { id: string, program_id: string };
-
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        
+        const user=request?.user
         const userId = user?.sub;
 
         const [invoiceConfig] = await InvoiceConfigModel.update(
@@ -240,9 +215,34 @@ export async function getAllInvoiceConfig(request: FastifyRequest, reply: Fastif
     const { program_id } = request.params as { program_id: string };
     const { name, page = 1, limit = 10 } = request.query as { name: string, page: number, limit: number };
     const traceId = generateCustomUUID();
+    const user=request?.user
     const offset = (page - 1) * limit;
     let whereClause: any = { program_id };
+     let mspHierarchyIds ;
+        if (user) {
+            const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+            mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+        }
 
+        // Build MSP hierarchy filter - only apply if user exists and has MSP restrictions
+        if (user && Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0) {
+            const mspHierarchyChecks = mspHierarchyIds.map((hierarchyId: string) => 
+                sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '"${hierarchyId}"')`)
+            );
+            
+            whereClause[Op.and] = {
+                [Op.or]: [
+                    // Record applies to all hierarchies
+                    { is_all_hierarchy_associate: true },
+                    // OR match any of the MSP hierarchy IDs
+                    ...mspHierarchyChecks,
+                    // OR hierarchy_ids is null/empty
+                    { hierarchy_ids: null },
+                    sequelize.literal(`hierarchy_ids = '[]'`),
+                    { hierarchy_ids: '' }
+                ]
+            };
+        }
     if (name) {
         whereClause.name = { [Op.like]: `%${name}%` };
     }

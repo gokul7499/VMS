@@ -42,12 +42,11 @@ async function expenseConfigurationRoutes(fastify: FastifyInstance) {
         // preHandler: validatePermissions(Actions.UPDATE, [Permissions.EXPENSE_CONFIGURATION])
     }, ExpenseConfigurationController.updateExpenseConfiguration);
 
-    fastify.delete('/program/:program_id/expense-config/:id', {
+    fastify.put('/program/:program_id/expense-config', {
         schema: {
             params: paramsSchema,
         }
-    }, ExpenseConfigurationController.deleteExpenseConfiguration);
-
+    }, ExpenseConfigurationController.enableExpenseConfiguration);
 
     fastify.get('/program/:program_id/expense-configs-hierarchies', {
         schema: {

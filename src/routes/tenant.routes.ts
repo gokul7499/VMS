@@ -10,8 +10,10 @@ import {
   advancedSearchTenants,
   getPasswordPolicy
 } from "../controllers/tenant.controller";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function tenantRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   fastify.get("/tenant", getTenants);
   fastify.get("/tenant/:id", getTenantById);
   fastify.post("/tenant",createTenant);

@@ -39,6 +39,7 @@ import axios from 'axios';
 import { databaseConfig } from '../config/db';
 import PicklistItemModel from '../models/picklist-item.model';
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
+const AUTH_DB = databaseConfig.config.database_auth;
 
 export const createWorkflow = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id } = request.params as { program_id: string };
@@ -502,7 +503,14 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             });
         });
 
-        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType, picklistItem] = await Promise.all([
+        const roleQueryPromise = Array.isArray(targetValues) && targetValues.length > 0
+            ? sequelize.query(
+                `SELECT id, display_name FROM ${AUTH_DB}.roles WHERE id IN (${targetValues.map(() => '?').join(',')})`,
+                { replacements: targetValues, type: QueryTypes.SELECT }
+            )
+            : Promise.resolve([]);
+
+        const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType, picklistItem, roleDetails] = await Promise.all([
             FieldConfigModel.findAll({
                 where: { id: { [Op.in]: Array.from(metaFieldConfigIds) } },
                 attributes: ['id', 'config', 'field_id', 'placement_order'],
@@ -565,6 +573,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(selectedItems) } },
                 attributes: ['id', 'value','slug']
             }),
+            roleQueryPromise
         ]);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
@@ -622,6 +631,13 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
         }, {});
         const timesheetTypeMap = timesheetType.reduce((acc: any, item: any) => {
             acc[item.id] = item;
+            return acc;
+        }, {});
+        const roleMap = roleDetails.reduce((acc: any, item: any) => {
+            acc[item.id] = {
+                id: item.id,
+                name: item.display_name
+            };
             return acc;
         }, {});
         const levelsWithDetails = await Promise.all(
@@ -828,7 +844,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             { map: createOrgItemMap, key: 'createOrgItem' },
                             { map: jobTemplateMap, key: 'jobTemplateItem', nameField: 'template_name' },
                             { map: userMap, key: 'userItem', username: ['first_name', 'last_name'] },
-                            { map: timesheetTypeMap, key: 'timesheetTypeItem', nameField: 'title' }
+                            { map: timesheetTypeMap, key: 'timesheetTypeItem', nameField: 'title' },
+                            { map: roleMap, key: 'roleItem', nameField: 'name' }
                         ];
 
                         if (condition.target_field_value?.values) {

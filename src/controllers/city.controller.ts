@@ -13,15 +13,7 @@ export async function createCity(
   reply: FastifyReply
 ) {
   const transaction = await sequelize.transaction();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { state_id } = request.params;
@@ -150,15 +142,7 @@ export async function updateCity(
 ) {
   const { id, state_id } = request.params;
   const cityData = request.body as CityData;
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     const City: city | null = await city.findOne({

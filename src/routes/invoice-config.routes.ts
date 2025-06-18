@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as InvoiceController from "../controllers/invoice-config.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function invoiceConfigRoute(fastify: FastifyInstance) {
-
+     fastify.addHook('preHandler', verifyToken);
     fastify.post("/program/:program_id/invoice-config", {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.INVOICE_CONFIGURATION])
     }, InvoiceController.createInvoiceConfig);

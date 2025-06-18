@@ -565,7 +565,8 @@ export const getAllHierarchies = (
   hasIsEnabled: boolean,
   startDate?: number,
   endDate?: number,
-  hasMsp?: boolean
+  hasMsp?: boolean,
+  hasMspHierarchyFilter?: boolean
 ) => `
 WITH hierarchy_cte AS (
   SELECT
@@ -604,6 +605,8 @@ WITH hierarchy_cte AS (
     ${hasIsEnabled ? 'AND h.is_enabled = :is_enabled' : ''}
     ${startDate !== undefined && endDate !== undefined ? 'AND h.updated_on BETWEEN :startDate AND :endDate' : ''}
     ${hasMsp ? 'AND h.managed_by = :msp' : ''}
+    ${hasMspHierarchyFilter ? 'AND h.id IN (:mspHierarchyIds)' : ''}
+
 ),
 total_count_cte AS (
   SELECT COUNT(*) AS total_count FROM hierarchy_cte
@@ -764,7 +767,7 @@ SELECT
     pv.is_job_auto_opt_in,
     pv.vendor_logo, -- Added vendor_logo here
     pv.updated_on,
-    pv.created_on
+    pv.created_on,
     (
         SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -858,8 +861,7 @@ SELECT
     pv.bussiness_structure,
     pv.job_type,
     pv.program_id,
-    pv.tenant_id,
-    pv.is_enabled,
+    pv.tenant_id,    
     pv.description,
     pv.company_website,
     pv.establish_year,
@@ -1247,6 +1249,7 @@ export const getChildWorkflowsQuery = (hierarchyIdCount: number) => {
            wf.flow_type,
            wf.is_enabled,
            wf.placement_order,
+           wf.is_associated_to_all_hierarchy,
            e.id AS event_id,
            e.name AS event_name,
            e.module_id,
@@ -1282,6 +1285,7 @@ export const getparentWorkflowsQuery = (hierarchyIdCount: number) => {
            wf.flow_type,
            wf.is_enabled,
            wf.placement_order,
+           wf.is_associated_to_all_hierarchy,
            e.id AS event_id,
            e.name AS event_name,
            e.module_id,
@@ -1389,8 +1393,7 @@ export const programVendorAdvancedFilter = (
       pv.program_id,
       pv.tenant_id,
       pv.display_name,
-      pv.vendor_name,
-      pv.is_enabled,
+      pv.vendor_name,      
       pv.updated_on,
       pv.status,
       pv.contact,
@@ -1437,17 +1440,20 @@ export const vendorFilterQueryBuilder = (
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
     ? `AND (${hierarchyIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.hierarchies, JSON_QUOTE(:hierarchy_ids" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const laborCategoryIdsClause = laborCategoryIdsArray.length
     ? `AND (${laborCategoryIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.program_industry, JSON_QUOTE(:labor_category_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   const workLocationIdsClause = workLocationIdsArray.length
     ? `AND (${workLocationIdsArray.map((_, index) =>
-      `JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id${index}), '$')`).join(' OR ')})`
+      "JSON_CONTAINS(program_vendors.work_locations, JSON_QUOTE(:work_location_id" + index + "), '$')"
+    ).join(' OR ')})`
     : '';
 
   return `
@@ -1687,21 +1693,31 @@ export const timesheetConfigAdvancedFilter = (
   hasTimesheetRuleGroup: boolean,
   hasTimesheetFormat: boolean,
   hasAllocationMethod: boolean,
-  hasIsEnabled: boolean
+  hasIsEnabled: boolean,
+  hasMspHierarchyIds: boolean,
+  mspHierarchyIds: string[] | any
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `LEFT JOIN timesheet_type_config_hierarchies AS ttch 
-       ON timesheet_type_config.id = ttch.timesheet_type_config_id
-       AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+       ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
     : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
     ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
-       ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
+      ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
-  
-   const hierarchyFilterCondition = hierarchyIdsArray.length
-    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR ttch.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')}))`
+
+  const mspHierarchyFilterClause = hasMspHierarchyIds
+    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS mspHierarchyTable
+       ON mspHierarchyTable.hierarchy_id IN (${mspHierarchyIds.map((_: any, index: any) => `:msp_hierarchy_id${index}`).join(', ')})`
+    : '';
+
+  const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR hierarchyTable.hierarchy_id IS NOT NULL)`
+    : '';
+
+  const mspHierarchyFilterCondition = hasMspHierarchyIds
+    ? `AND (timesheet_type_config.is_all_hierarchy_associated = 1 OR mspHierarchyTable.hierarchy_id IS NOT NULL)`
     : '';
 
   return `
@@ -1728,6 +1744,7 @@ export const timesheetConfigAdvancedFilter = (
       LEFT JOIN timesheet_expense_rule_groups trg ON timesheet_type_config.timesheet_rule_group = trg.id
       ${hierarchyIdsClause}
       ${laborCategoryClause}
+      ${mspHierarchyFilterClause}
       WHERE
         timesheet_type_config.is_deleted = false
         AND timesheet_type_config.program_id = :program_id
@@ -1737,6 +1754,7 @@ export const timesheetConfigAdvancedFilter = (
         ${hasTimesheetRuleGroup ? 'AND timesheet_type_config.timesheet_rule_group = :timesheet_rule_group' : ''}
         ${hasTimesheetFormat ? 'AND timesheet_type_config.timesheet_format = :timesheet_format' : ''}
         ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(timesheet_type_config.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+        ${mspHierarchyFilterCondition}
         ${hierarchyFilterCondition}
       GROUP BY
         timesheet_type_config.id
@@ -2340,7 +2358,8 @@ export const userQuery = (
   user_type?: string,
   status?: string,
   user_id?: string,
-  hierarchy_id?: string[]
+  hierarchy_id?: string[],
+  mspHierarchyIds?: string[]
 ) => `
 WITH user_data AS (
   SELECT u.id,
@@ -2448,6 +2467,17 @@ WITH user_data AS (
               u.is_all_hierarchy_associate = false
               AND (${hierarchy_id
       .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:hierarchy_id_${index}))`)
+      .join(' OR ')})
+            )
+          )`
+    : ''}
+     ${mspHierarchyIds && mspHierarchyIds.length > 0
+    ? `AND (
+            u.is_all_hierarchy_associate = true
+            OR (
+              u.is_all_hierarchy_associate = false
+              AND (${mspHierarchyIds
+      .map((_, index) => `JSON_CONTAINS(u.associate_hierarchy_ids, JSON_QUOTE(:msp_hierarchy_id_${index}))`)
       .join(' OR ')})
             )
           )`
@@ -2957,7 +2987,7 @@ export async function getUserPrograms(replacements: any, isSuperAdmin: boolean) 
     LEFT JOIN tenant ON programs.client_id = tenant.id
     ${!isSuperAdmin ? "LEFT JOIN user_mappings ON user_mappings.program_id = programs.id" : ""}
     WHERE
-      ${!isSuperAdmin ? "user_mappings.user_id = :user_id" : "1=1"}
+      ${!isSuperAdmin ? "(user_mappings.user_id = :user_id OR user_mappings.candidate_id = :user_id)" : "1=1"}
        ${replacements.search ? `AND (programs.display_name LIKE :search OR tenant.name LIKE :search)` : ""}
   `;
 
@@ -3524,11 +3554,33 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarc
       MIN(md.updated_on) AS first_updated_on,
       MAX(md.updated_on) AS last_updated_on,
       md.code, md.foundational_data_type_id, md.depended_fields,
-      t.id AS manager_ids, t.first_name, t.last_name,
+      CASE 
+      WHEN md.manager_ids IS NOT NULL AND JSON_VALID(md.manager_ids) THEN
+        JSON_ARRAYAGG(
+          CASE 
+            WHEN t.id IS NOT NULL THEN
+              JSON_OBJECT(
+                'id', t.id,
+                'first_name', t.first_name,
+                'last_name', t.last_name
+              )
+            ELSE NULL
+          END
+        )
+      ELSE JSON_ARRAY()
+    END AS manager_ids,
       mdt.name AS foundational_data_type_name,
       COUNT(*) OVER() AS total_count
   FROM master_data AS md
-  LEFT JOIN user AS t ON md.manager_ids = t.id
+  LEFT JOIN JSON_TABLE(
+    CASE 
+      WHEN md.manager_ids IS NOT NULL AND JSON_VALID(md.manager_ids) 
+      THEN md.manager_ids 
+      ELSE JSON_ARRAY() 
+    END,
+    '$[*]' COLUMNS(manager_id VARCHAR(36) PATH '$')
+  ) AS jt ON TRUE
+  LEFT JOIN user AS t ON jt.manager_id = t.id
   LEFT JOIN master_data_type AS mdt ON md.foundational_data_type_id = mdt.id
   WHERE md.program_id = :program_id
       AND md.is_deleted = 0
@@ -3542,9 +3594,8 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarc
       AND (:first_name IS NULL OR t.first_name LIKE :first_name)
       ${hierarchyFilter}
       ${mspHierarchyFilter}
-  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
-           t.id, t.first_name, t.last_name, mdt.name
-  ORDER BY last_updated_on DESC
+  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields
+    ORDER BY last_updated_on DESC
   LIMIT :limit OFFSET :offset;
 `;
 
@@ -3592,18 +3643,21 @@ export const timesheetConfigAdvancedGetAllFilter = (
   hasOffset: boolean
 ) => {
   const hierarchyIdsClause = hierarchyIdsArray.length
-    ? `INNER JOIN JSON_TABLE(timesheet_type_config.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
+    ? `INNER JOIN JSON_TABLE(ttc.hierarchies, '$[*]' COLUMNS(hierarchy_id VARCHAR(255) PATH '$')) AS hierarchyTable
          ON hierarchyTable.hierarchy_id IN (${hierarchyIdsArray.map((_, index) => `:hierarchy_id${index}`).join(', ')})`
     : '';
 
   const laborCategoryClause = laborCategoryIdsArray.length
-    ? `INNER JOIN JSON_TABLE(timesheet_type_config.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
+    ? `INNER JOIN JSON_TABLE(ttc.labor_category, '$[*]' COLUMNS(labor_category_id VARCHAR(255) PATH '$')) AS laborTable
          ON laborTable.labor_category_id IN (${laborCategoryIdsArray.map((_, index) => `:labor_category_id${index}`).join(', ')})`
     : '';
 
+  const hierarchyFilterCondition = hierarchyIdsArray.length
+    ? `AND (ttc.is_all_hierarchy_associated = 1 OR hierarchyTable.hierarchy_id IS NOT NULL)`
+    : '';
   return `
         SELECT
-          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, 
+          ttc.id, ttc.title, ttc.display_title, ttc.is_enabled, ttc.allocations, ttc.updated_on, ttc.slug,
           COUNT(ttc.id) OVER () AS total_count,
           JSON_OBJECT('id', trg.id, 'name', trg.rule_group_name) AS timesheet_rule_group
         FROM
@@ -3620,6 +3674,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
           ${hasTimesheetRuleGroup ? 'AND ttc.timesheet_rule_group = :timesheet_rule_group' : ''}
           ${hasTimesheetFormat ? 'AND ttc.timesheet_format = :timesheet_format' : ''}
           ${hasAllocationMethod ? 'AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(ttc.allocations, "$.allocation_method"))) = LOWER(:allocation_method)' : ''}
+          ${hierarchyFilterCondition}
         GROUP BY
           ttc.id
          ORDER BY ttc.updated_on DESC
@@ -3628,7 +3683,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     `;
 };
 
-export const masterDataTypeAdvanceFilter = (hierarchyFilter: string,mspHierarchyFilter:string) => `
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string) => `
 SELECT
   mdt.id,
   mdt.program_id,

@@ -3,8 +3,10 @@ import * as TimesheetExpenseRuleController from '../controllers/timesheet-expens
 import { createTimesheetExpenseRuleSchema, paramsSchema, QuerySchema } from '../interfaces/timesheet-expense-rule.interface';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function TimesheetExpenseRuleRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/timesheet-expense-rule', {
         schema: {
             params: paramsSchema,

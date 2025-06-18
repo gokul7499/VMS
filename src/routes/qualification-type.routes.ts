@@ -11,8 +11,10 @@ import {
   updateQualificationById,
   advancedSearchQualification
 } from "../controllers/qualification-type.controller";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function qualificationTypeRouter(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   fastify.get('/program/:program_id/qualification-type', getQualificationTypes);
   fastify.get('/program/:program_id/qualification-type/:id', getQualificationTypeById);
   fastify.post('/program/:program_id/qualification-type', createQualificationTypes);

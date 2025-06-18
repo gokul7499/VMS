@@ -13,6 +13,7 @@ import User from '../models/user.model';
 import TenantModel from '../models/tenant.model';
 import CountryModel from '../models/countries.model';
 import CustomField from '../models/custom-fields.model';
+import GlobalRepository from '../repositories/global.repository';
 
 interface HierarchyItem {
   support_email: any;
@@ -125,7 +126,6 @@ export const getHierarchies = async (request: FastifyRequest, reply: FastifyRepl
     limit?: number;
   };
   const traceId = generateCustomUUID();
-
   try {
     const hasName = !!name;
     const hasMsp = !!msp;
@@ -294,16 +294,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   const hierarchie = request.body as hierarchiesData;
   const hierarchyCode = hierarchie.code;
   const traceId = generateCustomUUID();
-
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
   logger({
     trace_id: traceId,
@@ -415,19 +406,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-
+  const user=request?.user
   const userId = user?.sub;
   try {
     const hierarchy = await HierarchiesModel.findOne({
@@ -783,19 +762,7 @@ export const updateIsNotEditableFlag = async (request: FastifyRequest, reply: Fa
 
 export async function getUserHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return reply.status(401).send({ message: "Unauthorized - Token not found" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  const user = await decodeToken(token);
-
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
-
+   const user=request?.user
   const userId = user.sub;
   const userType = user.userType;
   const { program_id } = request.params as { program_id: string };
@@ -1083,15 +1050,7 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
     });
   }
 
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  const user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-  }
+  const user=request?.user
   const userId = user?.sub;
 
   logger({

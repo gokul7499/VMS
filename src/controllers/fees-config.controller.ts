@@ -10,6 +10,7 @@ import { Op, Sequelize } from 'sequelize';
 import IndustriesModel from '../models/labour-category.model';
 import { ProgramVendor } from '../models/program-vendor.model';
 import FeesConfigRepository from '../repositories/fees-config.repository';
+import GlobalRepository from '../repositories/global.repository';
 
 
 const baseService = new BaseService(feesConfiguration);
@@ -143,17 +144,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
 
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-
+  const user=request?.user
   const userId = user?.sub;
   try {
     const feesConfigData = await feesConfiguration.findByPk(id);
@@ -188,15 +179,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
 
 export async function deleteFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user=request?.user
   const userId = user?.sub
   try {
     const { id } = request.params as { id: string };
@@ -240,9 +223,12 @@ export async function advancedSearchFeesConfiguration(
 ) {
   try {
     const { program_id } = request.params as { program_id: string };
-    const result = await baseService.advancedFilter(request, program_id, []);
+    const { page = 1, limit = 10 } = request.body as { page: number; limit: number };
+    const user=request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
+    const result = await FeesConfigRepository.feesAdvancedFilter(request, program_id, { page, limit },mspHierarchyIds);
 
-    if (result.count > 0) {
+    if (result?.count > 0) {
       return reply.status(200).send({
         status_code: 200,
         message: "Data search successfully",
@@ -257,10 +243,11 @@ export async function advancedSearchFeesConfiguration(
         items: [],
       });
     }
-  } catch (error) {
+  } catch (error:any) {
     return reply.status(500).send({
       message: "Internal Server Error",
       status_code: 500,
+      error:error.message
     });
   }
 }

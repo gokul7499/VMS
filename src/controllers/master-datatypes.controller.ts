@@ -18,19 +18,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
     const { program_id } = request.params as { program_id: string };
     const name = foundationalDataPayload.name.trim();
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
+    const user=request?.user
     const userId = user?.sub;
     const transaction = await sequelize.transaction();
 
@@ -177,18 +165,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
     let { name } = foundationalDataPayload;
     name = name.trim();
 
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
+    const user=request?.user
     const userId = user?.sub;
     const transaction = await sequelize.transaction();
     try {
@@ -278,15 +255,8 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
 
 export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    
+    const user=request?.user
     const userId = user?.sub
     try {
         const { id } = request.params as { id: string };

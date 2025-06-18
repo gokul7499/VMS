@@ -29,16 +29,9 @@ export const createRateConfigurations = async (
     const { program_id } = request.params as { program_id: string };
     const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
+  
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
+        const user=request?.user;
         const userId = user?.sub;
         if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
             const existingConfigurations = await sequelize.query(sameRateConfiguration, {
@@ -197,17 +190,8 @@ export const updateRateConfigurations = async (
     const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
     try {
-        if (!authHeader?.startsWith('Bearer ')) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-        }
-        const token = authHeader.split(' ')[1];
-        let user: any = await decodeToken(token);
-        if (!user) {
-            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-        }
-
+        const user=request?.user;
         const userId = user?.sub;
         const existingRateConfig = await RateConfigurationsModel.findOne({
             where: { program_id, id, is_deleted: false },

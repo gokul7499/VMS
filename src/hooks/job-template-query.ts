@@ -9,7 +9,8 @@ class JobTempletRepository {
   async getJobTemplateByHierarchies(
     program_id: string,
     hierarchy_ids?: string[],
-    filter_by_hierarchy?: boolean
+    filter_by_hierarchy?: boolean,
+    mspHierarchyIds?: string[]
   ) {
     let query = `
       SELECT
@@ -31,6 +32,17 @@ class JobTempletRepository {
     const replacements: Record<string, any> = {
       program_id,
     };
+
+     if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+    query += ` AND (ji.is_all_hierarchy_associated = 1 OR ji.id IN (
+      SELECT jth.job_temp_id
+      FROM job_template_hierarchies AS jth
+      WHERE jth.hierarchy IN (:mspHierarchyIds)
+      AND jth.is_deleted = false
+    ))`;
+    replacements.mspHierarchyIds = mspHierarchyIds;
+  }
+
      if (filter_by_hierarchy && hierarchy_ids && hierarchy_ids.length > 0) {
     query += ` AND (ji.is_all_hierarchy_associated = 1 OR jc.hierarchy IN (:hierarchy_ids))`;
     replacements.hierarchy_ids = hierarchy_ids;
@@ -67,7 +79,8 @@ class JobTempletRepository {
     limit?: number,
     offset?: number,
     is_enabled?: boolean,
-    is_shift_rate?: boolean
+    is_shift_rate?: boolean,
+    mspHierarchyIds?: string[]
   ) {
    const hierarchyCondition = hierarchyIdsArray.length > 0
   ? `AND (job_templates.is_all_hierarchy_associated= 1 OR job_templates.id IN (
@@ -78,6 +91,15 @@ class JobTempletRepository {
       HAVING COUNT(DISTINCT hierarchy) = ?
     ))`
   : "";
+
+      const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
+      ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${mspHierarchyIds.map(() => '?').join(',')})
+        ))`
+      : "";
+
 
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
@@ -107,6 +129,7 @@ class JobTempletRepository {
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
+      ${mspHierarchyCondition}
       ${jobTypeCondition}
       ${isEnabledCondition}
       ${isShiftRateCondition}
@@ -121,6 +144,10 @@ class JobTempletRepository {
 if (hierarchyIdsArray.length > 0) {
   replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
 }
+
+ if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      replacements.push(...mspHierarchyIds);
+    }
 
     if (job_type) {
       replacements.push(`"${job_type}"`);
@@ -152,7 +179,8 @@ if (hierarchyIdsArray.length > 0) {
     hierarchyIdsArray: string[],
     job_type?: string,
     is_enabled?: boolean,
-    is_shift_rate?: boolean
+    is_shift_rate?: boolean,
+    mspHierarchyIds?: string[]
   ) {
    const hierarchyCondition = hierarchyIdsArray.length > 0
   ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
@@ -163,6 +191,14 @@ if (hierarchyIdsArray.length > 0) {
       HAVING COUNT(DISTINCT hierarchy) = ?
     ))`
   : "";
+
+    const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
+      ? `AND (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${mspHierarchyIds.map(() => '?').join(',')})
+        ))`
+      : "";
 
     const jobTypeCondition = job_type ? `AND JSON_CONTAINS(job_templates.job_type, ?)` : '';
     const isEnabledCondition = is_enabled !== undefined ? `AND job_templates.is_enabled = ?` : '';
@@ -192,6 +228,7 @@ if (hierarchyIdsArray.length > 0) {
       LEFT JOIN labour_category ON job_templates.labour_category = labour_category.id
       WHERE job_templates.program_id = ?
       ${hierarchyCondition}
+      ${mspHierarchyCondition}
       ${jobTypeCondition}
       ${isEnabledCondition}
       ${isShiftRateCondition}
@@ -203,6 +240,10 @@ if (hierarchyIdsArray.length > 0) {
 
     if (hierarchyIdsArray.length > 0) {
       replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
+    }
+
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      replacements.push(...mspHierarchyIds);
     }
 
     if (job_type) {
@@ -238,7 +279,8 @@ if (hierarchyIdsArray.length > 0) {
     labour_category_id?: string,
     is_enabled?: boolean,
     is_shift_rate?: boolean,
-    isHierarchyIdsArray?: string[]
+    isHierarchyIdsArray?: string[],
+    mspHierarchyIds?: string[]
   ) {
   const hierarchyCondition = hierarchyIdsArray.length > 0
 ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
@@ -249,6 +291,14 @@ if (hierarchyIdsArray.length > 0) {
     HAVING COUNT(DISTINCT hierarchy) = ?
   ))`
 : "";
+
+ const mspHierarchyCondition = mspHierarchyIds && mspHierarchyIds.length > 0
+      ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
+          SELECT job_temp_id
+          FROM job_template_hierarchies
+          WHERE hierarchy IN (${mspHierarchyIds.map(() => '?').join(',')})
+        ))`
+      : "";
 
     const isHierarchyCondition = isHierarchyIdsArray && isHierarchyIdsArray.length > 0
   ? `(job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
@@ -267,6 +317,7 @@ if (hierarchyIdsArray.length > 0) {
 
     const conditions = [
       hierarchyCondition,
+      mspHierarchyCondition,
       isHierarchyCondition,
       laborCategoryIdsArray.length > 0 && `job_templates.labour_category IN (${laborCategoryIdsArray.map(() => '?').join(',')})`,
       qualificationIdsArray.length > 0 && `qualifications.id IN (${qualificationIdsArray.map(() => '?').join(',')})`,
@@ -356,6 +407,11 @@ END AS hierarchy,
     if (hierarchyIdsArray.length > 0) {
       replacements.push(...hierarchyIdsArray, hierarchyIdsArray.length);
     }
+
+    if (mspHierarchyIds && mspHierarchyIds.length > 0) {
+      replacements.push(...mspHierarchyIds);
+    }
+
     if (isHierarchyIdsArray && isHierarchyIdsArray.length > 0) {
       replacements.push(...isHierarchyIdsArray, isHierarchyIdsArray.length);
     }

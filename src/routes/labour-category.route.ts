@@ -3,9 +3,10 @@ import * as  lebourCategoryController from '../controllers/labour-category.contr
 import { bulkUploadIndustriesSchema, createIndustriesSchema, paramsSchema, querySchema } from '../interfaces/labour-category.interface';
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Actions, Permissions } from "../constants/permissions";
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function industriesRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/industries', {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.LABOUR_CATEGORY]),
         schema: {

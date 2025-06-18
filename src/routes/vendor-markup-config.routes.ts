@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { getAllVendorMarkupConfig, getVendorMarkupConfigById, createVendorMarkupConfig, calculateAverageVendorMarkupConfig, updateVendorMarkupConfig, deleteVendorMarkupConfig } from '../controllers/vendor-markup-config.controller';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function vendorMarkupConfigRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.post('/program/:program_id/vendor-markup-config', createVendorMarkupConfig);
     fastify.get('/program/:program_id/vendor-markup-config/search', getAllVendorMarkupConfig);
     fastify.get('/program/:program_id/vendor-markup-config/:id', getVendorMarkupConfigById);

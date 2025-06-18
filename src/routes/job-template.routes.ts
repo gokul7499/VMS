@@ -2,8 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as JobTemplateController from "../controllers/job-template.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function jobTemplate(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   //fastify.register(fastifyMultipart);
 
   fastify.get("/program/:program_id/job-template", {

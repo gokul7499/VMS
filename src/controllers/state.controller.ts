@@ -15,16 +15,7 @@ export async function createState(
     reply: FastifyReply,
 ) {
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
+    const user=request?.user;
     const userId = user?.sub;
 
     logger({
@@ -174,16 +165,7 @@ export async function updateStateById(request: FastifyRequest, reply: FastifyRep
     const { id } = request.params as { id: string };
     const updates = request.body as Partial<stateInterface>;
     const traceId = generateCustomUUID();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
+    const user=request?.user;
     const userId = user?.sub;
     logger({
         trace_id: traceId,
@@ -275,16 +257,7 @@ export async function deleteStatesById(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
+    const user=request?.user;
     const userId = user?.sub;
     try {
         const { id } = request.params;

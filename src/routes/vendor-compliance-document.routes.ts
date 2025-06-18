@@ -2,8 +2,10 @@ import { FastifyInstance } from 'fastify';
 import * as VendorDocumentController from '../controllers/vendor-compliance-document.controller';
 import { validatePermissions } from '../middlewares/vaildate-permissions';
 import { Actions, Permissions } from '../constants/permissions';
+import { verifyToken } from '../middlewares/verifyToken';
 
 async function vendorComplianceDocumentRoutes(fastify: FastifyInstance) {
+    fastify.addHook('preHandler', verifyToken);
     fastify.get('/program/:program_id/vendor-comp-doc/:id', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.VENDOR_COMPLIANCE_DOCUMENT])
     }, VendorDocumentController.vendorComplianceDocumentById);

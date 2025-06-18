@@ -8,6 +8,8 @@ import SowTemplateHierarchyModel from '../models/sow_template_hierarchy.model';
 import { sequelize } from '../config/instance';
 import { getSowTemplateByIdQuery, getSowTemplatesCountQuery, getSowTemplatesQuery } from '../repositories/sow-template.repository';
 import { SowTemplate } from '../interfaces/sow_template.interface';
+import SOWTemplateMasterDataModel from '../models/sow-templare-master-data.model';
+import SowTemplateCustomField from '../models/sow-template-custom-flied.model';
 
 export async function createSowTemplate(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -16,16 +18,8 @@ export async function createSowTemplate(
     const program_id = request.params.program_id;
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-   const entityId = generateCustomUUID();
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const entityId = generateCustomUUID();
+    const user=request?.user;
     const userId = user?.sub;
     const sequelize = SowTemplateModel.sequelize!;
     const transaction = await sequelize.transaction();
@@ -45,13 +39,13 @@ export async function createSowTemplate(
                 trace_id: traceId,
                 message: "SOW Template Title already exists",
             });
-        } 
+        }
 
         const item = await SowTemplateModel.create({
             ...sowTemplate,
             entity_id: entityId,
             program_id,
-            latest: true, 
+            latest: true,
             created_by: userId,
             updated_by: userId,
         }, { transaction });
@@ -65,6 +59,39 @@ export async function createSowTemplate(
                 }, { transaction });
             }
         }
+
+        if (Array.isArray(sowTemplate.master_date_type) && sowTemplate.master_date_type.length > 0) {
+            for (const master of sowTemplate.master_date_type) {
+                await SOWTemplateMasterDataModel.create({
+                    sow_temp_id: item.id,
+                    master_data_type: master.master_data_type,
+                    master_data: master.master_data,
+                    is_deleted: false,
+                    is_enabled: true,
+                    created_by: userId,
+                    updated_by: userId,
+                    created_on: Date.now(),
+                    updated_on: Date.now(),
+                }, { transaction });
+            }
+        }
+
+        if (Array.isArray(sowTemplate.custom_fields) && sowTemplate.custom_fields.length > 0) {
+            for (const field of sowTemplate.custom_fields) {
+                await SowTemplateCustomField.create({
+                    custom_field_id: field.id,
+                    value: field.value,
+                    sow_temp_id: item.id,
+                    is_deleted: false,
+                    is_enabled: true,
+                    created_by: userId,
+                    updated_by: userId,
+                    created_on: Date.now(),
+                    updated_on: Date.now(),
+                }, { transaction });
+            }
+        }
+
 
         await transaction.commit();
         reply.status(201).send({
@@ -180,6 +207,61 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         templates.forEach(template => {
             template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
+        const templateIds = templates.map(t => t.id);
+        let masterDataRecords: any[] = [];
+        if (templateIds.length > 0) {
+            masterDataRecords = await sequelize.query(
+                `
+        SELECT DISTINCT 
+            m.sow_temp_id, 
+            md.name AS name,
+            m.master_data_type AS id,
+            md.name AS name
+        FROM sow_template_master_data m
+        LEFT JOIN master_data_type md ON md.id = m.master_data_type
+        WHERE m.sow_temp_id IN (:templateIds)
+        `,
+                {
+                    replacements: { templateIds },
+                    type: QueryTypes.SELECT,
+                }
+            );
+        }
+        templates.forEach(template => {
+            const matchedData = masterDataRecords
+                .filter(md => md.sow_temp_id === template.id)
+                .map(md => ({ id: md.id, name: md.name }));
+            const uniqueMasterDataTypes = Array.from(
+                new Map(matchedData.map(obj => [obj.id, obj])).values()
+            );
+            template.master_data_type = uniqueMasterDataTypes;
+            template.sow_temp_id = template.id;
+        });
+
+        let customFieldRecords: any[] = [];
+        if (templateIds.length > 0) {
+            customFieldRecords = await sequelize.query(
+                `
+        SELECT DISTINCT 
+            scf.sow_temp_id, 
+            scf.custom_field_id 
+        FROM sow_template_custom_field scf
+        WHERE scf.sow_temp_id IN (:templateIds)
+        `,
+                {
+                    replacements: { templateIds },
+                    type: QueryTypes.SELECT,
+                }
+            );
+        }
+
+        templates.forEach(template => {
+            const matchedFields = customFieldRecords
+                .filter(f => f.sow_temp_id === template.id)
+                .map(f => f.custom_field_id);
+            template.custom_field_id = matchedFields;
+        });
+
 
         const filteredTemplates = templates.map(template => ({
             id: template.id,
@@ -190,6 +272,9 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             description: template.description,
             hierarchy: template.hierarchy,
             picklist_items: template.picklist_items,
+            sow_temp_id: template.sow_temp_id,
+            master_data_type: template.master_data_type,
+            custom_field_id: template.custom_field_id,
             created_on: template.created_on,
             updated_on: template.updated_on,
             is_sow_assignment: template.is_sow_assignment,
@@ -249,7 +334,7 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
         ];
 
         fieldsToBoolean.forEach(field => {
-           if (sowTemplateRecord[field] !== undefined) {
+            if (sowTemplateRecord[field] !== undefined) {
                 sowTemplateRecord[field] = sowTemplateRecord[field] === 1;
             }
         });
@@ -316,25 +401,25 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
             {
                 ...existingTemplate.toJSON(),
                 ...sowTemplate,
-                id: undefined, 
+                id: undefined,
                 revision: newRevision,
                 latest: true,
                 created_on: userId,
-                created_by:userId,
+                created_by: userId,
                 updated_on: Date.now(),
                 updated_by: userId,
             },
             { transaction }
         );
-       
+
         if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
             for (const hierarchyId of sowTemplate.hierarchy) {
                 await SowTemplateHierarchyModel.create({
-                        sow_template_id: newTemplate.id,
-                        hierarchy_id: hierarchyId,
-                        created_by: userId,
-                        updated_by: userId,
-                    },
+                    sow_template_id: newTemplate.id,
+                    hierarchy_id: hierarchyId,
+                    created_by: userId,
+                    updated_by: userId,
+                },
                     { transaction }
                 );
             }

@@ -14,15 +14,7 @@ import { Op } from "sequelize";
 export const createRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+     const user=request?.user;
     const userId = user?.sub
     try {
         const { program_id } = request.params as { program_id: string };
@@ -322,15 +314,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
 export const updateRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user;
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };

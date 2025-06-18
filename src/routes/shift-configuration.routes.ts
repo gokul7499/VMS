@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as ShiftConfigurationController from "../controllers/shift-configuration.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from "../middlewares/verifyToken";
 
 export default async function shiftConfigurationRoutes(fastify: FastifyInstance) {
-
+    fastify.addHook('preHandler', verifyToken);
     fastify.post("/shift-configuration", {
         // preHandler: validatePermissions(Actions.CREATE, [Permissions.SHIFT_CONFIGURATION])
     }, ShiftConfigurationController.createShiftConfiguration);

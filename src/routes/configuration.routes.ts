@@ -7,8 +7,10 @@ import {
   updateConfiguration,
   deleteConfiguration,
 } from "../controllers/configuration.controller";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function configurationRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   fastify.get("/configuration", getConfigurations,);
   fastify.get("/configuration/:id", getConfigurationById,);
   fastify.post("/configuration", createConfiguration);
