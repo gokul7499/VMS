@@ -17,6 +17,7 @@ import CandidateRepository from "../utility/candidate-query";
 import JobCategoryModel from "../models/job-category.model";
 import { sequelize } from "../config/instance";
 import { createCandidateHistory } from "../utility/candidate-history";
+import CustomField from "../models/custom-fields.model";
 const candidateRepository = new CandidateRepository();
 
 export async function createCandidate(request: FastifyRequest, reply: FastifyReply) {
@@ -404,6 +405,54 @@ export async function getCandidateByIdAndProgramId(
                 item.qualifications = [];
             }
         });
+
+         let CustomFields: any[] = [];
+
+        if (Array.isArray(candidateData.custom_fields) && candidateData.custom_fields.length > 0) {
+            const customFieldIds = candidateData.custom_fields
+                .map((field: any) => field.id)
+                .filter(Boolean);
+
+            const customFieldValues = candidateData.custom_fields
+                .map((field: any) =>
+                    typeof field.value === 'string'
+                        ? field.value.replace(/"/g, '')
+                        : null
+                )
+                .filter(Boolean);
+
+            const [customFieldDefs, users] = await Promise.all([
+                CustomField.findAll({
+                    where: {
+                        id: customFieldIds,
+                        is_deleted: false,
+                        is_enabled: true
+                    },
+                    attributes: ['id', 'name', 'field_type']
+                }),
+                User.findAll({
+                    where: {
+                        user_id: customFieldValues,
+                        program_id: candidateData.program_id
+                    },
+                    attributes: ['user_id', 'first_name', 'last_name']
+                })
+            ]);
+
+            CustomFields = candidateData.custom_fields.map((field: any) => {
+                const customFieldDef = customFieldDefs.find((cf: any) => cf.id === field.id);
+                const matchedUser = users.find((user: any) => user.user_id === field.value);
+
+                return {
+                    ...field,
+                    name: customFieldDef?.name || null,
+                    field_type: customFieldDef?.field_type || null,
+                    manager_name: matchedUser
+                        ? `${matchedUser.first_name} ${matchedUser.last_name}`
+                        : null
+                };
+            });
+        }
         // const workerClassification = await getSubmissionCandidate(program_id, id, token)
         return reply.status(200).send({
             status_code: 200,
@@ -411,6 +460,7 @@ export async function getCandidateByIdAndProgramId(
             candidate: {
                 ...candidateData,
                 qualifications: qualificationsData,
+                custom_fields: CustomFields,
                 // worker_classification: workerClassification.submission_candidate.worker_classification,
             },
             trace_id: traceId,

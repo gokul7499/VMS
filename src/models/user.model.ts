@@ -26,6 +26,7 @@ class User extends Model {
   is_all_hierarchy_associate: any;
   ast_name: string | undefined;
   first_name: string | undefined;
+    last_name: any;
 }
 
 User.init(
