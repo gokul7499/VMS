@@ -545,10 +545,19 @@ export async function expenseConfigurationAdvancedFilter(
         }
         const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
         const allConditions = [];
-        if (hierarchy_ids && hierarchy_ids.length > 0) {
-            const hierarchyJsonArray = JSON.stringify(hierarchy_ids);
-            whereCondition[Op.and] = sequelize.literal(
-                `JSON_CONTAINS(hierarchy_ids, '${hierarchyJsonArray}')`
+        const body = request.body as any;
+        const hierarchyFilter: string[] = Array.isArray(hierarchy_ids) && hierarchy_ids.length
+            ? hierarchy_ids
+            : Array.isArray(body?.hierarchy) && body.hierarchy.length
+                ? body.hierarchy
+                : [];
+
+        if (hierarchyFilter.length > 0) {
+            whereCondition[Op.and] = hierarchyFilter.map((id: string) =>
+                Sequelize.where(
+                    Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '"${id}"')`),
+                    true
+                )
             );
         }
         if (Array.isArray(mspHierarchyIds) && mspHierarchyIds.length > 0) {
