@@ -503,13 +503,6 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             });
         });
 
-        const roleQueryPromise = Array.isArray(targetValues) && targetValues.length > 0
-            ? sequelize.query(
-                `SELECT id, display_name FROM ${AUTH_DB}.roles WHERE id IN (${targetValues.map(() => '?').join(',')})`,
-                { replacements: targetValues, type: QueryTypes.SELECT }
-            )
-            : Promise.resolve([]);
-
         const [fieldConfigs, fieldOperators, selectedItemDetails, foundationalDetails, workLocationDetails, labourCategoryDetails, createOrgDetail, masterDataDetails, jobTemplateDetails, userDetails, timesheetType, picklistItem, roleDetails] = await Promise.all([
             FieldConfigModel.findAll({
                 where: { id: { [Op.in]: Array.from(metaFieldConfigIds) } },
@@ -573,7 +566,12 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 where: { id: { [Op.in]: Array.from(selectedItems) } },
                 attributes: ['id', 'value','slug']
             }),
-            roleQueryPromise
+            targetValues.size > 0
+                ? sequelize.query(
+                    `SELECT id, display_name FROM ${AUTH_DB}.roles WHERE id IN (${Array.from(targetValues).map(() => '?').join(',')})`,
+                    { replacements: Array.from(targetValues), type: QueryTypes.SELECT }
+                )
+                : []
         ]);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
