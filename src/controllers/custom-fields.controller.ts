@@ -306,29 +306,63 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     }
 
    if (module_name) {
-  if (module_name === 'Assignment Revision') {
-    // Special case: include 'Assignment' module fields and linked modules
-    andConditions.push(
-      Sequelize.literal(`
-         (
-        module_name IN ('Assignment', 'Assignment Revision')
-        OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment'))
-        OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment Revision'))
+   if (module_name === 'Assignment Revision') {
+  andConditions.push(
+    Sequelize.literal(`
+      (
+        (
+          module_name IN ('Assignment', 'Assignment Revision')
+          OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment'))
+          OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment Revision'))
+        )
+        ${user_type !== 'super_user' ? `AND (
+          -- Permissions on root-level can_edit or can_view
+          EXISTS (
+            SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+            WHERE LOWER(edit_roles.role) = LOWER('${userType}')
+          )
+          OR
+          EXISTS (
+            SELECT 1 FROM JSON_TABLE(can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+            WHERE LOWER(view_roles.role) = LOWER('${userType}')
+          )
+          -- Permissions inside linked_modules (for Assignment or Assignment Revision)
+          OR EXISTS (
+            SELECT 1 FROM JSON_TABLE(linked_modules, '$[*]' COLUMNS (
+              linked BOOLEAN PATH '$.linked',
+              module_name VARCHAR(255) PATH '$.module_name',
+              can_edit JSON PATH '$.can_edit',
+              can_view JSON PATH '$.can_view'
+            )) AS jt_perm
+            WHERE jt_perm.linked = true
+              AND jt_perm.module_name IN ('Assignment', 'Assignment Revision')
+              AND (
+                EXISTS (
+                  SELECT 1 FROM JSON_TABLE(jt_perm.can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
+                  WHERE LOWER(edit_roles.role) = LOWER('${userType}')
+                )
+                OR
+                EXISTS (
+                  SELECT 1 FROM JSON_TABLE(jt_perm.can_view, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS view_roles
+                  WHERE LOWER(view_roles.role) = LOWER('${userType}')
+                )
+              )
+          )
+        )` : ''}
       )
-      `)  
-    );
-  } else if (userType === 'super_user') {
-    // Super user can access if module_name matches or linked_modules includes module_name
+    `)
+  );
+}
+ else if (userType === 'super_user') {
     andConditions.push({
       [Op.or]: [
-        { module_name: { [Op.like]: `%${module_name}%` } },
+        { module_name: { [Op.eq]: module_name } },
         Sequelize.literal(`
           JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', '${module_name}'))
         `)
       ]
     });
   } else {
-    // Regular user permission check (non super_user)
     andConditions.push(
       Sequelize.literal(`
         (
@@ -388,7 +422,6 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     );
   }
 } else {
-  // If no module_name specified and user is not super_user, restrict to only those custom fields where userType in can_edit or can_view
   if (userType !== 'super_user') {
     andConditions.push(
       Sequelize.literal(`(
