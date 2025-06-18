@@ -453,9 +453,16 @@ export async function updateJobTemplate(
       });
       return;
     }
-    const { template_name, category, level, ...updateData } = jobTemplateData;
-    updateData.updated_on = BigInt(Date.now());
-    updateData.updated_by = userId;
+    const { template_name, category, level, ...rest } = jobTemplateData;
+    const updateData={
+      ...rest,
+      updated_on : BigInt(Date.now()),
+      updated_by : userId,
+      category,
+      template_name,
+      level
+
+    }
     await jobTemplate.update(updateData);
 
     if (jobTemplateData.hierarchy && Array.isArray(jobTemplateData.hierarchy)) {
