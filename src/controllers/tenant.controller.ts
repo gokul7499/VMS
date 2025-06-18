@@ -361,12 +361,22 @@ export async function searchTenantsWithProgramCount(request: FastifyRequest, rep
                     "program_count"
                 ]);
             }
-            else{
+            else if (query.type.toUpperCase() === "MSP") {
+                attributes.push([
+                    Sequelize.literal(`(
+                        SELECT COUNT(*)
+                        FROM program_msp_association AS pma
+                        WHERE pma.msp_id = Tenant.id
+                    )`),
+                    "program_count"
+                ]);
+            }
+            else {
                 attributes.push([
                     Sequelize.literal(`(
                         SELECT COUNT(*)
                         FROM programs AS p
-                        WHERE p.msp_id = Tenant.id OR p.client_id = Tenant.id
+                        WHERE p.client_id = Tenant.id
                     )`),
                     "program_count"
                 ]);
