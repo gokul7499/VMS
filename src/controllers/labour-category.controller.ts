@@ -16,19 +16,11 @@ export async function createIndustries(
   const labour_categories = request.body as IndustriesInterface;
   const { name } = request.body as { name: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user=request?.user
   const userId = user?.sub;
 
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  
 
   logger(
     {
@@ -235,16 +227,7 @@ export async function updateIndustries(
     const { id } = request.params as { id: string };
     const labour_categories = request.body as IndustriesInterface;
     const { name } = request.body as { name: string };
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user
     const userId = user?.sub;
 
     const existingIndustryWithSameName = await IndustriesModel.findOne({
@@ -294,15 +277,7 @@ export async function deleteIndustries(
   const traceId = generateCustomUUID();
   try {
     const { id, program_id } = request.params;
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user
     const userId = user?.sub;
     const [numRowsDeleted] = await IndustriesModel.update({
       is_deleted: true,
