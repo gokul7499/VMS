@@ -823,6 +823,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
 
         const token = authHeader.split(' ')[1];
         const user = await decodeToken(token);
+        const body = request.body as any
 
         if (!user) {
             return reply.status(401).send({ message: 'Unauthorized - Invalid token' });
@@ -911,7 +912,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
                     if (moduleType === "Assignment".toLowerCase()) {
                         const assignment_id = workflow.workflow_trigger_id;
                         const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
-                        const payload = { status: "approved", display_status: 'approved' };
+                        const payload = { status: "approved", display_status: 'approved', notes: body?.notes};
                         await axios.put(apiUrl, payload, {
                             headers: {
                                 'Content-Type': 'application/json',
