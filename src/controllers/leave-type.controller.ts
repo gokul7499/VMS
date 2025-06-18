@@ -30,19 +30,7 @@ function buildResponse(statusCode: number, message: string, data: Record<string,
 
 // Authentication helper to avoid duplicated code
 async function authenticateUser(request: FastifyRequest): Promise<{ userId: string } | null> {
-  const authHeader = request.headers.authorization;
-  
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  const token = authHeader.split(' ')[1];
-  const user = await decodeToken(token);
-  
-  if (!user) {
-    return null;
-  }
-  
+  const user = request?.user;
   return { userId: user.sub as string };
 }
 
