@@ -3,10 +3,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import  RateGuidanceService  from '../service/rate-guidance.service';
 const  rateGuidanceService = new  RateGuidanceService();
  class RateGuidanceController {
-  // private service: RateGuidanceService;
 
   constructor() {
-    // this.service = new RateGuidanceService();
   }
 
   async RateGuidance(request: FastifyRequest, reply: FastifyReply) {
