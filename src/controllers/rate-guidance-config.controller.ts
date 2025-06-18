@@ -1,12 +1,12 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { RateGuidanceService } from '../service/rate-guidance.service';
-
+const  rateGuidanceService = new  RateGuidanceService();
 export class RateGuidanceController {
-  private service: RateGuidanceService;
+  // private service: RateGuidanceService;
 
   constructor() {
-    this.service = new RateGuidanceService();
+    // this.service = new RateGuidanceService();
   }
 
   async RateGuidance(request: FastifyRequest, reply: FastifyReply) {
@@ -18,7 +18,7 @@ export class RateGuidanceController {
         rate_guidance: Array<{ event_name: string; is_enabled: boolean }>;
       };
 
-      const result = await this.service.process(payload);
+      const result = await rateGuidanceService.process(payload);
 
       return reply.code(200).send({
         success: true,
@@ -55,7 +55,7 @@ export class RateGuidanceController {
         });
       }
 
-      const result = await this.service.getByRateGuidanceId(rate_guidance_id);
+      const result = await rateGuidanceService.getByRateGuidanceId(rate_guidance_id);
 
       if (!result) {
         return reply.code(404).send({
