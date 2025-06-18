@@ -1,12 +1,10 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { RateGuidanceService } from '../service/rate-guidance.service';
-
-export class RateGuidanceController {
-  private service: RateGuidanceService;
+import  RateGuidanceService  from '../service/rate-guidance.service';
+const  rateGuidanceService = new  RateGuidanceService();
+ class RateGuidanceController {
 
   constructor() {
-    this.service = new RateGuidanceService();
   }
 
   async RateGuidance(request: FastifyRequest, reply: FastifyReply) {
@@ -18,7 +16,7 @@ export class RateGuidanceController {
         rate_guidance: Array<{ event_name: string; is_enabled: boolean }>;
       };
 
-      const result = await this.service.process(payload);
+      const result = await rateGuidanceService.process(payload);
 
       return reply.code(200).send({
         success: true,
@@ -44,39 +42,41 @@ export class RateGuidanceController {
     }
   }
 
-  async getRateGuidanceById(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { rate_guidance_id } = request.params as { rate_guidance_id: string };
+async getRateGuidanceByProgramId(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { program_id } = request.params as { program_id: string };
 
-      if (!rate_guidance_id) {
-        return reply.code(400).send({
-          success: false,
-          message: 'Missing rate_guidance_id',
-        });
-      }
-
-      const result = await this.service.getByRateGuidanceId(rate_guidance_id);
-
-      if (!result) {
-        return reply.code(404).send({
-          success: false,
-          message: 'Rate guidance not found for given ID',
-        });
-      }
-
-      return reply.code(200).send({
-        success: true,
-        message: 'Rate guidance processed',
-        response: result,
-      });
-    } catch (err) {
-      console.error('Error fetching rate guidance:', err);
-      return reply.code(500).send({
+    if (!program_id) {
+      return reply.code(400).send({
         success: false,
-        message: 'Internal Server Error',
-        error: err instanceof Error ? err.message : String(err),
+        message: 'Missing program_id',
       });
     }
+
+    const result = await rateGuidanceService.getByProgramId(program_id);
+
+    if (!result) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Rate guidance config not found for given program_id',
+      });
+    }
+
+    return reply.code(200).send({
+      success: true,
+      message: 'Rate guidance data retrieved',
+      response: result,
+    });
+  } catch (err) {
+    console.error('Error fetching rate guidance:', err);
+    return reply.code(500).send({
+      success: false,
+      message: 'Internal Server Error',
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
+}
+
+export default RateGuidanceController;

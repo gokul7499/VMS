@@ -1,9 +1,7 @@
 
 import RateGuidanceConfig from '../models/rate-guidance-config.model';
-import { RateGuidanceConfigPayload } from '../interfaces/rate-guidance-config.interface';
-import RateGuidance from '../models/rate-guidance.model';
 
-export class RateGuidanceConfigRepository {
+ class RateGuidanceConfigRepository {
 async createOrUpdate(program_id: string, is_enabled: boolean) {
     const [updated] = await RateGuidanceConfig.update(
       { is_enable: is_enabled, updated_on: Date.now() },
@@ -29,5 +27,12 @@ async findById(id: string) {
 }
 
 
+async findByProgramId(program_id: string) {
+  return await RateGuidanceConfig.findOne({
+    where: { program_id },
+    attributes: ['id', 'program_id', 'is_enable']
+  });
+}
 
 }
+export default RateGuidanceConfigRepository;

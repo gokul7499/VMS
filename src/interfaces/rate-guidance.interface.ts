@@ -1,5 +1,4 @@
 
-
 export interface RateGuidanceEventPayload {
   event_name: string;
   is_enabled: boolean;
