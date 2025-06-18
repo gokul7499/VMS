@@ -19,7 +19,8 @@ async process(payload: {
     }
     
     const rate_guidance_id = payload.rate_guidance_id || config.id;
-    const isUpdate = !!payload.rate_guidance_id; // payload मध्ये rate_guidance_id आहे का check करा
+    const isUpdate = !!payload.rate_guidance_id; 
+    
     
     const rawEvents = await this.eventRepo.createOrUpdateEvents(rate_guidance_id, payload.rate_guidance, isUpdate);
 
