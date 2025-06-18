@@ -960,6 +960,7 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
     }
 }
 export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequest, reply: FastifyReply, program_id: any, id: any, workflow: any , updates: any) {
+    const body = request.body as any
     try {
         const authHeader = request.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
@@ -1020,7 +1021,9 @@ export async function updateRejectStatusInAllWorkflowModule(request: FastifyRequ
                 const apiUrl = `${TEAI_BASE_URL}/assignment/v1/program/${program_id}/assignments/${assignment_id}/update-status`;
                 const payload = {
                     status: "rejected",
-                    display_status: "rejected"
+                    display_status: "rejected",
+                    reason: body?.reason,
+                    notes: body?.notes
                 };
 
                 await axios.put(apiUrl, payload, {
