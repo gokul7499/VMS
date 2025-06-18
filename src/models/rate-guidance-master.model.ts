@@ -1,7 +1,7 @@
 import { Model, DataTypes } from 'sequelize';
 import { sequelize } from '../config/instance';
 
-export class RateGuidance extends Model {
+export class RateGuidanceMaster extends Model {
     public id!: string;
     public program_id!: string;
     public industry!: string;
@@ -17,7 +17,7 @@ export class RateGuidance extends Model {
     public updated_on!: Date;
 }
 
-RateGuidance.init(
+RateGuidanceMaster.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -75,9 +75,9 @@ RateGuidance.init(
     },
     {
         sequelize,
-        tableName: 'rate_guidance',
+        tableName: 'rate_guidance_master',
         timestamps: false,
     }
 );
 
-export default RateGuidance;
+export default RateGuidanceMaster;

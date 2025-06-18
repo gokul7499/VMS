@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import RateGuidance from '../models/rate-guidance.model';
-import { RateGuidanceData } from '../interfaces/rate-guidance.interface';
+import RateGuidanceMaster from '../models/rate-guidance-master.model';
+import { RateGuidanceData } from '../interfaces/rate-guidance-master.interface';
 import generateCustomUUID from '../utility/genrateTraceId';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op } from 'sequelize';
@@ -34,7 +34,7 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
             updated_by: userId,
         };
 
-        const newRateGuidance = await (RateGuidance as any).create(rateGuidanceData, { transaction });
+        const newRateGuidance = await (RateGuidanceMaster as any).create(rateGuidanceData, { transaction });
 
         await transaction.commit();
 
@@ -50,7 +50,7 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(201).send({
             status_code: 201,
@@ -73,7 +73,7 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(500).send({
             status_code: 500,
@@ -104,7 +104,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
     const transaction = await sequelize.transaction();
 
     try {
-        const rateGuidance = await (RateGuidance as any).findOne({
+        const rateGuidance = await (RateGuidanceMaster as any).findOne({
             where: { id, program_id, is_deleted: false },
             transaction
         });
@@ -140,7 +140,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(200).send({
             status_code: 200,
@@ -163,7 +163,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(500).send({
             status_code: 500,
@@ -193,7 +193,7 @@ export const deleteRateGuidance = async (request: FastifyRequest, reply: Fastify
     const userId = user?.sub;
 
     try {
-        const rateGuidance = await RateGuidance.findOne({
+        const rateGuidance = await RateGuidanceMaster.findOne({
             where: { id, program_id, is_deleted: false }
         });
 
@@ -229,7 +229,7 @@ export const deleteRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: id,
             is_deleted: false
-        }, RateGuidance);
+        }, RateGuidanceMaster);
         reply.status(500).send({
             status_code: 500,
             message: 'Error deleting rate guidance',
@@ -257,7 +257,7 @@ export const getRateGuidanceById = async (request: FastifyRequest, reply: Fastif
     const userId = user?.sub;
 
     try {
-        const rateGuidance = await (RateGuidance as any).findOne({
+        const rateGuidance = await (RateGuidanceMaster as any).findOne({
             where: { id, program_id, is_deleted: false }
         });
 
@@ -287,7 +287,7 @@ export const getRateGuidanceById = async (request: FastifyRequest, reply: Fastif
             url: request.url,
             entity_id: id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
         reply.status(500).send({
             status_code: 500,
             message: 'Error retrieving rate guidance',
@@ -335,7 +335,7 @@ export const getAllRateGuidance = async (request: FastifyRequest, reply: Fastify
             ];
         }
 
-        const { count, rows } = await (RateGuidance as any).findAndCountAll({
+        const { count, rows } = await (RateGuidanceMaster as any).findAndCountAll({
             where: whereClause,
             limit,
             offset,
@@ -363,7 +363,7 @@ export const getAllRateGuidance = async (request: FastifyRequest, reply: Fastify
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
         reply.status(500).send({
             status_code: 500,
             message: 'Error retrieving rate guidance data',
@@ -419,7 +419,7 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
             if (regular_bill_rate_max !== undefined) whereClause.regular_bill_rate[Op.lte] = regular_bill_rate_max;
         }
 
-        const { count, rows } = await (RateGuidance as any).findAndCountAll({
+        const { count, rows } = await (RateGuidanceMaster as any).findAndCountAll({
             where: whereClause,
             limit,
             offset,
@@ -447,7 +447,7 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
         reply.status(500).send({
             status_code: 500,
             message: 'Error in advanced search',
@@ -493,7 +493,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
         url: request.url,
         entity_id: program_id,
         is_deleted: false
-    }, RateGuidance as any);
+    }, RateGuidanceMaster as any);
 
     const transaction = await sequelize.transaction();
 
@@ -511,7 +511,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
         }));
 
         // Bulk create records with transaction
-        await (RateGuidance as any).bulkCreate(rateGuidanceRecords, { transaction });
+        await (RateGuidanceMaster as any).bulkCreate(rateGuidanceRecords, { transaction });
 
         await transaction.commit();
 
@@ -527,7 +527,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(201).send({
             status_code: 201,
@@ -549,7 +549,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
             url: request.url,
             entity_id: program_id,
             is_deleted: false
-        }, RateGuidance as any);
+        }, RateGuidanceMaster as any);
 
         reply.status(500).send({
             status_code: 500,

@@ -75,7 +75,7 @@ import leaveTypeRoutes from "./leave-type.route";
 import sowTemplateRoutes from "./sow_template.route";
 import mtpRoutes from "./mtp.routes";
 import thresholdRoutes from "./notification-threshold-config.routes";
-import rateGuidanceRoutes from './rate-guidance.route';
+import rateGuidanceRoutesMaster from './rate-guidance-master.route';
 const basePrefix = "/config/v1/api";
 
 export default async function (app: FastifyInstance) {
@@ -154,5 +154,5 @@ export default async function (app: FastifyInstance) {
   app.register(sowTemplateRoutes, { prefix: `${basePrefix}` });
   app.register(mtpRoutes, { prefix: `${basePrefix}` });
   app.register(thresholdRoutes, { prefix: `${basePrefix}` });
-  app.register(rateGuidanceRoutes, { prefix: `${basePrefix}` });
+  app.register(rateGuidanceRoutesMaster, { prefix: `${basePrefix}` });
 }
