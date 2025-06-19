@@ -333,13 +333,26 @@ export async function getAllExpenseType(
     if (max_limit !== undefined) {
         whereClause.max_unit_limit = max_limit;
     }
-    if (updated_on) {
-        const dateRange = updated_on.split(',').map(date => new Date(date.trim()));
+     if (updated_on) {
+       const timestamps = updated_on.split(',').map(ts => Number(ts.trim()));
 
-        if (dateRange.length === 2 && !isNaN(dateRange[0].getTime()) && !isNaN(dateRange[1].getTime())) {
-            whereClause.updated_on = { [Op.between]: [dateRange[0].toISOString(), dateRange[1].toISOString()] };
-        }
+     if (timestamps.length === 2 && !isNaN(timestamps[0]) && !isNaN(timestamps[1])) {
+        whereClause.updated_on = { [Op.between]: timestamps };
+        } else if (timestamps.length === 1 && !isNaN(timestamps[0])) {
+        const date = new Date(timestamps[0]);
+
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        whereClause.updated_on = {
+            [Op.between]: [startOfDay.getTime(), endOfDay.getTime()]
+       
+        };
     }
+}
 
     const pageNumber = parseInt(page as unknown as string) || 1;
     const pageSize = parseInt(limit as unknown as string) || 10;
