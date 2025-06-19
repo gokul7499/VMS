@@ -513,17 +513,27 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
         }
 
         if (programVendorData.vendor_group_id && Array.isArray(programVendorData.vendor_group_id)) {
-            for (const groupId of programVendorData.vendor_group_id) {
-                const vendorGroup = await VendorGroup.findOne({ where: { id: groupId }, transaction });
+            const allVendorGroups = await VendorGroup.findAll({
+                where: { program_id: program_id, is_deleted: false },
+                transaction
+            });
 
-                if (vendorGroup) {
-                    let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
-
+            for (const vendorGroup of allVendorGroups) {
+                let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
+                if (programVendorData.vendor_group_id.includes(vendorGroup.id)) {
                     if (!vendorsArray.includes(existingProgramVendor.id)) {
                         vendorsArray.push(existingProgramVendor.id);
                         await VendorGroup.update(
                             { vendors: vendorsArray },
-                            { where: { id: groupId }, transaction }
+                            { where: { id: vendorGroup.id }, transaction }
+                        );
+                    }
+                } else {
+                    if (vendorsArray.includes(existingProgramVendor.id)) {
+                        vendorsArray = vendorsArray.filter(id => id !== existingProgramVendor.id);
+                        await VendorGroup.update(
+                            { vendors: vendorsArray },
+                            { where: { id: vendorGroup.id }, transaction }
                         );
                     }
                 }
