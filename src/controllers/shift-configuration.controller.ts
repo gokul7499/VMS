@@ -274,7 +274,7 @@ export async function createShiftConfiguration(request: FastifyRequest, reply: F
       });
     }
 
-    if (!shiftTypeData.hierarchy_ids) {
+    if (Array.isArray(hierarchy_ids) && hierarchy_ids.length > 0) {
       const existingConfigurations = await sequelize.query(sameShiftConfiguration, {
         replacements: {
           program_id: shiftTypeData.program_id,
