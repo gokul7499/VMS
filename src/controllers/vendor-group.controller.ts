@@ -181,15 +181,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const data: Partial<vendorGroupInterface> = request.body as Partial<vendorGroupInterface>;
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+ const user=request?.user;
   const userId = user?.sub
 
   try {
@@ -244,15 +236,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
 export const deleteVendorGroup = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string; program_id: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+ const user=request?.user;
   const userId = user?.sub
   try {
     const vendorGroup = await VendorGroup.findOne({ where: { id, program_id } });
