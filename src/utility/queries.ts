@@ -2685,7 +2685,6 @@ LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
 
 WHERE invitation.program_id = :program_id
 AND invitation.is_deleted=false
-AND invitation.is_active=true
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 ORDER BY invitation.updated_on DESC
