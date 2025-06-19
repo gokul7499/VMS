@@ -1,8 +1,8 @@
 
+import { QueryTypes } from 'sequelize';
 import Candidate from '../models/candidate.model';
-import { ProgramVendor } from '../models/program-vendor.model';
 import ProgramsConfig from '../models/programs-config.model';
-import Tenant from '../models/tenant.model';
+import { sequelize } from '../config/instance';
 
 export const generateCandidateCode = async (): Promise<string> => {
     const count = await Candidate.count(); // Remove the where clause to count all records
@@ -11,18 +11,19 @@ export const generateCandidateCode = async (): Promise<string> => {
 };
 
 export const CandidateCodeGenerate = async (vendor_id: string, program_id: string): Promise<string> => {
-    const vendor = await ProgramVendor.findOne({
-        where: { id: vendor_id, program_id: program_id },
-        include: [
-            {
-                model: Tenant,
-                as: 'tenant',
-                attributes: ['vendor_code', 'display_name']
-            }
-        ],
-        logging: true
-    });
-
+    const [vendor] = await sequelize.query<{ vendor_code: any, display_name: any, id: any }>(
+        `SELECT pv.id, t.vendor_code, t.display_name
+         FROM program_vendors AS pv
+         LEFT JOIN tenant AS t ON t.id = pv.tenant_id
+         WHERE 
+            pv.id = :vendor_id
+            AND pv.program_id = :program_id
+         LIMIT 1`,
+        {
+            replacements: { vendor_id, program_id },
+            type: QueryTypes.SELECT,
+        }
+    );
     const vendor_code = vendor?.vendor_code?.toUpperCase() ?? vendor?.display_name.substring(0, 3).toUpperCase();
 
     const count = await Candidate.count({ where: { vendor_id: vendor?.id } });
