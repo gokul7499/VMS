@@ -362,12 +362,24 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                         SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
                                 'id', custom_fields.id,
-                                'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$'))
+                                'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$')),
+                                'label',custom_fields.label,
+                                'manager_name',
+                            CASE
+                                WHEN user.user_id IS NOT NULL
+                                THEN CONCAT(user.first_name, ' ', user.last_name)
+                               ELSE NULL
+                            END,
+                            'name', custom_fields.name,
+                            'field_type', custom_fields.field_type
                             )
                         )
                         FROM user_custom_fields
                         LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
+                        LEFT JOIN user ON TRIM(BOTH '"' FROM user_custom_fields.value) = user.user_id AND custom_fields.program_id=user.program_id
                         WHERE user_custom_fields.user_id = u.user_id
+                        AND custom_fields.is_deleted = false
+                        AND custom_fields.is_enabled = true
                     ), JSON_ARRAY())
                 ) AS user
             FROM user_mappings um
