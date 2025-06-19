@@ -315,7 +315,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment'))
           OR JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', 'Assignment Revision'))
         )
-        ${user_type !== 'super_user' ? `AND (
+        ${userType !== 'super_user' ? `AND (
           -- Permissions on root-level can_edit or can_view
           EXISTS (
             SELECT 1 FROM JSON_TABLE(can_edit, '$[*]' COLUMNS (role VARCHAR(255) PATH '$')) AS edit_roles
