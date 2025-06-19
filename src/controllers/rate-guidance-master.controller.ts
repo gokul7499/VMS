@@ -9,7 +9,6 @@ import { logger } from '../utility/loggerService';
 
 export const createRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id } = request.params as { program_id: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -29,7 +28,6 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
     try {
         const rateGuidanceData = {
             ...request.body as RateGuidanceData,
-            program_id,
             created_by: userId,
             updated_by: userId,
         };
@@ -41,14 +39,14 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, rate_guidance_id: newRateGuidance.id },
+            data: { rate_guidance_id: newRateGuidance.id },
             eventname: "create rate guidance",
             status: "success",
-            description: `Successfully created rate guidance for program ${program_id}`,
+            description: 'Successfully created rate guidance',
             level: 'info',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: newRateGuidance.id,
             is_deleted: false
         }, RateGuidanceMaster as any);
 
@@ -64,14 +62,14 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, error: error.message },
+            data: { error: error.message },
             eventname: "create rate guidance",
             status: "error",
-            description: `Error creating rate guidance for program ${program_id}`,
+            description: 'Error creating rate guidance',
             level: 'error',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: 'error',
             is_deleted: false
         }, RateGuidanceMaster as any);
 
@@ -86,7 +84,7 @@ export const createRateGuidance = async (request: FastifyRequest, reply: Fastify
 
 export const updateRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { id } = request.params as { id: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -105,7 +103,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
 
     try {
         const rateGuidance = await (RateGuidanceMaster as any).findOne({
-            where: { id, program_id, is_deleted: false },
+            where: { id, is_deleted: false },
             transaction
         });
 
@@ -134,7 +132,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
             data: { id, ...updateData },
             eventname: "update rate guidance",
             status: "success",
-            description: `Successfully updated rate guidance ${id} for program ${program_id}`,
+            description: `Successfully updated rate guidance ${id}`,
             level: 'info',
             action: request.method,
             url: request.url,
@@ -154,10 +152,10 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, id, error: error.message },
+            data: { id, error: error.message },
             eventname: "update rate guidance",
             status: "error",
-            description: `Error updating rate guidance ${id} for program ${program_id}`,
+            description: `Error updating rate guidance ${id}`,
             level: 'error',
             action: request.method,
             url: request.url,
@@ -176,7 +174,7 @@ export const updateRateGuidance = async (request: FastifyRequest, reply: Fastify
 
 export const deleteRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { id } = request.params as { id: string };
 
 
     const authHeader = request.headers.authorization;
@@ -194,7 +192,7 @@ export const deleteRateGuidance = async (request: FastifyRequest, reply: Fastify
 
     try {
         const rateGuidance = await RateGuidanceMaster.findOne({
-            where: { id, program_id, is_deleted: false }
+            where: { id, is_deleted: false }
         });
 
         if (!rateGuidance) {
@@ -220,10 +218,10 @@ export const deleteRateGuidance = async (request: FastifyRequest, reply: Fastify
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, id, error: error.message },
+            data: { id, error: error.message },
             eventname: "delete rate guidance",
             status: "error",
-            description: `Error deleting rate guidance ${id} for program ${program_id}`,
+            description: `Error deleting rate guidance ${id}`,
             level: 'error',
             action: request.method,
             url: request.url,
@@ -241,7 +239,7 @@ export const deleteRateGuidance = async (request: FastifyRequest, reply: Fastify
 
 export const getRateGuidanceById = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id, id } = request.params as { program_id: string; id: string };
+    const { id } = request.params as { id: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -258,7 +256,7 @@ export const getRateGuidanceById = async (request: FastifyRequest, reply: Fastif
 
     try {
         const rateGuidance = await (RateGuidanceMaster as any).findOne({
-            where: { id, program_id, is_deleted: false }
+            where: { id, is_deleted: false }
         });
 
         if (!rateGuidance) {
@@ -278,10 +276,10 @@ export const getRateGuidanceById = async (request: FastifyRequest, reply: Fastif
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, id, error: error.message },
+            data: { id, error: error.message },
             eventname: "get rate guidance by id",
             status: "error",
-            description: `Error retrieving rate guidance ${id} for program ${program_id}`,
+            description: `Error retrieving rate guidance ${id}`,
             level: 'error',
             action: request.method,
             url: request.url,
@@ -299,7 +297,6 @@ export const getRateGuidanceById = async (request: FastifyRequest, reply: Fastif
 
 export const getAllRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id } = request.params as { program_id: string };
     const { page = 1, limit = 10, search, is_enabled } = request.query as { page: number; limit: number; search?: string; is_enabled?: boolean };
 
     const authHeader = request.headers.authorization;
@@ -318,7 +315,6 @@ export const getAllRateGuidance = async (request: FastifyRequest, reply: Fastify
     try {
         const offset = (page - 1) * limit;
         const whereClause: any = {
-            program_id,
             is_deleted: false,
         };
 
@@ -354,14 +350,14 @@ export const getAllRateGuidance = async (request: FastifyRequest, reply: Fastify
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, error: error.message },
+            data: { error: error.message },
             eventname: "get all rate guidance",
             status: "error",
-            description: `Error retrieving rate guidance data for program ${program_id}`,
+            description: `Error retrieving rate guidance data`,
             level: 'error',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: 'all',
             is_deleted: false
         }, RateGuidanceMaster as any);
         reply.status(500).send({
@@ -375,12 +371,11 @@ export const getAllRateGuidance = async (request: FastifyRequest, reply: Fastify
 
 export const advancedSearchRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id } = request.params as { program_id: string };
     const {
-        industry,
-        profession,
-        specialty,
-        state,
+        industry = '',
+        profession = '',
+        specialty = '',
+        state = '',
         regular_bill_rate_min,
         regular_bill_rate_max,
         is_enabled,
@@ -404,7 +399,6 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
     try {
         const offset = (page - 1) * limit;
         const whereClause: any = {
-            program_id,
             is_deleted: false,
         };
 
@@ -457,14 +451,14 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, error: error.message },
+            data: { error: error.message },
             eventname: "advanced search rate guidance",
             status: "error",
-            description: `Error in advanced search for rate guidance in program ${program_id}`,
+            description: `Error in advanced search for rate guidance`,
             level: 'error',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: 'all',
             is_deleted: false
         }, RateGuidanceMaster as any);
         reply.status(500).send({
@@ -478,7 +472,6 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
 
 export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const { program_id } = request.params as { program_id: string };
     const records = request.body as Array<{
         industry: string;
         profession: string;
@@ -503,14 +496,14 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
     logger({
         trace_id: traceId,
         actor: { user_name: user?.preferred_username, user_id: userId },
-        data: { count: records.length, program_id },
+        data: { count: records.length },
         eventname: "bulk upload rate guidance",
         status: "in_progress",
-        description: `Starting bulk upload of ${records.length} rate guidance records for program ${program_id}`,
+        description: `Starting bulk upload of ${records.length} rate guidance records`,
         level: 'info',
         action: request.method,
         url: request.url,
-        entity_id: program_id,
+        entity_id: 'all',
         is_deleted: false
     }, RateGuidanceMaster as any);
 
@@ -519,7 +512,6 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
     try {
         // Validate and transform records
         const rateGuidanceRecords = records.map(record => ({
-            program_id,
             industry: record.industry,
             profession: record.profession,
             specialty: record.specialty,
@@ -537,14 +529,14 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { count: rateGuidanceRecords.length, program_id },
+            data: { count: rateGuidanceRecords.length },
             eventname: "bulk upload rate guidance",
             status: "success",
-            description: `Successfully uploaded ${rateGuidanceRecords.length} rate guidance records for program ${program_id}`,
+            description: `Successfully uploaded ${rateGuidanceRecords.length} rate guidance records`,
             level: 'info',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: 'all',
             is_deleted: false
         }, RateGuidanceMaster as any);
 
@@ -559,20 +551,93 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { program_id, error: error.message },
+            data: { error: error.message },
             eventname: "bulk upload rate guidance",
             status: "error",
-            description: `Error processing bulk upload for program ${program_id}`,
+            description: `Error processing bulk upload`,
             level: 'error',
             action: request.method,
             url: request.url,
-            entity_id: program_id,
+            entity_id: 'all',
             is_deleted: false
         }, RateGuidanceMaster as any);
 
         reply.status(500).send({
             status_code: 500,
             message: 'Error processing bulk upload',
+            error: error.message,
+            trace_id: traceId
+        });
+    }
+};
+
+export const getUniqueProfessions = async (request: FastifyRequest, reply: FastifyReply) => {
+    const traceId = generateCustomUUID();
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let user: any = await decodeToken(token);
+    if (!user) {
+        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+    }
+
+    const userId = user?.sub;
+
+    try {
+        const uniqueProfessions = await RateGuidanceMaster.findAll({
+            attributes: [
+                [sequelize.fn('DISTINCT', sequelize.col('profession')), 'profession']
+            ],
+            where: {
+                is_deleted: false
+            },
+            raw: true
+        });
+
+        const professions = uniqueProfessions.map((item: { profession: string }) => item.profession);
+
+        logger({
+            trace_id: traceId,
+            actor: { user_name: user?.preferred_username, user_id: userId },
+            data: { count: professions.length },
+            eventname: "get unique professions",
+            status: "success",
+            description: `Successfully retrieved ${professions.length} unique professions`,
+            level: 'info',
+            action: request.method,
+            url: request.url,
+            entity_id: 'all',
+            is_deleted: false
+        }, RateGuidanceMaster as any);
+
+        reply.status(200).send({
+            status_code: 200,
+            message: 'Unique professions retrieved successfully',
+            professions,
+            trace_id: traceId
+        });
+    } catch (error: any) {
+        logger({
+            trace_id: traceId,
+            actor: { user_name: user?.preferred_username, user_id: userId },
+            data: { error: error.message },
+            eventname: "get unique professions",
+            status: "error",
+            description: "Error retrieving unique professions",
+            level: 'error',
+            action: request.method,
+            url: request.url,
+            entity_id: 'all',
+            is_deleted: false
+        }, RateGuidanceMaster as any);
+
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Error retrieving unique professions',
             error: error.message,
             trace_id: traceId
         });

@@ -1,5 +1,4 @@
 export interface Params {
-    program_id: string;
     id?: string;
 }
 
@@ -37,7 +36,6 @@ export interface AdvancedSearch {
 
 export interface RateGuidanceData {
     id?: string;
-    program_id: string;
     industry: string;
     profession: string;
     specialty: string;
