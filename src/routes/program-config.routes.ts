@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import * as ProgramConfigController from "../controllers/program-config.controller";
 import { Permissions, Actions } from "../constants/permissions";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function programsConfigRoutes(fastify: FastifyInstance) {
-
+  fastify.addHook('preHandler', verifyToken);
   fastify.get("/program/:program_id/program-config/:id", {
     // preHandler: validatePermissions(Actions.READ, [Permissions.PROGRAM_CONFIGURATION])
   }, ProgramConfigController.getConfigurationById);
