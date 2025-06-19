@@ -419,19 +419,38 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
             if (regular_bill_rate_max !== undefined) whereClause.regular_bill_rate[Op.lte] = regular_bill_rate_max;
         }
 
-        const { count, rows } = await (RateGuidanceMaster as any).findAndCountAll({
+        const { rows } = await RateGuidanceMaster.findAndCountAll({
             where: whereClause,
-            limit,
-            offset,
+            // limit,
+            // offset,
             order: [['created_on', 'DESC']]
         });
 
+        if (rows.length === 0) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'No rate guidance data found',
+                rate_analysis: {
+                    min_rate: 0,
+                    max_rate: 0,
+                    average_rate: 0
+                },
+                trace_id: traceId
+            });
+        }
+        const rates: number[] = rows.map((row) => row.regular_bill_rate);
+        const minRate = Math.min(...rates);
+        const maxRate = Math.max(...rates);
+        const averageRate = Number((rates.reduce((a: number, b: number) => a + b, 0) / rates.length).toFixed(2));
+
         reply.status(200).send({
             status_code: 200,
-            total: count,
-            page,
-            limit,
-            rate_guidance: rows,
+            message: 'Rate guidance analysis completed successfully',
+            rate_analysis: {
+                min_rate: minRate || 0,
+                max_rate: maxRate || 0,
+                average_rate: averageRate || 0
+            },
             trace_id: traceId
         });
     } catch (error: any) {
