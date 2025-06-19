@@ -196,7 +196,7 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
 
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id },
+            where: { name, program_id, is_deleted: false },
         });
 
         if (existingFoundationalDataWithSameName) {

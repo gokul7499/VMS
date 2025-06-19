@@ -60,7 +60,7 @@ interface VendorDetails {
     status: any;
     tenant_id: any;
     compliance_documents: any;
-    is_enabled:any
+    is_enabled: any
 }
 
 
@@ -259,7 +259,7 @@ export async function getProgramVendors(
                     hierarchies: vendorDetails.length > 0 ? vendorDetails[0].hierarchies : [],
                     work_locations: vendorDetails.length > 0 ? vendorDetails[0].work_locations : [],
                     associate_labour_category: vendorDetails.length > 0 ? vendorDetails[0].labour_category : [],
-                    custom_fields:vendorDetails.length > 0 ? vendorDetails[0].custom_fields : []                
+                    custom_fields: vendorDetails.length > 0 ? vendorDetails[0].custom_fields : []
                 };
 
                 return transformedVendor;
@@ -375,7 +375,7 @@ export async function saveProgramVendor(
             tenantData = tenants
         }
         const programVendors = await ProgramVendor.create({ ...vendor, program_id }, { transaction });
-        const userData = await UserModel.create({ ...userWithoutId,user_type:user.user_type.toLowerCase(), user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
+        const userData = await UserModel.create({ ...userWithoutId, user_type: user.user_type.toLowerCase(), user_id: user.id, tenant_id: tenantData.id, status: user.status, program_id, vendor_id: programVendors.id, title: user.job_title }, { transaction });
         await UserMapping.create({ id: userGroupMapping.id, user_type: userGroupMapping.user_type.toLowerCase(), status: userGroupMapping.status, tenant_id: tenantData.id, user_id: userData.user_id, program_id, role_id: user.role_id }, { transaction });
 
         await ProgramVendor.update(
@@ -513,17 +513,27 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
         }
 
         if (programVendorData.vendor_group_id && Array.isArray(programVendorData.vendor_group_id)) {
-            for (const groupId of programVendorData.vendor_group_id) {
-                const vendorGroup = await VendorGroup.findOne({ where: { id: groupId }, transaction });
+            const allVendorGroups = await VendorGroup.findAll({
+                where: { program_id: program_id, is_deleted: false },
+                transaction
+            });
 
-                if (vendorGroup) {
-                    let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
-
+            for (const vendorGroup of allVendorGroups) {
+                let vendorsArray: string[] = Array.isArray(vendorGroup.vendors) ? vendorGroup.vendors : [];
+                if (programVendorData.vendor_group_id.includes(vendorGroup.id)) {
                     if (!vendorsArray.includes(existingProgramVendor.id)) {
                         vendorsArray.push(existingProgramVendor.id);
                         await VendorGroup.update(
                             { vendors: vendorsArray },
-                            { where: { id: groupId }, transaction }
+                            { where: { id: vendorGroup.id }, transaction }
+                        );
+                    }
+                } else {
+                    if (vendorsArray.includes(existingProgramVendor.id)) {
+                        vendorsArray = vendorsArray.filter(id => id !== existingProgramVendor.id);
+                        await VendorGroup.update(
+                            { vendors: vendorsArray },
+                            { where: { id: vendorGroup.id }, transaction }
                         );
                     }
                 }
@@ -571,10 +581,10 @@ export const updateProgramVendor = async (request: FastifyRequest, reply: Fastif
             }
         }
 
-         await vendorMarkupConfig.destroy({
-                where: { program_id, program_vendor_id: existingProgramVendor.id },
-                transaction
-            });
+        await vendorMarkupConfig.destroy({
+            where: { program_id, program_vendor_id: existingProgramVendor.id },
+            transaction
+        });
 
         if (programVendorData.markup_config && Array.isArray(programVendorData.markup_config)) {
             for (const markup of programVendorData.markup_config) {
@@ -685,7 +695,7 @@ export async function deleteProgramVendor(
         const { program_id, id } = request.params as { program_id: string; id: string };
         const program_vendor = await ProgramVendor.findOne({ where: { program_id, id } });
         if (program_vendor) {
-            await ProgramVendor.update({ is_deleted: true}, {
+            await ProgramVendor.update({ is_deleted: true }, {
                 where: {
                     program_id, id, created_by: userId,
                     updated_by: userId,
@@ -1409,8 +1419,12 @@ export async function advanceFilter(
             page: string;
             limit: string;
         };
-        const finalComplianceStatus = compliance_status === 'Compliant' ? true : compliance_status === 'Non-Compliant' ? false : null;
-        const hasComplianceStatus = finalComplianceStatus !== null;
+        const finalComplianceStatus =
+            compliance_status === 'Compliant' ? true :
+                compliance_status === 'Non-Compliant' ? false :
+                    null;
+                    
+        const hasComplianceStatus = compliance_status !== undefined && compliance_status !== null && compliance_status !== '';
         const hasQueryName = !!display_name;
         const hasCountry = !!country_id;
         const hasPage = !!page;
@@ -1476,13 +1490,22 @@ export async function advanceFilter(
         const totalRecords = data[0]?.total_count ? data[0].total_count : 0;;
 
         const transformedData = data.map((vendor: any) => {
-            const isCompliant = !!vendor.compliance_status;
+            let statusText;
+            const statusValue = vendor.compliance_status;
+
+            if (statusValue === 1) {
+                statusText = 'Compliant';
+            } else if (statusValue === 0) {
+                statusText = 'Non-Compliant';
+            } else {
+                statusText = 'Not-Applicable';
+            }
             return {
                 ...vendor,
                 compliance_status: {
-                    status: isCompliant ? 'Compliant' : 'Non-Compliant',
-                    is_audited: isCompliant,
-                    is_compliant: isCompliant,
+                    status: statusText,
+                    is_audited: statusValue === 1,
+                    is_compliant: statusValue === 1,
                 },
             };
         });

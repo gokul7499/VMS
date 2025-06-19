@@ -11,8 +11,10 @@ import {
 } from "../controllers/programs.controller";
 import { validatePermissions } from "../middlewares/vaildate-permissions";
 import { Permissions, Actions } from "../constants/permissions";
+import { verifyToken } from "../middlewares/verifyToken";
 
 async function programsRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', verifyToken);
   fastify.post("/program/", saveProgram);
   fastify.get("/program/get-all", getAllProgram);
   fastify.get("/program/getbyid/:id", getProgramById);

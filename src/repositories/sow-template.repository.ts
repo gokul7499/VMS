@@ -102,10 +102,11 @@ export const getSowTemplateByIdQuery = `
         WHERE stcf.sow_temp_id = t.id
     ), '[]') AS custom_fields,
 
-    -- Master Data
+-- Master Data
 COALESCE((
     SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
+            'id', md.id,
             'master_data_type', md.master_data_type,
             'master_data_type_name', mdt.name,
             'master_data', md.master_data

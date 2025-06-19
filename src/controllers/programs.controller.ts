@@ -26,19 +26,9 @@ export const saveProgram = async (request: FastifyRequest, reply: FastifyReply) 
   const { msps = [], ...programData } = request.body as CreateProgramData & { msps?: string[] };
   const traceId = generateCustomUUID();
 
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
-  }
-
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
+  const user=request?.user
   const userId = user?.sub;
 
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token', trace_id: traceId });
-  }
 
   logger(
     {
@@ -388,17 +378,9 @@ export const updateProgramById = async (request: FastifyRequest<{ Params: { id: 
   const { id } = request.params;
   const updates = request.body as CreateProgramData;
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
 
   try {
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user
     const userId = user?.sub;
 
     const program = await Programs.findOne({
@@ -522,16 +504,8 @@ export const updateProgramMsps = async (programId: string, msps: any[], userId: 
 export async function deleteProgramById(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
   try {
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-      return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user=request?.user
     const userId = user?.sub;
     const program = await Programs.findByPk(id);
     if (program) {
