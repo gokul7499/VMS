@@ -584,3 +584,59 @@ export async function listCredentialingPacket(
         });
     }
 }
+
+export async function enableDisableCredentialingPacket(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    try {
+
+        const { program_id, entity_id } = request.params as { program_id: string; entity_id: string };
+        const { is_enabled } = request.body as { is_enabled: boolean };
+
+        if (!entity_id || !program_id) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "Program ID and Entity ID are required",
+                trace_id: traceId
+            });
+        }
+
+        if (is_enabled === undefined) {
+            return reply.status(400).send({
+                status_code: 400,
+                message: "'is_enabled' is required in the payload",
+                trace_id: traceId
+            });
+        }
+
+        const credentialingPacket = await CredentialingPacket.findOne({
+            where: { program_id, entity_id, latest: true, is_deleted: false },
+        });
+
+        if (!credentialingPacket) {
+            return reply.status(404).send({
+                status_code: 404,
+                message: "Credentialing Packet not found",
+                trace_id: traceId,
+            });
+        }
+
+        await CredentialingPacket.update(
+            { is_enabled, updated_on: BigInt(Date.now()) },
+            { where: { program_id, entity_id, latest: true, is_deleted: false } }
+        );
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: "Credentialing Packet is_enabled status updated successfully",
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        console.error("Error in enableDisableCredentialingPacket:", error);
+        return reply.status(500).send({
+            status_code: 500,
+            message: "An error occurred while updating is_enabled status of the credentialing packet",
+            trace_id: traceId,
+            error,
+        });
+    }
+}

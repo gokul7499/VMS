@@ -67,7 +67,8 @@ export const getSowTemplateByIdQuery = `
     t.updated_by,
     t.created_on,
     t.updated_on,
-    -- Existing hierarchy, custom_fields, and master_data
+
+    -- Hierarchy
     COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
             'id', h.hierarchy_id,
@@ -76,9 +77,10 @@ export const getSowTemplateByIdQuery = `
         FROM sow_template_hierarchy h 
         LEFT JOIN hierarchies hier ON h.hierarchy_id = hier.id
         WHERE h.sow_template_id = t.id
-    ), '[]') AS hierarchy,  
-   
- COALESCE((
+    ), '[]') AS hierarchy,
+
+    -- Picklist
+    COALESCE((
         SELECT JSON_OBJECT(
             'id', p.id,
             'label', p.label
@@ -86,7 +88,35 @@ export const getSowTemplateByIdQuery = `
         FROM picklistitems p
         WHERE p.id = t.type
         LIMIT 1
-    ), NULL) AS picklist_items
+    ), NULL) AS picklist_items,
+
+    -- Custom Fields
+    COALESCE((
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', stcf.custom_field_id,
+                'value', stcf.value
+            )
+        )
+        FROM sow_template_custom_field stcf
+        WHERE stcf.sow_temp_id = t.id
+    ), '[]') AS custom_fields,
+
+-- Master Data
+COALESCE((
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', md.id,
+            'master_data_type', md.master_data_type,
+            'master_data_type_name', mdt.name,
+            'master_data', md.master_data
+        )
+    )
+    FROM sow_template_master_data md
+    LEFT JOIN master_data_type mdt ON md.master_data_type = mdt.id
+    WHERE md.sow_temp_id = t.id
+), '[]') AS master_data
+
 FROM sow_templates t
 WHERE t.id = :id AND t.program_id = :program_id AND t.is_deleted = false
 LIMIT 1;

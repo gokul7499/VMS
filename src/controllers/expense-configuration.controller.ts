@@ -292,7 +292,7 @@ export async function updateExpenseConfiguration(request: FastifyRequest, reply:
         const newHierarchyIds = updatedData.hierarchy_ids ?? [];
 
         const existingConfig = await ExpenseConfigurationModel.findOne({
-            where: { id, program_id, is_deleted: false, latest: true, is_enabled: true },
+            where: { id, program_id, is_deleted: false},
             transaction,
         });
 

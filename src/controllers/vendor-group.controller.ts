@@ -18,8 +18,8 @@ export const createVendorGroup = async (
   const { program_id } = request.params as { program_id: string };
   const vendorGroup = request.body as vendorGroupInterface;
   const traceId = generateCustomUUID();
-   const user=request?.user;
-   const userId=user?.sub;
+  const user = request?.user;
+  const userId = user?.sub;
   if (!vendorGroup.vendor_group_name) {
     logger(
       {
@@ -181,57 +181,85 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const data: Partial<vendorGroupInterface> = request.body as Partial<vendorGroupInterface>;
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
-  const userId = user?.sub
+  const userId = request?.user?.sub;
+
+  const transaction = await sequelize.transaction();
 
   try {
     if (data.vendor_group_name) {
-      const existingVendorGroup = await VendorGroup.findOne({
+      const duplicate = await VendorGroup.findOne({
         where: {
           program_id,
           vendor_group_name: data.vendor_group_name,
-          id: { [Op.ne]: id }
-        }
+          id: { [Op.ne]: id },
+        },
+        transaction,
       });
 
-      if (existingVendorGroup) {
+      if (duplicate) {
+        await transaction.rollback();
         return reply.status(409).send({
           status_code: 409,
-          message: 'Vendor group name already exists. Please use a different name.',
+          message: 'Vendor group name already exists.',
           trace_id: traceId,
         });
       }
     }
 
     const vendorGroup = await VendorGroup.findOne({
-      where: { id, program_id }
+      where: { id, program_id, is_deleted: false },
+      transaction,
     });
 
-    if (vendorGroup) {
-      await vendorGroup.update({ ...data, updated_by: userId },);
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Vendor group updated successfully.',
+    if (!vendorGroup) {
+      await transaction.rollback();
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'Vendor group not found.',
         trace_id: traceId,
-      });
-    } else {
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Vendor Group not found.',
-        trace_id: traceId,
-        vendor_group: []
       });
     }
+
+    await vendorGroup.update({ ...data, updated_by: userId }, { transaction });
+
+    if (Array.isArray(data.vendors)) {
+      const vendorsToAdd = new Set(data.vendors);
+
+      const allVendors = await ProgramVendor.findAll({
+        where: { program_id, is_deleted: false },
+        transaction,
+      });
+
+      for (const pv of allVendors) {
+        let groups: string[] = Array.isArray(pv.vendor_group_id) ? [...pv.vendor_group_id] : [];
+
+        const hasGroup = groups.includes(id);
+        const shouldHaveGroup = vendorsToAdd.has(pv.id);
+
+        if (shouldHaveGroup && !hasGroup) {
+          groups.push(id);
+        } else if (!shouldHaveGroup && hasGroup) {
+          groups = groups.filter(gid => gid !== id);
+        } else {
+          continue;
+        }
+
+        await ProgramVendor.update(
+          { vendor_group_id: groups, updated_by: userId },
+          { where: { id: pv.id }, transaction }
+        );
+      }
+    }
+
+    await transaction.commit();
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: 'Vendor group updated successfully.',
+      trace_id: traceId,
+    });
   } catch (error) {
-    console.error(error);
+    await transaction.rollback();
     return reply.status(500).send({
       status_code: 500,
       message: 'Internal Server Error',
@@ -244,15 +272,7 @@ export async function updateVendorGroup(request: FastifyRequest, reply: FastifyR
 export const deleteVendorGroup = async (request: FastifyRequest, reply: FastifyReply) => {
   const { id, program_id } = request.params as { id: string; program_id: string };
   const traceId = generateCustomUUID();
-  const authHeader = request.headers.authorization;
-  if (!authHeader?.startsWith('Bearer')) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized-Token not found' });
-  }
-  const token = authHeader.split(' ')[1];
-  let user: any = await decodeToken(token);
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+  const user = request?.user;
   const userId = user?.sub
   try {
     const vendorGroup = await VendorGroup.findOne({ where: { id, program_id } });
@@ -313,17 +333,17 @@ export async function vendorGroupFilter(
     const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
     let updatedOnStart: number | undefined = undefined;
     let updatedOnEnd: number | undefined = undefined;
-    
+
     if (hasUpdatedOnFilter) {
       const startDate = new Date(updated_on[0]);
-      updatedOnStart = startDate.setHours(0, 0, 0, 0); 
-    
+      updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
       if (updated_on.length === 1 || updated_on[1] === 0) {
         updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
       } else {
         updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
       }
-    }    
+    }
 
     const query = vendorGroupFilterQuery(
       Boolean(id),

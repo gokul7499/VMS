@@ -6,6 +6,7 @@ import {
     deleteCredentialingPacket,
     filterCredentialingPacket,
     listCredentialingPacket,
+    enableDisableCredentialingPacket,
 } from "../controllers/credentialing-packet.controller";
 
 async function credentialingPacketRoutes(fastify: FastifyInstance) {
@@ -15,6 +16,7 @@ async function credentialingPacketRoutes(fastify: FastifyInstance) {
     fastify.delete("/program/:program_id/credentialing-packets/entity/:entity_id", deleteCredentialingPacket);
     fastify.get("/program/:program_id/credentialing-packets/filter", filterCredentialingPacket);
     fastify.get("/program/:program_id/credentialing-packets/list/brief", listCredentialingPacket);
+    fastify.put("/program/:program_id/credentialing-packets/entity/:entity_id/enable-disable", enableDisableCredentialingPacket);
 
 }
 

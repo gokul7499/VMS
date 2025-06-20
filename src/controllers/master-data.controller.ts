@@ -190,22 +190,13 @@ export async function createFoundationalData(request: FastifyRequest, reply: Fas
     const { name, code } = foundational_data;
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
+    const user = request?.user;
 
     const userId = user?.sub;
 
     try {
         const existingFoundationalDataWithSameName = await foundationalData.findOne({
-            where: { name, program_id },
+            where: { name, program_id, is_deleted: false },
         });
 
         if (existingFoundationalDataWithSameName) {
@@ -275,20 +266,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
     const { program_id, id } = request.params as { program_id: string, id: string };
     let { name, hierarchy } = request.body as { name: string, hierarchy?: string[] };
     name = name.trim();
-
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-
-    if (!user) {
-        return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-    }
-
+    const user = request?.user;
     const userId = user?.sub;
     const transaction = await sequelize.transaction();
 
@@ -370,15 +348,7 @@ export async function updateFoundationalData(request: FastifyRequest, reply: Fas
 
 export async function deleteFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return reply.status(401).send({ message: 'Unauthorized - Token not found' });
-    }
-    const token = authHeader.split(' ')[1];
-    const user: any = await decodeToken(token);
-    if (!user) {
-        return reply.status(401).send({ message: "Unauthorized - Invalid token" });
-    }
+    const user = request?.user;
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };

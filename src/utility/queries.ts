@@ -1369,7 +1369,9 @@ export const programVendorAdvancedFilter = (
     if (complianceStatusValue === true) {
       complianceStatusClause = `AND vcc.compliance_status = 1`;
     } else if (complianceStatusValue === false) {
-      complianceStatusClause = `AND (vcc.compliance_status = 0 OR vcc.compliance_status IS NULL)`;
+      complianceStatusClause = `AND vcc.compliance_status = 0`;
+    } else {
+      complianceStatusClause = `AND vcc.compliance_status IS NULL`;
     }
   }
 
@@ -1378,8 +1380,9 @@ export const programVendorAdvancedFilter = (
       SELECT
         pv.id AS vendor_id,
         CASE
+          WHEN COUNT(vr.id) = 0 THEN NULL
           WHEN COUNT(vr.id) > 0 AND SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END) = COUNT(vr.id)
-          THEN 1
+            THEN 1
           ELSE 0
         END AS compliance_status
       FROM program_vendors pv
@@ -2681,6 +2684,7 @@ LEFT JOIN ${auth_db}.user ON invitation.supervisor = user.user_id
 LEFT JOIN ${auth_db}.roles ur ON invitation.role_id = ur.id
 
 WHERE invitation.program_id = :program_id
+AND invitation.is_deleted=false
 AND (:user_mapping_id IS NULL OR invitation.user_mapping_id = :user_mapping_id)
 GROUP BY invitation.id
 ORDER BY invitation.updated_on DESC
