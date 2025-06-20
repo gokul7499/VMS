@@ -628,7 +628,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
     hierarchy_id,
     page = '1',
     limit = '10',
-  } = request.query as {
+  } = request.body as {
     user_id?: string;
     user_type?: string;
     first_name?: string;
@@ -649,7 +649,7 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
       const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
       mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
     }
-  const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
+  const hierarchyIdsArray = typeof hierarchy_id === 'string' ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
