@@ -3,7 +3,6 @@ import { sequelize } from '../config/instance';
 
 export class RateGuidanceMaster extends Model {
     public id!: string;
-    public program_id!: string;
     public industry!: string;
     public profession!: string;
     public specialty!: string;
@@ -23,10 +22,6 @@ RateGuidanceMaster.init(
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
-        },
-        program_id: {
-            type: DataTypes.STRING,
-            allowNull: false,
         },
         industry: {
             type: DataTypes.STRING,
