@@ -633,28 +633,24 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
         // Split the professions parameter into an array
         const requestedProfessions = professionsParam.split(',').map(p => p.trim());
 
-        // Efficiently fetch all specialties for the requested professions in a single query
-        const specialtiesByProfession = await RateGuidanceMaster.findAll({
-            attributes: [
-                'profession',
-                [sequelize.fn('DISTINCT', sequelize.col('specialty')), 'specialty']
-            ],
+        const rows = await RateGuidanceMaster.findAll({
+            attributes: ['profession', 'specialty'],
             where: {
                 profession: { [Op.in]: requestedProfessions },
                 is_deleted: false
             },
-            group: ['profession', 'specialty'],
             raw: true
         });
 
-        // Transform the results into the desired format
         const result: { [key: string]: string[] } = {};
-        specialtiesByProfession.forEach((item: { profession: string; specialty: string }) => {
-            if (!result[item.profession]) {
-                result[item.profession] = [];
-            }
-            result[item.profession].push(item.specialty);
-        });
+        const specialtySets: { [key: string]: Set<string> } = {};
+        for (const { profession, specialty } of rows) {
+            if (!specialtySets[profession]) specialtySets[profession] = new Set();
+            specialtySets[profession].add(specialty);
+        }
+        for (const profession in specialtySets) {
+            result[profession] = Array.from(specialtySets[profession]);
+        }
 
         logger({
             trace_id: traceId,
