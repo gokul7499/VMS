@@ -3558,33 +3558,21 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarc
       MIN(md.updated_on) AS first_updated_on,
       MAX(md.updated_on) AS last_updated_on,
       md.code, md.foundational_data_type_id, md.depended_fields,
-      CASE 
-      WHEN md.manager_ids IS NOT NULL AND JSON_VALID(md.manager_ids) THEN
-        JSON_ARRAYAGG(
-          CASE 
-            WHEN t.id IS NOT NULL THEN
-              JSON_OBJECT(
-                'id', t.id,
-                'first_name', t.first_name,
-                'last_name', t.last_name
-              )
-            ELSE NULL
-          END
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', u.id,
+            'first_name', u.first_name,
+            'last_name', u.last_name
+          )
         )
-      ELSE JSON_ARRAY()
-    END AS manager_ids,
+        FROM user u
+        WHERE JSON_CONTAINS(md.manager_ids, JSON_QUOTE(u.id))
+      ) AS manager_ids,
       mdt.name AS foundational_data_type_name,
       COUNT(*) OVER() AS total_count
   FROM master_data AS md
-  LEFT JOIN JSON_TABLE(
-    CASE 
-      WHEN md.manager_ids IS NOT NULL AND JSON_VALID(md.manager_ids) 
-      THEN md.manager_ids 
-      ELSE JSON_ARRAY() 
-    END,
-    '$[*]' COLUMNS(manager_id VARCHAR(36) PATH '$')
-  ) AS jt ON TRUE
-  LEFT JOIN user AS t ON jt.manager_id = t.id
+  LEFT JOIN user AS t ON JSON_CONTAINS(md.manager_ids, JSON_QUOTE(t.id))
   LEFT JOIN master_data_type AS mdt ON md.foundational_data_type_id = mdt.id
   WHERE md.program_id = :program_id
       AND md.is_deleted = 0
@@ -3592,14 +3580,15 @@ export const masterDataAdvanceFilterQuery = (hierarchyFilter: string, mspHierarc
       AND (:name IS NULL OR md.name LIKE :name)
       AND (:is_enabled IS NULL OR md.is_enabled = :is_enabled)
       AND (:updated_on_start IS NULL OR :updated_on_end IS NULL OR md.updated_on BETWEEN :updated_on_start AND :updated_on_end)
-      AND (:manager_ids IS NULL OR md.manager_ids = :manager_ids)
+      AND (:manager_ids IS NULL OR JSON_CONTAINS(md.manager_ids, JSON_QUOTE(:manager_ids)))
       AND (:code IS NULL OR md.code LIKE :code)
       AND (:foundational_data_type_id IS NULL OR md.foundational_data_type_id = :foundational_data_type_id)
       AND (:first_name IS NULL OR t.first_name LIKE :first_name)
       ${hierarchyFilter}
       ${mspHierarchyFilter}
-  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields
-    ORDER BY last_updated_on DESC
+  GROUP BY md.id, md.program_id, md.name, md.is_enabled, md.code, md.foundational_data_type_id, md.depended_fields,
+           md.manager_ids, mdt.name
+  ORDER BY last_updated_on DESC
   LIMIT :limit OFFSET :offset;
 `;
 
