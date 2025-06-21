@@ -546,7 +546,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
 
         const replacements: any = {
             program_id,
-            name: name ? `%${name}%` : null,
+            name: name ?? null,
             is_enabled: is_enabled ?? null,
             updated_on_start,
             updated_on_end,
@@ -586,32 +586,13 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             replacements.mspHierarchyIds = mspHierarchyIds;
         }
 
-        const sqlQuery = `
-SELECT mdt.*, COUNT(*) OVER() AS total_count
-FROM master_data_type mdt
-WHERE
-    mdt.program_id = :program_id
-    AND (:name IS NULL OR mdt.name LIKE :name)
-    AND (:is_enabled IS NULL OR mdt.is_enabled = :is_enabled)
-    AND (
-        :updated_on_start IS NULL OR :updated_on_end IS NULL
-        OR (FROM_UNIXTIME(mdt.updated_on / 1000) BETWEEN :updated_on_start AND :updated_on_end)
-    )
-    AND (:timesheet_master_data IS NULL OR mdt.timesheet_master_data = :timesheet_master_data)
-    AND (
-        :allow_multiple_sows IS NULL
-        OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
-    )
-    ${hierarchyFilter}
-    ${mspHierarchyFilter}
-ORDER BY mdt.updated_on DESC
-LIMIT :limit OFFSET :offset
-`;
-
-        const foundationalDataItems: any[] = await sequelize.query(sqlQuery, {
-            replacements,
-            type: QueryTypes.SELECT,
-        });
+        const foundationalDataItems: any[] = await sequelize.query(
+            masterDataTypeAdvanceFilter(hierarchyFilter, mspHierarchyFilter),
+            {
+                replacements,
+                type: QueryTypes.SELECT,
+            }
+        );
 
         const totalRecords = foundationalDataItems.length > 0 ? foundationalDataItems[0].total_count : 0;
 
