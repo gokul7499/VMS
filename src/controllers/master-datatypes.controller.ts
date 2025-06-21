@@ -539,7 +539,6 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             }
         }
 
-        // Convert boolean to string 'true'/'false' for JSON_EXTRACT comparison
         let allowMultipleSowsStr: string | null = null;
         if (typeof allow_multiple_sows === 'boolean') {
             allowMultipleSowsStr = allow_multiple_sows ? 'true' : 'false';
