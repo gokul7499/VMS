@@ -3723,9 +3723,14 @@ WHERE
     :track_owner IS NULL
     OR JSON_EXTRACT(mdt.configuration, '$.track_owner') = :track_owner
   )
+  AND (
+    :allow_multiple_sows IS NULL
+    OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
+  )
   ${hierarchyFilter}
   ${mspHierarchyFilter}
 ORDER BY
   mdt.updated_on DESC
 LIMIT :limit OFFSET :offset;
 `;
+
