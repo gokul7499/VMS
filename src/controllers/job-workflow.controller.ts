@@ -938,20 +938,38 @@ export async function updatePendingApprovalStatus(request: FastifyRequest, reply
              
                         } else
                             if (moduleType === "Sow".toLowerCase() || moduleType === "Statement of Work".toLowerCase()) {
-                                try {
-                                    console.log('Calling sow api heree', SOW_BASE_URL)
-                                    const sow_id = workflow.workflow_trigger_id;
-                                     let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/update-status`;
-                                    const payload = {status: "approved"}; 
-                                   let res= await axios.put(apiUrl, payload, {
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            authorization: authHeader
-                                        },
-                                    });
-                                    console.log(' response from sow api', res)
-                                } catch (error) {
-                                    console.log('errro is noowww', error);
+                                if (workflow?.events?.toLowerCase() === "create_sow" || workflow?.events?.toLowerCase() === "update_sow") {
+                                    try {
+                                        console.log('Calling sow api heree', SOW_BASE_URL)
+                                        const sow_id = workflow.workflow_trigger_id;
+                                        let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/sow/${sow_id}/update-status`;
+                                        const payload = { status: "approved" };
+                                        let res = await axios.put(apiUrl, payload, {
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                authorization: authHeader
+                                            },
+                                        });
+                                        console.log(' response from sow api', res)
+                                    } catch (error) {
+                                        console.log('errro is noowww', error);
+                                    }
+                                } else {
+                                    try {
+                                        console.log('Calling sow api heree', SOW_BASE_URL)
+                                        const payload_id = workflow.workflow_trigger_id;
+                                        let apiUrl = `${SOW_BASE_URL}/v1/api/program/${program_id}/payment-request/${payload_id}`;
+                                        const payload = { status: "approved" };
+                                        let res = await axios.put(apiUrl, payload, {
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                authorization: authHeader
+                                            },
+                                        });
+                                        console.log(' response from sow api', res)
+                                    } catch (error) {
+                                        console.log('errro is noowww', error);
+                                    }
                                 }
                             }
 
