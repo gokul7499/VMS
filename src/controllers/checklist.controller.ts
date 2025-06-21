@@ -1,4 +1,3 @@
-import CheckListModel from "../models/checklist.model";
 import ChecklistInterface from "../interfaces/checklist.interface";
 import { FastifyReply, FastifyRequest } from "fastify";
 import generateCustomUUID from "../utility/genrateTraceId";
@@ -7,9 +6,6 @@ import { col, fn, Op } from "sequelize";
 import Checklist from "../models/checklist.model";
 import ChecklistMapping from "../models/checklist-mapping.model";
 import ChecklistTaskMapping from "../models/checklist-mapping.model";
-import { includes } from "lodash";
-import { decodeToken } from "../middlewares/verifyToken";
-
 
 export async function createCheckList(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -19,7 +15,7 @@ export async function createCheckList(
     const traceId = generateCustomUUID();
     const program_id = request.params.program_id;
     const user = request?.user;
-    const userId=user?.sub
+    const userId = user?.sub
     try {
         const { task_category_configs, ...checkListData } = request.body as ChecklistInterface;
         const transaction = await sequelize.transaction();
@@ -27,10 +23,11 @@ export async function createCheckList(
         try {
 
             const createdCheckList = await Checklist.create(
-                { ...checkListData, program_id,
+                {
+                    ...checkListData, program_id,
                     created_by: userId,
                     updated_by: userId,
-                 },
+                },
                 { transaction }
             );
 
@@ -89,6 +86,7 @@ export async function createCheckList(
         });
     }
 }
+
 export async function getChecklistById(
     request: FastifyRequest<{ Params: { entity_id: string; version?: string; } }>,
     reply: FastifyReply
@@ -144,7 +142,7 @@ export async function updateCheckList(
     request: FastifyRequest<{ Params: { entity_id: string, program_id: string }; Body: ChecklistInterface }>,
     reply: FastifyReply
 ) {
-      const traceId = generateCustomUUID();
+    const traceId = generateCustomUUID();
     const { entity_id, program_id } = request.params;
     const {
         name,
@@ -152,6 +150,7 @@ export async function updateCheckList(
         is_enabled,
         associations,
         task_category_configs,
+        sourcing_model,
         created_by,
         updated_by,
     } = request.body;
@@ -164,7 +163,7 @@ export async function updateCheckList(
     }
     const transaction = await sequelize.transaction();
     const user = request?.user;
-    const userId=user?.sub
+    const userId = user?.sub
     try {
         const existingChecklist = await Checklist.findOne({
             where: { entity_id, is_deleted: false, latest: true },
@@ -189,13 +188,13 @@ export async function updateCheckList(
                 name,
                 description,
                 is_enabled,
+                sourcing_model,
                 pre_checklist_entity_id: existingChecklist?.pre_checklist_entity_id,
                 pre_checklist_version: existingChecklist?.pre_checklist_version,
                 associations: JSON.stringify(associations),
                 previous_version_id: existingChecklist ? existingChecklist.version_id : null,
                 latest: true,
                 created_by: userId,
-                
                 updated_by: userId,
                 created_on: BigInt(Date.now()),
                 updated_on: BigInt(Date.now()),
@@ -211,7 +210,7 @@ export async function updateCheckList(
                     is_deleted: true,
                     updated_on: BigInt(Date.now()),
                     updated_by: userId,
-                    
+
                 },
                 {
                     where: {
@@ -246,8 +245,8 @@ export async function updateCheckList(
             has_dependency: config.has_dependency ?? false,
             dependency_task_entity_id: config.dependency_task_entity_id,
             dependency_category_id: config.dependency_category_id,
-            created_by:userId,
-            updated_by:userId,
+            created_by: userId,
+            updated_by: userId,
             is_enabled: true,
             is_deleted: false,
             created_on: BigInt(Date.now()),
@@ -259,7 +258,7 @@ export async function updateCheckList(
         return reply.status(200).send({
             status_code: 200,
             message: 'Checklist updated and new version created successfully.',
-            traceId:traceId
+            traceId: traceId
         });
     } catch (error) {
         await transaction.rollback();
@@ -267,7 +266,7 @@ export async function updateCheckList(
         return reply.status(500).send({
             status_code: 500,
             message: 'An error occurred while updating the checklist.',
-            traceId:traceId
+            traceId: traceId
         });
     }
 }
@@ -279,7 +278,7 @@ export async function deleteCheckList(
     const { entity_id } = request.params;
     const traceId = generateCustomUUID();
     const user = request?.user;
-    const userId=user?.sub
+    const userId = user?.sub
 
     try {
         const checklist = await Checklist.findOne({
@@ -295,7 +294,7 @@ export async function deleteCheckList(
         }
 
         await Checklist.update(
-            { is_deleted: true, updated_by:userId, updated_on: BigInt(Date.now()) },
+            { is_deleted: true, updated_by: userId, updated_on: BigInt(Date.now()) },
             { where: { entity_id } }
         );
 
@@ -308,7 +307,7 @@ export async function deleteCheckList(
         return reply.status(500).send({
             status_code: 500,
             message: 'Internal Server Error',
-        trace_id: traceId,
+            trace_id: traceId,
             error,
         });
     }
@@ -368,128 +367,128 @@ export async function listChecklists(
 
 export async function filterChecklists(
     request: FastifyRequest<{
-      Querystring: {
-        task_ids?: string;
-        is_enabled?: boolean | string;
-        entity_id?: string;
-        name?: string;
-        limit?: number | string;
-        page?: number | string;
-      };
-      Params: {
-        program_id: string;
-      };
+        Querystring: {
+            task_ids?: string;
+            is_enabled?: boolean | string;
+            entity_id?: string;
+            name?: string;
+            limit?: number | string;
+            page?: number | string;
+        };
+        Params: {
+            program_id: string;
+        };
     }>,
     reply: FastifyReply
-  ) {
+) {
     const {
-      is_enabled,
-      name,
-      limit: rawLimit = '10',
-      page: rawPage = '1',
+        is_enabled,
+        name,
+        limit: rawLimit = '10',
+        page: rawPage = '1',
     } = request.query;
-  
+
     const program_id = request.params.program_id;
     const traceId = generateCustomUUID();
-  
+
     const limit = Number(rawLimit);
     const page = Number(rawPage);
     const offset = (page - 1) * limit;
-  
+
     try {
-      const whereConditions: any = {
-        latest: true,
-        is_deleted: false,
-        program_id,
-      };
-  
-      if (is_enabled !== undefined) {
-        if (typeof is_enabled === 'string') {
-          const lower = is_enabled.toLowerCase();
-          if (lower === 'true') whereConditions.is_enabled = true;
-          else if (lower === 'false') whereConditions.is_enabled = false;
-        } else {
-          whereConditions.is_enabled = is_enabled;
-        }
-      }
-  
-      if (name !== undefined) {
-        whereConditions.name = {
-          [Op.like]: `%${name}%`,
+        const whereConditions: any = {
+            latest: true,
+            is_deleted: false,
+            program_id,
         };
-      }
-  
-      const checklists = await Checklist.findAndCountAll({
-        attributes: [
-          'version_id',
-          'entity_id',
-          'name',
-          'description',
-          'version',
-          'program_id',
-          'is_enabled',
-          [fn('COUNT', col('checklistTasks.id')), 'task_count'],
-        ],
-        include: [
-          {
-            model: ChecklistTaskMapping,
-            as: 'checklistTasks',
-            attributes: [],
-            where: {
-              is_deleted: false,
-              is_enabled: true,
-            },
-            required: false,
-          },
-        ],
-        where: whereConditions,
-        group: ['Checklist.version_id'],
-        order: [['updated_on', 'DESC']],
-        limit,
-        offset,
-        subQuery: false,
-      });
-  
-      if (!checklists.rows.length) {
-        return reply.status(200).send({
-          status_code: 200,
-          message: 'No checklists found for the given filters.',
-          data: [],
-          total_count: 0,
-          current_page: page,
-          traceId,
+
+        if (is_enabled !== undefined) {
+            if (typeof is_enabled === 'string') {
+                const lower = is_enabled.toLowerCase();
+                if (lower === 'true') whereConditions.is_enabled = true;
+                else if (lower === 'false') whereConditions.is_enabled = false;
+            } else {
+                whereConditions.is_enabled = is_enabled;
+            }
+        }
+
+        if (name !== undefined) {
+            whereConditions.name = {
+                [Op.like]: `%${name}%`,
+            };
+        }
+
+        const checklists = await Checklist.findAndCountAll({
+            attributes: [
+                'version_id',
+                'entity_id',
+                'name',
+                'description',
+                'version',
+                'program_id',
+                'is_enabled',
+                [fn('COUNT', col('checklistTasks.id')), 'task_count'],
+            ],
+            include: [
+                {
+                    model: ChecklistTaskMapping,
+                    as: 'checklistTasks',
+                    attributes: [],
+                    where: {
+                        is_deleted: false,
+                        is_enabled: true,
+                    },
+                    required: false,
+                },
+            ],
+            where: whereConditions,
+            group: ['Checklist.version_id'],
+            order: [['updated_on', 'DESC']],
+            limit,
+            offset,
+            subQuery: false,
         });
-      }
-  
-      return reply.status(200).send({
-        status_code: 200,
-        message: 'Checklists fetched successfully',
-        data: checklists.rows.map((checklist: any) => ({
-          ...checklist.get(),
-        })),
-        total_count: checklists.count.length,
-        current_page: page,
-        traceId,
-      });
+
+        if (!checklists.rows.length) {
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'No checklists found for the given filters.',
+                data: [],
+                total_count: 0,
+                current_page: page,
+                traceId,
+            });
+        }
+
+        return reply.status(200).send({
+            status_code: 200,
+            message: 'Checklists fetched successfully',
+            data: checklists.rows.map((checklist: any) => ({
+                ...checklist.get(),
+            })),
+            total_count: checklists.count.length,
+            current_page: page,
+            traceId,
+        });
     } catch (error) {
-      console.error('Error while filtering checklists:', error);
-  
-      return reply.status(500).send({
-        status_code: 500,
-        message: 'Internal Server Error',
-        traceId,
-        error: {
-          message: (error as Error).message || 'An unexpected error occurred.',
-          stack: (error as Error).stack || null,
-        },
-      });
+        console.error('Error while filtering checklists:', error);
+
+        return reply.status(500).send({
+            status_code: 500,
+            message: 'Internal Server Error',
+            traceId,
+            error: {
+                message: (error as Error).message || 'An unexpected error occurred.',
+                stack: (error as Error).stack || null,
+            },
+        });
     }
-  }
+}
 
 export async function enableDisableChecklist(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     try {
-       
+
         const { program_id, entity_id } = request.params as { program_id: string; entity_id: string };
         const { is_enabled } = request.body as { is_enabled: boolean };
 
@@ -497,7 +496,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
             return reply.status(400).send({
                 status_code: 400,
                 message: "Program ID and Entity ID are required",
-                trace_id:traceId
+                trace_id: traceId
             });
         }
 
@@ -505,7 +504,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
             return reply.status(400).send({
                 status_code: 400,
                 message: "'is_enabled' is required in the payload",
-                trace_id:traceId
+                trace_id: traceId
             });
         }
 
@@ -523,7 +522,7 @@ export async function enableDisableChecklist(request: FastifyRequest, reply: Fas
         }
 
         await Checklist.update(
-            { is_enabled,  updated_on: BigInt(Date.now()) },
+            { is_enabled, updated_on: BigInt(Date.now()) },
             { where: { program_id, entity_id, latest: true, is_deleted: false } }
         );
 

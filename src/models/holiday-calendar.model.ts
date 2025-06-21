@@ -25,7 +25,7 @@ HolidayCalendar.init({
         },
     },
     name: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
     is_enabled: {

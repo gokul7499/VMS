@@ -19,7 +19,7 @@ export async function createSowTemplate(
     const sowTemplate = request.body as SowTemplate;
     const traceId = generateCustomUUID();
     const entityId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     const sequelize = SowTemplateModel.sequelize!;
     const transaction = await sequelize.transaction();
@@ -123,7 +123,8 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             template_title,
             hierarchy_id,
             code,
-            updated_on
+            updated_on,
+            created_on
         } = request.query as {
             page?: string | number;
             limit?: string | number;
@@ -132,6 +133,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             hierarchy_id?: string;
             code?: string;
             updated_on?: string;
+            created_on?: string;
         };
 
         const pageNumber = parseInt(page as unknown as string, 10);
@@ -192,6 +194,32 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
                 }
             }
         }
+
+        if (created_on) {
+            const dateRange = created_on.split(',');
+            if (dateRange.length === 2) {
+                const startDate = dateRange[0].trim();
+                const endDate = dateRange[1].trim();
+                const startTimestamp = isNaN(Number(startDate))
+                    ? new Date(startDate).getTime()
+                    : Number(startDate);
+
+                const endTimestamp = isNaN(Number(endDate))
+                    ? new Date(endDate).getTime()
+                    : Number(endDate);
+
+                if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
+                    const adjustedEndTimestamp = endTimestamp + (24 * 60 * 60 * 1000 - 1);
+                    whereClause += ` AND t.created_on BETWEEN :createdStartDate AND :createdEndDate`;
+                    replacements.createdStartDate = startTimestamp;
+                    replacements.createdEndDate = adjustedEndTimestamp;
+                } else {
+                    console.warn('Invalid created_on date format provided');
+                }
+            }
+        }
+
+
 
         const templates: any[] = await sequelize.query(getSowTemplatesQuery(whereClause), {
             replacements,
