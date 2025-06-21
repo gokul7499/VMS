@@ -16,6 +16,7 @@ class Checklist extends Model {
     pre_checklist_entity_id: any;
     pre_checklist_version: any;
     associations: any;
+    sourcing_model: any;
     is_enabled: any;
     is_deleted: any;
     created_on: any;
@@ -82,6 +83,10 @@ Checklist.init(
         },
         associations: {
             type: DataTypes.JSON,
+            allowNull: true,
+        },
+        sourcing_model: {
+            type: DataTypes.STRING(50),
             allowNull: true,
         },
         is_enabled: {
