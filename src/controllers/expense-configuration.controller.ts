@@ -553,7 +553,7 @@ export async function expenseConfigurationAdvancedFilter(
                 : [];
 
         if (hierarchyFilter.length > 0) {
-            whereCondition[Op.and] = hierarchyFilter.map((id: string) =>
+            whereCondition[Op.or] = hierarchyFilter.map((id: string) =>
                 Sequelize.where(
                     Sequelize.literal(`JSON_CONTAINS(hierarchy_ids, '"${id}"')`),
                     true
