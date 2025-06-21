@@ -18,7 +18,7 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
     const { program_id } = request.params as { program_id: string };
     const name = foundationalDataPayload.name.trim();
     const traceId = generateCustomUUID();
-    const user=request?.user
+    const user = request?.user
     const userId = user?.sub;
     const transaction = await sequelize.transaction();
 
@@ -83,15 +83,15 @@ export const createFoundationalDataTypes = async (request: FastifyRequest, reply
         }
 
         if (Array.isArray(foundationalDataPayload.custom_fields) && foundationalDataPayload.custom_fields.length > 0) {
-              const customFields = foundationalDataPayload.custom_fields.map((field: {
+            const customFields = foundationalDataPayload.custom_fields.map((field: {
                 id: any; value: any;
-              }) => ({
+            }) => ({
                 program_id,
                 custom_field_id: field.id,
                 value: field.value,
                 master_data_type_id: foundationalData.id,
-              }));
-              await MasterDataCustomFieldModel.bulkCreate(customFields, { transaction });
+            }));
+            await MasterDataCustomFieldModel.bulkCreate(customFields, { transaction });
         }
 
         await transaction.commit();
@@ -165,7 +165,7 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
     let { name } = foundationalDataPayload;
     name = name.trim();
 
-    const user=request?.user
+    const user = request?.user
     const userId = user?.sub;
     const transaction = await sequelize.transaction();
     try {
@@ -255,8 +255,8 @@ export const updateFoundationalDataTypes = async (request: FastifyRequest, reply
 
 export const deleteFoundationalDataTypes = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    
-    const user=request?.user
+
+    const user = request?.user
     const userId = user?.sub
     try {
         const { id } = request.params as { id: string };
@@ -487,17 +487,20 @@ export async function getAllFoundationalDataTypes(request: FastifyRequest, reply
 }
 
 export async function getAllFoundationalDataTypesAdvancedFilter(
-    request: FastifyRequest,
+    request: FastifyRequest<{
+        Params: { program_id: string };
+    }>,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
     try {
-        const { program_id } = request.params as { program_id: string };
+        const { program_id } = request.params;
 
         const user = request.user;
         if (!user) {
-            return reply.status(400).send({ status_code: 400, message: 'user is requried.' });
+            return reply.status(400).send({ status_code: 400, message: 'user is required.' });
         }
+
         const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
 
         const {
@@ -510,6 +513,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             limit = 10,
             track_owner,
             hierarchy_ids,
+            allow_multiple_sows
         } = request.body as {
             name?: string;
             is_enabled?: boolean;
@@ -520,19 +524,25 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             limit?: number;
             track_owner?: boolean;
             hierarchy_ids?: string[];
+            allow_multiple_sows?: boolean;
         };
 
         const offset = (page - 1) * limit;
 
         let updated_on_start = null;
         let updated_on_end = null;
-
         if (updated_on) {
             const modifiedOnRange = updated_on.split(',');
             if (modifiedOnRange.length === 2) {
                 updated_on_start = modifiedOnRange[0];
                 updated_on_end = modifiedOnRange[1];
             }
+        }
+
+        // Convert boolean to string 'true'/'false' for JSON_EXTRACT comparison
+        let allowMultipleSowsStr: string | null = null;
+        if (typeof allow_multiple_sows === 'boolean') {
+            allowMultipleSowsStr = allow_multiple_sows ? 'true' : 'false';
         }
 
         const replacements: any = {
@@ -544,22 +554,22 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             timesheet_master_data: timesheet_master_data ?? null,
             user_association_exclude: user_association_exclude ?? null,
             track_owner: track_owner ?? null,
+            allow_multiple_sows: allowMultipleSowsStr,
             limit,
-            offset,
+            offset
         };
 
         let hierarchyFilter = '';
         if (hierarchy_ids && hierarchy_ids.length > 0) {
             hierarchyFilter = `
             AND (
-               mdt.is_all_hierarchy_associated = 1
-               OR mdt.id IN (
-                SELECT master_data_type_id
-                FROM master_data_type_hierarchy
-                WHERE hierarchy_id IN (:hierarchy_ids)
-               )
-            )
-            `;
+                mdt.is_all_hierarchy_associated = 1
+                OR mdt.id IN (
+                    SELECT master_data_type_id
+                    FROM master_data_type_hierarchy
+                    WHERE hierarchy_id IN (:hierarchy_ids)
+                )
+            )`;
             replacements.hierarchy_ids = hierarchy_ids;
         }
 
@@ -567,25 +577,48 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         if (mspHierarchyIds && mspHierarchyIds.length > 0) {
             mspHierarchyFilter = `
             AND (
-               mdt.is_all_hierarchy_associated = 1
-               OR mdt.id IN (
-                SELECT master_data_type_id
-                FROM master_data_type_hierarchy
-                WHERE hierarchy_id IN (:mspHierarchyIds)
-               )
-            )
-            `;
+                mdt.is_all_hierarchy_associated = 1
+                OR mdt.id IN (
+                    SELECT master_data_type_id
+                    FROM master_data_type_hierarchy
+                    WHERE hierarchy_id IN (:mspHierarchyIds)
+                )
+            )`;
             replacements.mspHierarchyIds = mspHierarchyIds;
         }
 
-        const foundationalDataItems: any[] = await sequelize.query(masterDataTypeAdvanceFilter(hierarchyFilter, mspHierarchyFilter), {
+        const sqlQuery = `
+SELECT mdt.*, COUNT(*) OVER() AS total_count
+FROM master_data_type mdt
+WHERE
+    mdt.program_id = :program_id
+    AND (:name IS NULL OR mdt.name LIKE :name)
+    AND (:is_enabled IS NULL OR mdt.is_enabled = :is_enabled)
+    AND (
+        :updated_on_start IS NULL OR :updated_on_end IS NULL
+        OR (FROM_UNIXTIME(mdt.updated_on / 1000) BETWEEN :updated_on_start AND :updated_on_end)
+    )
+    AND (:timesheet_master_data IS NULL OR mdt.timesheet_master_data = :timesheet_master_data)
+    AND (
+        :allow_multiple_sows IS NULL
+        OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
+    )
+    ${hierarchyFilter}
+    ${mspHierarchyFilter}
+ORDER BY mdt.updated_on DESC
+LIMIT :limit OFFSET :offset
+`;
+
+        const foundationalDataItems: any[] = await sequelize.query(sqlQuery, {
             replacements,
             type: QueryTypes.SELECT,
         });
+
         const totalRecords = foundationalDataItems.length > 0 ? foundationalDataItems[0].total_count : 0;
+
         reply.send({
             status_code: 200,
-            message: foundationalDataItems && foundationalDataItems.length > 0
+            message: foundationalDataItems.length > 0
                 ? 'Master data type retrieved successfully'
                 : 'No master data type found',
             total_records: totalRecords,
@@ -601,3 +634,4 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         });
     }
 }
+
