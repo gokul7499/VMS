@@ -374,7 +374,7 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
     const {
         industry = '',
         profession = '',
-        specialty = '',
+        specialty = '', // can be string or array
         state = '',
         regular_bill_rate_min,
         regular_bill_rate_max,
@@ -404,7 +404,12 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
 
         if (industry) whereClause.industry = { [Op.like]: `%${industry}%` };
         if (profession) whereClause.profession = { [Op.like]: `%${profession}%` };
-        if (specialty) whereClause.specialty = { [Op.like]: `%${specialty}%` };
+        // Updated specialty filter to support array or string
+        if (specialty && Array.isArray(specialty) && specialty.length > 0) {
+            whereClause.specialty = { [Op.in]: specialty };
+        } else if (typeof specialty === 'string' && specialty) {
+            whereClause.specialty = { [Op.like]: `%${specialty}%` };
+        }
         if (state) whereClause.state = { [Op.like]: `%${state}%` };
         if (is_enabled !== undefined) whereClause.is_enabled = is_enabled;
         if (regular_bill_rate_min !== undefined || regular_bill_rate_max !== undefined) {
@@ -573,6 +578,7 @@ export const bulkUploadRateGuidance = async (request: FastifyRequest, reply: Fas
 
 export const getUniqueProfessions = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
+    const { professions: professionsParam } = request.query as { professions?: string };
 
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -588,25 +594,71 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
     const userId = user?.sub;
 
     try {
-        const uniqueProfessions = await RateGuidanceMaster.findAll({
-            attributes: [
-                [sequelize.fn('DISTINCT', sequelize.col('profession')), 'profession']
-            ],
+        // If no professions param, return all unique professions as before
+        if (!professionsParam) {
+            const uniqueProfessions = await RateGuidanceMaster.findAll({
+                attributes: [
+                    [sequelize.fn('DISTINCT', sequelize.col('profession')), 'profession']
+                ],
+                where: {
+                    is_deleted: false
+                },
+                raw: true
+            });
+
+            const professions = uniqueProfessions.map((item: { profession: string }) => item.profession);
+
+            logger({
+                trace_id: traceId,
+                actor: { user_name: user?.preferred_username, user_id: userId },
+                data: { count: professions.length },
+                eventname: "get unique professions",
+                status: "success",
+                description: `Successfully retrieved ${professions.length} unique professions`,
+                level: 'info',
+                action: request.method,
+                url: request.url,
+                entity_id: 'all',
+                is_deleted: false
+            }, RateGuidanceMaster as any);
+
+            return reply.status(200).send({
+                status_code: 200,
+                message: 'Unique professions retrieved successfully',
+                professions,
+                trace_id: traceId
+            });
+        }
+
+        // Split the professions parameter into an array
+        const requestedProfessions = professionsParam.split(',').map(p => p.trim());
+
+        const rows = await RateGuidanceMaster.findAll({
+            attributes: ['profession', 'specialty'],
             where: {
+                profession: { [Op.in]: requestedProfessions },
                 is_deleted: false
             },
             raw: true
         });
 
-        const professions = uniqueProfessions.map((item: { profession: string }) => item.profession);
+        const result: { [key: string]: string[] } = {};
+        const specialtySets: { [key: string]: Set<string> } = {};
+        for (const { profession, specialty } of rows) {
+            if (!specialtySets[profession]) specialtySets[profession] = new Set();
+            specialtySets[profession].add(specialty);
+        }
+        for (const profession in specialtySets) {
+            result[profession] = Array.from(specialtySets[profession]);
+        }
 
         logger({
             trace_id: traceId,
             actor: { user_name: user?.preferred_username, user_id: userId },
-            data: { count: professions.length },
-            eventname: "get unique professions",
+            data: { professions: requestedProfessions, specialties_count: Object.keys(result).length },
+            eventname: "get unique specialties by professions",
             status: "success",
-            description: `Successfully retrieved ${professions.length} unique professions`,
+            description: `Successfully retrieved unique specialties for ${requestedProfessions.length} professions`,
             level: 'info',
             action: request.method,
             url: request.url,
@@ -616,8 +668,8 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
 
         reply.status(200).send({
             status_code: 200,
-            message: 'Unique professions retrieved successfully',
-            professions,
+            message: 'Unique specialties by profession retrieved successfully',
+            professions: result,
             trace_id: traceId
         });
     } catch (error: any) {
@@ -627,17 +679,17 @@ export const getUniqueProfessions = async (request: FastifyRequest, reply: Fasti
             data: { error: error.message },
             eventname: "get unique professions",
             status: "error",
-            description: "Error retrieving unique professions",
+            description: 'Error retrieving unique professions/specialties',
             level: 'error',
             action: request.method,
             url: request.url,
-            entity_id: 'all',
+            entity_id: 'error',
             is_deleted: false
         }, RateGuidanceMaster as any);
 
         reply.status(500).send({
             status_code: 500,
-            message: 'Error retrieving unique professions',
+            message: 'Error retrieving unique professions/specialties',
             error: error.message,
             trace_id: traceId
         });

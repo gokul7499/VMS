@@ -22,7 +22,7 @@ export async function createVendorComplianceDocument(
   const vendor_comp_doc = request.body as VendorComplianceDocumentInterface;
 
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub
   logger(
     {
@@ -195,7 +195,7 @@ export async function updateVendorComplianceDocumentById(
   const { id, program_id } = request.params as { id: string; program_id: string };
   const payload = request.body as any;
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user.sub;
 
   try {
@@ -226,7 +226,7 @@ export async function updateVendorComplianceDocumentById(
       }
     }
     await VendorComplianceDocumentModel.update(
-      { ...payload, updated_by: userId },
+      { ...payload, updated_by: userId, updated_on: Date.now() },
       { where: { id, is_deleted: false, } }
     );
 
@@ -250,7 +250,7 @@ export async function deleteVendorComplianceDocumentById(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub
   try {
     const { program_id, id } = request.params as { program_id: string; id: string };

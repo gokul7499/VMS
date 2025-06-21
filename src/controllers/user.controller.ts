@@ -68,12 +68,12 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function getUserById(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
   try {
-    const { id } = request.params as { id: string };
+    const { id } = request.params;
     const user = await User.findByPk(id);
     return reply.status(200).send({
       status_code: 200,
@@ -997,7 +997,9 @@ export async function getActiveUser(request: FastifyRequest, reply: FastifyReply
 
 
 export async function getUserContact(
-  request: FastifyRequest,
+  request: FastifyRequest<{
+    Querystring: { tenant_id: string };
+  }>,
   reply: FastifyReply
 ) {
 
@@ -1037,7 +1039,9 @@ export async function getUserContact(
 }
 
 export async function getUserProgram(
-  request: FastifyRequest,
+  request: FastifyRequest<{
+    Querystring: { user_id: string; search?: string };
+  }>,
   reply: FastifyReply
 ) {
   const user=request?.user;
@@ -1074,6 +1078,108 @@ export async function getUserProgram(
       status_code: 500,
       message: "Internal Server Error",
       trace_id: traceId,
+      error: error.message,
+    });
+  }
+}
+
+export async function getAllUserIDAndUser(request: FastifyRequest, reply: FastifyReply) {
+  const { program_id } = request.params as { program_id: string };
+  const {
+    user_id,
+    user_type,
+    first_name,
+    is_activated,
+    role_id,
+    tenant_id,
+    status,
+    email,
+    hierarchy_id,
+    page = '1',
+    limit = '10',
+  } = request.body as {
+    user_id?: string;
+    user_type?: string;
+    first_name?: string;
+    is_activated?: boolean;
+    status?: string;
+    role_id?: string;
+    tenant_id?: string;
+    email?: string;
+    hierarchy_id?: string;
+    page?: string;
+    limit?: string;
+  };
+  const traceId = generateCustomUUID();
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const user=request?.user;
+  let mspHierarchyIds: string[] = [];
+    if (user) {
+      const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+      mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+    }
+  const hierarchyIdsArray = typeof hierarchy_id === 'string' ? hierarchy_id.split(',') : [];
+  const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
+
+  try {
+    const hierarchyReplacements = Object.fromEntries(
+      hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
+    );
+
+    const mspHierarchyReplacements = mspHierarchyIds.length > 0 
+      ? Object.fromEntries(
+          mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
+        )
+      : {};
+
+    const users = await sequelize.query(
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray,mspHierarchyIds),
+      {
+        replacements: {
+          program_id,
+          user_id,
+          user_type,
+          status,
+          is_activated: isActivatedStr === 'true',
+          role_id,
+          tenant_id,
+          email,
+          first_name,
+          limit: parseInt(limit),
+          offset,
+          ...hierarchyReplacements,
+          ...mspHierarchyReplacements
+        },
+        type: QueryTypes.SELECT,
+      }
+    ) as any[];
+
+    for (const user of users) {
+      const masterData = await sequelize.query(getMasterData, {
+        replacements: { user_id: user.user_id, program_id },
+        type: QueryTypes.SELECT,
+      }) as any[];
+      user.foundational_data = masterData.map(item => item.foundational_data);
+    }
+
+    const total_count = users.length > 0 ? users[0].total_count : 0;
+
+    reply.status(200).send({
+      status_code: 200,
+      message: 'Users fetched successfully!',
+      trace_id: traceId,
+      users,
+      total_count,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+  } catch (error: any) {
+    console.log('Error:', error.stack);
+
+    reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'Internal Server Error',
       error: error.message,
     });
   }

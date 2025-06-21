@@ -3135,7 +3135,7 @@ export const vendorComplianceDocumentFilterQuery = (
               ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
               ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
-              vendor_compliance_documents.created_on DESC
+              vendor_compliance_documents.updated_on DESC
           LIMIT :limit
           OFFSET :offset;
       `;
@@ -3166,7 +3166,7 @@ export const vendorDistributionScheduleFilterQuery = (
     WHERE
       ${baseWhereClause}
     ORDER BY
-      vendor_distribution_schedules.created_on DESC
+      vendor_distribution_schedules.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -3215,7 +3215,7 @@ export const vendorDocumentGroupFilterQuery = (
       ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
       ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
     ORDER BY
-      vendor_document_groups.created_on DESC
+      vendor_document_groups.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
