@@ -330,7 +330,8 @@ export async function updateVendordocumentsgroup(
         await documentGroup.update({
             ...documentGroupData,
             total_documents,
-            updated_by: userId
+            updated_by: userId,
+            updated_on: Date.now()
         });
 
         return reply.status(200).send({

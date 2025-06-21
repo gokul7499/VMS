@@ -9,7 +9,7 @@ import { decodeToken } from '../middlewares/verifyToken';
 import { ProgramVendor } from "../models/program-vendor.model";
 import { sequelize } from "../config/instance";
 import { QueryTypes } from "sequelize";
-import { vendorDistributionScheduleFilterQuery,getVendorDistributionSchedule} from "../utility/queries";
+import { vendorDistributionScheduleFilterQuery, getVendorDistributionSchedule } from "../utility/queries";
 
 export const createVendorDistributionSchedule = async (
     request: FastifyRequest,
@@ -18,7 +18,7 @@ export const createVendorDistributionSchedule = async (
     const { program_id } = request.params as { program_id: string };
     const vendorDistributionScheduleData = request.body as VendorDistributionSchedule;
     const transaction = await sequelize.transaction();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     const traceId = generateCustomUUID();
     try {
@@ -208,7 +208,7 @@ export const getVendorDistributionScheduleById = async (
 export const deleteVendorDistributionSchedule = async (
     request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
@@ -262,7 +262,7 @@ export const updateVendorDistributionSchedule = async (
 ) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
@@ -538,7 +538,7 @@ export async function vendorDistributionScheduleFilter(
             id: string;
             name: string;
             is_enabled: string;
-            updated_on: string[];
+            updated_on: any;
             page: string;
             limit: string;
             description: string;
@@ -551,7 +551,21 @@ export async function vendorDistributionScheduleFilter(
         const limitNumber = parseInt(limit ?? '10', 10);
         const offset = (pageNumber - 1) * limitNumber;
 
-        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length === 2;
+
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+        let updatedOnStart: number | undefined = undefined;
+        let updatedOnEnd: number | undefined = undefined;
+
+        if (hasUpdatedOnFilter) {
+            const startDate = new Date(updated_on[0]);
+            updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
+            if (updated_on.length === 1 || updated_on[1] === 0) {
+                updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+            } else {
+                updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+            }
+        }
 
         const { dataQuery, countQuery } = vendorDistributionScheduleFilterQuery(
             Boolean(id),
@@ -569,8 +583,8 @@ export async function vendorDistributionScheduleFilter(
             limit: limitNumber,
             offset,
             is_enabled: isEnabledFilter,
-            updated_on_start: hasUpdatedOnFilter ? updated_on[0] : undefined,
-            updated_on_end: hasUpdatedOnFilter ? updated_on[1] : undefined,
+            updated_on_start: updatedOnStart,
+            updated_on_end: updatedOnEnd,
         };
 
         const data = await sequelize.query<any>(dataQuery, {
