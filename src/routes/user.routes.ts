@@ -55,6 +55,10 @@ async function userRoutes(fastify: FastifyInstance) {
     fastify.get('/get-user-program', {
         // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
     }, userController.getUserProgram);
+
+      fastify.post('/user/program/:program_id', {
+        // preHandler: validatePermissions(Actions.READ, [Permissions.USER])
+    }, userController.getAllUserIDAndUser);
 }
 
 export default userRoutes;

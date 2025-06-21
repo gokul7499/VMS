@@ -484,7 +484,20 @@ export async function updateCandidateByIdAndProgramId(
     try {
         const { program_id, id } = request.params as { program_id: string, id: string };
         const updates = request.body as candidateInterface;
-        const user = request?.user;
+        // const user = request?.user;
+        const authHeader = request.headers.authorization;
+
+        if (!authHeader?.startsWith('Bearer ')) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        let user: any = await decodeToken(token);
+
+  if (!user) {
+    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+  }
+
         const userId = user?.sub;
         let existingRecord: any;
         if (updates.email) {
@@ -550,7 +563,7 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
-        createCandidateHistory(program_id, user, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
+        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
             .catch(error => {
                 console.error("Failed to create candidate history:", error);
             });
