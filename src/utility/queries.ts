@@ -3770,7 +3770,7 @@ ORDER BY
 LIMIT :limit OFFSET :offset;
 `;
 
-export function sameHolidayCalendar(hasHierarchyIds: boolean) {
+export function sameHolidayCalendar(hasHierarchyIds: boolean, excludeCurrent?: boolean) {
   return `
     SELECT hc.id
     FROM holiday_calendar hc
@@ -3778,6 +3778,7 @@ export function sameHolidayCalendar(hasHierarchyIds: boolean) {
     WHERE hc.program_id = :program_id
     AND hc.is_deleted = false
     AND hc.year = :year
+    ${excludeCurrent ? 'AND hc.id != :exclude_id' : ''}
     AND (
       :is_all_hierarchy_associated = true
       OR hc.is_all_hierarchy_associated = true
