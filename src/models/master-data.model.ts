@@ -11,7 +11,7 @@ class FoundationalData extends Model {
     name: any;
     manager_ids: any;
     is_all_hierarchy_associated: any;
-    additional_mdt_owner: never[];
+    additional_mdt_owner: any;
 }
 
 FoundationalData.init({
