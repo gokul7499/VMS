@@ -465,7 +465,7 @@ export async function getCandidateByIdAndProgramId(
                             : null
                     };
                 })
-                .filter(Boolean); // removes nulls (disabled/deleted fields)
+                .filter(Boolean); 
         }
 
         // const workerClassification = await getSubmissionCandidate(program_id, id, token)
