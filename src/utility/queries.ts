@@ -3171,7 +3171,7 @@ export const vendorComplianceDocumentFilterQuery = (
               ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
               ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
-              vendor_compliance_documents.created_on DESC
+              vendor_compliance_documents.updated_on DESC
           LIMIT :limit
           OFFSET :offset;
       `;
@@ -3202,7 +3202,7 @@ export const vendorDistributionScheduleFilterQuery = (
     WHERE
       ${baseWhereClause}
     ORDER BY
-      vendor_distribution_schedules.created_on DESC
+      vendor_distribution_schedules.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -3251,7 +3251,7 @@ export const vendorDocumentGroupFilterQuery = (
       ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
       ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
     ORDER BY
-      vendor_document_groups.created_on DESC
+      vendor_document_groups.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -3759,9 +3759,14 @@ WHERE
     :track_owner IS NULL
     OR JSON_EXTRACT(mdt.configuration, '$.track_owner') = :track_owner
   )
+  AND (
+    :allow_multiple_sows IS NULL
+    OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
+  )
   ${hierarchyFilter}
   ${mspHierarchyFilter}
 ORDER BY
   mdt.updated_on DESC
 LIMIT :limit OFFSET :offset;
 `;
+
