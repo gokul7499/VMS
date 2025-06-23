@@ -428,7 +428,7 @@ export async function getCandidateByIdAndProgramId(
                         is_deleted: false,
                         is_enabled: true
                     },
-                    attributes: ['id', 'name', 'field_type']
+                    attributes: ['id', 'name', 'field_type','label']
                 }),
                 User.findAll({
                     where: {
