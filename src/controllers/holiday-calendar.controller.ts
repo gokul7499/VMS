@@ -432,10 +432,10 @@ export async function deleteHolidayCalendar(request: FastifyRequest, reply: Fast
 
 export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  
+
   try {
     const { program_id } = request.params as { program_id: string };
-    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body as { name?: string, year?: string, is_enabled?: string, updated_on?: string, page?: string, limit?: string };
+    const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body as { name?: string, year?: string, is_enabled?: string, updated_on?: any, page?: string, limit?: string };
     const pageNum = Number(page);
     const limitNum = Number(limit);
 
@@ -446,7 +446,7 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
         trace_id: traceId,
       });
     }
-    const user=request?.user
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const filterConditions: any = { program_id, is_deleted: false };
     if (name) {
@@ -458,10 +458,23 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
     if (is_enabled !== undefined) {
       filterConditions.is_enabled = (typeof is_enabled === 'string' ? is_enabled === 'true' : is_enabled === true);
     }
-    if (Array.isArray(updated_on) && updated_on.length === 2) {
-      const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-      filterConditions.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+
+    const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+    let updatedOnStart: number | undefined = undefined;
+    let updatedOnEnd: number | undefined = undefined;
+
+    if (hasUpdatedOnFilter) {
+      const startDate = new Date(updated_on[0]);
+      updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
+      if (updated_on.length === 1 || updated_on[1] === 0) {
+        updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+      } else {
+        updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+      }
+      filterConditions.updated_on = { [Op.between]: [updatedOnStart, updatedOnEnd] };
     }
+
     if (mspHierarchyIds && mspHierarchyIds.length > 0) {
       filterConditions[Op.or] = [
         { is_all_hierarchy_associated: true },
@@ -497,8 +510,6 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
       }
     });
   } catch (error: any) {
-    console.error(`Error fetching holidayCalendars: ${error.message}`, { traceId, error });
-
     reply.status(500).send({
       status_code: 500,
       message: 'An error occurred while fetching holidayCalendars.',
@@ -534,9 +545,9 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
         where: { hierarchy_id },
         attributes: ['holiday_calendar_id'],
       });
-    
+
       const directlyAssociatedIds = calendarHierarchyMappings.map(m => m.holiday_calendar_id);
-    
+
       const fullyAssociatedCalendars = await HolidayCalendar.findAll({
         where: {
           is_all_hierarchy_associated: true,
@@ -554,7 +565,7 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
           holidays: [],
         });
       }
-    
+
       whereClause.holiday_calendar_id = { [Op.in]: allCalendarIds };
     }
 
