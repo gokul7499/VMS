@@ -7,7 +7,7 @@ import { sequelize } from "../config/instance";
 import { QueryTypes } from "sequelize";
 import { getPendingUser } from "./user.controller";
 import { databaseConfig } from '../config/db';
-import { parseValue } from "../utility/pares-value";
+import { parseValue } from "../utility/parse-value";
 const auth_db = databaseConfig.config.database_auth;
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();

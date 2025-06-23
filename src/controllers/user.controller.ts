@@ -20,7 +20,7 @@ import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
 import { createCandidateHistory } from "../utility/candidate-history";
 import GlobalRepository from "../repositories/global.repository";
-import { parseValue } from "../utility/pares-value";
+import { parseValue } from "../utility/parse-value";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
