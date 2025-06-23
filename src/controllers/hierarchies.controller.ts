@@ -240,7 +240,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
     if (countryId) {
       countryData = await CountryModel.findOne({
         where: { id: countryId },
-        attributes: ["id", "name"],
+        attributes: ["id", "name","iso_code_2","iso_code_3","isd_code"],
       });
     }
     if (hierarchy) {
@@ -251,7 +251,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
       hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
-      hierarchy.country = countryData || { id: null, name: null };
+      hierarchy.country = countryData || { id: null, name: null,iso_code_2:null ,isd_code:null,iso_code_3:null};
 
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'

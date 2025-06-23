@@ -281,7 +281,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       );
     }
 
-    if (user_type) {
+    if (user_type && userType!="super_user") {
       andConditions.push(
         Sequelize.literal(`LOWER(organization_category) = LOWER('${user_type}')`)
       );

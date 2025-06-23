@@ -9,6 +9,7 @@ export default interface ChecklistInterface {
     pre_checklist_entity_id?: string;
     pre_checklist_version?: number;
     associations?: object;
+    sourcing_model?: string;
     task_category_configs: {
         seq_no: number;
         is_mandatory: boolean;

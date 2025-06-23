@@ -437,10 +437,10 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
                 trace_id: traceId
             });
         }
-        const rates: number[] = rows.map((row) => row.regular_bill_rate);
+        const rates: number[] = rows.map((row) => Number(row.regular_bill_rate));
         const minRate = Math.min(...rates);
         const maxRate = Math.max(...rates);
-        const averageRate = Number((rates.reduce((a: number, b: number) => a + b, 0) / rates.length).toFixed(2));
+        const averageRate = Number((rates.reduce((a: number, b: number) => Number(a) + Number(b), 0) / rates.length).toFixed(2));
 
         reply.status(200).send({
             status_code: 200,

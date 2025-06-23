@@ -2672,7 +2672,43 @@ COALESCE((
   ) AS fd
   JOIN master_data_type AS mdt
     ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
-), JSON_ARRAY()) AS foundational_data
+), JSON_ARRAY()) AS foundational_data,
+COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'id', cf.id,
+      'name', cf.name,
+      'value', jt.value,
+      'label', cf.label,
+      'manager_name',
+        CASE
+          WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
+          ELSE NULL
+        END,
+      'field_type', cf.field_type
+    )
+  )
+  FROM (
+    SELECT *
+    FROM JSON_TABLE(
+      CAST(invitation.custom_fields AS JSON),
+      '$[*]' COLUMNS (
+        id VARCHAR(36) PATH '$.id',
+        value TEXT PATH '$.value'
+      )
+    ) jt
+  ) jt
+  JOIN custom_fields cf ON cf.id = jt.id
+  LEFT JOIN user u 
+    ON TRIM(BOTH '"' FROM jt.value) COLLATE utf8mb4_unicode_ci = u.user_id COLLATE utf8mb4_unicode_ci
+   AND u.program_id = invitation.program_id
+  WHERE cf.program_id = invitation.program_id
+    AND cf.is_deleted = false
+    AND cf.is_enabled = true
+), JSON_ARRAY()) AS custom_fields
+
+
+
 
 FROM ${auth_db}.invitation
 JOIN ${auth_db}.user_group_mapping ON user_group_mapping.id = invitation.user_mapping_id
@@ -3135,7 +3171,7 @@ export const vendorComplianceDocumentFilterQuery = (
               ${hasIsEnabled ? 'AND vendor_compliance_documents.is_enabled = :is_enabled' : ''}
               ${hasUpdatedOn ? 'AND vendor_compliance_documents.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
           ORDER BY
-              vendor_compliance_documents.created_on DESC
+              vendor_compliance_documents.updated_on DESC
           LIMIT :limit
           OFFSET :offset;
       `;
@@ -3166,7 +3202,7 @@ export const vendorDistributionScheduleFilterQuery = (
     WHERE
       ${baseWhereClause}
     ORDER BY
-      vendor_distribution_schedules.created_on DESC
+      vendor_distribution_schedules.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -3215,7 +3251,7 @@ export const vendorDocumentGroupFilterQuery = (
       ${hasIsEnabled ? 'AND vendor_document_groups.is_enabled = :is_enabled' : ''}
       ${hasUpdatedOn ? 'AND vendor_document_groups.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
     ORDER BY
-      vendor_document_groups.created_on DESC
+      vendor_document_groups.updated_on DESC
     LIMIT :limit
     OFFSET :offset;
   `;
@@ -3722,6 +3758,10 @@ WHERE
   AND (
     :track_owner IS NULL
     OR JSON_EXTRACT(mdt.configuration, '$.track_owner') = :track_owner
+  )
+  AND (
+    :allow_multiple_sows IS NULL
+    OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
   )
   ${hierarchyFilter}
   ${mspHierarchyFilter}
