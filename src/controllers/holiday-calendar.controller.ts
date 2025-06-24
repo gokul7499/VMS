@@ -331,11 +331,8 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
       transaction,
     });
 
-    await HolidayCalendarHierarchies.destroy({ where: { holiday_calendar_id: id }, transaction });
-    await HolidayCalendarWorkLocation.destroy({ where: { holiday_calendar_id: id }, transaction });
-    await HolidayCalendarDetails.destroy({ where: { holiday_calendar_id: id }, transaction });
-
     if (Array.isArray(updateData.hierarchy_id)) {
+      await HolidayCalendarHierarchies.destroy({ where: { holiday_calendar_id: id }, transaction });
       for (const hierarchyId of updateData.hierarchy_id) {
         await HolidayCalendarHierarchies.create(
           {
@@ -350,6 +347,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
     }
 
     if (Array.isArray(updateData.work_locations_ids)) {
+      await HolidayCalendarWorkLocation.destroy({ where: { holiday_calendar_id: id }, transaction });
       for (const workLocationId of updateData.work_locations_ids) {
         await HolidayCalendarWorkLocation.create(
           {
@@ -364,6 +362,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
     }
 
     if (Array.isArray(updateData.holidays)) {
+      await HolidayCalendarDetails.destroy({ where: { holiday_calendar_id: id }, transaction });
       for (const details of updateData.holidays) {
         await HolidayCalendarDetails.create(
           {
@@ -386,7 +385,7 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
     return reply.status(200).send({
       status_code: 200,
       message: "Holiday calendar updated successfully.",
-      id,
+      id: id,
       trace_id: traceId,
     });
   } catch (error: any) {
@@ -432,7 +431,7 @@ export async function deleteHolidayCalendar(request: FastifyRequest, reply: Fast
 
 export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  
+
   try {
     const { program_id } = request.params as { program_id: string };
     const { name, year, is_enabled, updated_on, page = '1', limit = '10' } = request.body as { name?: string, year?: string, is_enabled?: string, updated_on?: string, page?: string, limit?: string };
@@ -446,7 +445,7 @@ export async function getHolidayCalendarAdvancedFilter(request: FastifyRequest, 
         trace_id: traceId,
       });
     }
-    const user=request?.user
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const filterConditions: any = { program_id, is_deleted: false };
     if (name) {
@@ -534,9 +533,9 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
         where: { hierarchy_id },
         attributes: ['holiday_calendar_id'],
       });
-    
+
       const directlyAssociatedIds = calendarHierarchyMappings.map(m => m.holiday_calendar_id);
-    
+
       const fullyAssociatedCalendars = await HolidayCalendar.findAll({
         where: {
           is_all_hierarchy_associated: true,
@@ -554,7 +553,7 @@ export async function getHolidayCalendarByDateRange(request: FastifyRequest, rep
           holidays: [],
         });
       }
-    
+
       whereClause.holiday_calendar_id = { [Op.in]: allCalendarIds };
     }
 
