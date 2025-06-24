@@ -3712,7 +3712,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     `;
 };
 
-export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string) => `
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string, hasUpdatedOnFilter: any) => `
 SELECT
   mdt.id,
   mdt.program_id,
@@ -3744,10 +3744,6 @@ WHERE
     OR mdt.is_enabled = :is_enabled
   )
   AND (
-    (:updated_on_start IS NULL OR mdt.updated_on >= :updated_on_start)
-    AND (:updated_on_end IS NULL OR mdt.updated_on <= :updated_on_end)
-  )
-  AND (
     :timesheet_master_data IS NULL
     OR JSON_EXTRACT(mdt.configuration, '$.timesheet_master_data') = :timesheet_master_data
   )
@@ -3763,6 +3759,7 @@ WHERE
     :allow_multiple_sows IS NULL
     OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
   )
+  ${hasUpdatedOnFilter ? 'AND mdt.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ${hierarchyFilter}
   ${mspHierarchyFilter}
 ORDER BY
