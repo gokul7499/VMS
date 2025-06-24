@@ -311,7 +311,9 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
 
         sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
         sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
-        sowTemplateRecord.master_data = JSON.parse(sowTemplateRecord.master_data || '[]');
+        sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
+            ? JSON.parse(sowTemplateRecord.master_data || '[]')
+            : sowTemplateRecord.master_data;
 
         return reply.status(200).send({
 

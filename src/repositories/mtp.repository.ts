@@ -44,7 +44,7 @@ async getAllMtpData(
             JSON_LENGTH(mtp.linked_profiles) AS linked_profiles_count,
             COUNT(*) OVER() AS total_count
           FROM mtp
-          LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.user_id
+          LEFT JOIN candidates c ON mtp.mtp_candidate_id = c.id
           WHERE mtp.program_id = :program_id
           AND mtp.is_deleted = false
         `;

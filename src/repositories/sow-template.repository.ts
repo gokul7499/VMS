@@ -104,18 +104,34 @@ export const getSowTemplateByIdQuery = `
 
 -- Master Data
 COALESCE((
-    SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'master_data_type', mdt.id,
+      'master_data_type_name', mdt.name,
+      'master_data', (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
             'id', md.id,
-            'master_data_type', md.master_data_type,
-            'master_data_type_name', mdt.name,
-            'master_data', md.master_data
+            'name', md.name
+          )
         )
+        FROM sow_template_master_data stm
+        LEFT JOIN master_data md 
+          ON JSON_UNQUOTE(JSON_EXTRACT(stm.master_data, '$[0]')) = md.id
+        WHERE stm.master_data_type = mdt.id
+          AND stm.sow_temp_id = t.id
+      )
     )
-    FROM sow_template_master_data md
-    LEFT JOIN master_data_type mdt ON md.master_data_type = mdt.id
-    WHERE md.sow_temp_id = t.id
-), '[]') AS master_data
+  )
+  FROM master_data_type mdt
+  WHERE EXISTS (
+    SELECT 1
+    FROM sow_template_master_data stm
+    WHERE stm.master_data_type = mdt.id
+      AND stm.sow_temp_id = t.id
+  )
+), JSON_ARRAY()) AS master_data
+
 
 FROM sow_templates t
 WHERE t.id = :id AND t.program_id = :program_id AND t.is_deleted = false

@@ -321,7 +321,15 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
                     'user_role', JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name),
                     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name,'display_name', t.display_name),
-                    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
+                    'supervisor_id', 
+                      CASE 
+                        WHEN su.user_id IS NULL THEN JSON_OBJECT()
+                      ELSE JSON_OBJECT(
+                        'id', su.user_id,
+                        'first_name', su.first_name,
+                        'last_name', su.last_name
+                       )
+                      END,
                     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
                     'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
                     'associate_hierarchy_ids', (
