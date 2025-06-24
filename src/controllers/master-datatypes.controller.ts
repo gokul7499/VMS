@@ -517,7 +517,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         } = request.body as {
             name?: string;
             is_enabled?: boolean;
-            updated_on?: string;
+            updated_on?: string[];
             timesheet_master_data?: boolean;
             user_association_exclude?: boolean;
             page?: number;
@@ -529,13 +529,18 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
 
         const offset = (page - 1) * limit;
 
-        let updated_on_start = null;
-        let updated_on_end = null;
-        if (updated_on) {
-            const modifiedOnRange = updated_on.split(',');
-            if (modifiedOnRange.length === 2) {
-                updated_on_start = modifiedOnRange[0];
-                updated_on_end = modifiedOnRange[1];
+        let updated_on_start: number | undefined = undefined;
+        let updated_on_end: number | undefined = undefined;
+
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+        if (hasUpdatedOnFilter) {
+            const startDate = new Date(Number(updated_on[0]));
+            updated_on_start = startDate.setHours(0, 0, 0, 0);
+
+            if (updated_on.length === 1 || !updated_on[1]) {
+                updated_on_end = new Date(Number(updated_on[0])).setHours(23, 59, 59, 999);
+            } else {
+                updated_on_end = new Date(Number(updated_on[1])).setHours(23, 59, 59, 999);
             }
         }
 
