@@ -495,6 +495,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                     if (Array.isArray(condition.target_field_value.values)) {
                         condition.target_field_value.values.forEach((value: any) => {
                             targetValues.add(value);
+                            selectedItems.add(value);
                         });
                     } else {
                         targetValues.add(condition.target_field_value.values);
@@ -573,6 +574,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 )
                 : []
         ]);
+console.log("picklistItem",picklistItem);
 
         const fieldConfigMap = fieldConfigs.reduce((acc: any, config: any) => {
             acc[config.id] = {
@@ -843,7 +845,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             { map: jobTemplateMap, key: 'jobTemplateItem', nameField: 'template_name' },
                             { map: userMap, key: 'userItem', username: ['first_name', 'last_name'] },
                             { map: timesheetTypeMap, key: 'timesheetTypeItem', nameField: 'title' },
-                            { map: roleMap, key: 'roleItem', nameField: 'name' }
+                            { map: roleMap, key: 'roleItem', nameField: 'name' },
+                            { map: picklistItemMap, key: 'picklistItem', nameField: 'value' }
                         ];
 
                         if (condition.target_field_value?.values) {
