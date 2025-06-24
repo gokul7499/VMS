@@ -34,9 +34,9 @@ export async function createCandidate(request: FastifyRequest, reply: FastifyRep
     const vendor_id = vendor?.id || null;
 
     const traceId = generateCustomUUID();
-  
-     const user = request?.user;
-     const userId = user?.sub;
+
+    const user = request?.user;
+    const userId = user?.sub;
     try {
         if (!id && email) {
             const existingCandidate = await candidateModel.findOne({
@@ -406,7 +406,7 @@ export async function getCandidateByIdAndProgramId(
             }
         });
 
-         let CustomFields: any[] = [];
+        let CustomFields: any[] = [];
 
         if (Array.isArray(candidateData.custom_fields) && candidateData.custom_fields.length > 0) {
             const customFieldIds = candidateData.custom_fields
@@ -414,21 +414,25 @@ export async function getCandidateByIdAndProgramId(
                 .filter(Boolean);
 
             const customFieldValues = candidateData.custom_fields
-                .map((field: any) =>
-                    typeof field.value === 'string'
-                        ? field.value.replace(/"/g, '')
-                        : null
-                )
+                .map((field: any) => {
+                    if (typeof field.value === 'string') {
+                        return field.value.trim().replace(/^"+|"+$/g, '');
+                    } else if (typeof field.value === 'object' && field.value?.user_id) {
+                        return field.value.user_id;
+                    }
+                    return null;
+                })
                 .filter(Boolean);
 
             const [customFieldDefs, users] = await Promise.all([
                 CustomField.findAll({
                     where: {
                         id: customFieldIds,
+                        is_enabled: true,
                         is_deleted: false,
-                        is_enabled: true
+                        program_id: candidateData.program_id,
                     },
-                    attributes: ['id', 'name', 'field_type']
+                    attributes: ['id', 'name', 'field_type', 'label']
                 }),
                 User.findAll({
                     where: {
@@ -439,20 +443,31 @@ export async function getCandidateByIdAndProgramId(
                 })
             ]);
 
-            CustomFields = candidateData.custom_fields.map((field: any) => {
-                const customFieldDef = customFieldDefs.find((cf: any) => cf.id === field.id);
-                const matchedUser = users.find((user: any) => user.user_id === field.value);
+            CustomFields = candidateData.custom_fields
+                .map((field: any) => {
+                    const customFieldDef = customFieldDefs.find((cf: any) => cf.id === field.id);
+                    if (!customFieldDef) return null; 
 
-                return {
-                    ...field,
-                    name: customFieldDef?.name || null,
-                    field_type: customFieldDef?.field_type || null,
-                    manager_name: matchedUser
-                        ? `${matchedUser.first_name} ${matchedUser.last_name}`
-                        : null
-                };
-            });
+                    const rawValue = typeof field.value === 'string'
+                        ? field.value.trim().replace(/^"+|"+$/g, '')
+                        : field.value?.user_id || null;
+
+                    const matchedUser = users.find((user: any) => user.user_id === rawValue);
+
+                    return {
+                        id: field.id,
+                        value: field.value,
+                        name: customFieldDef.name,
+                        field_type: customFieldDef.field_type,
+                        label: customFieldDef.label,
+                        manager_name: matchedUser
+                            ? `${matchedUser.first_name} ${matchedUser.last_name}`
+                            : null
+                    };
+                })
+                .filter(Boolean); 
         }
+
         // const workerClassification = await getSubmissionCandidate(program_id, id, token)
         return reply.status(200).send({
             status_code: 200,
@@ -494,9 +509,9 @@ export async function updateCandidateByIdAndProgramId(
         const token = authHeader.split(' ')[1];
         let user: any = await decodeToken(token);
 
-  if (!user) {
-    return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
-  }
+        if (!user) {
+            return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Invalid token' });
+        }
 
         const userId = user?.sub;
         let existingRecord: any;

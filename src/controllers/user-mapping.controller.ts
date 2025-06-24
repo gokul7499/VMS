@@ -7,6 +7,7 @@ import { sequelize } from "../config/instance";
 import { QueryTypes } from "sequelize";
 import { getPendingUser } from "./user.controller";
 import { databaseConfig } from '../config/db';
+import { parseValue } from "../utility/parse-value";
 const auth_db = databaseConfig.config.database_auth;
 export const getAllUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
@@ -110,7 +111,7 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
     const traceId = generateCustomUUID();
     try {
         const authHeader = request.headers.authorization;
-        const user=request?.user;
+        const user = request?.user;
         const userId = user?.sub;
         updates.updated_on = BigInt(Date.now())
         const [updatedCount] = await UserMapping.update({ ...updates, updated_by: userId, }, { where: { id: id } });
@@ -142,7 +143,7 @@ export const updateUserMappingById = async (request: FastifyRequest, reply: Fast
 export const deleteUserMappingById = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const traceId = generateCustomUUID();
-     const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     try {
         const deletedCount = await UserMapping.destroy({ where: { id: id } });
@@ -215,16 +216,16 @@ export async function updateStatus(
 export const getUserMappings = async (request: FastifyRequest, reply: FastifyReply) => {
     const { program_id, id } = request.params as { program_id: string; id: string };
     const queryParams = request.query as { [key: string]: string | boolean };
-    const user=request?.user;
+    const user = request?.user;
     if (!user) {
         return reply.status(401).send({
             status_code: 401,
             message: "Unauthorized - Invalid token",
         });
     }
-    const userType = user?.userType;  
+    const userType = user?.userType;
     const traceId = generateCustomUUID();
-    
+
     try {
         const checkUserQuery = `
         SELECT 
@@ -236,12 +237,12 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
         WHERE user_mappings.program_id = :program_id 
         AND user_mappings.id = :id;
         `;
-        
+
         const userStatus = await sequelize.query(checkUserQuery, {
             replacements: { program_id, id },
             type: QueryTypes.SELECT,
         }) as any;
-         console.log("userStatus",userStatus)
+        console.log("userStatus", userStatus)
         if (!userStatus.length || !userStatus[0].status) {
             return await getPendingUser(
                 {
@@ -250,7 +251,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 reply
             );
         }
-        if (userStatus[0].status === "active" || userStatus[0].status === "inactive"){
+        if (userStatus[0].status === "active" || userStatus[0].status === "inactive") {
             const query = `
             SELECT 
                 um.id, 
@@ -320,7 +321,15 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
                     'user_role', JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name),
                     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name,'display_name', t.display_name),
-                    'supervisor_id', JSON_OBJECT('id', su.user_id, 'first_name', su.first_name, 'last_name', su.last_name),
+                    'supervisor_id', 
+                      CASE 
+                        WHEN su.user_id IS NULL THEN JSON_OBJECT()
+                      ELSE JSON_OBJECT(
+                        'id', su.user_id,
+                        'first_name', su.first_name,
+                        'last_name', su.last_name
+                       )
+                      END,
                     'default_hierarchy_id', JSON_OBJECT('id', dh.id, 'name', dh.name),
                     'default_work_location_id', JSON_OBJECT('id', dwl.id, 'name', dwl.name),
                     'associate_hierarchy_ids', (
@@ -362,7 +371,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                         SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
                                 'id', custom_fields.id,
-                                'value', JSON_UNQUOTE(JSON_EXTRACT(user_custom_fields.value, '$')),
+                                'value', user_custom_fields.value,
                                 'label',custom_fields.label,
                                 'manager_name',
                             CASE
@@ -410,7 +419,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 replacements,
                 type: QueryTypes.SELECT,
             }) as any;
-            
+
             if (!userMappings.length) {
                 return reply.status(200).send({
                     status_code: 200,
@@ -420,12 +429,17 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 });
             }
 
-        
-        for (const mapping of userMappings) {
-            const userId = mapping.user?.user_id;
 
-            if (userId) {
-                const masterDataQuery = `
+            for (const mapping of userMappings) {
+                const userId = mapping.user?.user_id;
+                if (mapping.user?.custom_fields) {
+                    mapping.user.custom_fields = mapping.user.custom_fields.map((field: any) => ({
+                        ...field,
+                        value: parseValue(field.value),
+                    }));
+                }
+                if (userId) {
+                    const masterDataQuery = `
                 SELECT
                     JSON_OBJECT(
                         'master_data', JSON_OBJECT(
@@ -474,28 +488,29 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                 AND user.program_id = :program_id;
                 `;
 
-                const masterDataResults = await sequelize.query(masterDataQuery, {
-                    replacements: { user_id: userId, program_id },
-                    type: QueryTypes.SELECT,
-                }) as any;
-                
-                
+                    const masterDataResults = await sequelize.query(masterDataQuery, {
+                        replacements: { user_id: userId, program_id },
+                        type: QueryTypes.SELECT,
+                    }) as any;
 
-                const uniqueFoundationalData = Array.from(new Set(masterDataResults.map((result: any) => JSON.stringify(result.foundational_data))))
-                    .map((value: unknown) => JSON.parse(value as string));
 
-                mapping.user.foundational_data = uniqueFoundationalData;
+
+                    const uniqueFoundationalData = Array.from(new Set(masterDataResults.map((result: any) => JSON.stringify(result.foundational_data))))
+                        .map((value: unknown) => JSON.parse(value as string));
+
+                    mapping.user.foundational_data = uniqueFoundationalData;
+                }
             }
-        }
-    
-        reply.status(200).send({
-            status_code: 200,
-            trace_id: traceId,
-            message: "User mappings records fetched successfully.",
-            user_mappings: [userMappings[userMappings.length - 1]],
-        });
 
-    }} catch (error: any) {
+            reply.status(200).send({
+                status_code: 200,
+                trace_id: traceId,
+                message: "User mappings records fetched successfully.",
+                user_mappings: [userMappings[userMappings.length - 1]],
+            });
+
+        }
+    } catch (error: any) {
         reply.status(500).send({
             status_code: 500,
             trace_id: traceId,

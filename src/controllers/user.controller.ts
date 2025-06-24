@@ -20,6 +20,7 @@ import Hierarchies from "../models/hierarchies.model";
 import { searchSimilarProfiles } from "../utility/create-candidate";
 import { createCandidateHistory } from "../utility/candidate-history";
 import GlobalRepository from "../repositories/global.repository";
+import { parseValue } from "../utility/parse-value";
 const jobTempletRepositories = new JobTempletRepository();
 
 export async function getUser(request: FastifyRequest, reply: FastifyReply) {
@@ -549,9 +550,10 @@ export async function updateProgramVendor(userBody:any,id:string):Promise<any> {
       middle_name: userBody.middle_name ,
       last_name: userBody.last_name ,
       email: userBody.email ,
-      phone_numbers:userBody.contacts?.[0]?.number,
+      number:userBody.contacts?.[0]?.number,
       iso_code_2:userBody.contacts?.[0]?.iso_code_2,
       isd_code:userBody.contacts?.[0]?.isd_code,
+      country: userBody.country_id,
       addresses: Array.isArray(userBody.addresses)
         ? userBody.addresses.map((addr: { type: any; address_line_1: any; address_line_2: any; zipcode: any; city_name: any; state_name: any; county_name: any; }) => ({
             type: addr.type,
@@ -818,9 +820,15 @@ export async function getPendingUser(
     const users = await sequelize.query(getPendingUserQuery, {
       replacements,
       type: QueryTypes.SELECT,
-    });
+    })as any;
 
     if (users && users.length > 0) {
+       if (users.custom_fields && Array.isArray(users.custom_fields)) {
+        users.custom_fields = users.custom_fields.map((field: any) => ({
+          ...field,
+          value: parseValue(field.value),
+        }));
+      }
       return reply.code(200).send({
         status_code: 200,
         message: "get pending user data",
