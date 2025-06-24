@@ -11,6 +11,7 @@ import HolidayCalendarWorkLocation from "../models/holiday-calender-work-locatio
 import HolidayCalendarDetails from "../models/holiday-calender-details.model";
 import HolidayCalendar from "../models/holiday-calendar.model";
 import GlobalRepository from "../repositories/global.repository";
+import { sameHolidayCalendar } from "../utility/queries";
 
 export async function getHolidayCalendar(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
@@ -169,8 +170,36 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
       return reply.status(409).send({
         status_code: 409,
         trace_id: traceId,
-        message: 'Holiday calendar already exists.',
+        message: 'Holiday calendar with same name already exists.',
       });
+    }
+
+    if ((holiday_calendar.hierarchy_id?.length || holiday_calendar.is_all_hierarchy_associated) && holiday_calendar.year) {
+      const hierarchyIds = Array.isArray(holiday_calendar.hierarchy_id) && holiday_calendar.hierarchy_id.length
+        ? holiday_calendar.hierarchy_id
+        : [];
+
+      const query = sameHolidayCalendar(hierarchyIds.length > 0, false);
+
+      const existingConfigurations = await sequelize.query(query, {
+        replacements: {
+          program_id,
+          hierarchy_ids: hierarchyIds,
+          year: holiday_calendar.year,
+          is_all_hierarchy_associated: holiday_calendar.is_all_hierarchy_associated
+        },
+        type: QueryTypes.SELECT,
+        transaction
+      });
+
+      if (existingConfigurations.length > 0) {
+        await transaction.rollback();
+        return reply.status(409).send({
+          status_code: 409,
+          message: 'Holiday calendar with the same hierarchy and year already exist.',
+          trace_id: traceId,
+        });
+      }
     }
 
     const data = await holidayCalendar.create({
@@ -233,7 +262,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
         data: request.body,
         eventname: 'create holiday calendar',
         status: 'success',
-        description: 'HolidayCalendar created successfully.',
+        description: 'Holiday calendar created successfully.',
         level: 'success',
         action: request.method,
         url: request.url,
@@ -246,7 +275,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
     return reply.status(201).send({
       status_code: 201,
       trace_id: traceId,
-      message: 'HolidayCalendar created successfully.',
+      message: 'Holiday calendar created successfully.',
       id: data.id
     });
   } catch (error) {
@@ -274,7 +303,7 @@ export const createHolidayCalendar = async (request: FastifyRequest, reply: Fast
 
     return reply.status(500).send({
       status_code: 500,
-      message: 'An error occurred while creating holidayCalendar.',
+      message: 'An error occurred while creating holiday calendar.',
       trace_id: traceId,
       error: (error as Error).message,
     });
@@ -319,6 +348,35 @@ export const updateHolidayCalendar = async (request: FastifyRequest, reply: Fast
           status_code: 409,
           trace_id: traceId,
           message: "Holiday calendar name already exists.",
+        });
+      }
+    }
+
+    if ((updateData.hierarchy_id?.length || updateData.is_all_hierarchy_associated) && updateData.year) {
+      const hierarchyIds = Array.isArray(updateData.hierarchy_id) && updateData.hierarchy_id.length
+        ? updateData.hierarchy_id
+        : [];
+
+      const query = sameHolidayCalendar(hierarchyIds.length > 0, true);
+
+      const existingConfigurations = await sequelize.query(query, {
+        replacements: {
+          program_id,
+          hierarchy_ids: hierarchyIds,
+          year: updateData.year,
+          is_all_hierarchy_associated: updateData.is_all_hierarchy_associated,
+          exclude_id: id
+        },
+        type: QueryTypes.SELECT,
+        transaction
+      });
+
+      if (existingConfigurations.length > 0) {
+        await transaction.rollback();
+        return reply.status(409).send({
+          status_code: 409,
+          message: 'Holiday calendar with the same hierarchy and year already exist.',
+          trace_id: traceId,
         });
       }
     }
