@@ -713,11 +713,14 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
   const user=request?.user
   const userId = user?.sub;
 
-  const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids } = updates as {
+  const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids,name,label,module_id } = updates as {
     hierarchy_ids?: string[];
     work_location_ids?: string[];
     linked_modules?: Array<{ is_linked: boolean }>;
     master_data_ids?: string[];
+    name?:string;
+    label?:string;
+    module_id?:string
   };
 
 
@@ -729,6 +732,27 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
     const customFieldRecord = await findCustomField(id, program_id);
     if (!customFieldRecord) {
       return sendError(reply, 404, 'Custom Field not found');
+    }
+
+    const existingDuplicate = await CustomField.findOne({
+      where: {
+        program_id,
+        module_id,
+        [Op.and]: [
+          { label },
+          { name }
+        ],
+        id: { [Op.ne]: id },
+        is_deleted: false
+      }
+    });
+
+    if (existingDuplicate) {
+      return reply.send({
+        status_code:409,
+        message:"Custom field with the same name and label already exists in this module.",
+        traceId:traceId
+      });
     }
 
     const changes = await detectChanges(updates, customFieldRecord);

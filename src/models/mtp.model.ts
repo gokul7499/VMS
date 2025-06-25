@@ -80,7 +80,8 @@ MtpModel.init(
         tableName: "mtp",
         timestamps: false,
         hooks: {
-            beforeValidate: async (instance) => {
+            beforeValidate: async (instance,options) => {
+                const opts: any = options;
                 convertEmptyStringsToNull(instance);
                 if (!instance.mtp_id && instance.program_id) {
                     const programData = await mtpRepositories.programQuery(
@@ -90,7 +91,7 @@ MtpModel.init(
                         const programPrefix = programData[0].unique_id
                             .substring(0, 3)
                             .toUpperCase();
-                        const count = await MtpModel.count({ where: { program_id: instance.program_id } });
+                        const count = await MtpModel.count({ where: { program_id: instance.program_id }, transaction: opts.transaction   });
                         const sequence = (count + 1).toString().padStart(3, "0");
                         instance.mtp_id = `${programPrefix}-MTP-${sequence}`;
                     }
