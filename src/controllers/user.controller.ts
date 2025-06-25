@@ -398,7 +398,7 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
     const compareData = {};
     if (userType === "candidate") {
       console.log("Call  Candidate History")
-      createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Create")
+      createCandidateHistory(user.program_id, authHeader, candidateData, compareData, "Candidate Profile Created")
         .catch(error => {
           console.error("Failed to create candidate history:", error);
         });
