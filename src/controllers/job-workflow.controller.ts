@@ -3650,7 +3650,7 @@ export const getModuleEvent = async (
                    jw.created_on,
                    ROW_NUMBER() OVER (
                        PARTITION BY e.slug
-                       ORDER BY jw.created_on ASC
+                       ORDER BY jw.created_on DESC
                    ) AS rn
                FROM 
                    workflow AS jw
@@ -3685,7 +3685,7 @@ export const getModuleEvent = async (
                 type: QueryTypes.SELECT,
             }
         );
-
+console.log("results is the ", results)
         const groupedData: Record<string, any[]> = {};
 
         results.forEach((workflow: any) => {
