@@ -289,7 +289,7 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
         {
           model: CountryModel,
           as: 'countries',
-          attributes: ['id', 'name'],
+          attributes: ['id', 'name','isd_code','iso_code_2','iso_code_3'],
         }
       ],
     });
