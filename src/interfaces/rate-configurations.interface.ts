@@ -199,6 +199,8 @@ export interface RateDifferential {
     differential_on: string;
     differential_type: string;
     differential_value: number;
+    currency: any;
+    unit_of_measure: any;
     get: () => any;
 }
 

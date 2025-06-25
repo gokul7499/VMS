@@ -29,9 +29,9 @@ export const createRateConfigurations = async (
     const { program_id } = request.params as { program_id: string };
     const rateConfigurationsPayload = request.body as Partial<RateConfigurationsInterface>;
     const transaction = await sequelize.transaction();
-  
+
     try {
-        const user=request?.user;
+        const user = request?.user;
         const userId = user?.sub;
         if (rateConfigurationsPayload.hierarchies && rateConfigurationsPayload.job_templates) {
             const existingConfigurations = await sequelize.query(sameRateConfiguration, {
@@ -191,7 +191,7 @@ export const updateRateConfigurations = async (
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
     try {
-        const user=request?.user;
+        const user = request?.user;
         const userId = user?.sub;
         const existingRateConfig = await RateConfigurationsModel.findOne({
             where: { program_id, id, is_deleted: false },
@@ -903,12 +903,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
         // Get all differentials at once
         const allBillRates = await RateConfigurationRateDifferentials.findAll({
             where: { rate_id: rateIds, type: 'BILL_RATE' },
-            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value']
+            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
 
         const allPayRates = await RateConfigurationRateDifferentials.findAll({
             where: { rate_id: rateIds, type: 'PAY_RATE' },
-            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value']
+            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
 
         // Group differentials by rate_id
@@ -992,7 +992,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
                         // Get differentials
                         const billRates = (billRatesByRateId[rate.id] || []).map(billRate => {
-                            let differential_value
+                            let differential_value;
                             if (ot_exempt == "true" && rateTypeCategory?.value === "other") {
                                 differential_value = billRate.differential_value;
                             }
@@ -1002,6 +1002,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 differential_value = ot_exempt == "true" ? 1 : billRate.differential_value;
                             }
 
+                            if (
+                                billRate.differential_type === "Fixed Differential" &&
+                                (billRate.currency !== currency_id || billRate.unit_of_measure !== unit_of_measure)
+                            ) {
+                                differential_value = 0;
+                            }
                             return {
                                 ...billRate.get(),
                                 differential_value,
@@ -1025,6 +1031,13 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
                                 differential_value = payRate.differential_value;
                             } else {
                                 differential_value = ot_exempt == "true" ? 1 : payRate.differential_value;
+                            }
+
+                            if (
+                                payRate.differential_type === "Fixed Differential" &&
+                                (payRate.currency !== currency_id || payRate.unit_of_measure !== unit_of_measure)
+                            ) {
+                                differential_value = 0;
                             }
 
                             return {
