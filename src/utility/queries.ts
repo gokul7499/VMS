@@ -1381,7 +1381,7 @@ export const programVendorAdvancedFilter = (
         pv.id AS vendor_id,
         CASE
           WHEN COUNT(vr.id) = 0 THEN NULL
-          WHEN COUNT(vr.id) > 0 AND SUM(CASE WHEN vr.status = 'Compliant' THEN 1 ELSE 0 END) = COUNT(vr.id)
+          WHEN COUNT(vr.id) > 0 AND SUM(CASE WHEN vr.status NOT IN ('Non-Compliant') THEN 1 ELSE 0 END) = COUNT(vr.id)
             THEN 1
           ELSE 0
         END AS compliance_status
