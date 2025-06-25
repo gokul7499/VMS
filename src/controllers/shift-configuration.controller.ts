@@ -14,7 +14,7 @@ import { sameShiftConfiguration } from "../utility/queries";
 export const getAllshiftConfiguration = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
-  const { name, is_enabled, start_date, end_date, hierarchy_names, shift_type_name, page = '1', limit = '10' } = request.query as { name?: string; is_enabled?: boolean | string; start_date?: string; end_date?: string; hierarchy_names?: string; shift_type_name?: string; page?: string; limit?: string };
+  const { name, is_enabled, start_date, end_date, hierarchy_names,hierarchy_ids, shift_type_name, page = '1', limit = '10' } = request.query as { name?: string; is_enabled?: boolean | string; start_date?: string; end_date?: string; hierarchy_names?: string;hierarchy_ids?:string; shift_type_name?: string; page?: string; limit?: string };
 
   if (!program_id) {
     reply.status(400).send({
@@ -74,14 +74,23 @@ export const getAllshiftConfiguration = async (request: FastifyRequest, reply: F
     }
 
     let shiftConfigIds: string[] = [];
-    if (hierarchy_names) {
+       if (hierarchy_ids) {
+      const hierarchyIdsArray = hierarchy_ids.split(',').map(id => id.trim());
+      const shiftConfigurationHierarchyRecords = await shiftConfigurationHierarchies.findAll({
+        where: { hierarchy_id: { [Op.in]: hierarchyIdsArray } },
+        attributes: ['shift_config_id'],
+      });
+      shiftConfigIds = shiftConfigurationHierarchyRecords.map(record => record.shift_config_id);
+      searchFilters.id = { [Op.in]: shiftConfigIds };
+    }
+    else if (hierarchy_names) {
       const hierarchyRecords = await hierarchies.findAll({
         where: { name: { [Op.like]: `%${hierarchy_names}%` } },
         attributes: ['id'],
       });
-      const hierarchyIds = hierarchyRecords.map(record => record.id);
+      const hierarchyIdsFromNames = hierarchyRecords.map(record => record.id);
       const shiftConfigurationHierarchyRecords = await shiftConfigurationHierarchies.findAll({
-        where: { hierarchy_id: hierarchyIds },
+        where: { hierarchy_id: hierarchyIdsFromNames },
         attributes: ['shift_config_id'],
       });
       shiftConfigIds = shiftConfigurationHierarchyRecords.map(record => record.shift_config_id);
