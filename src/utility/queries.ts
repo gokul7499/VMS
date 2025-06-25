@@ -2444,7 +2444,7 @@ WITH user_data AS (
             LEFT JOIN custom_fields ON user_custom_fields.customfield_id = custom_fields.id
             WHERE user_custom_fields.user_id = u.id
         ), JSON_ARRAY()) AS custom_fields,
-         JSON_OBJECT('id', dh.id, 'name', dh.name) AS default_hierarchy_id,
+         JSON_OBJECT('id', dh.id, 'name', dh.name, 'default_currency',dh.default_currency) AS default_hierarchy_id,
          JSON_OBJECT('id', dwl.id, 'name', dwl.name) AS default_work_location_id,
          JSON_OBJECT('id', c.id, 'name', c.name) AS countries,
          JSON_OBJECT('id', t.id, 'name', t.name) AS tenant_id

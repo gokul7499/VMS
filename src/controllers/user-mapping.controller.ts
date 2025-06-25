@@ -323,7 +323,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name,'display_name', t.display_name),
                     'supervisor_id', 
                       CASE 
-                        WHEN su.user_id IS NULL THEN JSON_OBJECT()
+                        WHEN su.user_id IS NULL THEN null
                       ELSE JSON_OBJECT(
                         'id', su.user_id,
                         'first_name', su.first_name,
