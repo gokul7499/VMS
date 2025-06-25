@@ -435,6 +435,35 @@ export async function getAllWorkflows(
     }
 }
 
+async function getHierarchyIds(user: any, program_id: string): Promise<string[]> {
+    const userDetails = await User.findOne({
+        where: { id: user.sub },
+        attributes: ['user_id', 'user_type', 'tenant_id', 'is_all_hierarchy_associate', 'associate_hierarchy_ids']
+    });
+
+    const userType = user.userType?.toLowerCase();
+    const user_type = userDetails?.user_type?.toLowerCase();
+
+    if (userType === 'super_user' || (user_type === 'client' && userDetails?.is_all_hierarchy_associate)) {
+        const allHierarchies = await hierarchies.findAll({
+            where: { program_id },
+            attributes: ['id']
+        });
+        return allHierarchies.map((h: any) => h.id);
+    }
+
+    if (user_type === 'msp' && userDetails?.is_all_hierarchy_associate) {
+        const managedHierarchies = await hierarchies.findAll({
+            where: { program_id, managed_by: userDetails.tenant_id },
+            attributes: ['id']
+        });
+        return managedHierarchies.map((h: any) => h.id);
+    }
+
+    return userDetails?.associate_hierarchy_ids || [];
+}
+
+
 export async function getWorkflowById(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
     const authHeader = request.headers.authorization;
@@ -442,9 +471,10 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
         return reply.status(401).send({ status_code: 401, message: 'Unauthorized - Token not found', trace_id: traceId });
     }
     const token = authHeader.split(' ')[1];
+    const user: any = await decodeToken(token);
     try {
         const { id, program_id } = request.params as { id: string; program_id: string };
-        const item = await WorkFlow.findOne({
+        const item:any = await WorkFlow.findOne({
             where: { id, program_id }
         });
 
@@ -456,18 +486,21 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                 trace_id: traceId
             });
         }
-
+        
+        let hierarchyIds: string[] = item.hierarchies || [];
+        if (item.is_associated_to_all_hierarchy === true) {
+            hierarchyIds = await getHierarchyIds(user, program_id);
+        }
 
         const [moduleData, eventData, methodData, hierarchiesData] = await Promise.all([
             item.module ? Module.findByPk(item.module, { attributes: ["id", "name"] }) : null,
             item.event_id ? EventModel.findByPk(item.event_id, { attributes: ["id", "name"] }) : null,
             item.method_id ? WorkflowMethod.findByPk(item.method_id, { attributes: ["id", "name"] }) : null,
             item.hierarchies?.length ? hierarchies.findAll({
-                where: { id: { [Op.in]: item.hierarchies } },
+                where: { id: { [Op.in]: hierarchyIds } },
                 attributes: ['id', 'name']
             }) : []
         ]);
-
 
         const fieldOperatorIds = new Set<string>();
         const metaFieldConfigIds = new Set<string>();
@@ -495,6 +528,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                     if (Array.isArray(condition.target_field_value.values)) {
                         condition.target_field_value.values.forEach((value: any) => {
                             targetValues.add(value);
+                            selectedItems.add(value);
                         });
                     } else {
                         targetValues.add(condition.target_field_value.values);
@@ -843,7 +877,8 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
                             { map: jobTemplateMap, key: 'jobTemplateItem', nameField: 'template_name' },
                             { map: userMap, key: 'userItem', username: ['first_name', 'last_name'] },
                             { map: timesheetTypeMap, key: 'timesheetTypeItem', nameField: 'title' },
-                            { map: roleMap, key: 'roleItem', nameField: 'name' }
+                            { map: roleMap, key: 'roleItem', nameField: 'name' },
+                            { map: picklistItemMap, key: 'picklistItem', nameField: 'value' }
                         ];
 
                         if (condition.target_field_value?.values) {
