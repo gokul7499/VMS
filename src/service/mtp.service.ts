@@ -341,7 +341,7 @@ class MtpService {
                     const candidateData = await this.mtpRepository.getCandidate(programId, candidateId);
                     const talentName = candidateData?.[0]?.candidate_name;
                     
-                  const data=  await MtpModel.create({
+                    await MtpModel.create({
                         program_id: programId,
                         mtp_candidate_id: candidateId,
                         is_deleted: false,
@@ -351,7 +351,6 @@ class MtpService {
                         updated_by: userId,
                         trace_id: traceId
                     }, { transaction });
-                    console.log("------------ Create Mtp ---------",data)
                 }
             }
     
