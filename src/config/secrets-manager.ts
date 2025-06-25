@@ -59,7 +59,7 @@ export const getSecretsManager = async () => {
                 auth_url: secret.AUTH_URL,
                 teai_url: secret.TEAI_URL,
                 sow_url: secret.SOW_URL,
-                ui_base_url: process.env.UI_BASE_URL,
+                ui_base_url: secret.UI_BASE_URL,
                 db_sourcing: secret.DATABASE_SOURCING,
                 keycloak_subdomain: secret.KC_AUTH_URL,
                 app_origin: secret.KC_URL,
