@@ -86,8 +86,8 @@ Checklist.init(
             allowNull: true,
         },
         sourcing_model: {
-            type: DataTypes.STRING(50),
-            allowNull: true,
+            type: DataTypes.ENUM('contingent', 'headcount_track', 'sow'),
+            allowNull: false,
         },
         is_enabled: {
             type: DataTypes.BOOLEAN,
