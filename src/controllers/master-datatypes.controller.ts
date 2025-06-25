@@ -517,7 +517,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         } = request.body as {
             name?: string;
             is_enabled?: boolean;
-            updated_on?: string;
+            updated_on?: any;
             timesheet_master_data?: boolean;
             user_association_exclude?: boolean;
             page?: number;
@@ -529,13 +529,18 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
 
         const offset = (page - 1) * limit;
 
-        let updated_on_start = null;
-        let updated_on_end = null;
-        if (updated_on) {
-            const modifiedOnRange = updated_on.split(',');
-            if (modifiedOnRange.length === 2) {
-                updated_on_start = modifiedOnRange[0];
-                updated_on_end = modifiedOnRange[1];
+        const hasUpdatedOnFilter = Array.isArray(updated_on) && updated_on.length > 0;
+        let updatedOnStart: number | undefined = undefined;
+        let updatedOnEnd: number | undefined = undefined;
+
+        if (hasUpdatedOnFilter) {
+            const startDate = new Date(updated_on[0]);
+            updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
+            if (updated_on.length === 1 || updated_on[1] === 0) {
+                updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+            } else {
+                updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
             }
         }
 
@@ -548,8 +553,8 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             program_id,
             name: name ?? null,
             is_enabled: is_enabled ?? null,
-            updated_on_start,
-            updated_on_end,
+            updated_on_start: updatedOnStart,
+            updated_on_end: updatedOnEnd,
             timesheet_master_data: timesheet_master_data ?? null,
             user_association_exclude: user_association_exclude ?? null,
             track_owner: track_owner ?? null,
@@ -587,7 +592,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
         }
 
         const foundationalDataItems: any[] = await sequelize.query(
-            masterDataTypeAdvanceFilter(hierarchyFilter, mspHierarchyFilter),
+            masterDataTypeAdvanceFilter(hierarchyFilter, mspHierarchyFilter, hasUpdatedOnFilter),
             {
                 replacements,
                 type: QueryTypes.SELECT,

@@ -163,6 +163,13 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
                 ],
             }).then((data) => data.map((item) => item.hierarchy));
         }
+        
+        const populatedAdditionalOwners = foundational_data.additional_mdt_owner?.length
+            ? await User.findAll({
+                where: { id: foundational_data.additional_mdt_owner },
+                attributes: ['id', 'first_name', 'last_name'],
+            })
+            : [];
 
         reply.status(200).send({
             status_code: 200,
@@ -170,7 +177,8 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             foundational_data: {
                 ...foundational_data.toJSON(),
                 manager_ids: populatedManagers,
-                hierarchies: hierarchie || []
+                hierarchies: hierarchie || [],
+                additional_mdt_owner: populatedAdditionalOwners
             },
             trace_id: traceId,
         });

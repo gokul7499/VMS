@@ -3712,7 +3712,7 @@ export const timesheetConfigAdvancedGetAllFilter = (
     `;
 };
 
-export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string) => `
+export const masterDataTypeAdvanceFilter = (hierarchyFilter: string, mspHierarchyFilter: string, hasUpdatedOnFilter: any) => `
 SELECT
   mdt.id,
   mdt.program_id,
@@ -3744,10 +3744,6 @@ WHERE
     OR mdt.is_enabled = :is_enabled
   )
   AND (
-    (:updated_on_start IS NULL OR mdt.updated_on >= :updated_on_start)
-    AND (:updated_on_end IS NULL OR mdt.updated_on <= :updated_on_end)
-  )
-  AND (
     :timesheet_master_data IS NULL
     OR JSON_EXTRACT(mdt.configuration, '$.timesheet_master_data') = :timesheet_master_data
   )
@@ -3763,6 +3759,7 @@ WHERE
     :allow_multiple_sows IS NULL
     OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
   )
+  ${hasUpdatedOnFilter ? 'AND mdt.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ${hierarchyFilter}
   ${mspHierarchyFilter}
 ORDER BY
@@ -3770,3 +3767,25 @@ ORDER BY
 LIMIT :limit OFFSET :offset;
 `;
 
+export function sameHolidayCalendar(hasHierarchyIds: boolean, excludeCurrent?: boolean) {
+  return `
+    SELECT hc.id
+    FROM holiday_calendar hc
+    LEFT JOIN holiday_calendar_hierarchies hch ON hch.holiday_calendar_id = hc.id
+    WHERE hc.program_id = :program_id
+    AND hc.is_deleted = false
+    AND hc.year = :year
+    ${excludeCurrent ? 'AND hc.id != :exclude_id' : ''}
+    AND (
+      :is_all_hierarchy_associated = true
+      OR hc.is_all_hierarchy_associated = true
+      ${hasHierarchyIds ? `
+        OR EXISTS (
+          SELECT 1 FROM holiday_calendar_hierarchies hch2
+          WHERE hch2.holiday_calendar_id = hc.id
+          AND hch2.hierarchy_id IN (:hierarchy_ids)
+        )
+      ` : ''}
+    )
+  `;
+}

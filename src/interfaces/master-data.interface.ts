@@ -15,7 +15,8 @@ export interface FoundationalDataInterface {
     created_by: string;
     updated_by: string;
     depended_fields: any,
-    is_billable: boolean
+    is_billable: boolean,
+    additional_mdt_owner:string[]
 }
 
 export const paramsSchema = {
@@ -48,6 +49,7 @@ export const createFoundationalDataSchema = {
             type: 'array'
         },
         program_id: { type: 'string' },
-        foundational_data_type_id: { type: 'string' }
+        foundational_data_type_id: { type: 'string' },
+        additional_mdt_owner:{type:'array'}
     }
 }

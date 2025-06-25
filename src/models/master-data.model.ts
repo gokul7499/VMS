@@ -11,6 +11,7 @@ class FoundationalData extends Model {
     name: any;
     manager_ids: any;
     is_all_hierarchy_associated: any;
+    additional_mdt_owner: any;
 }
 
 FoundationalData.init({
@@ -98,6 +99,11 @@ FoundationalData.init({
         type: DataTypes.UUID,
         allowNull: true,
     },
+    additional_mdt_owner:{
+        type:DataTypes.JSON,
+        allowNull:false
+
+    }
 }, {
     sequelize,
     modelName: 'master_data',
