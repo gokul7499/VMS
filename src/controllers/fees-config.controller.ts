@@ -144,7 +144,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as Partial<FeesConfigurationInterface>;
 
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
   try {
     const feesConfigData = await feesConfiguration.findByPk(id);
@@ -179,7 +179,7 @@ export async function updateFeesConfigurationById(request: FastifyRequest, reply
 
 export async function deleteFeesConfigurationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub
   try {
     const { id } = request.params as { id: string };
@@ -221,33 +221,69 @@ export async function advancedSearchFeesConfiguration(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const { page = 1, limit = 10 } = request.body as { page: number; limit: number };
-    const user=request?.user
+    const {
+      page = 1,
+      limit = 10,
+      updated_on,
+      ...filters
+    } = request.body as {
+      page: number;
+      limit: number;
+      updated_on?: any;
+      [key: string]: any;
+    };
+
+    const user = request?.user;
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
-    const result = await FeesConfigRepository.feesAdvancedFilter(request, program_id, { page, limit },mspHierarchyIds);
+
+    if (updated_on && Array.isArray(updated_on) && updated_on.length > 0) {
+      const startDate = new Date(updated_on[0]);
+      const updatedOnStart = startDate.setHours(0, 0, 0, 0);
+
+      let updatedOnEnd;
+      if (updated_on.length === 1 || updated_on[1] === 0) {
+        updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+      } else {
+        updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+      }
+
+      filters.updated_on = [updatedOnStart, updatedOnEnd];
+    }
+
+    const result = await FeesConfigRepository.feesAdvancedFilter(
+      request,
+      program_id,
+      { page, limit },
+      mspHierarchyIds,
+      filters
+    );
 
     if (result?.count > 0) {
       return reply.status(200).send({
         status_code: 200,
+        trace_id: traceId,
         message: "Data search successfully",
         total_records: result.count,
         items: result.rows,
       });
     } else {
       return reply.status(200).send({
-        message: "No records found",
         status_code: 200,
+        trace_id: traceId,
+        message: "No records found",
         total_records: 0,
         items: [],
       });
     }
-  } catch (error:any) {
+  } catch (error: any) {
     return reply.status(500).send({
-      message: "Internal Server Error",
       status_code: 500,
-      error:error.message
+      trace_id: traceId,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
 }
