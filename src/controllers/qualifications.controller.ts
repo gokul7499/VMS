@@ -188,8 +188,6 @@ export async function getQualificationCode(request: FastifyRequest, reply: Fasti
     }
 }
 
-
-
 export const updateQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const { id, program_id } = request.params as { id: string, program_id: string };
     const QualificationsData = request.body as QualificationData;
@@ -210,6 +208,7 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
             await data.update({
                 ...QualificationsData,
                 updated_by: userId,
+                updated_on: Date.now()
             });
 
             logger({
@@ -284,7 +283,6 @@ export const updateQualification = async (request: FastifyRequest, reply: Fastif
         });
     }
 };
-
 
 export const deleteQualification = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();

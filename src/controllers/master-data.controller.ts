@@ -144,6 +144,13 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             })
             : [];
 
+        const configuration = foundational_data.foundational_data_type_id
+            ? await FoundationalDataTypes.findOne({
+                where: { id: foundational_data.foundational_data_type_id },
+                attributes: ['id', 'configuration'],
+            })
+            : [];
+
         let hierarchie = [];
 
         if (foundational_data.is_all_hierarchy_associated) {
@@ -163,7 +170,7 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
                 ],
             }).then((data) => data.map((item) => item.hierarchy));
         }
-        
+
         const populatedAdditionalOwners = foundational_data.additional_mdt_owner?.length
             ? await User.findAll({
                 where: { id: foundational_data.additional_mdt_owner },
@@ -178,7 +185,8 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
                 ...foundational_data.toJSON(),
                 manager_ids: populatedManagers,
                 hierarchies: hierarchie || [],
-                additional_mdt_owner: populatedAdditionalOwners
+                additional_mdt_owner: populatedAdditionalOwners,
+                foundational_data_type_id: configuration
             },
             trace_id: traceId,
         });
