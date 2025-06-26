@@ -193,8 +193,9 @@ export async function getAllRateType(request: FastifyRequest, reply: FastifyRepl
     abbreviation,
     page = "1",
     limit = "10",
-    hierarchy_ids
+    hierarchy_ids,
   } = request.query as RateTypeInterface;
+
   const traceId = generateCustomUUID();
 
   try {
@@ -212,27 +213,16 @@ export async function getAllRateType(request: FastifyRequest, reply: FastifyRepl
       abbreviation,
       page,
       limit,
-      hierarchy_ids
+      hierarchy_ids,
     });
+
     const rateType = await fetchRateTypes(queryParams, program_id);
     const totalCount = rateType[0]?.total_records ?? 0;
-
-    if (rateType.length === 0) {
-      return reply.status(200).send({
-        status_code: 200,
-        trace_id: traceId,
-        message: "No rate type found for the given program",
-        total_records: totalCount,
-        page: queryParams.pageNumber,
-        limit: queryParams.pageSize,
-        rate_type: [],
-      });
-    }
 
     return reply.status(200).send({
       status_code: 200,
       trace_id: traceId,
-      message: "Rate type fetched successfully.",
+      message: rateType.length ? "Rate type fetched successfully." : "No rate type found for the given program",
       total_records: totalCount,
       page: queryParams.pageNumber,
       limit: queryParams.pageSize,
@@ -263,26 +253,8 @@ function getQueryParams(query: any) {
     abbreviation,
     page = "1",
     limit = "10",
-    hierarchy_ids
+    hierarchy_ids,
   } = query;
-
-  const hasName = !!name;
-  const hasId = !!id;
-  const hasDifferentialOn = !!differential_on;
-  const hasRateTypeCategory = !!rate_type_category;
-  const hasShiftType = !!shift_type;
-  const rateTypeCategoryLabels = rate_type_category_label ? rate_type_category_label.split(",") : [];
-  const isEnabledValue = parseBoolean(is_enabled);
-  const isShiftRateValue = parseBoolean(is_shift_rate);
-  const isBaseRate = parseBoolean(is_base_rate);
-  const hasHierarchies = !!hierarchy_ids;
-  const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(',') : [];
-  const { startDate, endDate } = parseDateRange(updated_on);
-  const hasAbbreviation = !!abbreviation;
-  const pageNumber = parseInt(page, 10);
-  const pageSize = parseInt(limit, 10);
-  const offset = (pageNumber - 1) * pageSize;
-  const hasHierarchyShiftFilter = hasHierarchies && differential_on === "shift";
 
   return {
     id,
@@ -291,23 +263,23 @@ function getQueryParams(query: any) {
     rate_type_category,
     shift_type,
     abbreviation,
-    rateTypeCategoryLabels,
-    hasName,
-    hasId,
-    isEnabledValue,
-    isShiftRateValue,
-    isBaseRate,
-    hasDifferentialOn,
-    hasRateTypeCategory,
-    hasShiftType,
-    hasAbbreviation,
-    startDate,
-    endDate,
-    pageNumber,
-    pageSize,
-    offset,
-    hasHierarchyShiftFilter,
-    hierarchyIdsArray
+    rateTypeCategoryLabels: rate_type_category_label ? rate_type_category_label.split(",") : [],
+    hasName: !!name,
+    hasId: !!id,
+    isEnabledValue: parseBoolean(is_enabled),
+    isShiftRateValue: parseBoolean(is_shift_rate),
+    isBaseRate: parseBoolean(is_base_rate),
+    hasDifferentialOn: !!differential_on,
+    hasRateTypeCategory: !!rate_type_category,
+    hasShiftType: !!shift_type,
+    hasAbbreviation: !!abbreviation,
+    hasHierarchies: !!hierarchy_ids,
+    hierarchyIdsArray: hierarchy_ids ? hierarchy_ids.split(",") : [],
+    ...parseDateRange(updated_on),
+    pageNumber: parseInt(page, 10),
+    pageSize: parseInt(limit, 10),
+    offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+    hasHierarchyShiftFilter: !!hierarchy_ids,
   };
 }
 
@@ -377,7 +349,6 @@ async function fetchRateTypes(queryParams: any, program_id: string) {
         ...(queryParams.isBaseRate !== undefined && { is_base_rate: queryParams.isBaseRate }),
         ...(queryParams.hasDifferentialOn && { differential_on: `%${queryParams.differential_on}%` }),
         ...(queryParams.hasRateTypeCategory && { rate_type_category: queryParams.rate_type_category }),
-        ...(queryParams.hasShiftType && { shift_type: queryParams.shift_type }),
         ...(queryParams.rateTypeCategoryLabels.length > 0 && { rate_type_category_labels: queryParams.rateTypeCategoryLabels }),
         ...(queryParams.hasAbbreviation && { abbreviation: `%${queryParams.abbreviation}%` }),
         ...(queryParams.startDate !== undefined && { startDate: queryParams.startDate }),
