@@ -578,7 +578,7 @@ export async function updateCandidateByIdAndProgramId(
                 is_deleted: false
             }
         });
-        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Update")
+        createCandidateHistory(program_id, authHeader, existingRecord?.dataValues, updatedRecord?.dataValues, "Candidate Profile Updated")
             .catch(error => {
                 console.error("Failed to create candidate history:", error);
             });

@@ -19,7 +19,6 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
-import { createCandidateHistory } from '../utility/candidate-history';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -389,10 +388,7 @@ export const updateWorkflowStatus = async (
             impersonator_id = user.impersonator.id || null
         }
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
-        const oldData = {
-            candidate_id: workflow?.candidate_id,
-            status:workflow?.status
-        };
+   
 
         if (!workflow) {
             return reply.status(404).send({
@@ -718,14 +714,7 @@ export const updateWorkflowStatus = async (
             };
 
             if (workflowStatus === "completed") {
-                const newData = {
-                    status: "approved",
-                    candidate_id: workflow?.candidate_id,
-                    notes: notes || "",
-                };
-
-                await createCandidateHistory(user.program_id, authHeader, oldData, newData, "update")
-
+            
                 await updatePendingApprovalStatus(request, reply, program_id, id, workflow, updates, user, userData)
                 let eventCode = await getEventsCode(workflow);
                 
