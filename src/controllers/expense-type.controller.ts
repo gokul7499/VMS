@@ -334,11 +334,23 @@ export async function getAllExpenseType(
         whereClause.max_unit_limit = max_limit;
     }
     if (updated_on) {
-        const timestamps = updated_on.split(',').map(ts => Number(ts.trim()));
-        if (timestamps.length === 2 && !isNaN(timestamps[0]) && !isNaN(timestamps[1])) {
-            whereClause.updated_on = { [Op.between]: timestamps };
-        } else if (timestamps.length === 1 && !isNaN(timestamps[0])) {
-            whereClause.updated_on = timestamps[0];
+        const dates = updated_on.split(',')
+            .map(d => d.trim())
+            .filter(d => d.length > 0);
+
+        if (dates.length > 0) {
+            const startDate = new Date(dates[0]);
+            const startTimestamp = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0).getTime();
+
+            let endTimestamp;
+            if (dates.length === 1 || !dates[1]) {
+                endTimestamp = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 23, 59, 59, 999).getTime();
+            } else {
+                const endDate = new Date(dates[1]);
+                endTimestamp = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime();
+            }
+
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
         }
     }
 
