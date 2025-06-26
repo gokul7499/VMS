@@ -2563,11 +2563,12 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
     }
     
     try {
-        const { workflow_action, job_id, workflow_trigger_id, hierarchy_id } = request.query as {
+        const { workflow_action, job_id, workflow_trigger_id, hierarchy_id, workflow_id } = request.query as {
             workflow_action: string;
             job_id: string;
             workflow_trigger_id: string;
-            hierarchy_id: any
+            hierarchy_id: any;
+            workflow_id: string
         };
         
         // Properly format hierarchy IDs for SQL query
@@ -2575,14 +2576,15 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         const hierarchyPlaceholders = hierarchy_ids.map((id:any) => `"${id}"`).join(',');
         
         // Base workflow data query
-        const workflowQuery = buildWorkflowQuery(hierarchyPlaceholders);
+        const workflowQuery = buildWorkflowQuery(hierarchyPlaceholders, workflow_id);
         
         const rows: any[] = await sequelize.query(workflowQuery, {
             replacements: { 
                 workflow_action, 
                 program_id, 
                 workflow_trigger_id,
-                hierarchy_ids: hierarchyPlaceholders
+                hierarchy_ids: hierarchyPlaceholders,
+                workflow_id: workflow_id
             },
             type: QueryTypes.SELECT,
         });
@@ -2695,7 +2697,11 @@ function deduplicateLevels(levels: Level[]): Level[] {
  * Build the SQL query for getting workflow data
  * This extracts the complex SQL query to a separate function for better readability
  */
-function buildWorkflowQuery(hierarchyPlaceholders:string) {
+function buildWorkflowQuery(hierarchyPlaceholders:string, workflow_id: string) {
+     let workflowIdCondition = '';
+        if (workflow_id) {
+            workflowIdCondition = 'AND w.id = :workflow_id';
+        }
     return `
         SELECT
             w.id AS job_workflow_id,
@@ -2796,6 +2802,7 @@ function buildWorkflowQuery(hierarchyPlaceholders:string) {
             w.program_id = :program_id
             AND w.flow_type = :workflow_action
             AND w.workflow_trigger_id = :workflow_trigger_id
+             ${workflowIdCondition}
             AND w.is_updated = true
             AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchyPlaceholders}))
         ORDER BY
