@@ -496,7 +496,7 @@ export async function getWorkflowById(request: FastifyRequest, reply: FastifyRep
             item.module ? Module.findByPk(item.module, { attributes: ["id", "name"] }) : null,
             item.event_id ? EventModel.findByPk(item.event_id, { attributes: ["id", "name"] }) : null,
             item.method_id ? WorkflowMethod.findByPk(item.method_id, { attributes: ["id", "name"] }) : null,
-            item.hierarchies?.length ? hierarchies.findAll({
+            hierarchyIds.length > 0 ? hierarchies.findAll({
                 where: { id: { [Op.in]: hierarchyIds } },
                 attributes: ['id', 'name']
             }) : []
