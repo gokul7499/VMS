@@ -34,8 +34,10 @@ class FeesConfigRepository {
     program_id: string,
     paginationOverride?: { page?: number; limit?: number },
     mspHierarchyIds?: string[],
-    filters: Record<string, any> = {}
+    filtersInput: Record<string, any> = {}
   ) {
+    const filters = filtersInput.filters || filtersInput;
+
     const page = paginationOverride?.page || 1;
     const limit = paginationOverride?.limit || 10;
     const offset = (page - 1) * limit;

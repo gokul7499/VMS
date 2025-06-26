@@ -224,39 +224,34 @@ export async function advancedSearchFeesConfiguration(
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
-    const {
-      page = 1,
-      limit = 10,
-      updated_on,
-      ...filters
-    } = request.body as {
-      page: number;
-      limit: number;
-      updated_on?: any;
-      [key: string]: any;
+    const requestBody = request.body as any;
+    const filters = requestBody.filters || requestBody; 
+    const paginationOverride = requestBody.pagination || { 
+      page: requestBody.page || 1, 
+      limit: requestBody.limit || 10 
     };
 
     const user = request?.user;
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
 
-    if (updated_on && Array.isArray(updated_on) && updated_on.length > 0) {
-      const startDate = new Date(updated_on[0]);
-      const updatedOnStart = startDate.setHours(0, 0, 0, 0);
+    // if (updated_on && Array.isArray(updated_on) && updated_on.length > 0) {
+    //   const startDate = new Date(updated_on[0]);
+    //   const updatedOnStart = startDate.setHours(0, 0, 0, 0);
 
-      let updatedOnEnd;
-      if (updated_on.length === 1 || updated_on[1] === 0) {
-        updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
-      } else {
-        updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
-      }
+    //   let updatedOnEnd;
+    //   if (updated_on.length === 1 || updated_on[1] === 0) {
+    //     updatedOnEnd = new Date(updated_on[0]).setHours(23, 59, 59, 999);
+    //   } else {
+    //     updatedOnEnd = new Date(updated_on[1]).setHours(23, 59, 59, 999);
+    //   }
 
-      filters.updated_on = [updatedOnStart, updatedOnEnd];
-    }
+    //   filters.updated_on = [updatedOnStart, updatedOnEnd];
+    // }
 
     const result = await FeesConfigRepository.feesAdvancedFilter(
       request,
       program_id,
-      { page, limit },
+      paginationOverride,
       mspHierarchyIds,
       filters
     );
