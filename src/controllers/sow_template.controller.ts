@@ -112,8 +112,7 @@ export async function createSowTemplate(
 }
 
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();
-
+    const traceId = generateCustomUUID();   
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -198,7 +197,7 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         if (created_on) {
             const dateRange = created_on.split(',').map(date => date.trim().replace(/\//g, '-'));
             if (dateRange.length === 2) {
-            const startTimestamp = new Date(dateRange[0]).getTime();
+                const startTimestamp = new Date(dateRange[0]).getTime();
                 const endTimestamp = new Date(dateRange[1]).getTime();
                 if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
                     const adjustedEnd = endTimestamp + (24 * 60 * 60 * 1000 - 1);
@@ -249,6 +248,13 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
             is_sow_payment_req: template.is_sow_payment_req,
             is_sow_schedule_payments: template.is_sow_schedule_payments,
             is_sow_desc_mandatory: template.is_sow_desc_mandatory,
+            master_data: typeof template.master_data === 'string'
+                ? JSON.parse(template.master_data)
+                : (Array.isArray(template.master_data) ? template.master_data : []),
+            custom_fields: typeof template.custom_fields === 'string'
+                ? JSON.parse(template.custom_fields)
+                : (Array.isArray(template.custom_fields) ? template.custom_fields : []),
+
         }));
 
         reply.status(200).send({

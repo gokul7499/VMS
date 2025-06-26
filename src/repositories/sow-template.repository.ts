@@ -8,7 +8,7 @@ SELECT
     t.code,
     t.created_on,
     t.updated_on,
-     t.is_sow_assignment,
+    t.is_sow_assignment,
     t.is_sow_expense,
     t.is_sow_milestones,
     t.is_sow_payment_req,
@@ -31,7 +31,35 @@ SELECT
         FROM picklistitems p
         WHERE p.id = t.type
         LIMIT 1
-    ), NULL) AS picklist_items
+    ), NULL) AS picklist_items,
+    COALESCE((
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'master_data_type', mdt.id,
+      'master_data_type_name', mdt.name,
+      'master_data', (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', md.id,
+            'name', md.name
+          )
+        )
+        FROM sow_template_master_data stm
+        LEFT JOIN master_data md 
+          ON JSON_UNQUOTE(JSON_EXTRACT(stm.master_data, '$[0]')) = md.id
+        WHERE stm.master_data_type = mdt.id
+          AND stm.sow_temp_id = t.id
+      )
+    )
+  )
+  FROM master_data_type mdt
+  WHERE EXISTS (
+    SELECT 1
+    FROM sow_template_master_data stm
+    WHERE stm.master_data_type = mdt.id
+      AND stm.sow_temp_id = t.id
+  )
+), JSON_ARRAY()) AS master_data
 FROM sow_templates t
 WHERE ${whereClause}
 ORDER BY t.created_on DESC
@@ -90,17 +118,37 @@ export const getSowTemplateByIdQuery = `
         LIMIT 1
     ), NULL) AS picklist_items,
 
-    -- Custom Fields
-    COALESCE((
-        SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', stcf.custom_field_id,
-                'value', stcf.value
-            )
+   -- Custom Fields
+COALESCE((
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', IFNULL(program_custom_field.custom_field_id, ''),
+            'value',
+                CASE
+                    WHEN JSON_VALID(scf.value) AND JSON_TYPE(JSON_EXTRACT(scf.value, '$')) = 'ARRAY'
+                        THEN JSON_EXTRACT(scf.value, '$')
+                    WHEN JSON_VALID(scf.value) AND JSON_TYPE(JSON_EXTRACT(scf.value, '$')) = 'STRING'
+                        THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(scf.value, '$')))
+                    ELSE JSON_ARRAY(scf.value)
+                END,
+             'label', cf.label,
+            'field_type', cf.field_type,
+            'manager_name',
+            CASE
+                WHEN u.user_id IS NOT NULL THEN CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, ''))
+                ELSE NULL
+            END
         )
-        FROM sow_template_custom_field stcf
-        WHERE stcf.sow_temp_id = t.id
-    ), '[]') AS custom_fields,
+    )
+    FROM program_custom_field
+    JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
+    LEFT JOIN user u
+        ON TRIM(REPLACE(REPLACE(IFNULL(program_custom_field.value, ''), '"', ''), ' ', '')) = TRIM(u.user_id)
+        AND u.program_id = program_custom_field.program_id
+    WHERE program_custom_field.program_id = t.program_id
+      AND cf.is_enabled = TRUE
+      AND cf.is_deleted = FALSE
+), JSON_ARRAY()) AS custom_fields,
 
 -- Master Data
 COALESCE((
