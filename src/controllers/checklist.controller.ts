@@ -6,6 +6,7 @@ import { col, fn, Op } from "sequelize";
 import Checklist from "../models/checklist.model";
 import ChecklistMapping from "../models/checklist-mapping.model";
 import ChecklistTaskMapping from "../models/checklist-mapping.model";
+import { checkIfChecklistNameExists } from "../utility/checklist-service";
 
 export async function createCheckList(
     request: FastifyRequest<{ Params: { program_id: string } }>,
@@ -17,13 +18,24 @@ export async function createCheckList(
     const user = request?.user;
     const userId = user?.sub
     try {
-        const { task_category_configs, ...checkListData } = request.body as ChecklistInterface;
+        const { task_category_configs, name, ...checkListData } = request.body as ChecklistInterface;
+
+        const existingChecklist  = await checkIfChecklistNameExists(name, program_id);
+        if (existingChecklist ) {
+            return reply.status(409).send({
+                status_code: 409,
+                message: `Checklist with name ${name} already exists for this program.`,
+                traceId,
+            });
+        }
+
         const transaction = await sequelize.transaction();
 
         try {
 
             const createdCheckList = await Checklist.create(
                 {
+                    name,
                     ...checkListData, program_id,
                     created_by: userId,
                     updated_by: userId,
@@ -48,8 +60,8 @@ export async function createCheckList(
                     due_date: config.due_date,
                     is_enabled: config.is_enabled ?? true,
                     is_deleted: config.is_deleted ?? false,
-                    created_by: checkListData.created_by,
-                    updated_by: checkListData.updated_by,
+                    created_by: createdCheckList.created_by,
+                    updated_by: createdCheckList.updated_by,
                     category_id: config.category_id,
                     category_name: config.category_name,
                     task_entity_id: config.task_entity_id,
