@@ -297,11 +297,10 @@ function parseDateRange(dateRange: string): { startDate?: number; endDate?: numb
   if (!dateRange) return {};
 
   const parseTimestamp = (ts: string, isStart: boolean): number | undefined => {
-    const num = Number(ts.trim());
-    if (isNaN(num)) return undefined;
-    const date = new Date(num);
-    date.setHours(isStart ? 0 : 23, isStart ? 0 : 59, isStart ? 0 : 59, isStart ? 0 : 999);
-    return date.getTime();
+    const parsed = new Date(ts.trim()); 
+    if (isNaN(parsed.getTime())) return undefined;
+    parsed.setHours(isStart ? 0 : 23, isStart ? 0 : 59, isStart ? 0 : 59, isStart ? 0 : 999);
+    return parsed.getTime();
   };
 
   const dates = dateRange.split(",");

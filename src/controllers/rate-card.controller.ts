@@ -14,7 +14,7 @@ import { Op } from "sequelize";
 export const createRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-     const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub
     try {
         const { program_id } = request.params as { program_id: string };
@@ -314,7 +314,7 @@ export const getRateCardById = async (request: FastifyRequest, reply: FastifyRep
 export const updateRateCard = async (request: FastifyRequest, reply: FastifyReply) => {
     const traceId = generateCustomUUID();
     const transaction = await sequelize.transaction();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub;
     try {
         const { program_id, id } = request.params as { program_id: string; id: string };
@@ -430,11 +430,21 @@ export const advanceFilterRateCards = async (request: FastifyRequest, reply: Fas
             program_id,
             is_deleted: false,
         };
-        if (Array.isArray(updated_on) && updated_on.length === 2) {
-            const dateRange = updated_on.map(timestamp => Number(timestamp));
+        if (Array.isArray(updated_on)) {
+            const dateRange = updated_on
+                .map(dateStr => new Date(dateStr).getTime())
+                .filter(ts => !isNaN(ts));
 
-            if (!isNaN(dateRange[0]) && !isNaN(dateRange[1])) {
+            if (dateRange.length === 2) {
                 whereConditions.updated_on = { [Op.between]: dateRange };
+            } else if (dateRange.length === 1) {
+                const startOfDay = new Date(dateRange[0]);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(dateRange[0]);
+                endOfDay.setHours(23, 59, 59, 999);
+                whereConditions.updated_on = {
+                    [Op.between]: [startOfDay.getTime(), endOfDay.getTime()],
+                };
             }
         }
 
