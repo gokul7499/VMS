@@ -50,6 +50,10 @@ SOWTemplateMasterDataModel.init(
             type: DataTypes.UUID,
             allowNull: true,
         },
+        seq_no: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        }
     },
     {
         sequelize,

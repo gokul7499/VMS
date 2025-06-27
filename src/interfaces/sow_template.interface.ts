@@ -26,4 +26,5 @@ export interface SowTemplate {
     hierarchy:any;
     custom_fields:any;
     master_data:any;
+    seq_no?: number;
 }
