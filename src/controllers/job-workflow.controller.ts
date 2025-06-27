@@ -320,7 +320,7 @@ export const updateWorkflowStatus = async (
     }
 
     // Validate input parameters
-    if (!program_id || !id || updates.length === 0) {
+    if (!program_id || !id || updates?.length === 0) {
         return reply.status(400).send({
             status_code: 400,
             message: "Invalid request: program_id, id, and at least one update are required.",
@@ -352,7 +352,7 @@ export const updateWorkflowStatus = async (
         const userIds: string[] = [];
         
         if (level && level.recipient_types) {
-            level.recipient_types.forEach((recipient: any) => {
+            level.recipient_types?.forEach((recipient: any) => {
                 let userId = recipient?.replaced_by;
                 if (!userId && recipient?.meta_data) {
                     const metaValues = Object.values(recipient?.meta_data);
@@ -385,7 +385,7 @@ export const updateWorkflowStatus = async (
         let userData = userResult[0] as any
         let impersonator_id: any
         if (user.impersonator) {
-            impersonator_id = user.impersonator.id || null
+            impersonator_id = user?.impersonator.id || null
         }
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
    
@@ -407,7 +407,7 @@ export const updateWorkflowStatus = async (
         
         // First, collect active status for all users in pending levels only
         await Promise.all(levels.filter((level:any) => level.status === 'pending').map(async (level: any) => {
-            const levelOrder = level.placement_order || 0;
+            const levelOrder = level?.placement_order || 0;
             allLevelsActiveStatus[levelOrder] = await checkAllUsersActiveStatus(level);
             console.log(`Active status for pending level ${levelOrder}:`, allLevelsActiveStatus[levelOrder]);
         }));
@@ -422,10 +422,10 @@ export const updateWorkflowStatus = async (
                         return level;
                     }
                     
-                    const levelOrder = level.placement_order || 0;
+                    const levelOrder = level?.placement_order || 0;
                     const levelActiveStatus = allLevelsActiveStatus[levelOrder] || {};
 
-                    if (level.placement_order === placement_order) {
+                    if (level?.placement_order === placement_order) {
                         levelFound = true;
                         updatedLevels = true;
 
@@ -472,7 +472,7 @@ export const updateWorkflowStatus = async (
                                 }
 
                                 // Check user type - Fixed comparison operator
-                                const isSuperUser = user.userType === "super_user";
+                                const isSuperUser = user?.userType === "super_user";
 
                                 if (!isSuperUser && behavior?.toLowerCase() === "any".toLowerCase() && level.placement_order === placement_order) {
                                     // Check if the recipient's user_id matches any value in meta_data
@@ -546,7 +546,7 @@ export const updateWorkflowStatus = async (
                                 if (!isSuperUser) {
                                     if (user_id) {
                                         // If the recipient has a `replaced_by` field, match `user_id` directly
-                                        if (recipient.replaced_by && recipient.replaced_by === user_id) {
+                                        if (recipient?.replaced_by && recipient?.replaced_by === user_id) {
                                             const history = await WorkflowStatusHistory.create({
                                                 job_workflow_id: id,
                                                 placement_order,
@@ -559,7 +559,7 @@ export const updateWorkflowStatus = async (
                                             return {
                                                 ...recipient,
                                                 status: new_status,
-                                                status_id: history.dataValues.id,
+                                                status_id: history?.dataValues.id,
                                                 imporsonate_by: impersonator_id,
                                                 actor_first_name: userData?.first_name,
                                                 actor_last_name: userData?.last_name,
@@ -570,7 +570,7 @@ export const updateWorkflowStatus = async (
                                         }
 
                                         // If the recipient does not have `replaced_by`, check `meta_data`
-                                        if (!recipient.replaced_by && recipient.meta_data) {
+                                        if (!recipient.replaced_by && recipient?.meta_data) {
                                             const matchesUser = recipient?.replaced_by
                                                     ? user_id === recipient?.replaced_by
                                                     : Object.values(recipient?.meta_data).includes(user_id);
@@ -587,7 +587,7 @@ export const updateWorkflowStatus = async (
                                                 return {
                                                     ...recipient,
                                                     status: new_status,
-                                                    status_id: history.dataValues.id,
+                                                    status_id: history?.dataValues?.id,
                                                     imporsonate_by: impersonator_id,
                                                     actor_first_name: userData?.first_name,
                                                     actor_last_name: userData?.last_name,
@@ -612,7 +612,7 @@ export const updateWorkflowStatus = async (
                                     return {
                                         ...recipient,
                                         status: new_status,
-                                        status_id: history.dataValues.id,
+                                        status_id: history?.dataValues?.id,
                                         imporsonate_by: impersonator_id,
                                         actor_first_name: userData?.first_name,
                                         actor_last_name: userData?.last_name,
@@ -649,8 +649,8 @@ export const updateWorkflowStatus = async (
                                 ...recipient,
                                 status: "approved",
                                 is_admin_override: is_admin_override,
-                                actor_first_name: userData.first_name,
-                                actor_last_name: userData.last_name,
+                                actor_first_name: userData?.first_name,
+                                actor_last_name: userData?.last_name,
                                 actor_by_avatar: userData?.avatar,
                                 imporsonate_by: impersonator_id,
                                 updated_on: Date.now(),
@@ -683,8 +683,8 @@ export const updateWorkflowStatus = async (
             for (let i = 0; i < levels.length; i++) {
                 const level = levels[i];
                 const isValidLevel = level.recipient_types &&
-    level.recipient_types.length > 0 && 
-    level.recipient_types.every((recipient: any) => {
+    level?.recipient_types?.length > 0 && 
+    level?.recipient_types?.every((recipient: any) => {
         return recipient.meta_data !== null && recipient.meta_data !== undefined && 
             Object.values(recipient.meta_data).every(value => value !== null);
     });
