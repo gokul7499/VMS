@@ -41,7 +41,8 @@ SELECT
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', md.id,
-            'name', md.name
+            'name', md.name,
+            'seq_no', stm.seq_no
           )
         )
         FROM sow_template_master_data stm
@@ -160,7 +161,8 @@ COALESCE((
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', md.id,
-            'name', md.name
+            'name', md.name,
+            'seq_no', stm.seq_no
           )
         )
         FROM sow_template_master_data stm
