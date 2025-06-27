@@ -213,7 +213,7 @@ export async function deleteInvoiceConfigById(request: FastifyRequest, reply: Fa
 
 export async function getAllInvoiceConfig(request: FastifyRequest, reply: FastifyReply) {
     const { program_id } = request.params as { program_id: string };
-    const { name, page = 1, limit = 10 } = request.query as { name: string, page: number, limit: number };
+    const { name, page = 1, limit = 10 , updated_on} = request.query as { name: string, page: number, limit: number, updated_on : any };
     const traceId = generateCustomUUID();
     const user=request?.user
     const offset = (page - 1) * limit;
@@ -245,6 +245,32 @@ export async function getAllInvoiceConfig(request: FastifyRequest, reply: Fastif
         }
     if (name) {
         whereClause.name = { [Op.like]: `%${name}%` };
+    }
+    if (updated_on) {
+        const parts = String(updated_on).split(',').map(p => p.trim());
+
+        const parseDate = (value: string, endOfDay = false): number | undefined => {
+            if (!value) return undefined;
+            const millis = Number(value);
+            if (!isNaN(millis)) return millis;
+            const date = new Date(value);
+            if (isNaN(date.getTime())) return undefined; 
+            if (endOfDay) {
+                date.setHours(23, 59, 59, 999);
+            } else {
+                date.setHours(0, 0, 0, 0);
+            }
+            return date.getTime();
+        };
+
+        const start = parseDate(parts[0], false);
+        const end = parts[1] && parts[1] !== '0' ? parseDate(parts[1], true) : undefined;
+
+        if (start !== undefined) {
+            whereClause.updated_on = {
+                [Op.between]: [start, end ?? (start + 86400000 - 1)],
+            };
+        }
     }
 
     try {
