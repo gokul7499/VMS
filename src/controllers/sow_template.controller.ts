@@ -112,7 +112,7 @@ export async function createSowTemplate(
 }
 
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();   
+    const traceId = generateCustomUUID();
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -311,11 +311,29 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
             }
         });
 
-        sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
-        sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
-        sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
-            ? JSON.parse(sowTemplateRecord.master_data || '[]')
-            : sowTemplateRecord.master_data;
+        try {
+            sowTemplateRecord.hierarchy = typeof sowTemplateRecord.hierarchy === 'string'
+                ? JSON.parse(sowTemplateRecord.hierarchy || '[]')
+                : sowTemplateRecord.hierarchy || [];
+        } catch {
+            sowTemplateRecord.hierarchy = [];
+        }
+
+        try {
+            sowTemplateRecord.custom_fields = typeof sowTemplateRecord.custom_fields === 'string'
+                ? JSON.parse(sowTemplateRecord.custom_fields || '[]')
+                : sowTemplateRecord.custom_fields || [];
+        } catch {
+            sowTemplateRecord.custom_fields = [];
+        }
+
+        try {
+            sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
+                ? JSON.parse(sowTemplateRecord.master_data || '[]')
+                : sowTemplateRecord.master_data || [];
+        } catch {
+            sowTemplateRecord.master_data = [];
+        }
 
         return reply.status(200).send({
 
