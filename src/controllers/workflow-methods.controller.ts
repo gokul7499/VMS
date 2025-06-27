@@ -381,8 +381,7 @@ function sortWorkflowMethods(responses: any[], sortByPending = false, workflows:
         .map((response) => {
             const matchedWorkflow = workflows.find(
                 (w) =>
-                    response.method_ids?.includes(w.dataValues.method_id) &&
-                    w.dataValues.status.toLowerCase() === "pending"
+                    response.method_ids?.includes(w.dataValues.method_id)
             );
             
             response.is_workflow = !!matchedWorkflow;
@@ -733,24 +732,24 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
     const moduleId = await findModuleBySlug("submission");
     
     const eventId1 = await findEvent(moduleId, "submit_candidate_rehire_check");
-    const eventId2 = await findEvent(moduleId, "submit_candidate_shortlist");
+    // const eventId2 = await findEvent(moduleId, "submit_candidate_shortlist");
     
-    const item = await findWorkflowMethods(moduleId, [eventId1, eventId2]);
+    const item = await findWorkflowMethods(moduleId, [eventId1]);
     
     const rehireReviewMethod = findMethod(item, eventId1, "review");
-    const shortlistReviewMethod = findMethod(item, eventId2, "review");
+    // const shortlistReviewMethod = findMethod(item, eventId2, "review");
     const rehireApprovalMethod = findMethod(item, eventId1, "approval");
     
     let response: { [key: string]: any }[] = [];
     
-    if (rehireReviewMethod && shortlistReviewMethod && rehireApprovalMethod) {
+    if (rehireReviewMethod && rehireApprovalMethod) {
         response = [
             { ...rehireApprovalMethod.dataValues },
             {
                 ...rehireReviewMethod.dataValues,
                 method_ids: [
                     rehireReviewMethod.dataValues.id,
-                    shortlistReviewMethod.dataValues.id
+                    // shortlistReviewMethod.dataValues.id
                 ],
             },
         ];
@@ -759,16 +758,10 @@ async function handleCandidateRehireCheckModule(workflowTriggerId: string | unde
             { ...rehireReviewMethod?.dataValues || rehireApprovalMethod?.dataValues,
                 method_ids: [
                     rehireReviewMethod.dataValues.id,
-                    shortlistReviewMethod.dataValues.id
+                    // shortlistReviewMethod.dataValues.id
                 ]
              }
         ];
-    } else if (shortlistReviewMethod) {
-        response = [{ ...shortlistReviewMethod.dataValues,
-            method_ids: [
-                shortlistReviewMethod.dataValues.id
-            ]
-         }];
     }
     
     const workflows = await getWorkflows(workflowTriggerId);
