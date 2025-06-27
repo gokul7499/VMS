@@ -408,7 +408,7 @@ export const advancedSearchRateGuidance = async (request: FastifyRequest, reply:
         if (specialty && Array.isArray(specialty) && specialty.length > 0) {
             whereClause.specialty = { [Op.in]: specialty };
         } else if (typeof specialty === 'string' && specialty) {
-            whereClause.specialty = { [Op.like]: `%${specialty}%` };
+            whereClause.specialty = { [Op.in]: [specialty] };
         }
         if (state) whereClause.state = { [Op.like]: `%${state}%` };
         if (is_enabled !== undefined) whereClause.is_enabled = is_enabled;
