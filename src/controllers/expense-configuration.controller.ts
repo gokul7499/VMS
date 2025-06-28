@@ -535,13 +535,19 @@ export async function expenseConfigurationAdvancedFilter(
         if (is_enabled !== undefined) {
             whereCondition.is_enabled = is_enabled === true || is_enabled === "true";
         }
-        if (updated_on && Array.isArray(updated_on) && updated_on.length === 2) {
-            const [startDate, endDate] = updated_on;
-            const startTimestamp = new Date(startDate).getTime();
-            const endTimestamp = new Date(endDate).getTime();
-            whereCondition.updated_on = {
-                [Op.between]: [startTimestamp, endTimestamp]
-            };
+        if (updated_on) {
+            const [start, end] = (Array.isArray(updated_on)
+                ? updated_on.map(Number)
+                : updated_on.split(',').map(d => new Date(d.trim()).getTime())
+            ).filter(n => !isNaN(n));
+
+            if (start && end) {
+                whereCondition.updated_on = { [Op.between]: [start, end] };
+            } else if (start) {
+                whereCondition.updated_on = { [Op.between]: [start, start + 86400000 - 1] };
+            } else if (end) {
+                whereCondition.updated_on = { [Op.lte]: end };
+            }
         }
         const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
         const allConditions = [];
