@@ -2602,6 +2602,7 @@ COALESCE((
         'id', JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')),
         'name', mdt.name
       ),
+      'is_all_associated', JSON_EXTRACT(fd.value, '$.is_all_associated'),
       'default_master_data', COALESCE((
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(

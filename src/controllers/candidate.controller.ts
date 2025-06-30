@@ -460,6 +460,7 @@ export async function getCandidateByIdAndProgramId(
                         name: customFieldDef.name,
                         field_type: customFieldDef.field_type,
                         label: customFieldDef.label,
+                        custom_field_id: customFieldDef.id,
                         manager_name: matchedUser
                             ? `${matchedUser.first_name} ${matchedUser.last_name}`
                             : null
