@@ -902,12 +902,12 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
         // Get all differentials at once
         const allBillRates = await RateConfigurationRateDifferentials.findAll({
-            where: { rate_id: rateIds, type: 'BILL_RATE' },
+            where: { rate_id: rateIds, type: 'BILL_RATE', currency: currency_id, unit_of_measure: unit_of_measure },
             attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
 
         const allPayRates = await RateConfigurationRateDifferentials.findAll({
-            where: { rate_id: rateIds, type: 'PAY_RATE' },
+            where: { rate_id: rateIds, type: 'PAY_RATE', currency: currency_id, unit_of_measure: unit_of_measure },
             attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
 
@@ -1208,7 +1208,8 @@ async function handleStandardBaseRateCase({
             is_shift_rate
         },
         attributes: ['id', 'name', 'abbreviation', 'rate_type_category', 'is_base_rate', 'shift_type'],
-        order: [['created_on', 'ASC']]
+        order: [['created_on', 'ASC']],
+        logging: true
     });
 
     if (!standardBaseRate.length) {
