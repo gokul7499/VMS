@@ -1074,6 +1074,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
               ...item,
               is_associated: isAssociated,
               is_default: isDefault,
+              is_root_hierarchy: item.parent_hierarchy_id === null,
               hierarchies: children
             };
           }
