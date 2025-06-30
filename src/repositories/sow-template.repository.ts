@@ -61,6 +61,7 @@ SELECT
       AND stm.sow_temp_id = t.id
   )
 ), JSON_ARRAY()) AS master_data
+
 FROM sow_templates t
 WHERE ${whereClause}
 ORDER BY t.created_on DESC
