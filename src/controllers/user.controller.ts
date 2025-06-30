@@ -1114,24 +1114,23 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
     role_id?: string;
     tenant_id?: string;
     email?: string;
-    hierarchy_id?: string;
+    hierarchy_id?: any;
     page?: string;
     limit?: string;
   };
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
-  const user=request?.user;
+  const user = request?.user;
   let mspHierarchyIds: string[] = [];
     if (user) {
       const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
       mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
     }
-  const hierarchyIdsArray = typeof hierarchy_id === 'string' ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
     const hierarchyReplacements = Object.fromEntries(
-      hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
+      hierarchy_id.map((id: any, index: any) => [`hierarchy_id_${index}`, id])
     );
 
     const mspHierarchyReplacements = mspHierarchyIds.length > 0 
@@ -1141,7 +1140,7 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
       : {};
 
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray,mspHierarchyIds),
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchy_id,mspHierarchyIds),
       {
         replacements: {
           program_id,
