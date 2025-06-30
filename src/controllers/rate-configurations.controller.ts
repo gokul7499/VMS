@@ -13,12 +13,10 @@ import rateType from '../models/rate-type.model';
 import hierarchies from '../models/hierarchies.model';
 import picklistItemModel from '../models/picklist-item.model';
 import { getAllRateConfigurationsQuery, rateCardMinRateMaxRate, rateConfigHierarchiesAndJobTemplates, rateConfigurationsFilterQuery, sameHierarchieRateConfiguration, sameRateConfiguration } from '../utility/queries';
-import { QueryTypes } from 'sequelize';
-import { decodeToken } from '../middlewares/verifyToken';
+import { QueryTypes, Op } from 'sequelize';
 import ShiftType from '../models/shift-type.model';
 import RateConfigurationExpenses from '../models/rate-configuration-expenses.model';
 import ExpenseTypeModel from '../models/expense-type.model';
-import AccuracyConfiguration from '../utility/accuracy_configuration';
 import RateConfigurationsRepository from '../repositories/rate-configurations.repository';
 
 export const createRateConfigurations = async (
@@ -902,14 +900,56 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
 
         // Get all differentials at once
         const allBillRates = await RateConfigurationRateDifferentials.findAll({
-            where: { rate_id: rateIds, type: 'BILL_RATE', currency: currency_id, unit_of_measure: unit_of_measure },
-            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
+            where: {
+                rate_id: rateIds,
+                type: 'BILL_RATE',
+                [Op.or]: [
+                    {
+                        currency: currency_id,
+                        unit_of_measure: unit_of_measure
+                    },
+                    {
+                        currency: null,
+                        unit_of_measure: null
+                    }
+                ]
+            },
+            attributes: ['id', 'rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
 
         const allPayRates = await RateConfigurationRateDifferentials.findAll({
-            where: { rate_id: rateIds, type: 'PAY_RATE', currency: currency_id, unit_of_measure: unit_of_measure },
-            attributes: ['rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
+            where: {
+                rate_id: rateIds,
+                type: 'PAY_RATE',
+                [Op.or]: [
+                    {
+                        currency: currency_id,
+                        unit_of_measure: unit_of_measure
+                    },
+                    {
+                        currency: null,
+                        unit_of_measure: null
+                    }
+                ]
+            },
+            attributes: ['id', 'rate_id', 'differential_on', 'differential_type', 'differential_value', 'currency', 'unit_of_measure']
         }) as unknown as RateDifferential[];
+
+        // Check if all rate types have both bill rates and pay rates
+        const missingRates = allRateTypes.filter(rateType => {
+            const hasBillRates = allBillRates.some(billRate => billRate.rate_id === rateType.id);
+            const hasPayRates = allPayRates.some(payRate => payRate.rate_id === rateType.id);
+            return !hasBillRates || !hasPayRates;
+        });
+
+        if (missingRates.length > 0) {
+            const missingRateNames = missingRates.map(rate => rate.rate_type?.name ?? rate.id).join(", ");
+            return reply.status(400).send({
+                status_code: 400,
+                message: `Bill rates and pay rates differentials not found for the following rate types: ${missingRateNames}. Please check with your administrator.`,
+                trace_id: traceId
+            });
+        }
 
         // Group differentials by rate_id
         const billRatesByRateId = allBillRates.reduce<Record<string, Array<RateDifferential>>>((acc, billRate) => {
@@ -1128,8 +1168,7 @@ export async function getAllRateConfigurationRates(request: FastifyRequest, repl
         return reply.status(500).send({
             status_code: 500,
             trace_id: traceId,
-            message: 'Internal Server Error',
-            error: error.message,
+            message: error.message
         });
     }
 }
