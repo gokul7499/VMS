@@ -1125,7 +1125,7 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
     role_id?: string;
     tenant_id?: string;
     email?: string;
-    hierarchy_id?: string;
+    hierarchy_id?: string | string[];
     page?: string;
     limit?: string;
   };
@@ -1137,7 +1137,11 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
     const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
     mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
   }
-  const hierarchyIdsArray = typeof hierarchy_id === 'string' ? hierarchy_id.split(',') : [];
+  const hierarchyIdsArray = Array.isArray(hierarchy_id)
+  ? hierarchy_id
+  : typeof hierarchy_id === 'string'
+    ? hierarchy_id.split(',')
+    : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
