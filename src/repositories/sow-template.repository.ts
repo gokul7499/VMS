@@ -41,7 +41,8 @@ SELECT
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', md.id,
-            'name', md.name
+            'name', md.name,
+            'seq_no', stm.seq_no
           )
         )
         FROM sow_template_master_data stm
@@ -60,6 +61,7 @@ SELECT
       AND stm.sow_temp_id = t.id
   )
 ), JSON_ARRAY()) AS master_data
+
 FROM sow_templates t
 WHERE ${whereClause}
 ORDER BY t.created_on DESC
@@ -122,16 +124,16 @@ export const getSowTemplateByIdQuery = `
 COALESCE((
     SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
-            'id', IFNULL(program_custom_field.custom_field_id, ''),
+            'id', stcf.custom_field_id,
             'value',
                 CASE
-                    WHEN JSON_VALID(scf.value) AND JSON_TYPE(JSON_EXTRACT(scf.value, '$')) = 'ARRAY'
-                        THEN JSON_EXTRACT(scf.value, '$')
-                    WHEN JSON_VALID(scf.value) AND JSON_TYPE(JSON_EXTRACT(scf.value, '$')) = 'STRING'
-                        THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(scf.value, '$')))
-                    ELSE JSON_ARRAY(scf.value)
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
+                        THEN JSON_EXTRACT(stcf.value, '$')
+                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
+                        THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$')))
+                    ELSE JSON_ARRAY(stcf.value)
                 END,
-             'label', cf.label,
+            'label', cf.label,
             'field_type', cf.field_type,
             'manager_name',
             CASE
@@ -140,15 +142,16 @@ COALESCE((
             END
         )
     )
-    FROM program_custom_field
-    JOIN custom_fields cf ON program_custom_field.custom_field_id = cf.id
+    FROM sow_template_custom_field stcf
+    JOIN custom_fields cf ON stcf.custom_field_id = cf.id
     LEFT JOIN user u
-        ON TRIM(REPLACE(REPLACE(IFNULL(program_custom_field.value, ''), '"', ''), ' ', '')) = TRIM(u.user_id)
-        AND u.program_id = program_custom_field.program_id
-    WHERE program_custom_field.program_id = t.program_id
+        ON TRIM(REPLACE(REPLACE(IFNULL(stcf.value, ''), '"', ''), ' ', '')) = TRIM(u.user_id)
+        AND u.program_id = t.program_id
+    WHERE stcf.sow_temp_id = t.id
       AND cf.is_enabled = TRUE
       AND cf.is_deleted = FALSE
 ), JSON_ARRAY()) AS custom_fields,
+
 
 -- Master Data
 COALESCE((
@@ -160,7 +163,8 @@ COALESCE((
         SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', md.id,
-            'name', md.name
+            'name', md.name,
+            'seq_no', stm.seq_no
           )
         )
         FROM sow_template_master_data stm

@@ -95,7 +95,7 @@ export async function getUserById(
 export async function getUserHierarchiesByProgram(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const { job_template_id } = request.query as { job_template_id: string };
-  const user=request?.user;
+  const user = request?.user;
   try {
     const { id: user_id, program_id } = request.params as { id: string, program_id: string };
     const user = await User.findOne({
@@ -292,9 +292,20 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       const vendor = await ProgramVendor.findOne({
         where: {
           program_id: program_id,
-          tenant_id: user.tenant_id
+          tenant_id: user.tenant_id,
+          status: 'Active', 
         },
       });
+
+      if (!vendor) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Vendor not found or not active for the given tenant and program.",
+          trace_id: traceId,
+        });
+      }
+
 
       let vendor_id = vendor?.id ?? null;
 
@@ -332,9 +343,9 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
 
       candidateId = candidateData.id
       vendor_id = user.tenant_id
-      const candidate_unique_code=candidateData?.candidate_id
+      const candidate_unique_code = candidateData?.candidate_id
 
-      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData,candidate_unique_code);
+      createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData, candidate_unique_code);
 
     } else if (userType === "vendor") {
       if (user.program_id) {
@@ -431,10 +442,10 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any,candidate_unique_code:any) {
+function createCandidateInAi(user: any, candidateId: string, vendor_id: any, authHeader: string, program_id: string, userId: string, uniqueId: string, candidateData: any, candidate_unique_code: any) {
   const resumeText = user.resume_url;
 
-  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData,candidate_unique_code);
+  searchSimilarProfiles(candidateId, resumeText, vendor_id, authHeader, program_id, userId, uniqueId, user, candidateData, candidate_unique_code);
 }
 
 export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
@@ -521,8 +532,8 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
       await UserMapping.bulkCreate(groupMappingData);
     }
 
-    if(userBody.user_type === "vendor"){
-      await updateProgramVendor(userBody,id)
+    if (userBody.user_type === "vendor") {
+      await updateProgramVendor(userBody, id)
     }
 
     return reply.status(200).send({
@@ -543,52 +554,52 @@ export async function updateUser(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function updateProgramVendor(userBody:any,id:string):Promise<any> {
-       const contactInfo = [
+export async function updateProgramVendor(userBody: any, id: string): Promise<any> {
+  const contactInfo = [
     {
-      first_name: userBody.first_name ,
-      middle_name: userBody.middle_name ,
-      last_name: userBody.last_name ,
-      email: userBody.email ,
-      number:userBody.contacts?.[0]?.number,
-      iso_code_2:userBody.contacts?.[0]?.iso_code_2,
-      isd_code:userBody.contacts?.[0]?.isd_code,
+      first_name: userBody.first_name,
+      middle_name: userBody.middle_name,
+      last_name: userBody.last_name,
+      email: userBody.email,
+      number: userBody.contacts?.[0]?.number,
+      iso_code_2: userBody.contacts?.[0]?.iso_code_2,
+      isd_code: userBody.contacts?.[0]?.isd_code,
       country: userBody.country_id,
       addresses: Array.isArray(userBody.addresses)
         ? userBody.addresses.map((addr: { type: any; address_line_1: any; address_line_2: any; zipcode: any; city_name: any; state_name: any; county_name: any; }) => ({
-            type: addr.type,
-            address_line_1: addr.address_line_1 ,
-            address_line_2: addr.address_line_2||'' ,
-            country: userBody.country_id ,
-            zipcode: addr.zipcode ,
-            city_name: addr.city_name ,
-            state_name: addr.state_name ,
-            county_name: addr.county_name ,
-          }))
+          type: addr.type,
+          address_line_1: addr.address_line_1,
+          address_line_2: addr.address_line_2 || '',
+          country: userBody.country_id,
+          zipcode: addr.zipcode,
+          city_name: addr.city_name,
+          state_name: addr.state_name,
+          county_name: addr.county_name,
+        }))
         : [],
     },
   ];
-      const programVendor = await ProgramVendor.findOne({
-        where: {
-          user_id:id,
-          program_id:userBody.program_id,
-          tenant_id:userBody.tenant_id
-        },
-      });
-      if (programVendor) {
-        await programVendor.update({
-        contact: contactInfo,
-        addresses: contactInfo?.[0]?.addresses || [],
-        });
-      }
-    }
+  const programVendor = await ProgramVendor.findOne({
+    where: {
+      user_id: id,
+      program_id: userBody.program_id,
+      tenant_id: userBody.tenant_id
+    },
+  });
+  if (programVendor) {
+    await programVendor.update({
+      contact: contactInfo,
+      addresses: contactInfo?.[0]?.addresses || [],
+    });
+  }
+}
 
 export async function deleteUser(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { id } = request.params;
@@ -645,12 +656,12 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
   };
   const traceId = generateCustomUUID();
   const offset = (parseInt(page) - 1) * parseInt(limit);
-  const user=request?.user;
+  const user = request?.user;
   let mspHierarchyIds: string[] = [];
-    if (user) {
-      const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
-      mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
-    }
+  if (user) {
+    const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+    mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+  }
   const hierarchyIdsArray = hierarchy_id ? hierarchy_id.split(',') : [];
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
@@ -659,14 +670,14 @@ export async function getAllUserIDAndUserId(request: FastifyRequest, reply: Fast
       hierarchyIdsArray.map((id, index) => [`hierarchy_id_${index}`, id])
     );
 
-    const mspHierarchyReplacements = mspHierarchyIds.length > 0 
+    const mspHierarchyReplacements = mspHierarchyIds.length > 0
       ? Object.fromEntries(
-          mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
-        )
+        mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
+      )
       : {};
 
     const users = await sequelize.query(
-      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray,mspHierarchyIds),
+      userQuery(first_name, email, tenant_id, role_id, isActivatedStr, user_type, status, user_id, hierarchyIdsArray, mspHierarchyIds),
       {
         replacements: {
           program_id,
@@ -820,10 +831,10 @@ export async function getPendingUser(
     const users = await sequelize.query(getPendingUserQuery, {
       replacements,
       type: QueryTypes.SELECT,
-    })as any;
+    }) as any;
 
     if (users && users.length > 0) {
-       if (users.custom_fields && Array.isArray(users.custom_fields)) {
+      if (users.custom_fields && Array.isArray(users.custom_fields)) {
         users.custom_fields = users.custom_fields.map((field: any) => ({
           ...field,
           value: parseValue(field.value),
@@ -907,8 +918,8 @@ export async function getUserAndHierarchieId(request: FastifyRequest, reply: Fas
 }
 
 export async function getActiveUser(request: FastifyRequest, reply: FastifyReply) {
- const userTokenData=request?.user;
- 
+  const userTokenData = request?.user;
+
   const { program_id } = request.params as { program_id: string };
   const { hierarchy_id } = request.query as { hierarchy_id?: string };
   const traceId = generateCustomUUID();
@@ -1052,7 +1063,7 @@ export async function getUserProgram(
   }>,
   reply: FastifyReply
 ) {
-  const user=request?.user;
+  const user = request?.user;
   const userType = user?.userType;
   const { user_id, search } = request.query as { user_id: string, search: string };
   const traceId = generateCustomUUID();
@@ -1122,10 +1133,11 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const user = request?.user;
   let mspHierarchyIds: string[] = [];
-    if (user) {
-      const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
-      mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
-    }
+  if (user) {
+    const hierarchyData = await GlobalRepository.getUserHierarchyData(program_id, user);
+    mspHierarchyIds = hierarchyData.mspHierarchyIds || [];
+  }
+
   const isActivatedStr = typeof is_activated === 'boolean' ? is_activated.toString() : is_activated;
 
   try {
@@ -1133,10 +1145,10 @@ export async function getAllUserIDAndUser(request: FastifyRequest, reply: Fastif
       hierarchy_id.map((id: any, index: any) => [`hierarchy_id_${index}`, id])
     );
 
-    const mspHierarchyReplacements = mspHierarchyIds.length > 0 
+    const mspHierarchyReplacements = mspHierarchyIds.length > 0
       ? Object.fromEntries(
-          mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
-        )
+        mspHierarchyIds.map((id, index) => [`msp_hierarchy_id_${index}`, id])
+      )
       : {};
 
     const users = await sequelize.query(
