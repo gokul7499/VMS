@@ -156,7 +156,7 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
         if (foundational_data.is_all_hierarchy_associated) {
             hierarchie = await Hierarchies.findAll({
                 where: { program_id, is_deleted: false },
-                attributes: ['id', 'name'],
+                attributes: ['id', 'name']
             });
         } else {
             hierarchie = await MasterDataHierarchy.findAll({
