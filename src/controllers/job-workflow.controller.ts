@@ -1694,11 +1694,11 @@ export const rejectLevel = async (
                  await createJobHistory(
                    program_id,
                    job_id,
-                   'REJECTED',
+                   'SOURCING',
                    'Job Status Update',
                    token,
                    userId || '',      
-                   { status: 'REJECTED' }
+                   { status: 'SOURCING' }
                  );
                } catch (error) {
                  console.error('Failed to create job history:', error);
