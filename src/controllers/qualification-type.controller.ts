@@ -101,7 +101,7 @@ export async function getQualificationTypes(
 export async function createQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const { program_id } = request.params as { program_id: string };
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { name } = request.body as qualificationType;
@@ -121,7 +121,7 @@ export async function createQualificationTypes(request: FastifyRequest, reply: F
     const qualificationType: any = await qualificationTypeModel.create({
       ...qualification_types,
       program_id,
-      created_by:userId,
+      created_by: userId,
       updated_by: userId,
     });
     reply.status(201).send({
@@ -200,7 +200,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
     });
   }
   const authHeader = request.headers.authorization;
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const existingQualificationTypeWithSameName = await qualificationTypeModel.findOne({
@@ -252,7 +252,7 @@ export const updateQualificationTypes = async (request: FastifyRequest, reply: F
 
 export async function deleteQualificationTypes(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
   try {
     const { id } = request.params as { id: string };
@@ -343,7 +343,7 @@ export async function createQualificationsInBulk(request: FastifyRequest, reply:
   const qualificationList = request.body as QualificationData[];
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
 
   try {
@@ -472,7 +472,7 @@ export const getQualificationById = async (request: FastifyRequest, reply: Fasti
 
 export const updateQualificationById = async (request: FastifyRequest, reply: FastifyReply) => {
 
-  const user=request?.user;
+  const user = request?.user;
   const userId = user?.sub;
   const traceId = generateCustomUUID();
   try {
@@ -538,15 +538,43 @@ export async function advancedSearchQualification(
     if (body.type) {
       searchConditions.type = { [Op.like]: `%${body.type}%` };
     }
-    if (body.is_enabled !== undefined) {
-      searchConditions.is_enabled = body.is_enabled === "true" || body.is_enabled === true;
+
+    if (body.is_enabled === false || body.is_enabled === "false") {
+      searchConditions.is_enabled = false;
+    } else {
+
+      searchConditions.is_enabled = true;
     }
+
+
     if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
-      const [startDate, endDate] = body.updated_on.map((date: string | number | Date) => new Date(date).getTime());
-      if (!isNaN(startDate) && !isNaN(endDate)) {
-        searchConditions.updated_on = { [Op.between]: [startDate, endDate] };
+      const [startDate, endDate] = body.updated_on;
+
+      if (startDate && !endDate) {
+        const startDateValue = new Date(startDate);
+        startDateValue.setHours(0, 0, 0, 0);
+
+        const endDateValue = new Date(startDate);
+        endDateValue.setHours(23, 59, 59, 999);
+
+        if (!isNaN(startDateValue.getTime()) && !isNaN(endDateValue.getTime())) {
+          searchConditions.updated_on = {
+            [Op.between]: [startDateValue.getTime(), endDateValue.getTime()],
+          };
+        }
+      } else if (startDate && endDate) {
+        const startDateValue = new Date(startDate).getTime();
+        const endDateValue = new Date(endDate).getTime();
+
+        if (!isNaN(startDateValue) && !isNaN(endDateValue)) {
+          searchConditions.updated_on = {
+            [Op.between]: [startDateValue, endDateValue],
+          };
+        }
       }
     }
+
+
 
     const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
       where: searchConditions,
