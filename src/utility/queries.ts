@@ -3745,6 +3745,11 @@ WHERE
     :allow_multiple_sows IS NULL
     OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
   )
+ AND (
+  :allow_multiple_jobs IS NULL
+  OR JSON_EXTRACT(mdt.configuration, '$.allow_multiple_jobs') IS NOT NULL AND
+     JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_jobs')) = :allow_multiple_jobs
+)
   ${hasUpdatedOnFilter ? 'AND mdt.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ${hierarchyFilter}
   ${mspHierarchyFilter}
