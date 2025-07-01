@@ -3775,3 +3775,14 @@ export function sameHolidayCalendar(hasHierarchyIds: boolean, excludeCurrent?: b
     )
   `;
 }
+
+export const getHierarchieListView = `
+  SELECT
+    h.id,
+    h.parent_hierarchy_id,
+    h.name,
+    h.is_enabled,
+    h.default_currency
+  FROM hierarchies h
+  WHERE h.id IN (:commonHierarchyIds)
+`;

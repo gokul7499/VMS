@@ -63,10 +63,11 @@ async function jobTemplate(fastify: FastifyInstance) {
     // preHandler: validatePermissions(Actions.CREATE, [Permissions.JOB_TEMPLATE])
   }, JobTemplateController.bulkUploadJobTemplates);
 
-
   fastify.post("/program/:program_id/upload-description", JobTemplateController.uploadFile);
 
+  fastify.get("/program/:program_id/list-hierarchies", {
+    // preHandler: validatePermissions(Actions.READ, [Permissions.JOB_TEMPLATE])
+  }, JobTemplateController.getListHierarchies);
 };
-
 
 export default jobTemplate;
