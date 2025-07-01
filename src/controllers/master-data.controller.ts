@@ -11,6 +11,7 @@ import User from "../models/user.model";
 import MasterDataHierarchy from "../models/master-data-hierarchy.model";
 import Hierarchies from "../models/hierarchies.model";
 import GlobalRepository from "../repositories/global.repository";
+import MasterDataTypeHierarchy from "../models/master-data-type-hierarchy.model";
 
 export async function getFoundationalData(request: FastifyRequest, reply: FastifyReply) {
     const traceId = generateCustomUUID();
@@ -144,20 +145,33 @@ export async function getFoundationalDataById(request: FastifyRequest, reply: Fa
             })
             : [];
 
-        const configuration = foundational_data.foundational_data_type_id
+        const configuration: any = foundational_data.foundational_data_type_id
             ? await FoundationalDataTypes.findOne({
                 where: { id: foundational_data.foundational_data_type_id },
-                attributes: ['id', 'configuration'],
+                attributes: ['id', 'configuration', 'is_all_hierarchy_associated'],
             })
             : [];
 
         let hierarchie = [];
 
         if (foundational_data.is_all_hierarchy_associated) {
-            hierarchie = await Hierarchies.findAll({
-                where: { program_id, is_deleted: false },
-                attributes: ['id', 'name']
-            });
+            if (configuration.is_all_hierarchy_associated) {
+                hierarchie = await Hierarchies.findAll({
+                    where: { program_id, is_deleted: false },
+                    attributes: ['id', 'name'],
+                });
+            } else {
+                hierarchie = await MasterDataTypeHierarchy.findAll({
+                    where: { master_data_type_id: configuration.id },
+                    include: [
+                        {
+                            model: Hierarchies,
+                            as: 'hierarchy',
+                            attributes: ['id', 'name'],
+                        },
+                    ],
+                }).then((data) => data.map((item) => item.hierarchy));
+            }
         } else {
             hierarchie = await MasterDataHierarchy.findAll({
                 where: { master_data_id: id },
