@@ -154,11 +154,16 @@ JSON_ARRAYAGG(JSON_OBJECT(
           'contacts', pc.contacts,
           'do_not_rehire',pc.do_not_rehire,
           'do_not_rehire_notes',pc.do_not_rehire_notes,
-          'do_not_rehire_reason',rc.name
+          'do_not_rehire_reason',rc.name,
+          'vendor', JSON_OBJECT(
+          'vendor_id', pc.vendor_id,
+          'vendor_name', pv.display_name
+          )
         )) AS linked_profiles
   FROM 
     mtp m
-LEFT JOIN paginated_candidates pc ON TRUE  
+LEFT JOIN paginated_candidates pc ON TRUE
+LEFT JOIN program_vendors pv ON pv.id = pc.vendor_id
 LEFT JOIN reason_codes rc ON rc.id = pc.do_not_rehire_reason
   WHERE 
     m.program_id = :program_id
