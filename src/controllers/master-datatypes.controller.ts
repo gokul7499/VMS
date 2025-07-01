@@ -513,7 +513,8 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             limit = 10,
             track_owner,
             hierarchy_ids,
-            allow_multiple_sows
+            allow_multiple_sows,
+            allow_multiple_jobs
         } = request.body as {
             name?: string;
             is_enabled?: boolean;
@@ -525,6 +526,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             track_owner?: boolean;
             hierarchy_ids?: string[];
             allow_multiple_sows?: boolean;
+            allow_multiple_jobs?: boolean;
         };
 
         const offset = (page - 1) * limit;
@@ -549,6 +551,11 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             allowMultipleSowsStr = allow_multiple_sows ? 'true' : 'false';
         }
 
+        let allowMultipleJobStr: string | null = null;
+        if (typeof allow_multiple_jobs === 'boolean') {
+            allowMultipleJobStr =  allow_multiple_jobs ? 'true' : 'false';
+        }
+        
         const replacements: any = {
             program_id,
             name: name ?? null,
@@ -559,6 +566,7 @@ export async function getAllFoundationalDataTypesAdvancedFilter(
             user_association_exclude: user_association_exclude ?? null,
             track_owner: track_owner ?? null,
             allow_multiple_sows: allowMultipleSowsStr,
+            allow_multiple_jobs: allowMultipleJobStr,
             limit,
             offset
         };
