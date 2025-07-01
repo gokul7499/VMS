@@ -3745,6 +3745,11 @@ WHERE
     :allow_multiple_sows IS NULL
     OR JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_sows')) = :allow_multiple_sows
   )
+ AND (
+  :allow_multiple_jobs IS NULL
+  OR JSON_EXTRACT(mdt.configuration, '$.allow_multiple_jobs') IS NOT NULL AND
+     JSON_UNQUOTE(JSON_EXTRACT(mdt.configuration, '$.allow_multiple_jobs')) = :allow_multiple_jobs
+)
   ${hasUpdatedOnFilter ? 'AND mdt.updated_on BETWEEN :updated_on_start AND :updated_on_end' : ''}
   ${hierarchyFilter}
   ${mspHierarchyFilter}
@@ -3775,3 +3780,14 @@ export function sameHolidayCalendar(hasHierarchyIds: boolean, excludeCurrent?: b
     )
   `;
 }
+
+export const getHierarchieListView = `
+  SELECT
+    h.id,
+    h.parent_hierarchy_id,
+    h.name,
+    h.is_enabled,
+    h.default_currency
+  FROM hierarchies h
+  WHERE h.id IN (:commonHierarchyIds)
+`;

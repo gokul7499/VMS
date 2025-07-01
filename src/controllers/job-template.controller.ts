@@ -16,7 +16,7 @@ import jobTemplateCustomFieldModel from "../models/job-template-custom-field.mod
 import JobTempletRepository from "../hooks/job-template-query"
 import { sequelize } from "../config/instance";
 import { decodeToken } from "../middlewares/verifyToken";
-import { getHierarchieWithChildren } from "../utility/queries";
+import { getHierarchieListView, getHierarchieWithChildren } from "../utility/queries";
 import JobMasterDataModel from "../models/job-master-data.model";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
@@ -75,8 +75,8 @@ export const getAllJobTemplates = async (
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
     const offset = (pageNumber - 1) * limitNumber;
-    const user=request?.user
-     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
+    const user = request?.user
+    const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
 
     const dynamicConditions: string[] = [];
     const replacements: any = { program_id, limit: limitNumber, offset };
@@ -218,11 +218,11 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
     const transformedJobTemplate = transformBooleanFields(jobTemplate);
 
     transformedJobTemplate.job_template_custom_fields = Array.isArray(transformedJobTemplate.job_template_custom_fields)
-  ? transformedJobTemplate.job_template_custom_fields.map((field: any) => ({
-      ...field,
-      value: parseValue(field.value),
-    }))
-  : [];
+      ? transformedJobTemplate.job_template_custom_fields.map((field: any) => ({
+        ...field,
+        value: parseValue(field.value),
+      }))
+      : [];
 
 
     reply.status(200).send({
@@ -260,7 +260,7 @@ export async function createJobTemplate(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
   let transaction: Transaction | null = null;
 
@@ -362,26 +362,26 @@ export async function createJobTemplate(
     }
 
     if (Array.isArray(jobMasterData.foundational_data)) {
-  const foundationalDataPromises = jobMasterData.foundational_data.flatMap(
-    (dataItem: {
-      foundation_data_type_id: string;
-      is_read_only: boolean;
-      foundation_data_id: any[];
-    }) =>
-        JobMasterDataModel.create(
-          {
-            job_temp_id: jobTemplate.id,
-            program_id,
-            foundation_data_type_id: dataItem.foundation_data_type_id,
-            foundation_data_id: dataItem.foundation_data_id,
-            is_read_only: dataItem.is_read_only,
-          },
-          { transaction }
-        )
+      const foundationalDataPromises = jobMasterData.foundational_data.flatMap(
+        (dataItem: {
+          foundation_data_type_id: string;
+          is_read_only: boolean;
+          foundation_data_id: any[];
+        }) =>
+          JobMasterDataModel.create(
+            {
+              job_temp_id: jobTemplate.id,
+              program_id,
+              foundation_data_type_id: dataItem.foundation_data_type_id,
+              foundation_data_id: dataItem.foundation_data_id,
+              is_read_only: dataItem.is_read_only,
+            },
+            { transaction }
+          )
 
-  );
-  await Promise.all(foundationalDataPromises);
-}
+      );
+      await Promise.all(foundationalDataPromises);
+    }
 
 
     await transaction.commit();
@@ -410,7 +410,7 @@ export async function updateJobTemplate(
   reply: FastifyReply
 ) {
   const traceId = generateCustomUUID();
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
   try {
     const { program_id, id } = request.params as {
@@ -438,10 +438,10 @@ export async function updateJobTemplate(
       return;
     }
     const { template_name, category, level, ...rest } = jobTemplateData;
-    const updateData={
+    const updateData = {
       ...rest,
-      updated_on : BigInt(Date.now()),
-      updated_by : userId,
+      updated_on: BigInt(Date.now()),
+      updated_by: userId,
       category,
       template_name,
       level
@@ -650,7 +650,7 @@ export async function deleteJobTemplate(
 
 export async function getJobTemplatesByHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-  const user=request?.user;
+  const user = request?.user;
 
   try {
     const { program_id } = request.params as { program_id: string };
@@ -671,7 +671,7 @@ export async function getJobTemplatesByHierarchies(request: FastifyRequest, repl
       program_id,
       hierarchy_ids,
       filter_by_hierarchy,
-       mspHierarchyIds
+      mspHierarchyIds
     );
 
     return reply.status(200).send({
@@ -699,7 +699,7 @@ export async function getAllJobTemplateHierarchyById(request: FastifyRequest, re
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
     const isShiftRate = is_shift_rate !== undefined ? is_shift_rate === "true" : undefined
 
-    const user=request?.user
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const data = await jobTempletRepositories.getJobTempletByHierarchies(
       program_id,
@@ -707,7 +707,7 @@ export async function getAllJobTemplateHierarchyById(request: FastifyRequest, re
       job_type,
       isEnabledBool,
       isShiftRate,
-       mspHierarchyIds
+      mspHierarchyIds
     );
     console.log("datat", data)
     reply.status(200).send({
@@ -729,7 +729,7 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
   try {
     const { program_id } = request.params as { program_id: string };
     const { hierarchy_ids, job_type, limit, offset, is_enabled, is_shift_rate } = request.query as { hierarchy_ids: string; job_type: string; limit: number; offset: number; is_enabled: string, is_shift_rate?: string };
-    const user=request?.user
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const hierarchyIdsArray = hierarchy_ids ? hierarchy_ids.split(",") : [];
     const isEnabledBool = is_enabled !== undefined ? is_enabled === "true" : undefined;
@@ -742,7 +742,7 @@ export async function getMostUsedJobTemplates(request: FastifyRequest, reply: Fa
       offset,
       isEnabledBool,
       isShiftRate,
-       mspHierarchyIds
+      mspHierarchyIds
     );
 
     reply.status(200).send({
@@ -788,8 +788,8 @@ export async function getAllJobTempletsByHierarchies(request: FastifyRequest, re
       is_shift_rate?: string;
       hierarchy_ids?: string
     };
-    
-    const user=request?.user
+
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const hierarchyIdsArray = hierarchy?.split(",") || [];
     const JobType = job_type?.split(",") || [];
@@ -925,8 +925,8 @@ export async function findJobTemplatesByHierarchyIds(request: FastifyRequest, re
 
     const jobTemplatesWithHierarchies = jobTemplates.map((template) => ({
       ...template.toJSON(),
-      jobTemplateHierarchies: template.is_all_hierarchy_associated === 1 
-        ? ['All Hierarchies'] 
+      jobTemplateHierarchies: template.is_all_hierarchy_associated === 1
+        ? ['All Hierarchies']
         : Array.from(hierarchyMap[template.id] || []),
     }));
 
@@ -1074,6 +1074,7 @@ export async function getCommonHierarchies(request: FastifyRequest, reply: Fasti
               ...item,
               is_associated: isAssociated,
               is_default: isDefault,
+              is_root_hierarchy: item.parent_hierarchy_id === null,
               hierarchies: children
             };
           }
@@ -1201,7 +1202,7 @@ export async function uploadFile(
 
     if (job_template_id) {
       await jobTemplateModel.update(
-        { description_url : signed_url },
+        { description_url: signed_url },
         { where: { id: job_template_id, program_id } }
       );
     }
@@ -1248,7 +1249,7 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       job_template_id?: any;
       requested_from?: string;
     };
-    const user=request?.user
+    const user = request?.user
     const { mspHierarchyIds } = await GlobalRepository.getUserHierarchyData(program_id, user);
     const pageNumber = Number(page) > 0 ? Number(page) : 1;
     const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
@@ -1314,8 +1315,8 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       replacements.job_template_id = job_template_id;
     }
 
-  if (hierarchy_ids && hierarchy_ids.length > 0) {
-  dynamicConditions.push(`
+    if (hierarchy_ids && hierarchy_ids.length > 0) {
+      dynamicConditions.push(`
     (job_templates.is_all_hierarchy_associated = 1 OR job_templates.id IN (
       SELECT job_temp_id
       FROM job_template_hierarchies
@@ -1323,17 +1324,17 @@ export const advanceFilterJobTemplates = async (request: FastifyRequest, reply: 
       AND is_deleted = false
     ))
   `);
-  replacements.hierarchy_ids = hierarchy_ids;
-}
-    if(requested_from && job_template_id<1){
+      replacements.hierarchy_ids = hierarchy_ids;
+    }
+    if (requested_from && job_template_id < 1) {
       reply.status(200).send({
         status_code: 200,
         trace_id: traceId,
-        message:"job templet not found.",
-        job_templates:[]
+        message: "job templet not found.",
+        job_templates: []
 
-    })
-  }
+      })
+    }
 
     const dynamicConditionsString =
       dynamicConditions.length > 0 ? `AND ${dynamicConditions.join(" AND ")}` : "";
@@ -1448,7 +1449,7 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
       }))
       .filter(t => t.name && t.code);
 
-    const [categoryRecords, labourCategoryRecords, hierarchyRecords,checklistrecord] = await Promise.all([
+    const [categoryRecords, labourCategoryRecords, hierarchyRecords, checklistrecord] = await Promise.all([
       JobCategoryModel.findAll({
         where: {
           title: {
@@ -1474,7 +1475,7 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
       Checklist.findAll({
         where: {
           name: {
-            [Op.in]:jobTemplates.map(t => t.checklist_entity_id?.trim()).filter(Boolean)
+            [Op.in]: jobTemplates.map(t => t.checklist_entity_id?.trim()).filter(Boolean)
           }
         }
       })
@@ -1518,9 +1519,9 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
         category: categoryMap.get(tpl.category?.trim()) ?? null,
         labour_category: labourCategoryMap.get(tpl.labour_category?.trim()) ?? null,
         checklist_entity_id: checklistMap.get(tpl.checklist_entity_id?.trim()) ?? null,
-        is_manual_distribute_submit:true,
-        is_distribute_final_approval:true,
-        is_all_hierarchy_associate:true
+        is_manual_distribute_submit: true,
+        is_distribute_final_approval: true,
+        is_all_hierarchy_associate: true
 
 
       };
@@ -1550,4 +1551,63 @@ export const bulkUploadJobTemplates = async (request: FastifyRequest, reply: Fas
   }
 };
 
+export async function getListHierarchies(request: FastifyRequest, reply: FastifyReply) {
+  const traceId = generateCustomUUID();
+  try {
+    const { manager_id, msp_id, } = request.query as {
+      manager_id: string;
+      msp_id?: string;
+    };
+    const { program_id } = request.params as { program_id: string };
 
+    let mspHierarchyIds: string[] = [];
+    let managerHierarchyIds: string[] = [];
+    let defaultHierarchyId: string | null = null;
+
+    if (manager_id) {
+      const managerResult = await jobTempletRepositories.managerQuery(manager_id, program_id);
+      managerHierarchyIds = managerResult.hierarchies;
+      defaultHierarchyId = managerResult.defaultHierarchyId;
+    }
+
+    if (msp_id) {
+      mspHierarchyIds = await jobTempletRepositories.mspHierarchies(msp_id, program_id);
+    }
+
+    let hierarchyGroups: string[][] = [];
+
+    if (managerHierarchyIds.length > 0) hierarchyGroups.push(managerHierarchyIds);
+    if (mspHierarchyIds.length > 0) hierarchyGroups.push(mspHierarchyIds);
+
+    let commonHierarchyIds = hierarchyGroups.length > 0
+      ? hierarchyGroups.reduce((a, b) => a.filter(id => b.includes(id)), hierarchyGroups[0])
+      : [];
+
+    if (commonHierarchyIds.length === 0) {
+      return reply.status(200).send({
+        status_code: 200,
+        common_hierarchies: [],
+        trace_id: traceId,
+      });
+    }
+
+    const getHierarchieList = await sequelize.query(getHierarchieListView, {
+      replacements: { commonHierarchyIds },
+      type: QueryTypes.SELECT
+    });
+
+    reply.status(200).send({
+      status_code: 200,
+      message: "Common hierarchies fetched successfully.",
+      trace_id: traceId,
+      common_hierarchies: getHierarchieList,
+    });
+  } catch (error: any) {
+    reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: "An error occurred while fetching common hierarchies.",
+      error: error.message
+    });
+  }
+}

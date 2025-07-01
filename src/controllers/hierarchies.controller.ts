@@ -92,6 +92,7 @@ export const getHierarchiesByProgram = async (request: FastifyRequest, reply: Fa
             default_date_format: item.default_date_format,
             support_email: item.support_email,
             is_vendor_neutral_program: Boolean(item.is_vendor_neutral_program),
+            is_root_hierarchy: parentId === null,
             hierarchies: buildHierarchy(data, item.id),
           };
         });

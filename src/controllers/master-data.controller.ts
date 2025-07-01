@@ -414,7 +414,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
             page?: number;
             limit?: number;
             is_billable?: boolean;
-            hierarchie_ids?: string[];
+            hierarchy_ids?: string[];
         };
 
         const page = body.page ?? 1;
@@ -447,7 +447,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         };
 
         let hierarchyFilter = '';
-        if (body.hierarchie_ids && body.hierarchie_ids.length > 0) {
+        if (body.hierarchy_ids && body.hierarchy_ids.length > 0) {
             hierarchyFilter = `
             AND (
               md.is_all_hierarchy_associated = 1
@@ -457,7 +457,7 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
                 WHERE hierarchy_id IN (:hierarchie_ids)
                 )
             )`;
-            replacements.hierarchie_ids = body.hierarchie_ids;
+            replacements.hierarchie_ids = body.hierarchy_ids;
         }
 
         let mspHierarchyFilter = '';
