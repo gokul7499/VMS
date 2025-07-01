@@ -563,15 +563,22 @@ export async function advancedSearchQualification(
           };
         }
       } else if (startDate && endDate) {
-        const startDateValue = new Date(startDate).getTime();
-        const endDateValue = new Date(endDate).getTime();
+        const startDateObj = new Date(startDate);
+        startDateObj.setHours(0, 0, 0, 0); 
 
+        const endDateObj = new Date(endDate);
+        endDateObj.setHours(23, 59, 59, 999); 
+
+        const startDateValue = startDateObj.getTime();
+        const endDateValue = endDateObj.getTime();
+        
         if (!isNaN(startDateValue) && !isNaN(endDateValue)) {
           searchConditions.updated_on = {
             [Op.between]: [startDateValue, endDateValue],
           };
         }
       }
+
     }
 
 
