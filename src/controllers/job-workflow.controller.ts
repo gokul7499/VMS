@@ -314,6 +314,7 @@ export const updateWorkflowStatus = async (
     const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body as any;
+    const job_id = (updates as any[])[0]?.job_id;
 
     // Convert to array if not already
     if (!Array.isArray(updates)) {
@@ -737,7 +738,21 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
+              if (job_id) {
+               try {
+                 await createJobHistory(
+                   program_id,
+                   job_id,
+                   'SOURCING',
+                   'Job Status Update',
+                   token,
+                   userId || '',      
+                   { status: 'SOURCING' }
+                 );
+               } catch (error) {
+                 console.error('Failed to create job history:', error);
+               }
+             }  
         return reply.status(200).send({
             status_code: 200,
             message: "Approved done successfully.",
