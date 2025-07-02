@@ -2536,7 +2536,10 @@ export const getPendingUserQuery = `
   JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name) AS user_role,
     JSON_OBJECT(
       'id', countries.id,
-      'name', countries.name
+      'name', countries.name,
+      'isd_code', countries.isd_code,
+      'iso_code_2', countries.iso_code_2,
+      'iso_code_3', countries.iso_code_3
     ) AS countries,
     JSON_OBJECT(
       'id', hierarchies.id,
