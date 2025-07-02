@@ -11,11 +11,11 @@ import {
 import { createEventSchema, paramsSchema, querySchema } from '../interfaces/event.interface';
 
 async function EventRoutes(fastify: FastifyInstance) {
-    fastify.post('/supporting-text-event', {
-        schema: {
-            body: createEventSchema,
-        }
-    }, createEvent);
+    // fastify.post('/supporting-text-event', {
+    //     schema: {
+    //         body: createEventSchema,
+    //     }
+    // }, createEvent);
 
     fastify.get('/module/:module_id/supporting-text-event', {
         schema: {
@@ -39,12 +39,12 @@ async function EventRoutes(fastify: FastifyInstance) {
         }
     }, getEventById);
 
-    fastify.put('/module/:module_id/supporting-text-event/:id', {
-        schema: {
-            body: createEventSchema,
-            params: paramsSchema,
-        }
-    }, updateEvent);
+    // fastify.put('/module/:module_id/supporting-text-event/:id', {
+    //     schema: {
+    //         body: createEventSchema,
+    //         params: paramsSchema,
+    //     }
+    // }, updateEvent);
 
     fastify.delete('/module/:module_id/supporting-text-event/:id', {
         schema: {
