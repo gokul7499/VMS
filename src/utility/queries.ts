@@ -2287,6 +2287,7 @@ export const hierarchie = `
                    'id', hierarchies_custom_field.id,
                     'custom_field_id', hierarchies_custom_field.customfield_id,
                     'value', hierarchies_custom_field.value,
+                    'custom_field_id',custom_fields.id,
                   'manager_name',
                       CASE
                         WHEN user.user_id IS NOT NULL
@@ -2665,7 +2666,7 @@ COALESCE((
 COALESCE((
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
-      'id', cf.id,
+      'custom_field_id', cf.id,
       'name', cf.name,
       'value', jt.value,
       'label', cf.label,

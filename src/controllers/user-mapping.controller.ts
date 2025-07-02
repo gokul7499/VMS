@@ -370,9 +370,10 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'custom_fields', COALESCE((
                         SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
-                                'id', custom_fields.id,
+                                'id', user_custom_fields.id,
                                 'value', user_custom_fields.value,
                                 'label',custom_fields.label,
+                                'custom_field_id', custom_fields.id,
                                 'manager_name',
                             CASE
                                 WHEN user.user_id IS NOT NULL

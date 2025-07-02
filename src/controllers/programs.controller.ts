@@ -319,6 +319,7 @@ export const getProgramById = async (request: FastifyRequest, reply: FastifyRepl
                  'value', program_custom_field.value,
                 'label', cf.label,
                 'field_type', cf.field_type,
+                'custom_field_id', cf.id,
                 'manager_name',
           CASE
             WHEN u.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
