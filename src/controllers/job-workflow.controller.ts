@@ -19,6 +19,7 @@ import { databaseConfig } from '../config/db';
 import { NotificationEventCode } from '../utility/notification-event-code';
 import WorkflowTriggeredLevel from '../models/workflow-triggering-level-model';
 import WorkflowTriggeredRecipientType from '../models/workflow-triggered-recipient-type.model';
+import { createJobHistory } from '../utility/job-history';
 
 const AUTH_BASE_URL = databaseConfig.config.auth_url;
 let SOURCE_BASE_URL = databaseConfig.config.sourcing_url
@@ -313,6 +314,7 @@ export const updateWorkflowStatus = async (
     const userId = user?.sub
     const { program_id, id } = request.params;
     let updates = request.body as any;
+    const job_id = (updates as any[])[0]?.job_id;
 
     // Convert to array if not already
     if (!Array.isArray(updates)) {
@@ -736,7 +738,21 @@ export const updateWorkflowStatus = async (
                 trace_id: traceId,
             });
         }
-
+              if (job_id) {
+               try {
+                 await createJobHistory(
+                   program_id,
+                   job_id,
+                   'SOURCING',
+                   'Job Status Update',
+                   token,
+                   userId || '',      
+                   { status: 'SOURCING' }
+                 );
+               } catch (error) {
+                 console.error('Failed to create job history:', error);
+               }
+             }  
         return reply.status(200).send({
             status_code: 200,
             message: "Approved done successfully.",
@@ -1557,6 +1573,7 @@ export const rejectLevel = async (
         const userResult = await getUsersStatus(sequelize, userId, program_id);
         let userData = userResult[0] as any;
         const workflow: any = await JobWorkFlowModel.findOne({ where: { id, program_id } });
+        const job_id = (updates as any[])[0]?.job_id;
         let impersonator_id: any
         if (user.impersonator) {
             impersonator_id = user.impersonator.id || null
@@ -1687,6 +1704,21 @@ export const rejectLevel = async (
         
         await handleJobWorkflowStatus(request, reply, workflowStatus, workflow, updates, program_id, id, allPayload, eventCode)
         await updateRejectStatusInAllWorkflowModule(request, reply, program_id, id, workflow, updates )
+         if (job_id) {
+               try {
+                 await createJobHistory(
+                   program_id,
+                   job_id,
+                   'SOURCING',
+                   'Job Status Update',
+                   token,
+                   userId || '',      
+                   { status: 'SOURCING' }
+                 );
+               } catch (error) {
+                 console.error('Failed to create job history:', error);
+               }
+             }  	
         return reply.status(200).send({
             status_code: 200,
             message: "Job workflow updated successfully.",
