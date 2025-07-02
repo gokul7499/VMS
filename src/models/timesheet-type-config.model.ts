@@ -17,7 +17,7 @@ class TimesheetTypeConfig extends Model {
   timesheet_rule_group: never[] | undefined;
   break_rule_group: never[] | undefined;
   project: any;
-    input_format!: string;
+  input_format!: string;
 }
 
 TimesheetTypeConfig.init(
@@ -54,7 +54,7 @@ TimesheetTypeConfig.init(
     timesheet_format: {
       type: DataTypes.ENUM('tito', 'hourly', 'daily'),
       allowNull: true,
-    },    
+    },
     time_format: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -176,9 +176,13 @@ TimesheetTypeConfig.init(
       type: DataTypes.STRING,
       allowNull: true
     },
-    is_all_hierarchy_associated:{
+    is_all_hierarchy_associated: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    day_format: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
     created_on: {
       type: DataTypes.BIGINT.UNSIGNED,
