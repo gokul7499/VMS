@@ -5,35 +5,35 @@ import {
   updateModule,
   getModuleById,
 } from '../controllers/module.controller';
-import { createModuleSchema, paramsSchema} from '../interfaces/module.interface';
+import { createModuleSchema, paramsSchema } from '../interfaces/module.interface';
 
 
 async function moduleRouter(fastify: FastifyInstance) {
-  fastify.get('/module',{
-    schema:{
-      params:paramsSchema,
+  fastify.get('/module', {
+    schema: {
+      params: paramsSchema,
     }
   },
-     getModule);
-  fastify.post('/module',{
-    schema:{
-      body: createModuleSchema,
+    getModule);
+  // fastify.post('/module', {
+  //   schema: {
+  //     body: createModuleSchema,
 
+  //   }
+  // },
+  //   createModule);
+
+  // fastify.put('/module/:id', {
+  //   schema: {
+  //     body: createModuleSchema,
+  //   }
+  // },
+  //   updateModule);
+
+  fastify.get('/module/:id', {
+    schema: {
+      params: paramsSchema,
     }
-  },
-     createModule);
-
-fastify.put('/module/:id',{
-  schema:{
-    body: createModuleSchema,
-  }
-},
-updateModule);
-
-fastify.get('/module/:id',{
-  schema:{
-    params:paramsSchema,
-  }
-} ,getModuleById);
+  }, getModuleById);
 }
 export default moduleRouter;
