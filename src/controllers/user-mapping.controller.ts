@@ -318,7 +318,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                     'is_all_job_type_associate', u.is_all_job_type_associate,
                     'contacts', COALESCE(u.contacts, JSON_ARRAY()),
                     'updated_by', u.updated_by,
-                    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name),
+                    'countries', JSON_OBJECT('id', ct.id, 'name', ct.name,'isd_code',ct.isd_code,'iso_code_2', ct.iso_code_2, 'iso_code_3', ct.iso_code_3),
                     'user_role', JSON_OBJECT('id', ur.id, 'role_name', ur.role_name, 'display_name', ur.display_name),
                     'tenant_id', JSON_OBJECT('id', t.id, 'name', t.name,'display_name', t.display_name),
                     'supervisor_id', 
