@@ -348,6 +348,22 @@ export async function createUser(request: FastifyRequest, reply: FastifyReply) {
       createCandidateInAi(user, candidateId, vendor_id, authHeader, program_id, userId, uniqueId, candidateData, candidate_unique_code);
 
     } else if (userType === "vendor") {
+       const vendor = await ProgramVendor.findOne({
+        where: {
+          program_id: user.program_id,
+          tenant_id: user.tenant_id,
+          status: 'Active', 
+        },
+      });
+
+      if (!vendor) {
+        await transaction.rollback();
+        return reply.status(400).send({
+          status_code: 400,
+          message: "Vendor not found or not active for the given tenant and program.",
+          trace_id: traceId,
+        });
+      }
       if (user.program_id) {
         newUser = await User.create({ ...user, user_id: user.id, user_type: userType, created_by: userId, updated_by: userId, }, { transaction });
       } else {
