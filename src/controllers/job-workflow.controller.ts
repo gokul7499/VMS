@@ -2611,18 +2611,15 @@ export async function getUpdateWorkflowApprovals(request: FastifyRequest, reply:
         };
         
         // Properly format hierarchy IDs for SQL query
-        const hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
-        const hierarchyPlaceholders = hierarchy_ids.map((id:any) => `"${id}"`).join(',');
         
         // Base workflow data query
-        const workflowQuery = buildWorkflowQuery(hierarchyPlaceholders, workflow_id);
+        const workflowQuery = buildWorkflowQuery(workflow_id);
         
         const rows: any[] = await sequelize.query(workflowQuery, {
             replacements: { 
                 workflow_action, 
                 program_id, 
                 workflow_trigger_id,
-                hierarchy_ids: hierarchyPlaceholders,
                 workflow_id: workflow_id
             },
             type: QueryTypes.SELECT,
@@ -2736,7 +2733,7 @@ function deduplicateLevels(levels: Level[]): Level[] {
  * Build the SQL query for getting workflow data
  * This extracts the complex SQL query to a separate function for better readability
  */
-function buildWorkflowQuery(hierarchyPlaceholders:string, workflow_id: string) {
+function buildWorkflowQuery(workflow_id: string) {
      let workflowIdCondition = '';
         if (workflow_id) {
             workflowIdCondition = 'AND w.id = :workflow_id';
@@ -2843,7 +2840,6 @@ function buildWorkflowQuery(hierarchyPlaceholders:string, workflow_id: string) {
             AND w.workflow_trigger_id = :workflow_trigger_id
              ${workflowIdCondition}
             AND w.is_updated = true
-            AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchyPlaceholders}))
         ORDER BY
             l.placement_order ASC;
     `;
@@ -4450,7 +4446,6 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
             workflowIdCondition = 'AND id = :workflow_id';
         }
         console.log('workflowIdCondition', workflowIdCondition)
-        let hierarchy_ids = hierarchy_id.split(",").map((id: any) => id.trim());
         const methodIds = method_id.split(',');
         const query = `
             SELECT
@@ -4659,7 +4654,6 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
     AND w.workflow_trigger_id = :workflow_trigger_id
     AND w.is_updated = false
     AND FIND_IN_SET(w.method_id, :method_ids) > 0
-    AND JSON_OVERLAPS(w.hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
     AND w.method_id = (
         SELECT method_id
         FROM (
@@ -4673,7 +4667,6 @@ export async function getWorkflowForJob(request: FastifyRequest, reply: FastifyR
                  ${workflowIdCondition}
                 AND is_enabled = true
                 AND status='pending'
-                AND JSON_OVERLAPS(hierarchies, JSON_ARRAY(${hierarchy_ids?.map((id: string) => `"${id}"`).join(',')}))
             ORDER BY FIELD(method_id, ${methodIds.map((id) => `'${id}'`).join(',')})
             LIMIT 1
         ) AS prioritized_method
