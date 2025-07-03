@@ -516,7 +516,6 @@ export const updateQualificationById = async (request: FastifyRequest, reply: Fa
   }
 };
 
-
 export async function advancedSearchQualification(
   request: FastifyRequest<{ Params: qualificationType; Body: qualificationType }>,
   reply: FastifyReply
@@ -535,17 +534,18 @@ export async function advancedSearchQualification(
     if (body.name) {
       searchConditions.name = { [Op.like]: `%${body.name}%` };
     }
+    
     if (body.type) {
       searchConditions.type = { [Op.like]: `%${body.type}%` };
     }
 
-    if (body.is_enabled === false || body.is_enabled === "false") {
-      searchConditions.is_enabled = false;
-    } else {
-
-      searchConditions.is_enabled = true;
+    if (body.is_enabled !== undefined) {
+      if (body.is_enabled === "true") {
+        searchConditions.is_enabled = true;
+      } else if (body.is_enabled === "false") {
+        searchConditions.is_enabled = false;
+      }
     }
-
 
     if (Array.isArray(body.updated_on) && body.updated_on.length === 2) {
       const [startDate, endDate] = body.updated_on;
@@ -564,24 +564,21 @@ export async function advancedSearchQualification(
         }
       } else if (startDate && endDate) {
         const startDateObj = new Date(startDate);
-        startDateObj.setHours(0, 0, 0, 0); 
+        startDateObj.setHours(0, 0, 0, 0);
 
         const endDateObj = new Date(endDate);
-        endDateObj.setHours(23, 59, 59, 999); 
+        endDateObj.setHours(23, 59, 59, 999);
 
         const startDateValue = startDateObj.getTime();
         const endDateValue = endDateObj.getTime();
-        
+
         if (!isNaN(startDateValue) && !isNaN(endDateValue)) {
           searchConditions.updated_on = {
             [Op.between]: [startDateValue, endDateValue],
           };
         }
       }
-
     }
-
-
 
     const { rows: qualificationTypes, count } = await qualificationTypeModel.findAndCountAll({
       where: searchConditions,
@@ -635,9 +632,3 @@ export async function advancedSearchQualification(
     });
   }
 }
-
-
-
-
-
-
