@@ -106,15 +106,21 @@ class FeesConfigRepository {
       : "";
 
     const sql = `
-    SELECT * FROM fees
-    ${whereSql}
-    LIMIT :limit OFFSET :offset
-  `;
+        SELECT 
+          fees.id, fees.title, fees.source_model, fees.vendors, fees.funding_model, fees.labor_category, fees.updated_on,
+          (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT('id', h.id, 'name', h.name)
+            )
+            FROM JSON_TABLE(fees.hierarchy_levels, '$[*]' COLUMNS (hierarchy_id VARCHAR(255) PATH '$')) AS jt
+            JOIN hierarchies h ON h.id = jt.hierarchy_id
+          ) AS hierarchy_levels
+        FROM fees
+        ${whereSql}
+        LIMIT :limit OFFSET :offset
+      `;
 
-    const countSql = `
-    SELECT COUNT(*) as total FROM fees
-    ${whereSql}
-  `;
+    const countSql = `SELECT COUNT(*) as total FROM fees ${whereSql} `;
 
     replacements.limit = limit;
     replacements.offset = offset;
