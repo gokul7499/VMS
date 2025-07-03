@@ -5079,7 +5079,8 @@ async function processSpecificUserTypes(context: any, row: any): Promise<any> {
             email: replacedUserResult.email,
             recipient_type: recipientType.name || '',
             behaviour,
-            replaced_date_time: recipient_details?.replaced_modified_on
+            replaced_date_time: recipient_details?.replaced_modified_on,
+            replaced_notes: recipient_details?.replaced_notes || ''
         };
     }
     
