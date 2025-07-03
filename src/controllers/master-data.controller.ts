@@ -537,3 +537,120 @@ export async function foundationalDataFilter(request: FastifyRequest, reply: Fas
         });
     }
 }
+
+export async function bulkCreateMasterData(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { program_id } = request.params as { program_id: string };
+  const foundationalDataList = request.body as any[]; 
+  const traceId = generateCustomUUID();
+  const transaction = await sequelize.transaction();
+  const user = request?.user;
+
+  try {
+    const results: any[] = [];
+
+    for (const data of foundationalDataList) {
+      const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy, depended_fields } = data;
+
+      const masterDataTypes = await FoundationalDataTypes.findOne({
+        where: {
+          name: master_data_type_name,
+          program_id,
+          is_deleted: false,
+        },
+      });
+      if (!masterDataTypes) {
+        throw new Error(`Master data type "${master_data_type_name}" not found`);
+      }
+
+      const existingByName = await foundationalData.findOne({
+        where: { name, program_id, is_deleted: false },
+      });
+
+      if (existingByName) {
+        throw new Error(`Master Data "${name}" already exists`);
+      }
+
+      const existingByCode = await foundationalData.findOne({
+        where: {
+          code: sequelize.where(
+            sequelize.fn('lower', sequelize.col('code')),
+            sequelize.fn('lower', code)
+          ),
+          program_id,
+          is_deleted: false,
+        },
+      });
+
+      if (existingByCode) {
+        throw new Error(`Master Data with code "${code}" already exists`);
+      }
+
+      const newMasterData = await foundationalData.create(
+        {
+          name,
+          code,
+          is_enabled,
+          is_all_hierarchy_associated,
+          foundational_data_type_id: masterDataTypes.id,
+          program_id,
+          created_on: Date.now(),
+          updated_on: Date.now(),
+        },
+        { transaction }
+      );
+
+      if (Array.isArray(hierarchy) && hierarchy.length > 0) {
+        for (const h of hierarchy) {
+          const foundHierarchy = await Hierarchies.findOne({
+            where: {
+              name: h.name,
+              code: h.code,
+              program_id,
+              is_deleted: false,
+            },
+          });
+
+          if (!foundHierarchy) {
+            throw new Error(`Hierarchy "${h.name}" with code "${h.code}" not found`);
+          }
+
+          await MasterDataHierarchy.create(
+            {
+              master_data_id: newMasterData.id,
+              hierarchy_id: foundHierarchy.id,
+            },
+            { transaction }
+          );
+        }
+      }
+
+      results.push({
+        foundational_data_id: newMasterData.id,
+        name,
+        code,
+      });
+    }
+
+    await transaction.commit();
+
+    reply.status(201).send({
+      status_code: 201,
+      trace_id: traceId,
+      message: 'Master data bulk upload successful.',
+      results,
+    });
+
+  } catch (error: any) {
+    await transaction.rollback();
+    reply.status(500).send({
+      status_code: 500,
+      trace_id: traceId,
+      message: 'An error occurred during bulk upload.',
+      error: error.message,
+    });
+  }
+}
+

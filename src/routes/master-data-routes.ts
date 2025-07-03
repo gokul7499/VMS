@@ -46,6 +46,9 @@ async function foundationalDataRoutes(fastify: FastifyInstance) {
 
     fastify.post('/program/:program_id/master-data', {
     }, FoundationalDataController.foundationalDataFilter);
+
+    fastify.post('/program/:program_id/master-data/bulk-upload', {
+    }, FoundationalDataController.bulkCreateMasterData);
 }
 
 export default foundationalDataRoutes;
