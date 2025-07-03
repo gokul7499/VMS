@@ -250,7 +250,7 @@ export async function getProgramVendors(
                 });
 
                 const vendorDetails = await sequelize.query(getProgramVendorDetails, {
-                    replacements: { program_id: program_id, user_id: user_id || null },
+                    replacements: { program_id: program_id, id: vendor.id || null },
                     type: QueryTypes.SELECT,
                 }) as any;
 

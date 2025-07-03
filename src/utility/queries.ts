@@ -3359,7 +3359,7 @@ FROM
 
 WHERE
     pv.program_id = :program_id AND
-    (pv.user_id = :user_id OR :user_id IS NULL);
+    pv.id = :id;
 `;
 
 export const getVendorMarkups = ({
