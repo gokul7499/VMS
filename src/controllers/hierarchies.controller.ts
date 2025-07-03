@@ -793,6 +793,7 @@ export async function getUserHierarchies(request: FastifyRequest, reply: Fastify
             parent_hierarchy_id: item.parent_hierarchy_id,
             name: item.name,
             is_enabled: item.is_enabled,
+            is_root_hierarchy: item.parent_hierarchy_id === null,
             hierarchies: children,
           };
         });
