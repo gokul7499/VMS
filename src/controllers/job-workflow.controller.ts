@@ -642,22 +642,27 @@ export const updateWorkflowStatus = async (
                         };
                     }
                     if (is_admin_override) {
-                        // Slice levels from index 1 onwards
                         const slicedLevels = levels.slice(1);
 
-                        // Update only recipient_types in levels from index 1 onwards
                         slicedLevels.forEach((level: any) => {
-                            level.recipient_types = level.recipient_types.map((recipient: any) => ({
-                                ...recipient,
-                                status: "approved",
-                                is_admin_override: is_admin_override,
-                                actor_first_name: userData?.first_name,
-                                actor_last_name: userData?.last_name,
-                                actor_by_avatar: userData?.avatar,
-                                imporsonate_by: impersonator_id,
-                                updated_on: Date.now(),
-                                notes: notes || "",
-                            }));
+                            if (level?.status?.toLowerCase() !== "completed" || level?.status?.toLowerCase() !== "bypassed") {
+                                level.recipient_types = level.recipient_types.map((recipient: any) =>
+                                    (recipient?.status?.toLowerCase() !== "approved" && recipient?.status?.toLowerCase() !== "not needed")
+                                        ? {
+                                            ...recipient,
+                                            status: "approved",
+                                            is_admin_override: is_admin_override,
+                                            actor_first_name: userData?.first_name,
+                                            actor_last_name: userData?.last_name,
+                                            actor_by_avatar: userData?.avatar,
+                                            imporsonate_by: impersonator_id,
+                                            updated_on: Date.now(),
+                                            notes: notes || "",
+                                        }
+                                        : recipient
+                                );
+                            }
+                            
                             if(level.status.toLowerCase() ==='pending') {
                                 level.status = "completed";
                             }
