@@ -538,7 +538,7 @@ END AS hierarchy,
             JSON_OBJECT(
               'id',checklist.entity_id,
               'name',checklist.name
-          )AS checklist_entity_id	,
+            ) AS checklist_entity_id	,
             JSON_OBJECT(
                 'id', labour_category.id,
                 'name', labour_category.name
@@ -561,8 +561,8 @@ END AS hierarchy,
                 'default_time_format', primary_hierarchy.default_time_format,
                 'default_timezone', primary_hierarchy.default_timezone
             ) AS primary_hierarchy,
-          COALESCE((
-             SELECT JSON_ARRAYAGG(
+            COALESCE((
+              SELECT JSON_ARRAYAGG(
               JSON_OBJECT(
             'custom_field_id', jtc.custom_field_id,
             'value', jtc.value,
@@ -576,14 +576,13 @@ END AS hierarchy,
             'field_type', cf.field_type
             )
           )
-    FROM job_template_custom_field jtc
-    LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
-    LEFT JOIN user ON TRIM(BOTH '"' FROM jtc.value) = user.user_id AND jtc.program_id=user.program_id
-    WHERE jtc.job_temp_id = job_templates.id
-    AND cf.is_enabled = true
-    AND cf.is_deleted = false
-), JSON_ARRAY()) AS job_template_custom_fields,
-
+        FROM job_template_custom_field jtc
+        LEFT JOIN custom_fields cf ON jtc.custom_field_id = cf.id
+        LEFT JOIN user ON TRIM(BOTH '"' FROM jtc.value) = user.user_id AND jtc.program_id=user.program_id
+        WHERE jtc.job_temp_id = job_templates.id
+        AND cf.is_enabled = true
+        AND cf.is_deleted = false
+        ), JSON_ARRAY()) AS job_template_custom_fields,
             COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
@@ -638,25 +637,12 @@ END AS hierarchy,
                 WHERE job_template_rate_type.job_temp_id = job_templates.id
             ), JSON_ARRAY()) AS job_template_rate_types,
             COALESCE((
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', job_template_dist_schedules.id,
-                        'dist_shedule_id', job_template_dist_schedules.dist_shedule_id,
-                        'schedule_value', job_template_dist_schedules.schedule_value,
-                        'schedule_unit', job_template_dist_schedules.schedule_unit,
-                        'vendors', job_template_dist_schedules.vendors
-                    )
-                )
-                FROM job_template_dist_schedules
-                WHERE job_template_dist_schedules.job_temp_id = job_templates.id
-            ), JSON_ARRAY()) AS job_template_distribution_schedules,
-COALESCE((
-    SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', job_template_master_data.id,
-            'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
-            'foundation_data_type_name', master_data_type.name,
-            'foundation_data_id', COALESCE((
+              SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+                'id', job_template_master_data.id,
+                'foundation_data_type_id', job_template_master_data.foundation_data_type_id,
+                'foundation_data_type_name', master_data_type.name,
+                'foundation_data_id', COALESCE((
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
                         'id', md.id,
@@ -673,16 +659,14 @@ COALESCE((
                 WHERE md.is_enabled = true
             ), JSON_ARRAY()),
             'is_read_only', job_template_master_data.is_read_only
+          )
         )
-    )
-    FROM job_template_master_data
-    LEFT JOIN master_data_type 
+        FROM job_template_master_data
+        LEFT JOIN master_data_type 
         ON job_template_master_data.foundation_data_type_id = master_data_type.id
-       AND master_data_type.is_enabled = true
-    WHERE job_template_master_data.job_temp_id = job_templates.id
-), JSON_ARRAY()) AS job_master_data
-
-
+        AND master_data_type.is_enabled = true
+        WHERE job_template_master_data.job_temp_id = job_templates.id
+        ), JSON_ARRAY()) AS job_master_data
         FROM
             job_templates
         LEFT JOIN
@@ -696,16 +680,15 @@ COALESCE((
             job_templates.program_id = :program_id
             AND job_templates.id = :id
         GROUP BY
-    job_templates.id,
-    job_category.id,
-    job_category.title,
-    checklist.entity_id,
-    checklist.name,
-    labour_category.id,
-    labour_category.name,
-    primary_hierarchy.id,
-    primary_hierarchy.name;
-
+        job_templates.id,
+        job_category.id,
+        job_category.title,
+        checklist.entity_id,
+        checklist.name,
+        labour_category.id,
+        labour_category.name,
+        primary_hierarchy.id,
+        primary_hierarchy.name;
     `;
     const jobTemplate = await sequelize.query(query, {
       replacements: { program_id, id },
