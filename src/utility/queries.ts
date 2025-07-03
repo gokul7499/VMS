@@ -2679,12 +2679,13 @@ COALESCE((
     )
   )
   FROM (
-    SELECT *
+    SELECT
+      JSON_EXTRACT(jt_item, '$.id') AS id,
+      JSON_EXTRACT(jt_item, '$.value') AS value
     FROM JSON_TABLE(
       CAST(invitation.custom_fields AS JSON),
       '$[*]' COLUMNS (
-        id VARCHAR(36) PATH '$.id',
-        value TEXT PATH '$.value'
+        jt_item JSON PATH '$'
       )
     ) jt
   ) jt
