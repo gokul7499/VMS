@@ -101,7 +101,7 @@ FoundationalData.init({
     },
     additional_mdt_owner:{
         type:DataTypes.JSON,
-        allowNull:false
+        allowNull:true
 
     }
 }, {
