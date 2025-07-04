@@ -121,7 +121,14 @@ class FeesConfigRepository {
             )
             FROM JSON_TABLE(fees.labor_category, '$[*]' COLUMNS (labour_category_id VARCHAR(255) PATH '$')) AS jt
             JOIN labour_category l ON l.id = jt.labour_category_id
-          ) AS labor_category
+          ) AS labor_category,
+          (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT('id', pv.id, 'name', pv.display_name)
+            )
+            FROM JSON_TABLE(fees.vendors, '$[*]' COLUMNS (vendor_id VARCHAR(255) PATH '$')) AS jt
+            JOIN program_vendors pv ON pv.id = jt.vendor_id
+          ) AS vendors
         FROM fees
         ${whereSql}
         LIMIT :limit OFFSET :offset

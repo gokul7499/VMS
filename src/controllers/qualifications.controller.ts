@@ -344,8 +344,15 @@ export async function getAllQualifications(
                 searchConditions.qualification_type_id = query.qualification_type_id;
             }
             if (query.updated_on) {
-                searchConditions.updated_on = query.updated_on;
+             const startDate = new Date(query.updated_on).getTime();
+            const endDate = startDate + 24 * 60 * 60 * 1000;
+
+                searchConditions.updated_on = {
+                    [Op.gte]: startDate,
+                    [Op.lt]: endDate,
+                };
             }
+
             searchConditions.program_id = params.program_id;
         }
 
