@@ -20,7 +20,7 @@ export async function createWorkLocation(
   const traceId = generateCustomUUID();
   const program_id = workLocation.program_id;
   const transaction = await sequelize.transaction();
-   const user=request?.user;
+  const user = request?.user;
   try {
     const [workLocationData, created] = await WorkLocationModel.findOrCreate({
       where: {
@@ -91,17 +91,17 @@ export async function createWorkLocation(
         }, { transaction });
       }
     }
-     if (Array.isArray(workLocation.custom_fields) && workLocation.custom_fields.length > 0) {
-          const customFields = workLocation.custom_fields.map((field: {
-            id: any; value: any;
-          }) => ({
-            program_id,
-            customfield_id: field.id,
-            value: field.value,
-            work_location_id: workLocationData.id
-          }));
-          await WorkLocationCustomFieldModel.bulkCreate(customFields, { transaction });
-        }
+    if (Array.isArray(workLocation.custom_fields) && workLocation.custom_fields.length > 0) {
+      const customFields = workLocation.custom_fields.map((field: {
+        id: any; value: any;
+      }) => ({
+        program_id,
+        customfield_id: field.id,
+        value: field.value,
+        work_location_id: workLocationData.id
+      }));
+      await WorkLocationCustomFieldModel.bulkCreate(customFields, { transaction });
+    }
     await transaction.commit();
     reply.status(201).send({
       status_code: 201,
@@ -162,7 +162,10 @@ export async function createWorkLocation(
 }
 
 
-export async function getAllWorkLocations(request: FastifyRequest, reply: FastifyReply) {
+export async function getAllWorkLocations(
+  request: FastifyRequest<{ Querystring: WorkLocationInterface }>,
+  reply: FastifyReply
+) {
   try {
     const params = request.params as WorkLocationInterface;
     const query = request.query as WorkLocationInterface | any;
@@ -270,7 +273,7 @@ export async function getAllWorkLocations(request: FastifyRequest, reply: Fastif
   }
 }
 
-export async function getWorkLocationById(request: FastifyRequest,reply: FastifyReply) {
+export async function getWorkLocationById(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string; program_id: string };
 
@@ -289,7 +292,7 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
         {
           model: CountryModel,
           as: 'countries',
-          attributes: ['id', 'name','isd_code','iso_code_2','iso_code_3'],
+          attributes: ['id', 'name', 'isd_code', 'iso_code_2', 'iso_code_3'],
         }
       ],
     });
@@ -301,13 +304,13 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
         message: "Work Location Not Found",
       });
     }
-     const [customFieldsResult] = await sequelize.query(
+    const [customFieldsResult] = await sequelize.query(
       getWorklocationCustomField,
       {
-        replacements: { program_id,id },
+        replacements: { program_id, id },
         type: QueryTypes.SELECT,
       }
-    )as any;
+    ) as any;
 
     const customFields = customFieldsResult?.custom_fields ?? [];
     const workLocationCurrencies = await WorkLocationCurrency.findAll({
@@ -319,7 +322,7 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
     const responseWorkLocation = {
       ...workLocation.dataValues,
       currencies: responseCurrencies,
-      custom_fields:customFields
+      custom_fields: customFields
     };
 
     return reply.status(200).send({
@@ -338,13 +341,18 @@ export async function getWorkLocationById(request: FastifyRequest,reply: Fastify
   }
 }
 
-
-
-export async function updateWorkLocation(request: FastifyRequest, reply: FastifyReply) {
+export async function updateWorkLocation(
+  request: FastifyRequest<{
+    Params: { id: string };
+    Body: WorkLocationInterface;
+  }>,
+  reply: FastifyReply
+) {
   const traceId = generateCustomUUID();
+  const transaction = await sequelize.transaction();
   try {
-    const { id } = request.params as { id: string };
-    const { program_id, currencies,custom_fields, ...updates } = request.body as WorkLocationInterface;
+    const { id } = request.params;
+    const { program_id, currencies, custom_fields, ...updates } = request.body;
 
     if (!program_id) {
       return reply.status(400).send({
@@ -354,12 +362,41 @@ export async function updateWorkLocation(request: FastifyRequest, reply: Fastify
       });
     }
 
+    const existingWorkLocation = await WorkLocationModel.findOne({
+      where: {
+        program_id,
+        is_deleted: false,
+        [Op.or]: [
+          { code: updates.code },
+          { name: updates.name },
+        ],
+        id: { [Op.ne]: id },
+      },
+      attributes: ['code', 'name'],
+      transaction,
+    });
+
+    if (existingWorkLocation) {
+      const duplicateField =
+        existingWorkLocation.name === updates.name
+          ? 'name'
+          : 'code';
+
+      await transaction.rollback();
+      return reply.status(400).send({
+        status_code: 400,
+        trace_id: traceId,
+        message: `Work location with ${duplicateField} '${updates[duplicateField]}' already exists.`,
+      });
+    }
+
     const [numRowsUpdated] = await WorkLocationModel.update(
       { ...updates, updated_on: Date.now() },
-      { where: { id, program_id, is_deleted: false } }
+      { where: { id, program_id, is_deleted: false }, transaction }
     );
 
     if (numRowsUpdated === 0) {
+      await transaction.rollback();
       return reply.status(404).send({
         status_code: 404,
         trace_id: traceId,
@@ -367,55 +404,50 @@ export async function updateWorkLocation(request: FastifyRequest, reply: Fastify
       });
     }
 
-    await WorkLocationCurrency.destroy({
-      where: { work_location_id: id },
-    });
-
-    if (currencies && currencies.length > 0) {
-      await Promise.all(
-        currencies.map(async (currency: {
-          name: unknown; id: any; is_default: any, code: any
-        }) => {
-          await WorkLocationCurrency.create({
-            work_location_id: id,
-            currency_id: currency.id,
-            is_default: currency.is_default,
-            name: currency.name,
-            code: currency.code
-          });
-        })
-      );
+    if (Array.isArray(currencies) && currencies.length > 0) {
+      await WorkLocationCurrency.destroy({
+        where: { work_location_id: id },
+        transaction,
+      });
+      const currencyRecords = currencies.map(currency => ({
+        work_location_id: id,
+        currency_id: currency.id,
+        is_default: currency.is_default,
+        name: currency.name,
+        code: currency.code,
+      }));
+      await WorkLocationCurrency.bulkCreate(currencyRecords, { transaction });
     }
 
-     if (custom_fields && custom_fields.length > 0) {
-            await WorkLocationCustomFieldModel.destroy({
-              where: { work_location_id:id },
-            });
-          }
-    
-          if (Array.isArray(custom_fields) && custom_fields.length > 0) {
-            const customFields =custom_fields.map((field: { id: any; value: any; }) => ({
-              program_id,
-              customfield_id: field.id,
-              value: field.value,
-              work_location_id: id,
-            }));
-            await WorkLocationCustomFieldModel.bulkCreate(customFields,);
-          }
+    if (Array.isArray(custom_fields) && custom_fields.length > 0) {
+      await WorkLocationCustomFieldModel.destroy({
+        where: { work_location_id: id },
+        transaction,
+      });
+      const customFieldRecords = custom_fields.map(field => ({
+        program_id,
+        customfield_id: field.id,
+        value: field.value,
+        work_location_id: id,
+      }));
+      await WorkLocationCustomFieldModel.bulkCreate(customFieldRecords, { transaction });
+    }
 
+    await transaction.commit();
     return reply.status(200).send({
       status_code: 200,
       work_location_id: id,
       trace_id: traceId,
-      message: "Work Location and currencies updated successfully",
+      message: "Work location updated successfully.",
     });
-  } catch (error) {
-    console.error("Error Updating Work Location:", error);
+
+  } catch (error: any) {
+    await transaction.rollback();
     return reply.status(500).send({
       status_code: 500,
       trace_id: traceId,
       message: "Internal Server Error",
-      error,
+      error: error.message,
     });
   }
 }
@@ -561,7 +593,7 @@ type QueryResult = {
   countries: Array<{ id: string; name: string }> | null;
 };
 
-export async function getAllCountry(request: FastifyRequest,reply: FastifyReply) {
+export async function getAllCountry(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
   const { program_id } = request.params as { program_id: string };
 
@@ -598,7 +630,7 @@ export async function getAllCountry(request: FastifyRequest,reply: FastifyReply)
   }
 }
 
-export const getWorkLocationsAdvancedFilter = async (request: FastifyRequest,reply: FastifyReply) => {
+export const getWorkLocationsAdvancedFilter = async (request: FastifyRequest, reply: FastifyReply) => {
   const traceId = generateCustomUUID();
   try {
     const { program_id } = request.params as { program_id: string };
@@ -652,7 +684,7 @@ export const getWorkLocationsAdvancedFilter = async (request: FastifyRequest,rep
     if (Array.isArray(updated_on) && updated_on.length === 2) {
       const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
       filters.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-  }
+    }
 
     const workLocations = await WorkLocationModel.findAll({
       where: filters,

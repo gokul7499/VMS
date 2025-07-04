@@ -343,6 +343,9 @@ export async function getAllQualifications(
             if (query.qualification_type_id) {
                 searchConditions.qualification_type_id = query.qualification_type_id;
             }
+            if (query.updated_on) {
+                searchConditions.updated_on = query.updated_on;
+            }
             searchConditions.program_id = params.program_id;
         }
 

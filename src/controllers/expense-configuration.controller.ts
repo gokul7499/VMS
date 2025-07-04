@@ -215,7 +215,7 @@ export async function createExpenseConfiguration(request: FastifyRequest, reply:
         if (existingConfigs.length > 0) {
             return reply.status(409).send({
                 status_code: 409,
-                message: 'An expense configuration with the same hierarchy IDs already exists',
+                message: 'An Expense configuration with the same hierarchy already exists.',
                 trace_id: traceId,
             });
         }
