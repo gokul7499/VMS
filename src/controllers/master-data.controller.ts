@@ -543,16 +543,16 @@ export async function bulkCreateMasterData(
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const masterDataList = request.body as any[]; 
+  const masterDataList = request.body as any[];
   const traceId = generateCustomUUID();
-  const transaction = await sequelize.transaction();
   const user = request?.user;
 
-  try {
-    const results: any[] = [];
+  const results: any[] = [];
 
-    for (const data of masterDataList) {
-      const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy, depended_fields } = data;
+  for (const data of masterDataList) {
+    const transaction = await sequelize.transaction();
+    try {
+      const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy } = data;
 
       const masterDataTypes = await FoundationalDataTypes.findOne({
         where: {
@@ -627,29 +627,29 @@ export async function bulkCreateMasterData(
         }
       }
 
+      await transaction.commit();
+
       results.push({
+        status: 'success',
         foundational_data_id: newMasterData.id,
         name,
         code,
       });
+    } catch (error: any) {
+      await transaction.rollback();
+      results.push({
+        status: 'failed',
+        name: data.name,
+        code: data.code,
+        error: error.message,
+      });
     }
-
-    await transaction.commit();
-
-    reply.status(201).send({
-      status_code: 201,
-      trace_id: traceId,
-      message: 'Master data created successfully.',
-    });
-
-  } catch (error: any) {
-    await transaction.rollback();
-    reply.status(500).send({
-      status_code: 500,
-      trace_id: traceId,
-      message: 'An error occurred during bulk upload.',
-      error: error.message,
-    });
   }
+
+  reply.status(201).send({
+    status_code: 201,
+    trace_id: traceId,
+    message: 'Master data created successfully.',
+  });
 }
 
