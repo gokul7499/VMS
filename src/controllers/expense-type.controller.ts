@@ -12,7 +12,7 @@ export async function createExpenseType(request: FastifyRequest, reply: FastifyR
 
     const traceId = generateCustomUUID();
     const user = request?.user;
- 
+
     logger(
         {
 
@@ -183,7 +183,7 @@ export async function updateExpenseTypeById(
             },
             ExpenseTypeModel
         );
-        
+
         const [updatedCount] = await ExpenseTypeModel.update(
             { ...updates, updated_by: user.sub, updated_on: Date.now() },
             {
@@ -247,7 +247,7 @@ export async function deleteExpenseTypeById(
 ) {
     const traceId = generateCustomUUID();
     const user = request?.user;
-    
+
     try {
         const { id, program_id } = request.params;
 
@@ -331,7 +331,12 @@ export async function getAllExpenseType(
         whereClause.is_enabled = is_enabled === "true";
     }
     if (max_limit !== undefined) {
-        whereClause.max_unit_limit = max_limit;
+        const limitFloat = parseFloat(max_limit);
+        if (!isNaN(limitFloat)) {
+            whereClause.max_unit_limit = {
+                [Op.between]: [limitFloat - 0.0001, limitFloat + 0.0001],
+            };
+        }
     }
     if (updated_on) {
         const dates = updated_on.split(',')
@@ -358,12 +363,15 @@ export async function getAllExpenseType(
     const pageSize = parseInt(limit as unknown as string) || 10;
     const offset = (pageNumber - 1) * pageSize;
 
+    console.log("Where Clause:", whereClause);
+
     try {
         const { rows: expenseType, count: total_records } = await ExpenseTypeModel.findAndCountAll({
             where: whereClause,
             offset,
             limit: pageSize,
             order: [["created_on", "DESC"]],
+            logging: true
         });
         reply.status(200).send({
             status_code: 200,
