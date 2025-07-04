@@ -112,7 +112,7 @@ export async function createSowTemplate(
 }
 
 export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();
+    const traceId = generateCustomUUID();   
     try {
         const { program_id } = request.params as { program_id: string };
         const {
@@ -227,44 +227,35 @@ export const getAllSowTemplate = async (request: FastifyRequest, reply: FastifyR
         });
         const totalRecords = totalResult[0]?.total || 0;
 
-     
-        const filteredTemplates = templates.map(template => {
-            try {
-                template.hierarchy = typeof template.hierarchy === 'string'
-                    ? JSON.parse(template.hierarchy || '[]')
-                    : template.hierarchy || [];
-            } catch {
-                template.hierarchy = [];
-            }
-
-            try {
-                template.master_data = typeof template.master_data === 'string'
-                    ? JSON.parse(template.master_data || '[]')
-                    : template.master_data || [];
-            } catch {
-                template.master_data = [];
-            }
-
-            return {
-                id: template.id,
-                code: template.code,
-                program_id: template.program_id,
-                type: template.type,
-                template_title: template.template_title,
-                description: template.description,
-                hierarchy: template.hierarchy,
-                picklist_items: template.picklist_items,
-                created_on: template.created_on,
-                updated_on: template.updated_on,
-                is_sow_assignment: template.is_sow_assignment,
-                is_sow_expense: template.is_sow_expense,
-                is_sow_milestones: template.is_sow_milestones,
-                is_sow_payment_req: template.is_sow_payment_req,
-                is_sow_schedule_payments: template.is_sow_schedule_payments,
-                is_sow_desc_mandatory: template.is_sow_desc_mandatory,
-                master_data: template.master_data,
-            };
+        templates.forEach(template => {
+            template.hierarchy = JSON.parse(template.hierarchy || '[]');
         });
+
+        const filteredTemplates = templates.map(template => ({
+            id: template.id,
+            code: template.code,
+            program_id: template.program_id,
+            type: template.type,
+            template_title: template.template_title,
+            description: template.description,
+            hierarchy: template.hierarchy,
+            picklist_items: template.picklist_items,
+            created_on: template.created_on,
+            updated_on: template.updated_on,
+            is_sow_assignment: template.is_sow_assignment,
+            is_sow_expense: template.is_sow_assignment,
+            is_sow_milestones: template.is_sow_milestones,
+            is_sow_payment_req: template.is_sow_payment_req,
+            is_sow_schedule_payments: template.is_sow_schedule_payments,
+            is_sow_desc_mandatory: template.is_sow_desc_mandatory,
+            master_data: typeof template.master_data === 'string'
+                ? JSON.parse(template.master_data)
+                : (Array.isArray(template.master_data) ? template.master_data : []),
+            custom_fields: typeof template.custom_fields === 'string'
+                ? JSON.parse(template.custom_fields)
+                : (Array.isArray(template.custom_fields) ? template.custom_fields : []),
+
+        }));
 
         reply.status(200).send({
             status_code: 200,
@@ -320,29 +311,11 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
             }
         });
 
-        try {
-            sowTemplateRecord.hierarchy = typeof sowTemplateRecord.hierarchy === 'string'
-                ? JSON.parse(sowTemplateRecord.hierarchy || '[]')
-                : sowTemplateRecord.hierarchy || [];
-        } catch {
-            sowTemplateRecord.hierarchy = [];
-        }
-
-        try {
-            sowTemplateRecord.custom_fields = typeof sowTemplateRecord.custom_fields === 'string'
-                ? JSON.parse(sowTemplateRecord.custom_fields || '[]')
-                : sowTemplateRecord.custom_fields || [];
-        } catch {
-            sowTemplateRecord.custom_fields = [];
-        }
-
-        try {
-            sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
-                ? JSON.parse(sowTemplateRecord.master_data || '[]')
-                : sowTemplateRecord.master_data || [];
-        } catch {
-            sowTemplateRecord.master_data = [];
-        }
+        sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
+        sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
+        sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
+            ? JSON.parse(sowTemplateRecord.master_data || '[]')
+            : sowTemplateRecord.master_data;
 
         return reply.status(200).send({
 
@@ -386,8 +359,8 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
 
         if (!existingTemplate) {
             await transaction.rollback();
-            return reply.status(200).send({
-                status_code: 200,
+            return reply.status(404).send({
+                status_code: 404,
                 message: 'SOW Template not found.',
                 trace_id: traceId,
             });
@@ -428,7 +401,7 @@ export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyR
         await transaction.commit();
         return reply.status(200).send({
             status_code: 200,
-            message: 'SOW template versioned update successful.',
+            message: 'SOW template versioned update successfully.',
             trace_id: traceId,
             data: newTemplate,
         });
