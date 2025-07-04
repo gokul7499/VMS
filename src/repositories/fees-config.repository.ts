@@ -114,7 +114,14 @@ class FeesConfigRepository {
             )
             FROM JSON_TABLE(fees.hierarchy_levels, '$[*]' COLUMNS (hierarchy_id VARCHAR(255) PATH '$')) AS jt
             JOIN hierarchies h ON h.id = jt.hierarchy_id
-          ) AS hierarchy_levels
+          ) AS hierarchy_levels,
+           (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT('id', l.id, 'name', l.name)
+            )
+            FROM JSON_TABLE(fees.labor_category, '$[*]' COLUMNS (labour_category_id VARCHAR(255) PATH '$')) AS jt
+            JOIN labour_category l ON l.id = jt.labour_category_id
+          ) AS labor_category
         FROM fees
         ${whereSql}
         LIMIT :limit OFFSET :offset
