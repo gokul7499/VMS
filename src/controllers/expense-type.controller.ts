@@ -363,15 +363,12 @@ export async function getAllExpenseType(
     const pageSize = parseInt(limit as unknown as string) || 10;
     const offset = (pageNumber - 1) * pageSize;
 
-    console.log("Where Clause:", whereClause);
-
     try {
         const { rows: expenseType, count: total_records } = await ExpenseTypeModel.findAndCountAll({
             where: whereClause,
             offset,
             limit: pageSize,
-            order: [["created_on", "DESC"]],
-            logging: true
+            order: [["created_on", "DESC"]]
         });
         reply.status(200).send({
             status_code: 200,
