@@ -543,7 +543,7 @@ export async function bulkCreateMasterData(
   reply: FastifyReply
 ) {
   const { program_id } = request.params as { program_id: string };
-  const foundationalDataList = request.body as any[]; 
+  const masterDataList = request.body as any[]; 
   const traceId = generateCustomUUID();
   const transaction = await sequelize.transaction();
   const user = request?.user;
@@ -551,7 +551,7 @@ export async function bulkCreateMasterData(
   try {
     const results: any[] = [];
 
-    for (const data of foundationalDataList) {
+    for (const data of masterDataList) {
       const { master_data_type_name, name, code, is_enabled, is_all_hierarchy_associated, hierarchy, depended_fields } = data;
 
       const masterDataTypes = await FoundationalDataTypes.findOne({
@@ -639,8 +639,7 @@ export async function bulkCreateMasterData(
     reply.status(201).send({
       status_code: 201,
       trace_id: traceId,
-      message: 'Master data bulk upload successful.',
-      results,
+      message: 'Master data created successfully.',
     });
 
   } catch (error: any) {
