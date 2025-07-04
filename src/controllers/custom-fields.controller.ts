@@ -733,7 +733,7 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
     if (!customFieldRecord) {
       return sendError(reply, 404, 'Custom Field not found');
     }
-
+     if(updates.id){
     const existingDuplicate = await CustomField.findOne({
       where: {
         program_id,
@@ -754,7 +754,7 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
         traceId:traceId
       });
     }
-
+  }
     const changes = await detectChanges(updates, customFieldRecord);
     if (changes) {
       await CustomField.update(

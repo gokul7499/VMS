@@ -592,7 +592,7 @@ export async function bulkCreateMasterData(
         {
           name,
           code,
-          is_enabled,
+          is_enabled: true,
           is_all_hierarchy_associated,
           foundational_data_type_id: masterDataTypes.id,
           program_id,
