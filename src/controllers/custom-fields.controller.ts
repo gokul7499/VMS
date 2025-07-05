@@ -11,24 +11,29 @@ import { createCustomFieldLocations } from './custom-field-location.controller';
 import { saveCustomFieldsHierarchies } from './custom-field-hierarchie.controller';
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
-import { Op, QueryTypes, Sequelize } from 'sequelize';
+import { Op, QueryTypes, Sequelize, ValidationError } from 'sequelize';
 import PicklistModel from '../models/picklist.model';
 import PicklistItemModel from '../models/picklist-item.model';
 import CustomFieldMaterData from '../models/custom-field-master-data.model';
 import FoundationalDataTypes from '../models/master-datatypes.model';
 import Hierarchies from '../models/hierarchies.model';
 import { sequelize } from '../config/instance';
+import { validateLabel } from '../plugins/labelValidator'
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
   const { work_location_ids, hierarchy_ids, master_data_id, modules, label, name, module_id, ...customFieldData } = request.body as any;
   const traceId = generateCustomUUID();
-   const user=request?.user
+  const user = request?.user;
+
   if (!validateProgramId(program_id, reply, traceId)) return;
 
   generateSlugIfNeeded(name, customFieldData);
 
   try {
+
+    validateLabel(label);
+
     const existingField = await CustomField.findOne({
       where: {
         program_id,
@@ -57,7 +62,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       });
     }
 
-    const customField = await createCustomField({ program_id, label, name, module_id, ...customFieldData }, user);
+    const customField = await createCustomField({ label, name, module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -69,7 +74,6 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       ...(hierarchy_ids?.map((hierarchy_id: string) => saveCustomFieldsHierarchies(custom_field_id, hierarchy_id, program_id)) || []),
     ]);
 
-    // Handle master_data_id separately to avoid nested ternary
     if (master_data_id) {
       if (Array.isArray(master_data_id)) {
         await Promise.all(master_data_id.map((m_id: string) =>
@@ -89,14 +93,15 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   } catch (error: any) {
     console.error('Error processing custom field:', error);
     logError(traceId, user, request, program_id);
-    return reply.status(500).send({
-      status_code: 500,
-      message: 'Internal Server Error',
-      traceId,
-      error: error.message
+
+    return reply.status(200).send({
+      status_code: 200,
+      message: error.message || 'Validation failed',
+      trace_id: traceId,
     });
   }
 };
+
 
 // Helper functions
 const validateProgramId = (program_id: string | undefined, reply: FastifyReply, trace_id: string) => {
@@ -238,11 +243,11 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
   const userId = user?.sub;
   console.log("userId", userId);
   const { program_id } = request.params as { program_id: string };
-  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug,user_type, page = '1', limit = '10' } = request.query as GetQueryInterface;
+  const { hierarchy_ids, is_enabled, name, module_name, label, field_type, is_required, updated_on, slug, user_type, page = '1', limit = '10' } = request.query as GetQueryInterface;
 
   try {
     let userType = user?.userType;
-    
+
     if (userType != 'super_user') {
       const [userTypeResult] = await sequelize.query(
         `SELECT user_type FROM user WHERE program_id = :program_id AND user_id = :user_id`,
@@ -251,7 +256,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           type: QueryTypes.SELECT,
         }
       ) as any;
-      
+
       userType = userTypeResult?.user_type;
     }
     console.log("userType", userType);
@@ -270,7 +275,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     };
 
     const andConditions: any[] = []
-    
+
     // Only add general permission check if no module_name filter is specified
     if (userType !== 'super_user' && !module_name) {
       andConditions.push(
@@ -281,7 +286,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
       );
     }
 
-    if (user_type && userType!="super_user") {
+    if (user_type && userType != "super_user") {
       andConditions.push(
         Sequelize.literal(`LOWER(organization_category) = LOWER('${user_type}')`)
       );
@@ -295,20 +300,20 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
     if (label) whereClause.label = { [Op.like]: `%${label}%` };
     if (field_type) whereClause.field_type = { [Op.like]: `%${field_type}%` };
-    
+
     if (is_required) {
       const isRequiredValue = is_required === 'true' ? 1 : 0;
       whereClause.is_required = { [Op.eq]: isRequiredValue };
     }
-    
+
     if (updated_on) {
       whereClause.updated_on = { [Op.like]: `${updated_on}` };
     }
 
-   if (module_name) {
-   if (module_name === 'Assignment Revision') {
-  andConditions.push(
-    Sequelize.literal(`
+    if (module_name) {
+      if (module_name === 'Assignment Revision') {
+        andConditions.push(
+          Sequelize.literal(`
       (
         (
           module_name IN ('Assignment', 'Assignment Revision')
@@ -351,20 +356,20 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
         )` : ''}
       )
     `)
-  );
-}
- else if (userType === 'super_user') {
-    andConditions.push({
-      [Op.or]: [
-        { module_name: { [Op.eq]: module_name } },
-        Sequelize.literal(`
+        );
+      }
+      else if (userType === 'super_user') {
+        andConditions.push({
+          [Op.or]: [
+            { module_name: { [Op.eq]: module_name } },
+            Sequelize.literal(`
           JSON_CONTAINS(linked_modules, JSON_OBJECT('linked', true, 'module_name', '${module_name}'))
         `)
-      ]
-    });
-  } else {
-    andConditions.push(
-      Sequelize.literal(`
+          ]
+        });
+      } else {
+        andConditions.push(
+          Sequelize.literal(`
         (
           (
             -- Check if module is linked and user has permission in linked_modules
@@ -419,18 +424,18 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
           )
         )
       `)
-    );
-  }
-} else {
-  if (userType !== 'super_user') {
-    andConditions.push(
-      Sequelize.literal(`(
+        );
+      }
+    } else {
+      if (userType !== 'super_user') {
+        andConditions.push(
+          Sequelize.literal(`(
         JSON_CONTAINS(can_edit, JSON_QUOTE('${userType}')) OR 
         JSON_CONTAINS(can_view, JSON_QUOTE('${userType}'))
       )`)
-    );
-  }
-}
+        );
+      }
+    }
 
 
     if (hierarchy_ids) {
@@ -467,7 +472,7 @@ export async function getAllCustomFields(request: FastifyRequest, reply: Fastify
         "placeholder", "description", "can_edit", "can_view"
       ],
       replacements: {
-        userType: userType 
+        userType: userType
       },
       order: [["updated_on", "ASC"]],
       offset,
@@ -595,7 +600,7 @@ export const getCustomFieldById = async (request: FastifyRequest, reply: Fastify
         "supporting_text", "description", "is_readonly", "is_required",
         "is_linked", "is_deleted", "created_on", "updated_on",
         "supporting_text", "linked_modules", "meta_data", "job_type",
-        "range_applicable", "is_sensitive_data","organization_category"
+        "range_applicable", "is_sensitive_data", "organization_category"
       ],
     });
 
@@ -710,51 +715,54 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
   const { id, program_id } = request.params as { id: string, program_id: string };
   const updates = request.body as CustomFields;
 
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
 
-  const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids,name,label,module_id } = updates as {
+  const { hierarchy_ids, work_location_ids, linked_modules, master_data_ids, name, label, module_id } = updates as {
     hierarchy_ids?: string[];
     work_location_ids?: string[];
     linked_modules?: Array<{ is_linked: boolean }>;
     master_data_ids?: string[];
-    name?:string;
-    label?:string;
-    module_id?:string
+    name?: string;
+    label: string;
+    module_id?: string
   };
+
 
 
   if (!program_id) {
     return sendError(reply, 400, 'Program ID is required');
   }
 
+  validateLabel(label);
+
   try {
     const customFieldRecord = await findCustomField(id, program_id);
     if (!customFieldRecord) {
       return sendError(reply, 404, 'Custom Field not found');
     }
-     if(updates.id){
-    const existingDuplicate = await CustomField.findOne({
-      where: {
-        program_id,
-        module_id,
-        [Op.and]: [
-          { label },
-          { name }
-        ],
-        id: { [Op.ne]: id },
-        is_deleted: false
-      }
-    });
-
-    if (existingDuplicate) {
-      return reply.send({
-        status_code:409,
-        message:"Custom field with the same name and label already exists in this module.",
-        traceId:traceId
+    if (updates.id) {
+      const existingDuplicate = await CustomField.findOne({
+        where: {
+          program_id,
+          module_id,
+          [Op.and]: [
+            { label },
+            { name }
+          ],
+          id: { [Op.ne]: id },
+          is_deleted: false
+        }
       });
+
+      if (existingDuplicate) {
+        return reply.send({
+          status_code: 409,
+          message: "Custom field with the same name and label already exists in this module.",
+          traceId: traceId
+        });
+      }
     }
-  }
     const changes = await detectChanges(updates, customFieldRecord);
     if (changes) {
       await CustomField.update(
@@ -882,7 +890,7 @@ export const deleteCustomField = async (request: FastifyRequest<{ Params: { id: 
     const customFieldItem = await CustomField.findOne({ where: { id, program_id } });
 
     if (customFieldItem) {
-      const user=request?.user
+      const user = request?.user
       const userId = user?.sub
       if ((customFieldItem as any).is_linked === false) {
         await customFieldItem.update({
@@ -922,7 +930,7 @@ export async function updateCustomFieldsIsdisable(request: FastifyRequest, reply
   const traceId = generateCustomUUID();
   const { id, program_id } = request.params as { id: string, program_id: string };
   const { is_enabled } = request.body as { is_enabled: boolean };
-   const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
 
   if (is_enabled === undefined || is_enabled === null) {
