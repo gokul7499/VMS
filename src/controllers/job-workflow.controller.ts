@@ -2456,21 +2456,42 @@ const sendNotificationSequencially = async (request: FastifyRequest, reply: Fast
  * Fetch user data from the database
  */
 async function fetchUserData(user_id: string, program_id: string) {
-    if (!user_id || !program_id) return null;
-    
-    const userQuery = `
-        SELECT user_id, first_name, last_name, avatar, role_id, email
+    console.log("user_id is", user_id, "and program_id is", program_id);
+
+    if (!user_id) return null;
+    const userTypeQuery = `
+        SELECT user_type
         FROM user
-        WHERE user_id = :user_id
-          AND program_id = :program_id
-          AND LOWER(status) = 'active'
+        WHERE user_id = :user_id AND LOWER(status) = 'active'
         LIMIT 1
     `;
-    
-    return await sequelize.query(userQuery, {
+
+    const userTypeResult: any = await sequelize.query(userTypeQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { user_id },
+    });
+
+    if (!userTypeResult.length) return null;
+
+    const user_type = userTypeResult[0]?.user_type;
+
+    let userQuery = `
+        SELECT user_id, first_name, last_name, avatar, role_id, email, user_type
+        FROM user
+        WHERE user_id = :user_id AND LOWER(status) = 'active'
+    `;
+    if (user_type?.toLowerCase() !== 'super_user') {
+        userQuery += ` AND program_id = :program_id`;
+    }
+
+    userQuery += ` LIMIT 1`;
+
+    const userData: any = await sequelize.query(userQuery, {
         type: QueryTypes.SELECT,
         replacements: { user_id, program_id },
     });
+
+    return userData || '';
 }
 
 /**
@@ -2942,7 +2963,15 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                             recipientTypeName = rtInfo.name || "";
                         }
                     }
-                    
+
+                    let imposonate_user_data = null;
+                    if (imporsonate_by) {
+                        const imporsonateUserResult = await fetchUserData(imporsonate_by, program_id);
+
+                        if (imporsonateUserResult?.length) {
+                            imposonate_user_data = mapImporsonateUserData(imporsonateUserResult[0], recipientTypeName, recipient_details, behaviour);
+                        }
+                    }
                     // Create recipient object
                     const recipient = {
                         user_id: userId,
@@ -2962,7 +2991,8 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                         role_id: userData.role_id,
                         email: userData.email,
                         recipient_type: recipientTypeName,
-                        behaviour: rt.behaviour || behaviour
+                        behaviour: rt.behaviour || behaviour,
+                        imporsonate_by: imposonate_user_data
                     };
                     
                     recipients.push(recipient);
