@@ -122,35 +122,32 @@ export const getSowTemplateByIdQuery = `
 
    -- Custom Fields
 COALESCE((
-    SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', stcf.custom_field_id,
-            'value',
-                CASE
-                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
-                        THEN JSON_EXTRACT(stcf.value, '$')
-                    WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
-                        THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$')))
-                    ELSE JSON_ARRAY(stcf.value)
-                END,
-            'label', cf.label,
-            'field_type', cf.field_type,
-            'manager_name',
-            CASE
-                WHEN u.user_id IS NOT NULL THEN CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, ''))
-                ELSE NULL
-            END
-        )
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'id', stcf.custom_field_id,
+      'value',
+      CASE
+        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'ARRAY'
+          THEN JSON_EXTRACT(stcf.value, '$')
+        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'STRING'
+          THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(stcf.value, '$')))
+        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) = 'OBJECT'
+          THEN JSON_ARRAY(JSON_EXTRACT(stcf.value, '$'))
+        WHEN JSON_VALID(stcf.value) AND JSON_TYPE(JSON_EXTRACT(stcf.value, '$')) IN ('INTEGER', 'DECIMAL')
+          THEN JSON_ARRAY(CAST(JSON_EXTRACT(stcf.value, '$') AS CHAR))
+        ELSE JSON_ARRAY(CAST(stcf.value AS CHAR))
+      END,
+      'label', cf.label,
+      'field_type', cf.field_type
     )
-    FROM sow_template_custom_field stcf
-    JOIN custom_fields cf ON stcf.custom_field_id = cf.id
-    LEFT JOIN user u
-        ON TRIM(REPLACE(REPLACE(IFNULL(stcf.value, ''), '"', ''), ' ', '')) = TRIM(u.user_id)
-        AND u.program_id = t.program_id
-    WHERE stcf.sow_temp_id = t.id
-      AND cf.is_enabled = TRUE
-      AND cf.is_deleted = FALSE
+  )
+  FROM sow_template_custom_field stcf
+  JOIN custom_fields cf ON stcf.custom_field_id = cf.id
+  WHERE stcf.sow_temp_id = t.id
+    AND cf.is_enabled = TRUE
+    AND cf.is_deleted = FALSE
 ), JSON_ARRAY()) AS custom_fields,
+
 
 
 -- Master Data
