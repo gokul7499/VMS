@@ -18,6 +18,8 @@ import CustomFieldMaterData from '../models/custom-field-master-data.model';
 import FoundationalDataTypes from '../models/master-datatypes.model';
 import Hierarchies from '../models/hierarchies.model';
 import { sequelize } from '../config/instance';
+import { validateLabel } from '../plugins/labelValidator'
+
 
 export const saveCustomFields = async (request: FastifyRequest<{}>, reply: FastifyReply) => {
   const { program_id } = request.params as { program_id: string };
@@ -29,6 +31,8 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   generateSlugIfNeeded(name, customFieldData);
 
   try {
+        validateLabel(label);
+
     const existingField = await CustomField.findOne({
       where: {
         program_id,
@@ -57,7 +61,7 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
       });
     }
 
-    const customField = await createCustomField({ program_id, label, name, module_id, ...customFieldData }, user);
+    const customField = await createCustomField({ label, name, module_id, ...customFieldData }, user);
     if (!customField?.id) {
       throw new Error('Failed to create custom field');
     }
@@ -89,11 +93,10 @@ export const saveCustomFields = async (request: FastifyRequest<{}>, reply: Fasti
   } catch (error: any) {
     console.error('Error processing custom field:', error);
     logError(traceId, user, request, program_id);
-    return reply.status(500).send({
-      status_code: 500,
-      message: 'Internal Server Error',
-      traceId,
-      error: error.message
+    return reply.status(200).send({
+      status_code: 200,
+      message: error.message || 'Validation failed',
+      trace_id: traceId,
     });
   }
 };
@@ -719,7 +722,7 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
     linked_modules?: Array<{ is_linked: boolean }>;
     master_data_ids?: string[];
     name?:string;
-    label?:string;
+    label:string;
     module_id?:string
   };
 
@@ -727,6 +730,7 @@ export const updateCustomFieldById = async (request: FastifyRequest, reply: Fast
   if (!program_id) {
     return sendError(reply, 400, 'Program ID is required');
   }
+  validateLabel(label);
 
   try {
     const customFieldRecord = await findCustomField(id, program_id);
