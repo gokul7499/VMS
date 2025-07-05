@@ -358,6 +358,7 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
                      FROM work_locations wl
                       WHERE wl.program_id = u.program_id
+                      AND wl.is_enabled=true
                      )
                     ELSE (
                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', wl.id, 'name', wl.name))
@@ -412,7 +413,8 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             LEFT JOIN ${auth_db}.roles ur ON u.role_id = ur.id
             LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
             LEFT JOIN user su ON u.supervisor = su.user_id
-            WHERE um.program_id = :program_id AND um.id = :id;
+            WHERE um.program_id = :program_id AND um.id = :id
+            AND dwl.is_enabled=true
             `;
 
             const replacements = { program_id, id };
