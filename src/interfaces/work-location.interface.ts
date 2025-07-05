@@ -13,7 +13,7 @@ export interface WorkLocationInterface {
     state_name?: string;
     state_code?: string;
     country_name?: string;
-    description?: string;
+    description?: Text;
     city_id?: string;
     zipcode?: string;
     country_id?: string;
