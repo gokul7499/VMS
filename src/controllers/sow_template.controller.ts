@@ -311,11 +311,19 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
             }
         });
 
-        sowTemplateRecord.hierarchy = JSON.parse(sowTemplateRecord.hierarchy || '[]');
-        sowTemplateRecord.custom_fields = JSON.parse(sowTemplateRecord.custom_fields || '[]');
-        sowTemplateRecord.master_data = typeof sowTemplateRecord.master_data === 'string'
-            ? JSON.parse(sowTemplateRecord.master_data || '[]')
-            : sowTemplateRecord.master_data;
+
+        sowTemplateRecord.hierarchy = sowTemplateRecord.hierarchy && typeof sowTemplateRecord.hierarchy === 'string'
+            ? JSON.parse(sowTemplateRecord.hierarchy)
+            : sowTemplateRecord.hierarchy || [];
+
+        sowTemplateRecord.custom_fields = sowTemplateRecord.custom_fields && typeof sowTemplateRecord.custom_fields === 'string'
+            ? JSON.parse(sowTemplateRecord.custom_fields)
+            : sowTemplateRecord.custom_fields || [];
+
+        sowTemplateRecord.master_data = sowTemplateRecord.master_data && typeof sowTemplateRecord.master_data === 'string'
+            ? JSON.parse(sowTemplateRecord.master_data)
+            : sowTemplateRecord.master_data || [];
+
 
         return reply.status(200).send({
 
