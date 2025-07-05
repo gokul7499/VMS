@@ -13,6 +13,7 @@ class ReasonCodeModel extends Model {
     reason_code_id: any;
     program_id: string | undefined;
    usage_count?: any;
+    updated_on: any;
 }
 
 ReasonCodeModel.init(

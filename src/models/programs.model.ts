@@ -11,6 +11,7 @@ class Programs extends Model {
   name: any;
   id: any;
   display_name: any;
+  created_on: any;
 }
 
 Programs.init(

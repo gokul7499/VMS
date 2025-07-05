@@ -8,13 +8,14 @@ import Event from '../models/event.model';
 import ReasonCodeModel from '../models/reason-code.model';
 import { sequelize } from '../config/instance';
 import { decodeToken } from '../middlewares/verifyToken';
+import { Programs } from '../models/programs.model';
 
 export async function createReasoncode(
     request: FastifyRequest,
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub
     try {
         const reasoncode = request.body as {
@@ -31,7 +32,7 @@ export async function createReasoncode(
                 name: string;
                 category: string;
                 is_enabled: boolean;
-                sq_number:number
+                sq_number: number
             }>;
         };
         if (reasoncode.event_id) {
@@ -89,7 +90,7 @@ export async function createReasonCodes(
     reply: FastifyReply
 ) {
     const traceId = generateCustomUUID();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user.sub;
 
     const transaction = await sequelize.transaction();
@@ -291,7 +292,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
         if (program_id) {
             const reasonCodes = await ReasonCodeModel.findAll({
-                where: { reason_code_id: id, program_id,is_deleted:false},
+                where: { reason_code_id: id, program_id, is_deleted: false },
                 attributes: ['id', 'name', 'created_on', 'category', 'is_enabled'],
                 order: [['sq_number', 'ASC']],
                 transaction,
@@ -299,8 +300,8 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
 
             if (reasonCodes.length === 0) {
                 const reasonCodesWithoutProgram = await ReasonCodeModel.findAll({
-                    where: { reason_code_id: id, program_id: null, is_deleted:false },
-                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled','sq_number'],
+                    where: { reason_code_id: id, program_id: null, is_deleted: false },
+                    attributes: ['id', 'name', 'created_on', 'category', 'is_enabled', 'sq_number'],
                     order: [['sq_number', 'ASC']],
                     transaction,
                 });
@@ -388,7 +389,7 @@ export async function getReasoncodeById(request: FastifyRequest, reply: FastifyR
                         created_on: reasonCode.created_on,
                         category: reasonCode.category,
                         is_enabled: reasonCode.is_enabled,
-                        sq_number:reasonCode.sq_number
+                        sq_number: reasonCode.sq_number
                     })),
                 };
 
@@ -525,7 +526,7 @@ export async function updateReasoncode(request: FastifyRequest, reply: FastifyRe
     const traceId = generateCustomUUID();
 
     const transaction = await ReasonCodeModel.sequelize?.transaction();
-    const user=request?.user;
+    const user = request?.user;
     const userId = user?.sub
 
     try {
@@ -692,7 +693,7 @@ export const getReasonCodeBySlug = async (
             });
         }
         const actions = await ReasonCodeActionModel.findAll({
-            where: { event_id: event.id, module_id: module.id,is_deleted: false, },
+            where: { event_id: event.id, module_id: module.id, is_deleted: false, },
         });
 
         if (!actions.length) {
@@ -814,131 +815,153 @@ export const getReasonCodeByProgramIdAndSlug = async (request: FastifyRequest, r
     }
 };
 
-    export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
-        const traceId = generateCustomUUID();
-        const { program_id } = request.params as { program_id: string };
+export async function advancedFilterReasoncode(request: FastifyRequest, reply: FastifyReply) {
+    const traceId = generateCustomUUID();
+    const { program_id } = request.params as { program_id: string };
 
-        try {
-            const {
-                page = 1,
-                limit = 10,
-                module_name,
-                reasons_count,
-                event_name,
-                updated_on,
-            } = request.body as {
-                page?: number;
-                limit?: number;
-                module_name?:string[];
-                reasons_count?: number;
-                event_name?: string;
-                updated_on?: string[];
-            };
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            module_name,
+            reasons_count,
+            event_name,
+            updated_on,
+        } = request.body as {
+            page?: number;
+            limit?: number;
+            module_name?: string[];
+            reasons_count?: number;
+            event_name?: string;
+            updated_on?: string[];
+        };
 
-            const pageNumber = Math.max(parseInt(String(page), 10) || 1, 1);
-            const limitNumber = Math.max(parseInt(String(limit), 10) || 10, 1);
-            const offset = (pageNumber - 1) * limitNumber;
+        const pageNumber = Math.max(parseInt(String(page), 10) || 1, 1);
+        const limitNumber = Math.max(parseInt(String(limit), 10) || 10, 1);
+        const offset = (pageNumber - 1) * limitNumber;
 
-            const whereClause: any = {
-                is_deleted: false,
-            };
-            if (module_name) {
-                if (Array.isArray(module_name)) {
-                    whereClause[Op.or] = module_name.map((name: string) => ({
-                        '$module.name$': { [Op.like]: `%${name}%` },
-                    }));
-                } else {
-                    whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
-                }
+        const whereClause: any = {
+            is_deleted: false,
+        };
+        if (module_name) {
+            if (Array.isArray(module_name)) {
+                whereClause[Op.or] = module_name.map((name: string) => ({
+                    '$module.name$': { [Op.like]: `%${name}%` },
+                }));
+            } else {
+                whereClause['$module.name$'] = { [Op.like]: `%${module_name}%` };
             }
-            if (event_name) {
-                whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
-            }
-    
-            if (reasons_count !== undefined) {
-                whereClause.reasons_count = reasons_count;
-            }
-          if (Array.isArray(updated_on) && updated_on.length === 2) {
-                const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
-                whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
-            }
-
-
-            const { count: totalRecords, rows: reasoncodes } = await ReasonCodeActionModel.findAndCountAll({
-                where: whereClause,
-                attributes: {
-                    exclude: [
-                        'ref_id',
-                        'updated_by',
-                        'created_by',
-                        'event_id',
-                        'module_id',
-                        'created_on',
-                        'is_deleted',
-                        'reason_code_limit',
-                        'slug',
-                    ],
-                },
-                include: [
-                    {
-                        model: Event,
-                        as: 'supporting_text_event',
-                        attributes: ['id', 'name'],
-                        required: false,
-                    },
-                    {
-                        model: Module,
-                        as: 'module',
-                        attributes: ['id', 'name'],
-                        required: false,
-                    },
-                ],
-                order: [
-                    [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'],
-                    [{ model: Module, as: 'module' }, 'name', 'ASC'],
-                    ['updated_on', 'DESC'],
-                ],
-                offset,
-                limit: limitNumber,
-                distinct: true,
-            });
-
-            const reasonCodeIds = reasoncodes.map(rc => rc.id);
-
-            const usageCountMap = await updateReasonCounts(program_id, reasonCodeIds);
-
-            const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
-                const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
-                return {
-                    ...reasoncodeData,
-                reasons_count:usageCountMap[reasoncodeData.id] || 0,
-                    module_name: module?.name ,
-                    module_id: module?.id ,
-                    event_name: supporting_text_event?.name ,
-                    event_id: supporting_text_event?.id ,
-                    reason_codes: null,
-                };
-            });
-            reply.status(200).send({
-                status_code: 200,
-                message: reasoncodesWithDetails.length
-                    ? 'Reasoncode retrieved successfully'
-                    : 'Reasoncode not found',
-                items_per_page: limitNumber,
-                total_records: totalRecords,
-                reason_code_action: reasoncodesWithDetails,
-                trace_id: traceId,
-            });
-        } catch (error: any) {
-            reply.status(500).send({
-                status_code: 500,
-                message: 'Internal server error',
-                trace_id: traceId,
-                error: error.message,
-            });
         }
+        if (event_name) {
+            whereClause['$supporting_text_event.name$'] = { [Op.like]: `%${event_name}%` };
+        }
+
+        if (reasons_count !== undefined) {
+            whereClause.reasons_count = reasons_count;
+        }
+        if (Array.isArray(updated_on) && updated_on.length === 2) {
+            const [startTimestamp, endTimestamp] = updated_on.map(ts => parseInt(ts, 10));
+            whereClause.updated_on = { [Op.between]: [startTimestamp, endTimestamp] };
+        }
+
+        const { count: totalRecords, rows: reasoncodes } = await ReasonCodeActionModel.findAndCountAll({
+            where: whereClause,
+            attributes: {
+                exclude: [
+                    'ref_id',
+                    'updated_by',
+                    'created_by',
+                    'event_id',
+                    'module_id',
+                    'created_on',
+                    'is_deleted',
+                    'reason_code_limit',
+                    'slug',
+                ],
+            },
+            include: [
+                {
+                    model: Event,
+                    as: 'supporting_text_event',
+                    attributes: ['id', 'name'],
+                    required: false,
+                },
+                {
+                    model: Module,
+                    as: 'module',
+                    attributes: ['id', 'name'],
+                    required: false,
+                },
+            ],
+            order: [
+                [Sequelize.literal("CASE WHEN `module`.`name` IS NULL THEN 1 ELSE 0 END"), 'ASC'],
+                [{ model: Module, as: 'module' }, 'name', 'ASC'],
+                ['updated_on', 'DESC'],
+            ],
+            offset,
+            limit: limitNumber,
+            distinct: true,
+        });
+
+        const reasonCodeIds = reasoncodes.map(rc => rc.id);
+
+        const usageCountMap = await updateReasonCounts(program_id, reasonCodeIds);
+
+        const reasonCodesRecords = await ReasonCodeModel.findAll({
+            where: {
+                program_id: program_id,
+                reason_code_id: { [Op.in]: reasonCodeIds }
+            },
+            attributes: ['reason_code_id', 'updated_on']
+        });
+
+        const reasonCodesUpdatedOnMap = reasonCodesRecords.reduce((acc, record) => {
+            acc[record.reason_code_id] = record.updated_on;
+            return acc;
+        }, {} as Record<string, any>);
+
+        const program = await Programs.findByPk(program_id, {
+            attributes: ['created_on']
+        });
+        const programUpdatedOn = program?.created_on;
+
+        const reasoncodesWithDetails = reasoncodes.map((reasoncode: any) => {
+            const { supporting_text_event, module, ...reasoncodeData } = reasoncode.toJSON();
+            
+            const finalUpdatedOn = reasonCodesUpdatedOnMap[reasoncodeData.id] || programUpdatedOn;
+            
+            return {
+                ...reasoncodeData,
+                updated_on: finalUpdatedOn,
+                reasons_count: usageCountMap[reasoncodeData.id] || 0,
+                module_name: module?.name,
+                module_id: module?.id,
+                event_name: supporting_text_event?.name,
+                event_id: supporting_text_event?.id,
+                reason_codes: null,
+            };
+        });
+
+        reply.status(200).send({
+            status_code: 200,
+            message: reasoncodesWithDetails.length
+                ? 'Reasoncode retrieved successfully'
+                : 'Reasoncode not found',
+            items_per_page: limitNumber,
+            total_records: totalRecords,
+            reason_code_action: reasoncodesWithDetails,
+            trace_id: traceId,
+        });
+    } catch (error: any) {
+        reply.status(500).send({
+            status_code: 500,
+            message: 'Internal server error',
+            trace_id: traceId,
+            error: error.message,
+        });
     }
- 
+}
+
 async function updateReasonCounts(program_id: string, reasonCodeActionIds: string[]) {
     const usageCounts = await ReasonCodeModel.findAll({
         where: {
