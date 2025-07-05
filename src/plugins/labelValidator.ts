@@ -4,5 +4,3 @@ export const validateLabel = (label: string) => {
     throw new Error("Label cannot be only numbers.");
   }
 };
-
-
