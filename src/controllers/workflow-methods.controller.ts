@@ -380,45 +380,43 @@ function sortWorkflowMethods(responses: any[], sortByPending = false, workflows:
     return responses
         .map((response) => {
             const matchedWorkflow = workflows.find(
-                (w) => response.method_ids?.includes(w.dataValues.method_id)
+                (w) =>
+                    response.method_ids?.includes(w.dataValues.method_id)
             );
-
+            
             response.is_workflow = !!matchedWorkflow;
             response.workflow_id = (moduleLower === "assignment" || moduleLower === "job")
                 ? null
                 : matchedWorkflow?.dataValues?.id ?? null;
-
             response.workflow_status = matchedWorkflow?.dataValues?.status ?? null;
-
             return response;
         })
         .sort((a, b) => {
-            const aStatusIsPending = a.is_workflow ?? false;
-            const bStatusIsPending = b.is_workflow ?? false;
-
+            const aStatusIsPending = a.is_workflow ?? false;  
+            const bStatusIsPending = b.is_workflow ?? false;  
             if (sortByPending) {
-                if (aStatusIsPending && !bStatusIsPending) return 1;
+                if (aStatusIsPending && !bStatusIsPending) return 1;  
                 if (!aStatusIsPending && bStatusIsPending) return -1;
             }
 
-            const aName = a?.name?.trim().toLowerCase();
-            const bName = b?.name?.trim().toLowerCase();
+            const aIsReview =
+                a?.name?.trim().toLowerCase() === "review";
+            const bIsReview =
+                b?.name?.trim().toLowerCase() === "review";
 
-            const aIsReview = aName === "review";
-            const bIsReview = bName === "review";
+            const aIsApproval =
+                a?.name?.trim().toLowerCase() === "approval";
+            const bIsApproval =
+                b?.name?.trim().toLowerCase() === "approval";
 
-            const aIsApproval = aName === "approval";
-            const bIsApproval = bName === "approval";
-
-            if (aIsReview && !bIsReview) return -1;
+            if (aIsReview && !bIsReview) return -1; 
             if (!aIsReview && bIsReview) return 1;
 
-            if (aIsApproval && !bIsApproval) return 1;
+            if (aIsApproval && !bIsApproval) return 1; 
             if (!aIsApproval && bIsApproval) return -1;
 
-            return 0;
+            return 0; 
         });
-
 }
 
   
