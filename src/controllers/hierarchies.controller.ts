@@ -270,7 +270,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
         hierarchy.parent_hierarchy_name = null;
       }
       const [customFieldResult] = await sequelize.query(
-        getCustomsField(hierarchy.id, 'hierarchies_custom_field', 'hierarchy_id'),
+        getCustomsField(hierarchy.id, 'hierarchies_custom_field', 'hierarchy_id', 'customfield_id'),
         {
           replacements: { id: hierarchy.id },
           type: QueryTypes.SELECT,

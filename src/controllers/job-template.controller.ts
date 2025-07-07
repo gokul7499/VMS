@@ -217,13 +217,13 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
     };
 
     const transformedJobTemplate = transformBooleanFields(jobTemplate);
-    let customFields = await getCustomsField(transformedJobTemplate.id, 'job_template_custom_field', 'job_temp_id');
-    const mappedCustomFields = Array.isArray(customFields)
-      ? customFields.map((field: any) => ({
-        ...field,
-        value: parseValue(field.value),
-      }))
-      : [];
+    const [customFieldsResult] = await sequelize.query(
+      getCustomsField(transformedJobTemplate.id, 'job_template_custom_field', 'job_temp_id','custom_field_id'),
+      {
+        replacements: { id: transformedJobTemplate.id },
+        type: QueryTypes.SELECT,
+      }
+    )as any;
 
 
     reply.status(200).send({
@@ -231,7 +231,7 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
       message: "Job template fetched successfully",
       job_template:{
         ...transformedJobTemplate,
-        job_template_custom_fields: mappedCustomFields,
+        job_template_custom_fields: customFieldsResult,
       },
       trace_id: traceId,
     });

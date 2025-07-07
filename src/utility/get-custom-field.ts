@@ -1,9 +1,9 @@
-    export const getCustomsField = ( id: string, tableName: string,columnName:string) => `
+    export const getCustomsField = ( id: string, tableName: string,columnName:string,customFieldId:string) => `
     SELECT
         COALESCE((
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
-                    'custom_field_id', dcf.customfield_id,
+                    'custom_field_id', dcf.${customFieldId},
                     'value', dcf.value,
                     'label', cf.label,
                     'field_type', cf.field_type,
@@ -15,7 +15,7 @@
                 )
             )
             FROM ${tableName} dcf
-            JOIN custom_fields cf ON dcf.customfield_id = cf.id
+            JOIN custom_fields cf ON dcf.${customFieldId} = cf.id
             LEFT JOIN user AS u
             ON REPLACE(REPLACE(dcf.value, '"', ''), ' ', '') = TRIM(u.user_id)
             AND u.program_id = cf.program_id
