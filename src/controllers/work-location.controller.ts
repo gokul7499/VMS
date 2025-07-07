@@ -11,7 +11,7 @@ import { getWorklocation,} from "../utility/queries";
 import { sequelize } from "../config/instance";
 import CountryModel from "../models/countries.model";
 import WorkLocationCustomFieldModel from "../models/work-location-custom-field";
-import { getCustomsField } from "../utility/get-custom-field";
+import { getCustomsField } from "../utility/get-custom-field";  
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -306,7 +306,7 @@ export async function getWorkLocationById(request: FastifyRequest, reply: Fastif
       });
     }
     const [customFieldsResult] = await sequelize.query(
-      getCustomsField(id, 'work_location_custom_field', 'work_location_id'),
+      getCustomsField(id, 'work_location_custom_field', 'work_location_id', 'customfield_id'),
       {
         replacements: { id },
         type: QueryTypes.SELECT,
