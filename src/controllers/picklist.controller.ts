@@ -10,7 +10,7 @@ import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { error } from 'console';
 import picklistItemModel from '../models/picklist-item.model';
-import { v4 as uuidv4 } from 'uuid'; 
+import { v4 as uuidv4 } from 'uuid';
 
 export async function getPicklistById(
   request: FastifyRequest,
@@ -419,7 +419,7 @@ export const updatePicklistAndItem = async (
           ],
         },
       });
-      
+
          if (existingPicklistWithSameName) {
         return reply.status(400).send({
           status_code: 400,
@@ -1015,9 +1015,7 @@ export const clonePredefinedPicklistsForProgram = async (
   const requiredSlugs = [
     "worker_classification",
     "job_type",
-    "worker_types",
-    "worker_source_type"
-    ,
+    "worker_source_type",
   ];
 
   const predefinedPicklists = await picklist_model.findAll({
