@@ -38,6 +38,7 @@ import vendorLabourCategoriesModel from "../models/vendor-labour-categories.mode
 import IndustriesModel from "../models/labour-category.model";
 import Checklist from "../models/checklist.model";
 import GlobalRepository from "../repositories/global.repository";
+import { getCustomsField } from "../utility/get-custom-field";
 
 interface Metadata {
   program_id: string;
@@ -216,9 +217,9 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
     };
 
     const transformedJobTemplate = transformBooleanFields(jobTemplate);
-
-    transformedJobTemplate.job_template_custom_fields = Array.isArray(transformedJobTemplate.job_template_custom_fields)
-      ? transformedJobTemplate.job_template_custom_fields.map((field: any) => ({
+    let customFields = await getCustomsField(transformedJobTemplate.id, 'job_template_custom_field', 'job_temp_id');
+    const mappedCustomFields = Array.isArray(customFields)
+      ? customFields.map((field: any) => ({
         ...field,
         value: parseValue(field.value),
       }))
@@ -228,7 +229,10 @@ export async function getJobTemplateById(request: FastifyRequest, reply: Fastify
     reply.status(200).send({
       statusCode: 200,
       message: "Job template fetched successfully",
-      job_template: transformedJobTemplate,
+      job_template:{
+        ...transformedJobTemplate,
+        job_template_custom_fields: mappedCustomFields,
+      },
       trace_id: traceId,
     });
   } catch (error: any) {

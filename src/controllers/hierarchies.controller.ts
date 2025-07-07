@@ -14,6 +14,7 @@ import TenantModel from '../models/tenant.model';
 import CountryModel from '../models/countries.model';
 import CustomField from '../models/custom-fields.model';
 import GlobalRepository from '../repositories/global.repository';
+import { getCustomsField } from '../utility/get-custom-field';
 
 interface HierarchyItem {
   support_email: any;
@@ -241,7 +242,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
     if (countryId) {
       countryData = await CountryModel.findOne({
         where: { id: countryId },
-        attributes: ["id", "name","iso_code_2","iso_code_3","isd_code"],
+        attributes: ["id", "name", "iso_code_2", "iso_code_3", "isd_code"],
       });
     }
     if (hierarchy) {
@@ -252,7 +253,7 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
 
       hierarchy.is_hide_candidate_img = hierarchy.is_hide_candidate_img === 1 ? true : false;
       hierarchy.is_vendor_neutral_program = hierarchy.is_vendor_neutral_program === 1 ? true : false;
-      hierarchy.country = countryData || { id: null, name: null,iso_code_2:null ,isd_code:null,iso_code_3:null};
+      hierarchy.country = countryData || { id: null, name: null, iso_code_2: null, isd_code: null, iso_code_3: null };
 
       if (masterDataResult) {
         const parsedData = typeof masterDataResult.foundational_data === 'string'
@@ -268,12 +269,21 @@ export async function getHierarchiesById(request: FastifyRequest, reply: Fastify
         hierarchy.foundational_data = [];
         hierarchy.parent_hierarchy_name = null;
       }
-
+      const [customFieldResult] = await sequelize.query(
+        getCustomsField(hierarchy.id, 'hierarchies_custom_field', 'hierarchy_id'),
+        {
+          replacements: { id: hierarchy.id },
+          type: QueryTypes.SELECT,
+        }
+      ) as any;
       return reply.status(200).send({
         status_code: 200,
         message: "Hierarchies data get successfully",
         trace_id: traceId,
-        hierarchies: hierarchy,
+        hierarchies: {
+          ...hierarchy,
+          custom_fields: customFieldResult?.custom_fields || [],
+        }
       });
     } else {
       return reply.status(404).send({
@@ -295,7 +305,7 @@ export async function createHierarchies(request: FastifyRequest, reply: FastifyR
   const hierarchie = request.body as hierarchiesData;
   const hierarchyCode = hierarchie.code;
   const traceId = generateCustomUUID();
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
   logger({
     trace_id: traceId,
@@ -407,7 +417,7 @@ export async function updateHierarchies(request: FastifyRequest, reply: FastifyR
   const { id, program_id } = request.params as { id: string; program_id: string };
   const hierarchiesData = request.body as hierarchiesData;
   const traceId = generateCustomUUID();
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
   try {
     const hierarchy = await HierarchiesModel.findOne({
@@ -763,7 +773,7 @@ export const updateIsNotEditableFlag = async (request: FastifyRequest, reply: Fa
 
 export async function getUserHierarchies(request: FastifyRequest, reply: FastifyReply) {
   const traceId = generateCustomUUID();
-   const user=request?.user
+  const user = request?.user
   const userId = user.sub;
   const userType = user.userType;
   const { program_id } = request.params as { program_id: string };
@@ -1047,12 +1057,12 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
 
   // Validate input
   if (!Array.isArray(hierarchiesData) || hierarchiesData.length === 0) {
-    return reply.status(400).send({ 
-      message: 'Bad Request - Expected array of hierarchy objects' 
+    return reply.status(400).send({
+      message: 'Bad Request - Expected array of hierarchy objects'
     });
   }
 
-  const user=request?.user
+  const user = request?.user
   const userId = user?.sub;
 
   logger({
@@ -1078,17 +1088,17 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
 
   try {
     const hierarchyCodes = hierarchiesData.map(h => h.code);
-    
+
     const existingCodes = await HierarchiesModel.findAll({
-      where: { 
-        code: { [Op.in]: hierarchyCodes }, 
-        program_id, 
-        is_deleted: false 
+      where: {
+        code: { [Op.in]: hierarchyCodes },
+        program_id,
+        is_deleted: false
       },
       attributes: ['code'],
       transaction,
     });
-    
+
     const existingCodesSet = new Set(existingCodes.map(item => item.code));
 
     for (let i = 0; i < hierarchiesData.length; i++) {
@@ -1107,49 +1117,49 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
 
         let managedById = null;
         if (hierarchie.managed_by) {
-        const managedByUser = await TenantModel.findOne({
-         where: {
-         display_name: hierarchie.managed_by
-        },
-        attributes: ['id'],
-        transaction
-      });
+          const managedByUser = await TenantModel.findOne({
+            where: {
+              display_name: hierarchie.managed_by
+            },
+            attributes: ['id'],
+            transaction
+          });
 
-     if (managedByUser) {
-      managedById = managedByUser.id;
-     } else {
-        results.failed.push({
-        index: i,
-       code: hierarchyCode,
-       message: `Invalid managed_by: '${hierarchie.managed_by}' not found`
-      });
-      continue; 
-    }
-}
-         let parentHierarchyId = null;
-    if (hierarchie.parent_hierarchy_name && hierarchie.parent_hierarchy_code) {
-      const parentHierarchy = await HierarchiesModel.findOne({
-        where: {
-          name: hierarchie.parent_hierarchy_name,
-          code: hierarchie.parent_hierarchy_code,
-          program_id,
-          is_deleted: false
-        },
-        attributes: ['id'],
-        transaction
-      });
+          if (managedByUser) {
+            managedById = managedByUser.id;
+          } else {
+            results.failed.push({
+              index: i,
+              code: hierarchyCode,
+              message: `Invalid managed_by: '${hierarchie.managed_by}' not found`
+            });
+            continue;
+          }
+        }
+        let parentHierarchyId = null;
+        if (hierarchie.parent_hierarchy_name && hierarchie.parent_hierarchy_code) {
+          const parentHierarchy = await HierarchiesModel.findOne({
+            where: {
+              name: hierarchie.parent_hierarchy_name,
+              code: hierarchie.parent_hierarchy_code,
+              program_id,
+              is_deleted: false
+            },
+            attributes: ['id'],
+            transaction
+          });
 
-      if (parentHierarchy) {
-        parentHierarchyId = parentHierarchy.id;
-      } else {
-        results.failed.push({
-          index: i,
-          code: hierarchyCode,
-          message: `Invalid parent_hierarchy: name='${hierarchie.parent_hierarchy_name}', code='${hierarchie.parent_hierarchy_code}' not found`
-        });
-        continue;
-      }
-    }
+          if (parentHierarchy) {
+            parentHierarchyId = parentHierarchy.id;
+          } else {
+            results.failed.push({
+              index: i,
+              code: hierarchyCode,
+              message: `Invalid parent_hierarchy: name='${hierarchie.parent_hierarchy_name}', code='${hierarchie.parent_hierarchy_code}' not found`
+            });
+            continue;
+          }
+        }
 
         const newItem = await HierarchiesModel.create(
           {
@@ -1163,48 +1173,48 @@ export async function bulkCreateHierarchies(request: FastifyRequest, reply: Fast
           { transaction }
         );
 
-if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
-  const customFieldNames = hierarchie.custom_fields.map((field: { name: any; value: any }) => field.name);
-  
-  const customFieldsFromDB = await CustomField.findAll({
-    where: {
-      name: { [Op.in]: customFieldNames },
-      program_id 
-    },
-    attributes: ['id', 'name'],
-    transaction
-  });
-  
-  const customFieldMap = new Map();
-  customFieldsFromDB.forEach((cf: { name: any; id: any; }) => {
-    customFieldMap.set(cf.name, cf.id);
-  });
-  
-  const validCustomFields = [];
-  const invalidCustomFields = [];
-  
-  for (const field of hierarchie.custom_fields) {
-    const customFieldId = customFieldMap.get(field.name);
-    
-    if (customFieldId) {
-      validCustomFields.push({
-        program_id,
-        customfield_id: customFieldId, 
-        value: field.value,
-        hierarchy_id: newItem.id,
-      });
-    } else {
-      invalidCustomFields.push(field.name);
-    }
-  }
-    if (invalidCustomFields.length > 0) {
-    if (validCustomFields.length > 0) {
-      await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
-    }
-  } else {
-    await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
-  }
-}
+        if (Array.isArray(hierarchie.custom_fields) && hierarchie.custom_fields.length > 0) {
+          const customFieldNames = hierarchie.custom_fields.map((field: { name: any; value: any }) => field.name);
+
+          const customFieldsFromDB = await CustomField.findAll({
+            where: {
+              name: { [Op.in]: customFieldNames },
+              program_id
+            },
+            attributes: ['id', 'name'],
+            transaction
+          });
+
+          const customFieldMap = new Map();
+          customFieldsFromDB.forEach((cf: { name: any; id: any; }) => {
+            customFieldMap.set(cf.name, cf.id);
+          });
+
+          const validCustomFields = [];
+          const invalidCustomFields = [];
+
+          for (const field of hierarchie.custom_fields) {
+            const customFieldId = customFieldMap.get(field.name);
+
+            if (customFieldId) {
+              validCustomFields.push({
+                program_id,
+                customfield_id: customFieldId,
+                value: field.value,
+                hierarchy_id: newItem.id,
+              });
+            } else {
+              invalidCustomFields.push(field.name);
+            }
+          }
+          if (invalidCustomFields.length > 0) {
+            if (validCustomFields.length > 0) {
+              await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
+            }
+          } else {
+            await HierarchyCustomFieldModel.bulkCreate(validCustomFields, { transaction });
+          }
+        }
         existingCodesSet.add(hierarchyCode);
 
         results.successful.push({
