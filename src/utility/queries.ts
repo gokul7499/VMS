@@ -2653,13 +2653,12 @@ COALESCE((
       ), JSON_ARRAY())
     )
   )
-  FROM (
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[0]')) AS value
-    UNION ALL
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[1]')) AS value
-    UNION ALL
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(invitation.foundational_data, '$[2]')) AS value
-  ) AS fd
+  FROM JSON_TABLE(
+  CAST(invitation.foundational_data AS JSON),
+  '$[*]' COLUMNS (
+    value JSON PATH '$'
+  )
+) AS fd
   JOIN master_data_type AS mdt
     ON JSON_UNQUOTE(JSON_EXTRACT(fd.value, '$.master_data')) = mdt.id
 ), JSON_ARRAY()) AS foundational_data,
