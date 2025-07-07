@@ -2934,7 +2934,7 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
     // 1. First try to extract from recipient_types if it's available
     let recipients: any[] = [];
     
-    if (recipient_types) {
+    if (recipient_types) { 
         try {
             let parsedTypes;
             if (typeof recipient_types === 'string') {
@@ -2965,8 +2965,9 @@ async function processWorkflowRow(row: any, workflows: { [key: string]: Workflow
                     }
 
                     let imposonate_user_data = null;
-                    if (imporsonate_by) {
-                        const imporsonateUserResult = await fetchUserData(imporsonate_by, program_id);
+                    if (rt?.impersonate_by || imporsonate_by) {
+                        const imporsonater = rt?.impersonate_by || imporsonate_by
+                        const imporsonateUserResult = await fetchUserData(imporsonater, program_id);
 
                         if (imporsonateUserResult?.length) {
                             imposonate_user_data = mapImporsonateUserData(imporsonateUserResult[0], recipientTypeName, recipient_details, behaviour);
