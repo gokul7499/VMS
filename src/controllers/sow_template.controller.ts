@@ -344,84 +344,112 @@ export const getSowTemplate = async (request: FastifyRequest, reply: FastifyRepl
     }
 };
 
-
-
 export const updateSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-    const traceId = generateCustomUUID();
-    const transaction = await sequelize.transaction();
+  const traceId = generateCustomUUID();
+  const transaction = await sequelize.transaction();
 
-    try {
-        const { id, program_id } = request.params as { id: string; program_id: string };
-        const sowTemplate = request.body as SowTemplate;
-        const userId = request.headers['user_id'];
+  try {
+    const { id, program_id } = request.params as { id: string; program_id: string };
+    const sowTemplate = request.body as SowTemplate;
+    const userId = request.headers['user_id'];
 
-        const existingTemplate = await SowTemplateModel.findOne({
-            where: {
-                id,
-                program_id,
-                is_deleted: false,
-                latest: true,
-            },
-            transaction,
-        });
+    const existingTemplate = await SowTemplateModel.findOne({
+      where: {
+        id,
+        program_id,
+        is_deleted: false,
+        latest: true,
+      },
+      transaction,
+    });
 
-        if (!existingTemplate) {
-            await transaction.rollback();
-            return reply.status(404).send({
-                status_code: 404,
-                message: 'SOW Template not found.',
-                trace_id: traceId,
-            });
-        }
-        await existingTemplate.update(
-            { latest: false },
-            { transaction }
-        );
-        const oldRevision = Number(existingTemplate.revision ?? 0);
-        const newRevision = oldRevision + 1;
-        const newTemplate = await SowTemplateModel.create(
-            {
-                ...existingTemplate.toJSON(),
-                ...sowTemplate,
-                id: undefined,
-                revision: newRevision,
-                latest: true,
-                created_on: userId,
-                created_by: userId,
-                updated_on: Date.now(),
-                updated_by: userId,
-            },
-            { transaction }
-        );
-
-        if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
-            for (const hierarchyId of sowTemplate.hierarchy) {
-                await SowTemplateHierarchyModel.create({
-                    sow_template_id: newTemplate.id,
-                    hierarchy_id: hierarchyId,
-                    created_by: userId,
-                    updated_by: userId,
-                },
-                    { transaction }
-                );
-            }
-        }
-        await transaction.commit();
-        return reply.status(200).send({
-            status_code: 200,
-            message: 'SOW template versioned update successfully.',
-            trace_id: traceId,
-            data: newTemplate,
-        });
-    } catch (error: any) {
-        await transaction.rollback();
-        return reply.status(500).send({
-            status_code: 500,
-            message: 'Error updating SOW template.',
-            error: error.message,
-            trace_id: traceId,
-        });
+    if (!existingTemplate) {
+      await transaction.rollback();
+      return reply.status(404).send({
+        status_code: 404,
+        message: 'SOW Template not found.',
+        trace_id: traceId,
+      });
     }
+    const {
+      id: _,
+      created_by,
+      created_on,
+      ...updatableFields
+    } = sowTemplate;
+    await existingTemplate.update(
+      {
+        ...updatableFields,
+        updated_by: userId,
+        updated_on: Date.now(),
+      },
+      { transaction }
+    );
+    if (Array.isArray(sowTemplate.custom_fields)) {
+      for (const field of sowTemplate.custom_fields) {
+        const { id: custom_field_id, value } = field;
+        if (!custom_field_id) continue;
+         const [record, created] = await SowTemplateCustomField.findOrCreate({
+          where: {
+            sow_temp_id: id,
+            custom_field_id,
+          },
+          defaults: {
+            value,
+            sow_temp_id: id,
+            custom_field_id,
+            created_by: userId,
+            updated_by: userId,
+            created_on: Date.now(),
+            updated_on: Date.now(),
+          },
+          transaction,
+        });
+      if (!created) {
+          await record.update(
+            {
+              value,
+              updated_by: userId,
+              updated_on: Date.now(),
+            },
+            { transaction }
+          );
+        }
+      }
+    }
+    if (Array.isArray(sowTemplate.hierarchy) && sowTemplate.hierarchy.length > 0) {
+      await SowTemplateHierarchyModel.destroy({
+        where: { sow_template_id: id },
+        transaction,
+      });
+
+      for (const hierarchyId of sowTemplate.hierarchy) {
+        await SowTemplateHierarchyModel.create({
+            sow_template_id: id,
+            hierarchy_id: hierarchyId,
+            created_by: userId,
+            updated_by: userId,
+          },
+          { transaction }
+        );
+      }
+    }
+    await transaction.commit();
+    return reply.status(200).send({
+      status_code: 200,
+      message: 'SOW template versioned update successfully.',
+      trace_id: traceId,
+      data: id,
+    });
+  } catch (error: any) {
+    await transaction.rollback();
+    return reply.status(500).send({
+      status_code: 500,
+      message: 'Error updating SOW template.',
+      error: error.message,
+      trace_id: traceId,
+    });
+  }
 };
 
 export const deleteSowTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
