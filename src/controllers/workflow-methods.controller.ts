@@ -301,13 +301,13 @@ export async function getWorkflowMethod(request: FastifyRequest, reply: FastifyR
         const moduleLower = module.toLowerCase();
 
         if (moduleLower === 'job') {
-            return await handleJobModule(workflow_trigger_id, reply, traceId);
+            return await handleJobModule(workflow_trigger_id, reply, traceId, moduleLower);
         }
         else if (moduleLower === 'offer') {
             return await handleOfferModule(workflow_trigger_id, reply, traceId);
         }
         else if (moduleLower === 'assignment' || moduleLower === 'assignments') {
-            return await handleAssignmentModule(workflow_trigger_id, reply, traceId);
+            return await handleAssignmentModule(workflow_trigger_id, reply, traceId, moduleLower);
         }
         
         else if (moduleLower === 'timesheet') {
@@ -376,52 +376,56 @@ async function getWorkflows(workflowTriggerId: string | undefined, options?: { i
     return await JobWorkFlowModel.findAll({ where });
 }
 
-function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = []) {
+function sortWorkflowMethods(responses: any[], sortByPending = false, workflows: any[] = [], moduleLower: string = "") {
     return responses
         .map((response) => {
             const matchedWorkflow = workflows.find(
-                (w) =>
-                    response.method_ids?.includes(w.dataValues.method_id)
+                (w) => response.method_ids?.includes(w.dataValues.method_id)
             );
-            
+
             response.is_workflow = !!matchedWorkflow;
-            response.workflow_id = matchedWorkflow?.dataValues?.id ?? null;
+            response.workflow_id = (moduleLower === "assignment" || moduleLower === "job")
+                ? null
+                : matchedWorkflow?.dataValues?.id ?? null;
+
             response.workflow_status = matchedWorkflow?.dataValues?.status ?? null;
+
             return response;
         })
         .sort((a, b) => {
-            const aStatusIsPending = a.is_workflow ?? false;  
-            const bStatusIsPending = b.is_workflow ?? false;  
+            const aStatusIsPending = a.is_workflow ?? false;
+            const bStatusIsPending = b.is_workflow ?? false;
+
             if (sortByPending) {
-                if (aStatusIsPending && !bStatusIsPending) return 1;  
+                if (aStatusIsPending && !bStatusIsPending) return 1;
                 if (!aStatusIsPending && bStatusIsPending) return -1;
             }
 
-            const aIsReview =
-                a?.name?.trim().toLowerCase() === "review";
-            const bIsReview =
-                b?.name?.trim().toLowerCase() === "review";
+            const aName = a?.name?.trim().toLowerCase();
+            const bName = b?.name?.trim().toLowerCase();
 
-            const aIsApproval =
-                a?.name?.trim().toLowerCase() === "approval";
-            const bIsApproval =
-                b?.name?.trim().toLowerCase() === "approval";
+            const aIsReview = aName === "review";
+            const bIsReview = bName === "review";
 
-            if (aIsReview && !bIsReview) return -1; 
+            const aIsApproval = aName === "approval";
+            const bIsApproval = bName === "approval";
+
+            if (aIsReview && !bIsReview) return -1;
             if (!aIsReview && bIsReview) return 1;
 
-            if (aIsApproval && !bIsApproval) return 1; 
+            if (aIsApproval && !bIsApproval) return 1;
             if (!aIsApproval && bIsApproval) return -1;
 
-            return 0; 
+            return 0;
         });
+
 }
 
   
   
 
 // Handle job module logic
-async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+async function handleJobModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string, moduleLower: string) {
     const moduleId = await findModuleBySlug("job");
 
     const eventId1 = await findEvent(moduleId, "create_job");
@@ -491,7 +495,7 @@ async function handleJobModule(workflowTriggerId: string | undefined, reply: Fas
         });
     }
 
-    const sortedResponse = sortWorkflowMethods(responses, false, workflows);
+    const sortedResponse = sortWorkflowMethods(responses, false, workflows, moduleLower);
 
     return reply.status(200).send({
         status_code: 200,
@@ -642,7 +646,7 @@ async function handleOfferModule(workflowTriggerId: string | undefined, reply: F
 }
 
 // Handle assignment module logic
-async function handleAssignmentModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string) {
+async function handleAssignmentModule(workflowTriggerId: string | undefined, reply: FastifyReply, traceId: string, moduleLower: string) {
     const moduleId = await findModuleBySlug("assignment");
     
     const eventId1 = await findEvent(moduleId, "create_assignment");
@@ -674,7 +678,8 @@ async function handleAssignmentModule(workflowTriggerId: string | undefined, rep
             }
         ];
         
-        const sortedResponse = sortWorkflowMethods(response, false, workflows);
+        const sortedResponse = sortWorkflowMethods(response, false, workflows, moduleLower);
+        console.log("sortedResponse is the ", sortedResponse);
         
         return reply.status(200).send({
             status_code: 200,
