@@ -7,10 +7,11 @@ import WorkLocationCurrency from "../models/work-location-currency.model";
 import { logger } from '../utility/loggerService';
 import { decodeToken } from '../middlewares/verifyToken';
 import { Op, QueryTypes } from "sequelize";
-import { getWorklocation, getWorklocationCustomField } from "../utility/queries";
+import { getWorklocation,} from "../utility/queries";
 import { sequelize } from "../config/instance";
 import CountryModel from "../models/countries.model";
 import WorkLocationCustomFieldModel from "../models/work-location-custom-field";
+import { getCustomsField } from "../utility/get-custom-field";
 
 export async function createWorkLocation(
   request: FastifyRequest,
@@ -305,9 +306,9 @@ export async function getWorkLocationById(request: FastifyRequest, reply: Fastif
       });
     }
     const [customFieldsResult] = await sequelize.query(
-      getWorklocationCustomField,
+      getCustomsField(id, 'work_location_custom_field', 'work_location_id'),
       {
-        replacements: { program_id, id },
+        replacements: { id },
         type: QueryTypes.SELECT,
       }
     ) as any;
