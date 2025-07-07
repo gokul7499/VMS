@@ -411,10 +411,9 @@ export const getUserMappings = async (request: FastifyRequest, reply: FastifyRep
             LEFT JOIN tenant t ON u.tenant_id = t.id
             LEFT JOIN hierarchies dh ON u.default_hierarchy_id = dh.id
             LEFT JOIN ${auth_db}.roles ur ON u.role_id = ur.id
-            LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id
+            LEFT JOIN work_locations dwl ON u.default_work_location_id = dwl.id AND dwl.is_enabled=true
             LEFT JOIN user su ON u.supervisor = su.user_id
             WHERE um.program_id = :program_id AND um.id = :id
-            AND dwl.is_enabled=true
             `;
 
             const replacements = { program_id, id };
