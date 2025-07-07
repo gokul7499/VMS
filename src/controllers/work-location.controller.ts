@@ -361,7 +361,7 @@ export async function updateWorkLocation(
         message: "program_id is required in the request body",
       });
     }
-
+    if(updates.id){
     const existingWorkLocation = await WorkLocationModel.findOne({
       where: {
         program_id,
@@ -389,7 +389,7 @@ export async function updateWorkLocation(
         message: `Work location with ${duplicateField} '${updates[duplicateField]}' already exists.`,
       });
     }
-
+  }
     const [numRowsUpdated] = await WorkLocationModel.update(
       { ...updates, updated_on: Date.now() },
       { where: { id, program_id, is_deleted: false }, transaction }
